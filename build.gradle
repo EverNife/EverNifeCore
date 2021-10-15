@@ -102,6 +102,7 @@ publishing {
     }
     publications {
         petrus(MavenPublication) {
+            artifact(shadowJar)
             groupId = project.group
             from(components.java)
             pom.withXml {
