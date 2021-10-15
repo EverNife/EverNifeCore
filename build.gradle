@@ -1,0 +1,115 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "com.github.jengelman.gradle.plugins:shadow:4.0.4"
+    }
+}
+
+plugins {
+    id 'java'
+    id 'idea'
+    id 'java-library'
+    id 'maven-publish'
+}
+
+apply plugin: "com.github.johnrengelman.shadow"
+
+version '2.0.1'
+
+targetCompatibility = 1.8
+sourceCompatibility = 1.8
+
+compileJava.options.encoding = 'UTF-8'
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+repositories {
+    flatDir { //Change this to where are your local libs
+        dirs 'C:/Users/Petrus/Desktop/Meus/workshop/workshop/MyOwnPlugins/Bukkit/FinalCraftCore/libs'
+        dirs 'C:/Users/Petrus/Desktop/Meus/workshop/workshop/PublicLibs'
+        dirs 'C:/Users/Petrus/Desktop/Meus/workshop/workshop/PublicLibs/Bukkit'
+    }
+    mavenCentral()
+    maven {
+        name = 'spigotmc-repo'
+        url = 'https://hub.spigotmc.org/nexus/content/groups/public/'
+    }
+    maven {
+        url 'https://jitpack.io'
+    }
+}
+
+dependencies {
+    implementation 'com.github.evernife:ChatMenuAPI:1.1.2b'
+
+    compileOnly 'org.bukkit:bukkit:1.12.2-R0.1-SNAPSHOT'
+    // @ DISCLAIMER @ //
+    // @ DISCLAIMER @ //
+    compileOnly name: "EverForgeLib-[1.7.10]"
+    // This is a private jar, if you want to compile EverNifeCore you need to remove the folders that use this jar
+    // @ DISCLAIMER @ //
+    // @ DISCLAIMER @ //
+    compileOnly name: "GriefPreventionPlus-13.3"
+    compileOnly name: "PlaceholderAPI"
+    compileOnly name: "worldguard-bukkit-6.2.2"
+    compileOnly name: "worldedit-bukkit-6.0"
+    compileOnly name: "Vault-1.6.7"
+    compileOnly name: "FeatherBoard-4.28.1" //This is a paid plugin, you need to buy it in order to build this project
+    compileOnly name: "MVdWPlaceholderAPI"
+    compileOnly name: "ProtocolLib"
+    implementation name: "craftbukkit1710" //Thats on you to find out
+    implementation name: "craftbukkit1122" //Thats on you to find out
+    implementation 'net.md-5:bungeecord-chat:1.16-R0.1' //This works from 1.7.10 onwards, is the same API
+    compileOnly group: 'commons-io', name: 'commons-io', version: '2.6' //Necessary for ReflectionUtils
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
+    compile 'org.jetbrains:annotations:16.0.2' //JetBrains Annotation helper
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+
+}
+
+shadowJar {
+    archiveName = "${baseName}-${version}.${extension}"
+    dependencies {
+        include(dependency('com.github.evernife:ChatMenuAPI:1.1.2b'))
+    }
+}
+
+jar {
+    enabled = false //Disable default jar, only shadow jar willl be
+    dependsOn(shadowJar { classifier = null })
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    from sourceSets.main.allSource
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "PetrusRepo"
+            url = "https://maven.petrus.dev/releases"
+            credentials {
+                username = System.env.PETRUSMAVEN_ACTOR
+                password = System.env.PETRUSMAVEN_TOKEN
+            }
+            authentication {
+                basic(BasicAuthentication)
+            }
+        }
+    }
+    publications {
+        petrus(MavenPublication) {
+            groupId = project.group
+            from(components.java)
+            pom.withXml {
+                asNode().appendNode('url','https://petrus.dev')
+                asNode().dependencies.'*'.each() {
+                    it.parent().remove(it) //Remove all dependencies from pom file
+                }
+            }
+        }
+    }
+}

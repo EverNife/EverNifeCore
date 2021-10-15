@@ -1,0 +1,176 @@
+name: EverNifeCore
+version: 2.0.1
+author: EverNife
+main: br.com.finalcraft.evernifecore.EverNifeCore
+softdepend: [ WorldGuard, WorldEdit, GriefPreventionPlus , LuckPerms, Vault, MVdWPlaceholderAPI, Factions, GPPSkyBlock, PlaceholderAPI, ProtocolLib]
+
+commands:
+  assinar:
+    description: EverNife Core Command
+    usage: /<command>
+  makeassinable:
+    description: EverNife Core Command
+    usage: /<command>
+  clearchat:
+    description: EverNife Core Command
+    usage: /<command>
+  loja:
+    description: EverNife Core Command
+    usage: /<command>
+  anunciar:
+    description: EverNife Core Command
+    aliases: [a]
+    usage: /<command>
+  changetime:
+    description: EverNife Core Command
+    usage: /<command>
+  kami:
+    description: EverNife Core Command
+    usage: /<command>
+  kamisama:
+    description: EverNife Core Command
+    usage: /<command>
+  unkami:
+    description: EverNife Core Command
+    usage: /<command>
+  site:
+    description: EverNife Core Command
+    usage: /<command>
+  wiki:
+    description: EverNife Core Command
+    usage: /<command>
+  mapa:
+    description: EverNife Core Command
+    usage: /<command>
+  veo:
+    description: EverNife Core Command
+    usage: /<command>
+  fcvote:
+    description: EverNife Core Command
+    aliases: [vote,votar,votos]
+    usage: /<command>
+  votefor:
+    description: EverNife Core Command
+    usage: /<command>
+  votetop:
+    description: EverNife Core Command
+    aliases: [topvote]
+    usage: /<command>
+  multicommand:
+    description: EverNife Core Command
+    usage: /<command>
+  location:
+    description: EverNife Core Command
+    usage: /<command>
+  checkcode:
+    description: EverNife Core Command
+    usage: /<command>
+  warp:
+    description: EverNife Core Command
+    aliases: warps
+    usage: /<command>
+  statistic:
+    description: EverNife Core Command
+    aliases: statistics
+    usage: /<command>
+  vidropreenchedor:
+    description: EverNife Core Command
+    usage: /<command>
+  playsoundall:
+    description: EverNife Core Command
+    usage: /<command>
+  implacavel:
+    description: EverNife Core Command
+    usage: /<command>
+  semiimplacavel:
+    description: EverNife Core Command
+    usage: /<command>
+  scare:
+    description: EverNife Core Command
+    usage: /<command>
+  flauta1:
+    description: EverNife Core Command
+    usage: /<command>
+  flauta2:
+    description: EverNife Core Command
+    usage: /<command>
+  camelot:
+    description: EverNife Core Command
+    usage: /<command>
+  brownfoxinn:
+    description: EverNife Core Command
+    usage: /<command>
+  blackwolf:
+    description: EverNife Core Command
+    usage: /<command>
+  vamosparaprisao:
+    description: EverNife Core Command
+    usage: /<command>
+  akatsuki:
+    description: EverNife Core Command
+    usage: /<command>
+  dunkadunka:
+    description: EverNife Core Command
+    usage: /<command>
+  dbz:
+    description: EverNife Core Command
+    usage: /<command>
+  homemser:
+    description: EverNife Core Command
+    usage: /<command>
+  sadviolin:
+    description: EverNife Core Command
+    usage: /<command>
+  youshallnotpass:
+    description: EverNife Core Command
+    usage: /<command>
+  placaedit:
+    description: EverNife Core Command
+    aliases: [sign,signedit,placa]
+    usage: /<command>
+  fcitem:
+    description: EverNife Core Command
+    usage: /<command>
+  fcwedit:
+    description: EverNife Core Command
+    usage: /<command>
+  fcinventory:
+    description: EverNife Core Command
+    usage: /<command>
+    aliases: [fcinv]
+  giveall:
+    description: EverNife Core Command
+    usage: /<command>
+  ondeestou:
+    description: EverNife Core Command
+    usage: /<command>
+    aliases: [onde]
+  nightvision:
+    description: EverNife Core Command
+    usage: /<command>
+    aliases: [nv]
+  forcetospawn:
+    description: EverNife Core Command
+    usage: /<command>
+  estouseguro:
+    description: EverNife Core Command
+    usage: /<command>
+    aliases: [estou]
+  fclist:
+    description: EverNife Core Command
+    usage: /<command>
+    aliases: [list]
+  fcrules:
+    description: EverNife Core Command
+    usage: /<command>
+    aliases: [rules,regras]
+  loadchunksinregion:
+    description: EverNife Core Command
+    usage: /<command>
+    aliases: [rules,regras]
+  topkills:
+    description: EverNife Core Command
+    usage: /<command>
+  testnms:
+    description: EverNife Core Command
+    usage: /<command>
