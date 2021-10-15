@@ -1,9 +1,10 @@
 package br.com.finalcraft.evernifecore.minecraft.vector;
 
+import br.com.finalcraft.evernifecore.config.Config;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 
-public class BlockPos implements Comparable<BlockPos>{
+public class BlockPos implements Comparable<BlockPos>, Config.Salvable {
 
     private int floor_double(double p_76128_0_)
     {
@@ -80,6 +81,21 @@ public class BlockPos implements Comparable<BlockPos>{
     @Override
     public String toString() {
         return "[" + x + "," + y + "," + z + "]";
+    }
+
+    @Override
+    public void onConfigSave(Config config, String path) {
+        config.setValue(path + ".x", x);
+        config.setValue(path + ".y", y);
+        config.setValue(path + ".z", z);
+    }
+
+    @Config.Loadable
+    public static BlockPos onConsigLoad(Config config, String path){
+        int x = config.getInt(path + ".x");
+        int y = config.getInt(path + ".y");
+        int z = config.getInt(path + ".z");
+        return new BlockPos(x,y,z);
     }
 
     public static class MutableBlockPos extends BlockPos {

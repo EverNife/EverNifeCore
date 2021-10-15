@@ -1,8 +1,9 @@
 package br.com.finalcraft.evernifecore.minecraft.vector;
 
+import br.com.finalcraft.evernifecore.config.Config;
 import org.bukkit.Chunk;
 
-public class ChunkPos {
+public class ChunkPos implements Config.Salvable {
     public final int x;
     public final int z;
 
@@ -57,6 +58,19 @@ public class ChunkPos {
 
     public BlockPos getBlock(int x, int y, int z) {
         return new BlockPos((this.x << 4) + x, y, (this.z << 4) + z);
+    }
+
+    @Override
+    public void onConfigSave(Config config, String path) {
+        config.setValue(path + ".chunkX", x);
+        config.setValue(path + ".chunkZ", z);
+    }
+
+    @Config.Loadable
+    public static ChunkPos onConsigLoad(Config config, String path){
+        int x = config.getInt(path + ".x");
+        int z = config.getInt(path + ".z");
+        return new ChunkPos(x,z);
     }
 
     @Override
