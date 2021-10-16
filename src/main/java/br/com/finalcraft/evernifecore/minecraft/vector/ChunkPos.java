@@ -61,6 +61,13 @@ public class ChunkPos implements Config.Salvable {
     }
 
     @Override
+    public int hashCode(){
+        int i = 1664525 * this.x + 1013904223;
+        int j = 1664525 * (this.z ^ -559038737) + 1013904223;
+        return i ^ j;
+    }
+
+    @Override
     public void onConfigSave(Config config, String path) {
         config.setValue(path + ".chunkX", x);
         config.setValue(path + ".chunkZ", z);

@@ -6,10 +6,9 @@ import org.bukkit.entity.Entity;
 
 public class BlockPos implements Comparable<BlockPos>, Config.Salvable {
 
-    private int floor_double(double p_76128_0_)
-    {
-        int i = (int)p_76128_0_;
-        return p_76128_0_ < (double)i ? i - 1 : i;
+    private int floor_double(double value){
+        int i = (int) value;
+        return value < (double)i ? i - 1 : i;
     }
 
     private final int x;
@@ -61,6 +60,12 @@ public class BlockPos implements Comparable<BlockPos>, Config.Salvable {
         }
     }
 
+    @Override
+    public int hashCode() { //Forge HashCode for BlockPost https://forums.minecraftforge.net/topic/88361-discussion-safe-to-use-blockposhashcode/
+        return (this.getY() + this.getZ() * 31) * 31 + this.getX();
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -76,6 +81,10 @@ public class BlockPos implements Comparable<BlockPos>, Config.Salvable {
                 return this.getZ() == blockPos.getZ();
             }
         }
+    }
+
+    public ChunkPos getChunkPos(){
+        return new ChunkPos(this);
     }
 
     @Override
