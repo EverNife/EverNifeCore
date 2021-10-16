@@ -59,6 +59,7 @@ dependencies {
     compileOnly name: "worldedit-bukkit-6.0"
     compileOnly name: "Vault-1.6.7"
     compileOnly name: "FeatherBoard-4.28.1" //This is a paid plugin, you need to buy it in order to build this project
+    compileOnly name: "BossShopPro-v1.9.8" //This WAS a paid plugin, (you need to buy it in order to build this project)~I Think
     compileOnly name: "MVdWPlaceholderAPI"
     compileOnly name: "ProtocolLib"
     implementation name: "craftbukkit1710" //Thats on you to find out
