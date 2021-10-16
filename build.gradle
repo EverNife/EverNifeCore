@@ -109,9 +109,7 @@ publishing {
             pom.withXml {
                 asNode().appendNode('url','https://petrus.dev')
                 asNode().dependencies.'*'.each() {
-                    if (it.artifactId.text()  != 'annotations') { //Keep Jetbrains Annotaions
-                        it.parent().remove(it) //Remove all dependencies from pom file
-                    }
+                    it.parent().remove(it) //Remove all dependencies from pom file
                 }
             }
         }
