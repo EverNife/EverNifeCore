@@ -8,7 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 public interface ECListener extends Listener {
 
-    public default @Nullable String[] requiredPlugins(){
+    public default String[] requiredPlugins(){
         return null;
     }
 
