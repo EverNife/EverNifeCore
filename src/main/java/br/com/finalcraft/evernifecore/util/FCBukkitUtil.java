@@ -2,9 +2,11 @@ package br.com.finalcraft.evernifecore.util;
 
 import br.com.finalcraft.everforgelib.util.StatisticUtil;
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.integration.VaultIntegration;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
+import br.com.finalcraft.evernifecore.ontime.OntimeManager;
 import br.com.finalcraft.evernifecore.util.reflection.MethodInvoker;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import br.com.finalcraft.evernifecore.version.ServerType;
@@ -457,6 +459,10 @@ public class FCBukkitUtil {
     public static boolean isModLoaded(String modname){
         if (methodLoader_isLoaded == null) return false;
         return methodLoader_isLoaded.invoke(null, modname);
+    }
+
+    public static long getOntime(PlayerData playerData){
+        return OntimeManager.getProvider().getOntime(playerData); //Ontime provider might be overriden by the OnTime plugin
     }
 
     //
