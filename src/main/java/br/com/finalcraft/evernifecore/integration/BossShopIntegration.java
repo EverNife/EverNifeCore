@@ -11,7 +11,7 @@ public class BossShopIntegration {
     private static BossShop bossShopPlugin = null;
     private static Boolean isPresent = null;
 
-    private static boolean isPresent(){
+    public static boolean isPresent(){
         if (isPresent == null){
             bossShopPlugin = (BossShop) Bukkit.getPluginManager().getPlugin("BossShopPro");
             isPresent = bossShopPlugin != null;
