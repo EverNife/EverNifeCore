@@ -4,8 +4,10 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -257,6 +259,10 @@ public class FancyText {
      */
     public void send(CommandSender... commandSender){
         FancyTextManager.send(this, commandSender);
+    }
+
+    public void broadcast(){
+        send(Bukkit.getOnlinePlayers().toArray(new Player[0]));
     }
 
     public FancyText clone() {
