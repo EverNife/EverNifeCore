@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.config.playerdata;
 
 import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.evernifecore.cooldown.PlayerCooldown;
 import org.bukkit.entity.Player;
 
 import java.util.UUID;
@@ -54,5 +55,9 @@ public abstract class PDSection {
 
     public long getLastSeen(){
         return playerData.getLastSeen();
+    }
+
+    public PlayerCooldown getCooldown(String identifier){
+        return playerData.getCooldown(identifier);
     }
 }
