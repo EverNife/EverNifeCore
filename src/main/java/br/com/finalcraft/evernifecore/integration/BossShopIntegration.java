@@ -8,12 +8,13 @@ import org.bukkit.entity.Player;
 
 public class BossShopIntegration {
 
-    private static final BossShop bossShop = null;
-
+    private static BossShop bossShopPlugin = null;
     private static Boolean isPresent = null;
+
     private static boolean isPresent(){
         if (isPresent == null){
-            isPresent = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI") ? true : false;
+            bossShopPlugin = (BossShop) Bukkit.getPluginManager().getPlugin("BossShopPro");
+            isPresent = bossShopPlugin != null;
         }
         return isPresent;
     }
@@ -25,9 +26,13 @@ public class BossShopIntegration {
 
     public static BossShopAPI getAPI() {
         if (isPresent()){
-            return bossShop.getAPI(); // Returns BossShopPro API
+            return bossShopPlugin.getAPI(); // Returns BossShopPro API
         }
         return null;
+    }
+
+    public static BossShop getBossShopPlugin(){
+        return isPresent() ? bossShopPlugin : null;
     }
 
 }
