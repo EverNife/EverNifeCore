@@ -842,7 +842,8 @@ public class Config {
 	 * @return      The UUID at that Path
 	 */
 	public UUID getUUID(String path, UUID def) {
-		return UUID.fromString(getString(path,def.toString()));
+		UUID uuid = getUUID(path);
+		return uuid != null ? uuid : def;
 	}
 	
 	/**
