@@ -242,7 +242,7 @@ public class ReflectionUtil {
      * @throws IllegalStateException If we cannot find this method.
      */
     public static MethodInvoker getTypedMethod(Class<?> clazz, String methodName, Class<?> returnType, Class<?>... params) {
-        System.out.println(String.format("Looking for: %s(%s).", methodName, Arrays.asList(params)));
+        //System.out.println(String.format("Looking for: %s(%s).", methodName, Arrays.asList(params)));
         for (final Method method : clazz.getDeclaredMethods()) {
             if ((methodName == null || method.getName().equals(methodName))
                     && (returnType == null || method.getReturnType().equals(returnType))
