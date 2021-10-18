@@ -96,7 +96,7 @@ public class PlayerData {
                         pDSection.savePDSection();
                         pDSection.recentChanged = false;
                     }
-                }catch (Exception e){
+                }catch (Throwable e){
                     EverNifeCore.warning("Failed to save PDSection {" + pDSection.getClass().getName() + "} at [" + this.getConfig().getTheFile().getAbsolutePath() + "]");
                     e.printStackTrace();
                 }
