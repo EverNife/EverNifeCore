@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.vector;
 
 import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.evernifecore.minecraft.region.RegionPos;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 
@@ -11,9 +12,9 @@ public class BlockPos implements Comparable<BlockPos>, Config.Salvable {
         return value < (double)i ? i - 1 : i;
     }
 
-    private final int x;
-    private final int y;
-    private final int z;
+    protected final int x;
+    protected final int y;
+    protected final int z;
 
     public BlockPos(int x, int y, int z) {
         this.x = x;
@@ -85,6 +86,10 @@ public class BlockPos implements Comparable<BlockPos>, Config.Salvable {
 
     public ChunkPos getChunkPos(){
         return new ChunkPos(this);
+    }
+
+    public RegionPos getRegionPos(){
+        return new RegionPos(this);
     }
 
     @Override

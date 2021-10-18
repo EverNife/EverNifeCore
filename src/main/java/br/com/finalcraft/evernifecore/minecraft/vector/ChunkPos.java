@@ -1,11 +1,12 @@
 package br.com.finalcraft.evernifecore.minecraft.vector;
 
 import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.evernifecore.minecraft.region.RegionPos;
 import org.bukkit.Chunk;
 
 public class ChunkPos implements Config.Salvable {
-    public final int x;
-    public final int z;
+    protected final int x;
+    protected final int z;
 
     public ChunkPos(int x, int z) {
         this.x = x;
@@ -58,6 +59,10 @@ public class ChunkPos implements Config.Salvable {
 
     public BlockPos getBlock(int x, int y, int z) {
         return new BlockPos((this.x << 4) + x, y, (this.z << 4) + z);
+    }
+
+    public RegionPos getRegionPos(){
+        return new RegionPos(this);
     }
 
     @Override
