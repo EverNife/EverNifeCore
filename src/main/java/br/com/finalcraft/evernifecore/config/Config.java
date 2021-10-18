@@ -387,7 +387,6 @@ public class Config {
 		return (Long) getOrSetDefaultValue(path,(Object)def);
 	}
 
-
 	public Double getOrSetDefaultValue(String path, Double def) {
         return (Double) getOrSetDefaultValue(path,(Object)def);
     }
@@ -402,6 +401,10 @@ public class Config {
 
 	public boolean getOrSetDefaultValue(String path, boolean def) {
 		return (boolean) getOrSetDefaultValue(path,(Object)def);
+	}
+
+	public UUID getOrSetDefaultValue(String path, UUID def) {
+		return (UUID) getOrSetDefaultValue(path,(Object)def);
 	}
 
 	public Object getOrSetDefaultValue(String path, Object value) {
