@@ -22,6 +22,7 @@ public class GenericInventory implements Config.Salvable {
 
     @Override
     public void onConfigSave(Config config, String path) {
+        config.setValue(path + ".items", null); //Clear content before saving it
         for (ItemSlot itemSlot : items.values()) {
             config.setValue(path + ".items." + itemSlot.getSlot(), itemSlot.getFcItemStack());
         }

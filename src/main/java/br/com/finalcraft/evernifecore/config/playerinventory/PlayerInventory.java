@@ -81,9 +81,13 @@ public class PlayerInventory implements Config.Salvable {
         config.setValue(path + ".chestplate", chestplate);
         config.setValue(path + ".leggings", leggings);
         config.setValue(path + ".boots", boots);
+
+        config.setValue(path + ".inventory", null); //Clear content before saving it
         for (ItemSlot itemSlot : inventory) {
             config.setValue(path + ".inventory." + itemSlot.getSlot(), itemSlot.getFcItemStack());
         }
+
+        config.setValue(path + ".extra", null); //Clear content before saving it
         for (ExtraInv extraInv : extraInvMap.values()) {
             for (ItemSlot itemSlot : extraInv.getItemSlotList()) {
                 config.setValue(path + ".extra." + extraInv.getName() + "." + itemSlot.getSlot(), itemSlot.getFcItemStack());
