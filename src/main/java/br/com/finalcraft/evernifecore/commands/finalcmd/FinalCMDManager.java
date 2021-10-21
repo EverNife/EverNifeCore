@@ -55,7 +55,7 @@ public class FinalCMDManager {
             for (Field declaredField : executor.getClass().getDeclaredFields()) {
                 if (declaredField.isAnnotationPresent(FCLocale.class) || declaredField.isAnnotationPresent(FCMultiLocales.class)){
                     if (Modifier.isStatic(declaredField.getModifiers())){
-                        pluginInstance.getLogger().warning("LocaleMessage [" + declaredField.getName() + "] found at [" + declaredField.getClass().getName() + "] is not static! This is an error!");
+                        pluginInstance.getLogger().warning("LocaleMessage [" + declaredField.getName() + "] found at [" + declaredField.getDeclaringClass().getName() + "] is not static! This is an error!");
                     }else {
                         localeMessageFields.add(declaredField);
                     }
