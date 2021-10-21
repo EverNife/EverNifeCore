@@ -60,9 +60,10 @@ public class PlayerController {
     public static PlayerData addNewPlayerData(UUID playerUUID){
         Objects.requireNonNull(playerUUID, "PlayerUUID can't be null");
 
-        File theConfigFile  = new File(EverNifeCore.instance.getDataFolder(), "PlayerData/" + playerUUID + ".yml");
-        Config config       = new Config(theConfigFile);
         String playerName   = UUIDsController.getNameFromUUID(playerUUID);
+        String theFileName  = ECSettings.useNamesInsteadOfUUIDToStorePlayerData ? playerName : playerUUID.toString();
+        File theConfigFile  = new File(EverNifeCore.instance.getDataFolder(), "PlayerData/" + theFileName + ".yml");
+        Config config       = new Config(theConfigFile);
 
         PlayerData playerData = new PlayerData(config, playerName, playerUUID);
         playerData.forceSavePlayerData();
