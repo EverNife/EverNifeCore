@@ -43,7 +43,13 @@ public class Config {
 	protected FileConfiguration config;
 	protected static Random random = new Random();
 	protected boolean newDefaultValueToSave = false;
-
+	private static final ExecutorService scheduler = new ThreadPoolExecutor(5, Integer.MAX_VALUE,
+			1000L, TimeUnit.MILLISECONDS,
+			new LinkedBlockingQueue(),
+			new ThreadFactoryBuilder()
+					.setNameFormat("evernifecore-assyncsave-pool-%d")
+					.setDaemon(true)
+					.build());
 	/**
 	 * Creates a handlers Directory if doest not exist at the targed directory
 	 *
@@ -336,10 +342,6 @@ public class Config {
 	/**
 	 * Saves the Config Object to its File, and ensure its assync state
 	 */
-	private static final ExecutorService scheduler = new ThreadPoolExecutor(5, Integer.MAX_VALUE,
-			1000L, TimeUnit.MILLISECONDS,
-			new LinkedBlockingQueue(),
-			new ThreadFactoryBuilder().setNameFormat("evernifecore-assyncsave-pool-%d").setDaemon(true).build());
 	public void saveAsync() {
 		scheduler.submit(() -> {
 			this.save();
