@@ -12,10 +12,7 @@ import org.bukkit.plugin.SimplePluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -57,7 +54,11 @@ public class FinalCMDManager {
             List<Field> localeMessageFields = new ArrayList<>();
             for (Field declaredField : executor.getClass().getDeclaredFields()) {
                 if (declaredField.isAnnotationPresent(FCLocale.class) || declaredField.isAnnotationPresent(FCMultiLocales.class)){
-                    localeMessageFields.add(declaredField);
+                    if (Modifier.isStatic(declaredField.getModifiers())){
+                        pluginInstance.getLogger().warning("LocaleMessage [" + declaredField.getName() + "] found at [" + declaredField.getClass().getName() + "] is not static! This is an error!");
+                    }else {
+                        localeMessageFields.add(declaredField);
+                    }
                 }
             }
             if (localeMessageFields.size() > 0){
