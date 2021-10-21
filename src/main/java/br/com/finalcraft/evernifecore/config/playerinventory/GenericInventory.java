@@ -14,6 +14,9 @@ public class GenericInventory implements Config.Salvable {
 
     protected final HashMap<Integer,ItemSlot> items = new HashMap<>();
 
+    public GenericInventory() {
+    }
+
     public GenericInventory(Collection<ItemSlot> itemSlots) {
         for (ItemSlot itemSlot : itemSlots) {
             this.items.put(itemSlot.slot, itemSlot);
