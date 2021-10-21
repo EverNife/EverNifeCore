@@ -1,7 +1,8 @@
-package br.com.finalcraft.evernifecore.config.playerinventory;
+package br.com.finalcraft.evernifecore.inventory;
 
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.fcitemstack.FCItemStack;
+import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -12,14 +13,14 @@ import java.util.List;
 
 public class GenericInventory implements Config.Salvable {
 
-    protected final HashMap<Integer,ItemSlot> items = new HashMap<>();
+    protected final HashMap<Integer, ItemSlot> items = new HashMap<>();
 
     public GenericInventory() {
     }
 
     public GenericInventory(Collection<ItemSlot> itemSlots) {
         for (ItemSlot itemSlot : itemSlots) {
-            this.items.put(itemSlot.slot, itemSlot);
+            this.items.put(itemSlot.getSlot(), itemSlot);
         }
     }
 

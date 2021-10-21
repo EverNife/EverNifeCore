@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.fcitemstack.iteminv;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.config.playerinventory.ItemSlot;
 import br.com.finalcraft.evernifecore.fcitemstack.FCItemStack;
 import br.com.finalcraft.evernifecore.integration.everforgelib.EverForgeLibIntegration;
+import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 

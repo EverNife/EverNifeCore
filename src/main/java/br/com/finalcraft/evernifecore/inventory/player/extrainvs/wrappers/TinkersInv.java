@@ -1,9 +1,9 @@
-package br.com.finalcraft.evernifecore.config.playerinventory.extrainvs.wrappers;
+package br.com.finalcraft.evernifecore.inventory.player.extrainvs.wrappers;
 
-import br.com.finalcraft.evernifecore.config.playerinventory.ItemSlot;
-import br.com.finalcraft.evernifecore.config.playerinventory.extrainvs.ExtraInv;
-import br.com.finalcraft.evernifecore.config.playerinventory.extrainvs.ExtraInvType;
 import br.com.finalcraft.evernifecore.integration.everforgelib.EverForgeLibIntegration;
+import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
+import br.com.finalcraft.evernifecore.inventory.player.extrainvs.ExtraInv;
+import br.com.finalcraft.evernifecore.inventory.player.extrainvs.ExtraInvType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 

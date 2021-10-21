@@ -1,10 +1,11 @@
-package br.com.finalcraft.evernifecore.config.playerinventory;
+package br.com.finalcraft.evernifecore.inventory.player;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.Config;
-import br.com.finalcraft.evernifecore.config.playerinventory.extrainvs.ExtraInv;
-import br.com.finalcraft.evernifecore.config.playerinventory.extrainvs.ExtraInvType;
 import br.com.finalcraft.evernifecore.fcitemstack.FCItemStack;
+import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
+import br.com.finalcraft.evernifecore.inventory.player.extrainvs.ExtraInv;
+import br.com.finalcraft.evernifecore.inventory.player.extrainvs.ExtraInvType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -173,7 +174,7 @@ public class PlayerInventory implements Config.Salvable {
 
     public FCItemStack getItem(int index){
         for (ItemSlot itemSlot : this.inventory) {
-            if (index == itemSlot.slot){
+            if (index == itemSlot.getSlot()){
                 return itemSlot.getFcItemStack();
             }
         }

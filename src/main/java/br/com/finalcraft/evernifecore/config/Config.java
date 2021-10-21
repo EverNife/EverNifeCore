@@ -1,12 +1,12 @@
 package br.com.finalcraft.evernifecore.config;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.config.playerinventory.ItemSlot;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.fcitemstack.FCItemStack;
 import br.com.finalcraft.evernifecore.fcitemstack.iteminv.InvItem;
+import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;

@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.config.playerinventory;
+package br.com.finalcraft.evernifecore.inventory.data;
 
 import br.com.finalcraft.evernifecore.fcitemstack.FCItemStack;
 import org.bukkit.inventory.ItemStack;
@@ -9,8 +9,8 @@ import java.util.OptionalInt;
 
 public class ItemSlot {
 
-    public final int slot;
-    public final FCItemStack fcItemStack;
+    protected final int slot;
+    protected final FCItemStack fcItemStack;
     public ItemSlot(int slot, FCItemStack fcItemStack) {
         this.slot = slot;
         this.fcItemStack = fcItemStack;

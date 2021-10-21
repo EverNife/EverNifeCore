@@ -1,8 +1,8 @@
-package br.com.finalcraft.evernifecore.config.playerinventory.extrainvs;
+package br.com.finalcraft.evernifecore.inventory.player.extrainvs;
 
-import br.com.finalcraft.evernifecore.config.playerinventory.extrainvs.wrappers.BaublesInv;
-import br.com.finalcraft.evernifecore.config.playerinventory.extrainvs.wrappers.TinkersInv;
 import br.com.finalcraft.evernifecore.integration.everforgelib.EverForgeLibIntegration;
+import br.com.finalcraft.evernifecore.inventory.player.extrainvs.wrappers.BaublesInv;
+import br.com.finalcraft.evernifecore.inventory.player.extrainvs.wrappers.TinkersInv;
 
 public enum ExtraInvType {
     BAUBLES{

@@ -1,6 +1,6 @@
-package br.com.finalcraft.evernifecore.config.playerinventory.extrainvs;
+package br.com.finalcraft.evernifecore.inventory.player.extrainvs;
 
-import br.com.finalcraft.evernifecore.config.playerinventory.ItemSlot;
+import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
