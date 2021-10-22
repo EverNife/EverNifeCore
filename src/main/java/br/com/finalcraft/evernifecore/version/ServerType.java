@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.version;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 
+//This is a personal class for my OWN PERSONAL PRIVATE servers... don't use it, this class might change a lot over the time
 public enum ServerType {
     IDEAL("IDEAL"),
     SKYLORDS("Skylords"),
@@ -80,47 +81,42 @@ public enum ServerType {
 
     private static ServerType calculateServerType() {
 
-        if (!FCBukkitUtil.isClassLoaded("br.com.finalcraft.FinalCraftCore")){
-            return ServerType.UNKNOWN;
-        }
 
-        if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.dragonblockutils.DragonBlockUtils")){
-            moddedServer = true;
-            return ServerType.PIXELMON;
-        }
+        moddedServer = FCBukkitUtil.isClassLoaded("net.minecraftforge.fml.common.Loader");
 
-        if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.dragonblockutils.DragonBlockUtils")){
-            moddedServer = true;
-            return ServerType.DRAGONBLOCK;
-        }
+        if (moddedServer){
+            if (FCBukkitUtil.isClassLoaded("com.pixelmonmod.pixelmon.Pixelmon")){
+                return ServerType.PIXELMON;
+            }
 
-        if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.gppskyblock.GPPSkyBlock")){
-            moddedServer = true;
-            if (MCVersion.isLegacy()) return ServerType.SKYLORDS;
-            return ServerType.SKYHORIZON;
-        }
+            if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.dragonblockutils.DragonBlockUtils")){
+                return ServerType.DRAGONBLOCK;
+            }
 
-        if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.evernifeworldrpg.EverNifeWorldRPG")){
-            moddedServer = true;
-            return ServerType.IDEAL;
-        }
+            if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.gppskyblock.GPPSkyBlock")){
+                if (MCVersion.isLegacy()){
+                    return ServerType.SKYLORDS;
+                }else {
+                    return ServerType.SKYHORIZON;
+                }
+            }
 
-        if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.evernifedarkdecimagick.EverNifeDarkDeciMagick")){
-            moddedServer = true;
-            return ServerType.DECIMATION;
-        }
+            if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.evernifeworldrpg.EverNifeWorldRPG")){
+                return ServerType.IDEAL;
+            }
 
-        if (FCBukkitUtil.isClassLoaded("com.vicmatskiv.mw.ModernWarfareMod")){
-            moddedServer = true;
-            return ServerType.SURVIVALZ;
+            if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.evernifedarkdecimagick.EverNifeDarkDeciMagick")){
+                return ServerType.DECIMATION;
+            }
+
+            if (FCBukkitUtil.isClassLoaded("com.vicmatskiv.mw.ModernWarfareMod")){
+                return ServerType.SURVIVALZ;
+            }
+
         }
 
         if (EverNifeCore.instance.getServer().getPluginManager().isPluginEnabled("Factions")){
             return ServerType.VANILLA_FACTIONS;
-        }
-
-        if (moddedServer == false){
-            moddedServer = FCBukkitUtil.isClassLoaded("br.com.finalcraft.everforgelib.EverForgeLib");
         }
 
         return ServerType.UNKNOWN;
