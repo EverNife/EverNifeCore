@@ -14,6 +14,7 @@ public class CommandRegisterer {
 
     public static void registerCommands(JavaPlugin pluginInstance) {
 
+        FinalCMDManager.registerCommand(pluginInstance, CoreCommand.class);
         FinalCMDManager.registerCommand(pluginInstance, CMDCooldown.class);
         FinalCMDManager.registerCommand(pluginInstance, CMDSvInfo.class);
         FinalCMDManager.registerCommand(pluginInstance, CMDGetName.class);
