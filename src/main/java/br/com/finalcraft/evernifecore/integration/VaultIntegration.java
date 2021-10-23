@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.integration;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import net.milkbowl.vault.economy.Economy;
+import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.plugin.RegisteredServiceProvider;
 
@@ -10,10 +11,15 @@ public class VaultIntegration {
     public static Economy econ = null;
 
     public static void initialize() {
+        if (!Bukkit.getPluginManager().isPluginEnabled("Vault")){
+            EverNifeCore.warning("Vault plugin was not found! EverNifeCore need vault to manage economy transactions!");
+            return;
+        }
         try {
             setupEconomy();
         }catch (Throwable e){
-            EverNifeCore.warning("Vault is not here, wtf man? What kind of server is this?");
+            EverNifeCore.warning("Vault seems to be present but there is not Economic plugin present!");
+            EverNifeCore.warning("You might take a look at: https://github.com/evernife/FinalEconomy");
             e.printStackTrace();
         }
     }
