@@ -13,7 +13,7 @@ import java.util.UUID;
 
 public class FCLocaleManager {
 
-    public static String DEFAULT_EVERNIFECORE_LOCALE = LocaleType.PT_BR.name();
+    public static String DEFAULT_EVERNIFECORE_LOCALE = LocaleType.EN_US.name();
 
     public static HashMap<UUID, String> PLAYER_LOCALES = new HashMap<>();
 
