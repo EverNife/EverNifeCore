@@ -39,7 +39,7 @@ public class ConfigManager {
     }
 
     public static void reloadCooldownConfig(){
-        cooldowns       = new Config(EverNifeCore.instance,"Cooldowns.yml");
+        cooldowns = new Config(EverNifeCore.instance,"Cooldowns.yml");
         Cooldown.initialize();
     }
 
