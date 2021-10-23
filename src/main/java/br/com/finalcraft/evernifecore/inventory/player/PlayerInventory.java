@@ -78,6 +78,8 @@ public class PlayerInventory implements Config.Salvable {
 
     @Override
     public void onConfigSave(Config config, String path) {
+        config.setValue(path, null);
+
         config.setValue(path + ".helmet", helmet);
         config.setValue(path + ".chestplate", chestplate);
         config.setValue(path + ".leggings", leggings);
