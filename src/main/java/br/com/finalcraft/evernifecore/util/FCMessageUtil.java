@@ -12,14 +12,14 @@ import java.util.List;
 public class FCMessageUtil {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe player §7[§e%searched_name%§7]§c is not online!")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO Jogador §7[§e%searched_name%§7]§c não esta online!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO Jogador §7[§e%searched_name%§7]§c não está online!")
     private static LocaleMessage PLAYER_NOT_ONLINE;
     public static void playerNotOnline(CommandSender sender, String searchedName){
         PLAYER_NOT_ONLINE.addPlaceholder("%searched_name%", searchedName).send(sender);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe player §7[§e%searched_name%§7]§c does not exist or is not online!")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO Jogador §7[§e%searched_name%§7]§c não existe ou não esta online!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO Jogador §7[§e%searched_name%§7]§c não existe ou não está online!")
     private static LocaleMessage PLAYER_NOT_FOUND;
     public static void playerNotFound(CommandSender sender, String searchedName){
         PLAYER_NOT_FOUND.addPlaceholder("%searched_name%", searchedName).send(sender);
@@ -112,7 +112,7 @@ public class FCMessageUtil {
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO valor inserido §e(%number%)§c deve ser menor que §6[%max%]§c!")
     private static LocaleMessage NOT_BOUNDED_UPPER;
     public static <T extends Number> void notBoundedUpper(CommandSender sender, T number, T max){
-        NOT_BOUNDED_LOWER
+        NOT_BOUNDED_UPPER
                 .addPlaceholder("%number%", NumberWrapper.of(number))
                 .addPlaceholder("%max%", NumberWrapper.of(max))
                 .send(sender);
