@@ -422,7 +422,8 @@ public class FCBukkitUtil {
         if (MCVersion.isLegacy()) {
             return player.getItemInHand();
         } else {
-            return player.getInventory().getItemInMainHand();
+            ItemStack heldItem = player.getInventory().getItemInMainHand();
+            return heldItem != null && heldItem.getType() == Material.AIR ? null : heldItem;
         }
     }
 
