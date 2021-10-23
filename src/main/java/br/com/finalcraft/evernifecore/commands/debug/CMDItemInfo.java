@@ -19,8 +19,6 @@ import java.util.UUID;
 
 public class CMDItemInfo {
 
-    public static HashSet<UUID> INFO_HASHSET = new HashSet<>();
-
     @FCLocale(lang = LocaleType.EN_US, text = "§2§l ▶ §aINFO mode Enabled!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§2§l ▶ §aINFO mode Ativado!")
     private static LocaleMessage INFO_MODE_ENABLED;
@@ -42,12 +40,11 @@ public class CMDItemInfo {
             return;
         }
 
-        String itemIdentifier = FCItemUtils.getBukkitIdentifier(heldItem);
-        FancyText.of("§7§o[INFO] " + itemIdentifier)
-                .setHoverText("\n" +
-                        "\n Minecraft Identifier: " + FCItemUtils.getMinecraftIdentifier(heldItem) +
-                        "\n")
-                .setSuggestCommandAction(itemIdentifier)
+        String mcIdentifier = FCItemUtils.getMinecraftIdentifier(heldItem);
+        String bukkitIdentifier = FCItemUtils.getBukkitIdentifier(heldItem);
+
+        FancyText.of("§7§o[INFO] ").setHoverText("\nMinecraft Identifier: " + mcIdentifier + "\n").setSuggestCommandAction(mcIdentifier)
+                .append(bukkitIdentifier).setSuggestCommandAction(bukkitIdentifier)
                 .send(player);
     }
 
