@@ -46,6 +46,7 @@ repositories {
 dependencies {
     implementation 'com.github.evernife:ChatMenuAPI:1.1.2b'
 
+    compileOnly name: "AuthMe-5.4.0"
     compileOnly 'net.luckperms:api:5.0'
     compileOnly 'org.bukkit:bukkit:1.12.2-R0.1-SNAPSHOT'
     // @ DISCLAIMER @ //

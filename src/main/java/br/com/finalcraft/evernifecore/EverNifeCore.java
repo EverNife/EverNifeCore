@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.integration.WorldEditIntegration;
 import br.com.finalcraft.evernifecore.integration.everforgelib.EverForgeLibIntegration;
 import br.com.finalcraft.evernifecore.listeners.PlayerListenerGlobal;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.listeners.login.LoginListener;
 import br.com.finalcraft.evernifecore.protection.handlers.ProtectionPlugins;
 import br.com.finalcraft.evernifecore.threads.SaveConfigThread;
 import br.com.finalcraft.evernifecore.version.MCVersion;
@@ -61,6 +62,11 @@ public class EverNifeCore extends JavaPlugin {
 
         info("§aRegistering Listeners");
         ECListener.register(this, PlayerListenerGlobal.class);
+        if (Bukkit.getPluginManager().isPluginEnabled("AuthMe")){
+            ECListener.register(this, LoginListener.AuthmeLogin.class);
+        }else {
+            ECListener.register(this, LoginListener.VanillaLogin.class);
+        }
 
         if (Bukkit.getPluginManager().isPluginEnabled("FeatherBoard")) try{FeatherBoardUtils.initialize();}catch (Throwable e){e.printStackTrace();}
         if (Bukkit.getPluginManager().isPluginEnabled("WorldEdit")) try{WorldEditIntegration.initialize();}catch (Throwable e){e.printStackTrace();}
