@@ -17,11 +17,11 @@ public class CMDBlockInfo {
     public static HashSet<UUID> INFO_HASHSET = new HashSet<>();
 
     @FCLocale(lang = LocaleType.EN_US, text = "§2§l ▶ §aINFO mode Enabled!")
-    @FCLocale(lang = LocaleType.EN_US, text = "§2§l ▶ §aINFO mode Ativado!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§2§l ▶ §aINFO mode Ativado!")
     private static LocaleMessage INFO_MODE_ENABLED;
 
     @FCLocale(lang = LocaleType.EN_US, text = "§c§l ▶ §eINFO mode Disabled!")
-    @FCLocale(lang = LocaleType.EN_US, text = "§c§l ▶ §eINFO mode Desativado!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§c§l ▶ §eINFO mode Desativado!")
     private static LocaleMessage INFO_MODE_DISABLED;
 
     @FinalCMD(
