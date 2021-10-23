@@ -19,16 +19,17 @@ public class ECSettings {
 
         if (!ConfigManager.getMainConfig().contains("Settings.useNamesInsteadOfUUIDToStorePlayerData")){//Check if there is any playerdata and if the player data is being store with an UUID
             for (Map.Entry<UUID, String> entry : UUIDsController.getEntrySet()) {
-                final UUID playerUUID = entry.getKey();
                 final String playerName = entry.getValue();
-                File uuidConfig = new File(EverNifeCore.instance.getDataFolder(), "PlayerData/" + playerUUID + ".yml");
-                if (uuidConfig.exists()){
-                    isUsingStorageWithPlayerName = false;
+                File nameConfig = new File(EverNifeCore.instance.getDataFolder(), "PlayerData/" + playerName + ".yml");
+                if (nameConfig.exists() && nameConfig.isFile()){
+                    isUsingStorageWithPlayerName = true;
                     break;
                 }
-                File nameConfig = new File(EverNifeCore.instance.getDataFolder(), "PlayerData/" + playerName + ".yml");
-                if (nameConfig.exists()){
-                    isUsingStorageWithPlayerName = true;
+
+                final UUID playerUUID = entry.getKey();
+                File uuidConfig = new File(EverNifeCore.instance.getDataFolder(), "PlayerData/" + playerUUID + ".yml");
+                if (uuidConfig.exists() && uuidConfig.isFile()){
+                    isUsingStorageWithPlayerName = false;
                     break;
                 }
             }
