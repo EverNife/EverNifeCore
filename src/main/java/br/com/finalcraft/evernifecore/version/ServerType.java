@@ -25,7 +25,7 @@ public enum ServerType {
     }
 
     private static ServerType serverType;
-    private static boolean moddedServer = false;
+    private static Boolean moddedServer = null;
 
     public static boolean isSkylords(){
         return getCurrent() == ServerType.SKYLORDS;
@@ -64,6 +64,7 @@ public enum ServerType {
     }
 
     public static boolean isModdedServer(){
+        if (moddedServer == null) getCurrent();//Enforce Calculate
         return moddedServer;
     }
 

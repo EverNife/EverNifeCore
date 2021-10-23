@@ -19,6 +19,7 @@ package br.com.finalcraft.evernifecore.nms.util.v1_12_R1;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.nms.util.INMSUtils;
+import br.com.finalcraft.evernifecore.version.ServerType;
 import net.minecraft.server.v1_12_R1.*;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.craftbukkit.v1_12_R1.CraftWorld;
@@ -46,10 +47,11 @@ public class NMSUtils_v1_12_R1 implements INMSUtils {
 	public NMSUtils_v1_12_R1() {
 		instance = this;
 		try {
-			fakePlayerClass = Class.forName("net.minecraftforge.common.util.FakePlayer");
+			if (ServerType.isModdedServer()){
+				fakePlayerClass = Class.forName("net.minecraftforge.common.util.FakePlayer");
+			}
 		}catch (Exception e){
-			EverNifeCore.info("Failed to find FakePlayer Forge's class...");
-			e.printStackTrace();
+			EverNifeCore.info("Failed to find FakePlayer Forge's class... We are probably not on a forge server :D");
 		}
 
 		try {
