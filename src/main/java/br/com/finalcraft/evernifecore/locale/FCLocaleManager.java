@@ -51,32 +51,36 @@ public class FCLocaleManager {
             }
         }
 
-        boolean isDefaultLang = Arrays.stream(LocaleType.values()).map(Enum::name).filter(s -> s.equals(pluginLocalization.getPluginLang())).findAny().isPresent();
-        Config CUSTOM_LANG = isDefaultLang ? null : new Config(plugin, "localization/lang_" + pluginLocalization.getPluginLang() + ".yml");
+        //Check if the current lang is hardcoded (LocaleType.ENUM)
+        boolean hardcoddedLang = Arrays.stream(LocaleType.values()).map(Enum::name).filter(s -> s.equals(pluginLocalization.getPluginLang())).findAny().isPresent();
+
+        Config CUSTOM_LANG_CONFIG = hardcoddedLang ? null : new Config(plugin, "localization/lang_" + pluginLocalization.getPluginLang() + ".yml");
 
         for (Class aClass : classes) {
             pluginLocalization.addLocaleClass(aClass);
             String simpleName = aClass.getSimpleName();
 
+            //Load all hardcoded locales
             List<LocaleMessageImp> localeMessageList = FCLocaleScanner.scanForLocale(plugin, aClass);
 
-            for (LocaleMessageImp localeMessage : localeMessageList) {
-                if (CUSTOM_LANG != null) { //We are using a custom lang, need to add locale messages
-                    if (!CUSTOM_LANG.contains(simpleName + "." + localeMessage.getKey())){
-                        CUSTOM_LANG.setDefaultValue(simpleName + "." + localeMessage.getKey(), localeMessage.getFancyText(LocaleType.EN_US.name()));
-                    }
+            if (CUSTOM_LANG_CONFIG != null){ //We are using a custom lang, need to add the new facytexts to the locale messages
+                for (LocaleMessageImp localeMessage : localeMessageList) {
 
-                    FancyText fancyText = CUSTOM_LANG.getFancyText(simpleName + "." + localeMessage.getKey());
-                    localeMessage.addLocale(fancyText, pluginLocalization.getPluginLang());
+                    //Set a DefaultValue for this Custom LocaleMessage based on the ENGLISH hardcoded LocaleMessage
+                    CUSTOM_LANG_CONFIG.setDefaultValue(simpleName + "." + localeMessage.getKey(), localeMessage.getFancyText(LocaleType.EN_US.name()));
+
+                    //Get the Custom FancyText of this LocaleMessage on the custom ConfigFile
+                    FancyText fancyText = CUSTOM_LANG_CONFIG.getFancyText(simpleName + "." + localeMessage.getKey());
+
+                    localeMessage.addLocale(pluginLocalization.getPluginLang(), fancyText);
                 }
-                FancyText fancyText = localeMessage.getFancyText(pluginLocalization.getPluginLang());
-                localeMessage.setCachedFancyTextTo(fancyText);
             }
+
 
         }
 
-        if (CUSTOM_LANG != null){
-            CUSTOM_LANG.saveIfNewDefaults();
+        if (CUSTOM_LANG_CONFIG != null){
+            CUSTOM_LANG_CONFIG.saveIfNewDefaults();
         }
 
     }
