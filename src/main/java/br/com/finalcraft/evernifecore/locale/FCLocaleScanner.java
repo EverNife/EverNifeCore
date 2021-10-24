@@ -21,21 +21,21 @@ public class FCLocaleScanner {
             if (declaredField.getType() == LocaleMessage.class || declaredField.getType() == LocaleMessageImp.class){
 
                 if (!Modifier.isStatic(declaredField.getModifiers())){
-                    plugin.getLogger().warning("[FCLocale] Found a LocaleMessage field [" + declaredField.getName()  +"] that is not static!");
+                    plugin.getLogger().warning("[FCLocale] Found a LocaleMessage field that is not static! "  + getFieldAndClassName(declaredField));
                     continue;
                 }
 
                 boolean multiLocale = declaredField.isAnnotationPresent(FCMultiLocales.class);
                 boolean fclocale    = declaredField.isAnnotationPresent(FCLocale.class);
                 if (!multiLocale && !fclocale){
-                    plugin.getLogger().warning("[FCLocale] Found a LocaleMessage field [" + declaredField.getName()  +"] that has no Annotations!");
+                    plugin.getLogger().warning("[FCLocale] Found a LocaleMessage field that has no Annotations! " + getFieldAndClassName(declaredField));
                     continue;
                 }
 
                 try {
                     declaredField.setAccessible(true);
                 } catch (SecurityException e) {
-                    plugin.getLogger().warning("[FCLocale] Failed to allow acess at field [" + declaredField.getName()  +"]!");
+                    plugin.getLogger().warning("[FCLocale] Failed to allow access to field! " + getFieldAndClassName(declaredField));
                     e.printStackTrace();
                     continue;
                 }
@@ -46,7 +46,7 @@ public class FCLocaleScanner {
                 try {
                     declaredField.set(null, localeMessage);
                 } catch (IllegalAccessException e) {
-                    plugin.getLogger().warning("[FCLocale] Failed to create an instance of LocaleMessage.class at field [" + declaredField.getName()  +"]!");
+                    plugin.getLogger().warning("[FCLocale] Failed to create an instance of LocaleMessage.class at field! " + getFieldAndClassName(declaredField));
                     e.printStackTrace();
                     continue;
                 }
@@ -60,11 +60,15 @@ public class FCLocaleScanner {
                     String lang = fcLocale.lang().name();
                     FancyText fancyText = new FancyText(text, hover, runCommand);
 
+                    if (localeMessage.getFancyText(lang) != null){
+                        plugin.getLogger().warning("[FCLocale] Found a LocaleMessage with repeated {localeTypes} at field! Ignoring new one! " + getFieldAndClassName(declaredField));
+                        continue;
+                    }
                     localeMessage.addLocale(fancyText, lang);
                 }
 
                 if (allKeys.contains(localeMessage.getKey())){
-                    plugin.getLogger().warning("[FCLocale] Found an already added {key} at field [" + declaredField.getName()  +"]! Ignoring new one!");
+                    plugin.getLogger().warning("[FCLocale] Found an already added {key} at field! Ignoring new one! " + getFieldAndClassName(declaredField));
                     continue;
                 }
 
@@ -109,4 +113,7 @@ public class FCLocaleScanner {
         return localeMessageList;
     }
 
+    private static String getFieldAndClassName(Field field){
+        return "[" + field.getName()  +"] in [" + field.getDeclaringClass().getName() + "]";
+    }
 }
