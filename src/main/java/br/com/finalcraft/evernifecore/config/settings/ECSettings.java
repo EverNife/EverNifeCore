@@ -12,15 +12,15 @@ import java.util.UUID;
 public class ECSettings {
 
     public static boolean useNamesInsteadOfUUIDToStorePlayerData = false;
-    public static String ZONE_ID_OF_DAY_OF_TODAY = "America/Sao_Paulo";
 
+    //Time Related
+    public static String ZONE_ID_OF_DAY_OF_TODAY            = "America/Sao_Paulo";
     public static SimpleDateFormat SIMPLE_DATE_FORMAT       = new SimpleDateFormat("dd/MM/yyyy");
     public static SimpleDateFormat DATE_FORMAT_WITH_HOURS   = new SimpleDateFormat("dd/MM/yyyy HH:mm");
 
     public static void initialize(){
 
         boolean isUsingStorageWithPlayerName = false;
-
         if (!ConfigManager.getMainConfig().contains("Settings.useNamesInsteadOfUUIDToStorePlayerData")){//Check if there is any playerdata and if the player data is being store with an UUID
             for (Map.Entry<UUID, String> entry : UUIDsController.getEntrySet()) {
                 final String playerName = entry.getValue();
@@ -38,15 +38,13 @@ public class ECSettings {
                 }
             }
         }
-
         useNamesInsteadOfUUIDToStorePlayerData = ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.useNamesInsteadOfUUIDToStorePlayerData", isUsingStorageWithPlayerName);
 
-        ZONE_ID_OF_DAY_OF_TODAY = ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.ZONE_ID_OF_DAY_OF_TODAY", "America/Sao_Paulo");
 
+        ZONE_ID_OF_DAY_OF_TODAY = ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.Time.ZONE_ID_OF_DAY_OF_TODAY", "America/Sao_Paulo");
         SIMPLE_DATE_FORMAT = new SimpleDateFormat(
                 ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.Time.SIMPLE_DATE_FORMAT", "dd/MM/yyyy")
         );
-
         DATE_FORMAT_WITH_HOURS = new SimpleDateFormat(
                 ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.Time.DATE_FORMAT_WITH_HOURS", "dd/MM/yyyy HH:mm")
         );
