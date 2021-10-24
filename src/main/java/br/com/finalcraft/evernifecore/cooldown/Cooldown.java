@@ -85,10 +85,9 @@ public abstract class Cooldown implements Config.Salvable {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§cYou need to wait more %discursive_time% to do this!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§cVocê precisa esperar mais %discursive_time% para fazer isto!")
-    public static LocaleMessage YOU_NEED_TO_WAIT_MORE_TIME;
+    private static LocaleMessage YOU_NEED_TO_WAIT_MORE_TIME;
     public void warnPlayer(CommandSender commandSender){
         String discuriveTime = getFCTimeFrame().getFormatedDiscursive("§6","§c");
-        YOU_NEED_TO_WAIT_MORE_TIME.addPlaceholder("%discursive_time%", discuriveTime).send(commandSender);
     }
 
     public void warnPlayer(CommandSender commandSender, long customTimeInSeconds){
