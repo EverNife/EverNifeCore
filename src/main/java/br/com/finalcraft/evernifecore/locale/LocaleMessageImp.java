@@ -14,22 +14,14 @@ public class LocaleMessageImp implements LocaleMessage {
     private final String key;
     private final HashMap<String, FancyText> fancyTextMap = new HashMap<>();
 
-    private transient FancyText defaultFancyText;
+    private transient FancyText defaultFancyText; //Cached FancyText of the DefaultLocale of the plugin
 
     //For COMMAND LOCALE MESSAGES these placeholders store context like objects, like %label% and other useful placeholders
     private final transient HashMap<String, Object> contextPlaceholders = new HashMap<>();
     //
-
-
-    private transient FancyText fancyText = null; //Cached FancyText of the DefaultLocale of the plugin
-
     public LocaleMessageImp(Plugin plugin, String key) {
         this.plugin = plugin;
         this.key = key;
-    }
-
-    protected void setCachedFancyTextTo(FancyText fancyText){
-        this.fancyText = fancyText;
     }
 
     @Override
@@ -77,22 +69,22 @@ public class LocaleMessageImp implements LocaleMessage {
         return custom().concat(sendCustom);
     }
 
-    protected void addLocale(FancyText fancyText, String lang){
+    protected void addLocale(String lang, FancyText fancyText){
         fancyTextMap.put(lang.toUpperCase(), fancyText);
     }
 
     public FancyText getFancyText(LocaleType localeType){
-        return fancyTextMap.get(localeType.name());
+        return fancyTextMap.get(localeType.name().toUpperCase());
     }
 
     @Override
     public FancyText getFancyText(String lang){
-        return fancyTextMap.get(lang);
+        return fancyTextMap.get(lang.toUpperCase());
     }
 
     @Override
     public FancyText getFancyText(CommandSender sender){
-        return fancyText;
+        return getDefaultFancyText();
         //TODO Create a PER_PLAYER locale
         //return fancyTextMap.get(FCLocaleManager.getLangOf(sender));
     }
@@ -108,6 +100,10 @@ public class LocaleMessageImp implements LocaleMessage {
 
     protected String getKey() {
         return key;
+    }
+
+    public Plugin getPlugin() {
+        return plugin;
     }
 
     public HashMap<String, Object> getContextPlaceholders() {

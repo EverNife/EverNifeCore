@@ -64,7 +64,7 @@ public class FCLocaleScanner {
                         plugin.getLogger().warning("[FCLocale] Found a LocaleMessage with repeated {localeTypes} at field! Ignoring new one! " + getFieldAndClassName(declaredField));
                         continue;
                     }
-                    localeMessage.addLocale(fancyText, lang);
+                    localeMessage.addLocale(lang, fancyText);
                 }
 
                 if (allKeys.contains(localeMessage.getKey())){
