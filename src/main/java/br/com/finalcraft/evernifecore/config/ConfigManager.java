@@ -32,8 +32,8 @@ public class ConfigManager {
         playerUUIDs     = new Config(instance,"UUIDs.yml");
         cooldowns       = new Config(instance,"Cooldowns.yml");
 
-        ECSettings.initialize();
         UUIDsController.loadUUIDs();
+        ECSettings.initialize();
         PlayerController.initialize();
 
         FCLocaleManager.loadLocale(EverNifeCore.instance,
