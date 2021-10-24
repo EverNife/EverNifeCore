@@ -60,7 +60,7 @@ public class CMDCooldown {
                     @FCLocale(lang = LocaleType.PT_BR, text = "Reseta um cooldown especifico de um jogador!")
             }
     )
-    public void resetPlayerCooldown(CommandSender sender, MultiArgumentos argumentos, HelpLine helpLine) {
+    public void resetPlayer(CommandSender sender, MultiArgumentos argumentos, HelpLine helpLine) {
 
         if (argumentos.emptyArgs(1,2)){
             helpLine.sendTo(sender);
@@ -87,6 +87,10 @@ public class CMDCooldown {
 
 
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§2§l ▶ §aAll NonPlayer Cooldowns have been reloaded!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§2§l ▶ §aTodos os NonPLayer Cooldowns foram recarregados!")
+    private static LocaleMessage COOLDOWN_RELOAD;
+
     @FinalCMD.SubCMD(
             subcmd = "reload",
             locales = {
@@ -96,6 +100,6 @@ public class CMDCooldown {
     )
     public void reload(CommandSender sender) {
         ConfigManager.reloadCooldownConfig();
-        sender.sendMessage("§2§l ▶ §aTodos os Cooldowns foram recarregados com sucesso!");
+        COOLDOWN_RELOAD.send(sender);
     }
 }
