@@ -33,6 +33,7 @@ public class HelpLine {
     public HelpLine setLabelUsed(String label){
         if (!label.equals(lastLabel)){
             this.fancyText = fancyTextOriginal.clone().replace("%label%", label);
+            this.lastLabel = label;
         }
         return this;
     }
