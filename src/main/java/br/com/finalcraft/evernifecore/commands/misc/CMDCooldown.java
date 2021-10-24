@@ -74,7 +74,7 @@ public class CMDCooldown {
             return;
         }
 
-        Cooldown cooldown = Cooldown.of(argumentos.getStringArg(2));
+        Cooldown cooldown = playerData.getCooldown(argumentos.getStringArg(2));
         if (!cooldown.isInCooldown()){
             COOLDOWN_NOT_IN_COOLDOWN.addPlaceholder("%cooldown%", cooldown.getIdentifier()).send(sender);
             return;
