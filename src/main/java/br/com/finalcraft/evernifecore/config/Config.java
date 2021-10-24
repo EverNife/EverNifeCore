@@ -500,7 +500,7 @@ public class Config {
 			String hoverText = getString(path + ".hoverText", null);
 			String actionText = getString(path + ".clickActionText", null);
 			String actionTypeName = getString(path + ".clickActionType", null);
-			ClickActionType actionType = actionTypeName != null && !actionTypeName.isEmpty() ? ClickActionType.valueOf(actionTypeName) : null;
+			ClickActionType actionType = actionTypeName != null && !actionTypeName.isEmpty() ? ClickActionType.valueOf(actionTypeName) : ClickActionType.NONE;
 			return new FancyText(text, hoverText, actionText, actionType);
 		}else if (contains(path)){
 			return new FancyText(getString(path));
