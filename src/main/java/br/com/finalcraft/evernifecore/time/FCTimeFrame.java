@@ -1,10 +1,39 @@
 package br.com.finalcraft.evernifecore.time;
 
-import java.text.SimpleDateFormat;
+import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
+
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 public class FCTimeFrame {
+
+    @FCLocale(lang = LocaleType.EN_US, text = "day")
+    @FCLocale(lang = LocaleType.PT_BR, text = "dia")
+    public static LocaleMessage DAY;
+    @FCLocale(lang = LocaleType.EN_US, text = "days")
+    @FCLocale(lang = LocaleType.PT_BR, text = "dias")
+    public static LocaleMessage DAYS;
+    @FCLocale(lang = LocaleType.EN_US, text = "hour")
+    @FCLocale(lang = LocaleType.PT_BR, text = "hora")
+    public static LocaleMessage HOUR;
+    @FCLocale(lang = LocaleType.EN_US, text = "hours")
+    @FCLocale(lang = LocaleType.PT_BR, text = "horas")
+    public static LocaleMessage HOURS;
+    @FCLocale(lang = LocaleType.EN_US, text = "minute")
+    @FCLocale(lang = LocaleType.PT_BR, text = "minuto")
+    public static LocaleMessage MINUTE;
+    @FCLocale(lang = LocaleType.EN_US, text = "minutes")
+    @FCLocale(lang = LocaleType.PT_BR, text = "minutos")
+    public static LocaleMessage MINUTES;
+    @FCLocale(lang = LocaleType.EN_US, text = "second")
+    @FCLocale(lang = LocaleType.PT_BR, text = "segundo")
+    public static LocaleMessage SECOND;
+    @FCLocale(lang = LocaleType.EN_US, text = "seconds")
+    @FCLocale(lang = LocaleType.PT_BR, text = "segundos")
+    public static LocaleMessage SECONDS;
 
     protected Long days;
     protected Long hours;
@@ -66,12 +95,12 @@ public class FCTimeFrame {
 
     public String getFormated(){
         Date date = new Date(millis);
-        return sdf1.format(date);
+        return ECSettings.SIMPLE_DATE_FORMAT.format(date);
     }
 
     public String getFormatedNoHours(){
         Date date = new Date(millis);
-        return sdf2.format(date);
+        return ECSettings.DATE_FORMAT_WITH_HOURS.format(date);
     }
 
     public FCTimeFrame getDiferenceUntilNow(){
@@ -91,10 +120,10 @@ public class FCTimeFrame {
     }
 
     public String getFormatedDiscursive(final String numberColor, final String textColor, boolean includeMillis){
-        String dia = this.getDays() >= 2 ? "dias" : "dia";
-        String hora = this.getHours() >= 2 ? "horas" :"hora";
-        String minuto = this.getMinutes() >= 2 ? "minutos" :"minuto";
-        String segundo = this.getSeconds() >= 2 || ((includeMillis || this.getSeconds() == 0) && (this.millis % 1000) >= 2)  ? "segundos" :"segundo";
+        String dia = this.getDays() >= 2 ? DAYS.getDefaultFancyText().getText() : DAY.getDefaultFancyText().getText();
+        String hora = this.getHours() >= 2 ? HOURS.getDefaultFancyText().getText() : HOUR.getDefaultFancyText().getText();
+        String minuto = this.getMinutes() >= 2 ? MINUTES.getDefaultFancyText().getText() : MINUTE.getDefaultFancyText().getText();
+        String segundo = this.getSeconds() >= 2 || ((includeMillis || this.getSeconds() == 0) && (this.millis % 1000) >= 2)  ? SECONDS.getDefaultFancyText().getText() : SECOND.getDefaultFancyText().getText();
 
         if (this.getDays() > 0){
             return (numberColor + this.getDays() + " " + textColor + dia + ", " + numberColor + this.getHours() + " " + textColor + hora + ", " + numberColor + this.getMinutes() + " " + textColor + minuto + " e " + numberColor + this.getSeconds() + " " + textColor + segundo);
@@ -131,15 +160,13 @@ public class FCTimeFrame {
         return TimeUnit.MILLISECONDS.toDays(millis);
     }
 
-    private static final SimpleDateFormat sdf1 = new SimpleDateFormat("dd/MM/yyyy HH:mm");
     public static String getFormated(Long millis){
         Date date = new Date(millis);
-        return sdf1.format(date);
+        return ECSettings.SIMPLE_DATE_FORMAT.format(date);
     }
 
-    private static final SimpleDateFormat sdf2 = new SimpleDateFormat("dd/MM/yyyy");
     public static String getFormatedNoHours(Long millis){
         Date date = new Date(millis);
-        return sdf2.format(date);
+        return ECSettings.DATE_FORMAT_WITH_HOURS.format(date);
     }
 }

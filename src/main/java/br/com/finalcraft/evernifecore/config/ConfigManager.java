@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
+import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -36,6 +37,8 @@ public class ConfigManager {
         PlayerController.initialize();
 
         FCLocaleManager.loadLocale(EverNifeCore.instance, FCMessageUtil.class);
+        FCLocaleManager.loadLocale(EverNifeCore.instance, FCTimeFrame.class);
+        FCLocaleManager.loadLocale(EverNifeCore.instance, Cooldown.class);
     }
 
     public static void reloadCooldownConfig(){

@@ -14,9 +14,6 @@ import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.HashSet;
-import java.util.UUID;
-
 public class CMDItemInfo {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§2§l ▶ §aINFO mode Enabled!")
