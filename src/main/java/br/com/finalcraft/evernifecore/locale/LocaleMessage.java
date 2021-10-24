@@ -29,4 +29,8 @@ public interface LocaleMessage {
 
     public FancyText getFancyText(CommandSender sender);
 
+    public FancyText getFancyText(String localeName);
+
+    public FancyText getDefaultFancyText();
+
 }

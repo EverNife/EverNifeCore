@@ -14,6 +14,8 @@ public class LocaleMessageImp implements LocaleMessage {
     private final String key;
     private final HashMap<String, FancyText> fancyTextMap = new HashMap<>();
 
+    private transient FancyText defaultFancyText;
+
     //For COMMAND LOCALE MESSAGES these placeholders store context like objects, like %label% and other useful placeholders
     private final transient HashMap<String, Object> contextPlaceholders = new HashMap<>();
     //
@@ -83,14 +85,21 @@ public class LocaleMessageImp implements LocaleMessage {
         return fancyTextMap.get(localeType.name());
     }
 
+    @Override
     public FancyText getFancyText(String lang){
         return fancyTextMap.get(lang);
     }
 
+    @Override
     public FancyText getFancyText(CommandSender sender){
         return fancyText;
         //TODO Create a PER_PLAYER locale
         //return fancyTextMap.get(FCLocaleManager.getLangOf(sender));
+    }
+
+    @Override
+    public FancyText getDefaultFancyText() {
+        return defaultFancyText == null ? defaultFancyText = getFancyText(FCLocaleManager.getLangOf(this.plugin)) : defaultFancyText;
     }
 
     public HashMap<String, FancyText> getFancyTextMap() {
