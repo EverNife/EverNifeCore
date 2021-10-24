@@ -149,7 +149,14 @@ public class PageViwer<T,J> {
         protected Supplier<List<T>> supplier;
         protected Function<T, J> getValue;
 
-        protected Comparator<J> comparator = Comparator.comparing(j -> j.toString());
+        private final Comparator<Number> doubleComparator = Comparator.comparingDouble(Number::doubleValue);
+        private final Comparator<Object> stringComparator = Comparator.comparing(Object::toString);
+        protected Comparator<J> comparator = (o1, o2) -> {
+            if (o1 instanceof Number){
+                return doubleComparator.compare((Number)o1,(Number)o2);
+            }
+            return stringComparator.compare(o1,o2);
+        };
         protected List<FancyText> formatHeader = Arrays.asList(new FancyText("§a§m" + FCTextUtil.straightLineOf("-")));
         protected FancyText formatLine = new FancyText("§7#  %number%:   §e%player%§f - §a%value%");
         protected List<FancyText> formatFooter = Arrays.asList(new FancyText(""));
