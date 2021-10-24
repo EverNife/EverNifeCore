@@ -54,8 +54,8 @@ public class PageViwer<T,J> {
         if (pageLinesCache == null || System.currentTimeMillis() - lastBuild >= cooldown){
 
             class SortedItem implements Comparable<SortedItem>{
-                T item;
-                J value;
+                final T item;
+                final J value;
 
                 public SortedItem(T item, J value) {
                     this.item = item;
@@ -117,6 +117,7 @@ public class PageViwer<T,J> {
                 pageHeaderCache.add(new FancyText("§7De um total de " + sortedList.size() + " jogadores..."));
             }
 
+            lastBuild = System.currentTimeMillis();
         }
     }
 
