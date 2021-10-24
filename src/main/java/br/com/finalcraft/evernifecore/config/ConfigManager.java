@@ -36,9 +36,12 @@ public class ConfigManager {
         UUIDsController.loadUUIDs();
         PlayerController.initialize();
 
-        FCLocaleManager.loadLocale(EverNifeCore.instance, FCMessageUtil.class);
-        FCLocaleManager.loadLocale(EverNifeCore.instance, FCTimeFrame.class);
-        FCLocaleManager.loadLocale(EverNifeCore.instance, Cooldown.class);
+        FCLocaleManager.loadLocale(EverNifeCore.instance,
+                FCMessageUtil.class,
+                FCTimeFrame.class,
+                Cooldown.class
+        );
+        FCLocaleManager.updateEverNifeCoreLocale();
     }
 
     public static void reloadCooldownConfig(){
