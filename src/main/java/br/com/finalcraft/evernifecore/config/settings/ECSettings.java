@@ -25,7 +25,6 @@ public class ECSettings {
             for (Map.Entry<UUID, String> entry : UUIDsController.getEntrySet()) {
                 final String playerName = entry.getValue();
                 File nameConfig = new File(EverNifeCore.instance.getDataFolder(), "PlayerData/" + playerName + ".yml");
-                System.out.println("Checking: " + nameConfig.getAbsolutePath());
                 if (nameConfig.exists() && nameConfig.isFile()){
                     isUsingStorageWithPlayerName = true;
                     break;
@@ -33,7 +32,6 @@ public class ECSettings {
 
                 final UUID playerUUID = entry.getKey();
                 File uuidConfig = new File(EverNifeCore.instance.getDataFolder(), "PlayerData/" + playerUUID + ".yml");
-                System.out.println("Checking: " + uuidConfig.getAbsolutePath());
                 if (uuidConfig.exists() && uuidConfig.isFile()){
                     isUsingStorageWithPlayerName = false;
                     break;
