@@ -69,8 +69,8 @@ public class FCLocationUtil {
     public static List<Location> getNearestLocationList(Location reference, List<Location> locationList, int maxDistance){
         if (locationList.size() == 0) return null;
         class NearLocation implements Comparable<NearLocation>{
-            Location location;
-            double distance;
+            final Location location;
+            final double distance;
             public NearLocation(Location location, double distance) {
                 this.location = location;
                 this.distance = distance;

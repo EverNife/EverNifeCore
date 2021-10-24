@@ -6,7 +6,7 @@ import java.util.*;
 
 public class UUIDsController {
 
-    private static UUIDHashMap uuidHashMap = new UUIDHashMap();
+    private static final UUIDHashMap uuidHashMap = new UUIDHashMap();
 
     public static void loadUUIDs(){
         if (ConfigManager.getPlayerUUIDs().contains("StoredUUIDs")){

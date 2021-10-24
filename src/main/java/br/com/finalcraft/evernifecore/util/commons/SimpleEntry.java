@@ -5,8 +5,8 @@ import java.util.Objects;
 
 public class SimpleEntry<K,V> implements Map.Entry<K,V>{
 
-    private K key;
-    private V value;
+    private final K key;
+    private final V value;
 
     public SimpleEntry(K key, V value) {
         this.key = key;
@@ -38,9 +38,8 @@ public class SimpleEntry<K,V> implements Map.Entry<K,V>{
             return true;
         if (o instanceof Map.Entry) {
             Map.Entry<?,?> e = (Map.Entry<?,?>)o;
-            if (Objects.equals(key, e.getKey()) &&
-                    Objects.equals(value, e.getValue()))
-                return true;
+            return Objects.equals(key, e.getKey()) &&
+                    Objects.equals(value, e.getValue());
         }
         return false;
     }

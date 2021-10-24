@@ -30,7 +30,7 @@ public class CMDParameterType<T> {
 
     public static class Builder<T>{
 
-        private Class<T> clazz;
+        private final Class<T> clazz;
         private boolean allowExtends = false;
         private boolean onlyPlayer = false;
 

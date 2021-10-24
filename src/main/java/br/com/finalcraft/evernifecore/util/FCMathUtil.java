@@ -18,7 +18,7 @@ public class FCMathUtil {
             double beforeMiddle = doubleListClone.get(doubleListClone.size() / 2 - 1);
             median = (int) ((middle + beforeMiddle) / 2.0);
         }else{
-            median = (double) doubleListClone.get(doubleListClone.size() / 2);
+            median = doubleListClone.get(doubleListClone.size() / 2);
         }
         return median;
     }

@@ -24,7 +24,7 @@ public class FancyText {
     private boolean recentChanged = true;
     private String lastStartingColor = "";
 
-    private transient List<TextComponent> textComponents = new ArrayList<>(); //Cache of TextComponents
+    private final transient List<TextComponent> textComponents = new ArrayList<>(); //Cache of TextComponents
     protected transient @Nullable FancyFormatter fancyFormatter; //States if this FancyText is inside a FancyFormatter
 
     public FancyText() {

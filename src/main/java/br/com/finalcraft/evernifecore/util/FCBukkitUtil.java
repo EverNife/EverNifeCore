@@ -85,7 +85,7 @@ public class FCBukkitUtil {
 
     public static boolean isFakePlayer(String playerName) {
         Player player = Bukkit.getPlayer(playerName);
-        return player == null ? true : isFakePlayer(player);
+        return player == null || isFakePlayer(player);
     }
 
     public static boolean isFakePlayer(Player player) {
@@ -371,9 +371,7 @@ public class FCBukkitUtil {
                 }
 
                 String displayName = FCItemUtils.getDisplayName(itemStack);
-                if (displayName != null && displayName.equalsIgnoreCase(itemDisplayName)) {
-                    return true;
-                }
+                return displayName != null && displayName.equalsIgnoreCase(itemDisplayName);
             }
         }
         return false;
@@ -442,7 +440,7 @@ public class FCBukkitUtil {
                 }
             }
         } else {
-            return player.getTargetBlock((Set<Material>) null, maxDistance);
+            return player.getTargetBlock(null, maxDistance);
         }
         return null;
     }
@@ -456,7 +454,7 @@ public class FCBukkitUtil {
         }
     }
 
-    private static MethodInvoker<Boolean> methodLoader_isLoaded = isClassLoaded("net.minecraftforge.fml.common.Loader") ? ReflectionUtil.getMethod("net.minecraftforge.fml.common.Loader","isModLoaded", String.class) : null;
+    private static final MethodInvoker<Boolean> methodLoader_isLoaded = isClassLoaded("net.minecraftforge.fml.common.Loader") ? ReflectionUtil.getMethod("net.minecraftforge.fml.common.Loader","isModLoaded", String.class) : null;
     public static boolean isModLoaded(String modname){
         if (methodLoader_isLoaded == null) return false;
         return methodLoader_isLoaded.invoke(null, modname);

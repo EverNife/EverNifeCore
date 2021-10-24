@@ -4,5 +4,5 @@ public enum ClickActionType {
     OPEN_URL,
     RUN_COMMAND,
     SUGGEST_COMMAND,
-    NONE;
+    NONE
 }

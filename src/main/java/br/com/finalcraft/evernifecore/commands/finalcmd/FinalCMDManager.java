@@ -85,7 +85,6 @@ public class FinalCMDManager {
                                 .setAliases(finalCMD.aliases())
                                 .setUsage(finalCMD)
                                 .setDescription(finalCMD.desc().isEmpty() ? pluginInstance.getName() + "'s Command!" : finalCMD.desc());
-                ;
 
                 if (builderMethod != null){
                     newCommand.setExecutor(builderMethod, executor, finalCMD);
@@ -122,7 +121,6 @@ public class FinalCMDManager {
                                 .setUsage(finalCMD)
                                 .setDescription(finalCMD.desc().isEmpty() ? pluginInstance.getName() + "'s Command!" : finalCMD.desc())
                                 .setExecutor(builderMethod, executor, finalCMD);
-                ;
 
                 newCommand.addLocaleMessages(localeMessageFields);
                 newCommand.registerCommand();

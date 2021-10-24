@@ -131,13 +131,13 @@ public class FCTimeFrame {
         return TimeUnit.MILLISECONDS.toDays(millis);
     }
 
-    private static SimpleDateFormat sdf1 = new SimpleDateFormat("dd/MM/yyyy HH:mm");
+    private static final SimpleDateFormat sdf1 = new SimpleDateFormat("dd/MM/yyyy HH:mm");
     public static String getFormated(Long millis){
         Date date = new Date(millis);
         return sdf1.format(date);
     }
 
-    private static SimpleDateFormat sdf2 = new SimpleDateFormat("dd/MM/yyyy");
+    private static final SimpleDateFormat sdf2 = new SimpleDateFormat("dd/MM/yyyy");
     public static String getFormatedNoHours(Long millis){
         Date date = new Date(millis);
         return sdf2.format(date);

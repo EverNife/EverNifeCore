@@ -12,10 +12,10 @@ public class LocaleMessageImp implements LocaleMessage {
 
     private final Plugin plugin;
     private final String key;
-    private HashMap<String, FancyText> fancyTextMap = new HashMap<>();
+    private final HashMap<String, FancyText> fancyTextMap = new HashMap<>();
 
     //For COMMAND LOCALE MESSAGES these placeholders store context like objects, like %label% and other useful placeholders
-    private transient HashMap<String, Object> contextPlaceholders = new HashMap<>();
+    private final transient HashMap<String, Object> contextPlaceholders = new HashMap<>();
     //
 
 

@@ -11,7 +11,7 @@ public class PlaceHolderIntegration {
 
     private static boolean isApiLoaded(){
         if (apiLoaded == null){
-            apiLoaded = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI") ? true : false;
+            apiLoaded = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
         }
         return apiLoaded;
     }

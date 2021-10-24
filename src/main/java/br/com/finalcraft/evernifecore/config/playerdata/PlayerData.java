@@ -23,7 +23,7 @@ public class PlayerData {
     protected transient boolean recentChanged = false;
 
     // PDSection Controller
-    private Map<Class<? extends PDSection>, PDSection> mapOfPDSections = new HashMap();
+    private final Map<Class<? extends PDSection>, PDSection> mapOfPDSections = new HashMap();
 
     public Map<Class<? extends PDSection>, PDSection> getMapOfPDSections() {
         return mapOfPDSections;

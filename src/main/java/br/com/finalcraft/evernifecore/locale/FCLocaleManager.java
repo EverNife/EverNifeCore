@@ -42,7 +42,7 @@ public class FCLocaleManager {
 
         PluginLocalization pluginLocalization = getLocalization(plugin);
 
-        for (Class aClass : Arrays.asList(classes)) {
+        for (Class aClass : classes) {
             if (pluginLocalization.getClassList().contains(aClass)){
                 pluginLocalization.getClassList().addAll(Arrays.asList(classes));
                 PLUGIN_LOCALES.remove(plugin.getName()); //Reload everything!
@@ -81,7 +81,7 @@ public class FCLocaleManager {
 
     }
 
-    private static HashMap<String, PluginLocalization> PLUGIN_LOCALES = new HashMap<>();
+    private static final HashMap<String, PluginLocalization> PLUGIN_LOCALES = new HashMap<>();
 
     private static PluginLocalization getLocalization(final Plugin plugin){
         return PLUGIN_LOCALES.computeIfAbsent(plugin.getName(), pluginName -> {

@@ -84,7 +84,7 @@ public class Argumento {
 
     public <T extends PDSection> T getPDSection(Class<? extends T> pdClass){
         PlayerData playerData = getPlayerData();
-        return playerData == null ? null : (T)playerData.getPDSection(pdClass);
+        return playerData == null ? null : playerData.getPDSection(pdClass);
     }
 
     public Integer getInteger(){

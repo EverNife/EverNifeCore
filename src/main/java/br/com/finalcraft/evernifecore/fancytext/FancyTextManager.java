@@ -18,8 +18,8 @@ import java.util.function.Function;
 
 public class FancyTextManager {
 
-    private static MethodInvoker method_spigot;
-    private static MethodInvoker method_sendmessage;
+    private static final MethodInvoker method_spigot;
+    private static final MethodInvoker method_sendmessage;
 
     static {
         String CRAFT_PLAYER_CLASS = "org.bukkit.craftbukkit." + MCVersion.getCurrent().name() + ".entity.CraftPlayer";

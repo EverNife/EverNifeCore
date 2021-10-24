@@ -14,12 +14,12 @@ public class ProtectionGPP {
     }
 
     public static boolean canPvP(Player player) {
-        Claim claim = GriefPreventionPlus.getInstance().getDataStore().getClaimAt(player.getLocation(), true, (Claim)null);
+        Claim claim = GriefPreventionPlus.getInstance().getDataStore().getClaimAt(player.getLocation(), true, null);
         return claim == null;
     }
 
     public static boolean isProtected(Player player, Block b) {
-        Claim claim = GriefPreventionPlus.getInstance().getDataStore().getClaimAt(b.getLocation(), true, (Claim)null);
+        Claim claim = GriefPreventionPlus.getInstance().getDataStore().getClaimAt(b.getLocation(), true, null);
         if (claim != null) {
             return claim.canBreak(player, b.getType()) == null;
         } else {
@@ -29,26 +29,17 @@ public class ProtectionGPP {
 
     public static boolean isInsideWilderness(Player player){
         Claim claim = GriefPreventionPlus.getInstance().getDataStore().getClaimAt(player.getLocation());
-        if (claim == null) {
-            return true;
-        }
-        return false;
+        return claim == null;
     }
 
     public static boolean isInsideSelfClaimOrWilderness(Player player){
         Claim claim = GriefPreventionPlus.getInstance().getDataStore().getClaimAt(player.getLocation());
-        if (claim == null || claim.getOwnerID().toString().equalsIgnoreCase(player.getUniqueId().toString())) {
-            return true;
-        }
-        return false;
+        return claim == null || claim.getOwnerID().toString().equalsIgnoreCase(player.getUniqueId().toString());
     }
 
     public static boolean isInsideSelfClaim(Player player){
         Claim claim = GriefPreventionPlus.getInstance().getDataStore().getClaimAt(player.getLocation());
-        if (claim != null && claim.getOwnerID().toString().equalsIgnoreCase(player.getUniqueId().toString())) {
-            return true;
-        }
-        return false;
+        return claim != null && claim.getOwnerID().toString().equalsIgnoreCase(player.getUniqueId().toString());
     }
 
 }

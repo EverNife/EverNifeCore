@@ -41,25 +41,25 @@ public class NMSUtils_v1_7_R4 implements INMSUtils {
 
 	public static NMSUtils_v1_7_R4 instance;
 
-	private MethodInvoker<NBTTagCompound> crucible_JsonToNBT_getTagFromJson = ReflectionUtil.getMethod(	//Crucible_JsonToNBT.getTagFromJson()
+	private final MethodInvoker<NBTTagCompound> crucible_JsonToNBT_getTagFromJson = ReflectionUtil.getMethod(	//Crucible_JsonToNBT.getTagFromJson()
 			"io.github.crucible.nbt.Crucible_JsonToNBT","getTagFromJson", String.class
 	);
 
 	//ItemUtil.getItemStackNBTAsString()
-	private MethodInvoker<String> method__ItemUtil_getItemStackNBTAsString = ReflectionUtil.getMethod(
+	private final MethodInvoker<String> method__ItemUtil_getItemStackNBTAsString = ReflectionUtil.getMethod(
 			"io.github.crucible.util.ItemUtil","getItemStackNBTAsString", org.bukkit.inventory.ItemStack.class
 	);
 
 	//ItemUtil.setItemStackNBTFromString()
-	private MethodInvoker<NBTTagCompound> method__ItemUtil_setItemStackNBTFromString = ReflectionUtil.getMethod(
+	private final MethodInvoker<NBTTagCompound> method__ItemUtil_setItemStackNBTFromString = ReflectionUtil.getMethod(
 			"io.github.crucible.util.ItemUtil","setItemStackNBTFromString", org.bukkit.inventory.ItemStack.class, String.class
 	);
 
-	private FieldAccessor<ItemStack> handle_field = ReflectionUtil.getField( 							// CraftItemStack.handle
+	private final FieldAccessor<ItemStack> handle_field = ReflectionUtil.getField( 							// CraftItemStack.handle
 			CraftItemStack.class,"handle", ItemStack.class
 	);
 
-	private FieldAccessor<net.minecraft.server.v1_7_R4.Entity> entity_field = ReflectionUtil.getField(	// CraftEntity.entity
+	private final FieldAccessor<net.minecraft.server.v1_7_R4.Entity> entity_field = ReflectionUtil.getField(	// CraftEntity.entity
 			CraftEntity.class,"entity", net.minecraft.server.v1_7_R4.Entity.class
 	);
 	private Class fakePlayerClass = null; 																// net.minecraftforge.common.util.FakePlayer
@@ -282,7 +282,7 @@ public class NMSUtils_v1_7_R4 implements INMSUtils {
 	public Object asMinecraftEntity(Entity entity) {
 		try {
 			CraftEntity craftEntity = (CraftEntity) entity;
-			net.minecraft.server.v1_7_R4.Entity mcEntity = (net.minecraft.server.v1_7_R4.Entity) entity_field.get(craftEntity);
+			net.minecraft.server.v1_7_R4.Entity mcEntity = entity_field.get(craftEntity);
 			return mcEntity;
 		}catch (Exception e){
 			throw new RuntimeException(e);
@@ -339,7 +339,7 @@ public class NMSUtils_v1_7_R4 implements INMSUtils {
 		Validate.notNull(itemStack,"itemStack can not be null!");
 		try {
 			CraftItemStack craftItemStack = (CraftItemStack) itemStack;
-			ItemStack mcStack = (ItemStack) handle_field.get(craftItemStack);
+			ItemStack mcStack = handle_field.get(craftItemStack);
 			return mcStack;
 		}catch (Exception e){
 			Class c = itemStack.getClass();

@@ -20,11 +20,7 @@ public class CMaskOnlyAir extends CustomMask {
 
         Block block = world.getBlockAt(blockRelativeToPlayer.getBlockX(),blockRelativeToPlayer.getBlockY(),blockRelativeToPlayer.getBlockZ());
 
-        if (block.getType() == Material.AIR){
-            return true;
-        }else {
-            return false;
-        }
+        return block.getType() == Material.AIR;
     }
 
 

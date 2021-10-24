@@ -16,7 +16,7 @@ public class FCTextUtil {
 
     public static String alignCenter(String stringToAlign){
         int text_widht = ChatMenuAPI.getWidth(stringToAlign);
-        int side_widht = (int) (MAX_WIDTH - text_widht) / 2;
+        int side_widht = (MAX_WIDTH - text_widht) / 2;
         String sideString = TextUtil.generateWidth(' ', side_widht, false);
 
         return sideString + stringToAlign;// + sideString;//Dont need to append second half of SPACES

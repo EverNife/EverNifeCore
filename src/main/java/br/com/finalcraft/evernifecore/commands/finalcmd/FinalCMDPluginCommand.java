@@ -389,10 +389,10 @@ public class FinalCMDPluginCommand extends Command implements PluginIdentifiable
     }
 
     public static class TabCommand {
-        private int indice;
-        private String text;
-        private String permission;
-        private ArrayList<String> textAvant;
+        private final int indice;
+        private final String text;
+        private final String permission;
+        private final ArrayList<String> textAvant;
 
         public TabCommand(int indice, String text, String permission, String... textAvant) {
             this.indice = indice;

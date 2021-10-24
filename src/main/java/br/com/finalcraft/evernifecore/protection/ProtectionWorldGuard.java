@@ -44,10 +44,7 @@ public class ProtectionWorldGuard {
         LocalPlayer localPlayer = WGBukkit.getPlugin().wrapPlayer(player);
         ApplicableRegionSet applicableRegionSet = getApplicableRegions(player.getLocation());
 
-        if (!applicableRegionSet.testState(localPlayer, DefaultFlag.PVP)) {
-            return false;
-        }
-        return true;
+        return applicableRegionSet.testState(localPlayer, DefaultFlag.PVP);
     }
 
     public static boolean canBuild(Player player, Block b){
@@ -212,7 +209,7 @@ public class ProtectionWorldGuard {
             e.printStackTrace();
         }
     }
-    private static AtomicBoolean scheduled = new AtomicBoolean(false);
+    private static final AtomicBoolean scheduled = new AtomicBoolean(false);
     public static void schedulWorldGuardReload(){
         if (scheduled.get()) return;
         scheduled.set(true);

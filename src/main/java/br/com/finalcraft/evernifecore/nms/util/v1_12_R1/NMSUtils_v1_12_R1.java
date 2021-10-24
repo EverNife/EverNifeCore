@@ -163,7 +163,7 @@ public class NMSUtils_v1_12_R1 implements INMSUtils {
 	public void applyNBTFromString(org.bukkit.inventory.ItemStack itemStack, String jsonNbt) {
 		try {
 			ItemStack mcStack = getHandle(itemStack);
-			mcStack.setTag((NBTTagCompound) MojangsonParser.parse(jsonNbt));
+			mcStack.setTag(MojangsonParser.parse(jsonNbt));
 		}catch (Exception e){
 			throw new RuntimeException(e);
 		}
@@ -332,7 +332,7 @@ public class NMSUtils_v1_12_R1 implements INMSUtils {
 			String[] args = minecraftIdentifier.split(" ");
 			int count = args.length >= 2 ? Integer.parseInt(args[1]) : 1;
 			int meta = args.length >= 3 ? Integer.parseInt(args[2]) : 0;
-			Item item = (Item) Item.REGISTRY.get(new MinecraftKey(args[0]));
+			Item item = Item.REGISTRY.get(new MinecraftKey(args[0]));
 			if (item == null){
 				throw new RuntimeException("No Registry found for: \"" + args[0] + "\" in [" + minecraftIdentifier + "]");
 			}
@@ -345,7 +345,7 @@ public class NMSUtils_v1_12_R1 implements INMSUtils {
 					}
 					stringBuilder.append(args[i]);
 				}
-				NBTTagCompound nbtTagCompound = (NBTTagCompound) MojangsonParser.parse(stringBuilder.toString());
+				NBTTagCompound nbtTagCompound = MojangsonParser.parse(stringBuilder.toString());
 				itemStack.setTag(nbtTagCompound);
 			}
 			return CraftItemStack.asBukkitCopy(itemStack);

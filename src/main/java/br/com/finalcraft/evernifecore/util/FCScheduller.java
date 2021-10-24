@@ -7,7 +7,7 @@ import java.util.concurrent.*;
 
 public class FCScheduller {
 
-    private static ScheduledThreadPoolExecutor scheduler = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(5);
+    private static final ScheduledThreadPoolExecutor scheduler = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(5);
 
     public static ScheduledThreadPoolExecutor getScheduler() {
         return scheduler;
