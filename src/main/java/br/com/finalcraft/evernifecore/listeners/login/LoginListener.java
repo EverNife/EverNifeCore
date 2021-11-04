@@ -25,7 +25,7 @@ public class LoginListener implements ECListener {
     public static class AuthmeLogin implements ECListener{
         @EventHandler(priority = EventPriority.MONITOR)
         public void onAuthmeLogin(LoginEvent event) {
-            LoginListener.fireDelayedECLoginEvent(event.getPlayer());
+            fireDelayedECLoginEvent(event.getPlayer());
         }
     }
 
