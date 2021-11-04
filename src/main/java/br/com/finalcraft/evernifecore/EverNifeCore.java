@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.integration.VaultIntegration;
 import br.com.finalcraft.evernifecore.integration.WorldEditIntegration;
 import br.com.finalcraft.evernifecore.integration.everforgelib.EverForgeLibIntegration;
 import br.com.finalcraft.evernifecore.listeners.PlayerListenerGlobal;
+import br.com.finalcraft.evernifecore.listeners.PluginListener;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.listeners.login.LoginListener;
 import br.com.finalcraft.evernifecore.protection.handlers.ProtectionPlugins;
@@ -62,6 +63,7 @@ public class EverNifeCore extends JavaPlugin {
 
         info("§aRegistering Listeners");
         ECListener.register(this, PlayerListenerGlobal.class);
+        ECListener.register(this, PluginListener.class);
         if (Bukkit.getPluginManager().isPluginEnabled("AuthMe")){
             ECListener.register(this, LoginListener.AuthmeLogin.class);
         }else {
