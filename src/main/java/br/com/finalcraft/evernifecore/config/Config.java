@@ -39,17 +39,20 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class Config {
 	
-	protected File theFile;
+	protected final File theFile;
 	protected FileConfiguration config;
-	protected static Random random = new Random();
 	protected boolean newDefaultValueToSave = false;
-	private static final ExecutorService scheduler = new ThreadPoolExecutor(5, Integer.MAX_VALUE,
+
+	protected final static Random random = new Random();
+	private static HashMap<Class, Method> MAP_OF_LOADABLE_METHODS = new HashMap<>();
+	private static final ExecutorService SCHEDULER = new ThreadPoolExecutor(5, Integer.MAX_VALUE,
 			1000L, TimeUnit.MILLISECONDS,
 			new LinkedBlockingQueue(),
 			new ThreadFactoryBuilder()
 					.setNameFormat("evernifecore-assyncsave-pool-%d")
 					.setDaemon(true)
 					.build());
+
 	/**
 	 * Creates a handlers Directory if doest not exist at the targed directory
 	 *
@@ -95,7 +98,7 @@ public class Config {
 	}
 
 	/**
-	 * Creates a handlers Config Object for the configName.yml File of
+	 * Creates a Config Object for the configName.yml File of
 	 * the specified Plugin + copy default configs if asked to +
 	 * a header information about EverNife Config Manager
 	 *
@@ -343,7 +346,7 @@ public class Config {
 	 * Saves the Config Object to its File, and ensure its assync state
 	 */
 	public void saveAsync() {
-		scheduler.submit(() -> {
+		SCHEDULER.submit(() -> {
 			this.save();
 		});
 	}
@@ -986,13 +989,13 @@ public class Config {
 	}
 
 	public static void shutdownSaveScheduller(){
-		if (!scheduler.isShutdown() && !scheduler.isTerminated()){
+		if (!SCHEDULER.isShutdown() && !SCHEDULER.isTerminated()){
 			try {
-				scheduler.shutdown();
-				boolean success = scheduler.awaitTermination(30, TimeUnit.SECONDS);
+				SCHEDULER.shutdown();
+				boolean success = SCHEDULER.awaitTermination(30, TimeUnit.SECONDS);
 				if (!success){
 					EverNifeCore.warning("Failed to close Config.class Scheduller, TimeOut of 30 seconds Reached, this is really bad! Terminating all of them now!");
-					scheduler.shutdownNow();
+					SCHEDULER.shutdownNow();
 				}
 			} catch (Exception e){
 				e.printStackTrace();
@@ -1002,20 +1005,20 @@ public class Config {
 
 	//------------------------------------------------------------------------------------------------------------------
 
-
 	public static interface Salvable{
 		public void onConfigSave(Config config, String path);
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
+
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.METHOD)
 	public static @interface Loadable{
 
 	}
-	private static HashMap<Class, Method> mapOfLoadableMethods = new HashMap<>();
+
 	public static Method getLoadableMethodAndInvoke(Class loadableClass){
-		Method method = mapOfLoadableMethods.get(loadableClass);
+		Method method = MAP_OF_LOADABLE_METHODS.get(loadableClass);
 		if (method == null){
 			try {
 				for (Method declaredMethod : loadableClass.getDeclaredMethods()) {
@@ -1027,7 +1030,7 @@ public class Config {
 				if (!method.isAccessible()){
 					method.setAccessible(true);
 				}
-				mapOfLoadableMethods.put(loadableClass,method);
+				MAP_OF_LOADABLE_METHODS.put(loadableClass,method);
 			}catch (Exception e){
 				EverNifeCore.warning("Fatal Error on LoadableClass Method Getter: " + loadableClass.getName());
 				e.printStackTrace();
@@ -1035,6 +1038,7 @@ public class Config {
 		}
 		return method;
 	}
+
 	//------------------------------------------------------------------------------------------------------------------
 
 }
