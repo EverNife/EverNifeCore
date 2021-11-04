@@ -11,7 +11,7 @@ public class BossShopListener implements ECListener {
     private final ItemDataPartNBT DATAPART_NBT = new ItemDataPartNBT();
 
     @EventHandler
-    public void onPluginEnable(BSRegisterTypesEvent event) {
+    public void onRegisterTypesEvent(BSRegisterTypesEvent event) {
         ItemDataPart.registerType(DATAPART_NBT);
     }
 
