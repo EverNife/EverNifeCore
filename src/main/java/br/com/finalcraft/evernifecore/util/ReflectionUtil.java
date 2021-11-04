@@ -120,7 +120,7 @@ public class ReflectionUtil {
     // Common method
     private static <T> FieldAccessor<T> getField(Class<?> target, String name, Class<T> fieldType, int index) {
         for (final Field field : target.getDeclaredFields()) {
-            if ((name == null || field.getName().equals(name)) && (fieldType != null && fieldType.isAssignableFrom(field.getType())) && index-- <= 0) {
+            if ((name == null || field.getName().equals(name)) && (fieldType == null || fieldType.isAssignableFrom(field.getType())) && index-- <= 0) {
                 field.setAccessible(true);
 
                 // A function for retrieving a specific field value
