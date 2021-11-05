@@ -162,11 +162,11 @@ public class FCTimeFrame {
 
     public static String getFormated(Long millis){
         Date date = new Date(millis);
-        return ECSettings.SIMPLE_DATE_FORMAT.format(date);
+        return ECSettings.DATE_FORMAT_WITH_HOURS.format(date);
     }
 
     public static String getFormatedNoHours(Long millis){
         Date date = new Date(millis);
-        return ECSettings.DATE_FORMAT_WITH_HOURS.format(date);
+        return ECSettings.SIMPLE_DATE_FORMAT.format(date);
     }
 }
