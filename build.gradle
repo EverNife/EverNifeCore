@@ -45,6 +45,8 @@ repositories {
 
 dependencies {
     implementation 'com.github.evernife:ChatMenuAPI:1.1.2b'
+    implementation 'com.github.evernife.libby:libby-core:428e643104'
+    implementation 'com.github.evernife.libby:libby-bukkit:428e643104'
 
     compileOnly name: "AuthMe-5.4.0"
     compileOnly 'net.luckperms:api:5.0'
@@ -78,6 +80,8 @@ shadowJar {
     archiveName = "${baseName}-${version}.${extension}"
     dependencies {
         include(dependency('com.github.evernife:ChatMenuAPI:1.1.2b'))
+        include(dependency('com.github.evernife.libby:libby-core:428e643104'))
+        include(dependency('com.github.evernife.libby:libby-bukkit:428e643104'))
     }
 }
 
