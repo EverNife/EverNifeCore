@@ -6,10 +6,18 @@ import net.byteflux.libby.Library;
 import java.util.Arrays;
 import java.util.List;
 
+//TODO properly create this class
 public class ECDependencies {
 
     public static Library getMariaDBClientDriver(){
         return LibraryUtil.fromString("org.mariadb.jdbc:mariadb-java-client:3.0.2-rc");
+    }
+
+    public static List<Library> getSQLLiteClientDriverAndConnectr(){
+        return Arrays.asList(
+                LibraryUtil.fromString("org.xerial:sqlite-jdbc:3.36.0.2"),
+                LibraryUtil.fromString("com.github.gwenn:sqlite-dialect:master") //TODO Replace if a specific version
+        );
     }
 
     public static List<Library> getHibernateDependencies(){ // hibernate-core:5.4.30.Final
