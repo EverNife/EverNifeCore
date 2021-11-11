@@ -1,0 +1,61 @@
+package br.com.finalcraft.evernifecore.hibernate.connection;
+
+import br.com.finalcraft.evernifecore.hibernate.database.HibernateAbstractDatabase;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.boot.MetadataSources;
+import org.hibernate.cfg.Configuration;
+import org.hibernate.tool.hbm2ddl.SchemaExport;
+import org.hibernate.tool.schema.TargetType;
+
+import javax.persistence.EntityManager;
+import javax.persistence.metamodel.EntityType;
+import java.util.EnumSet;
+import java.util.function.Consumer;
+
+public class HibernateConnection<D extends HibernateAbstractDatabase> {
+
+    private final SessionFactory factory;
+    private final D database;
+
+    public HibernateConnection(D database, Configuration configuration) {
+        this.database = database;
+        this.factory = configuration.buildSessionFactory();
+    }
+
+    public SessionFactory getFactory() {
+        return factory;
+    }
+
+    public void createTables(){
+        MetadataSources metadata = new MetadataSources(factory.getSessionFactoryOptions().getServiceRegistry());
+
+        for (EntityType<?> entity : factory.getMetamodel().getEntities()) {
+            metadata.addAnnotatedClass(entity.getBindableJavaType());
+        }
+
+        EnumSet<TargetType> enumSet = EnumSet.of(TargetType.DATABASE);
+        SchemaExport schemaExport = new SchemaExport();
+        schemaExport.execute(enumSet,
+                SchemaExport.Action.CREATE, //This will only CREATE the table
+                metadata.buildMetadata());
+    }
+
+    public synchronized void executeQuery(Consumer<EntityManager> consumer){
+
+        Session session = factory.openSession();
+        EntityManager entityManager = factory.createEntityManager();
+
+        try {
+            consumer.accept(entityManager);
+        }catch (Throwable e){
+            e.printStackTrace();
+        }finally {
+            entityManager.close();
+            session.close();
+        }
+
+    }
+
+
+}
