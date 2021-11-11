@@ -44,16 +44,14 @@ public class HibernateConnection<D extends HibernateAbstractDatabase> {
     }
 
 
-    public synchronized void executeQuery(Consumer<EntityManager> consumer){
+    public synchronized void executeQuery(Consumer<Session> consumer){
         lock.lock();
         Session session = factory.openSession();
-        EntityManager entityManager = factory.createEntityManager();
         try {
-            consumer.accept(entityManager);
+            consumer.accept(session);
         }catch (Throwable e){
             e.printStackTrace();
         }finally {
-            entityManager.close();
             session.close();
             lock.unlock();
         }
