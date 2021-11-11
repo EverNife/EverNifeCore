@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.commands.CommandRegisterer;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
+import br.com.finalcraft.evernifecore.dependencies.DependencyManager;
 import br.com.finalcraft.evernifecore.featherboard.FeatherBoardUtils;
 import br.com.finalcraft.evernifecore.integration.VaultIntegration;
 import br.com.finalcraft.evernifecore.integration.WorldEditIntegration;
@@ -35,6 +36,21 @@ public class EverNifeCore extends JavaPlugin {
 
     public static void warning(String msg) {
         instance.getLogger().warning("[Warning] " + msg);
+    }
+
+    private static DependencyManager dependencyManager;
+
+    public static DependencyManager getDependencyManager() {
+        if (EverNifeCore.instance == null) throw new IllegalStateException("EverNifeCore was not initialized yet, you can't get it's DependencyManager");
+        if (dependencyManager == null){
+            dependencyManager = new DependencyManager(EverNifeCore.instance);
+            dependencyManager.addJitPack();
+            dependencyManager.addJCenter();
+            dependencyManager.addMavenCentral();
+            dependencyManager.addSonatype();
+            dependencyManager.addRepository("https://maven.petrus.dev/public");
+        }
+        return dependencyManager;
     }
 
     @Override
