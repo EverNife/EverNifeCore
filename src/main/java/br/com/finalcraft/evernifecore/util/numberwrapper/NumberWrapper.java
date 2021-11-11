@@ -73,11 +73,11 @@ public class NumberWrapper<N extends Number> implements Comparable<NumberWrapper
     }
 
     public boolean isBounded(N min, N max){
-        if (this.value instanceof Integer)  { return (Integer)this.value >= (Integer)min && (Integer)this.value >= (Integer)max;}
-        if (this.value instanceof Long)  { return (Long)this.value >= (Long)min && (Long)this.value >= (Long)max;}
-        if (this.value instanceof Float)  { return (Float)this.value >= (Float)min && (Float)this.value >= (Float)max;}
-        if (this.value instanceof Double)  { return (Double)this.value >= (Double)min && (Double)this.value >= (Double)max;}
-        if (this.value instanceof Byte)  { return (Integer)this.value >= (Integer)min && (Integer)this.value >= (Integer)max;}
+        if (this.value instanceof Integer)  { return (Integer)this.value >= (Integer)min && (Integer)this.value <= (Integer)max;}
+        if (this.value instanceof Long)  { return (Long)this.value >= (Long)min && (Long)this.value <= (Long)max;}
+        if (this.value instanceof Float)  { return (Float)this.value >= (Float)min && (Float)this.value <= (Float)max;}
+        if (this.value instanceof Double)  { return (Double)this.value >= (Double)min && (Double)this.value <= (Double)max;}
+        if (this.value instanceof Byte)  { return (Integer)this.value >= (Integer)min && (Integer)this.value <= (Integer)max;}
 
         throw new UnsupportedOperationException("The Number [" + value.getClass() + "] is not supported by NumberWrapper!");
     }
