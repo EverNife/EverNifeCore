@@ -11,12 +11,14 @@ import org.hibernate.tool.schema.TargetType;
 import javax.persistence.EntityManager;
 import javax.persistence.metamodel.EntityType;
 import java.util.EnumSet;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 public class HibernateConnection<D extends HibernateAbstractDatabase> {
 
     private final SessionFactory factory;
     private final D database;
+    private final ReentrantLock lock = new ReentrantLock(true);
 
     public HibernateConnection(D database, Configuration configuration) {
         this.database = database;
@@ -41,11 +43,11 @@ public class HibernateConnection<D extends HibernateAbstractDatabase> {
                 metadata.buildMetadata());
     }
 
-    public synchronized void executeQuery(Consumer<EntityManager> consumer){
 
+    public synchronized void executeQuery(Consumer<EntityManager> consumer){
+        lock.lock();
         Session session = factory.openSession();
         EntityManager entityManager = factory.createEntityManager();
-
         try {
             consumer.accept(entityManager);
         }catch (Throwable e){
@@ -53,8 +55,8 @@ public class HibernateConnection<D extends HibernateAbstractDatabase> {
         }finally {
             entityManager.close();
             session.close();
+            lock.unlock();
         }
-
     }
 
 
