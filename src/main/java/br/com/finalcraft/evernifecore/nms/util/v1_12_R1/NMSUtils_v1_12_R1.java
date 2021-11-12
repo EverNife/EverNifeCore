@@ -248,6 +248,12 @@ public class NMSUtils_v1_12_R1 implements INMSUtils {
 	}
 
 	@Override
+	public boolean isSword(org.bukkit.inventory.ItemStack itemStack) {
+		ItemStack mcItemStack = getHandle(itemStack);
+		return mcItemStack.getItem() instanceof ItemSword;
+	}
+
+	@Override
 	public boolean isArmor(org.bukkit.inventory.ItemStack itemStack) {
 		ItemStack mcItemStack = getHandle(itemStack);
 		return mcItemStack.getItem() instanceof ItemArmor;
