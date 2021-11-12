@@ -66,6 +66,8 @@ public interface INMSUtils {
 
 	public String getNBTString(ItemStack itemStack, String key);
 
+	public boolean isTool(ItemStack itemStack);
+
 	public boolean isArmor(ItemStack itemStack);
 
 	public boolean isHelmet(ItemStack itemStack);
