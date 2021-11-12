@@ -24,6 +24,11 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 
+//Todo Remake this entire NMS System
+//  - Separate per modules
+//  - Remove unnecessary functions
+//  - Create a default interface for non "not implemented"
+//  - Add simple way for "force integrate"
 public interface INMSUtils {
 
 	public boolean hasInventory(Block b);
@@ -67,6 +72,8 @@ public interface INMSUtils {
 	public String getNBTString(ItemStack itemStack, String key);
 
 	public boolean isTool(ItemStack itemStack);
+
+	public boolean isSword(ItemStack itemStack);
 
 	public boolean isArmor(ItemStack itemStack);
 
