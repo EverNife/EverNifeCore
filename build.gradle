@@ -94,6 +94,10 @@ task sourcesJar(type: Jar, dependsOn: classes) {
     from sourceSets.main.allSource
 }
 
+tasks.withType(GenerateModuleMetadata) {
+    enabled = false
+}
+
 publishing {
     repositories {
         maven {
