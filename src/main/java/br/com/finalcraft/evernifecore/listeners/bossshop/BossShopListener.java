@@ -66,7 +66,7 @@ public class BossShopListener implements ECListener {
                 }
 
             }catch (Exception e){
-                EverNifeCore.warning("Failed to load [shop." + bsBuy.getName() + ".CopyToLocations] from [" + configShop.getConfig().getName() +  "]");
+                EverNifeCore.warning("Failed to load [shop." + bsBuy.getName() + ".CopyToLocations] from shop [" + configShop.getShopName() +  "]");
                 e.printStackTrace();
             }
         }
