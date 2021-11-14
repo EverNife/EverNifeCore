@@ -65,7 +65,7 @@ public class Config {
 			InputStream inputStream = plugin.getResource(assetName);
 			Files.copy(inputStream, file.getAbsoluteFile().toPath(), new CopyOption[]{StandardCopyOption.REPLACE_EXISTING});
 		}
-		return null;
+		return file;
 	}
 
 	/**
