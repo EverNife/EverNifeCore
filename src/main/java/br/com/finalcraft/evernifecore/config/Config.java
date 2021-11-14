@@ -59,7 +59,8 @@ public class Config {
 	 * @param  assetName The asset name you want to copy
 	 * @param  targetFolder The target folder you want to paste the theFile in
 	 */
-	public static File copyAsset(String assetName, File targetFolder, Plugin plugin) throws IOException {
+	@Deprecated
+	public static File copyAsset(String assetName, File targetFolder, Plugin plugin) throws IOException {//TODO Create a class only for asset helping
 		File file = new File(targetFolder, assetName);
 		if (!file.exists()){
 			InputStream inputStream = plugin.getResource(assetName);
