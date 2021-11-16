@@ -38,14 +38,15 @@ repositories {
         name = 'spigotmc-repo'
         url = 'https://hub.spigotmc.org/nexus/content/groups/public/'
     }
-    maven {
-        url 'https://jitpack.io'
-    }
+    maven { url = "https://jitpack.io" }
+    maven { url = "https://maven.petrus.dev/public" }
 }
 
 dependencies {
     implementation 'com.github.evernife:ChatMenuAPI:1.1.2b'
     implementation 'com.github.evernife.libby:libby-core:d994023'
+
+    implementation 'dev.triumphteam:triumph-gui:3.0.4-e1'
 
     compileOnly('org.hibernate:hibernate-core:5.4.30.Final')
 
@@ -82,6 +83,7 @@ shadowJar {
     dependencies {
         include(dependency('com.github.evernife:ChatMenuAPI:1.1.2b'))
         include(dependency('com.github.evernife.libby:libby-core:d994023'))
+        include(dependency('dev.triumphteam:triumph-gui:3.0.4-e1'))
     }
 }
 
@@ -120,7 +122,13 @@ publishing {
             pom.withXml {
                 asNode().appendNode('url','https://petrus.dev')
                 asNode().dependencies.'*'.each() {
-                    it.parent().remove(it) //Remove all dependencies from pom file
+                    asNode().dependencies.'*'.each() {
+                        if (it.value().text().contains("triumphteamtriumph")){
+                            println("Keeping Dependency: " + it.value().text())
+                        }else {
+                            it.parent().remove(it) //Remove all dependencies from pom file
+                        }
+                    }
                 }
             }
         }
