@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.integration.datapart;
+package br.com.finalcraft.evernifecore.integration.bossshop.datapart;
 
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import org.black_ixx.bossshop.core.BSBuy;

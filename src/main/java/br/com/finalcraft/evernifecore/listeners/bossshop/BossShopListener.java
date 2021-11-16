@@ -2,14 +2,19 @@ package br.com.finalcraft.evernifecore.listeners.bossshop;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.integration.BossShopIntegration;
-import br.com.finalcraft.evernifecore.integration.datapart.ItemDataPartNBT;
+import br.com.finalcraft.evernifecore.integration.bossshop.customizer.ECItemStackTranslator;
+import br.com.finalcraft.evernifecore.integration.bossshop.datapart.ItemDataPartNBT;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.util.ReflectionUtil;
+import br.com.finalcraft.evernifecore.util.reflection.FieldAccessor;
 import org.black_ixx.bossshop.core.BSBuy;
 import org.black_ixx.bossshop.events.BSLoadShopItemsEvent;
 import org.black_ixx.bossshop.events.BSRegisterTypesEvent;
 import org.black_ixx.bossshop.inbuiltaddons.advancedshops.BSBuyAdvanced;
+import org.black_ixx.bossshop.managers.ClassManager;
 import org.black_ixx.bossshop.managers.config.BSConfigShop;
 import org.black_ixx.bossshop.managers.item.ItemDataPart;
+import org.black_ixx.bossshop.managers.item.ItemStackTranslator;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -21,10 +26,17 @@ import java.util.stream.Collectors;
 public class BossShopListener implements ECListener {
 
     private final ItemDataPartNBT DATAPART_NBT = new ItemDataPartNBT();
+    private ECItemStackTranslator EC_ITEM_STACK_TRANSLATOR = new ECItemStackTranslator();
 
     @EventHandler
     public void onRegisterTypes(BSRegisterTypesEvent event) {
+        EverNifeCore.info("Registering BossShop Custom ItemDataPartNBT");
         ItemDataPart.registerType(DATAPART_NBT);
+
+        //This event is fired right after the plugin is reloaded, nice time to Override the ItemStackTranslator
+        EverNifeCore.info("Replacing BossShopPro ItemStackTranslator");
+        FieldAccessor<ItemStackTranslator> translatorField = ReflectionUtil.getField(ClassManager.class, "itemstackTranslator");
+        translatorField.set(ClassManager.manager, EC_ITEM_STACK_TRANSLATOR);
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
