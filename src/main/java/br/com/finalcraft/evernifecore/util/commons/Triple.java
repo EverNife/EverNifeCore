@@ -12,7 +12,12 @@ public class Triple<ALFA, BETA, GAMA> {
         this.gama = gama;
     }
 
+    @Deprecated
     public static <ALFA,BETA,GAMA> Triple<ALFA,BETA,GAMA> from(ALFA alfa, BETA beta, GAMA gama) {
+        return of(alfa,beta,gama);
+    }
+
+    public static <ALFA,BETA,GAMA> Triple<ALFA,BETA,GAMA> of(ALFA alfa, BETA beta, GAMA gama) {
         return new Triple<>(alfa, beta, gama);
     }
 
@@ -40,4 +45,32 @@ public class Triple<ALFA, BETA, GAMA> {
         this.gama = gama;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Triple<?, ?, ?> triple = (Triple<?, ?, ?>) o;
+
+        if (alfa != null ? !alfa.equals(triple.alfa) : triple.alfa != null) return false;
+        if (beta != null ? !beta.equals(triple.beta) : triple.beta != null) return false;
+        return gama != null ? gama.equals(triple.gama) : triple.gama == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = alfa != null ? alfa.hashCode() : 0;
+        result = 31 * result + (beta != null ? beta.hashCode() : 0);
+        result = 31 * result + (gama != null ? gama.hashCode() : 0);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "Triple{" +
+                "alfa=" + alfa +
+                ", beta=" + beta +
+                ", gama=" + gama +
+                '}';
+    }
 }

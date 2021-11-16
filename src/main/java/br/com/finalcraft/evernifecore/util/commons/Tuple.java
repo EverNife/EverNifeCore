@@ -32,6 +32,10 @@ public class Tuple<ALFA, BETA> {
         this.beta = beta;
     }
 
+    public static <ALFA, BETA> Tuple<ALFA, BETA> of(ALFA alfa, BETA beta){
+        return new Tuple<>(alfa,beta);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
