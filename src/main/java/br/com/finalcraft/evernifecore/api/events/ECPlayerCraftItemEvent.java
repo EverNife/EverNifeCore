@@ -40,7 +40,6 @@ public class ECPlayerCraftItemEvent extends Event implements Cancellable {
     private final Player player;
     private final int craftTimes;
     private final int stackAmount;
-    private PlayerData playerData;
 
     public ECPlayerCraftItemEvent(CraftItemEvent craftItemEvent, Player player, int craftTimes, int stackAmount) {
         this.craftItemEvent = craftItemEvent;
@@ -111,19 +110,6 @@ public class ECPlayerCraftItemEvent extends Event implements Cancellable {
      */
     public Player getPlayer() {
         return player;
-    }
-
-    /**
-     * Get the playerdata from this event
-     *
-     * @return The player's playerdata
-     * @author EverNife
-     */
-    public PlayerData getPlayerData() {
-        if (playerData == null){
-            playerData = PlayerController.getPlayerData(player);//Only cache if someone ask for it
-        }
-        return playerData;
     }
 
     @Override
