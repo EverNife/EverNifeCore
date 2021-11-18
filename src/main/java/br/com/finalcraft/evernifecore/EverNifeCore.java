@@ -14,10 +14,10 @@ import br.com.finalcraft.evernifecore.listeners.PlayerInteractListener;
 import br.com.finalcraft.evernifecore.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.listeners.PluginListener;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.metrics.Metrics;
 import br.com.finalcraft.evernifecore.protection.handlers.ProtectionPlugins;
 import br.com.finalcraft.evernifecore.threads.SaveConfigThread;
 import br.com.finalcraft.evernifecore.version.MCVersion;
-import br.com.finalcraft.evernifecore.version.ServerType;
 import me.tom.sparse.spigot.chat.menu.ChatMenuAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
@@ -59,6 +59,9 @@ public class EverNifeCore extends JavaPlugin {
         instance = this;
         info("§aStarting EverNifeCore");
         info("§aServer Minecraft Version " + MCVersion.getCurrent().name() + " !");
+
+        info("§aInstalling BStats");
+        Metrics metrics = new Metrics(this, 13351);//EverNifeCore ID: 13351
 
         EverForgeLibIntegration.initialize();
 
