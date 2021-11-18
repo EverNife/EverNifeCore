@@ -48,11 +48,6 @@ public class ECPlayerCraftItemEvent extends Event implements Cancellable {
         this.stackAmount = stackAmount;
     }
 
-    @Override
-    public HandlerList getHandlers() {
-        return handlers;
-    }
-
     /**
      * Get the Original CraftItemEvent
      *
@@ -115,6 +110,15 @@ public class ECPlayerCraftItemEvent extends Event implements Cancellable {
     @Override
     public void setCancelled(boolean cancel) {
         craftItemEvent.setCancelled(cancel);
+    }
+
+    @Override
+    public HandlerList getHandlers() {
+        return handlers;
+    }
+
+    public static HandlerList getHandlerList() {
+        return handlers;
     }
 
 }
