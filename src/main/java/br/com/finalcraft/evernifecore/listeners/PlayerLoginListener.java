@@ -51,18 +51,18 @@ public class PlayerLoginListener implements ECListener {
     public static class VanillaLogin implements ECListener {
         @EventHandler(priority = EventPriority.MONITOR)
         public void onPlayerLogin(PlayerLoginEvent event) {
-            fireDelayedECLoginEvent(event.getPlayer());
+            fireDelayedFullyLoggedInEvent(event.getPlayer());
         }
     }
 
     public static class AuthmeLogin implements ECListener{
         @EventHandler(priority = EventPriority.MONITOR)
         public void onAuthmeLogin(LoginEvent event) {
-            fireDelayedECLoginEvent(event.getPlayer());
+            fireDelayedFullyLoggedInEvent(event.getPlayer());
         }
     }
 
-    private static void fireDelayedECLoginEvent(Player player) {
+    private static void fireDelayedFullyLoggedInEvent(Player player) {
         new BukkitRunnable(){
             @Override
             public void run() {
