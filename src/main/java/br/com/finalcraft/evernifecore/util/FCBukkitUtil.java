@@ -89,7 +89,7 @@ public class FCBukkitUtil {
     }
 
     public static boolean isFakePlayer(Player player) {
-        return NMSUtils.get().isFakePlayer(player);
+        return ServerType.isModdedServer() ? NMSUtils.get().isFakePlayer(player) : false;
     }
 
     //===========================================================================================
