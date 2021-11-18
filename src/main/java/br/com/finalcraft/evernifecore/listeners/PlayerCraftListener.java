@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.listeners;
 
-import br.com.finalcraft.evernifecore.api.events.ECCraftItemEvent;
+import br.com.finalcraft.evernifecore.api.events.ECPlayerCraftItemEvent;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.util.FCCraftUtil;
@@ -103,7 +103,7 @@ public class PlayerCraftListener implements ECListener {
             return;
         }
 
-        ECCraftItemEvent ecEvent = new ECCraftItemEvent(event, player, recipeAmount / event.getRecipe().getResult().getAmount(), recipeAmount);
+        ECPlayerCraftItemEvent ecEvent = new ECPlayerCraftItemEvent(event, player, recipeAmount / event.getRecipe().getResult().getAmount(), recipeAmount);
         Bukkit.getPluginManager().callEvent(ecEvent);
 
         if (ecEvent.isCancelled()){

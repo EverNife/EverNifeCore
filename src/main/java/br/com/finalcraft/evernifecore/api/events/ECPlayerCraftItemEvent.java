@@ -24,7 +24,7 @@ import org.bukkit.plugin.RegisteredListener;
  *
  * @author EverNife
  */
-public class ECCraftItemEvent extends Event implements Cancellable {
+public class ECPlayerCraftItemEvent extends Event implements Cancellable {
 
     private static final HandlerList handlers = new HandlerList(){
         @Override
@@ -42,7 +42,7 @@ public class ECCraftItemEvent extends Event implements Cancellable {
     private final int stackAmount;
     private PlayerData playerData;
 
-    public ECCraftItemEvent(CraftItemEvent craftItemEvent, Player player, int craftTimes, int stackAmount) {
+    public ECPlayerCraftItemEvent(CraftItemEvent craftItemEvent, Player player, int craftTimes, int stackAmount) {
         this.craftItemEvent = craftItemEvent;
         this.player = player;
         this.craftTimes = craftTimes;
