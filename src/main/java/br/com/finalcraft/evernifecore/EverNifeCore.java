@@ -9,10 +9,11 @@ import br.com.finalcraft.evernifecore.featherboard.FeatherBoardUtils;
 import br.com.finalcraft.evernifecore.integration.VaultIntegration;
 import br.com.finalcraft.evernifecore.integration.WorldEditIntegration;
 import br.com.finalcraft.evernifecore.integration.everforgelib.EverForgeLibIntegration;
-import br.com.finalcraft.evernifecore.listeners.PlayerListenerGlobal;
+import br.com.finalcraft.evernifecore.listeners.PlayerCraftListener;
+import br.com.finalcraft.evernifecore.listeners.PlayerInteractListener;
+import br.com.finalcraft.evernifecore.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.listeners.PluginListener;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
-import br.com.finalcraft.evernifecore.listeners.login.LoginListener;
 import br.com.finalcraft.evernifecore.protection.handlers.ProtectionPlugins;
 import br.com.finalcraft.evernifecore.threads.SaveConfigThread;
 import br.com.finalcraft.evernifecore.version.MCVersion;
@@ -78,12 +79,15 @@ public class EverNifeCore extends JavaPlugin {
         VaultIntegration.initialize();
 
         info("§aRegistering Listeners");
-        ECListener.register(this, PlayerListenerGlobal.class);
+        ECListener.register(this, PlayerCraftListener.class);
+        ECListener.register(this, PlayerLoginListener.class);
+        ECListener.register(this, PlayerInteractListener.class);
         ECListener.register(this, PluginListener.class);
+
         if (Bukkit.getPluginManager().isPluginEnabled("AuthMe")){
-            ECListener.register(this, LoginListener.AuthmeLogin.class);
+            ECListener.register(this, PlayerLoginListener.AuthmeLogin.class);
         }else {
-            ECListener.register(this, LoginListener.VanillaLogin.class);
+            ECListener.register(this, PlayerLoginListener.VanillaLogin.class);
         }
 
         if (Bukkit.getPluginManager().isPluginEnabled("FeatherBoard")) try{FeatherBoardUtils.initialize();}catch (Throwable e){e.printStackTrace();}
