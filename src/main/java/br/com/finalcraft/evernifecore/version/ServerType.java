@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.version;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
+import org.bukkit.Bukkit;
 
 //This is a personal class for my OWN PERSONAL PRIVATE servers... don't use it, this class might change a lot over the time
 public enum ServerType {
@@ -26,6 +27,7 @@ public enum ServerType {
 
     private static ServerType serverType;
     private static Boolean moddedServer = null;
+    private static Boolean personalEverNifeServer = null;
 
     public static boolean isSkylords(){
         return getCurrent() == ServerType.SKYLORDS;
@@ -77,11 +79,13 @@ public enum ServerType {
     }
 
     public static boolean isEverNifePersonalServer(){
-        return getCurrent() != ServerType.UNKNOWN;
+        if (personalEverNifeServer == null){
+            personalEverNifeServer = Bukkit.getPluginManager().isPluginEnabled("FinalCraftCore");
+        }
+        return personalEverNifeServer;
     }
 
     private static ServerType calculateServerType() {
-
 
         moddedServer = FCBukkitUtil.isClassLoaded("net.minecraftforge.fml.common.Loader");
 
@@ -113,7 +117,6 @@ public enum ServerType {
             if (FCBukkitUtil.isClassLoaded("com.vicmatskiv.mw.ModernWarfareMod")){
                 return ServerType.SURVIVALZ;
             }
-
         }
 
         if (EverNifeCore.instance.getServer().getPluginManager().isPluginEnabled("Factions")){
