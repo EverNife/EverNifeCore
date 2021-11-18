@@ -60,10 +60,6 @@ public class EverNifeCore extends JavaPlugin {
         info("§aStarting EverNifeCore");
         info("§aServer Minecraft Version " + MCVersion.getCurrent().name() + " !");
 
-        if (ServerType.isEverNifePersonalServer()){
-            info("§aModulo " + ServerType.getCurrent() + " definido!");
-        }
-
         EverForgeLibIntegration.initialize();
 
         info("§aLoading up Configurations...");
