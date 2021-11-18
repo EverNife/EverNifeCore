@@ -103,7 +103,7 @@ public class PlayerCraftListener implements ECListener {
             return;
         }
 
-        ECCraftItemEvent ecEvent = new ECCraftItemEvent(event, recipeAmount / event.getRecipe().getResult().getAmount(), recipeAmount);
+        ECCraftItemEvent ecEvent = new ECCraftItemEvent(event, player, recipeAmount / event.getRecipe().getResult().getAmount(), recipeAmount);
         Bukkit.getPluginManager().callEvent(ecEvent);
 
         if (ecEvent.isCancelled()){

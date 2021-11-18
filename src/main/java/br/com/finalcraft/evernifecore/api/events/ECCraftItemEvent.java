@@ -1,6 +1,9 @@
 package br.com.finalcraft.evernifecore.api.events;
 
+import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.listeners.PlayerCraftListener;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
@@ -34,11 +37,14 @@ public class ECCraftItemEvent extends Event implements Cancellable {
     };
 
     private final CraftItemEvent craftItemEvent;
+    private final Player player;
     private final int craftTimes;
     private final int stackAmount;
+    private PlayerData playerData;
 
-    public ECCraftItemEvent(CraftItemEvent craftItemEvent, int craftTimes, int stackAmount) {
+    public ECCraftItemEvent(CraftItemEvent craftItemEvent, Player player, int craftTimes, int stackAmount) {
         this.craftItemEvent = craftItemEvent;
+        this.player = player;
         this.craftTimes = craftTimes;
         this.stackAmount = stackAmount;
     }
@@ -95,6 +101,29 @@ public class ECCraftItemEvent extends Event implements Cancellable {
     @Override
     public boolean isCancelled() {
         return craftItemEvent.isCancelled();
+    }
+
+    /**
+     * Get the player from this event
+     *
+     * @return The player that crafted
+     * @author EverNife
+     */
+    public Player getPlayer() {
+        return player;
+    }
+
+    /**
+     * Get the playerdata from this event
+     *
+     * @return The player's playerdata
+     * @author EverNife
+     */
+    public PlayerData getPlayerData() {
+        if (playerData == null){
+            playerData = PlayerController.getPlayerData(player);//Only cache if someone ask for it
+        }
+        return playerData;
     }
 
     @Override
