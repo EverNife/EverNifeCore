@@ -66,7 +66,7 @@ public class PlayerCraftListener implements ECListener {
                 ItemStack cursor = event.getCursor();
                 // Apparently, rather than null, an empty cursor is AIR. I don't think that's
                 // intended.
-                if (cursor == null || cursor.getType() == Material.AIR){
+                if (cursor != null && cursor.getType() != Material.AIR){
                     recipeAmount = 0;
                 }
                 break;
