@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 public class PlayerData {
@@ -53,9 +54,9 @@ public class PlayerData {
     }
 
     public PlayerData(Config config) {
-        this.config = config;
-        this.playerName = config.getString("PlayerData.Username");
-        this.uuid = config.getUUID("PlayerData.UUID");
+        this.config = Objects.requireNonNull(config,"PlayConfig cannot be null!");
+        this.playerName = Objects.requireNonNull(config.getString("PlayerData.Username"),"PlayName cannot be null!");
+        this.uuid = Objects.requireNonNull(config.getUUID("PlayerData.UUID"),"PlayerUUID cannot be null!");
         this.lastSeen = config.getLong("PlayerData.lastSeen",0);
 
         for (String cooldownKey : config.getKeys("Cooldowns")) {
