@@ -151,4 +151,15 @@ public class PlayerData {
     public HashMap<String, PlayerCooldown> getCooldownHashMap() {
         return cooldownHashMap;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;//Only equals when the same object, otherwise different
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return uuid.hashCode();//Use UUID as hashcode
+    }
 }
