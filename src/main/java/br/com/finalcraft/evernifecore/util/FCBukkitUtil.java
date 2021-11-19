@@ -262,7 +262,6 @@ public class FCBukkitUtil {
         for (int counterX = minX; counterX <= maxX; counterX++) {
             for (int counterY = minY; counterY <= maxY; counterY++) {
                 for (int counterZ = minZ; counterZ <= maxZ; counterZ++) {
-                    Bukkit.getLogger().info("X: " + counterX + " Y: " + counterY + " Z: " + counterZ + "  BlockType : " + new Location(location.getWorld(), counterX, counterY, counterZ).getBlock().getType().name());
                     blocks.add(new Location(location.getWorld(), counterX, counterY, counterZ).getBlock());
                 }
             }
@@ -469,7 +468,7 @@ public class FCBukkitUtil {
     }
 
     public static long getOntime(PlayerData playerData){
-        return OntimeManager.getProvider().getOntime(playerData); //Ontime provider might be overriden by the OnTime plugin
+        return OntimeManager.getProvider().getOntime(playerData); //Ontime provider might be overridden by the OnTime plugin
     }
 
     //
