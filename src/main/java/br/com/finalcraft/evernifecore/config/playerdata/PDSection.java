@@ -60,4 +60,15 @@ public abstract class PDSection {
     public PlayerCooldown getCooldown(String identifier){
         return playerData.getCooldown(identifier);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return playerData.hashCode();
+    }
 }
