@@ -46,17 +46,6 @@ public class ChunkPos implements Config.Salvable {
         return (this.z << 4) + 15;
     }
 
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        } else if (!(o instanceof ChunkPos)) {
-            return false;
-        } else {
-            ChunkPos chunkPos = (ChunkPos)o;
-            return this.x == chunkPos.x && this.z == chunkPos.z;
-        }
-    }
-
     public BlockPos getBlock(int x, int y, int z) {
         return new BlockPos((this.x << 4) + x, y, (this.z << 4) + z);
     }
@@ -70,6 +59,17 @@ public class ChunkPos implements Config.Salvable {
         int i = 1664525 * this.x + 1013904223;
         int j = 1664525 * (this.z ^ -559038737) + 1013904223;
         return i ^ j;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ChunkPos)) return false;
+
+        ChunkPos chunkPos = (ChunkPos) o;
+
+        if (this.x != chunkPos.x) return false;
+        return this.z == chunkPos.z;
     }
 
     @Override

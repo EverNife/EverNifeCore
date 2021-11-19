@@ -61,6 +61,14 @@ public class BlockPos implements Comparable<BlockPos>, Config.Salvable {
         }
     }
 
+    public ChunkPos getChunkPos(){
+        return new ChunkPos(this);
+    }
+
+    public RegionPos getRegionPos(){
+        return new RegionPos(this);
+    }
+
     @Override
     public int hashCode() { //Forge HashCode for BlockPost https://forums.minecraftforge.net/topic/88361-discussion-safe-to-use-blockposhashcode/
         return (this.getY() + this.getZ() * 31) * 31 + this.getX();
@@ -68,28 +76,14 @@ public class BlockPos implements Comparable<BlockPos>, Config.Salvable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        } else if (!(o instanceof BlockPos)) {
-            return false;
-        } else {
-            BlockPos blockPos = (BlockPos)o;
-            if (this.getX() != blockPos.getX()) {
-                return false;
-            } else if (this.getY() != blockPos.getY()) {
-                return false;
-            } else {
-                return this.getZ() == blockPos.getZ();
-            }
-        }
-    }
+        if (this == o) return true;
+        if (!(o instanceof BlockPos)) return false;
 
-    public ChunkPos getChunkPos(){
-        return new ChunkPos(this);
-    }
+        BlockPos blockPos = (BlockPos) o;
 
-    public RegionPos getRegionPos(){
-        return new RegionPos(this);
+        if (this.x != blockPos.x) return false;
+        if (this.y != blockPos.y) return false;
+        return z == blockPos.z;
     }
 
     @Override
