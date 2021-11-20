@@ -6,6 +6,8 @@ import br.com.finalcraft.evernifecore.api.EverNifeCoreReloadEvent;
 import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 
@@ -17,11 +19,14 @@ public class CoreCommand {
 
     @FinalCMD.SubCMD(
             subcmd = "reload",
-            desc = "Fully reload EverNifeCore! Including all playerdata of all players!"
+            locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "Fully reload EverNifeCore! Including all playerdata of all players!"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Da reload no EverNifeCore! Incluindo todos os PlayerData de todos os jogadores!")
+            }
     )
     public static void reload(CommandSender sender, MultiArgumentos argumentos){
         ConfigManager.initialize(EverNifeCore.instance);
-        sender.sendMessage("§2§l ▶ §aEverNifeCore was realoded!");
+        sender.sendMessage("§2§l ▶ §aEverNifeCore was Realoded!");
         EverNifeCoreReloadEvent reloadEvent = new EverNifeCoreReloadEvent();
         Bukkit.getServer().getPluginManager().callEvent(reloadEvent);
     }
