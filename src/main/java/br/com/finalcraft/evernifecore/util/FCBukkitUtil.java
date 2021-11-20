@@ -69,21 +69,11 @@ public class FCBukkitUtil {
     }
 
     public static double normalizeDouble(double value) {
-        return normalizeDouble(value, 2);
+        return FCMathUtil.normalizeDouble(value);
     }
 
     public static double normalizeDouble(double value, int zeros) {
-        if (zeros < 0) throw new IllegalArgumentException("'zeros' can not be negative, passed one was: " + zeros);
-        double realZeros;
-        switch (zeros) {
-            case 0:                realZeros = 1;                   break;
-            case 1:                realZeros = 10;                  break;
-            case 2:                realZeros = 100;                 break;
-            case 3:                realZeros = 1000;                break;
-            case 4:                realZeros = 10000;               break;
-            default:               realZeros = Math.pow(10,zeros);
-        }
-        return ((double) Math.round(value * realZeros) / realZeros);
+        return FCMathUtil.normalizeDouble(value, zeros);
     }
 
     public static boolean isFakePlayer(String playerName) {
@@ -477,7 +467,6 @@ public class FCBukkitUtil {
     public static String getPlayerStaffRank(Player player) {
         if (ServerType.isEverNifePersonalServer()){
             if (player.getName().equalsIgnoreCase("EverNife")) return "Dono";
-            if (player.getName().equalsIgnoreCase("jplopes2001")) return "SubDono";
             if (player.hasPermission("be.diretor")) return "Diretor";
             if (player.hasPermission("be.admin")) return "Admin";
             if (player.hasPermission("be.moderador")) return "Moderador";
