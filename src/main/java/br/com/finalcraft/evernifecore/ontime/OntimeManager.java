@@ -1,11 +1,17 @@
 package br.com.finalcraft.evernifecore.ontime;
 
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.version.MCVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Statistic;
 
 public class OntimeManager {
+
+    private static final Statistic PLAY_ONE_TICK =
+            MCVersion.isCurrentEqualOrHigher(MCVersion.v1_13_R1) ?
+                    Statistic.PLAY_ONE_MINUTE :
+                    Statistic.valueOf("PLAY_ONE_TICK");
 
     private static IOntimeProvider ontimeProvider = new IOntimeProvider() {
         @Override
@@ -13,7 +19,7 @@ public class OntimeManager {
             OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerData.getUniqueId());
 
             if (offlinePlayer.isOnline()){
-                return offlinePlayer.getPlayer().getStatistic(Statistic.PLAY_ONE_TICK) * 50;
+                return offlinePlayer.getPlayer().getStatistic(PLAY_ONE_TICK) * 50;
             }
 
             return 0;
