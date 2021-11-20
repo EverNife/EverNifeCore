@@ -38,11 +38,11 @@ public class PlayerCooldown extends Cooldown {
 
     @Override
     public void handleSaveIfPermanent() {
-        //The save occuer inside PlayerData class
+        //The save occurs inside PlayerData class
     }
 
     @Override
     public void handleStopIfPermanent() {
-        //The save occrus inside PlayerData class
+        //The save occurs inside PlayerData class
     }
 }
