@@ -55,6 +55,10 @@ public class UUIDsController {
         return uuidHashMap.entrySet();
     }
 
+    public static UUIDHashMap getUuidHashMap() {
+        return uuidHashMap;
+    }
+
     public static final class UUIDHashMap{
         private final Map<UUID,String> storedUUIDtoName = new HashMap<UUID, String>();
         private final Map<String,UUID> storedNameToUUID = new HashMap<String, UUID>();
