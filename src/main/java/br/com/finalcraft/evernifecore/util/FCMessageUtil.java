@@ -118,14 +118,4 @@ public class FCMessageUtil {
                 .send(sender);
     }
 
-    @Deprecated
-    public static void printPage(CommandSender sender, List<String> content, int page){
-        int PAGE_SIZE = 10;
-        int totalPages = (int) Math.ceil(content.size() / (double)PAGE_SIZE);
-        page = Math.min(0, Math.max(page, totalPages));
-        for (int i = page * PAGE_SIZE; i < content.size(); i++) {
-            sender.sendMessage(content.get(i));
-        }
-    }
-
 }
