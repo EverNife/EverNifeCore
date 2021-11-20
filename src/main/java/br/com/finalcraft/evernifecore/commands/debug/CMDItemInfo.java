@@ -16,14 +16,6 @@ import org.bukkit.inventory.ItemStack;
 
 public class CMDItemInfo {
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§2§l ▶ §aINFO mode Enabled!")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§2§l ▶ §aINFO mode Ativado!")
-    private static LocaleMessage INFO_MODE_ENABLED;
-
-    @FCLocale(lang = LocaleType.EN_US, text = "§c§l ▶ §eINFO mode Disabled!")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§c§l ▶ §eINFO mode Desativado!")
-    private static LocaleMessage INFO_MODE_DISABLED;
-
     @FinalCMD(
             aliases = {"iteminfo"},
             permission = PermissionNodes.EVERNIFECORE_COMMAND_ITEMINFO
