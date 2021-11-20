@@ -24,7 +24,11 @@ public enum MCVersion {
     v1_14_R2(1142, "v1_14"),
     v1_15_R1(1151, "v1_15"),
     v1_15_R2(1152, "v1_15"),
-    v1_16_R1(1161, "v1_16");
+    v1_16_R1(1161, "v1_16"),
+    v1_16_R2(1162, "v1_16"),
+    v1_16_R3(1163, "v1_16"),
+    v1_17_R1(1171, "v1_17"),
+    ;
 
     private static MCVersion currentVersion = null;
     private static Boolean legacy = null;
@@ -32,10 +36,10 @@ public enum MCVersion {
     public static MCVersion calculateVersion() {
         String[] v = Bukkit.getServer().getClass().getPackage().getName().split("\\.");
         String vv = v[v.length - 1];
-        for (MCVersion aMCVersion : MCVersion.values()) {
-            if (aMCVersion.name().equalsIgnoreCase(vv)) {
-                currentVersion = aMCVersion;
-                legacy = aMCVersion.isLowerEquals(MCVersion.v1_7_R4);
+        for (MCVersion version : MCVersion.values()) {
+            if (version.name().equalsIgnoreCase(vv)) {
+                currentVersion = version;
+                legacy = version.isCurrentLowerEquals(MCVersion.v1_7_R4);
                 return currentVersion;
             }
         }
@@ -43,7 +47,7 @@ public enum MCVersion {
     }
 
     public static boolean isLegacy(){
-        return legacy != null ? legacy : getCurrent().isLowerEquals(MCVersion.v1_7_R4);
+        return legacy != null ? legacy : getCurrent().isCurrentLowerEquals(MCVersion.v1_7_R4);
     }
 
     // Operations
@@ -68,28 +72,52 @@ public enum MCVersion {
         return currentVersion != null ? currentVersion : calculateVersion();
     }
 
-    public static boolean isLower(MCVersion otherVersion) {
-        return getCurrent().getValue() < otherVersion.getValue();
+    public boolean isLower(MCVersion otherVersion) {
+        return this.getValue() < otherVersion.getValue();
     }
 
-    public static boolean isLowerEquals(MCVersion otherVersion) {
-        return getCurrent().getValue() <= otherVersion.getValue();
+    public boolean isLowerEquals(MCVersion otherVersion) {
+        return this.getValue() <= otherVersion.getValue();
     }
 
-    public static boolean isHigher(MCVersion otherVersion) {
-        return getCurrent().getValue() > otherVersion.getValue();
+    public boolean isHigher(MCVersion otherVersion) {
+        return this.getValue() > otherVersion.getValue();
     }
 
-    public static boolean isHigherEquals(MCVersion otherVersion) {
-        return getCurrent().getValue() >= otherVersion.getValue();
+    public boolean isHigherEquals(MCVersion otherVersion) {
+        return this.getValue() >= otherVersion.getValue();
+    }
+
+    public boolean isEqual(MCVersion otherVersion) {
+        return this.getValue() == otherVersion.getValue();
+    }
+
+    public boolean isEqualOrHigher(MCVersion otherVersion) {
+        return this.getValue() >= otherVersion.getValue();
+    }
+
+    public static boolean isCurrentLower(MCVersion otherVersion) {
+        return getCurrent().isLower(otherVersion);
+    }
+
+    public static boolean isCurrentLowerEquals(MCVersion otherVersion) {
+        return getCurrent().isLowerEquals(otherVersion);
+    }
+
+    public static boolean isCurrentHigher(MCVersion otherVersion) {
+        return getCurrent().isHigher(otherVersion);
+    }
+
+    public static boolean isCurrentHigherEquals(MCVersion otherVersion) {
+        return getCurrent().isHigherEquals(otherVersion);
     }
 
     public static boolean isCurrentEqual(MCVersion otherVersion) {
-        return getCurrent().getValue() == otherVersion.getValue();
+        return getCurrent().isEqual(otherVersion);
     }
 
     public static boolean isCurrentEqualOrHigher(MCVersion otherVersion) {
-        return getCurrent().getValue() >= otherVersion.getValue();
+        return getCurrent().isEqualOrHigher(otherVersion);
     }
 
 }
