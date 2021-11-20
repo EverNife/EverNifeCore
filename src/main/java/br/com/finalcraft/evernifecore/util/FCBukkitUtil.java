@@ -99,10 +99,14 @@ public class FCBukkitUtil {
         giveItemsTo(player, true, itemStacks);
     }
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §eYou received items but did not have inventory space. The extra items were dropped on the ground!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §eVocê recebeu itens mas não tinha espaço suficiente no inventário. Os itens foram dropados no chão!")
+    private static LocaleMessage YOU_RECEIVED_EXTRA_ITEMS_THAT_WERE_DROPED;
     public static void giveItemsTo(Player player, boolean dropIfExceeded, ItemStack... itemStacks) {
         HashMap<Integer, ItemStack> exceededItems = player.getInventory().addItem(itemStacks);
         if (exceededItems.size() > 0 && dropIfExceeded) {
-            player.sendMessage("§e§l ▶ §eVocê recebeu itens mas não tinha espaço suficiente no inventário. Os itens foram dropados no chão!");
+            YOU_RECEIVED_EXTRA_ITEMS_THAT_WERE_DROPED
+                    .send(player);
 
             final World world = player.getWorld();
             final Location location = player.getLocation();
@@ -193,6 +197,9 @@ public class FCBukkitUtil {
         return VaultIntegration.ecoHasEnough(player, amout);
     }
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cOnly players can use this command!.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cApenas jogadores podem usar esse comando!.")
+    private static LocaleMessage ONLY_PLAYERS_CAN_USE_THIS_COMMAND;
     /**
      * Verifica se um CommandSender é de fato um Player online!
      *
@@ -202,7 +209,8 @@ public class FCBukkitUtil {
      */
     public static boolean isNotPlayer(CommandSender sender) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("§cApenas jogadores podem usar esse comando!");
+            ONLY_PLAYERS_CAN_USE_THIS_COMMAND
+                    .send(sender);
             return true;
         }
         return false;
