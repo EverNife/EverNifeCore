@@ -1,7 +1,7 @@
-package br.com.finalcraft.evernifecore.gui.itemgui;
+package br.com.finalcraft.evernifecore.itemdatapart;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.gui.itemgui.datapart.*;
+import br.com.finalcraft.evernifecore.itemdatapart.datapart.*;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import org.bukkit.inventory.ItemStack;
