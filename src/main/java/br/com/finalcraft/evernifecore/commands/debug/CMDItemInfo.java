@@ -2,17 +2,15 @@ package br.com.finalcraft.evernifecore.commands.debug;
 
 
 import br.com.finalcraft.evernifecore.PermissionNodes;
-import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
-import br.com.finalcraft.evernifecore.locale.FCLocale;
-import br.com.finalcraft.evernifecore.locale.LocaleMessage;
-import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.gui.itemgui.ItemDataPart;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
-import br.com.finalcraft.evernifecore.util.FCItemUtils;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+
+import java.util.stream.Collectors;
 
 public class CMDItemInfo {
 
@@ -20,7 +18,7 @@ public class CMDItemInfo {
             aliases = {"iteminfo"},
             permission = PermissionNodes.EVERNIFECORE_COMMAND_ITEMINFO
     )
-    public void onCommand(Player player, String label, MultiArgumentos argumentos) {
+    public void onCommand(Player player) {
 
         ItemStack heldItem = FCBukkitUtil.getPlayersHeldItem(player);
 
@@ -29,12 +27,12 @@ public class CMDItemInfo {
             return;
         }
 
-        String mcIdentifier = FCItemUtils.getMinecraftIdentifier(heldItem);
-        String bukkitIdentifier = FCItemUtils.getBukkitIdentifier(heldItem);
-
-        FancyText.of("§7§o[INFO] ").setHoverText("\nMinecraft Identifier: " + mcIdentifier + "\n").setSuggestCommandAction(mcIdentifier)
-                .append(bukkitIdentifier).setSuggestCommandAction(bukkitIdentifier)
+        String readLines = ItemDataPart.readItem(heldItem).stream().collect(Collectors.joining("\n"));
+        FancyText.of(readLines)
+                .setHoverText(readLines)
+                .setSuggestCommandAction(readLines)
                 .send(player);
+
     }
 
 }
