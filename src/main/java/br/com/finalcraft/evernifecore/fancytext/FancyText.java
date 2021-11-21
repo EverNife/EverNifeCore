@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class FancyText {
@@ -319,6 +320,10 @@ public class FancyText {
 
     public static FancyText of(String text, String hoverText, String clickActionText, ClickActionType clickActionType) {
         return new FancyText(text, hoverText, clickActionText, clickActionType);
+    }
+
+    public static FancyText of(Collection<String> lines) {
+        return new FancyText(String.join("\n",lines));
     }
 
     // ------------------------------------------------------------------------------------------------------

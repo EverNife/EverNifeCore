@@ -3,10 +3,7 @@ package br.com.finalcraft.evernifecore.fancytext;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import org.bukkit.command.CommandSender;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
 public class FancyFormatter extends FancyText {
@@ -145,5 +142,9 @@ public class FancyFormatter extends FancyText {
 
     public static FancyFormatter of(String text, String hoverText, String clickActionText, ClickActionType clickActionType) {
         return new FancyText(text, hoverText, clickActionText, clickActionType).getOrCreateFormmater();
+    }
+
+    public static FancyFormatter of(Collection<String> lines) {
+        return new FancyText(String.join("\n",lines)).getOrCreateFormmater();
     }
 }
