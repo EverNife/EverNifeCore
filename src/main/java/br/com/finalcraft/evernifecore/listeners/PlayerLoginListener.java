@@ -6,12 +6,14 @@ import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import fr.xephi.authme.events.LoginEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -50,8 +52,10 @@ public class PlayerLoginListener implements ECListener {
 
     public static class VanillaLogin implements ECListener {
         @EventHandler(priority = EventPriority.MONITOR)
-        public void onPlayerLogin(PlayerLoginEvent event) {
-            fireDelayedFullyLoggedInEvent(event.getPlayer());
+        public void onPlayerLogin(PlayerJoinEvent event) {
+            if (!FCBukkitUtil.isFakePlayer(event.getPlayer())){
+                fireDelayedFullyLoggedInEvent(event.getPlayer());
+            }
         }
     }
 
