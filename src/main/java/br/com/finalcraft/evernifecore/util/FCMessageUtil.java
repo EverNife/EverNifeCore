@@ -53,6 +53,13 @@ public class FCMessageUtil {
         NEEDS_TO_BE_HOLDING_SPECIFIC_ITEM.addPlaceholder("%item_name%", itemName).send(sender);
     }
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need to have an §7[§2%item_name%§7]§c in your inventory!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa ter um §7[§2%item_name%§7]§c em seu inventário!")
+    private static LocaleMessage NEEDS_TO_HAVE_ON_INVENTORY;
+    public static void needsToHaveOnInventory(CommandSender sender, String itemName){
+        NEEDS_TO_HAVE_ON_INVENTORY.addPlaceholder("%item_name%", itemName).send(sender);
+    }
+
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §7[§2%argumento%§7]§c needs to be an integer!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §7[§2%argumento%§7]§c precisa ser um número inteiro!")
     private static LocaleMessage NEEDS_TO_BE_INTEGER;
