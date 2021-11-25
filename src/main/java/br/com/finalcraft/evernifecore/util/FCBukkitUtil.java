@@ -144,7 +144,7 @@ public class FCBukkitUtil {
     }
 
     public static double getMoney(Player player) {
-        return VaultIntegration.getBalance(player);
+        return VaultIntegration.ecoGet(player);
     }
 
 
