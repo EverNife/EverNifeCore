@@ -18,8 +18,8 @@ public class VaultIntegration {
         try {
             setupEconomy();
         }catch (Throwable e){
-            EverNifeCore.warning("Vault seems to be present but there is not Economic plugin present!");
-            EverNifeCore.warning("You might take a look at: https://github.com/evernife/FinalEconomy");
+            EverNifeCore.warning("Vault seems to be present but there is no Economic plugin present!");
+            EverNifeCore.warning("You might want to take a look at: https://www.spigotmc.org/resources/finaleconomy.97740/");
             e.printStackTrace();
         }
     }
@@ -30,29 +30,35 @@ public class VaultIntegration {
         return econ != null;
     }
 
-    public static void ecoGive(OfflinePlayer player, double amout){
-        econ.depositPlayer(player,amout);
+    public static void ecoGive(OfflinePlayer player, double amount){
+        econ.depositPlayer(player,amount);
     }
 
-    public static boolean ecoTake(OfflinePlayer player, double amout){
-        if (amout <= 0){
+    public static void ecoSet(OfflinePlayer player, double amount){
+        double current = econ.getBalance(player);
+        double needed = amount - current;
+        econ.depositPlayer(player,needed);
+    }
+
+    public static boolean ecoTake(OfflinePlayer player, double amount){
+        if (amount <= 0){
             return true;
         }
-        if (!ecoHasEnough(player,amout)){
+        if (!ecoHasEnough(player,amount)){
             return false;
         }
-        econ.withdrawPlayer(player,amout);
+        econ.withdrawPlayer(player,amount);
         return true;
     }
 
-    public static boolean ecoHasEnough(OfflinePlayer player,double amout){
-        if (amout <= 0){
+    public static boolean ecoHasEnough(OfflinePlayer player,double amount){
+        if (amount <= 0){
             return true;
         }
-        return econ.has(player,amout);
+        return econ.has(player,amount);
     }
 
-    public static double getBalance(OfflinePlayer player){
+    public static double ecoGet(OfflinePlayer player){
         return econ.getBalance(player);
     }
 }
