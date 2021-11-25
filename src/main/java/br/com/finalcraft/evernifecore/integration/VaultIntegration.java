@@ -37,7 +37,12 @@ public class VaultIntegration {
     public static void ecoSet(OfflinePlayer player, double amount){
         double current = econ.getBalance(player);
         double needed = amount - current;
-        econ.depositPlayer(player,needed);
+        if (needed == 0) return;
+        if (needed > 0){
+            econ.depositPlayer(player,needed);
+        }else {
+            econ.withdrawPlayer(player,needed);
+        }
     }
 
     public static boolean ecoTake(OfflinePlayer player, double amount){
