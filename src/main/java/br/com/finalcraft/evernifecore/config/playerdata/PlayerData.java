@@ -18,7 +18,7 @@ public class PlayerData {
     protected String playerName;
     protected UUID uuid;
     protected long lastSeen;
-    protected HashMap<String, PlayerCooldown> cooldownHashMap = new HashMap<>();
+    protected Map<String, PlayerCooldown> cooldownHashMap = new HashMap<>();
 
     protected transient Player player = null;
     protected transient boolean recentChanged = false;
@@ -140,15 +140,10 @@ public class PlayerData {
     }
 
     public PlayerCooldown getCooldown(String identifier){
-        PlayerCooldown cooldown = cooldownHashMap.get(identifier);
-        if (cooldown == null){
-            cooldown = new PlayerCooldown(identifier, this.getUniqueId());
-            cooldownHashMap.put(identifier, cooldown);
-        }
-        return cooldown;
+        return cooldownHashMap.computeIfAbsent(identifier, s -> new PlayerCooldown(identifier, this.getUniqueId()));
     }
 
-    public HashMap<String, PlayerCooldown> getCooldownHashMap() {
+    public Map<String, PlayerCooldown> getCooldownHashMap() {
         return cooldownHashMap;
     }
 
