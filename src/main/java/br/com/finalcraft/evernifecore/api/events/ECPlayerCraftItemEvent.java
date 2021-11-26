@@ -1,7 +1,5 @@
 package br.com.finalcraft.evernifecore.api.events;
 
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.listeners.PlayerCraftListener;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;

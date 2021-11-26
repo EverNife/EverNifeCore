@@ -7,8 +7,6 @@ import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import java.util.List;
-
 public class FCMessageUtil {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe player §7[§e%searched_name%§7]§c is not online!")

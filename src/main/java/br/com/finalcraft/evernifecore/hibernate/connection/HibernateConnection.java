@@ -8,7 +8,6 @@ import org.hibernate.cfg.Configuration;
 import org.hibernate.tool.hbm2ddl.SchemaExport;
 import org.hibernate.tool.schema.TargetType;
 
-import javax.persistence.EntityManager;
 import javax.persistence.metamodel.EntityType;
 import java.util.EnumSet;
 import java.util.concurrent.locks.ReentrantLock;
