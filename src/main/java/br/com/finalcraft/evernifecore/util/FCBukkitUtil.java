@@ -422,12 +422,15 @@ public class FCBukkitUtil {
     }
 
     public static ItemStack getPlayersHeldItem(Player player) {
+        final ItemStack heldItem;
+
         if (MCVersion.isLegacy()) {
-            return player.getItemInHand();
+            heldItem = player.getItemInHand();
         } else {
-            ItemStack heldItem = player.getInventory().getItemInMainHand();
-            return heldItem != null && heldItem.getType() == Material.AIR ? null : heldItem;
+            heldItem = player.getInventory().getItemInMainHand();
         }
+
+        return heldItem != null && heldItem.getType() == Material.AIR ? null : heldItem;
     }
 
     public static void feedPlayer(Player player, int amount) {
