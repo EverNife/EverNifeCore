@@ -28,6 +28,15 @@ public class FCBukkitUtil {
 
     public static Random random = new Random();
     public static CommandSender consoleSender = Bukkit.getConsoleSender();
+    private static final MethodInvoker<Boolean> methodLoader_isLoaded;
+    static {
+        if (MCVersion.isLegacy()){
+            methodLoader_isLoaded = isClassLoaded("cpw.mods.fml.common.Loader") ? ReflectionUtil.getMethod("cpw.mods.fml.common.Loader","isModLoaded", String.class) : null;;
+        }else {
+            methodLoader_isLoaded = isClassLoaded("net.minecraftforge.fml.common.Loader") ? ReflectionUtil.getMethod("net.minecraftforge.fml.common.Loader","isModLoaded", String.class) : null;;
+        }
+    }
+
 
     public static Random getRandom() {
         return random;
@@ -462,7 +471,6 @@ public class FCBukkitUtil {
         }
     }
 
-    private static final MethodInvoker<Boolean> methodLoader_isLoaded = isClassLoaded("net.minecraftforge.fml.common.Loader") ? ReflectionUtil.getMethod("net.minecraftforge.fml.common.Loader","isModLoaded", String.class) : null;
     public static boolean isModLoaded(String modname){
         if (methodLoader_isLoaded == null) return false;
         return methodLoader_isLoaded.invoke(null, modname);
