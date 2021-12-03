@@ -4,12 +4,14 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
+import net.minecraft.util.org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 public class PlayerController {
@@ -33,7 +35,19 @@ public class PlayerController {
                         PlayerData playerData = new PlayerData(config);
                         mapOfPlayersData.put(playerUUID, playerData);
                     }catch (Exception e){
+                        EverNifeCore.warning("Failed to load PlayerData [" + theConfigFile.getName() + "] moving it to the corrupt folder. \nTheFile: " + theConfigFile.getAbsolutePath() + " .");
                         e.printStackTrace();
+                        try {
+                            File corruptFolder = new File(theConfigFile.getParentFile().getParent(), "CorruptedPlayerData");
+                            corruptFolder.mkdirs();
+                            FileUtils.moveFile(
+                                    theConfigFile,
+                                    new File(corruptFolder, theConfigFile.getName())
+                            );
+                        }catch (IOException e2){
+                            EverNifeCore.warning("Failed to move the Corrupted PlayerData of " + theConfigFile.getAbsolutePath() + " to the corrupt folder.");
+                            e2.printStackTrace();
+                        }
                     }
                 }
             }
