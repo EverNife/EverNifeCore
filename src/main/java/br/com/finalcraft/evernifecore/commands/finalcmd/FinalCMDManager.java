@@ -228,7 +228,7 @@ public class FinalCMDManager {
                 if (commandName.equals(existingCommand.getName())){
                     notifyPlugin.getLogger().warning("Removing existent command [" + existingCommand.getName() + "] from " + originalPlugin + "!");
                 }else {
-                    notifyPlugin.getLogger().warning("Removing existent aliase (" + commandName + ")  for [" + existingCommand.getName() + "] from " + originalPlugin + "!");
+                    notifyPlugin.getLogger().warning("Removing existent aliase (" + commandName + ") for [" + existingCommand.getName() + "] from " + originalPlugin + "!");
                 }
 
             }
