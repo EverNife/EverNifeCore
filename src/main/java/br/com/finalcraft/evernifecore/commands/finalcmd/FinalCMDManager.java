@@ -225,7 +225,12 @@ public class FinalCMDManager {
                     }
                 }
 
-                notifyPlugin.getLogger().warning("Removing existent command [" + existingCommand.getName() + "] from " + originalPlugin + "!");
+                if (commandName.equals(existingCommand.getName())){
+                    notifyPlugin.getLogger().warning("Removing existent command [" + existingCommand.getName() + "] from " + originalPlugin + "!");
+                }else {
+                    notifyPlugin.getLogger().warning("Removing existent aliase (" + commandName + ")  for [" + existingCommand.getName() + "] from " + originalPlugin + "!");
+                }
+
             }
         }catch (Exception e){
             EverNifeCore.warning("Failed to UNREGISTER command [" +  commandName + "]");

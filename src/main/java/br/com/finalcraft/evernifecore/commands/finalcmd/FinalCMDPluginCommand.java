@@ -225,9 +225,9 @@ public class FinalCMDPluginCommand extends Command implements PluginIdentifiable
         assureNotRegistered();
         registered = true;
 
-        FinalCMDManager.unregisterCommand(this.getName());
+        FinalCMDManager.unregisterCommand(this.getName(), this.owningPlugin);
         for (String alias : this.getAliases()) {
-            FinalCMDManager.unregisterCommand(alias);
+            FinalCMDManager.unregisterCommand(alias, this.owningPlugin);
         }
 
         this.helpContext = new HelpContext(this);
