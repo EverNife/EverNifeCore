@@ -39,7 +39,6 @@ public enum MCVersion {
         for (MCVersion version : MCVersion.values()) {
             if (version.name().equalsIgnoreCase(vv)) {
                 currentVersion = version;
-                legacy = version.isCurrentLowerEquals(MCVersion.v1_7_R4);
                 return currentVersion;
             }
         }
@@ -47,7 +46,7 @@ public enum MCVersion {
     }
 
     public static boolean isLegacy(){
-        return legacy != null ? legacy : getCurrent().isCurrentLowerEquals(MCVersion.v1_7_R4);
+        return legacy != null ? legacy : (legacy = isCurrentLowerEquals(MCVersion.v1_7_R4));
     }
 
     // Operations
