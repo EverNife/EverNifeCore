@@ -374,7 +374,11 @@ public class NMSUtils_v1_12_R1 implements INMSUtils {
 			return mcStack;
 		}catch (Exception e){
 			Class c = itemStack.getClass();
-			EverNifeCore.warning("ItemStack Class: " + c.getName());
+			EverNifeCore.warning("Failed to get ItemStack Handle for:" +
+					"\n" +
+					"\nPackage: " + c.getPackage()+"" +
+					"\nClass: " + c.getSimpleName()+"" +
+					"\nFull Identifier: " + c.getName());
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
