@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.api.events.base;
 
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import org.bukkit.entity.Player;
 
 public class ECPlayerDataEvent extends ECBaseEvent {
 
@@ -12,6 +13,10 @@ public class ECPlayerDataEvent extends ECBaseEvent {
 
     public PlayerData getPlayerData() {
         return playerData;
+    }
+
+    public Player getPlayer(){
+        return playerData.getPlayer();
     }
 
 }
