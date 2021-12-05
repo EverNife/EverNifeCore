@@ -28,12 +28,18 @@ public class FCBukkitUtil {
 
     public static Random random = new Random();
     public static CommandSender consoleSender = Bukkit.getConsoleSender();
-    private static final MethodInvoker<Boolean> methodLoader_isLoaded;
+    private static MethodInvoker<Boolean> methodLoader_isLoaded;
     static {
-        if (MCVersion.isLegacy()){
-            methodLoader_isLoaded = isClassLoaded("cpw.mods.fml.common.Loader") ? ReflectionUtil.getMethod("cpw.mods.fml.common.Loader","isModLoaded", String.class) : null;;
-        }else {
-            methodLoader_isLoaded = isClassLoaded("net.minecraftforge.fml.common.Loader") ? ReflectionUtil.getMethod("net.minecraftforge.fml.common.Loader","isModLoaded", String.class) : null;;
+        try {
+            methodLoader_isLoaded = ReflectionUtil.getMethod(
+                    MCVersion.isLegacy()
+                            ? "cpw.mods.fml.common.Loader"
+                            : "net.minecraftforge.fml.common.Loader",
+                    "isModLoaded",
+                    String.class
+            );
+        }catch (Exception ignored){
+            methodLoader_isLoaded = null;
         }
     }
 

@@ -87,7 +87,11 @@ public enum ServerType {
 
     private static ServerType calculateServerType() {
 
-        moddedServer = FCBukkitUtil.isClassLoaded("net.minecraftforge.fml.common.Loader");
+        moddedServer = FCBukkitUtil.isClassLoaded(
+                MCVersion.isLegacy()
+                        ? "cpw.mods.fml.common.Loader"
+                        : "net.minecraftforge.fml.common.Loader"
+        );
 
         if (moddedServer){
             if (FCBukkitUtil.isClassLoaded("com.pixelmonmod.pixelmon.Pixelmon")){
