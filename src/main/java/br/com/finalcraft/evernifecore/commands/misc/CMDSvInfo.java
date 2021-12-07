@@ -2,13 +2,12 @@ package br.com.finalcraft.evernifecore.commands.misc;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
-import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDExecutor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import br.com.finalcraft.evernifecore.version.ServerType;
 import org.bukkit.command.CommandSender;
 
-public class CMDSvInfo extends FinalCMDExecutor {
+public class CMDSvInfo {
 
     @FinalCMD(
             aliases = {"serverinfo","svinfo"}
