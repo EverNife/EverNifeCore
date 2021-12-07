@@ -30,12 +30,13 @@ public class PageViwer<T,J> {
     private final long cooldown;
     private final int lineStart;
     private final int lineEnd;
+    private final int pageSize;
     private final boolean includeDate;
     private final boolean includeTotalPlayers;
 
     private final HashMap<String, Function<T,Object>> placeholders = new HashMap<>();
 
-    public PageViwer(Supplier<List<T>> supplier, Function<T, J> getValue, Comparator<J> comparator, List<FancyText> formatHeader, FancyText formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, boolean includeDate, boolean includeTotalPlayers) {
+    public PageViwer(Supplier<List<T>> supplier, Function<T, J> getValue, Comparator<J> comparator, List<FancyText> formatHeader, FancyText formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, int pageSize, boolean includeDate, boolean includeTotalPlayers) {
         this.supplier = supplier;
         this.getValue = getValue;
         this.comparator = comparator;
@@ -45,6 +46,7 @@ public class PageViwer<T,J> {
         this.cooldown = cooldown;
         this.lineStart = lineStart;
         this.lineEnd = lineEnd;
+        this.pageSize = pageSize;
         this.includeDate = includeDate;
         this.includeTotalPlayers = includeTotalPlayers;
     }
@@ -122,7 +124,11 @@ public class PageViwer<T,J> {
     }
 
     public void send(CommandSender... sender){
-        send(0, 10, sender);
+        send(0, pageSize, sender);
+    }
+
+    public void send(int page, CommandSender... sender){
+        send(page * pageSize, (page + 1) * pageSize, sender);
     }
 
     public void send(int lineStart, int lineEnd, CommandSender... sender){
@@ -163,6 +169,7 @@ public class PageViwer<T,J> {
         protected long cooldown = 15000; //15 seconds
         protected int lineStart = 0;
         protected int lineEnd = 50;
+        protected int pageSize = 50;
         protected boolean includeDate = false;
         protected boolean includeTotalPlayers = false;
 
@@ -245,6 +252,11 @@ public class PageViwer<T,J> {
             return this;
         }
 
+        public Builder<T,J> setPageSize(int pageSize) {
+            this.pageSize = pageSize;
+            return this;
+        }
+
         public Builder<T,J> addPlaceholder(String placeholder, Function<T, Object> function){
             placeholders.put(placeholder, function);
             return this;
@@ -261,6 +273,7 @@ public class PageViwer<T,J> {
                     cooldown,
                     lineStart,
                     lineEnd,
+                    pageSize,
                     includeDate,
                     includeTotalPlayers);
 
