@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.gui.builders;
 
-import br.com.finalcraft.evernifecore.gui.custom.ComplexGui;
+import br.com.finalcraft.evernifecore.gui.custom.GuiComplex;
 import dev.triumphteam.gui.builder.gui.BaseGuiBuilder;
 import dev.triumphteam.gui.components.GuiType;
 import dev.triumphteam.gui.guis.Gui;
@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Consumer;
 
-public class ComplexGuiBuilder extends BaseGuiBuilder<ComplexGui, ComplexGuiBuilder> {
+public class ComplexGuiBuilder extends BaseGuiBuilder<GuiComplex, ComplexGuiBuilder> {
 
     private GuiType guiType;
 
@@ -44,16 +44,16 @@ public class ComplexGuiBuilder extends BaseGuiBuilder<ComplexGui, ComplexGuiBuil
     @NotNull
     @Override
     @Contract(" -> new")
-    public ComplexGui create() {
-        final ComplexGui gui;
+    public GuiComplex create() {
+        final GuiComplex gui;
         final String title = getTitle();
-        if (guiType == null || guiType == GuiType.CHEST) {
-            gui = new ComplexGui(getRows(), title, getModifiers());
+        if (guiType == GuiType.CHEST) {
+            gui = new GuiComplex(getRows(), title, getModifiers());
         } else {
-            gui = new ComplexGui(guiType, title, getModifiers());
+            gui = new GuiComplex(guiType, title, getModifiers());
         }
 
-        final Consumer<ComplexGui> consumer = getConsumer();
+        final Consumer<GuiComplex> consumer = getConsumer();
         if (consumer != null) consumer.accept(gui);
 
         return gui;

@@ -1,16 +1,12 @@
 package br.com.finalcraft.evernifecore.protection.handlers;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.protection.ProtectionWorldGuard;
 import br.com.finalcraft.evernifecore.protection.handlers.protectionplugins.GriefPreventionPlusHandler;
 import br.com.finalcraft.evernifecore.protection.handlers.protectionplugins.WorldGuardHandler;
-import br.com.finalcraft.evernifecore.util.ReflectionUtil;
-import br.com.finalcraft.evernifecore.util.reflection.MethodInvoker;
 import org.bukkit.Bukkit;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
-import java.util.stream.Collectors;
 
 public enum ProtectionPlugins {
 	GriefPreventionPlus(GriefPreventionPlusHandler.class),

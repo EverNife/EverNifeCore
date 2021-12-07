@@ -18,6 +18,9 @@ public class ECSettings {
     public static SimpleDateFormat SIMPLE_DATE_FORMAT       = new SimpleDateFormat("dd/MM/yyyy");
     public static SimpleDateFormat DATE_FORMAT_WITH_HOURS   = new SimpleDateFormat("dd/MM/yyyy HH:mm");
 
+    //Guis
+    public static int DEFAULT_GUI_UPDATE_TIME = 2;
+
     public static void initialize(){
 
         boolean isUsingStorageWithPlayerName = false;
