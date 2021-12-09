@@ -18,7 +18,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 public class GuiComplex extends Gui {
 
@@ -42,7 +42,7 @@ public class GuiComplex extends Gui {
 
     private int updateInterval = ECSettings.DEFAULT_GUI_UPDATE_TIME;
     private int counter = 0;
-    private Consumer<Player> onGuiUpdate;
+    private BiConsumer<Player, GuiComplex> onGuiUpdate;
 
     public GuiComplex(int rows, @NotNull String title, @NotNull Set<InteractionModifier> interactionModifiers) {
         super(rows, title, interactionModifiers);
@@ -66,7 +66,7 @@ public class GuiComplex extends Gui {
             counter = counter + ECSettings.DEFAULT_GUI_UPDATE_TIME;
             if (counter >= updateInterval){
                 counter = 0;
-                onGuiUpdate.accept(player); //Update this Gui
+                onGuiUpdate.accept(player, this); //Update this Gui
             }
         }
 
@@ -102,7 +102,7 @@ public class GuiComplex extends Gui {
         return this;
     }
 
-    public GuiComplex setOnItemUpdate(Consumer<@NotNull Player> onGuiUpdate){
+    public GuiComplex setOnGuiUpdate(BiConsumer<@NotNull Player, @NotNull GuiComplex> onGuiUpdate){
         this.onGuiUpdate = onGuiUpdate;
         return this;
     }
