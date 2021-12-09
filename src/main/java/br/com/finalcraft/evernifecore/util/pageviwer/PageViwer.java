@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCTextUtil;
+import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -128,7 +129,9 @@ public class PageViwer<T,J> {
     }
 
     public void send(int page, CommandSender... sender){
-        send(page * pageSize, (page + 1) * pageSize, sender);
+        int start = NumberWrapper.of((page - 1) * pageSize).boundLower(lineEnd - pageSize).boundLower(0).intValue();
+        int end = NumberWrapper.of(page * pageSize).boundLower(lineEnd).intValue();
+        send(start, end, sender);
     }
 
     public void send(int lineStart, int lineEnd, CommandSender... sender){
