@@ -18,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class GuiComplex extends Gui {
 
@@ -39,6 +40,10 @@ public class GuiComplex extends Gui {
         runnable.runTaskTimer(EverNifeCore.instance, 1, ECSettings.DEFAULT_GUI_UPDATE_TIME); //2 Ticks might be enought for almost any case
     }
 
+    private int updateInterval = ECSettings.DEFAULT_GUI_UPDATE_TIME;
+    private int counter = 0;
+    private Consumer<Player> onGuiUpdate;
+
     public GuiComplex(int rows, @NotNull String title, @NotNull Set<InteractionModifier> interactionModifiers) {
         super(rows, title, interactionModifiers);
     }
@@ -57,9 +62,19 @@ public class GuiComplex extends Gui {
             }
         }
 
+        if (onGuiUpdate != null){
+            counter = counter + ECSettings.DEFAULT_GUI_UPDATE_TIME;
+            if (counter >= updateInterval){
+                counter = 0;
+                onGuiUpdate.accept(player); //Update this Gui
+            }
+        }
+
         HashSet<GuiItemComplex> checked = new HashSet<>();
         HashSet<GuiItemComplex> updated = new HashSet<>();
 
+        //Now update each GuiItem attached to this GUI.
+        //If an GuiItem is the same for more than one slot, the GuiItem will be update only once!
         for (Map.Entry<Integer, GuiItem> entry : getGuiItems().entrySet()) {
             if (entry.getValue() instanceof GuiItemComplex){
 
@@ -79,6 +94,17 @@ public class GuiComplex extends Gui {
             }
         }
 
+    }
+
+    public GuiComplex setUpdateInterval(int updateInterval) {
+        assert updateInterval > 0 : "UpdateInterval must be higher than 0";
+        this.updateInterval = updateInterval;
+        return this;
+    }
+
+    public GuiComplex setOnItemUpdate(Consumer<@NotNull Player> onGuiUpdate){
+        this.onGuiUpdate = onGuiUpdate;
+        return this;
     }
 
     /**
