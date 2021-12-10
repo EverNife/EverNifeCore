@@ -76,9 +76,22 @@ public class PlayerController {
 
         String playerName   = UUIDsController.getNameFromUUID(playerUUID);
         String theFileName  = ECSettings.useNamesInsteadOfUUIDToStorePlayerData ? playerName : playerUUID.toString();
+        File dormantFile  = new File(EverNifeCore.instance.getDataFolder(), "PlayerDataDormant/" + theFileName + ".yml");
         File theConfigFile  = new File(EverNifeCore.instance.getDataFolder(), "PlayerData/" + theFileName + ".yml");
-        Config config       = new Config(theConfigFile);
 
+        if (dormantFile.exists()){
+            try {
+                FileUtils.moveFile(
+                        dormantFile,
+                        theConfigFile
+                );
+            }catch (Exception e){
+                EverNifeCore.warning("Failed to move dormant PlaeyerData " + dormantFile.getName() + " to the PlayerData folder... this is a terrible (sad) problem!");
+                e.printStackTrace();
+            }
+        }
+
+        Config config       = new Config(theConfigFile);
         PlayerData playerData = new PlayerData(config, playerName, playerUUID);
         playerData.forceSavePlayerData();
 
