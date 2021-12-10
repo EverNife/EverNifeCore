@@ -172,7 +172,7 @@ public class PageViwer<T,J> {
         protected long cooldown = 15000; //15 seconds
         protected int lineStart = 0;
         protected int lineEnd = 50;
-        protected int pageSize = 50;
+        protected int pageSize = 10;
         protected boolean includeDate = false;
         protected boolean includeTotalPlayers = false;
 
