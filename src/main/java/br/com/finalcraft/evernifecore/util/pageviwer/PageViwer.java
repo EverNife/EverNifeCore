@@ -15,7 +15,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class PageViwer<T,J> {
+public class PageViwer<T,J> { //TODO Fix the Type on Viwer, omg... how haven't i seen that '-'
 
     private List<FancyText> pageLinesCache = null;
     private List<FancyText> pageHeaderCache = null;
