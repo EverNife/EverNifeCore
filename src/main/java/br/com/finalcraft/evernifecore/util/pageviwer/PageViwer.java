@@ -129,8 +129,8 @@ public class PageViwer<T,J> {
     }
 
     public void send(int page, CommandSender... sender){
-        int start = NumberWrapper.of((page - 1) * pageSize).boundLower(lineEnd - pageSize).boundLower(0).intValue();
-        int end = NumberWrapper.of(page * pageSize).boundLower(lineEnd).intValue();
+        int start = NumberWrapper.of((page - 1) * pageSize).boundUpper(lineEnd - pageSize).boundLower(0).intValue();
+        int end = NumberWrapper.of(page * pageSize).boundUpper(lineEnd).intValue();
         send(start, end, sender);
     }
 
