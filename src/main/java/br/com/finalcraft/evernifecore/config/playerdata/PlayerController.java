@@ -4,7 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
-import net.minecraft.util.org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.*;
 
 public class PlayerController {
@@ -90,7 +91,6 @@ public class PlayerController {
                 e.printStackTrace();
             }
         }
-
         Config config       = new Config(theConfigFile);
         PlayerData playerData = new PlayerData(config, playerName, playerUUID);
         playerData.forceSavePlayerData();
