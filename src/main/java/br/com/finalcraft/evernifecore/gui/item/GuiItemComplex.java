@@ -30,6 +30,12 @@ public class GuiItemComplex extends GuiItem {
         return false;
     }
 
+    public void forceUpdate(Player player){
+        if (onItemUpdate != null){
+            onItemUpdate.accept(player, this);
+        }
+    }
+
     public GuiItemComplex setUpdateInterval(int updateInterval) {
         assert updateInterval > 0 : "UpdateInterval must be higher than 0";
         this.updateInterval = updateInterval;

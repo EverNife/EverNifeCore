@@ -15,6 +15,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -105,6 +106,19 @@ public class GuiComplex extends Gui {
     public GuiComplex setOnGuiUpdate(BiConsumer<@NotNull Player, @NotNull GuiComplex> onGuiUpdate){
         this.onGuiUpdate = onGuiUpdate;
         return this;
+    }
+
+    public void softUpdate() {
+        if (this.getInventory().getViewers().size() == 0) return;
+        Player player = (Player) this.getInventory().getViewers().get(0);
+
+        for (Map.Entry<Integer, GuiItem> entry : new ArrayList<>(getGuiItems().entrySet())) {
+            if (entry.getValue() instanceof GuiItemComplex){
+                GuiItemComplex complex = (GuiItemComplex) entry.getValue();
+                complex.forceUpdate(player);
+                setItem(entry.getKey(), complex);
+            }
+        }
     }
 
     /**
