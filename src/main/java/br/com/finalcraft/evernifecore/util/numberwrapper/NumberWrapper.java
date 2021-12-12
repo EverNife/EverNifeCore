@@ -122,6 +122,16 @@ public class NumberWrapper<N extends Number> implements Comparable<NumberWrapper
         throw new UnsupportedOperationException("The Number [" + value.getClass() + "] is not supported by NumberWrapper!");
     }
 
+    public NumberWrapper<N> normalize(){
+        if (this.value instanceof Float) {
+            this.value = (N) Float.valueOf((float) FCMathUtil.normalizeDouble(this.value.doubleValue()));
+        }
+        if (this.value instanceof Double) {
+            this.value = (N) Double.valueOf(FCMathUtil.normalizeDouble(this.value.doubleValue()));
+        }
+        return this;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
