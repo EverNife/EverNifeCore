@@ -50,6 +50,11 @@ public class FancyTextManager {
 
     public static void send(FancyText fancyText, CommandSender... commandSenders){
 
+        if (fancyText.fancyFormatter != null){
+            send(fancyText.fancyFormatter, commandSenders);
+            return;
+        }
+
         List<List<TextComponent>> textComponentList2D = null;
         for (CommandSender sender : commandSenders) {
             if(sender instanceof Player){
