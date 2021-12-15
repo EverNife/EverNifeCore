@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.util;
 
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 public class FCInventoryUtil {
@@ -66,5 +67,25 @@ public class FCInventoryUtil {
         return false;
     }
 
+    public static int getMaxFitAmount(ItemStack stack, Inventory inv) {
+        ItemStack[] contents = inv.getStorageContents(); //Ignore Armor and Shield slots if PlayerInventory
+
+        int result = 0;
+
+        for (ItemStack contentStack : contents) {
+            if (contentStack == null || contentStack.getType() == Material.AIR) {
+                result += stack.getMaxStackSize();
+            } else if (stack.isSimilar(contentStack)) {
+                result += Math.max(stack.getMaxStackSize() - contentStack.getAmount(), 0);
+            }
+        }
+
+        return result;
+    }
+
+    public static boolean canFit(ItemStack itemStack, Inventory inv){
+        int amount = itemStack.getAmount();
+        return amount <= getMaxFitAmount(itemStack, inv);
+    }
 
 }

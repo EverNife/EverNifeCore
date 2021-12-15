@@ -25,20 +25,4 @@ public class FCCraftUtil {
         return defaultItemAmount * leastMaterialCount;
     }
 
-    public static int getMaxFitAmount(ItemStack stack, Inventory inv) {
-        ItemStack[] contents = inv.getStorageContents(); //Ignore Armor and Shield slots if PlayerInventory
-
-        int result = 0;
-
-        for (ItemStack contentStack : contents) {
-            if (contentStack == null || contentStack.getType() == Material.AIR) {
-                result += stack.getMaxStackSize();
-            } else if (stack.isSimilar(contentStack)) {
-                result += Math.max(stack.getMaxStackSize() - contentStack.getAmount(), 0);
-            }
-        }
-
-        return result;
-    }
-
 }
