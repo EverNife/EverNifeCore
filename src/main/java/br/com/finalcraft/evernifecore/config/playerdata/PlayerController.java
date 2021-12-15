@@ -12,16 +12,15 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.*;
 
 public class PlayerController {
 
-    public static Map<UUID,PlayerData> mapOfPlayersData = new HashMap<UUID, PlayerData>();
+    private static Map<UUID,PlayerData> MAP_OF_PLAYER_DATA = new HashMap<UUID, PlayerData>();
 
     public static void initialize(){
-        synchronized (mapOfPlayersData){
-            mapOfPlayersData.clear();
+        synchronized (MAP_OF_PLAYER_DATA){
+            MAP_OF_PLAYER_DATA.clear();
 
             for (Map.Entry<UUID, String> entry : UUIDsController.getEntrySet()) {
                 final UUID playerUUID = entry.getKey();
@@ -34,7 +33,7 @@ public class PlayerController {
                     try {
                         Config config = new Config(theConfigFile);
                         PlayerData playerData = new PlayerData(config);
-                        mapOfPlayersData.put(playerUUID, playerData);
+                        MAP_OF_PLAYER_DATA.put(playerUUID, playerData);
                     }catch (Exception e){
                         EverNifeCore.warning("Failed to load PlayerData [" + theConfigFile.getName() + "] moving it to the corrupt folder. \nTheFile: " + theConfigFile.getAbsolutePath() + " .");
                         e.printStackTrace();
@@ -57,12 +56,12 @@ public class PlayerController {
                 getOrCreateOne(onlinePlayer.getUniqueId()).setPlayer(onlinePlayer);
             }
 
-            EverNifeCore.info(ChatColor.translateAlternateColorCodes('&',"&aFinished Loading PlayerData of " + mapOfPlayersData.size() + " players!"));
+            EverNifeCore.info(ChatColor.translateAlternateColorCodes('&',"&aFinished Loading PlayerData of " + MAP_OF_PLAYER_DATA.size() + " players!"));
         }
     }
 
     public static void savePlayerDataOnConfig(){
-        for (PlayerData playerData : mapOfPlayersData.values()) {
+        for (PlayerData playerData : MAP_OF_PLAYER_DATA.values()) {
             try {
                 playerData.savePlayerData();
             }catch (Throwable e){
@@ -95,7 +94,7 @@ public class PlayerController {
         PlayerData playerData = new PlayerData(config, playerName, playerUUID);
         playerData.forceSavePlayerData();
 
-        mapOfPlayersData.put(playerUUID, playerData);
+        MAP_OF_PLAYER_DATA.put(playerUUID, playerData);
         return playerData;
     }
 
@@ -122,26 +121,26 @@ public class PlayerController {
     public static PlayerData getPlayerData(UUID uuid){
         Objects.requireNonNull(uuid, "UUID can't be null");
 
-        return mapOfPlayersData.get(uuid);
+        return MAP_OF_PLAYER_DATA.get(uuid);
     }
 
     public static PlayerData getPlayerData(Player player){
         Objects.requireNonNull(player, "Player can't be null");
 
-        return mapOfPlayersData.get(player.getUniqueId());
+        return MAP_OF_PLAYER_DATA.get(player.getUniqueId());
     }
 
     public static PlayerData getPlayerData(OfflinePlayer offlinePlayer){
         Objects.requireNonNull(offlinePlayer, "OfflinePlayer can't be null");
 
-        return mapOfPlayersData.get(offlinePlayer.getUniqueId());
+        return MAP_OF_PLAYER_DATA.get(offlinePlayer.getUniqueId());
     }
 
     public static PlayerData getPlayerData(String playerName){
         Objects.requireNonNull(playerName, "PlayerName can't be null");
 
         UUID uuid = UUIDsController.getUUIDFromName(playerName);
-        return uuid == null ? null : mapOfPlayersData.get(uuid);
+        return uuid == null ? null : MAP_OF_PLAYER_DATA.get(uuid);
     }
 
     public static PlayerData getOrCreateOne(UUID uuid){
@@ -155,11 +154,11 @@ public class PlayerController {
     }
 
     public static int getPlayerDataCount(){
-        return mapOfPlayersData.size();
+        return MAP_OF_PLAYER_DATA.size();
     }
 
     public static Collection<PlayerData> getAllPlayerData(){
-        return mapOfPlayersData.values();
+        return MAP_OF_PLAYER_DATA.values();
     }
 
     public static <T extends PDSection> List<T> getAllPlayerData(Class<T> pdSectionClass){
