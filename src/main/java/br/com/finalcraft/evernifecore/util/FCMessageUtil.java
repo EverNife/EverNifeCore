@@ -58,6 +58,14 @@ public class FCMessageUtil {
         NEEDS_TO_HAVE_ON_INVENTORY.addPlaceholder("%item_name%", itemName).send(sender);
     }
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need more space on the inventory!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa de mais espaço no inventário!")
+    private static LocaleMessage NOT_ENOUGHT_SPACE_ON_INVENTORY;
+    public static <T extends Number> void needsToHaveMoreInventorySpace(CommandSender sender){
+        NOT_ENOUGHT_SPACE_ON_INVENTORY
+                .send(sender);
+    }
+
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §7[§2%argumento%§7]§c needs to be an integer!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §7[§2%argumento%§7]§c precisa ser um número inteiro!")
     private static LocaleMessage NEEDS_TO_BE_INTEGER;
