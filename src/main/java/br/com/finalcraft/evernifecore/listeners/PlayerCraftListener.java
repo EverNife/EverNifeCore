@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.api.events.ECPlayerCraftItemEvent;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.util.FCCraftUtil;
+import br.com.finalcraft.evernifecore.util.FCInventoryUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -79,7 +80,7 @@ public class PlayerCraftListener implements ECListener {
                 }
 
                 int maxCraftable = FCCraftUtil.getMaxCraftAmount(event.getInventory());
-                int capacity = FCCraftUtil.getMaxFitAmount(event.getRecipe().getResult().clone(), event.getView().getBottomInventory());
+                int capacity = FCInventoryUtil.getMaxFitAmount(event.getRecipe().getResult().clone(), event.getView().getBottomInventory());
 
                 // If we can't fit everything, increase "space" to include the items dropped by
                 // crafting
