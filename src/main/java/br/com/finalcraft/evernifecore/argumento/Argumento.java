@@ -146,7 +146,7 @@ public class Argumento {
 
     public <T extends Number> NumberWrapper<T> getNumberWrapper(Class<T> clazz, T def){
         NumberWrapper numberWrapper = getNumberWrapper(clazz);
-        return numberWrapper != null ? numberWrapper : NumberWrapper.of(def);
+        return numberWrapper != null ? numberWrapper : def == null ? null : NumberWrapper.of(def);
     }
 
     public World getWorld(){
