@@ -12,7 +12,7 @@ public class ItemDataPartName extends ItemDataPart {
     @Override
     public ItemStack transform(ItemStack item, String used_name, String argument) {
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(argument);
+        meta.setDisplayName(ChatColor.translateAlternateColorCodes('&',argument));
         item.setItemMeta(meta);
         return item;
     }
