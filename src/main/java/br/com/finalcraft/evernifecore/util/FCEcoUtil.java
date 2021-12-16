@@ -55,7 +55,6 @@ public class FCEcoUtil {
      * @return <>true</> if the player has the money <>false</>
      * otherwise
      */
-    @Deprecated
     public static boolean ecoHasEnough(PlayerData playerData, double value) {
         return ecoGet(playerData) >= value;
     }
