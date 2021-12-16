@@ -34,6 +34,9 @@ public class FCTimeFrame {
     @FCLocale(lang = LocaleType.EN_US, text = "seconds")
     @FCLocale(lang = LocaleType.PT_BR, text = "segundos")
     private static LocaleMessage SECONDS;
+    @FCLocale(lang = LocaleType.EN_US, text = "and")
+    @FCLocale(lang = LocaleType.PT_BR, text = "e")
+    private static LocaleMessage AND;
 
     protected Long days;
     protected Long hours;
@@ -145,11 +148,11 @@ public class FCTimeFrame {
         }
 
         if (this.getDays() > 0){
-            return (numberColor + this.getDays() + " " + textColor + dia + ", " + numberColor + this.getHours() + " " + textColor + hora + ", " + numberColor + this.getMinutes() + " " + textColor + minuto + " e " + numberColor + this.getSeconds() + " " + textColor + segundo);
+            return (numberColor + this.getDays() + (shortVersion ? "" : " ") + textColor + dia + ", " + numberColor + this.getHours() + (shortVersion ? "" : " ") + textColor + hora + ", " + numberColor + this.getMinutes() + (shortVersion ? "" : " ") + textColor + minuto + " " + AND.getDefaultFancyText() + " " + numberColor + this.getSeconds() + " " + textColor + segundo);
         }else if (this.getHours() > 0){
-            return (numberColor + this.getHours() + " " + textColor + hora + ", " + numberColor + this.getMinutes() + " " + textColor + minuto + " e " + numberColor + this.getSeconds() + " " + textColor + segundo);
+            return (numberColor + this.getHours() + (shortVersion ? "" : " ") + textColor + hora + ", " + numberColor + this.getMinutes() + (shortVersion ? "" : " ") + textColor + minuto + " " + AND.getDefaultFancyText() + " " + numberColor + this.getSeconds() + (shortVersion ? "" : " ") + textColor + segundo);
         }else if (this.getMinutes() > 0){
-            return (numberColor + this.getMinutes() + " " + textColor + minuto + " e " + numberColor + this.getSeconds() + " " + textColor + segundo);
+            return (numberColor + this.getMinutes() + (shortVersion ? "" : " ") + textColor + minuto + " " + AND.getDefaultFancyText() + " " + numberColor + this.getSeconds() + (shortVersion ? "" : " ") + textColor + segundo);
         }else {
             return (numberColor + this.getSeconds() + (this.getSeconds() == 0 || includeMillis ? "." + (this.millis % 1000) : "") + " " +textColor + segundo);
         }
