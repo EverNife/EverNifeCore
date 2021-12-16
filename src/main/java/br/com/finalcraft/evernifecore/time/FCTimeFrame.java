@@ -133,10 +133,10 @@ public class FCTimeFrame {
         final String minuto;
         final String segundo;
         if (shortVersion){
-            dia = this.getDays() + "" +  DAY.getDefaultFancyText().getText().charAt(0);
-            hora = this.getHours() + "" +  HOURS.getDefaultFancyText().getText().charAt(0);
-            minuto = this.getMinutes() + "" +  MINUTES.getDefaultFancyText().getText().charAt(0);
-            segundo = this.getSeconds() + "" +  SECONDS.getDefaultFancyText().getText().charAt(0);
+            dia = String.valueOf(DAY.getDefaultFancyText().getText().charAt(0));
+            hora = String.valueOf(HOURS.getDefaultFancyText().getText().charAt(0));
+            minuto = String.valueOf(MINUTES.getDefaultFancyText().getText().charAt(0));
+            segundo = String.valueOf(SECONDS.getDefaultFancyText().getText().charAt(0));
         }else {
             dia = this.getDays() >= 2 ? DAYS.getDefaultFancyText().getText() : DAY.getDefaultFancyText().getText();
             hora = this.getHours() >= 2 ? HOURS.getDefaultFancyText().getText() : HOUR.getDefaultFancyText().getText();
