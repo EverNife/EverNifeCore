@@ -154,10 +154,12 @@ public class FCBukkitUtil {
      * @param player O jogador em questão
      * @return quantidade de dinheiro do jogador
      */
+    @Deprecated
     public static double getBalance(Player player) {
         return getMoney(player);
     }
 
+    @Deprecated
     public static double getMoney(Player player) {
         return VaultIntegration.ecoGet(player);
     }
@@ -169,10 +171,12 @@ public class FCBukkitUtil {
      * @param player O jogador em questão
      * @param amount Quantia a ser adicionada
      */
+    @Deprecated
     public static void ecoGive(OfflinePlayer player, double amount) {
         ecoGive(player, amount, false);
     }
 
+    @Deprecated
     public static void ecoGive(OfflinePlayer player, double amount, boolean silent) {
         if (amount != 0) {
             VaultIntegration.ecoGive(player, amount);
@@ -188,10 +192,12 @@ public class FCBukkitUtil {
      * @return retorna <>true</> se foi possivel remover o dinheiro do jogador e <>false</>
      * caso contrário
      */
+    @Deprecated
     public static boolean ecoTake(OfflinePlayer player, double amount) {
         return ecoTake(player, amount, false);
     }
 
+    @Deprecated
     public static boolean ecoTake(OfflinePlayer player, double amount, boolean silent) {
         boolean ecoTake = VaultIntegration.ecoTake(player, amount);
         if (ecoTake) {
@@ -208,6 +214,7 @@ public class FCBukkitUtil {
      * @return retorna <>true</> se o jogador possuir o dinheiro e <>false</>
      * caso contrário
      */
+    @Deprecated
     public static boolean ecoHasEnough(OfflinePlayer player, double amout) {
         return VaultIntegration.ecoHasEnough(player, amout);
     }
