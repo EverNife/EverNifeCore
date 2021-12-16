@@ -111,6 +111,10 @@ public class FCTimeFrame {
         return getFormatedDiscursive("","");
     }
 
+    public String getShortenedFormatedDiscursive(){
+        return getFormatedDiscursive("","", false, true);
+    }
+
     public String getFormatedDiscursive(boolean includeMillis){
         return getFormatedDiscursive("","", includeMillis);
     }
@@ -120,10 +124,25 @@ public class FCTimeFrame {
     }
 
     public String getFormatedDiscursive(final String numberColor, final String textColor, boolean includeMillis){
-        String dia = this.getDays() >= 2 ? DAYS.getDefaultFancyText().getText() : DAY.getDefaultFancyText().getText();
-        String hora = this.getHours() >= 2 ? HOURS.getDefaultFancyText().getText() : HOUR.getDefaultFancyText().getText();
-        String minuto = this.getMinutes() >= 2 ? MINUTES.getDefaultFancyText().getText() : MINUTE.getDefaultFancyText().getText();
-        String segundo = this.getSeconds() >= 2 || ((includeMillis || this.getSeconds() == 0) && (this.millis % 1000) >= 2)  ? SECONDS.getDefaultFancyText().getText() : SECOND.getDefaultFancyText().getText();
+        return getFormatedDiscursive(numberColor, textColor, includeMillis, false);
+    }
+
+    public String getFormatedDiscursive(final String numberColor, final String textColor, boolean includeMillis, boolean shortVersion){
+        final String dia;
+        final String hora;
+        final String minuto;
+        final String segundo;
+        if (shortVersion){
+            dia = this.getDays() + "" +  DAY.getDefaultFancyText().getText().charAt(0);
+            hora = this.getHours() + "" +  HOURS.getDefaultFancyText().getText().charAt(0);
+            minuto = this.getMinutes() + "" +  MINUTES.getDefaultFancyText().getText().charAt(0);
+            segundo = this.getSeconds() + "" +  SECONDS.getDefaultFancyText().getText().charAt(0);
+        }else {
+            dia = this.getDays() >= 2 ? DAYS.getDefaultFancyText().getText() : DAY.getDefaultFancyText().getText();
+            hora = this.getHours() >= 2 ? HOURS.getDefaultFancyText().getText() : HOUR.getDefaultFancyText().getText();
+            minuto = this.getMinutes() >= 2 ? MINUTES.getDefaultFancyText().getText() : MINUTE.getDefaultFancyText().getText();
+            segundo = this.getSeconds() >= 2 || ((includeMillis || this.getSeconds() == 0) && (this.millis % 1000) >= 2)  ? SECONDS.getDefaultFancyText().getText() : SECOND.getDefaultFancyText().getText();
+        }
 
         if (this.getDays() > 0){
             return (numberColor + this.getDays() + " " + textColor + dia + ", " + numberColor + this.getHours() + " " + textColor + hora + ", " + numberColor + this.getMinutes() + " " + textColor + minuto + " e " + numberColor + this.getSeconds() + " " + textColor + segundo);
