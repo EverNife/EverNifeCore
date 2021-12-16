@@ -147,14 +147,17 @@ public class FCTimeFrame {
             segundo = this.getSeconds() >= 2 || ((includeMillis || this.getSeconds() == 0) && (this.millis % 1000) >= 2)  ? SECONDS.getDefaultFancyText().getText() : SECOND.getDefaultFancyText().getText();
         }
 
+        final String SPACE = shortVersion ? "" : " ";
+        final String COMMA = shortVersion ? " " : ", ";
+
         if (this.getDays() > 0){
-            return (numberColor + this.getDays() + (shortVersion ? "" : " ") + textColor + dia + ", " + numberColor + this.getHours() + (shortVersion ? "" : " ") + textColor + hora + ", " + numberColor + this.getMinutes() + (shortVersion ? "" : " ") + textColor + minuto + " " + AND.getDefaultFancyText() + " " + numberColor + this.getSeconds() + " " + textColor + segundo);
+            return numberColor + this.getDays() + SPACE + textColor + dia + COMMA + numberColor + this.getHours() + SPACE + textColor + hora + COMMA + numberColor + this.getMinutes() + SPACE + textColor + minuto + " " + AND.getDefaultFancyText() + " " + numberColor + this.getSeconds() + SPACE + textColor + segundo;
         }else if (this.getHours() > 0){
-            return (numberColor + this.getHours() + (shortVersion ? "" : " ") + textColor + hora + ", " + numberColor + this.getMinutes() + (shortVersion ? "" : " ") + textColor + minuto + " " + AND.getDefaultFancyText() + " " + numberColor + this.getSeconds() + (shortVersion ? "" : " ") + textColor + segundo);
+            return numberColor + this.getHours() + SPACE + textColor + hora + COMMA + numberColor + this.getMinutes() + SPACE + textColor + minuto + " " + AND.getDefaultFancyText() + " " + numberColor + this.getSeconds() + SPACE + textColor + segundo;
         }else if (this.getMinutes() > 0){
-            return (numberColor + this.getMinutes() + (shortVersion ? "" : " ") + textColor + minuto + " " + AND.getDefaultFancyText() + " " + numberColor + this.getSeconds() + (shortVersion ? "" : " ") + textColor + segundo);
+            return numberColor + this.getMinutes() + SPACE + textColor + minuto + " " + AND.getDefaultFancyText() + " " + numberColor + this.getSeconds() + SPACE + textColor + segundo;
         }else {
-            return (numberColor + this.getSeconds() + (this.getSeconds() == 0 || includeMillis ? "." + (this.millis % 1000) : "") + " " +textColor + segundo);
+            return numberColor + this.getSeconds() + (this.getSeconds() == 0 || includeMillis ? "." + (this.millis % 1000) : "") + " " +textColor + segundo;
         }
     }
 
