@@ -2,7 +2,6 @@ package br.com.finalcraft.evernifecore.util;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.CraftingInventory;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 //The code from this class is inspired on QuestWorld's "PlayerTools.class"
