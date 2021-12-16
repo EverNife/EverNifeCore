@@ -13,7 +13,7 @@ public class OntimeManager {
                     Statistic.PLAY_ONE_MINUTE :
                     Statistic.valueOf("PLAY_ONE_TICK");
 
-    private static IOntimeProvider ontimeProvider = new IOntimeProvider() {
+    private static IOntimeProvider ONTIME_PROVIDER = new IOntimeProvider() {
         @Override
         public long getOntime(PlayerData playerData) {
             OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerData.getUniqueId());
@@ -27,11 +27,11 @@ public class OntimeManager {
     };
 
     public static void setOntimeProvider(IOntimeProvider provider){
-        ontimeProvider = provider;
+        ONTIME_PROVIDER = provider;
     }
 
     public static IOntimeProvider getProvider() {
-        return ontimeProvider;
+        return ONTIME_PROVIDER;
     }
 
 }
