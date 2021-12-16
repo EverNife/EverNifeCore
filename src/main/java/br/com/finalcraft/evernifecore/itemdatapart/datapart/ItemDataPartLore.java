@@ -57,7 +57,7 @@ public class ItemDataPartLore extends ItemDataPart {
         if (itemStack.getItemMeta().hasLore()) {
             int a = 1;
             for (String line : itemStack.getItemMeta().getLore()) {
-                output.add("lore" + a + ":" + line.replaceAll(String.valueOf(ChatColor.COLOR_CHAR), "&"));
+                output.add("lore:" + line.replaceAll(String.valueOf(ChatColor.COLOR_CHAR), "&"));
                 a++;
             }
         }

@@ -14,12 +14,11 @@ public class FCInputReader {
     }
 
     public static Material parseMaterial(String materialName) {
-        if (MCVersion.isLegacy()){
-            return Material.getMaterial(materialName);
-        }
-        Material material = Material.matchMaterial(materialName, false);
+        Material material = Material.matchMaterial(materialName);
         if (material == null) {
-            material = Material.matchMaterial(materialName, true);
+            if (MCVersion.isCurrentEqualOrHigher(MCVersion.v1_12_R2)){
+                material = Material.matchMaterial(materialName, true);
+            }
         }
         return material;
     }
