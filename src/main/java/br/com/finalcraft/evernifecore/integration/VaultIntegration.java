@@ -41,7 +41,7 @@ public class VaultIntegration {
         if (needed > 0){
             econ.depositPlayer(player,needed);
         }else {
-            econ.withdrawPlayer(player,needed);
+            econ.withdrawPlayer(player,-needed);
         }
     }
 
