@@ -39,9 +39,9 @@ public class VaultIntegration {
         double needed = amount - current;
         if (needed == 0) return;
         if (needed > 0){
-            econ.depositPlayer(player,needed);
+            ecoGive(player,needed);
         }else {
-            econ.withdrawPlayer(player,-needed);
+            ecoTake(player,-needed);
         }
     }
 
