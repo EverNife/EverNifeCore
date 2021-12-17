@@ -116,7 +116,7 @@ public class GuiComplex extends Gui {
             if (entry.getValue() instanceof GuiItemComplex){
                 GuiItemComplex complex = (GuiItemComplex) entry.getValue();
                 complex.forceUpdate(player);
-                setItem(entry.getKey(), complex);
+                updateItem(entry.getKey(), complex);
             }
         }
     }
