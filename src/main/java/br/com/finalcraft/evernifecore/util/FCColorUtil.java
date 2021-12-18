@@ -18,11 +18,13 @@ public class FCColorUtil {
         return colors.get(FCBukkitUtil.getRandom().nextInt(colors.size()));
     }
 
-    public static String colorfy(String text){
+    public static String colorfy(@Nullable String text){
+        if (text == null) return null;
         return ChatColor.translateAlternateColorCodes('&',text);
     }
 
-    public static List<String> colorfy(List<String> text){
+    public static List<String> colorfy(@Nullable List<String> text){
+        if (text == null) return null;
         for (int i = 0; i < text.size(); i++) {
             text.set(i, colorfy(text.get(i)));
         }
