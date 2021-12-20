@@ -168,4 +168,11 @@ public class PlayerController {
         }
         return list;
     }
+
+    //Erase all PDSections reference from all PlayerData
+    public static void clearPDSections(Class<? extends PDSection> pdSectionClass){
+        for (PlayerData playerData : getAllPlayerData()) {
+            playerData.getMapOfPDSections().remove(pdSectionClass);
+        }
+    }
 }
