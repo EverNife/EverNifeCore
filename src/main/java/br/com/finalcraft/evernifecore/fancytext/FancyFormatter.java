@@ -38,6 +38,11 @@ public class FancyFormatter extends FancyText {
         return this;
     }
 
+    public FancyFormatter append(FancyFormatter fancyFormatter){
+        this.fancyTextList.addAll(fancyFormatter.getFancyTextList());
+        return this;
+    }
+
     @Override
     public FancyFormatter append(String text){
         FancyText fancyText = new FancyText(text);
