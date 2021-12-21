@@ -6,23 +6,23 @@ import dev.triumphteam.gui.guis.GuiItem;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-public enum EnumGlassPane {
-    WHITE_STAINED_GLASS_PANE('7'),
-    ORANGE_STAINED_GLASS_PANE('6'),
-    MAGENTA_STAINED_GLASS_PANE('d'),
-    LIGHT_BLUE_STAINED_GLASS_PANE('b'),
-    YELLOW_STAINED_GLASS_PANE('e'),
-    LIME_STAINED_GLASS_PANE('a'),
-    PINK_STAINED_GLASS_PANE('c'),
-    GRAY_STAINED_GLASS_PANE('7'),
-    LIGHT_GRAY_STAINED_GLASS_PANE('7'),
-    CYAN_STAINED_GLASS_PANE('3'),
-    PURPLE_STAINED_GLASS_PANE('d'),
-    BLUE_STAINED_GLASS_PANE('9'),
-    BROWN_STAINED_GLASS_PANE('c'),
-    GREEN_STAINED_GLASS_PANE('2'),
-    RED_STAINED_GLASS_PANE('c'),
-    BLACK_STAINED_GLASS_PANE('7'),
+public enum EnumStainedGlassPane {
+    WHITE('7'),
+    ORANGE('6'),
+    MAGENTA('d'),
+    LIGHT_BLUE('b'),
+    YELLOW('e'),
+    LIME('a'),
+    PINK('c'),
+    GRAY('7'),
+    LIGHT_GRAY('7'),
+    CYAN('3'),
+    PURPLE('d'),
+    BLUE('9'),
+    BROWN('c'),
+    GREEN('2'),
+    RED('c'),
+    BLACK('7'),
     ;
 
     private final Material material;
@@ -30,7 +30,7 @@ public enum EnumGlassPane {
     private final char colorCode;
     private transient GuiItem guiItem = null;
 
-    EnumGlassPane(char colorCode) {
+    EnumStainedGlassPane(char colorCode) {
         if (MCVersion.isCurrentEqualOrHigher(MCVersion.v1_13_R1)) {
             int firstGlassPaneOrdinal = Material.WHITE_STAINED_GLASS_PANE.ordinal();
             this.material = Material.values()[firstGlassPaneOrdinal + this.ordinal()];
