@@ -16,13 +16,8 @@ import org.bukkit.inventory.ItemStack;
 
 public class PlayerCraftListener implements ECListener {
 
-    public static boolean HAS_AT_LEAST_ONE_CRAFTITEMEVENT_LISTENER = false;
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onInventoryCraft(CraftItemEvent event) {
-
-        if (HAS_AT_LEAST_ONE_CRAFTITEMEVENT_LISTENER == false){
-            return;
-        }
 
         switch (event.getAction()) {
             case NOTHING:

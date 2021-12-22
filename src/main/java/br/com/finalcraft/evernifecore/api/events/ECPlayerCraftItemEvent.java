@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.api.events;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.listeners.PlayerCraftListener;
+import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -8,6 +10,7 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.plugin.RegisteredListener;
+import org.bukkit.scheduler.BukkitRunnable;
 
 /**
  * A default CraftItemEvent that will tell not only what recipe was used
@@ -24,12 +27,19 @@ import org.bukkit.plugin.RegisteredListener;
  */
 public class ECPlayerCraftItemEvent extends Event implements Cancellable {
 
+    private static boolean hasBeenRegistered = false;
     private static final HandlerList handlers = new HandlerList(){
         @Override
         public synchronized void register(RegisteredListener listener) {
             super.register(listener);
-            if (PlayerCraftListener.HAS_AT_LEAST_ONE_CRAFTITEMEVENT_LISTENER == false){
-                PlayerCraftListener.HAS_AT_LEAST_ONE_CRAFTITEMEVENT_LISTENER = true;
+            if (hasBeenRegistered == false){
+                hasBeenRegistered = true;
+                new BukkitRunnable(){
+                    @Override
+                    public void run() {
+                        ECListener.register(EverNifeCore.instance, PlayerCraftListener.class);
+                    }
+                }.runTaskLater(EverNifeCore.instance, 1);
             }
         }
     };
