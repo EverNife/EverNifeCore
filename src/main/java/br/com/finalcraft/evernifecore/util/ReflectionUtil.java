@@ -301,7 +301,7 @@ public class ReflectionUtil {
      * @return An object that invokes this constructor.
      * @throws IllegalStateException If we cannot find this method.
      */
-    public static ConstructorInvoker getConstructor(Class<?> clazz, Class<?>... params) {
+    public static <T> ConstructorInvoker<T> getConstructor(Class<T> clazz, Class<?>... params) {
         for (final Constructor<?> constructor : clazz.getDeclaredConstructors()) {
             if (Arrays.equals(constructor.getParameterTypes(), params)) {
                 constructor.setAccessible(true);
