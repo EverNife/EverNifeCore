@@ -10,6 +10,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -303,7 +304,7 @@ public class ReflectionUtil {
      */
     public static <T> ConstructorInvoker<T> getConstructor(Class<T> clazz, Class<?>... params) {
         for (final Constructor<?> constructor : clazz.getDeclaredConstructors()) {
-            if (Arrays.equals(constructor.getParameterTypes(), params)) {
+            if (arrayEqualsIgnorePrimitives(constructor.getParameterTypes(), params)) {
                 constructor.setAccessible(true);
 
                 return new ConstructorInvoker() {
@@ -321,7 +322,12 @@ public class ReflectionUtil {
             }
         }
 
-        throw new IllegalStateException(String.format("Unable to find constructor for %s (%s).", clazz, Arrays.asList(params)));
+        StringBuilder possibleConstructors = new StringBuilder();
+        for (Constructor<?> declaredConstructor : clazz.getDeclaredConstructors()) {
+            possibleConstructors.append("\n" + clazz.getSimpleName() + "(" + Arrays.toString(declaredConstructor.getParameterTypes()) + ")");
+        }
+
+        throw new IllegalStateException(String.format("Unable to find constructor for %s (%s). \nPossible Constructors: %s", clazz, Arrays.asList(params), possibleConstructors));
     }
 
     /**
@@ -413,5 +419,54 @@ public class ReflectionUtil {
             });
         }
         return fieldAccessorList;
+    }
+
+    /**
+     * Check if two arrays of classes are equal, ignoring the fact if thei are primitives
+     *
+     * Params:
+     * array1 – one array to be tested for equality
+     * array2 – the other array to be tested for equality
+     *
+     * @return true if the two arrays are equal
+     */
+    public static boolean arrayEqualsIgnorePrimitives(Class[] array1, Class[] array2){
+        if (array1==array2)
+            return true;
+        if (array1==null || array2==null)
+            return false;
+        if (array1.length != array2.length) return false;
+
+        for (int i = 0; i < array1.length; i++) {
+            Class clazz1 = array1[i];
+            Class clazz2 = array2[i];
+
+            if (!Objects.equals(clazz1, clazz2)){
+
+                if (clazz1.isPrimitive() || clazz2.isPrimitive()){ //Do extra check in case on of them is primitive
+                    if (clazz1.isPrimitive() && clazz2.isPrimitive()){ //If both are primitives, i have already compared than, return
+                        return false;
+                    }
+                    try {
+                        if (clazz1.isPrimitive()){
+                            if (!Objects.equals(clazz1, ReflectionUtil.getField(clazz2,"TYPE").get(null))){
+                                return false;
+                            }
+                        }else {
+                            if (!Objects.equals(clazz1, ReflectionUtil.getField(clazz2,"TYPE").get(null)) == false){
+                                return false;
+                            }
+                        }
+                    }catch (Exception ignored){
+                        return false; //If Exception, they are really not equal
+                    }
+                    continue; //Their primitives are equal! Do next array check
+                }
+
+                return false;
+            }
+
+        }
+        return true;
     }
 }
