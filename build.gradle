@@ -73,8 +73,14 @@ dependencies {
     implementation 'net.md-5:bungeecord-chat:1.16-R0.1' //This works from 1.7.10 onwards, is the same API
     compileOnly group: 'commons-io', name: 'commons-io', version: '2.6' //Necessary for ReflectionUtils
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
-    compile 'org.jetbrains:annotations:16.0.2' //JetBrains Annotation helper
     testCompile group: 'junit', name: 'junit', version: '4.12'
+
+    //Annotations
+    compile 'org.jetbrains:annotations:16.0.2'
+
+    //JUnit
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
 
 }
 
@@ -98,6 +104,10 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 
 tasks.withType(GenerateModuleMetadata) {
     enabled = false
+}
+
+test {
+    useJUnitPlatform()
 }
 
 publishing {
