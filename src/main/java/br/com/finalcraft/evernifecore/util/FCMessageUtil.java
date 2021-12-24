@@ -131,4 +131,12 @@ public class FCMessageUtil {
                 .send(sender);
     }
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§2§l ▶ §aThe plugin [§b%plugin_name%§a] has been reloaded!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§2§l ▶ §aO plugin [§b%plugin_name%§a] foi recarregado com sucesso!")
+    private static LocaleMessage PLUGIN_HAS_BEEN_RELOADED;
+    public static <T extends Number> void pluginHasBeenReloaded(CommandSender sender, String pluginName){
+        PLUGIN_HAS_BEEN_RELOADED
+                .addPlaceholder("%plugin_name%", pluginName)
+                .send(sender);
+    }
 }
