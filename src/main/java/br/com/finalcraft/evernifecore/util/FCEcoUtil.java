@@ -1,7 +1,11 @@
 package br.com.finalcraft.evernifecore.util;
 
+import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.economy.ontime.EconomyManager;
+import org.bukkit.OfflinePlayer;
+
+import java.util.Objects;
 
 public class FCEcoUtil {
 
@@ -14,6 +18,12 @@ public class FCEcoUtil {
         return EconomyManager.getProvider().ecoGet(playerData);
     }
 
+    public static double ecoGet(OfflinePlayer player) {
+        PlayerData playerData = PlayerController.getPlayerData(player);
+        Objects.requireNonNull(playerData, player.getName() + " does not exist on EverNifeCore's Database!");
+        return ecoGet(playerData);
+    }
+
     /**
      * Give money to a Player
      *
@@ -22,6 +32,12 @@ public class FCEcoUtil {
      */
     public static void ecoGive(PlayerData playerData, double value) {
         EconomyManager.getProvider().ecoGive(playerData, value);
+    }
+
+    public static void ecoGive(OfflinePlayer player, double value) {
+        PlayerData playerData = PlayerController.getPlayerData(player);
+        Objects.requireNonNull(playerData, player.getName() + " does not exist on EverNifeCore's Database!");
+        ecoGive(playerData, value);
     }
 
     /**
@@ -36,6 +52,12 @@ public class FCEcoUtil {
         return EconomyManager.getProvider().ecoTake(playerData, value);
     }
 
+    public static boolean ecoTake(OfflinePlayer player, double value) {
+        PlayerData playerData = PlayerController.getPlayerData(player);
+        Objects.requireNonNull(playerData, player.getName() + " does not exist on EverNifeCore's Database!");
+        return ecoTake(playerData, value);
+    }
+
     /**
      * Set the money from a Player to a specific value
      *
@@ -44,6 +66,12 @@ public class FCEcoUtil {
      */
     public static void ecoSet(PlayerData playerData, double value) {
         EconomyManager.getProvider().ecoSet(playerData, value);
+    }
+
+    public static void ecoSet(OfflinePlayer player, double value) {
+        PlayerData playerData = PlayerController.getPlayerData(player);
+        Objects.requireNonNull(playerData, player.getName() + " does not exist on EverNifeCore's Database!");
+        ecoSet(playerData, value);
     }
 
     /**
@@ -57,6 +85,12 @@ public class FCEcoUtil {
      */
     public static boolean ecoHasEnough(PlayerData playerData, double value) {
         return ecoGet(playerData) >= value;
+    }
+
+    public static boolean ecoHasEnough(OfflinePlayer player, double value) {
+        PlayerData playerData = PlayerController.getPlayerData(player);
+        Objects.requireNonNull(playerData, player.getName() + " does not exist on EverNifeCore's Database!");
+        return ecoHasEnough(playerData, value);
     }
 
 }
