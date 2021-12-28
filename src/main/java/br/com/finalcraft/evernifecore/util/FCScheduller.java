@@ -48,18 +48,14 @@ public class FCScheduller {
         public static <T> T runAndGet(Callable<T> callable){
             if (FCBukkitUtil.isMainThread()) throw new RejectedExecutionException("You cannot schedule a SynchronizedAction on the Main Thread!");
             try {
-                if (FCBukkitUtil.isMainThread()) {
-                    return callable.call();
-                } else {
-                    FutureTask<T> futureTask = new FutureTask(callable);
-                    new BukkitRunnable(){
-                        @Override
-                        public void run() {
-                            futureTask.run();
-                        }
-                    }.runTask(EverNifeCore.instance);
-                    return futureTask.get();
-                }
+                FutureTask<T> futureTask = new FutureTask(callable);
+                new BukkitRunnable(){
+                    @Override
+                    public void run() {
+                        futureTask.run();
+                    }
+                }.runTask(EverNifeCore.instance);
+                return futureTask.get();
             }catch (Exception e){
                 throw new RuntimeException(e);
             }
