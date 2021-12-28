@@ -385,6 +385,10 @@ public class Config {
 		}
     }
 
+	public FCItemStack getOrSetDefaultValue(String path, FCItemStack def) {
+		return (FCItemStack) getOrSetDefaultValue(path,(Object) def);
+	}
+
     public Integer getOrSetDefaultValue(String path, Integer def) {
         return (Integer) getOrSetDefaultValue(path,(Object)def);
     }
