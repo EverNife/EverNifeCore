@@ -1,7 +1,5 @@
 package br.com.finalcraft.evernifecore.util.reflection;
 
-import sun.net.www.protocol.file.FileURLConnection;
-
 import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -109,8 +107,8 @@ public class ReflectionScanner {
                 if(connection != null){
                     if(connection instanceof JarURLConnection){
                         try { classes.addAll(handleJar((JarURLConnection) connection, targetPackage)); } catch (IOException | ClassNotFoundException e) { e.printStackTrace(); }
-                    } else if (connection instanceof FileURLConnection){
-                        try { classes.addAll(handleFiles((FileURLConnection) connection, targetPackage)); } catch (IOException e) { e.printStackTrace(); }
+                    } else if ("file".equals(url.getProtocol())){
+                        try { classes.addAll(handleFiles(connection, targetPackage)); } catch (IOException e) { e.printStackTrace(); }
                     }
                 }
 
@@ -182,7 +180,7 @@ public class ReflectionScanner {
         return hashSet;
     }
 
-    private HashSet<Class<?>> handleFiles(FileURLConnection connection, String targetPackage) throws IOException {
+    private HashSet<Class<?>> handleFiles(URLConnection connection, String targetPackage) throws IOException {
 
         HashSet<Class<?>> hashSet = new HashSet<>();
 
