@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-public class PlayerData {
+public class PlayerData implements IPlayerData{
 
     //PlayerData
     protected Config config;
@@ -30,6 +30,7 @@ public class PlayerData {
         return mapOfPDSections;
     }
 
+    @Override
     public <T extends PDSection> T getPDSection(Class<? extends T> pdSectionClass){
         PDSection pdSection = mapOfPDSections.get(pdSectionClass);
         if (pdSection == null){
@@ -110,41 +111,53 @@ public class PlayerData {
         return false;
     }
 
-    public Config getConfig() {
-        return config;
-    }
-
     public void setPlayer(Player player){
         this.player = player;
         lastSeen = System.currentTimeMillis();
     }
 
+    @Override
+    public Config getConfig() {
+        return config;
+    }
+
+    @Override
     public String getPlayerName() {
         return playerName;
     }
 
+    @Override
     public long getLastSeen(){
         return player != null ? System.currentTimeMillis() : lastSeen;
     }
 
+    @Override
     public Player getPlayer(){
         return player;
     }
 
+    @Override
     public boolean isPlayerOnline(){
         return player != null && player.isOnline();
     }
 
+    @Override
     public UUID getUniqueId() {
         return uuid;
     }
 
+    @Override
     public PlayerCooldown getCooldown(String identifier){
         return cooldownHashMap.computeIfAbsent(identifier, s -> new PlayerCooldown(identifier, this.getUniqueId()));
     }
 
     public Map<String, PlayerCooldown> getCooldownHashMap() {
         return cooldownHashMap;
+    }
+
+    @Override
+    public PlayerData getPlayerData() {
+        return this;
     }
 
     @Override

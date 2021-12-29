@@ -6,7 +6,7 @@ import org.bukkit.entity.Player;
 
 import java.util.UUID;
 
-public abstract class PDSection {
+public abstract class PDSection implements IPlayerData{
 
     private final PlayerData playerData;
 
@@ -29,34 +29,42 @@ public abstract class PDSection {
 
     public abstract void savePDSection();
 
+    @Override
     public PlayerData getPlayerData() {
         return playerData;
     }
 
+    @Override
     public String getPlayerName() {
         return playerData.getPlayerName();
     }
 
+    @Override
     public UUID getUniqueId() {
         return playerData.getUniqueId();
     }
 
+    @Override
     public boolean isPlayerOnline(){
         return playerData.isPlayerOnline();
     }
 
+    @Override
     public Player getPlayer(){
         return playerData.getPlayer();
     }
 
+    @Override
     public Config getConfig() {
         return playerData.getConfig();
     }
 
+    @Override
     public long getLastSeen(){
         return playerData.getLastSeen();
     }
 
+    @Override
     public PlayerCooldown getCooldown(String identifier){
         return playerData.getCooldown(identifier);
     }
@@ -70,5 +78,11 @@ public abstract class PDSection {
     @Override
     public int hashCode() {
         return playerData.hashCode();
+    }
+
+    @Override
+    public <T extends PDSection> T getPDSection(Class<? extends T> pdSectionClass){
+        if (this.getClass() == pdSectionClass) return (T)this;
+        return playerData.getPDSection(pdSectionClass);
     }
 }
