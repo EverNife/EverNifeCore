@@ -24,7 +24,11 @@ public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O
         this.pattern = pattern;
     }
 
-    public PlaceholderProvider<O> addMappedProvider(PlaceholderProvider<O> provider){
+    public PlaceholderProvider<O> addProvider(String providerID){
+        return addProvider(new PlaceholderProvider(providerID));
+    }
+
+    public PlaceholderProvider<O> addProvider(PlaceholderProvider<O> provider){
         PROVIDERS.put(provider.getProviderID(), provider);
         return provider;
     }
@@ -64,19 +68,20 @@ public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O
             final String identifier = matcher.group("identifier");
             final String parameters = matcher.group("parameters");
 
-            PlaceholderProvider<O> provider = PROVIDERS.get(identifier);
+            PlaceholderProvider<O> provider = identifier == null ? null : PROVIDERS.get(identifier);
             final String requested;
             if (provider != null){
                 requested = provider.parse(object, parameters);
             }else {
-                requested = DEFAULT_PROVIDER.parse(object, identifier + "_" + parameters); //Default Provider will ignore identifier
+                String prefix = (identifier != null ? (identifier + "_") : "");
+                requested = DEFAULT_PROVIDER.parse(object, prefix + parameters); //Default Provider will ignore identifier
             }
 
             matcher.appendReplacement(builder, requested != null ? requested : matcher.group(0));
         }
         while (matcher.find());
 
-        return ChatColor.translateAlternateColorCodes('&', matcher.appendTail(builder).toString());
+        return matcher.appendTail(builder).toString();
     }
 
 }

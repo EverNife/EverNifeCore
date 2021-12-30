@@ -2,7 +2,10 @@ package br.com.finalcraft.evernifecore.test.reflection;
 
 import br.com.finalcraft.evernifecore.util.ReflectionUtil;
 import br.com.finalcraft.evernifecore.util.reflection.ConstructorInvoker;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ReflectionTest {

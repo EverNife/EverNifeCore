@@ -26,7 +26,7 @@ public interface Replacer<O extends Object> {
             this.head = head;
             this.tail = tail;
             pattern = Pattern.compile(String
-                    .format("\\%s((?<identifier>[a-zA-Z0-9]+)_)(?<parameters>[^%s%s]+)\\%s",
+                    .format("\\%s((?<identifier>[a-zA-Z0-9]+)_){0,1}(?<parameters>[^%s%s]+)\\%s",
                             this.head,
                             this.head,
                             this.tail,

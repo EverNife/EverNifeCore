@@ -23,7 +23,7 @@ public class PlaceholderProvider<O extends Object> implements IProvider<O>{
     public String parse(O object, String parameters) {
         SimpleParser parser = parser_map.get(parameters);
 
-        Object result = parser.apply(object);
+        Object result = parser == null ? null : parser.apply(object);
         if (result == null && generic_parser != null){
             result = generic_parser.apply(object);
         }
