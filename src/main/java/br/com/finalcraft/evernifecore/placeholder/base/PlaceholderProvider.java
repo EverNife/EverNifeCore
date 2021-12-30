@@ -1,43 +1,52 @@
 package br.com.finalcraft.evernifecore.placeholder.base;
 
+import br.com.finalcraft.evernifecore.placeholder.parser.SimpleParser;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-public class PlaceholderProvider<O extends Object> {
+public class PlaceholderProvider<O extends Object> implements IProvider<O>{
 
-    private final String identifier;
-    private final Map<String, Function<O, Object>> simpleParsers = new HashMap<>();
-    private Function<O, Object> genericParser = null;
+    private final String provider_id;
+    private final Map<String, SimpleParser> parser_map = new HashMap<>();
+    private SimpleParser generic_parser = null;
 
-    public PlaceholderProvider(String identifier) {
-        this.identifier = identifier;
+    public PlaceholderProvider(String providerID) {
+        this.provider_id = providerID;
     }
 
-    public String getIdentifier() {
-        return identifier;
-    }
-
-    public PlaceholderProvider<O> addSimpleParser(Function<O, Object> value, String... property){
-        for (String propName : property) {
-            simpleParsers.put(propName, value);
-        }
-        return this;
-    }
-
-    public void setGenericParser(Function<O, Object> genericParser) {
-        this.genericParser = genericParser;
+    public String getProviderID() {
+        return provider_id;
     }
 
     public String parse(O object, String parameters) {
-        Function<O, Object> simpleParser = simpleParsers.get(parameters);
+        SimpleParser parser = parser_map.get(parameters);
 
-        Object result = simpleParser.apply(object);
-        if (result == null && genericParser != null){
-            result = genericParser.apply(object);
+        Object result = parser.apply(object);
+        if (result == null && generic_parser != null){
+            result = generic_parser.apply(object);
         }
 
         return result == null ? null : String.valueOf(result);
+    }
+
+    @Override
+    public PlaceholderProvider<O> addMappedParser(String name, Function<O, Object> parser) {
+        parser_map.put(name, new SimpleParser(name, parser));
+        return this;
+    }
+
+    @Override
+    public PlaceholderProvider<O> addMappedParser(String name, String description, Function<O, Object> parser) {
+        parser_map.put(name, new SimpleParser(name, description, parser));
+        return this;
+    }
+
+    @Override
+    public PlaceholderProvider<O> setDefaultParser(Function<O, Object> parser) {
+        this.generic_parser = new SimpleParser("",parser);
+        return this;
     }
 
 }

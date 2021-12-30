@@ -10,9 +10,15 @@ public class FCPlaceholders {
     public static RegexReplacer<Player> PLAYER_REPLACER = new RegexReplacer<>();
 
     static {
-        PLAYER_REPLACER.getDefaultProvider().addSimpleParser(
-                player -> player.getName(),
-                "playername", "name"
+        PLAYER_REPLACER.getDefaultProvider().addMappedParser(
+                "player_name",
+                "The Player's Name",
+                player -> player.getName()
+        );
+        PLAYER_REPLACER.getDefaultProvider().addMappedParser(
+                "player_uuid",
+                "The Player's UUID",
+                player -> player.getUniqueId()
         );
     }
 

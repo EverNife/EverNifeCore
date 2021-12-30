@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.placeholder.replacer;
 
+import br.com.finalcraft.evernifecore.placeholder.base.IProvider;
 import br.com.finalcraft.evernifecore.placeholder.base.PlaceholderProvider;
 import org.bukkit.ChatColor;
 
@@ -9,7 +10,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class RegexReplacer<O extends Object> implements Replacer<O> {
+public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O>  {
 
     private final Pattern pattern;
     private final Map<String, PlaceholderProvider<O>> PROVIDERS = new HashMap<>();
@@ -23,8 +24,8 @@ public class RegexReplacer<O extends Object> implements Replacer<O> {
         this.pattern = pattern;
     }
 
-    public PlaceholderProvider<O> addProvider(PlaceholderProvider<O> provider){
-        PROVIDERS.put(provider.getIdentifier(), provider);
+    public PlaceholderProvider<O> addMappedProvider(PlaceholderProvider<O> provider){
+        PROVIDERS.put(provider.getProviderID(), provider);
         return provider;
     }
 
@@ -32,13 +33,21 @@ public class RegexReplacer<O extends Object> implements Replacer<O> {
         return DEFAULT_PROVIDER;
     }
 
-    public RegexReplacer<O> addSimpleParser(Function<O, Object> value, String... property){
-        getDefaultProvider().addSimpleParser(value, property);
+    @Override
+    public RegexReplacer<O> addMappedParser(String name, Function<O, Object> parser) {
+        getDefaultProvider().addMappedParser(name, parser);
         return this;
     }
 
-    public RegexReplacer<O> setGenericParser(Function<O, Object> genericParser) {
-        getDefaultProvider().setGenericParser(genericParser);
+    @Override
+    public RegexReplacer<O> addMappedParser(String name, String description, Function<O, Object> parser) {
+        getDefaultProvider().addMappedParser(name, description, parser);
+        return this;
+    }
+
+    @Override
+    public RegexReplacer<O> setDefaultParser(Function<O, Object> parser) {
+        getDefaultProvider().setDefaultParser(parser);
         return this;
     }
 
