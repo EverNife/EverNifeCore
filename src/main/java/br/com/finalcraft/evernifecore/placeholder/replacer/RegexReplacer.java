@@ -5,6 +5,7 @@ import org.bukkit.ChatColor;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,6 +30,16 @@ public class RegexReplacer<O extends Object> implements Replacer<O> {
 
     public PlaceholderProvider<O> getDefaultProvider() {
         return DEFAULT_PROVIDER;
+    }
+
+    public RegexReplacer<O> addSimpleParser(Function<O, Object> value, String... property){
+        getDefaultProvider().addSimpleParser(value, property);
+        return this;
+    }
+
+    public RegexReplacer<O> setGenericParser(Function<O, Object> genericParser) {
+        getDefaultProvider().setGenericParser(genericParser);
+        return this;
     }
 
     @Override
