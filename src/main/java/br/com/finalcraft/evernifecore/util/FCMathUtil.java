@@ -4,8 +4,15 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 public class FCMathUtil {
+
+    private static Random RANDOM = new Random();
+
+    public static Random getRandom() {
+        return RANDOM;
+    }
 
     public static Double getMedian(List<Double> doubleList){
         if (doubleList.isEmpty()) throw new IllegalArgumentException("DoubleList may not be empty");

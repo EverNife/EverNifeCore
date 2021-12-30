@@ -26,6 +26,7 @@ import java.util.*;
 
 public class FCBukkitUtil {
 
+    @Deprecated
     public static Random random = new Random();
     public static CommandSender consoleSender = Bukkit.getConsoleSender();
     private static MethodInvoker<Boolean> methodLoader_isLoaded;
