@@ -215,10 +215,10 @@ public class ReflectionScanner {
 
     public static class ReflectionBuilder {
 
-        private String targetPackage;
-        private ClassLoader classLoader;
-        private boolean ignoreInterfaces = true;
-        private boolean ignoreAnnotations = true;
+        protected String targetPackage;
+        protected ClassLoader classLoader;
+        protected boolean ignoreInterfaces = false;
+        protected boolean ignoreAnnotations = false;
 
         public ReflectionBuilder setClassLoader(ClassLoader classLoader){
             this.classLoader = classLoader;
