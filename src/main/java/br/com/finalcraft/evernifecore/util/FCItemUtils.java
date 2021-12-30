@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -12,15 +13,15 @@ import java.util.regex.Pattern;
 
 public class FCItemUtils {
 
-    public static String getDisplayName(ItemStack itemStack){
-        if (itemStack.hasItemMeta()){
-            ItemMeta itemMeta = itemStack.getItemMeta();
-            return itemMeta.hasDisplayName() ? itemMeta.getDisplayName() : null;
+    public static @Nullable String getDisplayName(ItemStack itemStack){
+        ItemMeta itemMeta = itemStack.hasItemMeta() ? itemStack.getItemMeta() : null;
+        if (itemMeta == null || !itemMeta.hasDisplayName()){
+            return null;
         }
-        return null;
+        return itemMeta.getDisplayName();
     }
 
-    public static String getLocalizedName(ItemStack itemStack){
+    public static @NotNull String getLocalizedName(ItemStack itemStack){
         return NMSUtils.get().getLocalizedName(itemStack);
     }
 
@@ -30,9 +31,12 @@ public class FCItemUtils {
         itemStack.setItemMeta(itemMeta);
     }
 
-    public static List<String> getLore(ItemStack itemStack){
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        return itemMeta.hasLore() ? itemMeta.getLore() : new ArrayList<String>();
+    public static @NotNull List<String> getLore(ItemStack itemStack){
+        ItemMeta itemMeta = itemStack.hasItemMeta() ? itemStack.getItemMeta() : null;
+        if (itemMeta == null || !itemMeta.hasLore()){
+            return new ArrayList<>();
+        }
+        return itemMeta.getLore();
     }
 
     public static void setLore(ItemStack itemStack, List<String> loreLines){
@@ -41,6 +45,7 @@ public class FCItemUtils {
         itemStack.setItemMeta(itemMeta);
     }
 
+    @Deprecated
     public static ItemStack getCustomItem(Material material, int amount, byte meta, @Nullable String displayName, @Nullable List<String> loreLines) {
         ItemStack itemStack = new ItemStack(material, amount, meta);
         if (displayName != null || loreLines != null){
@@ -52,18 +57,22 @@ public class FCItemUtils {
         return itemStack;
     }
 
+    @Deprecated
     public static ItemStack getCustomItem(Material material, int amount, @Nullable String displayName, @Nullable List<String> loreLines) {
         return getCustomItem(material, amount, (byte) 0, displayName, loreLines);
     }
 
+    @Deprecated
     public static ItemStack getCustomItem(Material material, int amount, @Nullable String displayName) {
         return getCustomItem(material, amount, (byte) 0, displayName, null);
     }
 
+    @Deprecated
     public static ItemStack getCustomItem(Material material, int amount, @Nullable List<String> loreLines) {
         return getCustomItem(material, amount, (byte) 0, null, loreLines);
     }
 
+    @Deprecated
     public static ItemStack getCustomItem(Material material, Integer amount, String name) {
         ItemStack itemStack = new ItemStack(material, amount);
         ItemMeta itemMeta = itemStack.getItemMeta();
@@ -73,6 +82,7 @@ public class FCItemUtils {
         return itemStack;
     }
 
+    @Deprecated
     public static ItemStack getCustomItem(ItemStack itemStack, List<String> loreLines) {
         ItemStack clone = itemStack.clone();
         ItemMeta itemMeta = clone.getItemMeta();
@@ -82,6 +92,7 @@ public class FCItemUtils {
         return clone;
     }
 
+    @Deprecated
     public static ItemStack getCustomItem(ItemStack itemStack, String name) {
         ItemStack clone = itemStack.clone();
         ItemMeta itemMeta = clone.getItemMeta();
