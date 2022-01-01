@@ -95,7 +95,7 @@ public class EverNifeCore extends JavaPlugin {
         info("§aSearching for Protection plugins...");
         ProtectionPlugins.initialize();
 
-        SaveConfigThread.initialize();
+        SaveConfigThread.INSTANCE.start();
 
         if (Bukkit.getPluginManager().isPluginEnabled("ProtocolLib")){
             ChatMenuAPI.init(instance, false);
@@ -107,7 +107,7 @@ public class EverNifeCore extends JavaPlugin {
     @Override
     public void onDisable() {
         HandlerList.unregisterAll(this);
-        SaveConfigThread.shutdown();
+        SaveConfigThread.INSTANCE.shutdown();
         Config.shutdownSaveScheduller();
         ChatMenuAPI.disable();
     }
