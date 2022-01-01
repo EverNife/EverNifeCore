@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.threads;
+package br.com.finalcraft.evernifecore.thread;
 
 import org.bukkit.plugin.java.JavaPlugin;
 

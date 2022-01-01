@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.threads;
+package br.com.finalcraft.evernifecore.thread;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;

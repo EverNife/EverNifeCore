@@ -16,7 +16,7 @@ import br.com.finalcraft.evernifecore.listeners.PluginListener;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.metrics.Metrics;
 import br.com.finalcraft.evernifecore.protection.handlers.ProtectionPlugins;
-import br.com.finalcraft.evernifecore.threads.SaveConfigThread;
+import br.com.finalcraft.evernifecore.thread.SaveConfigThread;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import me.tom.sparse.spigot.chat.menu.ChatMenuAPI;
 import org.bukkit.Bukkit;
