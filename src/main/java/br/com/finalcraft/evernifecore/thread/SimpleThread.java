@@ -42,7 +42,7 @@ public abstract class SimpleThread {
         this.thread.interrupt();
     }
 
-    public abstract void run() throws InterruptedException;
+    protected abstract void run() throws InterruptedException;
 
     protected void onShutdown(){
 
@@ -52,7 +52,7 @@ public abstract class SimpleThread {
 
     }
 
-    public boolean allowRestart(){
+    protected boolean allowRestart(){
         return false;
     }
 
