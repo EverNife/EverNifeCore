@@ -88,5 +88,33 @@ public class SendCustom {
         }
     }
 
+    public FancyText getFancyText (CommandSender sender){
+        FancyText fancyText = localeMessage.getFancyText(sender).clone();
+        if (hover != null) fancyText.setHoverText(hover);
+        if (action != null) fancyText.setRunCommandAction(action);
+        if (suggest != null) fancyText.setSuggestCommandAction(suggest);
+        if (link != null) fancyText.setOpenLinkAction(link);
+
+        LocaleMessageImp localeMessageImp = (LocaleMessageImp) localeMessage;
+        List<Map.Entry<String, Object>> allPlaceholdersReplacers = new ArrayList<Map.Entry<String, Object>>();
+        allPlaceholdersReplacers.addAll(localeMessageImp.getContextPlaceholders().entrySet()); //Context Placeholders, like %label%
+        allPlaceholdersReplacers.addAll(mapOfPlaceholders.entrySet()); //Custom placeholders, created by demand
+
+        boolean isPlayer = sender instanceof Player;
+        final PlayerData playerData = isPlayer ? PlayerController.getPlayerData((Player) sender) : null;
+        for (Map.Entry<String, Object> entry : allPlaceholdersReplacers) {
+            String placeholder = entry.getKey();
+            String value;
+            if (isPlayer && entry.getValue() instanceof Function) {
+                value = String.valueOf(((Function<PlayerData, Object>) entry.getValue()).apply(playerData));
+            } else {
+                value = String.valueOf(entry.getValue());
+            }
+
+            fancyText.replace(placeholder, value);
+        }
+        return fancyText;
+    }
+
 
 }
