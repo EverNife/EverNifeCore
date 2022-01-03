@@ -5,6 +5,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.InvocationTargetException;
+
 public interface ECListener extends Listener {
 
     public default String[] requiredPlugins(){
@@ -19,10 +21,8 @@ public interface ECListener extends Listener {
         //Do Nothing
     }
 
-    public static boolean register(@NotNull Plugin pluginInstance, Class<? extends ECListener> clazz){
+    public static boolean register(@NotNull Plugin pluginInstance, ECListener listener){
         try {
-            ECListener listener = (ECListener) clazz.newInstance();
-
             String[] requiredPlugins = listener.requiredPlugins();
 
             if (requiredPlugins != null && requiredPlugins.length > 0){
@@ -36,8 +36,8 @@ public interface ECListener extends Listener {
             Boolean canRegister = null;
             try {
                 canRegister = listener.canRegister();
-            }catch (Exception e){
-                pluginInstance.getLogger().warning("[ECListener] Failed to call [canRegister()] method of the ECListener: " + clazz.getName());
+            }catch (Throwable e){
+                pluginInstance.getLogger().warning("[ECListener] Failed to call [canRegister()] method of the ECListener: " + listener.getClass().getName());
                 e.printStackTrace();
             }
 
@@ -48,17 +48,26 @@ public interface ECListener extends Listener {
             pluginInstance.getLogger().info("[ECListener] Registering Listener [" + listener.getClass().getName() + "]");
             try {
                 listener.onRegister();
-            }catch (Exception e){
-                pluginInstance.getLogger().warning("[ECListener] Failed to call [onRegister()] method of the ECListener: " + clazz.getName());
+            }catch (Throwable e){
+                pluginInstance.getLogger().warning("[ECListener] Failed to call [onRegister()] method of the ECListener: " + listener.getClass().getName());
                 e.printStackTrace();
+                return false;
             }
             Bukkit.getServer().getPluginManager().registerEvents(listener, pluginInstance);
             return true;
-        } catch (NoClassDefFoundError nfe) {
-            pluginInstance.getLogger().warning("[ECListener] Failed to register Listener: [" + clazz.getName() + "] NoClassDefFoundError [" + nfe.getMessage() + "]");
-        } catch (Exception e) {
-            pluginInstance.getLogger().warning("[ECListener] Failed to register Listener: " + clazz.getName());
+        }catch (Exception e){
+            pluginInstance.getLogger().warning("[ECListener] Failed to register Listener: " + listener.getClass().getName());
             e.printStackTrace();
+        }
+        return false;
+    }
+
+    public static boolean register(@NotNull Plugin pluginInstance, Class<? extends ECListener> clazz) {
+        try {
+            ECListener listener = clazz.getDeclaredConstructor().newInstance();
+            return register(pluginInstance, listener);
+        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException nfe) {
+            pluginInstance.getLogger().warning("[ECListener] Failed to register Listener: [" + clazz.getName() + "] " + nfe.getClass().getSimpleName() + " [" + nfe.getMessage() + "]");
         }
         return false;
     }
