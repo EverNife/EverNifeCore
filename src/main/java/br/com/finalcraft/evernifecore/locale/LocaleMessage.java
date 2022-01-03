@@ -23,6 +23,8 @@ public interface LocaleMessage {
 
     public SendCustom addSuggest(String suggest);
 
+    public SendCustom addLink(String link);
+
     public SendCustom concat(LocaleMessage localeMessage);
 
     public SendCustom concat(SendCustom sendCustom);

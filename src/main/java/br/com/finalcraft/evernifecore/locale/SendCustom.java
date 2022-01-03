@@ -20,6 +20,7 @@ public class SendCustom {
     protected transient String hover;
     protected transient String action;
     protected transient String suggest;
+    protected transient String link;
 
     protected SendCustom(LocaleMessage localeMessage) {
         this.localeMessage = localeMessage;
@@ -50,6 +51,11 @@ public class SendCustom {
         return this;
     }
 
+    public SendCustom addLink(String link) {
+        this.link = link;
+        return this;
+    }
+
     public SendCustom concat(LocaleMessage localeMessage) {
         return new SendCustomComplex(localeMessage, null);
     }
@@ -60,30 +66,7 @@ public class SendCustom {
 
     public void send(CommandSender... commandSenders) {
         for (CommandSender sender : commandSenders) {
-            FancyText fancyText = localeMessage.getFancyText(sender).clone();
-            if (hover != null) fancyText.setHoverText(hover);
-            if (action != null) fancyText.setRunCommandAction(action);
-            if (suggest != null) fancyText.setSuggestCommandAction(suggest);
-
-            LocaleMessageImp localeMessageImp = (LocaleMessageImp) localeMessage;
-            List<Map.Entry<String, Object>> allPlaceholdersReplacers = new ArrayList<Map.Entry<String, Object>>();
-            allPlaceholdersReplacers.addAll(localeMessageImp.getContextPlaceholders().entrySet()); //Context Placeholders, like %label%
-            allPlaceholdersReplacers.addAll(mapOfPlaceholders.entrySet()); //Custom placeholders, created by demand
-
-            boolean isPlayer = sender instanceof Player;
-            final PlayerData playerData = isPlayer ? PlayerController.getPlayerData((Player) sender) : null;
-            for (Map.Entry<String, Object> entry : allPlaceholdersReplacers) {
-                String placeholder = entry.getKey();
-                String value;
-                if (isPlayer && entry.getValue() instanceof Function) {
-                    value = String.valueOf(((Function<PlayerData, Object>) entry.getValue()).apply(playerData));
-                } else {
-                    value = String.valueOf(entry.getValue());
-                }
-
-                fancyText.replace(placeholder, value);
-            }
-
+            FancyText fancyText = getFancyText(sender);
             fancyText.send(sender);
         }
     }

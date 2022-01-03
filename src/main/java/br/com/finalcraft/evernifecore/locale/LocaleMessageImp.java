@@ -60,6 +60,11 @@ public class LocaleMessageImp implements LocaleMessage {
     }
 
     @Override
+    public SendCustom addLink(String link) {
+        return custom().addLink(link);
+    }
+
+    @Override
     public SendCustom concat(LocaleMessage localeMessage) {
         return custom().concat(localeMessage);
     }
