@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore;
 
+import br.com.finalcraft.evernifecore.autoupdater.SpigotUpdateChecker;
 import br.com.finalcraft.evernifecore.commands.CommandRegisterer;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
@@ -61,12 +62,14 @@ public class EverNifeCore extends JavaPlugin {
         info("§aServer Minecraft Version " + MCVersion.getCurrent().name() + " !");
 
         info("§aInstalling BStats");
-        Metrics metrics = new Metrics(this, 13351);//EverNifeCore ID: 13351
+        Metrics metrics = new Metrics(this, 13351);//EverNifeCore MetricsID: 13351
 
         EverForgeLibIntegration.initialize();
 
         info("§aLoading up Configurations...");
         ConfigManager.initialize(this);
+
+        SpigotUpdateChecker.checkForUpdates(this, "97739", ConfigManager.getMainConfig()); //EverNifeCore SpigotID: 97739
 
         info("§aLoading up Cooldown System!");
         Cooldown.initialize();

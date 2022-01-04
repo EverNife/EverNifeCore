@@ -2,7 +2,6 @@ package br.com.finalcraft.evernifecore.placeholder.replacer;
 
 import br.com.finalcraft.evernifecore.placeholder.base.IProvider;
 import br.com.finalcraft.evernifecore.placeholder.base.PlaceholderProvider;
-import org.bukkit.ChatColor;
 
 import java.util.HashMap;
 import java.util.Map;
