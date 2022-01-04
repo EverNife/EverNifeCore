@@ -8,7 +8,6 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.util.FCScheduller;
 import org.apache.commons.io.FileUtils;
-import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -41,8 +40,14 @@ public class SpigotUpdateChecker {
     }
 
     public static void checkForUpdates(@NotNull JavaPlugin plugin, @NotNull String resourceId, @Nullable Config config){
+        SpigotUpdateChecker spigotUpdateChecker = new SpigotUpdateChecker(plugin, resourceId, config);
+        if (spigotUpdateChecker.checkForUpdates == false){
+            plugin.getLogger().warning("[UpdateChecker] Update Check is disabled!");
+            return; //Don't need to do anything more!
+        }
+
         FCScheduller.runAssync(() -> {
-            new SpigotUpdateChecker(plugin, resourceId, config);
+            spigotUpdateChecker.execute(plugin);
         });
     }
 
@@ -51,38 +56,6 @@ public class SpigotUpdateChecker {
     }
 
     private static Map<String, BukkitPluginJar> MAPPED_JARS = new WeakHashMap<>();
-    private void cleanOldJars(JavaPlugin plugin){
-        for (File pluginFile : FileUtils.listFiles(plugin.getDataFolder().getParentFile(), new String[]{"jar"}, false)) {
-            BukkitPluginJar bukkitPluginJar = MAPPED_JARS.computeIfAbsent(pluginFile.getAbsolutePath(), s -> {
-                try {
-                    return new BukkitPluginJar(pluginFile);
-                }catch (Exception ignored){
-
-                }
-                return null;
-            });
-            if (bukkitPluginJar != null){
-                if (bukkitPluginJar.pluginName.equalsIgnoreCase(plugin.getDescription().getName()) && !bukkitPluginJar.version.equalsIgnoreCase(plugin.getDescription().getVersion())){
-
-                    if (currentVersion.compareTo(bukkitPluginJar.version) <= 0){
-                        plugin.getLogger().warning("---------------------------------------------------------------------" +
-                                "[UpdateChecker] I was going to delete the plugin [" + bukkitPluginJar.file.getAbsolutePath() + "] but its seems to be newer than the current version? Is that correct?!" +
-                                "\nThis can happen if you have renamed the " + plugin.getName() + " plugin's jar name! This way the AutoUpdater will not work!" +
-                                "\n" +
-                                "\nYou should disable the AutoUpdater or do not manually rename this jar! Besides that, you need to manually delete older versions of this plugin!" +
-                                "\n---------------------------------------------------------------------");
-                        continue;
-                    }
-
-                    if (!bukkitPluginJar.file.delete()){
-                        plugin.getLogger().warning("[UpdateChecker] I was not able to delete an older version of this plugin at [" + bukkitPluginJar.file.getAbsolutePath()  + "]! You will have to delete it manually!");
-                    }else {
-                        plugin.getLogger().warning("[UpdateChecker] Deleted an older version [" + bukkitPluginJar.version + "] of this plugin that was in the Plugins Folder!");
-                    }
-                }
-            }
-        }
-    }
 
     private final String resourceId;
     private final boolean checkForUpdates;
@@ -103,16 +76,14 @@ public class SpigotUpdateChecker {
             autoDownload = false;
         }
 
-        if (checkForUpdates == false){
-            plugin.getLogger().warning("[UpdateChecker] Update Check is disabled!");
-            return; //Don't need to do anything more!
-        }
+    }
 
+    public void execute(@NotNull JavaPlugin plugin){
         UpdateResult updateResult = checkForUpdates(plugin);
 
         switch (updateResult){
             case ALREADY_UPDATED:
-                plugin.getLogger().warning("[UpdateChecker] Update Check is Done! This plugins is Already Up-to-Date!");
+                plugin.getLogger().warning("[UpdateChecker] Update Check Completed! " + plugin.getName() + " is Already Up-to-Date!");
                 cleanOldJars(plugin); //Clean possible old jars of this plugin on the Plugins Directory
                 return;
             case FAIL_TO_CHECK: //Error already printed in place
@@ -121,37 +92,32 @@ public class SpigotUpdateChecker {
 
         //If we are here, we have an update to be done!
 
-        if (!autoDownload){ //If we are not downloading it, we need to warn staffs on join
-            final String SPIGOT_URL = "https://www.spigotmc.org/resources/" + resourceId + "/";
-            ECListener.register(plugin, new ECListener() {
-                private final String PERMISSION = plugin.getName().toLowerCase() + ".updatechecker.warn";
-
-                @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-                public void onPlayerMove(ECFullyLoggedInEvent event) {
-                    if (event.getPlayer().isOp() || event.getPlayer().hasPermission(PERMISSION)){
-                        UPDATE_IS_AVAILABLE
-                                .addPlaceholder("%plugin%", plugin.getName())
-                                .addLink(SPIGOT_URL)
-                                .send(event.getPlayer());
-                    }
-                }
-            });
-
-            plugin.getLogger().info(
-                    "\n" +
-                            UPDATE_IS_AVAILABLE
-                                    .addPlaceholder("%plugin%", plugin.getName())
-                                    .getFancyText(Bukkit.getConsoleSender())
-                                    .getText() +
-                            "\n URL: " + SPIGOT_URL +
-                            "\n"
-            );
+        if (autoDownload){
+            plugin.getLogger().info("[UpdateChecker] Update Check Completed! Found a new update for " + plugin.getName() + "! Download Started!");
+            downloadNewVersion(plugin);
             return;
         }
 
-        plugin.getLogger().info("[UpdateChecker] Update Check is Done! New update found, starting download!");
+        //If we are not downloading it, we need to warn staffs on join
+        final String SPIGOT_URL = "https://www.spigotmc.org/resources/" + resourceId + "/";
+        ECListener.register(plugin, new ECListener() {
 
-        downloadNewVersion(plugin);
+            private final String PERMISSION = plugin.getName().toLowerCase() + ".updatechecker.warn";
+            @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+            public void onPlayerMove(ECFullyLoggedInEvent event) {
+                if (event.getPlayer().isOp() || event.getPlayer().hasPermission(PERMISSION)){
+                    UPDATE_IS_AVAILABLE
+                            .addPlaceholder("%plugin%", plugin.getName())
+                            .addLink(SPIGOT_URL)
+                            .send(event.getPlayer());
+                }
+            }
+
+        });
+
+        plugin.getLogger().info("\n" +
+                "\n[UpdateChecker] Update Check Completed! Found a new update for \" + plugin.getName() + \"! You can download it here [\" + SPIGOT_URL + \"] !" +
+                "\n");
     }
 
     private UpdateResult checkForUpdates(JavaPlugin plugin) {
@@ -164,7 +130,6 @@ public class SpigotUpdateChecker {
             this.newVersion = new BufferedReader(new InputStreamReader(connection.getInputStream())).readLine();
             connection.disconnect();
 
-            System.out.println("New Version: " + newVersion + " compare == " + this.currentVersion.compareTo(newVersion));
             if (this.currentVersion.compareTo(newVersion) > 0){
                 return UpdateResult.ALREADY_UPDATED;
             }
@@ -197,13 +162,11 @@ public class SpigotUpdateChecker {
                 return;
             }
 
-            plugin.getLogger().info("[UpdateChecker] Starting download of [" + fileName + "]");
-
             rbc = Channels.newChannel(con.getInputStream());
             fos = new FileOutputStream(new File(plugin.getDataFolder().getParentFile(), fileName));
             fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
 
-            plugin.getLogger().info("[UpdateChecker] Download of the update [" + fileName + "] has finished!");
+            plugin.getLogger().info("[UpdateChecker] Download of the update [" + fileName + "] completed! This update will be applied on the next server restart!");
         } catch (Exception e) {
             plugin.getLogger().warning("[UpdateChecker] Error while downloading the update: " + fileName);
             e.printStackTrace();
@@ -218,5 +181,37 @@ public class SpigotUpdateChecker {
         }
     }
 
+    private void cleanOldJars(JavaPlugin plugin){
+        for (File pluginFile : FileUtils.listFiles(plugin.getDataFolder().getParentFile(), new String[]{"jar"}, false)) {
+            BukkitPluginJar bukkitPluginJar = MAPPED_JARS.computeIfAbsent(pluginFile.getAbsolutePath(), s -> {
+                try {
+                    return new BukkitPluginJar(pluginFile);
+                }catch (Exception ignored){
+
+                }
+                return null;
+            });
+            if (bukkitPluginJar != null){
+                if (bukkitPluginJar.pluginName.equalsIgnoreCase(plugin.getDescription().getName()) && !bukkitPluginJar.version.equalsIgnoreCase(plugin.getDescription().getVersion())){
+
+                    if (currentVersion.compareTo(bukkitPluginJar.version) <= 0){
+                        plugin.getLogger().warning("----------------------------- [UpdateChecker] -----------------------------" +
+                                "\nI was going to delete the plugin [" + bukkitPluginJar.file.getAbsolutePath() + "] but it seems to be newer than the current version? Is that correct?!" +
+                                "\nThis can happen if you have renamed the " + plugin.getName() + " plugin's jar name! This way the AutoUpdater will not work!" +
+                                "\n" +
+                                "\nYou should disable the AutoUpdater or do not manually rename the jar! Besides that, you need to manually delete older versions of this plugin!" +
+                                "\"----------------------------- [UpdateChecker] -----------------------------");
+                        continue;
+                    }
+
+                    if (!bukkitPluginJar.file.delete()){
+                        plugin.getLogger().warning("[UpdateChecker] I was not able to delete an older version of this plugin at [" + bukkitPluginJar.file.getAbsolutePath()  + "]! You will have to delete it manually!");
+                    }else {
+                        plugin.getLogger().warning("[UpdateChecker] Deleted an older version [" + bukkitPluginJar.version + "] of this plugin that was in the plugins folder!");
+                    }
+                }
+            }
+        }
+    }
 
 }
