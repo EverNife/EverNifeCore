@@ -14,6 +14,12 @@ import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 
+/**
+ * Note: This listener is registered only once
+ * and on Demand by the Event:
+ *
+ * @see ECPlayerCraftItemEvent
+ */
 public class PlayerCraftListener implements ECListener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

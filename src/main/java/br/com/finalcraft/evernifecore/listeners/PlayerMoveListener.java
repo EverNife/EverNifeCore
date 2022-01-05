@@ -8,6 +8,12 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerMoveEvent;
 
+/**
+ * Note: This listener is registered only once
+ * and on Demand by the Event:
+ *
+ * @see ECPlayerChangeChunkEvent
+ */
 public class PlayerMoveListener implements ECListener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
