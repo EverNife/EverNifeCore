@@ -10,7 +10,6 @@ import br.com.finalcraft.evernifecore.featherboard.FeatherBoardUtils;
 import br.com.finalcraft.evernifecore.integration.VaultIntegration;
 import br.com.finalcraft.evernifecore.integration.WorldEditIntegration;
 import br.com.finalcraft.evernifecore.integration.everforgelib.EverForgeLibIntegration;
-import br.com.finalcraft.evernifecore.listeners.PlayerCraftListener;
 import br.com.finalcraft.evernifecore.listeners.PlayerInteractListener;
 import br.com.finalcraft.evernifecore.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.listeners.PluginListener;
@@ -81,7 +80,6 @@ public class EverNifeCore extends JavaPlugin {
         VaultIntegration.initialize();
 
         info("§aRegistering Listeners");
-        ECListener.register(this, PlayerCraftListener.class);
         ECListener.register(this, PlayerLoginListener.class);
         ECListener.register(this, PlayerInteractListener.class);
         ECListener.register(this, PluginListener.class);
