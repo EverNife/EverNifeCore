@@ -2,14 +2,12 @@ package br.com.finalcraft.evernifecore.config.playerdata;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.cooldown.PlayerCooldown;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.Constructor;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 public class PlayerData implements IPlayerData{
 
@@ -60,8 +58,10 @@ public class PlayerData implements IPlayerData{
         this.uuid = Objects.requireNonNull(config.getUUID("PlayerData.UUID"),"PlayerUUID cannot be null!");
         this.lastSeen = config.getLong("PlayerData.lastSeen",0);
 
-        for (String cooldownKey : config.getKeys("Cooldowns")) {
-
+        for (String cooldownID : config.getKeys("Cooldowns")) {
+            Cooldown cooldown = config.getLoadable("Cooldown." + cooldownID,Cooldown.class);
+            PlayerCooldown playerCooldown = new PlayerCooldown(cooldown, this.uuid);
+            cooldownHashMap.put(playerCooldown.getIdentifier(), playerCooldown);
         }
     }
 
@@ -91,7 +91,7 @@ public class PlayerData implements IPlayerData{
             config.setValue("PlayerData.UUID",this.uuid);
             config.setValue("PlayerData.lastSeen",this.lastSeen);
 
-            // Faz um loop em todas as configSections dos side-plugins e salva elas tambem!
+            // Loop all PDSections and save than if needed
             for (PDSection pDSection : mapOfPDSections.values()){
                 try {
                     if (pDSection.recentChanged){
@@ -102,6 +102,21 @@ public class PlayerData implements IPlayerData{
                     EverNifeCore.warning("Failed to save PDSection {" + pDSection.getClass().getName() + "} at [" + this.getConfig().getTheFile().getAbsolutePath() + "]");
                     e.printStackTrace();
                 }
+            }
+
+            try { // Save all Cooldowns
+                final List<Cooldown> cooldownList;
+                synchronized (cooldownHashMap){
+                    cooldownList = new ArrayList<>(cooldownHashMap.values());
+                }
+                for (Cooldown cooldown : cooldownList) {
+                    if (cooldown.isPersistent()){
+                        config.setValue("Cooldown." + cooldown.getIdentifier(), cooldown);
+                    }
+                }
+            }catch (Throwable e){
+                EverNifeCore.warning("Failed to save Cooldowns for players {" + this.playerName + "} at [" + this.getConfig().getTheFile().getAbsolutePath() + "]");
+                e.printStackTrace();
             }
 
             this.recentChanged = false;

@@ -14,6 +14,11 @@ public class PlayerCooldown extends Cooldown {
         this.uuid = uuid;
     }
 
+    public PlayerCooldown(Cooldown cooldown, UUID uuid) {
+        super(cooldown.identifier, cooldown.timeStart, cooldown.timeDuration, cooldown.persist);
+        this.uuid = uuid;
+    }
+
     public PlayerData getPlayerData() {
         return PlayerController.getPlayerData(uuid);
     }
