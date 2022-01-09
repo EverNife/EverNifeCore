@@ -92,7 +92,7 @@ public class PlayerData implements IPlayerData{
             config.setValue("PlayerData.lastSeen",this.lastSeen);
 
             // Loop all PDSections and save than if needed
-            for (PDSection pDSection : mapOfPDSections.values()){
+            for (PDSection pDSection : new ArrayList<>(mapOfPDSections.values())){
                 try {
                     if (pDSection.recentChanged){
                         pDSection.savePDSection();
