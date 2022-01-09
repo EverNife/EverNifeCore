@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.cooldown;
 
+import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 
@@ -24,30 +25,18 @@ public class PlayerCooldown extends Cooldown {
     }
 
     @Override
-    public Cooldown setDuration(long timeDuration) {
-        getPlayerData().setRecentChanged();
-        return super.setDuration(timeDuration);
-    }
-
-    @Override
-    public Cooldown setPersist(boolean persist) {
-        getPlayerData().setRecentChanged();
-        return super.setPersist(persist);
-    }
-
-    @Override
-    public void start() {
-        getPlayerData().setRecentChanged();
-        super.start();
-    }
-
-    @Override
     public void handleSaveIfPermanent() {
-        //The save occurs inside PlayerData class
+        PlayerData playerData = getPlayerData();
+        Config config = playerData.getConfig();
+        config.setValue("Cooldown." + this.getIdentifier(), this);
+        playerData.setRecentChanged();
     }
 
     @Override
     public void handleStopIfPermanent() {
-        //The save occurs inside PlayerData class
+        PlayerData playerData = getPlayerData();
+        Config config = playerData.getConfig();
+        config.setValue("Cooldown." + this.getIdentifier(), null);
+        playerData.setRecentChanged();
     }
 }

@@ -59,7 +59,7 @@ public class PlayerData implements IPlayerData{
         this.lastSeen = config.getLong("PlayerData.lastSeen",0);
 
         for (String cooldownID : config.getKeys("Cooldowns")) {
-            Cooldown cooldown = config.getLoadable("Cooldown." + cooldownID,Cooldown.class);
+            Cooldown cooldown = config.getLoadable("Cooldown." + cooldownID, Cooldown.class);
             PlayerCooldown playerCooldown = new PlayerCooldown(cooldown, this.uuid);
             cooldownHashMap.put(playerCooldown.getIdentifier(), playerCooldown);
         }
@@ -102,21 +102,6 @@ public class PlayerData implements IPlayerData{
                     EverNifeCore.warning("Failed to save PDSection {" + pDSection.getClass().getName() + "} at [" + this.getConfig().getTheFile().getAbsolutePath() + "]");
                     e.printStackTrace();
                 }
-            }
-
-            try { // Save all Cooldowns
-                final List<Cooldown> cooldownList;
-                synchronized (cooldownHashMap){
-                    cooldownList = new ArrayList<>(cooldownHashMap.values());
-                }
-                for (Cooldown cooldown : cooldownList) {
-                    if (cooldown.isPersistent()){
-                        config.setValue("Cooldown." + cooldown.getIdentifier(), cooldown);
-                    }
-                }
-            }catch (Throwable e){
-                EverNifeCore.warning("Failed to save Cooldowns for players {" + this.playerName + "} at [" + this.getConfig().getTheFile().getAbsolutePath() + "]");
-                e.printStackTrace();
             }
 
             this.recentChanged = false;
