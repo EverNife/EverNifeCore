@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.util;
 
+import br.com.finalcraft.evernifecore.version.MCVersion;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -68,7 +69,9 @@ public class FCInventoryUtil {
     }
 
     public static int getMaxFitAmount(ItemStack stack, Inventory inv) {
-        ItemStack[] contents = inv.getStorageContents(); //Ignore Armor and Shield slots if PlayerInventory
+        ItemStack[] contents =
+                !MCVersion.isLegacy() ? inv.getStorageContents()  //Ignore Armor and Shield slots if PlayerInventory
+                        : inv.getContents(); // 1.7.10 does not have "getStorageContents()"
 
         int result = 0;
 
