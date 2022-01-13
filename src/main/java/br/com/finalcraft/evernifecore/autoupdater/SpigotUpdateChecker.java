@@ -116,7 +116,7 @@ public class SpigotUpdateChecker {
         });
 
         plugin.getLogger().info("\n" +
-                "\n[UpdateChecker] Update Check Completed! Found a new update for \" + plugin.getName() + \"! You can download it here [\" + SPIGOT_URL + \"] !" +
+                "\n[UpdateChecker] Update Check Completed! Found a new update for " + plugin.getName() + "! You can download it here [" + SPIGOT_URL + "] !" +
                 "\n");
     }
 
