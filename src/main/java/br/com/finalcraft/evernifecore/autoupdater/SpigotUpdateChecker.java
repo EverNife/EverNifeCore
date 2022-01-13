@@ -117,7 +117,7 @@ public class SpigotUpdateChecker {
                                     .send(event.getPlayer());
                         }
                     }
-                }.runTaskLater(plugin, 2);
+                }.runTaskLater(plugin, 10);
             }
 
         });
