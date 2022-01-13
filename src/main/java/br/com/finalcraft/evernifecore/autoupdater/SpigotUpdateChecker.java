@@ -12,6 +12,7 @@ import org.apache.commons.io.FileUtils;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -106,12 +107,17 @@ public class SpigotUpdateChecker {
             private final String PERMISSION = PermissionNodes.UPDATECHECK_PERMISSION_TEMPLATE.replace("%plugin%",PLUGIN_NAME.toLowerCase());
             @EventHandler(priority = EventPriority.MONITOR)
             public void onPlayerLogin(ECFullyLoggedInEvent event) {
-                if (event.getPlayer().isOp() || event.getPlayer().hasPermission(PERMISSION)){
-                    UPDATE_IS_AVAILABLE
-                            .addPlaceholder("%plugin%", PLUGIN_NAME)
-                            .addLink(SPIGOT_URL)
-                            .send(event.getPlayer());
-                }
+                new BukkitRunnable(){
+                    @Override
+                    public void run() {
+                        if (event.getPlayer().isOp() || event.getPlayer().hasPermission(PERMISSION)){
+                            UPDATE_IS_AVAILABLE
+                                    .addPlaceholder("%plugin%", PLUGIN_NAME)
+                                    .addLink(SPIGOT_URL)
+                                    .send(event.getPlayer());
+                        }
+                    }
+                }.runTaskLater(plugin, 2);
             }
 
         });
