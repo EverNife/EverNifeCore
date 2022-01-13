@@ -71,7 +71,7 @@ public class SendCustom {
         }
     }
 
-    public FancyText getFancyText (CommandSender sender){
+    public FancyText getFancyText(CommandSender sender){
         FancyText fancyText = localeMessage.getFancyText(sender).clone();
         if (hover != null) fancyText.setHoverText(hover);
         if (action != null) fancyText.setRunCommandAction(action);

@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.function.Function;
 
@@ -96,7 +97,13 @@ public class LocaleMessageImp implements LocaleMessage {
 
     @Override
     public FancyText getDefaultFancyText() {
-        return defaultFancyText == null ? defaultFancyText = getFancyText(FCLocaleManager.getLangOf(this.plugin)) : defaultFancyText;
+        if (defaultFancyText == null){
+            defaultFancyText = getFancyText(FCLocaleManager.getLangOf(this.plugin));
+            if (defaultFancyText == null){ //There is no set message for this lang, take first available
+                defaultFancyText = new ArrayList<>(fancyTextMap.values()).get(0);
+            }
+        }
+        return defaultFancyText;
     }
 
     public HashMap<String, FancyText> getFancyTextMap() {
