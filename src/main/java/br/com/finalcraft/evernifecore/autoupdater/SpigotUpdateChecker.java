@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.autoupdater;
 
+import br.com.finalcraft.evernifecore.PermissionNodes;
 import br.com.finalcraft.evernifecore.api.events.ECFullyLoggedInEvent;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
@@ -101,13 +102,13 @@ public class SpigotUpdateChecker {
         //If we are not downloading it, we need to warn staffs on join
         final String SPIGOT_URL = "https://www.spigotmc.org/resources/" + resourceId + "/";
         ECListener.register(plugin, new ECListener() {
-
-            private final String PERMISSION = plugin.getName().toLowerCase() + ".updatechecker.warn";
-            @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-            public void onPlayerMove(ECFullyLoggedInEvent event) {
+            private final String PLUGIN_NAME = plugin.getName();
+            private final String PERMISSION = PermissionNodes.UPDATECHECK_PERMISSION_TEMPLATE.replace("%plugin%",PLUGIN_NAME.toLowerCase());
+            @EventHandler(priority = EventPriority.MONITOR)
+            public void onPlayerLogin(ECFullyLoggedInEvent event) {
                 if (event.getPlayer().isOp() || event.getPlayer().hasPermission(PERMISSION)){
                     UPDATE_IS_AVAILABLE
-                            .addPlaceholder("%plugin%", plugin.getName())
+                            .addPlaceholder("%plugin%", PLUGIN_NAME)
                             .addLink(SPIGOT_URL)
                             .send(event.getPlayer());
                 }
