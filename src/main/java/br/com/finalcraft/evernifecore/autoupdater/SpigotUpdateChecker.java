@@ -29,8 +29,8 @@ import java.util.regex.Pattern;
 public class SpigotUpdateChecker {
 
     @FCLocale(lang = LocaleType.EN_US,
-            text = " §a[❤Update❤] - §6[§e%plugin%§6]§a Update Available! §7[Click]",
-            hover = "§bYou can disable this message by \ndisabling the UpdateChecker on \nthe config or by enabling the\nAutoDownloader feature!"
+            text = " §a[❤Update❤] - §6[§e%plugin%§6]§a Update Available!",
+            hover = "§bClick here to Open Download Link!\n\n - You can disable this message by \ndisabling the UpdateChecker on \nthe config or by enabling the\nAutoDownloader feature!"
     )
     private static LocaleMessage UPDATE_IS_AVAILABLE;
 
