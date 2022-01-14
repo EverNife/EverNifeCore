@@ -137,7 +137,7 @@ public class SpigotUpdateChecker {
             this.newVersion = new BufferedReader(new InputStreamReader(connection.getInputStream())).readLine();
             connection.disconnect();
 
-            if (this.currentVersion.compareTo(newVersion) > 0){
+            if (this.currentVersion.compareTo(newVersion) >= 0){
                 return UpdateResult.ALREADY_UPDATED;
             }
 
