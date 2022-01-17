@@ -1,7 +1,5 @@
 package br.com.finalcraft.evernifecore.util;
 
-import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
-
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,10 +41,6 @@ public class FCMathUtil {
                 return decimalFormat.format(value);
             }
         }
-    }
-
-    public static <N extends Number> NumberWrapper<N> wrapper(N number){
-        return NumberWrapper.of(number);
     }
 
     public static double normalizeDouble(double value) {
