@@ -57,11 +57,11 @@ public class SendCustom {
     }
 
     public SendCustom concat(LocaleMessage localeMessage) {
-        return new SendCustomComplex(localeMessage, null);
+        return new SendCustomComplex(localeMessage, this);
     }
 
     public SendCustom concat(SendCustom sendCustom) {
-        return new SendCustomComplex(sendCustom, null);
+        return new SendCustomComplex(sendCustom, this);
     }
 
     public void send(CommandSender... commandSenders) {
