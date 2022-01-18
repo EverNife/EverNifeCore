@@ -27,6 +27,10 @@ tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
 
+//This might keep function(parameter variable's Names) on the compiled jar
+compileJava.options.compilerArgs.add '-parameters'
+compileTestJava.options.compilerArgs.add '-parameters'
+
 repositories {
     flatDir { //Change this to where are your local libs
         dirs 'C:/Users/Petrus/Desktop/Meus/workshop/workshop/MyOwnPlugins/Bukkit/FinalCraftCore/libs'
