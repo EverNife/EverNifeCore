@@ -321,7 +321,7 @@ public class Config {
 			setValue(path,null);
 			List<Salvable> salvableList = (List<Salvable>) value;
 			for (int index = 0; index < salvableList.size(); index++) {
-				setValue(path + "." + salvableList.get(index).getClass().getSimpleName() + "==" + index, salvableList.get(index));
+				setValue(path + "." + index + "==" + index, salvableList.get(index));
 			}
 		}
 		else this.store(path, value);
