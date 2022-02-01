@@ -321,7 +321,7 @@ public class Config {
 			setValue(path,null);
 			List<Salvable> salvableList = (List<Salvable>) value;
 			for (int index = 0; index < salvableList.size(); index++) {
-				setValue(path + "." + index + "==" + index, salvableList.get(index));
+				setValue(path + "." + index, salvableList.get(index));
 			}
 		}
 		else this.store(path, value);
@@ -705,6 +705,7 @@ public class Config {
 		try {
 			List<T> loadableList = new ArrayList<>();
 			Method method = getLoadableMethodAndInvoke(loadableClass);
+			if (method == null) throw new NullPointerException("Loadable Class [" + loadableClass.getName() + "] does not have Loadable method!");
 			for (String index : getKeys(path)) {
 				T loadedValue = (T) method.invoke(null, this, path + "." + index);
 				loadableList.add(loadedValue);
@@ -962,8 +963,9 @@ public class Config {
 	 * @return      All Sub-Paths of the specified Path
 	 */ 
 	public Set<String> getKeys(String path) {
-		if (contains(path)){
-			return config.getConfigurationSection(path).getKeys(false);
+		ConfigurationSection configurationSection = config.getConfigurationSection(path);
+		if (configurationSection != null){
+			return configurationSection.getKeys(false);
 		}
 		return Collections.emptySet();
 	}
