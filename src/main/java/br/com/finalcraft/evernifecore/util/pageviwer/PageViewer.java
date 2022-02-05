@@ -16,7 +16,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class PageViewer<T,J> { //TODO Fix the Typo on Viwer, omg... how haven't i seen that '-'
+public class PageViewer<T,J> {
 
     protected final Supplier<List<T>> supplier;
     protected final Function<T, J> getValue;
