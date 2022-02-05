@@ -10,17 +10,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class PageViwer<T,J> { //TODO Fix the Typo on Viwer, omg... how haven't i seen that '-'
-
-    protected List<FancyText> pageLinesCache = null;
-    protected List<FancyText> pageHeaderCache = null;
-    protected List<FancyText> pageFooterCache = null;
-    protected long lastBuild = 0L;
 
     protected final Supplier<List<T>> supplier;
     protected final Function<T, J> getValue;
@@ -34,8 +30,12 @@ public class PageViwer<T,J> { //TODO Fix the Typo on Viwer, omg... how haven't i
     protected final int pageSize;
     protected final boolean includeDate;
     protected final boolean includeTotalPlayers;
+    protected final HashMap<String, Function<T,Object>> placeholders;
 
-    protected final transient HashMap<String, Function<T,Object>> placeholders;
+    protected transient WeakReference<List<FancyText>> pageLinesCache = new WeakReference<>(new ArrayList<>());
+    protected transient List<FancyText> pageHeaderCache = null;
+    protected transient List<FancyText> pageFooterCache = null;
+    protected transient long lastBuild = 0L;
 
     public PageViwer(Supplier<List<T>> supplier, Function<T, J> getValue, Comparator<J> comparator, List<FancyText> formatHeader, FancyText formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, int pageSize, boolean includeDate, boolean includeTotalPlayers) {
         this.supplier = supplier;
@@ -55,7 +55,7 @@ public class PageViwer<T,J> { //TODO Fix the Typo on Viwer, omg... how haven't i
 
     private void validateCachedLines(){
 
-        if (pageLinesCache == null || System.currentTimeMillis() - lastBuild >= cooldown){
+        if (pageLinesCache.get() == null || System.currentTimeMillis() - lastBuild >= cooldown){
 
             class SortedItem implements Comparable<SortedItem>{
                 final T item;
@@ -73,7 +73,7 @@ public class PageViwer<T,J> { //TODO Fix the Typo on Viwer, omg... how haven't i
             }
 
             pageHeaderCache = new ArrayList<>();
-            pageLinesCache = new ArrayList<>();
+            pageLinesCache = new WeakReference<>(new ArrayList<>());
             pageFooterCache = new ArrayList<>();
 
             List<SortedItem> sortedList = new ArrayList<>();
@@ -102,14 +102,14 @@ public class PageViwer<T,J> { //TODO Fix the Typo on Viwer, omg... how haven't i
                 pageHeaderCache.add(new FancyText("§7Data de hoje: " + new FCTimeFrame(System.currentTimeMillis()).getFormatedNoHours()));
             }
 
-            for (int number = lineStart; number < sortedList.size() && number < lineEnd; number++) {
+            for (int number = lineStart; number < sortedList.size() && (lineEnd == -1 || number < lineEnd); number++) {
                 final FancyText fancyText = formatLine.clone();
 
                 final SortedItem sortedItem = sortedList.get(number);
                 placeholders.entrySet().forEach(entry -> fancyText.replace(entry.getKey(), String.valueOf(entry.getValue().apply(sortedItem.item))));
                 fancyText.replace("%number%", String.valueOf(number + 1));
 
-                pageLinesCache.add(fancyText);
+                pageLinesCache.get().add(fancyText);
             }
 
             for (FancyText formatFooterText : formatFooter) {
@@ -142,8 +142,8 @@ public class PageViwer<T,J> { //TODO Fix the Typo on Viwer, omg... how haven't i
             for (FancyText headerLine : pageHeaderCache) {
                 headerLine.send(commandSender);
             }
-            for (int i = lineStart; i < pageLinesCache.size() && i < lineEnd; i++) {
-                pageLinesCache.get(i).send(sender);
+            for (int i = lineStart; i < pageLinesCache.get().size() && i < lineEnd; i++) {
+                pageLinesCache.get().get(i).send(sender);
             }
             for (FancyText headerLine : pageFooterCache) {
                 headerLine.send(commandSender);
@@ -165,7 +165,7 @@ public class PageViwer<T,J> { //TODO Fix the Typo on Viwer, omg... how haven't i
             if (o1 instanceof Number){
                 return doubleComparator.compare((Number)o1,(Number)o2);
             }
-            return stringComparator.compare(o1,o2);
+            return stringComparator.compare(String.valueOf(o1),String.valueOf(o2));
         };
         protected List<FancyText> formatHeader = Arrays.asList(new FancyText("§a§m" + FCTextUtil.straightLineOf("-")));
         protected FancyText formatLine = new FancyText("§7#  %number%:   §e%player%§f - §a%value%");
