@@ -17,25 +17,25 @@ import java.util.stream.Collectors;
 
 public class PageViwer<T,J> { //TODO Fix the Typo on Viwer, omg... how haven't i seen that '-'
 
-    private List<FancyText> pageLinesCache = null;
-    private List<FancyText> pageHeaderCache = null;
-    private List<FancyText> pageFooterCache = null;
-    private long lastBuild = 0L;
+    protected List<FancyText> pageLinesCache = null;
+    protected List<FancyText> pageHeaderCache = null;
+    protected List<FancyText> pageFooterCache = null;
+    protected long lastBuild = 0L;
 
-    private final Supplier<List<T>> supplier;
-    private final Function<T, J> getValue;
-    private final Comparator<J> comparator;
-    private final List<FancyText> formatHeader;
-    private final FancyText formatLine;
-    private final List<FancyText> formatFooter;
-    private final long cooldown;
-    private final int lineStart;
-    private final int lineEnd;
-    private final int pageSize;
-    private final boolean includeDate;
-    private final boolean includeTotalPlayers;
+    protected final Supplier<List<T>> supplier;
+    protected final Function<T, J> getValue;
+    protected final Comparator<J> comparator;
+    protected final List<FancyText> formatHeader;
+    protected final FancyText formatLine;
+    protected final List<FancyText> formatFooter;
+    protected final long cooldown;
+    protected final int lineStart;
+    protected final int lineEnd;
+    protected final int pageSize;
+    protected final boolean includeDate;
+    protected final boolean includeTotalPlayers;
 
-    private final HashMap<String, Function<T,Object>> placeholders = new HashMap<>();
+    protected final transient HashMap<String, Function<T,Object>> placeholders;
 
     public PageViwer(Supplier<List<T>> supplier, Function<T, J> getValue, Comparator<J> comparator, List<FancyText> formatHeader, FancyText formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, int pageSize, boolean includeDate, boolean includeTotalPlayers) {
         this.supplier = supplier;
@@ -50,6 +50,7 @@ public class PageViwer<T,J> { //TODO Fix the Typo on Viwer, omg... how haven't i
         this.pageSize = pageSize;
         this.includeDate = includeDate;
         this.includeTotalPlayers = includeTotalPlayers;
+        this.placeholders = new HashMap<>();
     }
 
     private void validateCachedLines(){
