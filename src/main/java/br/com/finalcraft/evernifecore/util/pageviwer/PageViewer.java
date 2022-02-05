@@ -16,7 +16,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class PageViwer<T,J> { //TODO Fix the Typo on Viwer, omg... how haven't i seen that '-'
+public class PageViewer<T,J> { //TODO Fix the Typo on Viwer, omg... how haven't i seen that '-'
 
     protected final Supplier<List<T>> supplier;
     protected final Function<T, J> getValue;
@@ -37,7 +37,7 @@ public class PageViwer<T,J> { //TODO Fix the Typo on Viwer, omg... how haven't i
     protected transient List<FancyText> pageFooterCache = null;
     protected transient long lastBuild = 0L;
 
-    public PageViwer(Supplier<List<T>> supplier, Function<T, J> getValue, Comparator<J> comparator, List<FancyText> formatHeader, FancyText formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, int pageSize, boolean includeDate, boolean includeTotalPlayers) {
+    public PageViewer(Supplier<List<T>> supplier, Function<T, J> getValue, Comparator<J> comparator, List<FancyText> formatHeader, FancyText formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, int pageSize, boolean includeDate, boolean includeTotalPlayers) {
         this.supplier = supplier;
         this.getValue = getValue;
         this.comparator = comparator;
@@ -102,7 +102,7 @@ public class PageViwer<T,J> { //TODO Fix the Typo on Viwer, omg... how haven't i
                 pageHeaderCache.add(new FancyText("§7Data de hoje: " + new FCTimeFrame(System.currentTimeMillis()).getFormatedNoHours()));
             }
 
-            for (int number = lineStart; number < sortedList.size() && (lineEnd == -1 || number < lineEnd); number++) {
+            for (int number = lineStart; number < sortedList.size() && (lineEnd < 0 || number < lineEnd); number++) {
                 final FancyText fancyText = formatLine.clone();
 
                 final SortedItem sortedItem = sortedList.get(number);
@@ -266,8 +266,8 @@ public class PageViwer<T,J> { //TODO Fix the Typo on Viwer, omg... how haven't i
             return this;
         }
 
-        public PageViwer<T,J> build(){
-            PageViwer<T,J> pageViwer = new PageViwer<>(
+        public PageViewer<T,J> build(){
+            PageViewer<T,J> pageViewer = new PageViewer<>(
                     supplier,
                     getValue,
                     comparator,
@@ -281,9 +281,9 @@ public class PageViwer<T,J> { //TODO Fix the Typo on Viwer, omg... how haven't i
                     includeDate,
                     includeTotalPlayers);
 
-            pageViwer.placeholders.putAll(this.placeholders);
+            pageViewer.placeholders.putAll(this.placeholders);
 
-            return pageViwer;
+            return pageViewer;
         }
     }
 
