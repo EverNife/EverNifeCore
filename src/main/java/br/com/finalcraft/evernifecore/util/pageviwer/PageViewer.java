@@ -53,6 +53,14 @@ public class PageViewer<T,J> {
         this.placeholders = new HashMap<>();
     }
 
+    public int getLineStart() {
+        return lineStart;
+    }
+
+    public int getLineEnd() {
+        return lineEnd;
+    }
+
     private void validateCachedLines(){
 
         if (pageLinesCache.get() == null || System.currentTimeMillis() - lastBuild >= cooldown){
