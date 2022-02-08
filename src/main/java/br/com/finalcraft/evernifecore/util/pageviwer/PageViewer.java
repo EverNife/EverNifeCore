@@ -110,7 +110,7 @@ public class PageViewer<T,J> {
                 pageHeaderCache.add(new FancyText("§7Data de hoje: " + new FCTimeFrame(System.currentTimeMillis()).getFormatedNoHours()));
             }
 
-            for (int number = lineStart; number < sortedList.size() && (lineEnd < 0 || number < lineEnd); number++) {
+            for (int number = lineStart; number < sortedList.size() && number < lineEnd; number++) {
                 final FancyText fancyText = formatLine.clone();
 
                 final SortedItem sortedItem = sortedList.get(number);
@@ -145,6 +145,10 @@ public class PageViewer<T,J> {
 
     public void send(int lineStart, int lineEnd, CommandSender... sender){
         validateCachedLines();
+
+        //Rebound, now knowing our limits
+        lineStart = NumberWrapper.of(lineStart).boundUpper(pageHeaderCache.size() - pageSize).boundLower(0).intValue();
+        lineEnd = NumberWrapper.of(lineEnd).boundUpper(pageHeaderCache.size()).intValue();
 
         for (CommandSender commandSender : sender) {
             for (FancyText headerLine : pageHeaderCache) {
@@ -250,7 +254,7 @@ public class PageViewer<T,J> {
         }
 
         public Builder<T,J> setLineEnd(int lineEnd) {
-            this.lineEnd = lineEnd;
+            this.lineEnd = lineEnd < 0 ? Integer.MAX_VALUE : lineEnd;
             return this;
         }
 
