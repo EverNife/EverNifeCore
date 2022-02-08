@@ -138,7 +138,7 @@ public class PageViewer<T,J> {
     }
 
     public void send(int page, CommandSender... sender){
-        int start = NumberWrapper.of((page - 1) * pageSize).boundUpper(lineEnd - pageSize).boundLower(0).intValue();
+        int start = NumberWrapper.of((page - 1) * pageSize).boundUpper(lineEnd - pageSize).intValue();
         int end = NumberWrapper.of(page * pageSize).boundUpper(lineEnd).intValue();
         send(start, end, sender);
     }
@@ -146,9 +146,16 @@ public class PageViewer<T,J> {
     public void send(int lineStart, int lineEnd, CommandSender... sender){
         validateCachedLines();
 
-        //Rebound, now knowing our limits
-        lineStart = NumberWrapper.of(lineStart).boundUpper(pageHeaderCache.size() - pageSize).boundLower(0).intValue();
-        lineEnd = NumberWrapper.of(lineEnd).boundUpper(pageHeaderCache.size()).intValue();
+        //Bound lineEnd to lastLine
+        lineEnd = NumberWrapper.of(lineEnd).boundUpper(pageLinesCache.get().size() -1).intValue();
+
+        if (lineStart > lineEnd){
+            //Rebound, one page backwards
+            int lastPossiblePage = pageLinesCache.get().size() / pageSize;
+            lineStart = NumberWrapper.of(lineStart).boundUpper(lastPossiblePage * pageSize).intValue();
+        }
+
+        lineStart = NumberWrapper.of(lineStart).boundLower(0).intValue();
 
         for (CommandSender commandSender : sender) {
             for (FancyText headerLine : pageHeaderCache) {
