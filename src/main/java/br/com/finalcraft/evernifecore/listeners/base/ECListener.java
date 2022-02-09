@@ -55,9 +55,9 @@ public interface ECListener extends Listener {
             }
             Bukkit.getServer().getPluginManager().registerEvents(listener, pluginInstance);
             return true;
-        }catch (Exception e){
+        }catch (Throwable t){
             pluginInstance.getLogger().warning("[ECListener] Failed to register Listener: " + listener.getClass().getName());
-            e.printStackTrace();
+            t.printStackTrace();
         }
         return false;
     }
@@ -66,8 +66,8 @@ public interface ECListener extends Listener {
         try {
             ECListener listener = clazz.getDeclaredConstructor().newInstance();
             return register(pluginInstance, listener);
-        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException nfe) {
-            pluginInstance.getLogger().warning("[ECListener] Failed to register Listener: [" + clazz.getName() + "] " + nfe.getClass().getSimpleName() + " [" + nfe.getMessage() + "]");
+        } catch (Throwable t) {
+            pluginInstance.getLogger().warning("[ECListener] Failed to register Listener: [" + clazz.getName() + "] " + t.getClass().getSimpleName() + " [" + t.getMessage() + "]");
         }
         return false;
     }
