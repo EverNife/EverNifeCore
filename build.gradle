@@ -47,7 +47,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.evernife:ChatMenuAPI:v1.1.3b'
+    implementation 'com.github.evernife:ChatMenuAPI:v1.1.3c'
     implementation 'com.github.evernife.libby:libby-core:d994023'
 
     implementation 'dev.triumphteam:triumph-gui:3.0.4-e1'
@@ -91,7 +91,7 @@ dependencies {
 shadowJar {
     archiveName = "${baseName}-${version}.${extension}"
     dependencies {
-        include(dependency('com.github.evernife:ChatMenuAPI:v1.1.3b'))
+        include(dependency('com.github.evernife:ChatMenuAPI:v1.1.3c'))
         include(dependency('com.github.evernife.libby:libby-core:d994023'))
         include(dependency('dev.triumphteam:triumph-gui:3.0.4-e1'))
     }
