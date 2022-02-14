@@ -9,7 +9,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 public class FCItemUtils {
 
@@ -124,17 +123,21 @@ public class FCItemUtils {
     public static ItemStack fromBukkitIdentifier(String bukkitIdentifier){
         int meta = 0;
         if (bukkitIdentifier.contains(":")){
-            try {
-                String[] split = bukkitIdentifier.split(":");
-                bukkitIdentifier = split[0];
-                meta = Short.parseShort(split[1]);
-                if (meta < 0) meta = 0;
-            }catch (Exception e){
-                e.printStackTrace();
+            String[] split = bukkitIdentifier.split(":");
+            bukkitIdentifier = split[0];
+            meta = FCInputReader.parseInt(split[1], 0);
+            if (meta < 0) {
+                meta = 0;
             }
         }
-        ItemStack itemStack = new ItemStack(Material.valueOf(bukkitIdentifier));
-        if (meta != 0) itemStack.setDurability((short) meta);
+        Material material = FCInputReader.parseMaterial(bukkitIdentifier);
+        if (material == null){
+            throw new IllegalArgumentException("The identifier '" + bukkitIdentifier + "' is not a valid Bukkit Material!");
+        }
+        ItemStack itemStack = new ItemStack(material);
+        if (meta != 0) {
+            itemStack.setDurability((short) meta);
+        }
         return itemStack;
     }
 
