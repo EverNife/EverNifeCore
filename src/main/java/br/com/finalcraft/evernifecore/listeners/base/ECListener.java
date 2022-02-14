@@ -5,8 +5,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
-import java.lang.reflect.InvocationTargetException;
-
 public interface ECListener extends Listener {
 
     public default String[] requiredPlugins(){
