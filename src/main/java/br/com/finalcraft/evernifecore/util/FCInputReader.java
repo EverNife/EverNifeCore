@@ -13,6 +13,10 @@ public class FCInputReader {
         }
     }
 
+    public static Integer parseInt(String input){
+        return parseInt(input, null);
+    }
+
     public static Material parseMaterial(String materialName) {
         Material material = Material.matchMaterial(materialName);
         if (material == null) {
