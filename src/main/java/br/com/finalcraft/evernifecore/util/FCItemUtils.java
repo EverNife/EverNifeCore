@@ -107,11 +107,25 @@ public class FCItemUtils {
         return itemStack.getType().name() + (durability == 0 ? "" : ":" + durability);
     }
 
+    public static ItemStack fromIdentifier(String minecraftOrBukkitIdentifier){
+        String[] split = minecraftOrBukkitIdentifier.split(":", 2);
+        if (split.length == 1){ //If no ':' is present, then it can only be a BukkitIdentifier
+            return fromBukkitIdentifier(minecraftOrBukkitIdentifier);
+        }
+
+        Integer bukkitDurability = FCInputReader.parseInt(split[1], null);
+        if (bukkitDurability != null){ //The second part of the Identifier is a number, so, its a bukkit identifier
+            return fromBukkitIdentifier(minecraftOrBukkitIdentifier);
+        }
+
+        return fromMinecraftIdentifier(minecraftOrBukkitIdentifier);
+    }
+
     public static ItemStack fromBukkitIdentifier(String bukkitIdentifier){
         int meta = 0;
         if (bukkitIdentifier.contains(":")){
             try {
-                String[] split = bukkitIdentifier.split(Pattern.quote(":"));
+                String[] split = bukkitIdentifier.split(":");
                 bukkitIdentifier = split[0];
                 meta = Short.parseShort(split[1]);
                 if (meta < 0) meta = 0;
