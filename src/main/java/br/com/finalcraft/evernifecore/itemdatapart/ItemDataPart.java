@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.itemdatapart.datapart.*;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.version.MCVersion;
+import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
@@ -65,6 +66,10 @@ public abstract class ItemDataPart {
             }
         }
         return null;
+    }
+
+    public static ItemStack transformItem(List<String> itemdata) {
+        return transformItem(new ItemStack(Material.STONE), itemdata);
     }
 
     public static ItemStack transformItem(ItemStack item, List<String> itemdata) {
