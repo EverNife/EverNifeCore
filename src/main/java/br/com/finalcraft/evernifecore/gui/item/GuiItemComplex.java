@@ -54,7 +54,7 @@ public class GuiItemComplex extends GuiItem {
         return this;
     }
 
-    public GuiItemComplex updateItemStack(Function<FCItemBuilder, ItemStack> update) {
+    public GuiItemComplex updateItemStack(@NotNull Function<@NotNull FCItemBuilder, @NotNull ItemStack> update) {
         FCItemBuilder itemBuilder = FCItemFactory.from(this.getItemStack());
         this.setItemStack(update.apply(itemBuilder));
         return this;

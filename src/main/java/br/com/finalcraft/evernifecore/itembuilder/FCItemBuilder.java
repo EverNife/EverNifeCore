@@ -22,13 +22,13 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
     }
 
     @NotNull
-    public FCItemBuilder apply(Consumer<FCItemBuilder> apply){
+    public FCItemBuilder apply(@NotNull Consumer<FCItemBuilder> apply){
         apply.accept(this);
         return this;
     }
 
     @NotNull
-    public FCItemBuilder applyIf(Supplier<Boolean> condition, Consumer<FCItemBuilder> apply){
+    public FCItemBuilder applyIf(@NotNull Supplier<Boolean> condition, @NotNull Consumer<FCItemBuilder> apply){
         if (condition.get() == true){
             apply.accept(this);
         }
@@ -42,13 +42,13 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
     }
 
     @NotNull
-    public FCItemBuilder material(Material material) {
+    public FCItemBuilder material(@NotNull Material material) {
         itemStack.setType(material);
         return this;
     }
 
     @NotNull
-    public FCItemBuilder material(String material) {
+    public FCItemBuilder material(@NotNull String material) {
         Material theMaterial = FCInputReader.parseMaterial(material);
         if (theMaterial == null){
             throw new IllegalArgumentException("The materialName '" + material + "' is not a valid Bukkit Material");
