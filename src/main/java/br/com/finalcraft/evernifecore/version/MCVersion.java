@@ -49,6 +49,14 @@ public enum MCVersion {
         return legacy != null ? legacy : (legacy = isCurrentLowerEquals(MCVersion.v1_7_R4));
     }
 
+    public static boolean isBellow1_7_10(){
+        return isCurrentLowerEquals(MCVersion.v1_7_R4);
+    }
+
+    public static boolean isBellow1_13(){
+        return isCurrentLowerEquals(MCVersion.v1_13_R2);
+    }
+
     // Operations
 
     private int value;
