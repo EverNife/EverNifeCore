@@ -4,13 +4,13 @@ import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import dev.triumphteam.gui.guis.Gui;
 import org.bukkit.entity.Player;
 
-public class PlayerGui<P extends IPlayerData> {
+public class PlayerGui<P extends IPlayerData, G extends Gui> {
 
     protected final Player player;
     protected final P playerData;
-    protected final Gui gui;
+    protected final G gui;
 
-    public PlayerGui(P playerData, Gui gui) {
+    public PlayerGui(P playerData, G gui) {
         this.player = playerData.getPlayer();
         this.playerData = playerData;
         this.gui = gui;
@@ -24,7 +24,7 @@ public class PlayerGui<P extends IPlayerData> {
         return player;
     }
 
-    public Gui getGui() {
+    public G getGui() {
         return gui;
     }
 
