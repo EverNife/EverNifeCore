@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.itembuilder;
 
 import br.com.finalcraft.evernifecore.gui.item.GuiItemComplex;
+import br.com.finalcraft.evernifecore.util.FCInputReader;
 import dev.triumphteam.gui.builder.item.BaseItemBuilder;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -43,6 +44,16 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
     @NotNull
     public FCItemBuilder material(Material material) {
         itemStack.setType(material);
+        return this;
+    }
+
+    @NotNull
+    public FCItemBuilder material(String material) {
+        Material theMaterial = FCInputReader.parseMaterial(material);
+        if (theMaterial == null){
+            throw new IllegalArgumentException("The materialName '" + material + "' is not a valid Bukkit Material");
+        }
+        itemStack.setType(theMaterial);
         return this;
     }
 }
