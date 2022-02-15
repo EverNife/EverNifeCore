@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.gui.item;
 
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.gui.custom.GuiComplex;
 import br.com.finalcraft.evernifecore.itembuilder.FCItemBuilder;
 import br.com.finalcraft.evernifecore.itembuilder.FCItemFactory;
 import dev.triumphteam.gui.components.GuiAction;
@@ -11,34 +12,34 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class GuiItemComplex extends GuiItem {
 
     private int updateInterval = ECSettings.DEFAULT_GUI_UPDATE_TIME;
     private transient int counter = 0;
-    private BiConsumer<Player, GuiItemComplex> onItemUpdate;
+    private Consumer<@NotNull Context> onItemUpdate;
 
     public GuiItemComplex(@NotNull ItemStack itemStack) {
         super(itemStack);
     }
 
-    public boolean onItemUpdate(Player player) {
+    public boolean onItemUpdate(GuiComplex guiComplex, Player player) {
         if (onItemUpdate != null){
             counter = counter + ECSettings.DEFAULT_GUI_UPDATE_TIME;
             if (counter >= updateInterval){
                 counter = 0;
-                onItemUpdate.accept(player, this);
+                onItemUpdate.accept(Context.of(guiComplex, this, player));
                 return true;
             }
         }
         return false;
     }
 
-    public void forceUpdate(Player player){
+    public void forceUpdate(GuiComplex guiComplex, Player player){
         if (onItemUpdate != null){
-            onItemUpdate.accept(player, this);
+            onItemUpdate.accept(Context.of(guiComplex, this, player));
         }
     }
 
@@ -48,7 +49,7 @@ public class GuiItemComplex extends GuiItem {
         return this;
     }
 
-    public GuiItemComplex setOnItemUpdate(BiConsumer<@NotNull Player, @NotNull GuiItemComplex> onItemUpdate){
+    public GuiItemComplex setOnItemUpdate(Consumer<@NotNull Context> onItemUpdate){
         this.onItemUpdate = onItemUpdate;
         return this;
     }
@@ -63,5 +64,33 @@ public class GuiItemComplex extends GuiItem {
     public GuiItemComplex setAction(@Nullable GuiAction<@NotNull InventoryClickEvent> action) {
         super.setAction(action);
         return this;
+    }
+
+    public static class Context {
+        private final GuiComplex gui;
+        private final GuiItemComplex guiItem;
+        private final Player player;
+
+        protected Context(GuiComplex guiComplex, GuiItemComplex guiItem, Player player) {
+            this.gui = guiComplex;
+            this.guiItem = guiItem;
+            this.player = player;
+        }
+
+        public static Context of(GuiComplex guiComplex, GuiItemComplex guiItem, Player player){
+            return new Context(guiComplex, guiItem, player);
+        }
+
+        public Player getPlayer() {
+            return player;
+        }
+
+        public GuiComplex getGui() {
+            return gui;
+        }
+
+        public GuiItemComplex getGuiItem() {
+            return guiItem;
+        }
     }
 }

@@ -11,6 +11,7 @@ import dev.triumphteam.gui.guis.GuiItem;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -30,11 +31,15 @@ public class GuiComplex extends Gui {
             @Override
             public void run() {
                 for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-                    Inventory openInv = onlinePlayer.getOpenInventory().getTopInventory();
-                    if (openInv.getHolder() instanceof GuiComplex){
-                        GuiComplex guiComplex = (GuiComplex) openInv.getHolder();
-                        guiComplex.onGuiUpdate(onlinePlayer);
+                    InventoryView inventoryView = onlinePlayer.getOpenInventory();
+                    if (inventoryView != null){ //Should be notNull...
+                        Inventory openInv = inventoryView.getTopInventory();
+                        if (openInv.getHolder() instanceof GuiComplex){
+                            GuiComplex guiComplex = (GuiComplex) openInv.getHolder();
+                            guiComplex.onGuiUpdate(onlinePlayer);
+                        }
                     }
+
                 }
             }
         };
@@ -54,15 +59,6 @@ public class GuiComplex extends Gui {
     }
 
     protected void onGuiUpdate(Player player){
-        class UpdateItem{
-            GuiItemComplex itemComplex;
-            boolean wasUpdated = false;
-            @Override
-            public int hashCode() {
-                return itemComplex.hashCode();
-            }
-        }
-
         if (onGuiUpdate != null){
             counter = counter + ECSettings.DEFAULT_GUI_UPDATE_TIME;
             if (counter >= updateInterval){
@@ -75,7 +71,7 @@ public class GuiComplex extends Gui {
         HashSet<GuiItemComplex> updated = new HashSet<>();
 
         //Now update each GuiItem attached to this GUI.
-        //If an GuiItem is the same for more than one slot, the GuiItem will be update only once!
+        //If an GuiItem is the same for more than one slot, the GuiItem will be updated only once!
         for (Map.Entry<Integer, GuiItem> entry : getGuiItems().entrySet()) {
             if (entry.getValue() instanceof GuiItemComplex){
 
@@ -83,7 +79,7 @@ public class GuiComplex extends Gui {
                 GuiItemComplex guiItem = (GuiItemComplex) entry.getValue();
 
                 if (!checked.contains(guiItem)){
-                    if (guiItem.onItemUpdate(player)){
+                    if (guiItem.onItemUpdate(this, player)){
                         updated.add(guiItem);
                     }
                     checked.add(guiItem);
@@ -115,7 +111,7 @@ public class GuiComplex extends Gui {
         for (Map.Entry<Integer, GuiItem> entry : new ArrayList<>(getGuiItems().entrySet())) {
             if (entry.getValue() instanceof GuiItemComplex){
                 GuiItemComplex complex = (GuiItemComplex) entry.getValue();
-                complex.forceUpdate(player);
+                complex.forceUpdate(this, player);
                 updateItem(entry.getKey(), complex);
             }
         }
