@@ -2,7 +2,6 @@ package br.com.finalcraft.evernifecore.gui.custom;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
-import br.com.finalcraft.evernifecore.gui.builders.ComplexGuiBuilder;
 import br.com.finalcraft.evernifecore.gui.item.GuiItemComplex;
 import dev.triumphteam.gui.components.GuiType;
 import dev.triumphteam.gui.components.InteractionModifier;
@@ -13,7 +12,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -117,15 +115,4 @@ public class GuiComplex extends Gui {
         }
     }
 
-    /**
-     * Creates a {@link GuiComplex} with CHEST as the {@link GuiType}
-     *
-     * @return A CHEST {@link GuiComplex}
-     * @since 3.0.0
-     */
-    @NotNull
-    @Contract(" -> new")
-    public static ComplexGuiBuilder complex() {
-        return new ComplexGuiBuilder(GuiType.CHEST);
-    }
 }
