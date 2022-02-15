@@ -1,17 +1,23 @@
 package br.com.finalcraft.evernifecore.gui.item;
 
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.itembuilder.FCItemBuilder;
+import br.com.finalcraft.evernifecore.itembuilder.FCItemFactory;
+import dev.triumphteam.gui.components.GuiAction;
 import dev.triumphteam.gui.guis.GuiItem;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 public class GuiItemComplex extends GuiItem {
 
     private int updateInterval = ECSettings.DEFAULT_GUI_UPDATE_TIME;
-    private int counter = 0;
+    private transient int counter = 0;
     private BiConsumer<Player, GuiItemComplex> onItemUpdate;
 
     public GuiItemComplex(@NotNull ItemStack itemStack) {
@@ -44,6 +50,18 @@ public class GuiItemComplex extends GuiItem {
 
     public GuiItemComplex setOnItemUpdate(BiConsumer<@NotNull Player, @NotNull GuiItemComplex> onItemUpdate){
         this.onItemUpdate = onItemUpdate;
+        return this;
+    }
+
+    public GuiItemComplex updateItemStack(Function<FCItemBuilder, ItemStack> update) {
+        FCItemBuilder itemBuilder = FCItemFactory.from(this.getItemStack());
+        this.setItemStack(update.apply(itemBuilder));
+        return this;
+    }
+
+    @Override
+    public GuiItemComplex setAction(@Nullable GuiAction<@NotNull InventoryClickEvent> action) {
+        super.setAction(action);
         return this;
     }
 }
