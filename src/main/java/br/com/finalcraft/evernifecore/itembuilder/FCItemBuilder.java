@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.itembuilder;
 
 import br.com.finalcraft.evernifecore.gui.item.GuiItemComplex;
 import dev.triumphteam.gui.builder.item.BaseItemBuilder;
+import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -36,6 +37,12 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
     @NotNull
     public FCItemBuilder durability(final int durability) {
         itemStack.setDurability((short) durability);
+        return this;
+    }
+
+    @NotNull
+    public FCItemBuilder material(Material material) {
+        itemStack.setType(material);
         return this;
     }
 }

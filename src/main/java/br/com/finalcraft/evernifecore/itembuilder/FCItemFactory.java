@@ -32,4 +32,9 @@ public class FCItemFactory {
         return new FCItemBuilder(new ItemStack(material));
     }
 
+    @NotNull
+    public static FCItemBuilder itemBuilder() {
+        return new FCItemBuilder(new ItemStack(Material.STONE));
+    }
+
 }
