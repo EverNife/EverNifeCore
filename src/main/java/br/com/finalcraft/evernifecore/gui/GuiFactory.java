@@ -2,16 +2,15 @@ package br.com.finalcraft.evernifecore.gui;
 
 import br.com.finalcraft.evernifecore.gui.custom.GuiComplex;
 import br.com.finalcraft.evernifecore.gui.item.GuiItemComplex;
+import br.com.finalcraft.evernifecore.gui.util.EnumStainedGlassPane;
+import br.com.finalcraft.evernifecore.itembuilder.FCItemFactory;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
-import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import br.com.finalcraft.evernifecore.util.FCItemUtils;
-import dev.triumphteam.gui.builder.item.ItemBuilder;
-import org.bukkit.ChatColor;
+import br.com.finalcraft.evernifecore.version.MCVersion;
 import org.bukkit.Material;
-import org.bukkit.inventory.ItemStack;
 
 public class GuiFactory {
 
+    //TODO Remove this
     public static GuiComplex create(){
 
         GuiComplex guiComplex = GuiComplex
@@ -22,25 +21,25 @@ public class GuiFactory {
                 .create();
 
 
-        GuiItemComplex RANDOM_STONE =
-                new GuiItemComplex(ItemBuilder.from(Material.STONE).name("Vai Brasil").build())
-                .setUpdateInterval(2)
-                .setOnItemUpdate((player, guiItemComplex) -> {
-                    ItemStack itemStack = guiItemComplex.getItemStack();
-                    itemStack.setType(Material.getMaterial("STAINED_GLASS_PANE"));
-                    itemStack.setDurability((short) FCBukkitUtil.getRandom().nextInt(12));
-                    String itemName = FCItemUtils.getDisplayName(itemStack);
-                    FCItemUtils.setDisplayName(
-                            itemStack,
-                            FCColorUtil.getRandomColor() + "§l" + ChatColor.stripColor(itemName)
-                    );
-                });
-
-        for (int i = 1; i < 6; i++) {
+        int count = -1;
+        for (EnumStainedGlassPane glassPane : EnumStainedGlassPane.values()) {
+            count++;
+            GuiItemComplex WHOOL = FCItemFactory.from(Material.STONE)
+                    .applyIf(() -> MCVersion.isBellow1_13(), builder -> builder.material("WHOOL"))
+                    .applyIf(() -> !MCVersion.isBellow1_13(), builder -> builder.material(Material.WHITE_WOOL))
+                    .name("Vai Brasil")
+                    .asGuiItemComplex()
+                    .setUpdateInterval(count + 1)
+                    .setOnItemUpdate(context -> {
+                        context.getGuiItem().updateItemStack(builder -> builder
+                                .material(Material.getMaterial("STAINED_GLASS_PANE"))
+                                .durability(FCBukkitUtil.getRandom().nextInt(12))
+                                .build()
+                        );
+                    });
             guiComplex.setItem(
-                    i,
-                    i,
-                    RANDOM_STONE
+                    count,
+                    WHOOL
             );
         }
 
