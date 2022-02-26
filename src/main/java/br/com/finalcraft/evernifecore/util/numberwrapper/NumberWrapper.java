@@ -82,6 +82,26 @@ public class NumberWrapper<N extends Number> implements Comparable<NumberWrapper
         throw new UnsupportedOperationException("The Number [" + value.getClass() + "] is not supported by NumberWrapper!");
     }
 
+    public boolean isBoundedUpper(N max){
+        if (this.value instanceof Integer)  { return (Integer)this.value <= (Integer)max;}
+        if (this.value instanceof Long)  { return (Long)this.value <= (Long)max;}
+        if (this.value instanceof Float)  { return (Float)this.value <= (Float)max;}
+        if (this.value instanceof Double)  { return (Double)this.value <= (Double)max;}
+        if (this.value instanceof Byte)  { return (Integer)this.value <= (Integer)max;}
+
+        throw new UnsupportedOperationException("The Number [" + value.getClass() + "] is not supported by NumberWrapper!");
+    }
+
+    public boolean isBoundedLower(N min){
+        if (this.value instanceof Integer)  { return (Integer)this.value >= (Integer)min;}
+        if (this.value instanceof Long)  { return (Long)this.value >= (Long)min;}
+        if (this.value instanceof Float)  { return (Float)this.value >= (Float)min;}
+        if (this.value instanceof Double)  { return (Double)this.value >= (Double)min;}
+        if (this.value instanceof Byte)  { return (Integer)this.value >= (Integer)min;}
+
+        throw new UnsupportedOperationException("The Number [" + value.getClass() + "] is not supported by NumberWrapper!");
+    }
+
     public NumberWrapper<N> increment(N value) {
         if (this.value instanceof Integer)  { this.value = (N) Integer.valueOf(this.value.intValue() + value.intValue()); return this; }
         if (this.value instanceof Long)     { this.value = (N) Long.valueOf(this.value.longValue() + value.longValue()); return this; }
