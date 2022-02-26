@@ -12,8 +12,9 @@ public class Tuple<ALFA, BETA> {
         this.beta = beta;
     }
 
+    @Deprecated
     public static <ALFA,BETA> Tuple<ALFA,BETA> from(ALFA alfa, BETA beta) {
-        return new Tuple<>(alfa, beta);
+        return of(alfa, beta);
     }
 
     public ALFA getAlfa() {
