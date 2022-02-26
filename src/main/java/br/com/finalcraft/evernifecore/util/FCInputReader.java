@@ -17,6 +17,18 @@ public class FCInputReader {
         return parseInt(input, null);
     }
 
+    public static Double parseDouble(String input, Double def){
+        try {
+            return Double.parseDouble(input);
+        }catch (NumberFormatException e){
+            return def;
+        }
+    }
+
+    public static Double parseDouble(String input){
+        return parseDouble(input, null);
+    }
+
     public static Material parseMaterial(String materialName) {
         Material material = Material.matchMaterial(materialName);
         if (material == null) {
