@@ -7,6 +7,8 @@ import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.Collection;
+
 public class FCMessageUtil {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe player §7[§e%searched_name%§7]§c is not online!")
@@ -128,6 +130,20 @@ public class FCMessageUtil {
         NOT_BOUNDED_UPPER
                 .addPlaceholder("%number%", NumberWrapper.of(number))
                 .addPlaceholder("%max%", NumberWrapper.of(max))
+                .send(sender);
+    }
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe inserted value §e(%value%)§c must be §6[%possibilities%]§c!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO valor inserido §e(%value%)§c deve ser §6[%possibilities%]§c!")
+    private static LocaleMessage NOT_WITHIN_POSSIBILITIES;
+    public static void notWithinPossibilities(CommandSender sender, String argument, Collection<? extends Object> possibilities){
+        StringBuilder stringBuilder = new StringBuilder();
+        for (Object value : possibilities) {
+            stringBuilder.append(value + "|");
+        }
+        NOT_WITHIN_POSSIBILITIES
+                .addPlaceholder("%value%", argument)
+                .addPlaceholder("%possibilities%", stringBuilder.substring(0, stringBuilder.length() - 1))
                 .send(sender);
     }
 
