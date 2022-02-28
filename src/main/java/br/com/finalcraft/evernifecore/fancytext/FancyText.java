@@ -13,6 +13,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 public class FancyText {
 
@@ -296,6 +297,29 @@ public class FancyText {
         }
         lines.add(stringBuilder.toString());
         return lines;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        FancyText fancyText = (FancyText) o;
+
+        if (!Objects.equals(text, fancyText.text)) return false;
+        if (!Objects.equals(hoverText, fancyText.hoverText)) return false;
+        if (!Objects.equals(clickActionText, fancyText.clickActionText)) return false;
+
+        return clickActionType == fancyText.clickActionType;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = text != null ? text.hashCode() : 0;
+        result = 31 * result + (hoverText != null ? hoverText.hashCode() : 0);
+        result = 31 * result + (clickActionText != null ? clickActionText.hashCode() : 0);
+        result = 31 * result + (clickActionType != null ? clickActionType.hashCode() : 0);
+        return result;
     }
 
     // ------------------------------------------------------------------------------------------------------
