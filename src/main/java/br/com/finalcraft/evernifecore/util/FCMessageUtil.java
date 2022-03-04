@@ -120,7 +120,6 @@ public class FCMessageUtil {
                 .addPlaceholder("%number%", NumberWrapper.of(number))
                 .addPlaceholder("%min%", NumberWrapper.of(min))
                 .send(sender);
-        sender.sendMessage(String.format("§e§l ▶ §cO valor inserido (§e%s§c) deve ser maior que §6[%s]!", NumberWrapper.of(number), NumberWrapper.of(min)));
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe inserted value §e(%number%)§c must be lower than §6[%max%]§c!")
@@ -133,17 +132,17 @@ public class FCMessageUtil {
                 .send(sender);
     }
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe inserted value §e(%value%)§c must be §6[%possibilities%]§c!")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO valor inserido §e(%value%)§c deve ser §6[%possibilities%]§c!")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe inserted value §e(§6%value%)§c must be §6[%possibilities%§6]§c!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO valor inserido §e(§6%value%)§c deve ser §6[%possibilities%§6]§c!")
     private static LocaleMessage NOT_WITHIN_POSSIBILITIES;
     public static void notWithinPossibilities(CommandSender sender, String argument, Collection<? extends Object> possibilities){
         StringBuilder stringBuilder = new StringBuilder();
         for (Object value : possibilities) {
-            stringBuilder.append(value + "|");
+            stringBuilder.append("§b" + value + "§7, ");
         }
         NOT_WITHIN_POSSIBILITIES
                 .addPlaceholder("%value%", argument)
-                .addPlaceholder("%possibilities%", stringBuilder.substring(0, stringBuilder.length() - 1))
+                .addPlaceholder("%possibilities%", stringBuilder.substring(0, stringBuilder.length() - 4))
                 .send(sender);
     }
 
