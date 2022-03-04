@@ -1,9 +1,11 @@
 package br.com.finalcraft.evernifecore.util;
 
+import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import br.com.finalcraft.evernifecore.util.reflection.ConstructorInvoker;
 import br.com.finalcraft.evernifecore.util.reflection.FieldAccessor;
 import br.com.finalcraft.evernifecore.util.reflection.MethodInvoker;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -57,6 +59,31 @@ public class ReflectionUtil {
         Class<?>[] parameterTypes = method.getParameterTypes();
         if (index >= parameterTypes.length) return null;
         return parameterTypes[index];
+    }
+
+    /**
+     * Retrieve the args and annotations of a method.
+     *
+     * @param method  - the method
+     * @return The args and annotations
+     */
+    public static List<Tuple<Class, Annotation[]>> getArgsAndAnnotations(Method method) {
+        List<Tuple<Class, Annotation[]>> argsAndAnnotations = new ArrayList<>();
+
+        Class<?>[] parameterTypes = method.getParameterTypes();
+        Annotation[][] annotations = method.getParameterAnnotations();
+
+        for (int i = 0; i < parameterTypes.length; i++) {
+            Class theArg = parameterTypes[i];
+            Annotation[] annotationsOnThisArg = annotations[i];
+            argsAndAnnotations.add(
+                    Tuple.of(
+                            theArg, annotationsOnThisArg
+                    )
+            );
+        }
+
+        return argsAndAnnotations;
     }
 
     /**
