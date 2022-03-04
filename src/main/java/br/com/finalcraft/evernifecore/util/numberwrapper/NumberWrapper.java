@@ -83,21 +83,21 @@ public class NumberWrapper<N extends Number> implements Comparable<NumberWrapper
     }
 
     public boolean isBoundedUpper(N max){
-        if (this.value instanceof Integer)  { return (Integer)this.value <= (Integer)max;}
-        if (this.value instanceof Long)  { return (Long)this.value <= (Long)max;}
-        if (this.value instanceof Float)  { return (Float)this.value <= (Float)max;}
-        if (this.value instanceof Double)  { return (Double)this.value <= (Double)max;}
-        if (this.value instanceof Byte)  { return (Integer)this.value <= (Integer)max;}
+        if (this.value instanceof Integer)  { return (Integer)this.value <= max.intValue();}
+        if (this.value instanceof Long)  { return (Long)this.value <= max.longValue();}
+        if (this.value instanceof Float)  { return (Float)this.value <= max.floatValue();}
+        if (this.value instanceof Double)  { return (Double)this.value <= max.doubleValue();}
+        if (this.value instanceof Byte)  { return (Integer)this.value <= max.intValue();}
 
         throw new UnsupportedOperationException("The Number [" + value.getClass() + "] is not supported by NumberWrapper!");
     }
 
     public boolean isBoundedLower(N min){
-        if (this.value instanceof Integer)  { return (Integer)this.value >= (Integer)min;}
-        if (this.value instanceof Long)  { return (Long)this.value >= (Long)min;}
-        if (this.value instanceof Float)  { return (Float)this.value >= (Float)min;}
-        if (this.value instanceof Double)  { return (Double)this.value >= (Double)min;}
-        if (this.value instanceof Byte)  { return (Integer)this.value >= (Integer)min;}
+        if (this.value instanceof Integer)  { return (Integer)this.value >= min.intValue();}
+        if (this.value instanceof Long)  { return (Long)this.value >=  min.longValue();}
+        if (this.value instanceof Float)  { return (Float)this.value >= min.floatValue();}
+        if (this.value instanceof Double)  { return (Double)this.value >= min.doubleValue();}
+        if (this.value instanceof Byte)  { return (Integer)this.value >= min.intValue();}
 
         throw new UnsupportedOperationException("The Number [" + value.getClass() + "] is not supported by NumberWrapper!");
     }
