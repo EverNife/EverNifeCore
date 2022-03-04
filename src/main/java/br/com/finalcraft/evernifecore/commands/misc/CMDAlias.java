@@ -36,8 +36,8 @@ public class CMDAlias implements ICustomFinalCMD {
     }
 
     @Override
-    public void customize(@NotNull FinalCMDData cmdData, @NotNull List<SubCMDData> subCMDData) {
-        cmdData.labels(this.aliases);
-        cmdData.desc("Alias for the command: [" + theCommand + "]");
+    public void customize(@NotNull FinalCMDData finalCMDData, @NotNull List<SubCMDData> subCMDData) {
+        finalCMDData.labels(this.aliases);
+        finalCMDData.desc("Alias for the command: [" + theCommand + "]");
     }
 }
