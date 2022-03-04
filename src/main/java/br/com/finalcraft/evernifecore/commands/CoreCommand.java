@@ -3,7 +3,6 @@ package br.com.finalcraft.evernifecore.commands;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.PermissionNodes;
 import br.com.finalcraft.evernifecore.api.EverNifeCoreReloadEvent;
-import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
@@ -21,11 +20,11 @@ public class CoreCommand {
     @FinalCMD.SubCMD(
             subcmd = "reload",
             locales = {
-                    @FCLocale(lang = LocaleType.EN_US, text = "Fully reload EverNifeCore! Including all playerdata of all players!"),
+                    @FCLocale(lang = LocaleType.EN_US, text = "Fully reload EverNifeCore! Including all PlayerData of all players!"),
                     @FCLocale(lang = LocaleType.PT_BR, text = "Da reload no EverNifeCore! Incluindo todos os PlayerData de todos os jogadores!")
             }
     )
-    public static void reload(CommandSender sender, MultiArgumentos argumentos){
+    public void reload(CommandSender sender){
         ConfigManager.initialize(EverNifeCore.instance);
         FCMessageUtil.pluginHasBeenReloaded(sender, EverNifeCore.instance.getName());
         EverNifeCoreReloadEvent reloadEvent = new EverNifeCoreReloadEvent();

@@ -1,25 +1,34 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.help;
 
-import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDPluginCommand;
+import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDMethodInterpreter;
+import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
+import com.google.common.collect.ImmutableList;
 import org.bukkit.command.CommandSender;
 
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class HelpContext {
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§3§oMove the mouse over the commands to see their description!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§3§oPasse o mouse em cima dos comandos para ver a descrição!")
+    public static LocaleMessage HOLD_MOUSE_OVER;
+
     private final String helpHeader;
-    private final List<HelpLine> helpLines;
     private final FinalCMDPluginCommand finalCMDPluginCommand;
+    private final List<HelpLine> helpLines;
 
-    public HelpContext(FinalCMDPluginCommand finalCMDPluginCommand) {
+    public HelpContext(String helpHeader, FinalCMDPluginCommand finalCMDPluginCommand) {
+        this.helpHeader = helpHeader;
         this.finalCMDPluginCommand = finalCMDPluginCommand;
-        this.helpHeader = "";
+        this.helpLines = ImmutableList.copyOf(finalCMDPluginCommand.subCommands.stream().map(CMDMethodInterpreter::getHelpLine).collect(Collectors.toList()));
+    }
 
-        Collections.sort(finalCMDPluginCommand.helpLineList, Comparator.comparing(o -> o.getFancyText().getText()));
-
-        this.helpLines = Collections.unmodifiableList(finalCMDPluginCommand.helpLineList);
+    public String getHelpHeader() {
+        return helpHeader;
     }
 
     public List<HelpLine> getHelpLines() {
@@ -35,17 +44,18 @@ public class HelpContext {
     }
 
     public void sendTo(CommandSender sender, String label){
-        sender.sendMessage("§2§m-----------------------------------------------------");
+        sender.sendMessage(helpHeader.isEmpty() ? "§2§m-----------------------------------------------------" : helpHeader);
 
-        for (HelpLine helpLine : helpLines) {
-            if (!helpLine.getPermission().isEmpty() && !sender.hasPermission(helpLine.getPermission())){
+        for (CMDMethodInterpreter subCommand : finalCMDPluginCommand.subCommands) {
+            if (!subCommand.getCmdData().permission().isEmpty() && !sender.hasPermission(subCommand.getCmdData().permission())){
                 continue;
             }
-            helpLine.setLabelUsed(label).getFancyText().send(sender);
+
+            subCommand.getHelpLine().setLabelsUsed(label, subCommand.getCmdData().labels()[0]).sendTo(sender);
         }
 
         sender.sendMessage("");
-        sender.sendMessage("§3§oPasse o mouse em cima dos comandos para ver a descrição!");
+        HOLD_MOUSE_OVER.send(sender);
         sender.sendMessage("§2§m-----------------------------------------------------");
     }
 }

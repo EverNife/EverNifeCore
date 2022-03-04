@@ -19,7 +19,7 @@ public @interface FinalCMD {
 
     String permission() default "";
 
-    boolean playerOnly() default false;
+    String helpHeader() default "";
 
     CMDHelpType useDefaultHelp() default CMDHelpType.FULL;
 
@@ -28,21 +28,13 @@ public @interface FinalCMD {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     public static @interface SubCMD {
-        int index() default 0;
+        String[] subcmd();
 
-        String[] subcmd() default "";
-
-        String usage() default "%name%";
+        String usage() default "";
 
         String desc() default "";
 
-        String onSuggest() default "%name%";
-
         String permission() default "";
-
-        boolean executeSuggest() default false;
-
-        boolean playerOnly() default false;
 
         FCLocale[] locales() default {};
     }

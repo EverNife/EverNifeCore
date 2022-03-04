@@ -75,14 +75,6 @@ public class LocaleMessageImp implements LocaleMessage {
         return custom().concat(sendCustom);
     }
 
-    protected void addLocale(String lang, FancyText fancyText){
-        fancyTextMap.put(lang.toUpperCase(), fancyText);
-    }
-
-    public FancyText getFancyText(LocaleType localeType){
-        return fancyTextMap.get(localeType.name().toUpperCase());
-    }
-
     @Override
     public FancyText getFancyText(String lang){
         return fancyTextMap.get(lang.toUpperCase());
@@ -106,11 +98,15 @@ public class LocaleMessageImp implements LocaleMessage {
         return defaultFancyText;
     }
 
+    public void addLocale(String lang, FancyText fancyText){
+        fancyTextMap.put(lang.toUpperCase(), fancyText);
+    }
+
     public HashMap<String, FancyText> getFancyTextMap() {
         return fancyTextMap;
     }
 
-    protected String getKey() {
+    public String getKey() {
         return key;
     }
 

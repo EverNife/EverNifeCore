@@ -132,8 +132,8 @@ public class FCMessageUtil {
                 .send(sender);
     }
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe inserted value §e(§6%value%)§c must be §6[%possibilities%§6]§c!")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO valor inserido §e(§6%value%)§c deve ser §6[%possibilities%§6]§c!")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe inserted value §e(§6%value%§e)§c must be §6[%possibilities%§6]§c!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO valor inserido §e(§6%value%§e)§c deve ser §6[%possibilities%§6]§c!")
     private static LocaleMessage NOT_WITHIN_POSSIBILITIES;
     public static void notWithinPossibilities(CommandSender sender, String argument, Collection<? extends Object> possibilities){
         StringBuilder stringBuilder = new StringBuilder();

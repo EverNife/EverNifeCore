@@ -1,19 +1,20 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.annotations;
 
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface CMDBuilder {
+@Target({ElementType.PARAMETER})
+public @interface Arg {
 
-    boolean flagArgs() default false;
+    String name();
 
-    String[] aliases() default {""};
+    String context() default "";
 
-    String usage() default "";
+    Class<? extends ArgParser> parser() default ArgParser.class;
 
-    String desc() default "";
 }

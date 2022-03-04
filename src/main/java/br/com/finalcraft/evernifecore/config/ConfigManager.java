@@ -2,6 +2,8 @@ package br.com.finalcraft.evernifecore.config;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.autoupdater.SpigotUpdateChecker;
+import br.com.finalcraft.evernifecore.commands.finalcmd.executor.FCDefaultExecutor;
+import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
@@ -43,7 +45,9 @@ public class ConfigManager {
                 FCTimeFrame.class,
                 Cooldown.class,
                 FCBukkitUtil.class,
-                SpigotUpdateChecker.class
+                SpigotUpdateChecker.class,
+                HelpContext.class,
+                FCDefaultExecutor.class
         );
         FCLocaleManager.updateEverNifeCoreLocale();
     }

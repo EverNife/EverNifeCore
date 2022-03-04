@@ -1,15 +1,49 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.executor.parameter;
 
+import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
+import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
+import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpLine;
+import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
+import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
 public class CMDParameterType<T> {
+
+    public static final CMDParameterType[] ALLOWED_CLASSES = new CMDParameterType[]{
+            CMDParameterType.of(CommandSender.class).build(),
+            CMDParameterType.of(String.class).build(),
+            CMDParameterType.of(MultiArgumentos.class).build(),
+            CMDParameterType.of(HelpContext.class).build(),
+            CMDParameterType.of(HelpLine.class).build(),
+
+            CMDParameterType.of(ItemStack.class)
+                    .setOnlyPlayer(true)
+                    .build(),
+
+            CMDParameterType.of(Player.class)
+                    .setOnlyPlayer(true)
+                    .build(),
+
+            CMDParameterType.of(PlayerData.class)
+                    .setOnlyPlayer(true)
+                    .build(),
+
+            CMDParameterType.of(PDSection.class)
+                    .setOnlyPlayer(true)
+                    .setAllowExtends(true)
+                    .build(),
+    };
 
     private final Class<T> clazz;
     private final boolean checkExtends;
-    private final boolean onlyPlayer;
+    private final boolean playerOnly;
 
-    public CMDParameterType(Class<T> clazz, boolean checkExtends, boolean onlyPlayer) {
+    public CMDParameterType(Class<T> clazz, boolean checkExtends, boolean playerOnly) {
         this.clazz = clazz;
         this.checkExtends = checkExtends;
-        this.onlyPlayer = onlyPlayer;
+        this.playerOnly = playerOnly;
     }
 
     public static <T> Builder<T> of(Class<T> clazz){
@@ -24,8 +58,8 @@ public class CMDParameterType<T> {
         return checkExtends;
     }
 
-    public boolean isOnlyPlayer() {
-        return onlyPlayer;
+    public boolean isPlayerOnly() {
+        return playerOnly;
     }
 
     public static class Builder<T>{
@@ -58,7 +92,7 @@ public class CMDParameterType<T> {
         return "CMDParameterType{" +
                 "clazz=" + clazz +
                 ", checkExtends=" + checkExtends +
-                ", onlyPlayer=" + onlyPlayer +
+                ", onlyPlayer=" + playerOnly +
                 '}';
     }
 }

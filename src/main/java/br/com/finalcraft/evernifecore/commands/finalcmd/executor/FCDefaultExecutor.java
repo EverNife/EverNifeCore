@@ -1,39 +1,41 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.executor;
 
 import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
-import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.commands.finalcmd.IFinalCMDExecutor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.CMDHelpType;
-import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
+import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.FinalCMDData;
+import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
 public class FCDefaultExecutor implements IFinalCMDExecutor {
 
-    final FinalCMDPluginCommand finalCommand;
-    final ExecutorInterpreter mainInterpreter;
-    final br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD finalCMD;
+    @FCLocale(lang = LocaleType.EN_US, text = "§cParameters error, please use /%label% help")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§cErro de parâmetros, por favor use /%label% help")
+    public static LocaleMessage PARAMETER_ERROR;
 
-    public FCDefaultExecutor(FinalCMDPluginCommand finalCommand, FinalCMD finalCMD) {
-        this(finalCommand, null, finalCMD);
-    }
+    private final @NotNull FinalCMDPluginCommand finalCommand;
+    private final FinalCMDData finalCMD;
 
-    public FCDefaultExecutor(FinalCMDPluginCommand finalCommand, ExecutorInterpreter mainInterpreter, br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD finalCMD) {
+    public FCDefaultExecutor(@NotNull FinalCMDPluginCommand finalCommand) {
         this.finalCommand = finalCommand;
-        this.mainInterpreter = mainInterpreter;
-        this.finalCMD = finalCMD;
+        this.finalCMD = finalCommand.finalCMD;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 
-        if ((finalCMD.playerOnly() || (mainInterpreter!= null && mainInterpreter.playerArg)) && FCBukkitUtil.isNotPlayer(sender)){
+        if ((finalCommand.mainInterpreter != null && finalCommand.mainInterpreter.isPlayerOnly()) && FCBukkitUtil.isNotPlayer(sender)){
             return true;
         }
 
@@ -55,28 +57,29 @@ public class FCDefaultExecutor implements IFinalCMDExecutor {
         }
 
         MultiArgumentos argumentos = new MultiArgumentos(args, false);
+        String subCommandName = argumentos.getStringArg(0);
         try {
-            SubCommand subCommand = finalCommand.getSubCommand(args);
+            CMDMethodInterpreter subCommand = finalCommand.getSubCommand(subCommandName);
 
             if (subCommand != null){
 
-                if ((subCommand.finalSubCMD.playerOnly() || subCommand.executorInterpreter.playerArg) && FCBukkitUtil.isNotPlayer(sender)){
+                if ((subCommand.isPlayerOnly() || subCommand.isPlayerOnly()) && FCBukkitUtil.isNotPlayer(sender)){
                     return true;
                 }
 
-                if (!subCommand.finalSubCMD.permission().isEmpty() && !FCBukkitUtil.hasThePermission(sender, subCommand.finalSubCMD.permission())){
+                if (!subCommand.getCmdData().permission().isEmpty() && !FCBukkitUtil.hasThePermission(sender, subCommand.getCmdData().permission())){
                     return true;
                 }
 
-                prepareLocales(sender, label);
-                subCommand.executorInterpreter.invoke(sender, label, argumentos, finalCommand.helpContext, subCommand.helpLine.setLabelUsed(label));
+                prepareClassLocales(sender, label);
+                subCommand.invoke(sender, label, argumentos, finalCommand.helpContext, subCommand.getHelpLine().setLabelsUsed(label, subCommandName));
             }else {
 
-                prepareLocales(sender, label);
-                if (mainInterpreter == null){
-                    onCommand(sender, label);
+                prepareClassLocales(sender, label);
+                if (finalCommand.mainInterpreter == null){
+                    PARAMETER_ERROR.addPlaceholder("%label%", label).send(sender);
                 }else {
-                    mainInterpreter.invoke(sender, label, argumentos, finalCommand.helpContext, finalCommand.mainHelpLine.setLabelUsed(label));
+                    finalCommand.mainInterpreter.invoke(sender, label, argumentos, finalCommand.helpContext, finalCommand.mainInterpreter.getHelpLine().setLabelsUsed(label, subCommandName));
                 }
             }
         } catch (IllegalAccessException e) {
@@ -90,16 +93,12 @@ public class FCDefaultExecutor implements IFinalCMDExecutor {
         return true;
     }
 
-    private void prepareLocales(CommandSender sender, String label) throws IllegalAccessException {
+    private void prepareClassLocales(CommandSender sender, String label) throws IllegalAccessException {
         for (Field localeMessageField : this.finalCommand.localeMessageFields) {
             LocaleMessageImp localeMessage = (LocaleMessageImp) localeMessageField.get(null);
             localeMessage.getContextPlaceholders().clear();
             localeMessage.getContextPlaceholders().put("%label%",label);
             if (sender instanceof Player) localeMessage.getContextPlaceholders().put("%player%",((Player) sender).getName());
         }
-    }
-
-    public void onCommand(CommandSender sender, String label) {
-        sender.sendMessage("§cErro de parametros, por favor use /" + label + " help");
     }
 }
