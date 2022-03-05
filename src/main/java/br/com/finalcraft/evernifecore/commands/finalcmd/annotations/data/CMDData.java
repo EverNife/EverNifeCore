@@ -16,15 +16,6 @@ public class CMDData {
     private String usage;
     private String desc;
     private String permission;
-    private FCLocale[] locales;
+    private FCLocaleData[] locales;
 
-    public CMDData label(String label){
-        this.labels = new String[]{label};
-        return this;
-    }
-
-    public CMDData label(FCLocale locale){
-        this.locales = new FCLocale[]{locale};
-        return this;
-    }
 }
