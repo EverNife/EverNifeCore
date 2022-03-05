@@ -8,6 +8,6 @@ import java.util.List;
 
 public interface ICustomFinalCMD {
 
-    void customize(@NotNull FinalCMDData finalCMDData, @NotNull List<SubCMDData> subCMDData);
+    void customize(@NotNull FinalCMDData finalCMDData, @NotNull List<SubCMDData> subCMDDataList);
 
 }

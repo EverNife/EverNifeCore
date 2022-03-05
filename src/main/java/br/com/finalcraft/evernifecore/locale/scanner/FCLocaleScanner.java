@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.locale.scanner;
 
+import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.ecplugin.ECPlugin;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
@@ -9,10 +10,8 @@ import org.bukkit.plugin.Plugin;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class FCLocaleScanner {
 
@@ -51,7 +50,10 @@ public class FCLocaleScanner {
 
                 String key = declaredField.getDeclaringClass().getSimpleName() + "." + declaredField.getName().toUpperCase().replace("__",".").toUpperCase();
 
-                LocaleMessageImp localeMessage = scanForLocale(plugin, key, true, fcLocales);
+                LocaleMessageImp localeMessage = scanForLocale(plugin, key, true, Arrays.stream(fcLocales)
+                        .map(FCLocaleData::new)
+                        .collect(Collectors.toList())
+                        .toArray(new FCLocaleData[0]));
 
                 try {
                     declaredField.set(null, localeMessage);
@@ -80,18 +82,18 @@ public class FCLocaleScanner {
         return localeMessageList;
     }
 
-    public static LocaleMessageImp scanForLocale(Plugin plugin, String key, boolean saveOnFile, FCLocale... locales){
+    public static LocaleMessageImp scanForLocale(Plugin plugin, String key, boolean saveOnFile, FCLocaleData... locales){
 
         ECPlugin ecPlugin = ECPluginManager.getOrCreateECorePlugin(plugin);
 
         LocaleMessageImp localeMessage = new LocaleMessageImp(plugin, key);
         ecPlugin.addLocale(localeMessage);
 
-        for (FCLocale fcLocale : locales) {
+        for (FCLocaleData fcLocale : locales) {
             String text = fcLocale.text();
             String hover = fcLocale.hover().isEmpty() ? null : fcLocale.hover();
             String runCommand = fcLocale.runCommand().isEmpty() ? null : fcLocale.runCommand();
-            String lang = fcLocale.lang().name();
+            String lang = fcLocale.lang();
             FancyText fancyText = new FancyText(text, hover, runCommand);
 
             if (localeMessage.getFancyText(lang) != null){

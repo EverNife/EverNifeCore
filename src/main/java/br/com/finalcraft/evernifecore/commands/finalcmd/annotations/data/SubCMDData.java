@@ -5,6 +5,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 
 @Getter
 @Setter
@@ -16,7 +19,10 @@ public class SubCMDData extends CMDData {
                 subCMD.usage(),
                 subCMD.desc(),
                 subCMD.permission(),
-                subCMD.locales()
+                Arrays.stream(subCMD.locales())
+                        .map(FCLocaleData::new)
+                        .collect(Collectors.toList())
+                        .toArray(new FCLocaleData[0])
         );
     }
 

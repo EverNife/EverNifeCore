@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 
 @Getter
 @Setter
@@ -21,7 +24,10 @@ public class FinalCMDData extends CMDData {
                 finalCMD.usage(),
                 finalCMD.desc(),
                 finalCMD.permission(),
-                finalCMD.locales()
+                Arrays.stream(finalCMD.locales())
+                        .map(FCLocaleData::new)
+                        .collect(Collectors.toList())
+                        .toArray(new FCLocaleData[0])
         );
         this.helpHeader = finalCMD.helpHeader();
         this.useDefaultHelp = finalCMD.useDefaultHelp();

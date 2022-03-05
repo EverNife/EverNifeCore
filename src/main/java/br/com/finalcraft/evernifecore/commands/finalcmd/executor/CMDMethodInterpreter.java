@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.CMDData;
+import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.SubCMDData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
@@ -135,11 +136,11 @@ public class CMDMethodInterpreter {
 
     private HelpLine buildHelpLine(){
         String localeMessageKey = method.getDeclaringClass().getSimpleName() + "." + method.getName().toUpperCase();
-        FCLocale[] locales = cmdData.locales();
+        FCLocaleData[] locales = cmdData.locales();
         LocaleMessageImp localeMessage;
 
         if (locales.length > 0){
-            localeMessage = FCLocaleScanner.scanForLocale(owningPlugin, localeMessageKey, true, cmdData.locales());
+            localeMessage = FCLocaleScanner.scanForLocale(owningPlugin, localeMessageKey, true, locales);
         }else {
             //If no FCLocale is present, use the cmdData desc() to build it
             localeMessage = new LocaleMessageImp(owningPlugin,localeMessageKey);
