@@ -22,10 +22,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class FinalCMDManager {
@@ -80,6 +77,8 @@ public class FinalCMDManager {
             if (localeMessageFields.size() > 0){
                 FCLocaleManager.loadLocale(pluginInstance, executor.getClass());
             }
+
+            Collections.sort(localeMessageFields, Comparator.comparing(Field::getName)); //Sort LocaleMessage fields by its name
 
             if (finalCMDMainMethods.size() == 1){ //Check for SubCommands, maybe this @FinalCMD is in the Class
                 Method mainCommandMethod = finalCMDMainMethods.get(0); //Element ZERO is null if we have a @FinalCMD annotation to the class rather than the function
