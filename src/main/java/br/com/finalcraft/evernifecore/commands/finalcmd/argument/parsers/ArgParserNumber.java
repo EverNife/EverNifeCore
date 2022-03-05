@@ -40,11 +40,8 @@ public class ArgParserNumber extends ArgParser<Number> {
 
     @Override
     public Number parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException {
-        if (argumento == null) {
-            sender.sendMessage("Found a null argumento");
-        }
         final Number number;
-        //We cannot use an ternary operator here because of NPE caused by boxingAndUnboxing of values.
+        //We cannot use a ternary operator here because of NPE caused by boxingAndUnboxing of values.
         if (isInteger) {
             number = argumento.getInteger();
         }else {
@@ -91,7 +88,7 @@ public class ArgParserNumber extends ArgParser<Number> {
             throw new ArgParseException();
         }
 
-        return null;
+        return number;
     }
 
     @Override
