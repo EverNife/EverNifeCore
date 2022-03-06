@@ -5,11 +5,13 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.util.ArgsParserUtil;
+import br.com.finalcraft.evernifecore.util.FCMathUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import com.google.common.collect.ImmutableList;
 import org.bukkit.command.CommandSender;
+import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -94,7 +96,7 @@ public class ArgParserNumber extends ArgParser<Number> {
     @Override
     public @NotNull List<String> tabComplete(Context context) {
         if (possibilities != null){
-            return possibilities.stream().map(aDouble -> aDouble.toString()).collect(Collectors.toList());
+            return possibilities.stream().map(aDouble -> FCMathUtil.toString(aDouble)).filter(s -> StringUtil.startsWithIgnoreCase(s, context.getLastWord())).collect(Collectors.toList());
         }
 
         return ImmutableList.of();

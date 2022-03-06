@@ -9,9 +9,11 @@ import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang.Validate;
 import org.bukkit.command.CommandSender;
+import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ArgParserString extends ArgParser<String> {
 
@@ -51,6 +53,6 @@ public class ArgParserString extends ArgParser<String> {
 
     @Override
     public @NotNull List<String> tabComplete(Context context) {
-        return possibilities;
+        return possibilities.stream().filter(s -> StringUtil.startsWithIgnoreCase(s, context.getLastWord())).collect(Collectors.toList());
     }
 }

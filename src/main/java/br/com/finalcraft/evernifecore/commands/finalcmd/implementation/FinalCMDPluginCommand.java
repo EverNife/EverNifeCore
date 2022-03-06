@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.executor.FCDefaultExecut
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser;
 import com.google.common.collect.ImmutableList;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandException;
@@ -152,6 +153,7 @@ public class FinalCMDPluginCommand extends Command implements PluginIdentifiable
             return subCommands.stream()
                     .filter(subCommand -> subCommand.getCmdData().permission().isEmpty() || sender.hasPermission(subCommand.getCmdData().permission()))
                     .map(subCommand -> subCommand.getLabels()[0])
+                    .filter(s -> StringUtils.startsWithIgnoreCase(s, args[index]))
                     .collect(Collectors.toList());
         }
 
