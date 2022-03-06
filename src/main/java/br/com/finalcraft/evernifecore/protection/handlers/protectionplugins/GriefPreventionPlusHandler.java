@@ -11,15 +11,17 @@ import org.bukkit.entity.Player;
 
 
 public class GriefPreventionPlusHandler implements ProtectionHandler {
-	DataStore dataStore;
 
 	public GriefPreventionPlusHandler() {
-		this.dataStore = GriefPreventionPlus.getInstance().getDataStore();
+	}
+
+	public DataStore getDataStore(){
+		return GriefPreventionPlus.getInstance().getDataStore();
 	}
 
 	@Override
 	public boolean canBuild(Player player, Location location) {
-		Claim claim = this.dataStore.getClaimAt(location, false);
+		Claim claim = this.getDataStore().getClaimAt(location, false);
 		if (claim==null) {
 			return true;
 		}
@@ -37,7 +39,7 @@ public class GriefPreventionPlusHandler implements ProtectionHandler {
 
 	@Override
 	public boolean canAccess(Player player, Location location) {
-		Claim claim = this.dataStore.getClaimAt(location, false);
+		Claim claim = this.getDataStore().getClaimAt(location, false);
 		if (claim==null) {
 			return true;
 		}
@@ -55,7 +57,7 @@ public class GriefPreventionPlusHandler implements ProtectionHandler {
 
 	@Override
 	public boolean canUse(Player player, Location location) {
-		Claim claim = this.dataStore.getClaimAt(location, false);
+		Claim claim = this.getDataStore().getClaimAt(location, false);
 		if (claim==null) {
 			return true;
 		}
@@ -73,7 +75,7 @@ public class GriefPreventionPlusHandler implements ProtectionHandler {
 	
 	@Override
 	public boolean canOpenContainer(Player player, Block block) {
-		Claim claim = this.dataStore.getClaimAt(block.getLocation(), false);
+		Claim claim = this.getDataStore().getClaimAt(block.getLocation(), false);
 		if (claim==null) {
 			return true;
 		}
@@ -91,7 +93,7 @@ public class GriefPreventionPlusHandler implements ProtectionHandler {
 
 	@Override
 	public boolean canInteract(Player player, Location location) {
-		Claim claim = this.dataStore.getClaimAt(location, false);
+		Claim claim = this.getDataStore().getClaimAt(location, false);
 		if (claim==null) {
 			return true;
 		}
@@ -110,7 +112,7 @@ public class GriefPreventionPlusHandler implements ProtectionHandler {
 
 	@Override
 	public boolean canAttack(Player damager, Entity damaged) {
-		Claim claim = this.dataStore.getClaimAt(damaged.getLocation(), false);
+		Claim claim = this.getDataStore().getClaimAt(damaged.getLocation(), false);
 		if (claim==null) {
 			return true;
 		}
@@ -128,7 +130,7 @@ public class GriefPreventionPlusHandler implements ProtectionHandler {
 
 	@Override
 	public boolean canProjectileHit(Player player, Location location) {
-		Claim claim = this.dataStore.getClaimAt(location, false);
+		Claim claim = this.getDataStore().getClaimAt(location, false);
 		if (claim==null) {
 			return true;
 		}
@@ -146,7 +148,7 @@ public class GriefPreventionPlusHandler implements ProtectionHandler {
 	
 	@Override
 	public boolean canUseAoE(Player player, Location location, int range) {
-		Claim claim = this.dataStore.getClaimAt(location, false);
+		Claim claim = this.getDataStore().getClaimAt(location, false);
 		if (claim!=null) {
 			if (claim.canBuild(player)!=null) {
 				// you have no perms on this claim, disallow.
@@ -173,7 +175,7 @@ public class GriefPreventionPlusHandler implements ProtectionHandler {
 		}
 		
 		// the range is not entirely on a claim you're trusted in... we need to search for nearby claims too.
-		for (Claim nClaim : this.dataStore.posClaimsGet(location, range).values()) {
+		for (Claim nClaim : this.getDataStore().posClaimsGet(location, range).values()) {
 			if (nClaim.canBuild(player)!=null) {
 				// if not allowed on claims in range, disallow.
 				return false;
