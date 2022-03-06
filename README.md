@@ -1,3 +1,5 @@
+[![Discord](https://img.shields.io/discord/899151012290498620.svg?label=discord&logo=discord)](https://discord.petrus.dev/)
+
 #EverNifeCore
 
 This is the base plugin for all my other plugins.
