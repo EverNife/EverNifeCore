@@ -183,7 +183,7 @@ public class FinalCMDManager {
             if (existingCommand instanceof PluginIdentifiableCommand){
                 Plugin plugin = ((PluginIdentifiableCommand) existingCommand).getPlugin();
                 if (plugin != null){
-                    originalPlugin = " Plugin: " + plugin.getName();
+                    originalPlugin = "Plugin: " + plugin.getName();
                 }
             }
 
