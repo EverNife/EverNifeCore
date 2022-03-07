@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.locale.scanner;
 
-import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.FCLocaleData;
+import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.ecplugin.ECPlugin;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;

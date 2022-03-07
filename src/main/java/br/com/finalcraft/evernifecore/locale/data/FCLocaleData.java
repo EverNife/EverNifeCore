@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data;
+package br.com.finalcraft.evernifecore.locale.data;
 
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import lombok.AllArgsConstructor;

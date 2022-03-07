@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data;
 
-import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
