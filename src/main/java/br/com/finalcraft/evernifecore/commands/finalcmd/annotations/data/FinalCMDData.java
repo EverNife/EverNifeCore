@@ -43,4 +43,11 @@ public class FinalCMDData extends CMDData<FinalCMDData> {
         this.helpHeader = "";
         this.useDefaultHelp = CMDHelpType.FULL;
     }
+
+    @Override
+    public FinalCMDData override(FinalCMDData override) {
+        if (!override.helpHeader().isEmpty()) this.helpHeader = override.helpHeader();
+        if (override.useDefaultHelp() != CMDHelpType.FULL) this.useDefaultHelp = override.useDefaultHelp();
+        return super.override(override);
+    }
 }
