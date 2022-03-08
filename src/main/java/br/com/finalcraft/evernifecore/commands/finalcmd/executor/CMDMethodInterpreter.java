@@ -83,7 +83,7 @@ public class CMDMethodInterpreter {
                     //This means the DEFAULT parser, so, we look over the ArgParserManager
                     Class<? extends ArgParser> parserClass = ArgParserManager.getParser(owningPlugin, parameterClazz);
                     if (parserClass == null){
-                        throw new IllegalStateException("Failed to found the proper ArgParser on the FinalCMD (" + executor.getClass().getName() +")[" + method.getName() +"] parameter [index=" + index + ", name=" + argData.name() + "]. The dev should set it manually or register it on the ArgParserManager!");
+                        throw new IllegalStateException("Failed to found the proper ArgParser on the FinalCMD (" + executor.getClass().getName() +")[" + method.getName() +"] parameter {index='" + index + "', name='" + argData.name() + "'}. The dev should set it manually or register it on the ArgParserManager!");
                     }
                     argData.parser(parserClass);
                 }

@@ -4,8 +4,14 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.FinalCMDData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.SubCMDData;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserIPlayerData;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserNumber;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserPlayer;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserString;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDMethodInterpreter;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
+import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.FCMultiLocales;
@@ -16,6 +22,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.PluginIdentifiableCommand;
 import org.bukkit.command.SimpleCommandMap;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.SimplePluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -26,6 +33,17 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class FinalCMDManager {
+
+    static {
+        //The ArgParsers bellow will be available to all ECPlugins
+        //Needs to be registered here because we need them for plugins that load before EverNifeCore
+        ArgParserManager.addGlobalParser(String.class, ArgParserString.class);
+        ArgParserManager.addGlobalParser(Integer.class, ArgParserNumber.class);
+        ArgParserManager.addGlobalParser(Float.class, ArgParserNumber.class);
+        ArgParserManager.addGlobalParser(Double.class, ArgParserNumber.class);
+        ArgParserManager.addGlobalParser(Player.class, ArgParserPlayer.class);
+        ArgParserManager.addGlobalParser(IPlayerData.class, ArgParserIPlayerData.class);
+    }
 
     public static boolean registerCommand(@NotNull JavaPlugin pluginInstance, @NotNull Class cmdClass) {
         try {
