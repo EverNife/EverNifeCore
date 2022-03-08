@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @Accessors(fluent = true, chain = true)
-public class SubCMDData extends CMDData {
+public class SubCMDData extends CMDData<SubCMDData> {
 
     public SubCMDData(FinalCMD.SubCMD subCMD) {
         super(subCMD.subcmd(),

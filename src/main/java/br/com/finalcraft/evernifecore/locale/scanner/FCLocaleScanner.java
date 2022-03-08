@@ -1,11 +1,11 @@
 package br.com.finalcraft.evernifecore.locale.scanner;
 
-import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.ecplugin.ECPlugin;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.*;
+import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import org.bukkit.plugin.Plugin;
 
 import java.lang.reflect.Field;

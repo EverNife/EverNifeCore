@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @Accessors(fluent = true, chain = true)
-public class FinalCMDData extends CMDData {
+public class FinalCMDData extends CMDData<FinalCMDData> {
 
     private String helpHeader;
     private CMDHelpType useDefaultHelp;
