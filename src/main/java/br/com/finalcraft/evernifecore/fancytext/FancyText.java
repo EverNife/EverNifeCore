@@ -214,18 +214,21 @@ public class FancyText {
 
             baseTextComponent.setHoverEvent(new HoverEvent( HoverEvent.Action.SHOW_TEXT, new ComponentBuilder( fixedHoverText ).create() ));
         }
-        switch (this.clickActionType){
-            case NONE:
-                break;
-            case RUN_COMMAND:
-                baseTextComponent.setClickEvent( new ClickEvent( ClickEvent.Action.RUN_COMMAND,  this.clickActionText ) );
-                break;
-            case OPEN_URL:
-                baseTextComponent.setClickEvent( new ClickEvent( ClickEvent.Action.OPEN_URL,  this.clickActionText ) );
-                break;
-            case SUGGEST_COMMAND:
-                baseTextComponent.setClickEvent( new ClickEvent( ClickEvent.Action.SUGGEST_COMMAND,  this.clickActionText ) );
-                break;
+
+        if (this.clickActionText != null){
+            switch (this.clickActionType){
+                case NONE:
+                    break;
+                case RUN_COMMAND:
+                    baseTextComponent.setClickEvent( new ClickEvent( ClickEvent.Action.RUN_COMMAND,  this.clickActionText ) );
+                    break;
+                case OPEN_URL:
+                    baseTextComponent.setClickEvent( new ClickEvent( ClickEvent.Action.OPEN_URL,  this.clickActionText ) );
+                    break;
+                case SUGGEST_COMMAND:
+                    baseTextComponent.setClickEvent( new ClickEvent( ClickEvent.Action.SUGGEST_COMMAND,  this.clickActionText ) );
+                    break;
+            }
         }
 
         List<String> lines = splitAtNewLine(fixedText);
