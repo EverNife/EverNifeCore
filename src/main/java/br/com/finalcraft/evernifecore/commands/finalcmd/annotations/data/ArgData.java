@@ -22,4 +22,10 @@ public class ArgData {
         this.context = arg.context();
         this.parser = arg.parser();
     }
+
+    public ArgData() {
+        name = "";
+        context = "";
+        parser = ArgParser.class;
+    }
 }

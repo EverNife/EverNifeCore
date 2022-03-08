@@ -37,4 +37,10 @@ public class FinalCMDData extends CMDData {
             this.helpHeader = FCTextUtil.alignCenter(this.helpHeader, "§2§m-§r");
         }
     }
+
+    public FinalCMDData() {
+        super();
+        this.helpHeader = "";
+        this.useDefaultHelp = CMDHelpType.FULL;
+    }
 }

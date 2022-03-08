@@ -18,4 +18,11 @@ public class CMDData {
     private String permission;
     private FCLocaleData[] locales;
 
+    public CMDData() {
+        labels = new String[0];
+        usage = "";
+        desc = "";
+        permission = "";
+        locales = new FCLocaleData[0];
+    }
 }

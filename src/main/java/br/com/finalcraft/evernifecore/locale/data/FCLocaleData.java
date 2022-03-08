@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.locale.data;
 
 import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,6 +17,13 @@ public class FCLocaleData {
     private String hover;
     private String runCommand;
     private String lang;
+
+    public FCLocaleData() {
+        text = "";
+        hover = "";
+        runCommand = "";
+        lang = LocaleType.EN_US.name();
+    }
 
     public FCLocaleData(FCLocale locale) {
         this.text = locale.text();

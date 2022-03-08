@@ -27,4 +27,7 @@ public class SubCMDData extends CMDData {
         );
     }
 
+    public SubCMDData() {
+        super();
+    }
 }
