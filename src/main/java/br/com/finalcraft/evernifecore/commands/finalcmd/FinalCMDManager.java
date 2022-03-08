@@ -5,10 +5,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.FinalCMDData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.SubCMDData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserIPlayerData;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserNumber;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserPlayer;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserString;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.*;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDMethodInterpreter;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
@@ -43,6 +40,7 @@ public class FinalCMDManager {
         ArgParserManager.addGlobalParser(Double.class, ArgParserNumber.class);
         ArgParserManager.addGlobalParser(Player.class, ArgParserPlayer.class);
         ArgParserManager.addGlobalParser(IPlayerData.class, ArgParserIPlayerData.class);
+        ArgParserManager.addGlobalParser(Boolean.class, ArgParserBoolean.class);
     }
 
     public static boolean registerCommand(@NotNull JavaPlugin pluginInstance, @NotNull Class cmdClass) {
