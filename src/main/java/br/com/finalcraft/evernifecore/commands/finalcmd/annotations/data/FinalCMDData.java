@@ -28,7 +28,8 @@ public class FinalCMDData extends CMDData<FinalCMDData> {
                 Arrays.stream(finalCMD.locales())
                         .map(FCLocaleData::new)
                         .collect(Collectors.toList())
-                        .toArray(new FCLocaleData[0])
+                        .toArray(new FCLocaleData[0]),
+                null
         );
         this.helpHeader = finalCMD.helpHeader();
         this.useDefaultHelp = finalCMD.useDefaultHelp();

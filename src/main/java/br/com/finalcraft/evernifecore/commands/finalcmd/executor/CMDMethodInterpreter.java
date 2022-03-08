@@ -79,6 +79,9 @@ public class CMDMethodInterpreter {
 
             if (arg != null){
                 ArgData argData = new ArgData(arg);
+                if (cmdData.argCustomizer() != null){//Customize this ArgData if needed
+                    cmdData.argCustomizer().accept(argData, parameterClazz);
+                }
                 if (ArgParser.class == argData.parser()){
                     //This means the DEFAULT parser, so, we look over the ArgParserManager
                     Class<? extends ArgParser> parserClass = ArgParserManager.getParser(owningPlugin, parameterClazz);

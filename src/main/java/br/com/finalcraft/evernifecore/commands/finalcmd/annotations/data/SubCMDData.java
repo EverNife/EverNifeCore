@@ -23,7 +23,8 @@ public class SubCMDData extends CMDData<SubCMDData> {
                 Arrays.stream(subCMD.locales())
                         .map(FCLocaleData::new)
                         .collect(Collectors.toList())
-                        .toArray(new FCLocaleData[0])
+                        .toArray(new FCLocaleData[0]),
+                null
         );
     }
 
