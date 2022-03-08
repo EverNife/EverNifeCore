@@ -225,6 +225,8 @@ public class CMDMethodInterpreter {
     public void invoke(CommandSender sender, String label, MultiArgumentos argumentos, HelpContext helpContext, HelpLine helpLine) throws IllegalAccessException, IllegalArgumentException,
             InvocationTargetException {
 
+        helpContext.setLastLabel(label);
+
         Object[] possibleArgs = new Object[]{label, argumentos, helpContext, helpLine};
         Object[] theArgs = new Object[simpleArguments.size() + customArguments.size()];
 

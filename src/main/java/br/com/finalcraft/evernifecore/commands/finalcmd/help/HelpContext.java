@@ -21,10 +21,13 @@ public class HelpContext {
     private final FinalCMDPluginCommand finalCMDPluginCommand;
     private final List<HelpLine> helpLines;
 
+    private transient String lastLabel;
+
     public HelpContext(String helpHeader, FinalCMDPluginCommand finalCMDPluginCommand) {
         this.helpHeader = helpHeader;
         this.finalCMDPluginCommand = finalCMDPluginCommand;
         this.helpLines = ImmutableList.copyOf(finalCMDPluginCommand.subCommands.stream().map(CMDMethodInterpreter::getHelpLine).collect(Collectors.toList()));
+        this.lastLabel = finalCMDPluginCommand.getLabel();
     }
 
     public String getHelpHeader() {
@@ -41,6 +44,14 @@ public class HelpContext {
 
     public int size(){
         return helpLines.size();
+    }
+
+    public void setLastLabel(String lastLabel) {
+        this.lastLabel = lastLabel;
+    }
+
+    public void sendTo(CommandSender sender){
+        sendTo(sender, this.lastLabel);
     }
 
     public void sendTo(CommandSender sender, String label){
