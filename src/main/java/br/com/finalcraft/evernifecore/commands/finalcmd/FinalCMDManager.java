@@ -7,13 +7,13 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.SubCMDD
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.*;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDMethodInterpreter;
+import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CustomizeContext;
+import br.com.finalcraft.evernifecore.commands.finalcmd.executor.MethodData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.FCMultiLocales;
-import br.com.finalcraft.evernifecore.util.commons.Tuple;
-import com.google.common.collect.ImmutableList;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
@@ -27,7 +27,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class FinalCMDManager {
 
@@ -108,31 +107,29 @@ public class FinalCMDManager {
 
 
                 FinalCMDData finalCMDData = new FinalCMDData(finalCMD);
-                List<Tuple<Method,SubCMDData>> subCMDsTuples = new ArrayList<>();
+                MethodData<FinalCMDData> mainMethodData = new MethodData(finalCMDData, mainCommandMethod);
 
+                List<MethodData<SubCMDData>> subCommandsMethodData = new ArrayList<>();
                 for (Method declaredMethod : executor.getClass().getDeclaredMethods()) {
                     if (declaredMethod.isAnnotationPresent(FinalCMD.SubCMD.class)){
                         FinalCMD.SubCMD subCMD = declaredMethod.getAnnotation(FinalCMD.SubCMD.class);
                         SubCMDData subCMDData = new SubCMDData(subCMD);
-                        subCMDsTuples.add(
-                                Tuple.of(declaredMethod, subCMDData)
-                        );
+                        subCommandsMethodData.add(new MethodData(subCMDData, declaredMethod));
                     }
                 }
 
+                CustomizeContext customizeContext = new CustomizeContext(mainMethodData, subCommandsMethodData);
+
                 if (executor instanceof ICustomFinalCMD){
-                    ((ICustomFinalCMD) executor).customize(finalCMDData,
-                            ImmutableList.copyOf(
-                                    subCMDsTuples.stream().map(Tuple::getBeta).collect(Collectors.toList())
-                            )
-                    );
+                    //Apply command customization if necessary
+                    ((ICustomFinalCMD) executor).customize(customizeContext);
                 }
 
-                CMDMethodInterpreter mainMethodInterpreter = (mainCommandMethod == null ? null : new CMDMethodInterpreter(pluginInstance, mainCommandMethod, executor, finalCMDData));
+                CMDMethodInterpreter mainMethodInterpreter = (mainCommandMethod == null ? null : new CMDMethodInterpreter(pluginInstance, customizeContext.getMainMethod(), executor));
 
                 FinalCMDPluginCommand newCommand = new FinalCMDPluginCommand(pluginInstance, finalCMDData, mainMethodInterpreter);
-                for (Tuple<Method, SubCMDData> tuple : subCMDsTuples) {
-                    CMDMethodInterpreter subCommandInterpreter = new CMDMethodInterpreter(pluginInstance, tuple.getAlfa(), executor, tuple.getBeta());
+                for (MethodData<SubCMDData> subCMDDataMethodData : customizeContext.getSubMethods()) {
+                    CMDMethodInterpreter subCommandInterpreter = new CMDMethodInterpreter(pluginInstance, subCMDDataMethodData, executor);
                     newCommand.addSubCommand(subCommandInterpreter);
                 }
 
@@ -146,14 +143,17 @@ public class FinalCMDManager {
             for (Method mainCommandMethod : finalCMDMainMethods) {
                 try {
                     FinalCMD finalCMD = mainCommandMethod.getAnnotation(FinalCMD.class);
-
                     FinalCMDData finalCMDData = new FinalCMDData(finalCMD);
 
+                    MethodData<FinalCMDData> mainMethodData = new MethodData(finalCMDData, mainCommandMethod);
+                    CustomizeContext customizeContext = new CustomizeContext(mainMethodData, Collections.EMPTY_LIST);
+
                     if (executor instanceof ICustomFinalCMD){
-                        ((ICustomFinalCMD) executor).customize(finalCMDData, Collections.EMPTY_LIST);
+                        //Apply command customization if necessary
+                        ((ICustomFinalCMD) executor).customize(customizeContext);
                     }
 
-                    CMDMethodInterpreter mainMethodInterpreter = mainCommandMethod == null ? null : new CMDMethodInterpreter(pluginInstance, mainCommandMethod, executor, finalCMDData);
+                    CMDMethodInterpreter mainMethodInterpreter = mainCommandMethod == null ? null : new CMDMethodInterpreter(pluginInstance, customizeContext.getMainMethod(), executor);
 
                     FinalCMDPluginCommand newCommand = new FinalCMDPluginCommand(pluginInstance, finalCMDData, mainMethodInterpreter);
 
@@ -168,7 +168,7 @@ public class FinalCMDManager {
             //We are in a case where there are several @FinalCMD methods, we cannot allow SubCMDs in this class
             // lets check for it just to warn the developer
             for (Method declaredMethod : executor.getClass().getDeclaredMethods()) {
-                if (declaredMethod.isAnnotationPresent(br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD.SubCMD.class)){
+                if (declaredMethod.isAnnotationPresent(FinalCMD.SubCMD.class)){
                     pluginInstance.getLogger().severe("Found a SubCMD on the class [" + executor.getClass().getName() + "] method " + declaredMethod.getName() + " but the class has more than one FinalCMD, this will be ignored!");
                 }
             }

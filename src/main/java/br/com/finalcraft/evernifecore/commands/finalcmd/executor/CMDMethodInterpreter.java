@@ -54,11 +54,11 @@ public class CMDMethodInterpreter {
 
     private transient HelpLine helpLine;
 
-    public CMDMethodInterpreter(JavaPlugin owningPlugin, Method method, Object executor, CMDData cmdData) {
+    public CMDMethodInterpreter(JavaPlugin owningPlugin, MethodData methodData, Object executor) {
         this.owningPlugin = owningPlugin;
-        this.method = method;
+        this.method = methodData.getMethod();
         this.executor = executor;
-        this.cmdData = cmdData;
+        this.cmdData = methodData.getData();
         this.labels = cmdData.labels();
         this.isSubCommand = cmdData instanceof SubCMDData;
 
@@ -68,7 +68,7 @@ public class CMDMethodInterpreter {
 
         List<Tuple<Class, Annotation[]>> argsAndAnnotations = ReflectionUtil.getArgsAndAnnotations(method);
 
-        int flagArgIndex = isSubCommand ? 1 : 0;
+        int flagArgIndex = 0;
 
         for (int index = 0; index < argsAndAnnotations.size(); index++) {
 
@@ -78,10 +78,9 @@ public class CMDMethodInterpreter {
             Arg arg = (Arg) Arrays.stream(tuple.getBeta()).filter(annotation -> annotation.annotationType() == Arg.class).findFirst().orElse(null);
 
             if (arg != null){
-                ArgData argData = new ArgData(arg);
-                if (cmdData.customize() != null){//Customize this ArgData if needed
-                    cmdData.customize().accept(argData, parameterClazz);
-                }
+                //If @Arg is present, we take the ArgData from our MethodData as it may have been customized over the command creation
+                ArgData argData = ((List<Tuple<ArgData, Class>>)methodData.getArgDataList()).remove(0).getAlfa();
+
                 if (ArgParser.class == argData.parser()){
                     //This means the DEFAULT parser, so, we look over the ArgParserManager
                     Class<? extends ArgParser> parserClass = ArgParserManager.getParser(owningPlugin, parameterClazz);
