@@ -5,9 +5,6 @@ import br.com.finalcraft.evernifecore.util.FCArrayUtil;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.function.BiConsumer;
 
 @Getter
 @Accessors(fluent = true)
@@ -19,7 +16,6 @@ public class CMDData<T extends CMDData<T>> {
     private String desc;
     private String permission;
     private FCLocaleData[] locales;
-    private @Nullable BiConsumer<ArgData, Class> customize;
 
     public CMDData() {
         labels = new String[0];
@@ -27,7 +23,6 @@ public class CMDData<T extends CMDData<T>> {
         desc = "";
         permission = "";
         locales = new FCLocaleData[0];
-        customize = null;
     }
 
     //Override this CMDData with data from other CMDData
@@ -37,7 +32,6 @@ public class CMDData<T extends CMDData<T>> {
         if (!override.desc().isEmpty()) this.desc = override.desc();
         if (!override.permission().isEmpty()) this.permission = override.permission();
         if (override.locales().length > 0) this.locales = override.locales();
-        if (override.customize() != null) this.customize = override.customize();
         return (T) this;
     }
 
@@ -73,11 +67,6 @@ public class CMDData<T extends CMDData<T>> {
 
     public T locales(FCLocaleData locale, FCLocaleData... otherLocales){
         this.locales = FCArrayUtil.merge(locale, otherLocales);
-        return (T) this;
-    }
-
-    public T customize(BiConsumer<ArgData, Class> argCustomizer){
-        this.customize = argCustomizer;
         return (T) this;
     }
 
