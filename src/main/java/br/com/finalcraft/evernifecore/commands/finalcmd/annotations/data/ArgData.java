@@ -28,4 +28,10 @@ public class ArgData {
         context = "";
         parser = ArgParser.class;
     }
+
+    public ArgData replace(String placeholder, String value){
+        this.name = this.name.replace(placeholder, value);
+        this.context = this.context.replace(placeholder, value);
+        return this;
+    }
 }
