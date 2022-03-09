@@ -19,7 +19,7 @@ public class CMDData<T extends CMDData<T>> {
     private String desc;
     private String permission;
     private FCLocaleData[] locales;
-    private @Nullable BiConsumer<ArgData, Class> argCustomizer;
+    private @Nullable BiConsumer<ArgData, Class> customize;
 
     public CMDData() {
         labels = new String[0];
@@ -27,7 +27,7 @@ public class CMDData<T extends CMDData<T>> {
         desc = "";
         permission = "";
         locales = new FCLocaleData[0];
-        argCustomizer = null;
+        customize = null;
     }
 
     //Override this CMDData with data from other CMDData
@@ -37,7 +37,7 @@ public class CMDData<T extends CMDData<T>> {
         if (!override.desc().isEmpty()) this.desc = override.desc();
         if (!override.permission().isEmpty()) this.permission = override.permission();
         if (override.locales().length > 0) this.locales = override.locales();
-        if (override.argCustomizer() != null) this.argCustomizer = override.argCustomizer();
+        if (override.customize() != null) this.customize = override.customize();
         return (T) this;
     }
 
@@ -76,8 +76,8 @@ public class CMDData<T extends CMDData<T>> {
         return (T) this;
     }
 
-    public T argCustomizer(BiConsumer<ArgData, Class> argCustomizer){
-        this.argCustomizer = argCustomizer;
+    public T customize(BiConsumer<ArgData, Class> argCustomizer){
+        this.customize = argCustomizer;
         return (T) this;
     }
 
