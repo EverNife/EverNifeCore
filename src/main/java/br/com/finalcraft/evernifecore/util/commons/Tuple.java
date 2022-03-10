@@ -4,8 +4,8 @@ import java.util.Objects;
 
 public class Tuple<ALFA, BETA> {
 
-    public ALFA alfa;
-    public BETA beta;
+    private ALFA alfa;
+    private BETA beta;
 
     public Tuple(ALFA alfa, BETA beta) {
         this.alfa = alfa;
