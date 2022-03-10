@@ -68,7 +68,7 @@ public class CMDMethodInterpreter {
 
         List<Tuple<Class, Annotation[]>> argsAndAnnotations = ReflectionUtil.getArgsAndAnnotations(method);
 
-        int flagArgIndex = 0;
+        int flagArgIndex = isSubCommand ? 1 : 0;
 
         for (int index = 0; index < argsAndAnnotations.size(); index++) {
 
