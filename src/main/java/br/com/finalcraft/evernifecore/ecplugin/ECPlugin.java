@@ -81,6 +81,10 @@ public class ECPlugin {
         return pluginLanguage;
     }
 
+    public Plugin getPlugin() {
+        return plugin;
+    }
+
     @Nullable
     public Config getCustomLangConfig(){
         return this.customLangConfig;

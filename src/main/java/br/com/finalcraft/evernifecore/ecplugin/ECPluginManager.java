@@ -18,5 +18,8 @@ public class ECPluginManager {
         ECPLUGINS_MAP.remove(playerName);
     }
 
+    public static HashMap<String, ECPlugin> getECPluginsMap() {
+        return ECPLUGINS_MAP;
+    }
 }
 
