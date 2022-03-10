@@ -34,7 +34,7 @@ public class CMDECLocale {
         FancyFormatter formatter = FancyFormatter.of(FCTextUtil.straightLineOf("§a§m-§r"));
 
         for (ECPlugin ecplugin : ECPluginManager.getECPluginsMap().values()) {
-            formatter.append("\n ♦ " + ecplugin.getPlugin().getName() + " ");
+            formatter.append("\n§d ♦ §b" + ecplugin.getPlugin().getName() + " ");
 
             for (LocaleType localeType : LocaleType.values()) {
                 boolean isThisSelected = ecplugin.getPluginLanguage().equals(localeType.name());
