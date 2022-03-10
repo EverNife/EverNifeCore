@@ -14,8 +14,7 @@ import java.util.HashMap;
 public class ECPlugin {
 
     private final Plugin plugin;
-    private final String pluginLanguage;
-
+    private String pluginLanguage;
     private HashMap<String,LocaleMessageImp> localizedMessages = new HashMap();
 
     private Config customLangConfig = null;
@@ -51,6 +50,13 @@ public class ECPlugin {
 
     public void reloadAllCustomLocales(){
         markedForLocaleReload = false;
+
+        //Check for the locale name again
+        Config localization_config = new Config(this.plugin, "localization/localization_config.yml");
+        this.pluginLanguage = localization_config.getString("Localization.fileName", "lang_" + FCLocaleManager.DEFAULT_EVERNIFECORE_LOCALE + ".yml")
+                .replace(".yml","")
+                .replace("lang_","");
+
         //This code will only execute if the plugin is using a custom locale.
         //If the plugin is using a HardcodedLocale there is no need to reload anything at all
         boolean isHardcodedLocale = Arrays.stream(LocaleType.values()).map(Enum::name).filter(s -> s.equals(this.getPluginLanguage())).findAny().isPresent();

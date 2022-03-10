@@ -91,6 +91,7 @@ public class CMDECLocale {
         localization_config.save();
 
         sender.sendMessage("§2§l ▶ §b§l" + plugin.getName() + "'s §alocalization file name set to [" + localization_config.getString("Localization.fileName") + "]!");
+        ecPlugin.reloadAllCustomLocales();
     }
 
     @FinalCMD.SubCMD(
