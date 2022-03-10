@@ -44,7 +44,7 @@ public class SpigotUpdateChecker {
     public static void checkForUpdates(@NotNull JavaPlugin plugin, @NotNull String resourceId, @Nullable Config config){
         SpigotUpdateChecker spigotUpdateChecker = new SpigotUpdateChecker(plugin, resourceId, config);
         if (spigotUpdateChecker.checkForUpdates == false){
-            plugin.getLogger().warning("[UpdateChecker] Update Check is disabled!");
+            plugin.getLogger().info("[UpdateChecker] Update Check is disabled!");
             return; //Don't need to do anything more!
         }
 
@@ -85,7 +85,7 @@ public class SpigotUpdateChecker {
 
         switch (updateResult){
             case ALREADY_UPDATED:
-                plugin.getLogger().warning("[UpdateChecker] Update Check Completed! " + plugin.getName() + " is Already Up-to-Date!");
+                plugin.getLogger().info("[UpdateChecker] Update Check Completed! " + plugin.getName() + " is Already Up-to-Date!");
                 cleanOldJars(plugin); //Clean possible old jars of this plugin on the Plugins Directory
                 return;
             case FAIL_TO_CHECK: //Error already printed in place
@@ -165,7 +165,7 @@ public class SpigotUpdateChecker {
             File destFolder = new File(plugin.getDataFolder().getParentFile(), fileName);
 
             if (destFolder.exists()){
-                plugin.getLogger().warning("[UpdateChecker] Error downloading the new update: " + newVersion + " as there is already a file named " + fileName + " under the Plugins folder. You need to manually delete all old versions of this plugins!");
+                plugin.getLogger().severe("[UpdateChecker] Error downloading the new update: " + newVersion + " as there is already a file named " + fileName + " under the Plugins folder. You need to manually delete all old versions of this plugins!");
                 return;
             }
 
@@ -175,7 +175,7 @@ public class SpigotUpdateChecker {
 
             plugin.getLogger().info("[UpdateChecker] Download of the update [" + fileName + "] completed! This update will be applied on the next server restart!");
         } catch (Exception e) {
-            plugin.getLogger().warning("[UpdateChecker] Error while downloading the update: " + fileName);
+            plugin.getLogger().severe("[UpdateChecker] Error while downloading the update: " + fileName);
             e.printStackTrace();
             return;
         } finally {
@@ -202,7 +202,7 @@ public class SpigotUpdateChecker {
                 if (bukkitPluginJar.pluginName.equalsIgnoreCase(plugin.getDescription().getName()) && !bukkitPluginJar.version.equalsIgnoreCase(plugin.getDescription().getVersion())){
 
                     if (currentVersion.compareTo(bukkitPluginJar.version) <= 0){
-                        plugin.getLogger().warning("----------------------------- [UpdateChecker] -----------------------------" +
+                        plugin.getLogger().severe("----------------------------- [UpdateChecker] -----------------------------" +
                                 "\nI was going to delete the plugin [" + bukkitPluginJar.file.getAbsolutePath() + "] but it seems to be newer than the current version? Is that correct?!" +
                                 "\nThis can happen if you have renamed the " + plugin.getName() + " plugin's jar name! This way the AutoUpdater will not work!" +
                                 "\n" +
@@ -212,9 +212,9 @@ public class SpigotUpdateChecker {
                     }
 
                     if (!bukkitPluginJar.file.delete()){
-                        plugin.getLogger().warning("[UpdateChecker] I was not able to delete an older version of this plugin at [" + bukkitPluginJar.file.getAbsolutePath()  + "]! You will have to delete it manually!");
+                        plugin.getLogger().severe("[UpdateChecker] I was not able to delete an older version of this plugin at [" + bukkitPluginJar.file.getAbsolutePath()  + "]! You will have to delete it manually!");
                     }else {
-                        plugin.getLogger().warning("[UpdateChecker] Deleted an older version [" + bukkitPluginJar.version + "] of this plugin that was in the plugins folder!");
+                        plugin.getLogger().info("[UpdateChecker] Deleted an older version [" + bukkitPluginJar.version + "] of this plugin that was in the plugins folder!");
                     }
                 }
             }
