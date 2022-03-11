@@ -27,7 +27,7 @@ public class ArgParserBoolean extends ArgParser<Boolean> {
 
         possibilities = ImmutableList.copyOf(ArgsParserUtil.parseStringContextSelectional(context));
 
-        Validate.isTrue(possibilities.size() != 2, "Can't create a ArgParserBoolean without exactly two options! [context=='" + context + "']");
+        Validate.isTrue(possibilities.size() == 2, "Can't create a ArgParserBoolean without exactly two options! [context=='" + context + "']");
     }
 
     @Override
