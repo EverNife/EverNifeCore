@@ -119,7 +119,6 @@ public class FinalCMDManager {
                 List<MethodData<SubCMDData>> subCommandsMethodData = new ArrayList<>();
                 for (Method declaredMethod : methods) {
                     FinalCMD.SubCMD subCMD = ReflectionUtil.getAnnotationDeeply(declaredMethod, FinalCMD.SubCMD.class);
-                    System.out.println("[" + executor.getClass().getSimpleName() + "] CheckForSub [" + declaredMethod.getName() + "] === " + subCMD);
                     if (subCMD != null){
                         SubCMDData subCMDData = new SubCMDData(subCMD);
                         subCommandsMethodData.add(new MethodData(subCMDData, declaredMethod));
