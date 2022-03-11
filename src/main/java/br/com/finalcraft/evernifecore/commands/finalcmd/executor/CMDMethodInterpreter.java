@@ -66,7 +66,7 @@ public class CMDMethodInterpreter {
 
         boolean playerOnly = false;
 
-        List<Tuple<Class, Annotation[]>> argsAndAnnotations = ReflectionUtil.getArgsAndAnnotations(method);
+        List<Tuple<Class, Annotation[]>> argsAndAnnotations = ReflectionUtil.getArgsAndAnnotationsDeeply(method);
 
         int flagArgIndex = isSubCommand ? 1 : 0;
 

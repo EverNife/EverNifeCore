@@ -14,6 +14,8 @@ import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.FCMultiLocales;
+import br.com.finalcraft.evernifecore.util.ReflectionUtil;
+import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
@@ -24,6 +26,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.SimplePluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -57,23 +60,32 @@ public class FinalCMDManager {
 
     public static boolean registerCommand(@NotNull JavaPlugin pluginInstance, @NotNull Object executor) {
         try {
-            List<Method> finalCMDMainMethods = new ArrayList<>();
+            List<Tuple<FinalCMD, Method>> finalCMDMainMethods = new ArrayList<>();
 
-            //Checking for all Methods that have a @FinalCMD
-            for (Method declaredMethod : executor.getClass().getDeclaredMethods()) {
-                if (declaredMethod.isAnnotationPresent(FinalCMD.class)){
-                    finalCMDMainMethods.add(declaredMethod);
+            //Add all declared-methods from the class and its supper-classes until Object
+            HashSet<Method> methods = new HashSet<>();
+            Class father = executor.getClass();
+            while (father != null && father != Object.class){
+                methods.addAll(Arrays.asList(father.getDeclaredMethods()));
+                father = father.getSuperclass();
+            }
+
+            //Checking for all methods that have a @FinalCMD
+            for (Method declaredMethod : methods) {
+                FinalCMD finalCMD = ReflectionUtil.getAnnotationDeeply(declaredMethod, FinalCMD.class);
+                if (finalCMD != null){
+                    finalCMDMainMethods.add(Tuple.of(finalCMD, declaredMethod));
                 }
             }
 
             //If there is no method with @FinalCMD annotation, maybe the class itself is annotated
             if (finalCMDMainMethods.size() == 0){
-                if (executor.getClass().isAnnotationPresent(FinalCMD.class)){
-                    finalCMDMainMethods.add(null);
-                }else {
+                FinalCMD finalCMD = ReflectionUtil.getAnnotationDeeply(executor.getClass(), FinalCMD.class);
+                if (finalCMD == null){
                     pluginInstance.getLogger().severe("Tried to register a FinalCMD(" + executor.getClass().getName() + ") without any @FinalCMD Annotation!");
                     return false;
                 }
+                finalCMDMainMethods.add(Tuple.of(finalCMD, null));
             }
 
             //Identify all LocaleMessages in this class and load it
@@ -88,7 +100,7 @@ public class FinalCMDManager {
                 }
             }
 
-            //IF we have any method with FCLocale annotation, than load it using the FCLocaleManager
+            //IF we have any method with FCLocale annotation, then load it using the FCLocaleManager
             if (localeMessageFields.size() > 0){
                 FCLocaleManager.loadLocale(pluginInstance, executor.getClass());
             }
@@ -96,23 +108,19 @@ public class FinalCMDManager {
             Collections.sort(localeMessageFields, Comparator.comparing(Field::getName)); //Sort LocaleMessage fields by its name
 
             if (finalCMDMainMethods.size() == 1){ //Check for SubCommands, maybe this @FinalCMD is in the Class
-                Method mainCommandMethod = finalCMDMainMethods.get(0); //Element ZERO is null if we have a @FinalCMD annotation to the class rather than the function
+                Tuple<FinalCMD, Method> tuple = finalCMDMainMethods.get(0);
 
-                final FinalCMD finalCMD;
-                if (mainCommandMethod != null){
-                    finalCMD = mainCommandMethod.getAnnotation(FinalCMD.class);
-                }else {
-                    finalCMD = executor.getClass().getAnnotation(FinalCMD.class);
-                }
-
+                final FinalCMD finalCMD = tuple.getAlfa();
+                @Nullable Method mainCommandMethod = tuple.getBeta(); //Method is null if we have a @FinalCMD annotation to the class rather than the function
 
                 FinalCMDData finalCMDData = new FinalCMDData(finalCMD);
                 MethodData<FinalCMDData> mainMethodData = new MethodData(finalCMDData, mainCommandMethod);
 
                 List<MethodData<SubCMDData>> subCommandsMethodData = new ArrayList<>();
-                for (Method declaredMethod : executor.getClass().getDeclaredMethods()) {
-                    if (declaredMethod.isAnnotationPresent(FinalCMD.SubCMD.class)){
-                        FinalCMD.SubCMD subCMD = declaredMethod.getAnnotation(FinalCMD.SubCMD.class);
+                for (Method declaredMethod : methods) {
+                    FinalCMD.SubCMD subCMD = ReflectionUtil.getAnnotationDeeply(declaredMethod, FinalCMD.SubCMD.class);
+                    System.out.println("[" + executor.getClass().getSimpleName() + "] CheckForSub [" + declaredMethod.getName() + "] === " + subCMD);
+                    if (subCMD != null){
                         SubCMDData subCMDData = new SubCMDData(subCMD);
                         subCommandsMethodData.add(new MethodData(subCMDData, declaredMethod));
                     }
@@ -140,11 +148,12 @@ public class FinalCMDManager {
 
             // We have several @FinalCMD annotated methods on this class, lets register all of them.
             // Each one is a different command without any SubCommand
-            for (Method mainCommandMethod : finalCMDMainMethods) {
+            for (Tuple<FinalCMD, Method> tuple : finalCMDMainMethods) {
                 try {
-                    FinalCMD finalCMD = mainCommandMethod.getAnnotation(FinalCMD.class);
-                    FinalCMDData finalCMDData = new FinalCMDData(finalCMD);
+                    FinalCMD finalCMD = tuple.getAlfa();
+                    Method mainCommandMethod = tuple.getBeta();
 
+                    FinalCMDData finalCMDData = new FinalCMDData(finalCMD);
                     MethodData<FinalCMDData> mainMethodData = new MethodData(finalCMDData, mainCommandMethod);
                     CustomizeContext customizeContext = new CustomizeContext(mainMethodData, Collections.EMPTY_LIST);
 
@@ -160,14 +169,14 @@ public class FinalCMDManager {
                     newCommand.addLocaleMessages(localeMessageFields);
                     newCommand.registerCommand();
                 }catch (Throwable e){
-                    pluginInstance.getLogger().severe("Error registering a FinalCMD on the class [" + executor.getClass().getName() + "] method " + mainCommandMethod.getName() + "!");
+                    pluginInstance.getLogger().severe("Error registering a FinalCMD on the class [" + executor.getClass().getName() + "] method " + tuple.getBeta().getName() + "!");
                     e.printStackTrace();
                 }
             }
 
             //We are in a case where there are several @FinalCMD methods, we cannot allow SubCMDs in this class
             // lets check for it just to warn the developer
-            for (Method declaredMethod : executor.getClass().getDeclaredMethods()) {
+            for (Method declaredMethod : methods) {
                 if (declaredMethod.isAnnotationPresent(FinalCMD.SubCMD.class)){
                     pluginInstance.getLogger().severe("Found a SubCMD on the class [" + executor.getClass().getName() + "] method " + declaredMethod.getName() + " but the class has more than one FinalCMD, this will be ignored!");
                 }

@@ -4,6 +4,8 @@ import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import br.com.finalcraft.evernifecore.util.reflection.ConstructorInvoker;
 import br.com.finalcraft.evernifecore.util.reflection.FieldAccessor;
 import br.com.finalcraft.evernifecore.util.reflection.MethodInvoker;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
@@ -62,20 +64,27 @@ public class ReflectionUtil {
     }
 
     /**
-     * Retrieve the args and annotations of a method.
+     * Retrieve the args and annotations of a method, and if it is not present
+     * look for the annotation on its father class.
      *
      * @param method  - the method
-     * @return The args and annotations
+     *
+     * @return The args and annotations found on this method or on the method of its fathers
      */
-    public static List<Tuple<Class, Annotation[]>> getArgsAndAnnotations(Method method) {
+    public static List<Tuple<Class, Annotation[]>> getArgsAndAnnotationsDeeply(Method method) {
         List<Tuple<Class, Annotation[]>> argsAndAnnotations = new ArrayList<>();
 
         Class<?>[] parameterTypes = method.getParameterTypes();
         Annotation[][] annotations = method.getParameterAnnotations();
 
+        boolean foundAtLeastOneAnnotation = false;
+
         for (int i = 0; i < parameterTypes.length; i++) {
             Class theArg = parameterTypes[i];
             Annotation[] annotationsOnThisArg = annotations[i];
+            if (annotationsOnThisArg.length > 0){
+                foundAtLeastOneAnnotation = true;
+            }
             argsAndAnnotations.add(
                     Tuple.of(
                             theArg, annotationsOnThisArg
@@ -83,7 +92,81 @@ public class ReflectionUtil {
             );
         }
 
+        if (!foundAtLeastOneAnnotation){ //Look for the father's method
+
+            Class father = method.getDeclaringClass().getSuperclass();
+            if (father == null){ //No father to look up
+                return argsAndAnnotations;
+            }
+
+            try {
+                method = father.getDeclaredMethod(method.getName(), method.getParameterTypes());
+                return getArgsAndAnnotationsDeeply(method);
+            }catch (NoSuchMethodException e) {
+                //The method on this class is not present on its father
+                //Do nothing
+            }
+        }
+
         return argsAndAnnotations;
+    }
+
+    /**
+     * Retrieve an annotation from a method and if it is not present look for the upperclasses methods.
+     *
+     * @param method  - the method
+     * @param annotationType  - The annotation type
+     *
+     * @return The annotation found or null
+     */
+    public static @Nullable <T extends Annotation> T getAnnotationDeeply(@NotNull Method method, @NotNull Class<T> annotationType) {
+
+        T annotation = method.getAnnotation(annotationType);
+
+        if (annotation == null){//We need to check for annotations on the SuperClasses
+            final String methodName = method.getName();
+            final Class<?>[] parameterTypes = method.getParameterTypes();
+            try {
+                while (true){
+                    Class father = method.getDeclaringClass().getSuperclass();
+                    if (father == null || father == Object.class){
+                        break;
+                    }
+                    method = father.getDeclaredMethod(methodName, parameterTypes);
+                    annotation = method.getAnnotation(annotationType);
+                    if (annotation != null){
+                        break;
+                    }
+                }
+            }catch (NoSuchMethodException e) {
+                //The method on this class is not present on its father
+                //Do Nothing
+            }
+        }
+
+        return annotation;
+    }
+
+    /**
+     * Retrieve an annotation from a clazz and if it is not present look for the upperclasses.
+     *
+     * @param clazz  - the clazz
+     * @param annotationType  - The annotation type
+     *
+     * @return The annotation found or null
+     */
+    public static @Nullable <T extends Annotation> T getAnnotationDeeply(@NotNull Class clazz, @NotNull Class<T> annotationType) {
+
+        T annotation = (T) clazz.getAnnotation(annotationType);
+
+        if (annotation == null){//We need to check for annotations on the SuperClasses
+            Class father = clazz.getSuperclass();
+            if (father == null || father == Object.class){ //No father to look up
+                return getAnnotationDeeply(father, annotationType);
+            }
+        }
+
+        return annotation;
     }
 
     /**
