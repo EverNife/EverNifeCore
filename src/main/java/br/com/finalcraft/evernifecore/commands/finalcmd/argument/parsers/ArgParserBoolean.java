@@ -49,7 +49,7 @@ public class ArgParserBoolean extends ArgParser<Boolean> {
             throw new ArgParseException();
         }
 
-        return null;
+        return bool;
     }
 
     @Override
