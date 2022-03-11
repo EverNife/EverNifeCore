@@ -17,6 +17,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
 
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @FinalCMD(
         aliases = {"eclocale"},
         permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE
@@ -33,15 +37,19 @@ public class CMDECLocale {
     public void list(CommandSender sender, String label) {
         FancyFormatter formatter = FancyFormatter.of(FCTextUtil.straightLineOf("§a§m-§r"));
 
-        for (ECPlugin ecplugin : ECPluginManager.getECPluginsMap().values()) {
-            formatter.append("\n§d ♦ §b" + ecplugin.getPlugin().getName() + " ");
+        List<ECPlugin> sortedPlugins = ECPluginManager.getECPluginsMap().values().stream()
+                .sorted(Comparator.comparing(ecPlugin -> ecPlugin.getPlugin().getName()))
+                .collect(Collectors.toList());
+
+        for (ECPlugin ecplugin : sortedPlugins) {
+            formatter.append("\n§d ♦ §b" + ecplugin.getPlugin().getName() + " §7");
 
             for (LocaleType localeType : LocaleType.values()) {
                 boolean isThisSelected = ecplugin.getPluginLanguage().equals(localeType.name());
                 formatter.append(
                         FancyText.of((isThisSelected ? "§a§l" : "") +  "[" + localeType.name() + "]§7")
                                 .setHoverText(isThisSelected ? "§aThis locale is already selected!" : "Click to Change Locale to: " + localeType.name())
-                                .setRunCommandAction(isThisSelected ? null : "/" + label + " set " + ecplugin.getPluginLanguage() + " " + localeType.name())
+                                .setRunCommandAction(isThisSelected ? null : "/" + label + " set " + ecplugin.getPlugin().getName() + " " + localeType.name())
                 );
             }
             if (ecplugin.getCustomLangConfig() != null){
@@ -74,7 +82,7 @@ public class CMDECLocale {
         ECPlugin ecPlugin = plugin == null ? null : ECPluginManager.getECPluginsMap().get(plugin.getName());
 
         if (ecPlugin == null){
-            sender.sendMessage("§e§l ▶ §cNo ECPlugin with the name [" + argumentos.get(1) + "] found on this server.");
+            sender.sendMessage("§e§l ▶ §cThere is no ECPlugin with the name §e[" + argumentos.get(1) + "]§c found on this server.");
             return;
         }
 
@@ -87,11 +95,17 @@ public class CMDECLocale {
         }
 
         Config localization_config = new Config(plugin, "localization/localization_config.yml");
-        localization_config.setValue("Localization.fileName", "lang_" + (localeType != null ? localeType.name() : argumentos.get(2)) + ".yml");
-        localization_config.save();
+
+        String newLocaleValue = "lang_" + (localeType != null ? localeType.name() : argumentos.get(2)) + ".yml";
+        String previousLocaleValue = localization_config.getString("Localization.fileName");
+
+        if (!newLocaleValue.equals(previousLocaleValue)){
+            localization_config.setValue("Localization.fileName", newLocaleValue);
+            localization_config.save();
+            ecPlugin.reloadAllCustomLocales();
+        }
 
         sender.sendMessage("§2§l ▶ §b§l" + plugin.getName() + "'s §alocalization file name set to [" + localization_config.getString("Localization.fileName") + "]!");
-        ecPlugin.reloadAllCustomLocales();
     }
 
     @FinalCMD.SubCMD(
