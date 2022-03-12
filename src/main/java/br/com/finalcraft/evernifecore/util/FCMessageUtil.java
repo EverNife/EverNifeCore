@@ -89,6 +89,13 @@ public class FCMessageUtil {
         NEEDS_TO_BE_DOUBLE.addPlaceholder("%argumento%", argumento).send(sender);
     }
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §7[§2%argumento%§7]§c needs to be a valid UUID!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §7[§2%argumento%§7]§c precisa ser uma UUID válida!")
+    private static LocaleMessage NEEDS_TO_BE_UUID;
+    public static void needsToBeUUID(CommandSender sender, String argumento){
+        NEEDS_TO_BE_UUID.addPlaceholder("%argumento%", argumento).send(sender);
+    }
+
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §7[§2%argumento%§7]§c needs to be a real number!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê não tem money suficiente! §7§o(Money: %current_money%§l/§7§o%needed_money%)")
     private static LocaleMessage ECO_NOT_ENOUGHT;
