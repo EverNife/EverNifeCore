@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @FinalCMD(
-        aliases = {"eclocale"},
+        aliases = {"eclocale","fclocale"},
         permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE
 )
 public class CMDECLocale {
