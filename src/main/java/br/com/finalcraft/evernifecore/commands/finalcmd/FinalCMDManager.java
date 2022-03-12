@@ -43,6 +43,7 @@ public class FinalCMDManager {
         ArgParserManager.addGlobalParser(Player.class, ArgParserPlayer.class);
         ArgParserManager.addGlobalParser(IPlayerData.class, ArgParserIPlayerData.class);
         ArgParserManager.addGlobalParser(Boolean.class, ArgParserBoolean.class);
+        ArgParserManager.addGlobalParser(UUID.class, ArgParserUUID.class);
     }
 
     public static boolean registerCommand(@NotNull JavaPlugin pluginInstance, @NotNull Class cmdClass) {
