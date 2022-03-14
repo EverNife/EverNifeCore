@@ -151,6 +151,7 @@ public class FCItemUtils {
 
     public static String getMinecraftIdentifier(ItemStack itemStack, boolean withNbt){
         String nbt = null;
+        itemStack = NMSUtils.get().validateItemStackHandle(itemStack);
         if (withNbt){
             nbt = NMSUtils.get().getNBTtoString(itemStack);
         }

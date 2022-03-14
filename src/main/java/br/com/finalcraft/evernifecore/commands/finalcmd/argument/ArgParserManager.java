@@ -2,7 +2,6 @@ package br.com.finalcraft.evernifecore.commands.finalcmd.argument;
 
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
