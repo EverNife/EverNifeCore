@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.annotations;
 
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.FlagParser;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -16,5 +17,17 @@ public @interface Arg {
     String context() default "";
 
     Class<? extends ArgParser> parser() default ArgParser.class;
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ElementType.PARAMETER})
+    public static @interface Flag {
+
+        String name();
+
+        String context() default "";
+
+        Class<? extends FlagParser> parser() default FlagParser.class;
+
+    }
 
 }
