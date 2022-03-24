@@ -12,7 +12,7 @@ import java.util.UUID;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class PlaceholderTest {
 
-    private static class SimplePlayer { //Class With Primitives Classes in Construtor
+    private static class SimplePlayer {
         String name;
         UUID uuid;
         int kills = new Random().nextInt(100);
@@ -53,7 +53,7 @@ public class PlaceholderTest {
                 .addMappedParser("uuid", SimplePlayer::getUuid)
                 .addMappedParser("kills", SimplePlayer::getKills)
                 .addMappedParser("deaths", SimplePlayer::getDeaths)
-                .addMappedParser("kdr", simplePlayer -> simplePlayer.getKills() / Math.max(1, simplePlayer.getDeaths()))
+                .addMappedParser("kdr", simplePlayer -> simplePlayer.getKills() / Math.max(1D, simplePlayer.getDeaths()))
                 .addMappedParser("math_kills_doubled", simplePlayer -> "Wrong");
 
         REGEX_REPLACER.addProvider("math")
