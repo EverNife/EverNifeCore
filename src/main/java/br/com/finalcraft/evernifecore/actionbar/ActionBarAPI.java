@@ -18,7 +18,7 @@ public class ActionBarAPI {
     }
 
     public static void send(Player player, ActionBarMessage actionBarMessage){
-        if (MCVersion.isLegacy()) return;//ActionBar is not present on legacy minecraft
+        if (MCVersion.isBellow1_7_10()) return;//ActionBar is not present on legacy minecraft
 
         PlayerActionBarManager playerActionBarManager = PLAYER_ACTION_BAR_MAP.get(player.getUniqueId());
 
@@ -31,7 +31,7 @@ public class ActionBarAPI {
     }
 
     public static void clearActionBar(Player player){
-        if (MCVersion.isLegacy()) return;//ActionBar is not present on legacy minecraft
+        if (MCVersion.isBellow1_7_10()) return;//ActionBar is not present on legacy minecraft
 
         PlayerActionBarManager playerActionBarManager = PLAYER_ACTION_BAR_MAP.get(player.getUniqueId());
 

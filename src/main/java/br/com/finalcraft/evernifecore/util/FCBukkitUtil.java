@@ -33,7 +33,7 @@ public class FCBukkitUtil {
     static {
         try {
             methodLoader_isLoaded = ReflectionUtil.getMethod(
-                    MCVersion.isLegacy()
+                    MCVersion.isBellow1_7_10()
                             ? "cpw.mods.fml.common.Loader"
                             : "net.minecraftforge.fml.common.Loader",
                     "isModLoaded",
@@ -52,7 +52,7 @@ public class FCBukkitUtil {
     public static void playSound(String playerName, String music) {
         Player player = Bukkit.getPlayer(playerName);
         if (player != null){
-            if (MCVersion.isLegacy()){
+            if (MCVersion.isBellow1_7_10()){
                 makeConsoleExecuteCommand("playsound " + music + " " + playerName + " ~0 ~0 ~0 100");
             }else {
                 player.playSound(player.getLocation(), music, SoundCategory.AMBIENT, 100, 1);
@@ -61,7 +61,7 @@ public class FCBukkitUtil {
     }
 
     public static void playSoundAll(String music) {
-        if (MCVersion.isLegacy()){
+        if (MCVersion.isBellow1_7_10()){
             for (Player player : Bukkit.getServer().getOnlinePlayers()) {
                 makeConsoleExecuteCommand("playsound " + music + " " + player.getName() + " ~0 ~0 ~0 100");
             }
@@ -73,7 +73,7 @@ public class FCBukkitUtil {
     }
 
     public static void playSoundAll(String music, int speed) {
-        if (MCVersion.isLegacy()){
+        if (MCVersion.isBellow1_7_10()){
             for (Player player : Bukkit.getServer().getOnlinePlayers()) {
                 makeConsoleExecuteCommand("playsound " + music + " " + player.getName() + " ~0 ~0 ~0 100 " + speed);
             }
@@ -438,7 +438,7 @@ public class FCBukkitUtil {
     }
 
     public static void setPlayersHeldItem(Player player, ItemStack itemStack) {
-        if (MCVersion.isLegacy()) {
+        if (MCVersion.isBellow1_7_10()) {
             player.setItemInHand(itemStack);
         } else {
             player.getInventory().setItemInMainHand(itemStack);
@@ -448,7 +448,7 @@ public class FCBukkitUtil {
     public static ItemStack getPlayersHeldItem(Player player) {
         final ItemStack heldItem;
 
-        if (MCVersion.isLegacy()) {
+        if (MCVersion.isBellow1_7_10()) {
             heldItem = player.getItemInHand();
         } else {
             heldItem = player.getInventory().getItemInMainHand();
@@ -462,7 +462,7 @@ public class FCBukkitUtil {
     }
 
     public static Block getTargetBlock(Player player, int maxDistance) {
-        if (MCVersion.isLegacy()) {
+        if (MCVersion.isBellow1_7_10()) {
             final BlockIterator iterator = new BlockIterator(player.getLocation(), player.getEyeHeight(), maxDistance);
             Block result;
             while (iterator.hasNext()) {

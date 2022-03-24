@@ -45,11 +45,17 @@ public enum MCVersion {
         return null;
     }
 
+    /*
+     * This might not tell much as "legacy" is not 'below 1.7.10' anymore, legacy now is anything bellow 1.13
+     *
+     * So, its better to use <link>MCVersion.isBellow1_7_10<link/>
+     */
+    @Deprecated //
     public static boolean isLegacy(){
-        return legacy != null ? legacy : (legacy = isCurrentLowerEquals(MCVersion.v1_7_R4));
+        return isBellow1_7_10();
     }
 
-    public static boolean isBellow1_7_10(){
+    public static boolean isBellow1_7_10(){//Bellow Or Equals
         return isCurrentLowerEquals(MCVersion.v1_7_R4);
     }
 

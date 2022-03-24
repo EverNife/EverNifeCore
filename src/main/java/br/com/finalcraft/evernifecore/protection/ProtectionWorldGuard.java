@@ -167,7 +167,7 @@ public class ProtectionWorldGuard {
 
     private static Field flagsListField = null;
     public static void registerFlag(Flag<?> flag, JavaPlugin javaPlugin){
-        if (!MCVersion.isLegacy()){
+        if (!MCVersion.isBellow1_7_10()){
             try {
                 SimpleFlagRegistry simpleFlagRegistry = (SimpleFlagRegistry) ProtectionWorldGuard.getAPI().getFlagRegistry();
                 Field flagsMapField = simpleFlagRegistry.getClass().getDeclaredField("flags");
