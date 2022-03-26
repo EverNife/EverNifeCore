@@ -67,11 +67,26 @@ public class ECPlugin {
             return;
         }
 
+        boolean anyChange = false;
         for (LocaleMessageImp localeMessage : localizedMessages.values()) {
             //Set a DefaultValue for this Custom LocaleMessage based on the ENGLISH hardcoded LocaleMessage
-            FancyText englishFancyText = localeMessage.getFancyText(LocaleType.EN_US.name());
+            FancyText defaultFancyText = null;
+            for (LocaleType locale : LocaleType.values()) {
+                defaultFancyText = localeMessage.getFancyText(locale.name());
+                if (defaultFancyText != null){
+                    break;
+                }
+            }
             FancyText customfancyText = getCustomLangConfig().getFancyText(localeMessage.getKey());
-            localeMessage.addLocale(getPluginLanguage(), customfancyText != null ? customfancyText : englishFancyText);
+            if (customfancyText == null){
+                //Update on the new file
+                this.customLangConfig.setValue(localeMessage.getKey(), defaultFancyText);
+                anyChange = true;
+            }
+            localeMessage.addLocale(getPluginLanguage(), customfancyText != null ? customfancyText : defaultFancyText);
+        }
+        if (anyChange){
+            this.customLangConfig.save();
         }
     }
 
