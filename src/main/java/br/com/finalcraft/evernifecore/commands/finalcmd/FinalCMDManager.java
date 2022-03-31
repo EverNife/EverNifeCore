@@ -17,6 +17,7 @@ import br.com.finalcraft.evernifecore.locale.FCMultiLocales;
 import br.com.finalcraft.evernifecore.util.ReflectionUtil;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.PluginIdentifiableCommand;
@@ -44,6 +45,7 @@ public class FinalCMDManager {
         ArgParserManager.addGlobalParser(IPlayerData.class, ArgParserIPlayerData.class);
         ArgParserManager.addGlobalParser(Boolean.class, ArgParserBoolean.class);
         ArgParserManager.addGlobalParser(UUID.class, ArgParserUUID.class);
+        ArgParserManager.addGlobalParser(World.class, ArgParserWorld.class);
     }
 
     public static boolean registerCommand(@NotNull JavaPlugin pluginInstance, @NotNull Class cmdClass) {
