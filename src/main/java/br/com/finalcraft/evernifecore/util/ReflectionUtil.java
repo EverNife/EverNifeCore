@@ -11,11 +11,9 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -354,7 +352,8 @@ public class ReflectionUtil {
      */
     public static MethodInvoker getTypedMethod(Class<?> clazz, String methodName, Class<?> returnType, Class<?>... params) {
         //System.out.println(String.format("Looking for: %s(%s).", methodName, Arrays.asList(params)));
-        for (final Method method : clazz.getDeclaredMethods()) {
+        List<Method> sortedMethodsByArgNumber = Arrays.stream(clazz.getDeclaredMethods()).sorted(Comparator.comparingInt(method -> method.getParameterTypes().length)).collect(Collectors.toList());
+        for (final Method method : sortedMethodsByArgNumber) {
             if ((methodName == null || method.getName().equals(methodName))
                     && (returnType == null || method.getReturnType().equals(returnType))
                     && (params.length == 0 || Arrays.equals(method.getParameterTypes(), params))) {
@@ -389,7 +388,7 @@ public class ReflectionUtil {
         if (clazz.getSuperclass() != null)
             return getMethod(clazz.getSuperclass(), methodName, params);
 
-        throw new IllegalStateException(String.format("Unable to find method %s(%s).", methodName, Arrays.asList(params)));
+        throw new IllegalStateException(String.format("Unable to find method %s(%s).", methodName, params.length == 0 ? "" : Arrays.asList(params)));
     }
 
     /**
