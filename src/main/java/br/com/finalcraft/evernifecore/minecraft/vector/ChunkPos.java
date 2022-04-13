@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.vector;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.minecraft.region.RegionPos;
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 
 public class ChunkPos implements Config.Salvable {
     protected final int x;
@@ -15,6 +16,10 @@ public class ChunkPos implements Config.Salvable {
 
     public static ChunkPos from(Chunk chunk){
         return new ChunkPos(chunk.getX(), chunk.getZ());
+    }
+
+    public static ChunkPos from(Location location){
+        return BlockPos.from(location).getChunkPos();
     }
 
     public ChunkPos(BlockPos block) {
