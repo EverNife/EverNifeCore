@@ -29,10 +29,14 @@ public class FCLocaleManager {
     }
 
     public static void loadLocale(Plugin plugin, Class... classes){
+        loadLocale(plugin, false, classes);
+    }
+
+    public static void loadLocale(Plugin plugin, boolean silent, Class... classes){
 
         for (Class clazz : classes) {
             //Load all locales on the class
-            FCLocaleScanner.scanForLocale(plugin, clazz);
+            FCLocaleScanner.scanForLocale(plugin, silent, clazz);
         }
 
         ECPlugin ecPlugin = ECPluginManager.getOrCreateECorePlugin(plugin);

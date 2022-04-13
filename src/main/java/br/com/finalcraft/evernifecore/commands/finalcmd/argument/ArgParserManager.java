@@ -19,7 +19,7 @@ public class ArgParserManager {
         GLOBAL_CONTEXT_PARSER.getParsers().add(Tuple.of(clazz, parser));
 
         Plugin plugin = JavaPlugin.getProvidingPlugin(parser);
-        FCLocaleManager.loadLocale(plugin, parser);
+        FCLocaleManager.loadLocale(plugin, true, parser);
     }
 
     public static void addPluginParser(Plugin plugin, Class clazz, Class<? extends ArgParser> parser){
@@ -28,7 +28,7 @@ public class ArgParserManager {
                 .add(Tuple.of(clazz, parser));
 
         Plugin parserPlugin = JavaPlugin.getProvidingPlugin(parser); //Not always the same as the plugin adding it
-        FCLocaleManager.loadLocale(parserPlugin, parser);
+        FCLocaleManager.loadLocale(parserPlugin, true, parser);
     }
 
     public static Class<? extends ArgParser> getParser(Plugin plugin, Class argument){

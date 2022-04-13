@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 
 public class FCLocaleScanner {
 
-    public static List<LocaleMessageImp> scanForLocale(Plugin plugin, Class localeClass){
+    public static List<LocaleMessageImp> scanForLocale(Plugin plugin, boolean silent, Class localeClass){
 
         List<LocaleMessageImp> localeMessageList = new ArrayList<>();
         List<String> allKeys = new ArrayList<>();
@@ -73,7 +73,7 @@ public class FCLocaleScanner {
             }
         }
 
-        if (!atLeastOneLocaleField){
+        if (!atLeastOneLocaleField && !silent){
             plugin.getLogger().warning("[FCLocale] The class [" + localeClass.getName() + "] has no fields of LocaleMessage.class to be scanned!");
         }
 
