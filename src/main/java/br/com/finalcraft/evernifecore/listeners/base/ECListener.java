@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.listeners.base;
 
+import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
@@ -52,6 +53,10 @@ public interface ECListener extends Listener {
                 return false;
             }
             Bukkit.getServer().getPluginManager().registerEvents(listener, pluginInstance);
+
+            //Check for locales
+            FCLocaleManager.loadLocale(pluginInstance, true, listener.getClass());
+
             return true;
         }catch (Throwable t){
             pluginInstance.getLogger().warning("[ECListener] Failed to register Listener: " + listener.getClass().getName());
