@@ -68,8 +68,8 @@ public abstract class ItemDataPart {
         return null;
     }
 
-    public static ItemStack transformItem(List<String> itemdata) {
-        return transformItem(new ItemStack(Material.STONE), itemdata);
+    public static ItemStack transformItem(List<String> itemData) {
+        return transformItem(new ItemStack(Material.STONE), itemData);
     }
 
     public static ItemStack transformItem(ItemStack item, List<String> itemdata) {
