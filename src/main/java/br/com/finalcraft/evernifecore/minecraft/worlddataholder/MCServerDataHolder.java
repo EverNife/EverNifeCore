@@ -30,12 +30,12 @@ public class MCServerDataHolder<O extends Object> {
         return worldData.getBlockData(blockPos);
     }
 
-    public void setBlockData(@NotNull Location location, @NotNull O value){
-        this.setBlockData(location.getWorld().getName(), BlockPos.from(location), value);
+    public @Nullable O setBlockData(@NotNull Location location, @NotNull O value){
+        return this.setBlockData(location.getWorld().getName(), BlockPos.from(location), value);
     }
 
-    public void setBlockData(@NotNull String worldName, @NotNull BlockPos blockPos, @NotNull O value){
-        this.getOrCreateWorldData(worldName)
+    public @Nullable O setBlockData(@NotNull String worldName, @NotNull BlockPos blockPos, @NotNull O value){
+        return this.getOrCreateWorldData(worldName)
                 .setBlockData(blockPos, value);
     }
 
