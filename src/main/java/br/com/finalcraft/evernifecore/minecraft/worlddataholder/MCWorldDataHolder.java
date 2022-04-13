@@ -22,8 +22,7 @@ public class MCWorldDataHolder<O extends Object> {
 
     public @Nullable O getBlockData(@NotNull BlockPos blockPos){
         MCChunkDataHolder<O> chunkData = getChunkData(blockPos.getChunkPos());
-        if (chunkData == null) return null;
-        return chunkData.getBlockData(blockPos);
+        return chunkData == null ? null : chunkData.getBlockData(blockPos);
     }
 
     public @Nullable O setBlockData(@NotNull BlockPos blockPos, @Nullable O value){
@@ -32,8 +31,7 @@ public class MCWorldDataHolder<O extends Object> {
 
     public @Nullable O removeBlockData(@NotNull BlockPos blockPos){
         MCChunkDataHolder<O> chunkData = getChunkData(blockPos.getChunkPos());
-        if (chunkData == null) return null;
-        return chunkData.removeBlockData(blockPos);
+        return chunkData == null ? null : chunkData.removeBlockData(blockPos);
     }
 
     public @Nullable Map<ChunkPos, MCChunkDataHolder<O>> getChunkPosMap() {

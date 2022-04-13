@@ -26,8 +26,7 @@ public class MCServerDataHolder<O extends Object> {
 
     public @Nullable O getBlockData(@NotNull String worldName, @NotNull BlockPos blockPos){
         MCWorldDataHolder<O> worldData = getWorldData(worldName);
-        if (worldData == null) return null;
-        return worldData.getBlockData(blockPos);
+        return worldData == null ? null : worldData.getBlockData(blockPos);
     }
 
     public @Nullable O setBlockData(@NotNull Location location, @NotNull O value){
@@ -45,8 +44,7 @@ public class MCServerDataHolder<O extends Object> {
 
     public @Nullable O removeBlockData(@NotNull String worldName, @NotNull BlockPos blockPos){
         MCWorldDataHolder<O> worldData = getWorldData(worldName);
-        if (worldData == null) return null;
-        return worldData.removeBlockData(blockPos);
+        return worldData == null ? null : worldData.removeBlockData(blockPos);
     }
 
     public @NotNull Map<String, MCWorldDataHolder<O>> getWorldNameMap() {
