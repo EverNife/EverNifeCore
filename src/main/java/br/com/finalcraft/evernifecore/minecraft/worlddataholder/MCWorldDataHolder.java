@@ -30,6 +30,12 @@ public class MCWorldDataHolder<O extends Object> {
         return getOrCreateChunkData(blockPos.getChunkPos()).setBlockData(blockPos, value);
     }
 
+    public @Nullable O removeBlockData(@NotNull BlockPos blockPos){
+        MCChunkDataHolder<O> chunkData = getChunkData(blockPos.getChunkPos());
+        if (chunkData == null) return null;
+        return chunkData.removeBlockData(blockPos);
+    }
+
     public @Nullable Map<ChunkPos, MCChunkDataHolder<O>> getChunkPosMap() {
         return chunkPosMap;
     }

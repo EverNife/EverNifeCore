@@ -39,6 +39,16 @@ public class MCServerDataHolder<O extends Object> {
                 .setBlockData(blockPos, value);
     }
 
+    public @Nullable O removeBlockData(@NotNull Location location){
+        return this.removeBlockData(location.getWorld().getName(), BlockPos.from(location));
+    }
+
+    public @Nullable O removeBlockData(@NotNull String worldName, @NotNull BlockPos blockPos){
+        MCWorldDataHolder<O> worldData = getWorldData(worldName);
+        if (worldData == null) return null;
+        return worldData.removeBlockData(blockPos);
+    }
+
     public @NotNull Map<String, MCWorldDataHolder<O>> getWorldNameMap() {
         return worldNameMap;
     }

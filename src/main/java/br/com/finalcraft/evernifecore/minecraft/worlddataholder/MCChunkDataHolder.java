@@ -16,8 +16,12 @@ public class MCChunkDataHolder<O extends Object> {
         return blockPosMap.get(blockPos);
     }
 
-    public @Nullable O setBlockData(@NotNull BlockPos blockPos, @Nullable O value){
+    public @Nullable O setBlockData(@NotNull BlockPos blockPos, @NotNull O value){
         return blockPosMap.put(blockPos, value);
+    }
+
+    public @Nullable O removeBlockData(@NotNull BlockPos blockPos){
+        return blockPosMap.remove(blockPos);
     }
 
     public @NotNull Map<BlockPos, O> getBlockPosMap() {
