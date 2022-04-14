@@ -7,11 +7,6 @@ public class SaveConfigThread extends SimpleThread {
     public static SaveConfigThread INSTANCE = new SaveConfigThread();
 
     @Override
-    protected void onShutdown() {
-        PlayerController.savePlayerDataOnConfig();
-    }
-
-    @Override
     public void run() throws InterruptedException {
         while (true) {
             Thread.sleep(30000);//30 Seconds

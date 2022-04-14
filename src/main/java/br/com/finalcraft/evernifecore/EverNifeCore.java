@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.autoupdater.SpigotUpdateChecker;
 import br.com.finalcraft.evernifecore.commands.CommandRegisterer;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
+import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.dependencies.DependencyManager;
 import br.com.finalcraft.evernifecore.featherboard.FeatherBoardUtils;
@@ -109,6 +110,7 @@ public class EverNifeCore extends JavaPlugin {
     public void onDisable() {
         HandlerList.unregisterAll(this);
         SaveConfigThread.INSTANCE.shutdown();
+        PlayerController.savePlayerDataOnConfig();
         Config.shutdownSaveScheduller();
         ChatMenuAPI.disable();
     }
