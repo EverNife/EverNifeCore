@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.minecraft.region.RegionPos;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 
 public class BlockPos implements Comparable<BlockPos>, Config.Salvable {
@@ -55,6 +56,10 @@ public class BlockPos implements Comparable<BlockPos>, Config.Salvable {
 
     public Location getLocation(World world){
         return new Location(world, this.x, this.y, this.z);
+    }
+
+    public Block getBlock(World world){
+        return world.getBlockAt(x,y,z);
     }
 
     public ChunkPos getChunkPos(){
