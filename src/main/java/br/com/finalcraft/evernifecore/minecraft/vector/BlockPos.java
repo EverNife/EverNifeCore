@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.vector;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.minecraft.region.RegionPos;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 
 public class BlockPos implements Comparable<BlockPos>, Config.Salvable {
@@ -52,13 +53,8 @@ public class BlockPos implements Comparable<BlockPos>, Config.Salvable {
         return new BlockPos(this.x + x, this.y + y, this.z + z);
     }
 
-    @Override
-    public int compareTo(BlockPos o) {
-        if (this.getY() == o.getY()) {
-            return this.getZ() == o.getZ() ? this.getX() - o.getX() : this.getZ() - o.getZ();
-        } else {
-            return this.getY() - o.getY();
-        }
+    public Location getLocation(World world){
+        return new Location(world, this.x, this.y, this.z);
     }
 
     public ChunkPos getChunkPos(){
@@ -87,6 +83,15 @@ public class BlockPos implements Comparable<BlockPos>, Config.Salvable {
     }
 
     @Override
+    public int compareTo(BlockPos o) {
+        if (this.getY() == o.getY()) {
+            return this.getZ() == o.getZ() ? this.getX() - o.getX() : this.getZ() - o.getZ();
+        } else {
+            return this.getY() - o.getY();
+        }
+    }
+
+    @Override
     public String toString() {
         return "[" + x + "," + y + "," + z + "]";
     }
@@ -99,7 +104,7 @@ public class BlockPos implements Comparable<BlockPos>, Config.Salvable {
     }
 
     @Config.Loadable
-    public static BlockPos onConsigLoad(Config config, String path){
+    public static BlockPos onConfigLoad(Config config, String path){
         int x = config.getInt(path + ".x");
         int y = config.getInt(path + ".y");
         int z = config.getInt(path + ".z");

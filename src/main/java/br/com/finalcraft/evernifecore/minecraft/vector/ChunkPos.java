@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.minecraft.region.RegionPos;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.World;
 
 public class ChunkPos implements Config.Salvable {
     protected final int x;
@@ -59,6 +60,10 @@ public class ChunkPos implements Config.Salvable {
         return new RegionPos(this);
     }
 
+    public Chunk getChunk(World world){
+        return world.getChunkAt(this.x, this.z);
+    }
+
     @Override
     public int hashCode(){
         int i = 1664525 * this.x + 1013904223;
@@ -84,7 +89,7 @@ public class ChunkPos implements Config.Salvable {
     }
 
     @Config.Loadable
-    public static ChunkPos onConsigLoad(Config config, String path){
+    public static ChunkPos onConfigLoad(Config config, String path){
         int x = config.getInt(path + ".x");
         int z = config.getInt(path + ".z");
         return new ChunkPos(x,z);
