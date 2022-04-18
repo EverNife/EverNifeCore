@@ -1,12 +1,14 @@
 package br.com.finalcraft.evernifecore.itembuilder;
 
 import br.com.finalcraft.evernifecore.gui.item.GuiItemComplex;
+import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import dev.triumphteam.gui.builder.item.BaseItemBuilder;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -55,5 +57,9 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
         }
         itemStack.setType(theMaterial);
         return this;
+    }
+
+    public List<String> toDataPart(){
+        return ItemDataPart.readItem(this.build());
     }
 }
