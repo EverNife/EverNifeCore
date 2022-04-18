@@ -1,10 +1,10 @@
 package br.com.finalcraft.evernifecore.gui;
 
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
-import dev.triumphteam.gui.guis.Gui;
+import dev.triumphteam.gui.guis.BaseGui;
 import org.bukkit.entity.Player;
 
-public class PlayerGui<P extends IPlayerData, G extends Gui> {
+public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
 
     protected final Player player;
     protected final P playerData;
