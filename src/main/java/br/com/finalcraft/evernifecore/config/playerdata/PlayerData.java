@@ -29,7 +29,7 @@ public class PlayerData implements IPlayerData{
     }
 
     @Override
-    public <T extends PDSection> T getPDSection(Class<? extends T> pdSectionClass){
+    public <T extends PDSection> T getPDSection(Class<T> pdSectionClass){
         PDSection pdSection = mapOfPDSections.get(pdSectionClass);
         if (pdSection == null){
             pdSection = createPDSection(pdSectionClass);

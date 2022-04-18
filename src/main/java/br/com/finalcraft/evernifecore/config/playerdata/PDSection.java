@@ -81,7 +81,7 @@ public abstract class PDSection implements IPlayerData{
     }
 
     @Override
-    public <T extends PDSection> T getPDSection(Class<? extends T> pdSectionClass){
+    public <T extends PDSection> T getPDSection(Class<T> pdSectionClass){
         if (this.getClass() == pdSectionClass) return (T)this;
         return playerData.getPDSection(pdSectionClass);
     }

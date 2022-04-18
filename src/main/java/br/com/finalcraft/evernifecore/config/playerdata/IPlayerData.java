@@ -24,6 +24,6 @@ public interface IPlayerData {
 
     public PlayerCooldown getCooldown(String identifier);
 
-    public <T extends PDSection> T getPDSection(Class<? extends T> pdSectionClass);
+    public <T extends PDSection> T getPDSection(Class<T> pdSectionClass);
 
 }
