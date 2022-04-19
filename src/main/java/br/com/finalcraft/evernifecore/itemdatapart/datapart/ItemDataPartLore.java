@@ -16,7 +16,7 @@ public class ItemDataPartLore extends ItemDataPart {
         ItemMeta meta = item.getItemMeta();
 
         String argumentTransformed = ChatColor.translateAlternateColorCodes('&',argument);
-        String[] parts = argumentTransformed.split("[#\\n]", -1);
+        String[] parts = argumentTransformed.split("[#\\n]");
         List<String> lore = meta.getLore();
         if (lore == null) {
             lore = new ArrayList<>();
