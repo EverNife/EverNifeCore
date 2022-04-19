@@ -35,13 +35,13 @@ public abstract class ItemDataPart {
     public static List<ItemDataPart> ALL_REGISTERED_TYPES = new ArrayList<>();;
 
     static {
+        MATERIAL = registerType(new ItemDataPartMaterial());
+        DURABILITY = registerType(new ItemDataPartDurability());
         AMOUNT = registerType(new ItemDataPartAmount());
         if (MCVersion.isCurrentHigher(MCVersion.v1_14_R1)) CUSTOMMODELDATA = registerType(new ItemDataPartCustomModelData());
-        DURABILITY = registerType(new ItemDataPartDurability());
         if (MCVersion.isCurrentHigher(MCVersion.v1_8_R1)) ITEMFLAGS = registerType(new ItemDataPartItemflags());
-        LORE = registerType(new ItemDataPartLore());
-        MATERIAL = registerType(new ItemDataPartMaterial());
         NAME = registerType(new ItemDataPartName());
+        LORE = registerType(new ItemDataPartLore());
         if (NMSUtils.get() != null) NBT = registerType(new ItemDataPartNBT());
     }
 
