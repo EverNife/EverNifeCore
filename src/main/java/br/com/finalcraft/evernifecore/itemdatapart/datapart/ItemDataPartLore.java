@@ -16,7 +16,7 @@ public class ItemDataPartLore extends ItemDataPart {
         ItemMeta meta = item.getItemMeta();
 
         String argumentTransformed = ChatColor.translateAlternateColorCodes('&',argument);
-        String[] parts = argumentTransformed.split("[#\\n]");
+        String[] parts = argumentTransformed.split("[#\\n]", -1);
         List<String> lore = meta.getLore();
         if (lore == null) {
             lore = new ArrayList<>();
@@ -56,7 +56,7 @@ public class ItemDataPartLore extends ItemDataPart {
     public List<String> read(ItemStack itemStack, List<String> output) {
         if (itemStack.getItemMeta().hasLore()) {
             for (String line : itemStack.getItemMeta().getLore()) {
-                String split[] = line.split("\\R");
+                String split[] = line.split("\\R", -1);
                 for (String splitedLine : split) {
                     output.add("lore:" + splitedLine.replaceAll(String.valueOf(ChatColor.COLOR_CHAR), "&"));
                 }
