@@ -55,10 +55,11 @@ public class ItemDataPartLore extends ItemDataPart {
     @Override
     public List<String> read(ItemStack itemStack, List<String> output) {
         if (itemStack.getItemMeta().hasLore()) {
-            int a = 1;
             for (String line : itemStack.getItemMeta().getLore()) {
-                output.add("lore:" + line.replaceAll(String.valueOf(ChatColor.COLOR_CHAR), "&"));
-                a++;
+                String split[] = line.split("\\R");
+                for (String splitedLine : split) {
+                    output.add("lore:" + splitedLine.replaceAll(String.valueOf(ChatColor.COLOR_CHAR), "&"));
+                }
             }
         }
         return output;
