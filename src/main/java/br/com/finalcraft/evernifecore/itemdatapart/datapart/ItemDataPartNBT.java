@@ -22,8 +22,9 @@ public class ItemDataPartNBT extends ItemDataPart {
 
     @Override
     public List<String> read(ItemStack i, List<String> output) {
-        if (NMSUtils.get().hasNBTTagCompound(i)){
-            output.add("nbt: '" + NMSUtils.get().getNBTtoString(i) + "'");
+        ItemStack validItemStack = NMSUtils.get().validateItemStackHandle(i);
+        if (NMSUtils.get().hasNBTTagCompound(validItemStack)){
+            output.add("nbt: '" + NMSUtils.get().getNBTtoString(validItemStack) + "'");
         }
         return output;
     }
