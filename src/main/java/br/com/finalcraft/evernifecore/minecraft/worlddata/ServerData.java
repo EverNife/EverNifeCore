@@ -1,23 +1,25 @@
-package br.com.finalcraft.evernifecore.minecraft.worlddataholder;
+package br.com.finalcraft.evernifecore.minecraft.worlddata;
 
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MCServerDataHolder<O extends Object> {
+public class ServerData<O extends Object> {
 
-    private final Map<String, MCWorldDataHolder<O>> worldNameMap = new HashMap<>();
+    private final Map<String, WorldData<O>> worldNameMap = new HashMap<>();
 
-    public @Nullable MCWorldDataHolder<O> getWorldData(@NotNull String worldName){
+    public @Nullable WorldData<O> getWorldData(@NotNull String worldName){
         return worldNameMap.get(worldName);
     }
 
-    public @NotNull MCWorldDataHolder<O> getOrCreateWorldData(@NotNull String worldName){
-        return worldNameMap.computeIfAbsent(worldName, s -> new MCWorldDataHolder<>());
+    public @NotNull WorldData<O> getOrCreateWorldData(@NotNull String worldName){
+        return worldNameMap.computeIfAbsent(worldName, s -> new WorldData<>());
     }
 
     public @Nullable O getBlockData(@NotNull Location location){
@@ -25,7 +27,7 @@ public class MCServerDataHolder<O extends Object> {
     }
 
     public @Nullable O getBlockData(@NotNull String worldName, @NotNull BlockPos blockPos){
-        MCWorldDataHolder<O> worldData = getWorldData(worldName);
+        WorldData<O> worldData = getWorldData(worldName);
         return worldData == null ? null : worldData.getBlockData(blockPos);
     }
 
@@ -43,12 +45,16 @@ public class MCServerDataHolder<O extends Object> {
     }
 
     public @Nullable O removeBlockData(@NotNull String worldName, @NotNull BlockPos blockPos){
-        MCWorldDataHolder<O> worldData = getWorldData(worldName);
+        WorldData<O> worldData = getWorldData(worldName);
         return worldData == null ? null : worldData.removeBlockData(blockPos);
     }
 
-    public @NotNull Map<String, MCWorldDataHolder<O>> getWorldNameMap() {
+    public @NotNull Map<String, WorldData<O>> getWorldNameMap() {
         return worldNameMap;
+    }
+
+    public @NotNull Collection<WorldData<O>> getAllWorldData(){
+        return worldNameMap.size() == 0 ? Collections.EMPTY_LIST : worldNameMap.values();
     }
 
 }

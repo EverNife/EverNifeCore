@@ -1,14 +1,15 @@
-package br.com.finalcraft.evernifecore.minecraft.worlddataholder;
+package br.com.finalcraft.evernifecore.minecraft.worlddata;
 
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MCChunkDataHolder<O extends Object> {
+public class ChunkData<O extends Object> {
 
     private final Map<BlockPos, O> blockPosMap = new HashMap<>();
 
@@ -29,7 +30,7 @@ public class MCChunkDataHolder<O extends Object> {
     }
 
     public @NotNull Collection<O> getAllBlockData(){
-        return blockPosMap.values();
+        return blockPosMap.size() == 0 ? Collections.EMPTY_LIST : blockPosMap.values();
     }
 
 }
