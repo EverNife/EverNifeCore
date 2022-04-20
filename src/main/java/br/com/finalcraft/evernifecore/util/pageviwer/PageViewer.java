@@ -147,7 +147,7 @@ public class PageViewer<T,J> {
         validateCachedLines();
 
         //Bound lineEnd to lastLine
-        lineEnd = NumberWrapper.of(lineEnd).boundUpper(pageLinesCache.get().size() -1).intValue();
+        lineEnd = NumberWrapper.of(lineEnd).boundUpper(pageLinesCache.get().size()).intValue();
 
         if (lineStart > lineEnd){
             //Rebound, one page backwards
