@@ -96,6 +96,7 @@ public class FCTimeFrame {
         return TimeUnit.MILLISECONDS.toSeconds(this.millis);
     }
 
+    //TODO Fix Formatted typo '-'
     public String getFormated(){
         Date date = new Date(millis);
         return ECSettings.SIMPLE_DATE_FORMAT.format(date);
