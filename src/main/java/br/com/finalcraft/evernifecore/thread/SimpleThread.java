@@ -4,42 +4,51 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public abstract class SimpleThread {
 
-    private final JavaPlugin javaPlugin = JavaPlugin.getProvidingPlugin(this.getClass());
-    protected final Thread thread = new Thread(){
-        @Override
-        public void run() {
-            try {
-                SimpleThread.this.javaPlugin.getLogger().info("Starting Thread: " + this.getName());
-                SimpleThread.this.onStart();
-                SimpleThread.this.run();
-            } catch (InterruptedException exception) {
-                SimpleThread.this.onShutdown();
-                SimpleThread.this.javaPlugin.getLogger().info("Thread Shutdown: " + this.getName());
-            }
+    protected final JavaPlugin javaPlugin = JavaPlugin.getProvidingPlugin(this.getClass());
+    protected transient Thread thread;
+
+    protected Thread getOrCreateThread(){
+        if (thread == null || !thread.isAlive()){
+            thread = new Thread(){
+                @Override
+                public void run() {
+                    try {
+                        SimpleThread.this.javaPlugin.getLogger().info("Starting Thread: " + this.getName());
+                        SimpleThread.this.onStart();
+                        SimpleThread.this.run();
+                    } catch (InterruptedException exception) {
+                        SimpleThread.this.onShutdown();
+                        SimpleThread.this.javaPlugin.getLogger().info("Thread Shutdown: " + this.getName());
+                    }
+                }
+            };
         }
-    };
+        return thread;
+    }
 
     public SimpleThread() {
-        thread.setName("[" + this.getClass().getSimpleName() + "]");
-        thread.setDaemon(true);
+        getOrCreateThread().setName("[" + this.getClass().getSimpleName() + "]");
+        getOrCreateThread().setDaemon(true);
     }
 
     public SimpleThread(String name) {
-        thread.setName(name);
-        thread.setDaemon(true);
+        getOrCreateThread().setName(name);
+        getOrCreateThread().setDaemon(true);
     }
 
     public void start(){
-        if (!thread.isAlive()){
-            thread.start();
-        }else if (allowRestart()){
+        if (!getOrCreateThread().isAlive()){
+            getOrCreateThread().start();
+        } else if (allowRestart()){
             shutdown();
             start();
         }
     }
 
     public void shutdown(){
-        this.thread.interrupt();
+        if (getOrCreateThread().isAlive()){
+            getOrCreateThread().interrupt();
+        }
     }
 
     protected abstract void run() throws InterruptedException;
