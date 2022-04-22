@@ -6,9 +6,9 @@ import org.bukkit.entity.Player;
 
 public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
 
-    protected final Player player;
-    protected final P playerData;
-    protected final G gui;
+    private final Player player;
+    private final P playerData;
+    private final G gui;
 
     public PlayerGui(P playerData, G gui) {
         this.player = playerData.getPlayer();
@@ -29,10 +29,10 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
     }
 
     public void open(){
-        this.gui.open(player);
+        this.getGui().open(getPlayer());
     }
 
     public void close(){
-        this.gui.close(player);
+        this.getGui().close(getPlayer());
     }
 }
