@@ -30,7 +30,7 @@ public class FCCommandUtil {
     public static String dynamicCommand(Runnable runnable, long maxTimeInSeconds){
         return DynamicCommandManager.scheduleDynamicCommand(
                 DynamicCommand.builder()
-                        .setRunnable(runnable)
+                        .setAction(context -> runnable.run())
                         .setCooldown(maxTimeInSeconds)
                         .createDynamicCommand()
         );

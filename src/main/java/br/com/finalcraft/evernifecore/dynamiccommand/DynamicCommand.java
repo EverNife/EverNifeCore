@@ -6,23 +6,24 @@ import org.bukkit.command.CommandSender;
 
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class DynamicCommand {
 
     private final UUID uuid;
     private final String identifier;
-    private final Runnable runnable;
     private final Cooldown cooldown;
+    private final Consumer<DynamicCommand.Context> action;
     private final Function<DynamicCommand.Context, Boolean> shouldRun;
     private final Function<DynamicCommand.Context, Boolean> shouldRemove;
     private int runs = 0;
 
-    public DynamicCommand(UUID uuid, String identifier, Runnable runnable, Cooldown cooldown, Function<Context, Boolean> shouldRun, Function<Context, Boolean> shouldRemove) {
+    public DynamicCommand(UUID uuid, String identifier, Cooldown cooldown, Consumer<DynamicCommand.Context> action, Function<Context, Boolean> shouldRun, Function<Context, Boolean> shouldRemove) {
         this.uuid = uuid;
         this.identifier = identifier;
-        this.runnable = runnable;
         this.cooldown = cooldown;
+        this.action = action;
         this.shouldRun = shouldRun;
         this.shouldRemove = shouldRemove;
     }
@@ -35,8 +36,8 @@ public class DynamicCommand {
         return identifier;
     }
 
-    public Runnable getRunnable() {
-        return runnable;
+    public void runAction(CommandSender sender) {
+        action.accept(new DynamicCommand.Context(sender, this));
     }
 
     public Cooldown getCooldown() {
@@ -66,17 +67,17 @@ public class DynamicCommand {
     public static class Builder {
         private UUID uuid;
         private String identifier;
-        private Runnable runnable;
         private Cooldown cooldown;
+        private Consumer<DynamicCommand.Context> action;
         private Function<DynamicCommand.Context, Boolean> shouldRun;
         private Function<DynamicCommand.Context, Boolean> shouldRemove;
 
         protected Builder() {
             this.uuid = UUID.randomUUID();
             this.identifier = "";
-            this.runnable = null;
             this.cooldown = new Cooldown.GenericCooldown("");
             this.cooldown.setDuration(1200);//20 min
+            this.action = null;
             this.shouldRun = context -> true; //By Default, run for anyone
             this.shouldRemove = context -> true; //By Default, run only once
         }
@@ -91,8 +92,8 @@ public class DynamicCommand {
             return this;
         }
 
-        public Builder setRunnable(Runnable runnable) {
-            this.runnable = runnable;
+        public Builder setAction(Consumer<Context> action) {
+            this.action = action;
             return this;
         }
 
@@ -117,8 +118,8 @@ public class DynamicCommand {
         }
 
         public DynamicCommand createDynamicCommand() {
-            Validate.notNull(runnable, "Runnable cannot be null");
-            return new DynamicCommand(uuid, identifier, runnable, cooldown, shouldRun, shouldRemove);
+            Validate.notNull(action, "Action cannot be null");
+            return new DynamicCommand(uuid, identifier, cooldown, action, shouldRun, shouldRemove);
         }
     }
 

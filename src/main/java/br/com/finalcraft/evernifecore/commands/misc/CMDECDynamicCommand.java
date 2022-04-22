@@ -51,7 +51,7 @@ public class CMDECDynamicCommand {
 
         cmd.incrementRun();
 
-        cmd.getRunnable().run();
+        cmd.runAction(sender);
 
         if (cmd.shouldRemove(sender)){
             DynamicCommandManager.DYNAMIC_COMMANDS.remove(cmdIdentifier);
