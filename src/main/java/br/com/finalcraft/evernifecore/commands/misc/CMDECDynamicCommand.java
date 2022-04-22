@@ -18,8 +18,8 @@ public class CMDECDynamicCommand {
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cEssa UUID não possui nenhum comando vinculada a ela!")
     private static LocaleMessage UUID_HAS_NO_COMMAND;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou cannot execute this command anymore because it has expired!")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê não pode mais executar esse comando porque ele expirou!")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou cannot execute this action anymore because it has expired!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê não pode mais executar esse ação porque ele expirou!")
     private static LocaleMessage COMMAND_EXPIRED;
 
     @FinalCMD(
@@ -40,7 +40,7 @@ public class CMDECDynamicCommand {
             return;
         }
 
-        if (!cmd.getCooldown().isInCooldown()){
+        if (cmd.getCooldown().isInCooldown()){
             COMMAND_EXPIRED.send(sender);
             return;
         }
