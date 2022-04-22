@@ -22,9 +22,11 @@ public class ItemDataPartNBT extends ItemDataPart {
 
     @Override
     public List<String> read(ItemStack i, List<String> output) {
-        ItemStack validItemStack = NMSUtils.get().validateItemStackHandle(i);
-        if (NMSUtils.get().hasNBTTagCompound(validItemStack)){
-            output.add("nbt: '" + NMSUtils.get().getNBTtoString(validItemStack) + "'");
+        if (false){ //TODO make this flag ignore DisplayName and ItemLore
+            ItemStack validItemStack = NMSUtils.get().validateItemStackHandle(i);
+            if (NMSUtils.get().hasNBTTagCompound(validItemStack)){
+                output.add("nbt: '" + NMSUtils.get().getNBTtoString(validItemStack) + "'");
+            }
         }
         return output;
     }
