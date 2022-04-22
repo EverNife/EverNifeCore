@@ -8,7 +8,6 @@ import br.com.finalcraft.evernifecore.util.FCTextUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
 
 import java.lang.ref.WeakReference;
 import java.util.*;
@@ -16,11 +15,11 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class PageViewer<T,J> {
+public class PageViewer<OBJ, VALUE> {
 
-    protected final Supplier<List<T>> supplier;
-    protected final Function<T, J> getValue;
-    protected final Comparator<J> comparator;
+    protected final Supplier<List<OBJ>> supplier;
+    protected final Function<OBJ, VALUE> getValue;
+    protected final Comparator<SortedItem<OBJ, VALUE>> comparator;
     protected final List<FancyText> formatHeader;
     protected final FancyText formatLine;
     protected final List<FancyText> formatFooter;
@@ -30,14 +29,14 @@ public class PageViewer<T,J> {
     protected final int pageSize;
     protected final boolean includeDate;
     protected final boolean includeTotalPlayers;
-    protected final HashMap<String, Function<T,Object>> placeholders;
+    protected final HashMap<String, Function<OBJ,Object>> placeholders;
 
     protected transient WeakReference<List<FancyText>> pageLinesCache = new WeakReference<>(new ArrayList<>());
     protected transient List<FancyText> pageHeaderCache = null;
     protected transient List<FancyText> pageFooterCache = null;
     protected transient long lastBuild = 0L;
 
-    public PageViewer(Supplier<List<T>> supplier, Function<T, J> getValue, Comparator<J> comparator, List<FancyText> formatHeader, FancyText formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, int pageSize, boolean includeDate, boolean includeTotalPlayers) {
+    public PageViewer(Supplier<List<OBJ>> supplier, Function<OBJ, VALUE> getValue, Comparator<SortedItem<OBJ, VALUE>> comparator, List<FancyText> formatHeader, FancyText formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, int pageSize, boolean includeDate, boolean includeTotalPlayers) {
         this.supplier = supplier;
         this.getValue = getValue;
         this.comparator = comparator;
@@ -65,40 +64,25 @@ public class PageViewer<T,J> {
 
         if (pageLinesCache.get() == null || System.currentTimeMillis() - lastBuild >= cooldown){
 
-            class SortedItem implements Comparable<SortedItem>{
-                final T item;
-                final J value;
-
-                public SortedItem(T item, J value) {
-                    this.item = item;
-                    this.value = value;
-                }
-
-                @Override
-                public int compareTo(@NotNull SortedItem o) {
-                    return comparator.compare(this.value, o.value);
-                }
-            }
-
             pageHeaderCache = new ArrayList<>();
             pageLinesCache = new WeakReference<>(new ArrayList<>());
             pageFooterCache = new ArrayList<>();
 
-            List<SortedItem> sortedList = new ArrayList<>();
+            List<SortedItem<OBJ, VALUE>> sortedList = new ArrayList<>();
 
-            for (T item : supplier.get()) {
-                J value = getValue.apply(item);
+            for (OBJ item : supplier.get()) {
+                VALUE value = getValue.apply(item);
                 sortedList.add(new SortedItem(item, value));
             }
 
-            Collections.sort(sortedList);
+            Collections.sort(sortedList, comparator);
             Collections.reverse(sortedList);
 
             if (sortedList.size() > 0){ //Add more default placeholders here, like "%player%" name
                 SortedItem sortedItem = sortedList.get(0);
-                if (sortedItem.item instanceof Player) placeholders.put("%player%", t -> ((Player)t).getName());
-                else if (sortedItem.item instanceof PlayerData) placeholders.put("%player%", t -> ((PlayerData)t).getPlayerName());
-                else if (sortedItem.item instanceof PDSection) placeholders.put("%player%", t -> ((PDSection)t).getPlayerName());
+                if (sortedItem.object instanceof Player) placeholders.put("%player%", obj -> ((Player) obj).getName());
+                else if (sortedItem.object instanceof PlayerData) placeholders.put("%player%", obj -> ((PlayerData) obj).getPlayerName());
+                else if (sortedItem.object instanceof PDSection) placeholders.put("%player%", obj -> ((PDSection) obj).getPlayerName());
             }
 
             for (FancyText formatHeaderText : formatHeader) {
@@ -112,9 +96,9 @@ public class PageViewer<T,J> {
 
             for (int number = lineStart; number < sortedList.size() && number < lineEnd; number++) {
                 final FancyText fancyText = formatLine.clone();
+                final SortedItem<OBJ, VALUE> sortedItem = sortedList.get(number);
 
-                final SortedItem sortedItem = sortedList.get(number);
-                placeholders.entrySet().forEach(entry -> fancyText.replace(entry.getKey(), String.valueOf(entry.getValue().apply(sortedItem.item))));
+                placeholders.entrySet().forEach(entry -> fancyText.replace(entry.getKey(), String.valueOf(entry.getValue().apply(sortedItem.getObject()))));
                 fancyText.replace("%number%", String.valueOf(number + 1));
 
                 pageLinesCache.get().add(fancyText);
@@ -170,21 +154,23 @@ public class PageViewer<T,J> {
         }
     }
 
-    public static <T,J> Builder<T,J> builder(Supplier<List<T>> supplier, Function<T, J> getValue){
+    public static <OBJ, VALUE> Builder<OBJ, VALUE> builder(Supplier<List<OBJ>> supplier, Function<OBJ, VALUE> getValue){
         return new Builder<>(supplier, getValue);
     }
 
-    public static class Builder<T,J>{
-        protected Supplier<List<T>> supplier;
-        protected Function<T, J> getValue;
+    public static class Builder<OBJ, VALUE>{
+        protected Supplier<List<OBJ>> supplier;
+        protected Function<OBJ, VALUE> getValue;
 
         private final Comparator<Number> doubleComparator = Comparator.comparingDouble(Number::doubleValue);
         private final Comparator<Object> stringComparator = Comparator.comparing(Object::toString);
-        protected Comparator<J> comparator = (o1, o2) -> {
-            if (o1 instanceof Number){
-                return doubleComparator.compare((Number)o1,(Number)o2);
+        protected Comparator<SortedItem<OBJ, VALUE>> comparator = (o1, o2) -> {
+            Object value1 = o1.getValue();
+            Object value2 = o2.getValue();
+            if (value1 instanceof Number){
+                return doubleComparator.compare((Number)value1,(Number)value2);
             }
-            return stringComparator.compare(String.valueOf(o1),String.valueOf(o2));
+            return stringComparator.compare(String.valueOf(value1),String.valueOf(value2));
         };
         protected List<FancyText> formatHeader = Arrays.asList(new FancyText("§a§m" + FCTextUtil.straightLineOf("-")));
         protected FancyText formatLine = new FancyText("§7#  %number%:   §e%player%§f - §a%value%");
@@ -196,97 +182,97 @@ public class PageViewer<T,J> {
         protected boolean includeDate = false;
         protected boolean includeTotalPlayers = false;
 
-        protected final HashMap<String, Function<T,Object>> placeholders = new HashMap<>();
+        protected final HashMap<String, Function<OBJ,Object>> placeholders = new HashMap<>();
 
-        protected Builder(Supplier<List<T>> supplier, Function<T, J> getValue) {
+        protected Builder(Supplier<List<OBJ>> supplier, Function<OBJ, VALUE> getValue) {
             this.supplier = supplier;
             this.getValue = getValue;
 
-            addPlaceholder("%value%", (Function<T, Object>) getValue);
+            addPlaceholder("%value%", (Function<OBJ, Object>) getValue);
         }
 
-        public Builder<T,J> setComparator(Comparator<J> comparator) {
+        public Builder<OBJ, VALUE> setComparator(Comparator<SortedItem<OBJ, VALUE>> comparator) {
             this.comparator = comparator;
             return this;
         }
 
-        public Builder<T,J> setFormatHeader(List<FancyText> formatHeader) {
+        public Builder<OBJ, VALUE> setFormatHeader(List<FancyText> formatHeader) {
             this.formatHeader = formatHeader;
             return this;
         }
 
-        public Builder<T,J> setFormatHeader(FancyText... formatHeader) {
+        public Builder<OBJ, VALUE> setFormatHeader(FancyText... formatHeader) {
             this.formatHeader = Arrays.asList(formatHeader);
             return this;
         }
 
-        public Builder<T,J> setFormatHeader(String... formatHeader) {
+        public Builder<OBJ, VALUE> setFormatHeader(String... formatHeader) {
             this.formatHeader = Arrays.asList(formatHeader).stream().map(FancyText::new).collect(Collectors.toList());
             return this;
         }
 
-        public Builder<T,J> setFormatLine(String formatLine) {
+        public Builder<OBJ, VALUE> setFormatLine(String formatLine) {
             this.formatLine = new FancyText(formatLine);
             return this;
         }
 
-        public Builder<T,J> setFormatLine(FancyText formatLine) {
+        public Builder<OBJ, VALUE> setFormatLine(FancyText formatLine) {
             this.formatLine = formatLine;
             return this;
         }
 
-        public Builder<T,J> setFormatFooter(List<FancyText> formatFooter) {
+        public Builder<OBJ, VALUE> setFormatFooter(List<FancyText> formatFooter) {
             this.formatFooter = formatFooter;
             return this;
         }
 
-        public Builder<T,J> setFormatFooter(FancyText... formatFooter) {
+        public Builder<OBJ, VALUE> setFormatFooter(FancyText... formatFooter) {
             this.formatFooter = Arrays.asList(formatFooter);
             return this;
         }
 
-        public Builder<T,J> setFormatFooter(String... formatFooter) {
+        public Builder<OBJ, VALUE> setFormatFooter(String... formatFooter) {
             this.formatFooter = Arrays.asList(formatFooter).stream().map(FancyText::new).collect(Collectors.toList());
             return this;
         }
 
-        public Builder<T,J> setCooldown(int cooldown) {
+        public Builder<OBJ, VALUE> setCooldown(int cooldown) {
             this.cooldown = cooldown * 1000;
             return this;
         }
 
-        public Builder<T,J> setLineStart(int lineStart) {
+        public Builder<OBJ, VALUE> setLineStart(int lineStart) {
             this.lineStart = lineStart;
             return this;
         }
 
-        public Builder<T,J> setLineEnd(int lineEnd) {
+        public Builder<OBJ, VALUE> setLineEnd(int lineEnd) {
             this.lineEnd = lineEnd < 0 ? Integer.MAX_VALUE : lineEnd;
             return this;
         }
 
-        public Builder<T,J> setIncludeDate(boolean includeDate) {
+        public Builder<OBJ, VALUE> setIncludeDate(boolean includeDate) {
             this.includeDate = includeDate;
             return this;
         }
 
-        public Builder<T,J> setIncludeTotalPlayers(boolean includeTotalPlayers) {
+        public Builder<OBJ, VALUE> setIncludeTotalPlayers(boolean includeTotalPlayers) {
             this.includeTotalPlayers = includeTotalPlayers;
             return this;
         }
 
-        public Builder<T,J> setPageSize(int pageSize) {
+        public Builder<OBJ, VALUE> setPageSize(int pageSize) {
             this.pageSize = pageSize;
             return this;
         }
 
-        public Builder<T,J> addPlaceholder(String placeholder, Function<T, Object> function){
+        public Builder<OBJ, VALUE> addPlaceholder(String placeholder, Function<OBJ, Object> function){
             placeholders.put(placeholder, function);
             return this;
         }
 
-        public PageViewer<T,J> build(){
-            PageViewer<T,J> pageViewer = new PageViewer<>(
+        public PageViewer<OBJ, VALUE> build(){
+            PageViewer<OBJ, VALUE> pageViewer = new PageViewer<>(
                     supplier,
                     getValue,
                     comparator,
@@ -303,6 +289,24 @@ public class PageViewer<T,J> {
             pageViewer.placeholders.putAll(this.placeholders);
 
             return pageViewer;
+        }
+    }
+
+    public static class SortedItem<OBJ, VALUE>{
+        final OBJ object;
+        final VALUE value;
+
+        public SortedItem(OBJ object, VALUE value) {
+            this.object = object;
+            this.value = value;
+        }
+
+        public OBJ getObject() {
+            return object;
+        }
+
+        public VALUE getValue() {
+            return value;
         }
     }
 
