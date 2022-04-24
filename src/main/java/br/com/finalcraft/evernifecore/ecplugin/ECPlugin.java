@@ -77,13 +77,13 @@ public class ECPlugin {
                     break;
                 }
             }
-            FancyText customfancyText = getCustomLangConfig().getFancyText(localeMessage.getKey());
-            if (customfancyText == null){
+            FancyText customFancyText = this.customLangConfig.getFancyText(localeMessage.getKey());
+            if (customFancyText == null){
                 //Update on the new file
                 this.customLangConfig.setValue(localeMessage.getKey(), defaultFancyText);
                 anyChange = true;
             }
-            localeMessage.addLocale(getPluginLanguage(), customfancyText != null ? customfancyText : defaultFancyText);
+            localeMessage.addLocale(getPluginLanguage(), customFancyText != null ? customFancyText : defaultFancyText);
         }
         if (anyChange){
             this.customLangConfig.save();
