@@ -42,7 +42,7 @@ public class CoreCommand {
                     StringBuilder stringBuilder = new StringBuilder();
                     stringBuilder.append("\n§d ▲ Name: §a" + ecPlugin.getPlugin().getName());
                     stringBuilder.append("\n§d ▲ Version: §a" + ecPlugin.getPlugin().getDescription().getVersion());
-                    stringBuilder.append("\n\n§d ▲ Is Up To Date: " + (ecPlugin.hasUpdate() ? "§b" : "§c") + !ecPlugin.hasUpdate());
+                    stringBuilder.append("\n\n§d ▲ Is Up To Date: " + (ecPlugin.hasUpdate() ? "§c" : "§b") + !ecPlugin.hasUpdate());
                     stringBuilder.append("\n");
                     return stringBuilder.toString();
                 })
