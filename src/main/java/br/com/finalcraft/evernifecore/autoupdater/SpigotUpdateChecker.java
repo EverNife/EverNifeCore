@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.autoupdater;
 import br.com.finalcraft.evernifecore.PermissionNodes;
 import br.com.finalcraft.evernifecore.api.events.ECFullyLoggedInEvent;
 import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
@@ -102,6 +103,7 @@ public class SpigotUpdateChecker {
 
         //If we are not downloading it, we need to warn staffs on join
         final String SPIGOT_URL = "https://www.spigotmc.org/resources/" + resourceId + "/";
+        ECPluginManager.getOrCreateECorePlugin(plugin).setUpdateLink(SPIGOT_URL);
         ECListener.register(plugin, new ECListener() {
             private final String PLUGIN_NAME = plugin.getName();
             private final String PERMISSION = PermissionNodes.UPDATECHECK_PERMISSION_TEMPLATE.replace("%plugin%",PLUGIN_NAME.toLowerCase());

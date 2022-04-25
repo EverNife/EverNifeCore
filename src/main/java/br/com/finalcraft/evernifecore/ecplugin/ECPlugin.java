@@ -14,6 +14,7 @@ import java.util.HashMap;
 public class ECPlugin {
 
     private final Plugin plugin;
+    private String updateLink = null;
     private String pluginLanguage;
     private HashMap<String,LocaleMessageImp> localizedMessages = new HashMap();
 
@@ -104,6 +105,18 @@ public class ECPlugin {
 
     public Plugin getPlugin() {
         return plugin;
+    }
+
+    public boolean hasUpdate(){
+        return updateLink != null;
+    }
+
+    public void setUpdateLink(String updateLink) {
+        this.updateLink = updateLink;
+    }
+
+    public String getUpdateLink() {
+        return updateLink;
     }
 
     @Nullable
