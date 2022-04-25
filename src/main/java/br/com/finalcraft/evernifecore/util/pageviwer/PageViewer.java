@@ -2,17 +2,23 @@ package br.com.finalcraft.evernifecore.util.pageviwer;
 
 import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.dynamiccommand.DynamicCommand;
+import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
+import br.com.finalcraft.evernifecore.util.FCCommandUtil;
 import br.com.finalcraft.evernifecore.util.FCTextUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class PageViewer<OBJ, VALUE> {
@@ -29,6 +35,7 @@ public class PageViewer<OBJ, VALUE> {
     protected final int pageSize;
     protected final boolean includeDate;
     protected final boolean includeTotalPlayers;
+    protected final boolean nextAndPreviousPageButton;
     protected final HashMap<String, Function<OBJ,Object>> placeholders;
 
     protected transient WeakReference<List<FancyText>> pageLinesCache = new WeakReference<>(new ArrayList<>());
@@ -36,7 +43,7 @@ public class PageViewer<OBJ, VALUE> {
     protected transient List<FancyText> pageFooterCache = null;
     protected transient long lastBuild = 0L;
 
-    public PageViewer(Supplier<List<OBJ>> supplier, Function<OBJ, VALUE> getValue, Comparator<SortedItem<OBJ, VALUE>> comparator, List<FancyText> formatHeader, FancyText formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, int pageSize, boolean includeDate, boolean includeTotalPlayers) {
+    public PageViewer(Supplier<List<OBJ>> supplier, Function<OBJ, VALUE> getValue, Comparator<SortedItem<OBJ, VALUE>> comparator, List<FancyText> formatHeader, FancyText formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, int pageSize, boolean includeDate, boolean includeTotalPlayers, boolean nextAndPreviousPageButton) {
         this.supplier = supplier;
         this.getValue = getValue;
         this.comparator = comparator;
@@ -49,6 +56,7 @@ public class PageViewer<OBJ, VALUE> {
         this.pageSize = pageSize;
         this.includeDate = includeDate;
         this.includeTotalPlayers = includeTotalPlayers;
+        this.nextAndPreviousPageButton = nextAndPreviousPageButton;
         this.placeholders = new HashMap<>();
     }
 
@@ -117,17 +125,18 @@ public class PageViewer<OBJ, VALUE> {
         }
     }
 
-    public void send(CommandSender... sender){
-        send(0, pageSize, sender);
+    public void send(@NotNull CommandSender... sender){
+        send(1, sender);
     }
 
-    public void send(int page, CommandSender... sender){
+    public void send(@Nullable Integer page, @NotNull CommandSender... sender){
+        page = NumberWrapper.of(page == null ? 1 : page).boundLower(1).intValue();
         int start = NumberWrapper.of((page - 1) * pageSize).boundUpper(lineEnd - pageSize).intValue();
         int end = NumberWrapper.of(page * pageSize).boundUpper(lineEnd).intValue();
-        send(start, end, sender);
+        send(page, start, end, sender);
     }
 
-    public void send(int lineStart, int lineEnd, CommandSender... sender){
+    public void send(int page, int lineStart, int lineEnd, CommandSender... sender){
         validateCachedLines();
 
         //Bound lineEnd to lastLine
@@ -141,12 +150,50 @@ public class PageViewer<OBJ, VALUE> {
 
         lineStart = NumberWrapper.of(lineStart).boundLower(0).intValue();
 
+        FancyFormatter nextAndPreviousPage = null;
+        if (nextAndPreviousPageButton){
+            int lastPage = (pageLinesCache.get().size() / pageSize);
+            int currentPage = NumberWrapper.of(page).boundUpper(lastPage).boundLower(1).intValue();
+
+            String previousButton = "§a§l<§2<§a§l<";
+            String center = "          §ePage [" + currentPage + "/" + lastPage + "]          ";
+            String nextButton = "§a§l>§2>§a§l>";
+
+            //Gerenete the SpaceBorders, by generenating it arround the center and spliting it afterwards
+            String holeLine = previousButton + center + nextButton;
+            String[] borders = FCTextUtil.alignCenter(holeLine).split(Pattern.quote(holeLine), -1);
+
+            //Replace colors on buttons based on possibility of next or previous page
+            if (page <= 1) previousButton = previousButton.replace("§a","§7").replace("§2","§7");
+            if (page >= lastPage) nextButton = nextButton.replace("§a","§7").replace("§2","§7");
+
+            Function<Integer, String> moveToPage = integer -> {
+                return FCCommandUtil.dynamicCommand(DynamicCommand.builder()
+                        .setRunOnlyOnce(false)
+                        .setAction(context -> {
+                            send(integer, context.getSender());
+                        })
+                        .createDynamicCommand()
+                );
+            };
+
+            nextAndPreviousPage =
+                    FancyFormatter.of("\n" + borders[0]) //First Border
+                            .append(previousButton).setHoverText("\n" + previousButton + "\n").setRunCommandAction(moveToPage.apply(currentPage - 1)) //First Arrow
+                            .append(center)
+                            .append(nextButton).setHoverText("\n" + nextButton + "\n").setRunCommandAction(moveToPage.apply(currentPage + 1)) //Second Arrow
+                            .append(borders[1]); //Second Border
+        }
+
         for (CommandSender commandSender : sender) {
             for (FancyText headerLine : pageHeaderCache) {
                 headerLine.send(commandSender);
             }
             for (int i = lineStart; i < pageLinesCache.get().size() && i < lineEnd; i++) {
                 pageLinesCache.get().get(i).send(sender);
+            }
+            if (nextAndPreviousPage != null){
+                nextAndPreviousPage.send(sender);
             }
             for (FancyText headerLine : pageFooterCache) {
                 headerLine.send(commandSender);
@@ -174,13 +221,14 @@ public class PageViewer<OBJ, VALUE> {
         };
         protected List<FancyText> formatHeader = Arrays.asList(new FancyText("§a§m" + FCTextUtil.straightLineOf("-")));
         protected FancyText formatLine = new FancyText("§7#  %number%:   §e%player%§f - §a%value%");
-        protected List<FancyText> formatFooter = Arrays.asList(new FancyText(""));
+        protected List<FancyText> formatFooter = Collections.emptyList();
         protected long cooldown = 15000; //15 seconds
         protected int lineStart = 0;
         protected int lineEnd = 50;
         protected int pageSize = 10;
         protected boolean includeDate = false;
         protected boolean includeTotalPlayers = false;
+        protected boolean nextAndPreviousPageButton = true;
 
         protected final HashMap<String, Function<OBJ,Object>> placeholders = new HashMap<>();
 
@@ -271,6 +319,11 @@ public class PageViewer<OBJ, VALUE> {
             return this;
         }
 
+        public Builder<OBJ, VALUE> setNextAndPreviousPageButton(boolean nextAndPreviousPageButton) {
+            this.nextAndPreviousPageButton = nextAndPreviousPageButton;
+            return this;
+        }
+
         public PageViewer<OBJ, VALUE> build(){
             PageViewer<OBJ, VALUE> pageViewer = new PageViewer<>(
                     supplier,
@@ -284,7 +337,8 @@ public class PageViewer<OBJ, VALUE> {
                     lineEnd,
                     pageSize,
                     includeDate,
-                    includeTotalPlayers);
+                    includeTotalPlayers,
+                    nextAndPreviousPageButton);
 
             pageViewer.placeholders.putAll(this.placeholders);
 
