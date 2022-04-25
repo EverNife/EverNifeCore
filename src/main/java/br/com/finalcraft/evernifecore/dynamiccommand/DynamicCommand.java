@@ -117,6 +117,11 @@ public class DynamicCommand {
             return this;
         }
 
+        public Builder setRunOnlyOnce(boolean runOnlyOnce) {
+            this.shouldRemove = context -> runOnlyOnce;
+            return this;
+        }
+
         public DynamicCommand createDynamicCommand() {
             Validate.notNull(action, "Action cannot be null");
             return new DynamicCommand(uuid, identifier, cooldown, action, shouldRun, shouldRemove);
