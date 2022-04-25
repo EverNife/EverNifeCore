@@ -2,13 +2,14 @@ package br.com.finalcraft.evernifecore.commands;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.PermissionNodes;
-import br.com.finalcraft.evernifecore.api.EverNifeCoreReloadEvent;
+import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
+import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.util.FCMessageUtil;
-import org.bukkit.Bukkit;
+import br.com.finalcraft.evernifecore.util.pageviwer.PageViewer;
 import org.bukkit.command.CommandSender;
 
 @FinalCMD(
@@ -25,10 +26,9 @@ public class CoreCommand {
             }
     )
     public void reload(CommandSender sender){
-        ConfigManager.initialize(EverNifeCore.instance);
-        FCMessageUtil.pluginHasBeenReloaded(sender, EverNifeCore.instance.getName());
-        EverNifeCoreReloadEvent reloadEvent = new EverNifeCoreReloadEvent();
-        Bukkit.getServer().getPluginManager().callEvent(reloadEvent);
+        ECPluginManager.reloadPlugin(sender, EverNifeCore.instance, () -> {
+            ConfigManager.initialize(EverNifeCore.instance);
+        });
     }
 
 }
