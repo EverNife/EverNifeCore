@@ -25,33 +25,35 @@ public class ECPluginManager {
     }
 
     public static void reloadPlugin(@Nullable CommandSender sender, @NotNull Plugin instance, @NotNull Runnable runnable){
-        long start = System.currentTimeMillis();
-        ECPlugin ecPlugin = getOrCreateECorePlugin(instance);
 
+        ECPlugin ecPlugin = getOrCreateECorePlugin(instance);
         //Fire Pre-Reload
         //Mainly used for Plugins that has other addons or modules
         Bukkit.getPluginManager().callEvent(new ECPluginPreReloadEvent(ecPlugin));
 
+        long start = System.currentTimeMillis();
+
         //Do the reload
         runnable.run();
+        //Reload locales as well
         ecPlugin.reloadAllCustomLocales();
 
-        //Notify the sender if its a Player
+        long end = System.currentTimeMillis();
+
+        //Notify the Console
+        ecPlugin.getPlugin().getLogger().info("§e[Reloading] §a" + ecPlugin.getPlugin().getName() + " has been reloaded! §7(It took " + new FCTimeFrame(end - start).getFormatedDiscursive(true) + ")");
+
+        //Notify the sender if it's a Player
         if (sender != null && sender instanceof Player == true){
             FCMessageUtil.pluginHasBeenReloaded(sender, instance.getName());
         }
 
         Bukkit.getPluginManager().callEvent(new ECPluginReloadEvent(ecPlugin));
 
-        //If its the EverNifeCore, call it's personal reload event
+        //If it's the EverNifeCore, call it's personal reload event
         if (ecPlugin.getPlugin() == EverNifeCore.instance){
             Bukkit.getPluginManager().callEvent(new EverNifeCoreReloadEvent(ecPlugin));
         }
-
-        long end = System.currentTimeMillis();
-
-        //Notify the Console
-        ecPlugin.getPlugin().getLogger().info("§e[Reloading] §a" + ecPlugin.getPlugin().getName() + " has been reloaded! §7(It took " + new FCTimeFrame(end - start).getFormatedDiscursive(true) + ")");
     }
 
     public static void removePluginData(String playerName){
