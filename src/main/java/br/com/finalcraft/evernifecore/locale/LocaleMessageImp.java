@@ -14,6 +14,8 @@ public class LocaleMessageImp implements LocaleMessage {
     private final Plugin plugin;
     private final String key;
     private final HashMap<String, FancyText> fancyTextMap = new HashMap<>();
+    private final boolean shouldSyncToFile;
+    private boolean hasBeenSynced = false;
 
     private transient FancyText defaultFancyText; //Cached FancyText of the DefaultLocale of the plugin
 
@@ -23,6 +25,13 @@ public class LocaleMessageImp implements LocaleMessage {
     public LocaleMessageImp(Plugin plugin, String key) {
         this.plugin = plugin;
         this.key = key;
+        this.shouldSyncToFile = false;
+    }
+
+    public LocaleMessageImp(Plugin plugin, String key, boolean shouldSyncToFile) {
+        this.plugin = plugin;
+        this.key = key;
+        this.shouldSyncToFile = shouldSyncToFile;
     }
 
     @Override
@@ -96,6 +105,26 @@ public class LocaleMessageImp implements LocaleMessage {
             }
         }
         return defaultFancyText;
+    }
+
+    public boolean needToBeSynced() {
+        return shouldSyncToFile && !hasBeenSynced;
+    }
+
+    public boolean shouldSyncToFile() {
+        return shouldSyncToFile;
+    }
+
+    public void setHasBeenSynced(boolean hasBeenSynced) {
+        this.hasBeenSynced = hasBeenSynced;
+    }
+
+    public boolean hasBeenSaved() {
+        return hasBeenSynced;
+    }
+
+    public void resetDefaultFancyText(){
+        defaultFancyText = null;
     }
 
     public void addLocale(String lang, FancyText fancyText){
