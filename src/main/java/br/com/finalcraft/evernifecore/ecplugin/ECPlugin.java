@@ -5,11 +5,14 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 
 public class ECPlugin {
 
@@ -18,22 +21,17 @@ public class ECPlugin {
     private String pluginLanguage;
     private HashMap<String,LocaleMessageImp> localizedMessages = new HashMap();
 
-    private Config customLangConfig = null;
-    private final HashMap<LocaleType, Config> hardcodedLocalizations = new HashMap<>();
+    private Config localization_config;
+    private Config customLangConfig;
+    private final List<Tuple<LocaleType, Config>> hardcodedLocalizations = new ArrayList<>();
     private boolean markedForLocaleReload = false;
 
     public ECPlugin(Plugin plugin) {
         this.plugin = plugin;
 
-        Config localization_config = new Config(this.plugin, "localization/localization_config.yml");
-        this.pluginLanguage = localization_config.getOrSetDefaultValue("Localization.fileName", "lang_" + FCLocaleManager.DEFAULT_EVERNIFECORE_LOCALE + ".yml")
-                .replace(".yml","")
-                .replace("lang_","");
-        localization_config.saveIfNewDefaults();
-
         for (LocaleType type : LocaleType.values()) {
             Config lang = new Config(plugin, "localization/lang_" + type.name() + ".yml");
-            hardcodedLocalizations.put(type, lang);
+            hardcodedLocalizations.add(Tuple.of(type, lang));
         }
 
         this.plugin.getLogger().info("[FCLocale] Setting locale to [" + pluginLanguage +"]!");
@@ -42,9 +40,8 @@ public class ECPlugin {
     }
 
     public void addLocale(LocaleMessageImp localeMessageImp){
-        LocaleMessageImp previous = localizedMessages.put(localeMessageImp.getKey(), localeMessageImp);
-        if (previous != null){
-            //IF we are re-adding a locale that means the plugins needs a reload
+        localizedMessages.put(localeMessageImp.getKey(), localeMessageImp);
+        if (localeMessageImp.needToBeSynced()){
             markedForLocaleReload = true;
         }
     }
@@ -52,25 +49,47 @@ public class ECPlugin {
     public void reloadAllCustomLocales(){
         markedForLocaleReload = false;
 
+        boolean requiredEntireReload = false;
         //Check for the locale name again
-        Config localization_config = new Config(this.plugin, "localization/localization_config.yml");
-        this.pluginLanguage = localization_config.getString("Localization.fileName", "lang_" + FCLocaleManager.DEFAULT_EVERNIFECORE_LOCALE + ".yml")
-                .replace(".yml","")
-                .replace("lang_","");
+        if (this.localization_config == null || this.localization_config.hasBeenModified()){
+            this.localization_config = new Config(this.plugin, "localization/localization_config.yml");
+            this.pluginLanguage = localization_config.getOrSetDefaultValue("Localization.fileName", "lang_" + FCLocaleManager.DEFAULT_EVERNIFECORE_LOCALE + ".yml")
+                    .replace(".yml","")
+                    .replace("lang_","");
+            localization_config.saveIfNewDefaults();
+            requiredEntireReload=true;
+        }
 
-        //This code will only execute if the plugin is using a custom locale.
-        //If the plugin is using a HardcodedLocale there is no need to reload anything at all
+        //If the plugin is using a HardcodedLocale there is no need to make great changes
         boolean isHardcodedLocale = Arrays.stream(LocaleType.values()).map(Enum::name).filter(s -> s.equals(this.getPluginLanguage())).findAny().isPresent();
 
-        this.customLangConfig = isHardcodedLocale ? null : new Config(plugin, "localization/lang_" + this.getPluginLanguage() + ".yml");
+        if (!isHardcodedLocale &&
+                (this.customLangConfig == null //There was no config, first load of the plugin
+                        || this.customLangConfig.hasBeenModified() //The config has been modified
+                        || !this.customLangConfig.getTheFile().getName().equals("lang_" + this.getPluginLanguage() + ".yml") //The language name has been changed
+                )){
+            this.customLangConfig = new Config(plugin, "localization/lang_" + this.getPluginLanguage() + ".yml");
+            requiredEntireReload = true;
+        }
 
-        if (this.customLangConfig == null){
-            return;
+        //In case the LangName has been changed
+        //In case the LangConfig has been changed
+        if (requiredEntireReload){
+            this.localizedMessages.values().forEach(localeMessageImp -> {
+                localeMessageImp.setHasBeenSynced(false);
+                localeMessageImp.resetDefaultFancyText();
+            });
         }
 
         boolean anyChange = false;
         for (LocaleMessageImp localeMessage : localizedMessages.values()) {
-            //Set a DefaultValue for this Custom LocaleMessage based on the ENGLISH hardcoded LocaleMessage
+
+            if (!localeMessage.shouldSyncToFile()){
+                //Ignore this locale
+                continue;
+            }
+
+            //Set a DefaultValue for this Custom LocaleMessage based on the ENGLISH hardcoded LocaleMessage, or the next one
             FancyText defaultFancyText = null;
             for (LocaleType locale : LocaleType.values()) {
                 defaultFancyText = localeMessage.getFancyText(locale.name());
@@ -78,15 +97,53 @@ public class ECPlugin {
                     break;
                 }
             }
+
+            //Now we need to look for the LocaleMessage and save it to the hardcoded files, for example EN_US
+            if (localeMessage.needToBeSynced()){
+                for (Tuple<LocaleType, Config> tuple : hardcodedLocalizations) {
+                    FancyText originalHardcodedLocale = tuple.getBeta().getFancyText(localeMessage.getKey());
+                    if (originalHardcodedLocale == null){
+                        originalHardcodedLocale = new FancyText("[LOCALE_NOT_FOUND]");
+                    }
+                    Config config = tuple.getBeta();
+                    FancyText current = config.getFancyText(localeMessage.getKey());
+                    if (!originalHardcodedLocale.equals(current)){
+                        config.setValue(localeMessage.getKey(), originalHardcodedLocale);
+                        tuple.getBeta().setValue("HasBeenChanged", true);
+                    }
+                }
+                if (isHardcodedLocale){
+                    //We can stop here, no need to check for the customLangConfig
+                    localeMessage.setHasBeenSynced(true);
+                }
+            }
+
+            if (!localeMessage.needToBeSynced()){
+                continue;
+            }
+            localeMessage.setHasBeenSynced(true);
+
+            //Now look for the customFile
             FancyText customFancyText = this.customLangConfig.getFancyText(localeMessage.getKey());
             if (customFancyText == null){
                 //Update on the new file
-                this.customLangConfig.setValue(localeMessage.getKey(), defaultFancyText);
+                customFancyText = defaultFancyText;
+                this.customLangConfig.setValue(localeMessage.getKey(), customFancyText);
                 anyChange = true;
             }
-            localeMessage.addLocale(getPluginLanguage(), customFancyText != null ? customFancyText : defaultFancyText);
+            localeMessage.addLocale(getPluginLanguage(), customFancyText);
         }
+
+        //Validate Hardcoded Localization Files
+        for (Tuple<LocaleType, Config> tuple : hardcodedLocalizations) {
+            if (!tuple.getBeta().getTheFile().exists() || tuple.getBeta().getBoolean("HasBeenChanged", false)){
+                tuple.getBeta().setValue("HasBeenChanged", null);
+                tuple.getBeta().saveAsync();
+            }
+        }
+
         if (anyChange){
+            plugin.getLogger().info("Saving the NewConfig to FIle");
             this.customLangConfig.save();
         }
     }
@@ -97,6 +154,10 @@ public class ECPlugin {
 
     public boolean isMarkedForLocaleReload() {
         return markedForLocaleReload;
+    }
+
+    public void markForLocaleReload(){
+        markedForLocaleReload = true;
     }
 
     public String getPluginLanguage() {
@@ -124,7 +185,4 @@ public class ECPlugin {
         return this.customLangConfig;
     }
 
-    public HashMap<LocaleType, Config> getHardcodedLocalizations() {
-        return hardcodedLocalizations;
-    }
 }

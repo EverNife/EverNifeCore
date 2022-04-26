@@ -86,8 +86,16 @@ public class FCLocaleScanner {
 
         ECPlugin ecPlugin = ECPluginManager.getOrCreateECorePlugin(plugin);
 
-        LocaleMessageImp localeMessage = new LocaleMessageImp(plugin, key);
-        ecPlugin.addLocale(localeMessage);
+        LocaleMessageImp existingLocale = ecPlugin.getLocalizedMessages().get(key);
+
+        if (existingLocale != null){
+            //This locale is already here
+            return existingLocale;
+        }
+
+        LocaleMessageImp newLocale = new LocaleMessageImp(plugin, key, saveOnFile);
+
+        ecPlugin.addLocale(newLocale);
 
         for (FCLocaleData fcLocale : locales) {
             String text = fcLocale.text();
@@ -96,62 +104,15 @@ public class FCLocaleScanner {
             String lang = fcLocale.lang();
             FancyText fancyText = new FancyText(text, hover, runCommand);
 
-            if (localeMessage.getFancyText(lang) != null){
+            if (newLocale.getFancyText(lang) != null){
                 plugin.getLogger().severe("[FCLocale] Found a LocaleMessage with repeated {localeTypes} at key [" + key + "]! Ignoring new one!");
                 continue;
             }
 
-            localeMessage.addLocale(lang, fancyText);
+            newLocale.addLocale(lang, fancyText);
         }
 
-        if (ecPlugin.getCustomLangConfig() != null){ //We are using a custom lang, need to add the new fancyTexts to the locale message
-
-            FancyText englishFancyText = localeMessage.getFancyText(LocaleType.EN_US.name());
-            //Set a DefaultValue for this Custom LocaleMessage based on the ENGLISH hardcoded LocaleMessage
-            if (saveOnFile){
-                ecPlugin.getCustomLangConfig().setDefaultValue(localeMessage.getKey(), englishFancyText);
-            }
-
-            //Get the Custom FancyText of this LocaleMessage on the custom ConfigFile
-            FancyText fancyText = ecPlugin.getCustomLangConfig().getFancyText(localeMessage.getKey());
-            if (fancyText == null){
-                fancyText = englishFancyText;
-            }
-
-            localeMessage.addLocale(ecPlugin.getPluginLanguage(), fancyText);
-        }
-
-        if (!saveOnFile){
-            return localeMessage;
-        }
-
-        if (ecPlugin.getCustomLangConfig() != null){
-            ecPlugin.getCustomLangConfig().saveIfNewDefaults();
-        }
-
-        for (Map.Entry<LocaleType, Config> entry : ecPlugin.getHardcodedLocalizations().entrySet()) {
-            Config lang = entry.getValue();
-
-            boolean anyChange = false;
-            FancyText originalFancyText = localeMessage.getFancyText(entry.getKey().name());
-
-            if (originalFancyText == null){
-                originalFancyText = new FancyText("[LOCALE_NOT_FOUND]");
-            }
-
-            FancyText onFileFancyText = lang.getFancyText(localeMessage.getKey());
-
-            if (onFileFancyText == null || !onFileFancyText.equals(originalFancyText)){
-                anyChange = true;
-                lang.setValue(localeMessage.getKey(), originalFancyText);
-            }
-
-            if (anyChange){
-                lang.save();
-            }
-        }
-
-        return localeMessage;
+        return newLocale;
     }
 
     private static String getFieldAndClassName(Field field){
