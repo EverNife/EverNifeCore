@@ -42,6 +42,7 @@ public class Config {
 	protected final File theFile;
 	protected FileConfiguration config;
 	protected boolean newDefaultValueToSave = false;
+	protected long lastModified;
 
 	protected final static Random random = new Random();
 	private static HashMap<Class, Method> MAP_OF_LOADABLE_METHODS = new HashMap<>();
@@ -155,6 +156,7 @@ public class Config {
 		if (header != null){
 			this.config.options().header(header);
 		}
+		this.lastModified = theFile.lastModified();
 	}
 
 	public Config(Plugin plugin, String configName, boolean copyDefaults) {
@@ -175,6 +177,7 @@ public class Config {
 	public Config(File theFile) {
 		this.theFile = theFile;
 		this.config = YamlConfiguration.loadConfiguration(this.theFile);
+		this.lastModified = theFile.lastModified();
 	}
 	
 	/**
@@ -186,6 +189,7 @@ public class Config {
 	public Config(File theFile, FileConfiguration config) {
 		this.theFile = theFile;
 		this.config=config;
+		this.lastModified = theFile.lastModified();
 	}
 	
 	/**
@@ -197,8 +201,13 @@ public class Config {
 	public Config(String path) {
 		this.theFile = new File(path);
 		this.config = YamlConfiguration.loadConfiguration(this.theFile);
+		this.lastModified = theFile.lastModified();
 	}
-	
+
+	public boolean hasBeenModified(){
+		return !theFile.exists() || lastModified != theFile.lastModified();
+	}
+
 	/**
 	 * Returns the File the Config is handling
 	 *
@@ -255,7 +264,12 @@ public class Config {
 		else if (value instanceof NumberWrapper){
 			setValue(path, ((NumberWrapper<?>) value).get());
 		}
-		else if (value instanceof FancyText && !(value instanceof FancyFormatter)) {
+		else if (value instanceof FancyText) {
+			if (value instanceof FancyFormatter){
+				EverNifeCore.instance.getLogger().warning("FancyFormmater is not supported to be saved!");
+				EverNifeCore.instance.getLogger().warning("Attempted to save a FancyFormmater at " + path + ":" + this.getTheFile().getAbsolutePath());
+				return;
+			}
 			FancyText fancyText = (FancyText) value;
 
 			boolean hover = fancyText.getHoverText() != null && !fancyText.getHoverText().isEmpty();
@@ -266,7 +280,7 @@ public class Config {
 				if (hover) this.store(path + ".hoverText", fancyText.getHoverText());
 				if (action) {
 					this.store(path + ".clickActionText", fancyText.getClickActionText());
-					this.store(path + ".clickActionType", fancyText.getClickActionType());
+					this.store(path + ".clickActionType", fancyText.getClickActionType().name());
 				}
 			}else {
 				this.store(path, fancyText.getText());
@@ -335,6 +349,7 @@ public class Config {
 		lock.lock();
 		try {
 			config.save(theFile);
+			this.lastModified = theFile.lastModified();
 		} catch (IOException e) {
 			EverNifeCore.warning("Failed to save file [" + theFile.getAbsolutePath() + "]");
 			e.printStackTrace();
@@ -989,6 +1004,7 @@ public class Config {
 	 */ 
 	public void reload() {
 		this.config = YamlConfiguration.loadConfiguration(this.theFile);
+		this.lastModified = this.theFile.lastModified();
 	}
 
 	public ConfigurationSection getConfigurationSection(String path){
