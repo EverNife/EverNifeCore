@@ -156,11 +156,12 @@ public class PageViewer<OBJ, VALUE> {
             int currentPage = NumberWrapper.of(page).boundUpper(lastPage).boundLower(1).intValue();
 
             String previousButton = "§a§l<§2<§a§l<";
-            String center = "          §ePage [" + currentPage + "/" + lastPage + "]          ";
+            String centerSpace = "          ";
+            String center = "§ePage [" + currentPage + "/" + lastPage + "]";
             String nextButton = "§a§l>§2>§a§l>";
 
             //Gerenete the SpaceBorders, by generenating it arround the center and spliting it afterwards
-            String holeLine = previousButton + center + nextButton;
+            String holeLine = previousButton + centerSpace + center + centerSpace + nextButton;
             String[] borders = FCTextUtil.alignCenter(holeLine).split(Pattern.quote(holeLine), -1);
 
             //Replace colors on buttons based on possibility of next or previous page
@@ -168,6 +169,8 @@ public class PageViewer<OBJ, VALUE> {
             if (page >= lastPage) nextButton = nextButton.replace("§a","§7").replace("§2","§7");
 
             Function<Integer, String> moveToPage = integer -> {
+                if (integer == 0) return null;//No Previous page
+                if (integer > lastPage) return null;//No Next page
                 return FCCommandUtil.dynamicCommand(DynamicCommand.builder()
                         .setRunOnlyOnce(false)
                         .setAction(context -> {
@@ -180,7 +183,9 @@ public class PageViewer<OBJ, VALUE> {
             nextAndPreviousPage =
                     FancyFormatter.of("\n" + borders[0]) //First Border
                             .append(previousButton).setHoverText("\n" + previousButton + "\n").setRunCommandAction(moveToPage.apply(currentPage - 1)) //First Arrow
-                            .append(center)
+                            .append(centerSpace)
+                            .append(center).setHoverText("\n§a Refresh Page [" + currentPage + "] \n").setRunCommandAction(moveToPage.apply(currentPage))
+                            .append(centerSpace)
                             .append(nextButton).setHoverText("\n" + nextButton + "\n").setRunCommandAction(moveToPage.apply(currentPage + 1)) //Second Arrow
                             .append(borders[1]); //Second Border
         }
