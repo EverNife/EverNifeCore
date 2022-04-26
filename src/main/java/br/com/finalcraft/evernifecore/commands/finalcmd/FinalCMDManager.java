@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CustomizeContex
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.MethodData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.FCMultiLocales;
@@ -145,6 +146,7 @@ public class FinalCMDManager {
 
                 newCommand.addLocaleMessages(localeMessageFields);
                 newCommand.registerCommand();
+                ECPluginManager.getOrCreateECorePlugin(pluginInstance).reloadAllCustomLocales();
                 return true;
             }
 
@@ -184,6 +186,7 @@ public class FinalCMDManager {
                 }
             }
 
+            ECPluginManager.getOrCreateECorePlugin(pluginInstance).reloadAllCustomLocales();
             return true;
         }catch (Throwable e){
             pluginInstance.getLogger().warning("Fail to register FinalCMD Command: " + executor.getClass().getName());
