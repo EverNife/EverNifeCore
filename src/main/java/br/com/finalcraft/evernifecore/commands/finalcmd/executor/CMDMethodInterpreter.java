@@ -17,6 +17,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser;
 import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.ecplugin.ECPlugin;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
@@ -143,8 +144,9 @@ public class CMDMethodInterpreter {
         if (locales.length > 0){
             localeMessage = FCLocaleScanner.scanForLocale(owningPlugin, localeMessageKey, true, locales);
         }else {
-            //If no FCLocale is present, use the cmdData desc() to build it
-            localeMessage = new LocaleMessageImp(owningPlugin,localeMessageKey);
+            //If no FCLocale is present, use the cmdData desc() to build it, it will be a static locale, will not be reloaded
+            ECPlugin ecPlugin = ECPluginManager.getOrCreateECorePlugin(owningPlugin);
+            localeMessage = new LocaleMessageImp(owningPlugin, localeMessageKey, false);
             FancyText fancyText = new FancyText(null, cmdData.desc());
             for (LocaleType lang : LocaleType.values()) {
                 localeMessage.addLocale(
@@ -153,7 +155,7 @@ public class CMDMethodInterpreter {
                 );
             }
             //Add the default lang as well
-            localeMessage.addLocale(ECPluginManager.getOrCreateECorePlugin(owningPlugin).getPluginLanguage(), fancyText);
+            localeMessage.addLocale(ecPlugin.getPluginLanguage(), fancyText);
         }
 
         Set<FancyText> fancyTexts = new HashSet<>(localeMessage.getFancyTextMap().values());
