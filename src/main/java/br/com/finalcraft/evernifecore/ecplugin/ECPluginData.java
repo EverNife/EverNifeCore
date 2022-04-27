@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
 import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
@@ -9,14 +10,18 @@ import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-public class ECPlugin {
+public class ECPluginData {
 
     private final Plugin plugin;
+    private final Runnable onReload;
     private String updateLink = null;
     private String pluginLanguage;
     private HashMap<String,LocaleMessageImp> localizedMessages = new HashMap();
@@ -26,8 +31,27 @@ public class ECPlugin {
     private final List<Tuple<LocaleType, Config>> hardcodedLocalizations = new ArrayList<>();
     private boolean markedForLocaleReload = false;
 
-    public ECPlugin(Plugin plugin) {
+    public ECPluginData(Plugin plugin) {
         this.plugin = plugin;
+
+        //Handle RELOADING of this plugin
+        final Method reloadMethod = Arrays.stream(plugin.getClass().getDeclaredMethods())
+                .filter(method -> method.getAnnotation(ECPlugin.Reload.class) != null)
+                .findFirst()
+                .orElse(null);
+        if (reloadMethod != null){
+            final boolean isStatic = Modifier.isStatic(reloadMethod.getModifiers());
+            this.onReload = () -> {
+                try {
+                    reloadMethod.invoke(isStatic ? null : plugin);
+                }catch (InvocationTargetException | IllegalAccessException e){
+                    plugin.getLogger().warning("Failed to execute OnReload method of (" + plugin.getName() + ")");
+                    e.printStackTrace();
+                }
+            };
+        }else {
+            this.onReload = null;
+        }
 
         for (LocaleType type : LocaleType.values()) {
             Config lang = new Config(plugin, "localization/lang_" + type.name() + ".yml");
@@ -145,6 +169,16 @@ public class ECPlugin {
         if (anyChange){
             plugin.getLogger().info("Saving the NewConfig to FIle");
             this.customLangConfig.save();
+        }
+    }
+
+    public boolean canReload(){
+        return onReload != null;
+    }
+
+    public void reloadPlugin(){
+        if (canReload()){
+            onReload.run();
         }
     }
 

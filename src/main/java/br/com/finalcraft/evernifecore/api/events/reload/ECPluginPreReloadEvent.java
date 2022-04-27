@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.api.events.reload;
 
-import br.com.finalcraft.evernifecore.ecplugin.ECPlugin;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
@@ -13,14 +13,14 @@ public class ECPluginPreReloadEvent extends Event {
 
     private static final HandlerList handlers = new HandlerList();
 
-    private final ECPlugin ecPlugin;
+    private final ECPluginData ecPluginData;
 
-    public ECPluginPreReloadEvent(ECPlugin ecPlugin) {
-        this.ecPlugin = ecPlugin;
+    public ECPluginPreReloadEvent(ECPluginData ecPluginData) {
+        this.ecPluginData = ecPluginData;
     }
 
-    public ECPlugin getEcPlugin() {
-        return ecPlugin;
+    public ECPluginData getEcPlugin() {
+        return ecPluginData;
     }
 
     @Override

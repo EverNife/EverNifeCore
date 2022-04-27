@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.locale;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.ecplugin.ECPlugin;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.locale.scanner.FCLocaleScanner;
 import org.bukkit.entity.Player;
@@ -39,10 +39,10 @@ public class FCLocaleManager {
             FCLocaleScanner.scanForLocale(plugin, silent, clazz);
         }
 
-        ECPlugin ecPlugin = ECPluginManager.getOrCreateECorePlugin(plugin);
+        ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePlugin(plugin);
 
-        if (ecPlugin.isMarkedForLocaleReload()){
-            ecPlugin.reloadAllCustomLocales();
+        if (ecPluginData.isMarkedForLocaleReload()){
+            ecPluginData.reloadAllCustomLocales();
         }
 
     }

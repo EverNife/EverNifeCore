@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpLine;
 import br.com.finalcraft.evernifecore.config.Config;
-import br.com.finalcraft.evernifecore.ecplugin.ECPlugin;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
@@ -37,11 +37,11 @@ public class CMDECLocale {
     public void list(CommandSender sender, String label) {
         FancyFormatter formatter = FancyFormatter.of(FCTextUtil.straightLineOf("§a§m-§r"));
 
-        List<ECPlugin> sortedPlugins = ECPluginManager.getECPluginsMap().values().stream()
+        List<ECPluginData> sortedPlugins = ECPluginManager.getECPluginsMap().values().stream()
                 .sorted(Comparator.comparing(ecPlugin -> ecPlugin.getPlugin().getName()))
                 .collect(Collectors.toList());
 
-        for (ECPlugin ecplugin : sortedPlugins) {
+        for (ECPluginData ecplugin : sortedPlugins) {
             formatter.append("\n§d ♦ §b" + ecplugin.getPlugin().getName() + " §7");
 
             for (LocaleType localeType : LocaleType.values()) {
@@ -79,9 +79,9 @@ public class CMDECLocale {
         }
 
         Plugin plugin = Bukkit.getPluginManager().getPlugin(argumentos.getStringArg(1));
-        ECPlugin ecPlugin = plugin == null ? null : ECPluginManager.getECPluginsMap().get(plugin.getName());
+        ECPluginData ecPluginData = plugin == null ? null : ECPluginManager.getECPluginsMap().get(plugin.getName());
 
-        if (ecPlugin == null){
+        if (ecPluginData == null){
             sender.sendMessage("§e§l ▶ §cThere is no ECPlugin with the name §e[" + argumentos.get(1) + "]§c found on this server.");
             return;
         }
@@ -102,7 +102,7 @@ public class CMDECLocale {
         if (!newLocaleValue.equals(previousLocaleValue)){
             localization_config.setValue("Localization.fileName", newLocaleValue);
             localization_config.save();
-            ecPlugin.reloadAllCustomLocales();
+            ecPluginData.reloadAllCustomLocales();
         }
 
         sender.sendMessage("§2§l ▶ §b§l" + plugin.getName() + "'s §alocalization file name set to [" + localization_config.getString("Localization.fileName") + "]!");
@@ -123,7 +123,7 @@ public class CMDECLocale {
             return;
         }
 
-        for (ECPlugin value : ECPluginManager.getECPluginsMap().values()) {
+        for (ECPluginData value : ECPluginManager.getECPluginsMap().values()) {
             FCBukkitUtil.makePlayerExecuteCommand(sender, label + " set " + value.getPlugin().getName() + " " + argumentos.get(1));
         }
 

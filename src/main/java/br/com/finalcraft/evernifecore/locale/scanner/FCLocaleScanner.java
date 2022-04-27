@@ -1,16 +1,21 @@
 package br.com.finalcraft.evernifecore.locale.scanner;
 
-import br.com.finalcraft.evernifecore.config.Config;
-import br.com.finalcraft.evernifecore.ecplugin.ECPlugin;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
-import br.com.finalcraft.evernifecore.locale.*;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.FCMultiLocales;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
+import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import org.bukkit.plugin.Plugin;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class FCLocaleScanner {
@@ -84,9 +89,9 @@ public class FCLocaleScanner {
 
     public static LocaleMessageImp scanForLocale(Plugin plugin, String key, boolean saveOnFile, FCLocaleData... locales){
 
-        ECPlugin ecPlugin = ECPluginManager.getOrCreateECorePlugin(plugin);
+        ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePlugin(plugin);
 
-        LocaleMessageImp existingLocale = ecPlugin.getLocalizedMessages().get(key);
+        LocaleMessageImp existingLocale = ecPluginData.getLocalizedMessages().get(key);
 
         if (existingLocale != null){
             //This locale is already here
@@ -95,7 +100,7 @@ public class FCLocaleScanner {
 
         LocaleMessageImp newLocale = new LocaleMessageImp(plugin, key, saveOnFile);
 
-        ecPlugin.addLocale(newLocale);
+        ecPluginData.addLocale(newLocale);
 
         for (FCLocaleData fcLocale : locales) {
             String text = fcLocale.text();
