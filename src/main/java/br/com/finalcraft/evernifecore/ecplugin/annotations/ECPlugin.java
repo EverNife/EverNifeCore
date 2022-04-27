@@ -6,7 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.PARAMETER})
+@Target({ElementType.TYPE})
 public @interface ECPlugin {
 
     String spigotID() default "";
@@ -17,6 +17,9 @@ public @interface ECPlugin {
     @Retention(RetentionPolicy.RUNTIME)
     @Target({ElementType.METHOD})
     public static @interface Reload {
+
+        //After the reload of one of these plugins, this ECPlguin will be reloaded
+        Class<?>[] reloadAfter() default {};
 
     }
 

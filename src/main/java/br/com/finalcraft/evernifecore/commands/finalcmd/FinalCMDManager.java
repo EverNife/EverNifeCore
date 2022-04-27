@@ -146,7 +146,7 @@ public class FinalCMDManager {
 
                 newCommand.addLocaleMessages(localeMessageFields);
                 newCommand.registerCommand();
-                ECPluginManager.getOrCreateECorePlugin(pluginInstance).reloadAllCustomLocales();
+                ECPluginManager.getOrCreateECorePluginData(pluginInstance).reloadAllCustomLocales();
                 return true;
             }
 
@@ -186,7 +186,7 @@ public class FinalCMDManager {
                 }
             }
 
-            ECPluginManager.getOrCreateECorePlugin(pluginInstance).reloadAllCustomLocales();
+            ECPluginManager.getOrCreateECorePluginData(pluginInstance).reloadAllCustomLocales();
             return true;
         }catch (Throwable e){
             pluginInstance.getLogger().warning("Fail to register FinalCMD Command: " + executor.getClass().getName());

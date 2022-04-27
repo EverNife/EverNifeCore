@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.listeners.bossshop.BossShopListener;
 import br.com.finalcraft.evernifecore.metrics.Metrics;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.version.MCVersion;
+import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.server.PluginDisableEvent;
@@ -17,7 +18,17 @@ import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 public class PluginListener implements ECListener {
+
+    @Override
+    public void onRegister() {
+        for (Plugin plugin : Arrays.stream(Bukkit.getPluginManager().getPlugins()).filter(plugin -> plugin.isEnabled()).collect(Collectors.toList())) {
+            onPluginEnable(new PluginEnableEvent(plugin));
+        }
+    }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPluginEnable(PluginEnableEvent event) {
@@ -35,12 +46,12 @@ public class PluginListener implements ECListener {
         ECPlugin ecPlugin = plugin.getClass().getAnnotation(ECPlugin.class);
         if (ecPlugin != null){
             //Enable BStats for this plugin
-            if (ecPlugin.bstatsID().isEmpty()){
+            if (!ecPlugin.bstatsID().isEmpty()){
                 new Metrics((JavaPlugin) plugin, Integer.parseInt(ecPlugin.bstatsID()));
             }
 
             //Enable Automatic Spigot Update for this plugin
-            if (ecPlugin.spigotID().isEmpty()){
+            if (!ecPlugin.spigotID().isEmpty()){
                 SpigotUpdateChecker.checkForUpdates((JavaPlugin) plugin, ecPlugin.spigotID(), new Config(plugin, "config.yml"));
             }
         }

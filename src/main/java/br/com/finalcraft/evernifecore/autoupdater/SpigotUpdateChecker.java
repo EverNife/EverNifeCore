@@ -103,7 +103,7 @@ public class SpigotUpdateChecker {
 
         //If we are not downloading it, we need to warn staffs on join
         final String SPIGOT_URL = "https://www.spigotmc.org/resources/" + resourceId + "/";
-        ECPluginManager.getOrCreateECorePlugin(plugin).setUpdateLink(SPIGOT_URL);
+        ECPluginManager.getOrCreateECorePluginData(plugin).setUpdateLink(SPIGOT_URL);
         ECListener.register(plugin, new ECListener() {
             private final String PLUGIN_NAME = plugin.getName();
             private final String PERMISSION = PermissionNodes.UPDATECHECK_PERMISSION_TEMPLATE.replace("%plugin%",PLUGIN_NAME.toLowerCase());

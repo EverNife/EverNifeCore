@@ -89,7 +89,7 @@ public class FCLocaleScanner {
 
     public static LocaleMessageImp scanForLocale(Plugin plugin, String key, boolean saveOnFile, FCLocaleData... locales){
 
-        ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePlugin(plugin);
+        ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(plugin);
 
         LocaleMessageImp existingLocale = ecPluginData.getLocalizedMessages().get(key);
 

@@ -19,7 +19,7 @@ public class ECPluginReloadEvent extends Event {
         this.ecPluginData = ecPluginData;
     }
 
-    public ECPluginData getEcPlugin() {
+    public ECPluginData getECPlugin() {
         return ecPluginData;
     }
 

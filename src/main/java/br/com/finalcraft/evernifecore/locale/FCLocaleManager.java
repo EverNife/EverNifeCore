@@ -17,7 +17,7 @@ public class FCLocaleManager {
     public static HashMap<UUID, String> PLAYER_LOCALES = new HashMap<>();
 
     public static String getLangOf(Plugin plugin){
-        return ECPluginManager.getOrCreateECorePlugin(plugin).getPluginLanguage();
+        return ECPluginManager.getOrCreateECorePluginData(plugin).getPluginLanguage();
     }
 
     public static String getLangOf(Player player){
@@ -25,7 +25,7 @@ public class FCLocaleManager {
     }
 
     public static void updateEverNifeCoreLocale(){
-        DEFAULT_EVERNIFECORE_LOCALE = ECPluginManager.getOrCreateECorePlugin(EverNifeCore.instance).getPluginLanguage();
+        DEFAULT_EVERNIFECORE_LOCALE = ECPluginManager.getOrCreateECorePluginData(EverNifeCore.instance).getPluginLanguage();
     }
 
     public static void loadLocale(Plugin plugin, Class... classes){
@@ -39,7 +39,7 @@ public class FCLocaleManager {
             FCLocaleScanner.scanForLocale(plugin, silent, clazz);
         }
 
-        ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePlugin(plugin);
+        ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(plugin);
 
         if (ecPluginData.isMarkedForLocaleReload()){
             ecPluginData.reloadAllCustomLocales();

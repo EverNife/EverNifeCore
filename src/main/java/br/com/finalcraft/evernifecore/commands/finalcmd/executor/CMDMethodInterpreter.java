@@ -145,7 +145,7 @@ public class CMDMethodInterpreter {
             localeMessage = FCLocaleScanner.scanForLocale(owningPlugin, localeMessageKey, true, locales);
         }else {
             //If no FCLocale is present, use the cmdData desc() to build it, it will be a static locale, will not be reloaded
-            ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePlugin(owningPlugin);
+            ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(owningPlugin);
             localeMessage = new LocaleMessageImp(owningPlugin, localeMessageKey, false);
             FancyText fancyText = new FancyText(null, cmdData.desc());
             for (LocaleType lang : LocaleType.values()) {

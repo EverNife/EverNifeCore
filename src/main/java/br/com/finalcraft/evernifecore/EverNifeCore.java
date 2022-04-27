@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.dependencies.DependencyManager;
+import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.featherboard.FeatherBoardUtils;
 import br.com.finalcraft.evernifecore.integration.VaultIntegration;
 import br.com.finalcraft.evernifecore.integration.WorldEditIntegration;
@@ -24,6 +25,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
+@ECPlugin(
+        spigotID = "97739",
+        bstatsID = "13351"
+)
 public class EverNifeCore extends JavaPlugin {
 
     public static EverNifeCore instance;
@@ -60,16 +65,10 @@ public class EverNifeCore extends JavaPlugin {
         instance = this;
         info("§aStarting EverNifeCore");
         info("§aServer Minecraft Version " + MCVersion.getCurrent().name() + " !");
-
-        info("§aInstalling BStats");
-        Metrics metrics = new Metrics(this, 13351);//EverNifeCore MetricsID: 13351
-
         EverForgeLibIntegration.initialize();
 
         info("§aLoading up Configurations...");
         ConfigManager.initialize(this);
-
-        SpigotUpdateChecker.checkForUpdates(this, "97739", ConfigManager.getMainConfig()); //EverNifeCore SpigotID: 97739
 
         info("§aLoading up Cooldown System!");
         Cooldown.initialize();
