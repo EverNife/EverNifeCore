@@ -1,1067 +1,680 @@
 package br.com.finalcraft.evernifecore.config;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
-import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
-import br.com.finalcraft.evernifecore.fancytext.FancyText;
-import br.com.finalcraft.evernifecore.fcitemstack.FCItemStack;
-import br.com.finalcraft.evernifecore.fcitemstack.iteminv.InvItem;
-import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
-import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
-import com.google.common.base.Splitter;
-import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import org.bukkit.*;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
+import br.com.finalcraft.evernifecore.config.yaml.exeption.LoadableMethodException;
+import br.com.finalcraft.evernifecore.config.yaml.helper.CfgExecutor;
+import br.com.finalcraft.evernifecore.config.yaml.helper.CfgLoadableSalvable;
+import br.com.finalcraft.evernifecore.config.yaml.helper.ConfigHelper;
+import br.com.finalcraft.evernifecore.config.yaml.helper.smartloadable.SmartLoadSave;
+import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.simpleyaml.configuration.ConfigurationSection;
+import org.simpleyaml.configuration.comments.format.YamlCommentFormat;
+import org.simpleyaml.configuration.file.YamlFile;
+import org.simpleyaml.exceptions.InvalidConfigurationException;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.lang.reflect.Method;
-import java.nio.file.CopyOption;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class Config {
-	
-	protected final File theFile;
-	protected FileConfiguration config;
-	protected boolean newDefaultValueToSave = false;
-	protected long lastModified;
 
-	protected final static Random random = new Random();
-	private static HashMap<Class, Method> MAP_OF_LOADABLE_METHODS = new HashMap<>();
-	private static final ExecutorService SCHEDULER = new ThreadPoolExecutor(5, Integer.MAX_VALUE,
-			1000L, TimeUnit.MILLISECONDS,
-			new LinkedBlockingQueue(),
-			new ThreadFactoryBuilder()
-					.setNameFormat("evernifecore-assyncsave-pool-%d")
-					.setDaemon(true)
-					.build());
+    private static final Logger logger = Logger.getLogger("FCConfig");
 
-	/**
-	 * Creates a handlers Directory if doest not exist at the targed directory
-	 *
-	 * @param  assetName The asset name you want to copy
-	 * @param  targetFolder The target folder you want to paste the theFile in
-	 */
-	@Deprecated
-	public static File copyAsset(String assetName, File targetFolder, Plugin plugin) throws IOException {//TODO Create a class only for asset helping
-		File file = new File(targetFolder, assetName);
-		if (!file.exists()){
-			InputStream inputStream = plugin.getResource(assetName);
-			Files.copy(inputStream, file.getAbsoluteFile().toPath(), new CopyOption[]{StandardCopyOption.REPLACE_EXISTING});
-		}
-		return file;
-	}
+    protected final YamlFile yamlFile;
+    protected final ReentrantLock lock = new ReentrantLock(true);
 
-	/**
-	 * Gets all .yml files under a directory
-	 *
-	 * @param  directory The directory to search in
-	 * @param  recursive Recursively search inside innerDirectorys
-	 */
-	public static List<Config> getAllConfings(File directory, boolean recursive){
-		if (directory == null) throw new IllegalArgumentException("Directory to search can't be null!");
-		if (directory.isFile()) throw new IllegalArgumentException("Directory to search must be a FOLDER not a FILE!");
-		if (!directory.exists()) new ArrayList<>();
+    protected transient long lastModified;
+    protected transient boolean newDefaultValueToSave = false;
 
-		List<Config> configList = new ArrayList<>();
+    // ------------------------------------------------------------------------------------------------------------------
+    //      Constructors
+    // ------------------------------------------------------------------------------------------------------------------
 
-		File[] files = directory.listFiles();
-		if (files != null){
-			for (File innerFile : files) {
-				if (innerFile.isFile()){
-					if (innerFile.getName().endsWith(".yml")){
-						configList.add(new Config(innerFile));
-					}
-				}else if (recursive){
-					configList.addAll(getAllConfings(directory, recursive));
-				}
-			}
-		}
+    public Config(YamlFile yamlFile) {
+        this.yamlFile = yamlFile;
+        this.lastModified = getTheFile() == null ? 0 : getTheFile().lastModified();
 
-		return configList;
-	}
-
-	/**
-	 * Creates a Config Object for the configName.yml File of
-	 * the specified Plugin + copy default configs if asked to +
-	 * a header information about EverNife Config Manager
-	 *
-	 * @param  plugin The Instance of the Plugin, the name.yml is referring to
-	 */
-	public Config(Plugin plugin, String configName, boolean copyDefaults, boolean header) {
-		this(plugin, configName, copyDefaults, header ?
-				// Site that i used to make this http://patorjk.com/software/taag/#p=display&f=Doom&t=FinalCraft
-				"--------------------------------------------------------" +
-				"\n      ______ _             _ _____            __ _   " +
-				"\n      |  ___(_)           | /  __ \\          / _| |  " +
-				"\n      | |_   _ _ __   __ _| | /  \\/_ __ __ _| |_| |_ " +
-				"\n      |  _| | | '_ \\ / _` | | |   | '__/ _` |  _| __|" +
-				"\n      | |   | | | | | (_| | | \\__/\\ | | (_| | | | |_ " +
-				"\n      \\_|   |_|_| |_|\\__,_|_|\\____/_|  \\__,_|_|  \\__|" +
-				"\n  " +
-				"\n  " +
-				"\n  " +
-				"\n              EverNife's Config Manager" +
-				"\n" +
-				"\n Plugin: " + plugin.getName().replace("EverNife","") +
-				"\n Author: " + (plugin.getDescription().getAuthors().size() > 0 ? plugin.getDescription().getAuthors().get(0) : "Desconhecido") +
-				"\n" +
-				"\n-------------------------------------------------------"
-				: null);
-	}
-
-	/**
-	 * Creates a handlers Config Object for the configName.yml File of
-	 * the specified Plugin + copy default configs if asked to +
-	 * a header information about EverNife Config Manager
-	 *
-	 * @param  plugin The Instance of the Plugin, the name.yml is referring to
-	 */
-	public Config(Plugin plugin, String configName, boolean copyDefaults, String header) {
-
-		this.theFile = new File("plugins/" + plugin.getDescription().getName().replace(" ", "_") + "/" + configName);
-
-		if (!theFile.exists()) {
-			File theFileParentDir = theFile.getParentFile();
-			theFileParentDir.mkdirs();
-			if (copyDefaults){
-				try {
-					copyAsset(configName,theFileParentDir,plugin);
-				}catch (IOException e){
-					plugin.getLogger().warning("Failed to load Asset to the config!");
-					e.printStackTrace();
-				}
-			}
-		}
-
-		this.config = YamlConfiguration.loadConfiguration(this.theFile);
-		if (header != null){
-			this.config.options().header(header);
-		}
-		this.lastModified = theFile.lastModified();
-	}
-
-	public Config(Plugin plugin, String configName, boolean copyDefaults) {
-		this(plugin,configName,copyDefaults,true);
-	}
-	public Config(Plugin plugin, String configName) {
-		this(plugin,configName,false);
-	}
-	public Config(Plugin plugin) {
-		this(plugin, "config.yml");
-	}
-	
-	/**
-	 * Creates a handlers Config Object for the specified File
-	 *
-	 * @param  theFile The File for which the Config object is created for
-	 */
-	public Config(File theFile) {
-		this.theFile = theFile;
-		this.config = YamlConfiguration.loadConfiguration(this.theFile);
-		this.lastModified = theFile.lastModified();
-	}
-	
-	/**
-	 * Creates a handlers Config Object for the specified File and FileConfiguration
-	 *
-	 * @param  theFile The File to save to
-	 * @param  config The FileConfiguration
-	 */
-	public Config(File theFile, FileConfiguration config) {
-		this.theFile = theFile;
-		this.config=config;
-		this.lastModified = theFile.lastModified();
-	}
-	
-	/**
-	 * Creates a handlers Config Object for the File with in
-	 * the specified FCLocationController
-	 *
-	 * @param  path The Path of the File which the Config object is created for
-	 */
-	public Config(String path) {
-		this.theFile = new File(path);
-		this.config = YamlConfiguration.loadConfiguration(this.theFile);
-		this.lastModified = theFile.lastModified();
-	}
-
-	public boolean hasBeenModified(){
-		return !theFile.exists() || lastModified != theFile.lastModified();
-	}
-
-	/**
-	 * Returns the File the Config is handling
-	 *
-	 * @return      The File this Config is handling
-	 */ 
-	public File getTheFile() {
-		return this.theFile;
-	}
-	
-	/**
-	 * Converts this Config Object into a plain FileConfiguration Object
-	 *
-	 * @return      The converted FileConfiguration Object
-	 */ 
-	public FileConfiguration getConfiguration() {
-		return this.config;
-	}
-	
-	protected void store(String path, Object value) {
-		this.config.set(path, value);
-	}
-	
-	/**
-	 * Sets the Value for the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @param  value The Value for that Path
-	 */
-	public void setValue(String path, Object value) {
-		if (value == null) {
-			this.store(path, value);
-			this.store(path + "_extra", null);
-		}
-		else if (value instanceof Inventory) {
-			for (int i = 0; i < ((Inventory) value).getSize(); i++) {
-				setValue(path + "." + i, ((Inventory) value).getItem(i));
-			}
-		}
-		else if (value instanceof Date) {
-			this.store(path, String.valueOf(((Date) value).getTime()));
-		}
-		else if (value instanceof Long) {
-			this.store(path, String.valueOf(value));
-		}
-		else if (value instanceof UUID) {
-			this.store(path, value.toString());
-		}
-		else if (value instanceof Sound) {
-			this.store(path, String.valueOf(value));
-		}
-		else if (value instanceof ItemStack) {
-			this.store(path, new ItemStack((ItemStack) value));
-		}
-		else if (value instanceof NumberWrapper){
-			setValue(path, ((NumberWrapper<?>) value).get());
-		}
-		else if (value instanceof FancyText) {
-			if (value instanceof FancyFormatter){
-				EverNifeCore.instance.getLogger().warning("FancyFormmater is not supported to be saved!");
-				EverNifeCore.instance.getLogger().warning("Attempted to save a FancyFormmater at " + path + ":" + this.getTheFile().getAbsolutePath());
-				return;
-			}
-			FancyText fancyText = (FancyText) value;
-
-			boolean hover = fancyText.getHoverText() != null && !fancyText.getHoverText().isEmpty();
-			boolean action = fancyText.getClickActionText() != null && !fancyText.getClickActionText().isEmpty();
-
-			if (hover || action){
-				this.store(path + ".text", fancyText.getText());
-				if (hover) this.store(path + ".hoverText", fancyText.getHoverText());
-				if (action) {
-					this.store(path + ".clickActionText", fancyText.getClickActionText());
-					this.store(path + ".clickActionType", fancyText.getClickActionType().name());
-				}
-			}else {
-				this.store(path, fancyText.getText());
-			}
-
-		}
-		else if (value instanceof FCItemStack){
-			FCItemStack fcItemStack = (FCItemStack) value;
-			setValue(path + ".minecraftIdentifier", fcItemStack.getMinecraftIdentifier(false));
-			if (fcItemStack.hasNBTTag()){
-				InvItem invItem = InvItem.getInvItem(fcItemStack.getItemStack());
-				if (invItem != null){
-					setValue(path + ".invItem.name", invItem.name());
-					for (ItemSlot itemSlot : invItem.getItemsFrom(fcItemStack.getItemStack())) {
-						setValue(path + ".invItem.content." + itemSlot.getSlot(), itemSlot.getFcItemStack());
-					}
-					setValue(path + ".nbt", null);
-					return;
-				}
-				List<String> list = Arrays.asList(
-						Iterables.toArray(
-								Splitter
-										.fixedLength(100)
-										.split(fcItemStack.getNBTtoString()),
-								String.class
-						)
-				);
-				setValue(path + ".nbt", list);
-			}else {
-				setValue(path + ".nbt", null);
-			}
-		}
-		else if (value instanceof Location) {
-			setValue(path + ".x", ((Location) value).getX());
-			setValue(path + ".y", ((Location) value).getY());
-			setValue(path + ".z", ((Location) value).getZ());
-			setValue(path + ".pitch", ((Location) value).getPitch());
-			setValue(path + ".yaw", ((Location) value).getYaw());
-			setValue(path + ".worldName", ((Location) value).getWorld().getName());
-		}
-		else if (value instanceof Chunk) {
-			setValue(path + ".x", ((Chunk) value).getX());
-			setValue(path + ".z", ((Chunk) value).getZ());
-			setValue(path + ".worldName", ((Chunk) value).getWorld().getName());
-		}
-		else if (value instanceof World) {
-			this.store(path, ((World) value).getName());
-		}
-		else if (value instanceof Salvable){
-			((Salvable) value).onConfigSave(this, path);
-		}else if (value instanceof List && ((List) value).size() > 0 && ((List) value).get(0) instanceof Salvable){
-			setValue(path,null);
-			List<Salvable> salvableList = (List<Salvable>) value;
-			for (int index = 0; index < salvableList.size(); index++) {
-				setValue(path + "." + index, salvableList.get(index));
-			}
-		}
-		else this.store(path, value);
-	}
-
-	private final ReentrantLock lock = new ReentrantLock(true);
-	/**
-	 * Saves the Config Object to its File
-	 */ 
-	public void save() {
-		lock.lock();
-		try {
-			config.save(theFile);
-			this.lastModified = theFile.lastModified();
-		} catch (IOException e) {
-			EverNifeCore.warning("Failed to save file [" + theFile.getAbsolutePath() + "]");
-			e.printStackTrace();
-		}finally {
-			lock.unlock();
-		}
-	}
-
-	/**
-	 * Saves the Config Object to its File, and ensure its assync state
-	 */
-	public void saveAsync() {
-		SCHEDULER.submit(() -> {
-			this.save();
-		});
-	}
-
-	/**
-	 * Saves the Config Object to its File if there is any handlers DefaultValue set
-	 */
-	public void saveIfNewDefaults() {
-		if (newDefaultValueToSave){
-			save();
-			newDefaultValueToSave = false;
-		}
-	}
-	
-	/**
-	 * Saves the Config Object to a File
-	 * 
-	 * @param  file The File you are saving this Config to
-	 */ 
-	public void save(File file) {
-		try {
-			config.save(file);
-		} catch (IOException e) {
-		}
-	}
-
-
-    public List getOrSetDefaultValue(String path, List def) {
-		if (!contains(path)){
-			setValue(path, def);
-			if (!newDefaultValueToSave) newDefaultValueToSave = true;
-			return def;
-		}else {
-			return getStringList(path);
-		}
+        //Do file Loading if exists
+        if (getTheFile().exists()){
+            try {
+                this.yamlFile.loadWithComments();
+            } catch (InvalidConfigurationException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
-	public FCItemStack getOrSetDefaultValue(String path, FCItemStack def) {
-		return (FCItemStack) getOrSetDefaultValue(path,(Object) def);
-	}
-
-    public Integer getOrSetDefaultValue(String path, Integer def) {
-        return (Integer) getOrSetDefaultValue(path,(Object)def);
+    public Config(File theFile) {
+        this(new YamlFile(theFile));
     }
 
-	public Long getOrSetDefaultValue(String path, Long def) {
-		return (Long) getOrSetDefaultValue(path,(Object)def);
-	}
-
-	public Double getOrSetDefaultValue(String path, Double def) {
-        return (Double) getOrSetDefaultValue(path,(Object)def);
+    public Config(String path) {
+        this(new File(path));
     }
 
-    public Float getOrSetDefaultValue(String path, Float def) {
-        return (Float) getOrSetDefaultValue(path,(Object)def);
+    // ------------------------------------------------------------------------------------------------------------------
+    //      ECPlugins Constructors
+    // ------------------------------------------------------------------------------------------------------------------
+
+    public Config(Plugin plugin, String configName, boolean copyDefaults) {
+        File targetFile = new File(plugin.getDataFolder(), configName);
+
+        if (!targetFile.exists() && copyDefaults) {
+            try {
+                ConfigHelper.copyAsset(plugin, configName, targetFile);
+            }catch (IOException e){
+                plugin.getLogger().warning("Failed to load Asset for the config [" + configName + "]!");
+                e.printStackTrace();
+            }
+        }
+
+        this.yamlFile = new YamlFile(targetFile);
+        this.lastModified = targetFile.lastModified();
+
+        yamlFile.setCommentFormat(YamlCommentFormat.PRETTY);
+
+        //Do file Loading if exists
+        if (getTheFile().exists()){
+            try {
+                this.yamlFile.loadWithComments();
+            } catch (InvalidConfigurationException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        //Temporary Fix for https://github.com/Carleslc/Simple-YAML/issues/60
+        for (String key : this.yamlFile.getKeys(false)) {
+            String comment = this.yamlFile.getComment(key);
+            if (comment.contains("EverNife's Config Manager")){
+                this.yamlFile.setComment(key, null);
+            }
+            break;
+        }
+
+        this.yamlFile.options().headerFormatter()
+                .prefixFirst("# -----------------------------------------------------")
+                .suffixLast("\n# ----------------------------------------------------");
+
+        this.yamlFile.options().header(
+                // Site that i used to make this http://patorjk.com/software/taag/#p=display&f=Doom&t=FinalCraft
+                "" +
+                        "\n        _____ _____              __ _       " +
+                        "\n       |  ___/  __ \\            / _(_)      " +
+                        "\n       | |__ | /  \\/ ___  _ __ | |_ _  __ _ " +
+                        "\n       |  __|| |    / _ \\| '_ \\|  _| |/ _` |" +
+                        "\n       | |___| \\__/\\ (_) | | | | | | | (_| |" +
+                        "\n       \\____/ \\____/\\___/|_| |_|_| |_|\\__, |" +
+                        "\n                                       __/ |" +
+                        "\n                                      |___/ " +
+                        "\n  " +
+                        "\n  " +
+                        "\n  " +
+                        "\n              EverNife's Config Manager" +
+                        "\n" +
+                        "\n Plugin: " + plugin.getName() +
+                        "\n Author: " + (plugin.getDescription().getAuthors().size() > 0 ? plugin.getDescription().getAuthors().get(0) : "Desconhecido") +
+                        "\n"
+        );
     }
 
-    public String getOrSetDefaultValue(String path, String def) {
-        return (String) getOrSetDefaultValue(path,(Object)def);
+    public Config(Plugin plugin, String configName) {
+        this(plugin,configName, false);
     }
 
-	public boolean getOrSetDefaultValue(String path, boolean def) {
-		return (boolean) getOrSetDefaultValue(path,(Object)def);
-	}
+    // ------------------------------------------------------------------------------------------------------------------
+    //      File Related (save/load/reload)
+    // ------------------------------------------------------------------------------------------------------------------
 
-	public UUID getOrSetDefaultValue(String path, UUID def) {
-		return (UUID) getOrSetDefaultValue(path,(Object)def);
-	}
+    /**
+     * Returns the File the Config is handling
+     *
+     * It will probably always be non-null, but it can still be null :D
+     *
+     * @return  The File this Config is handling
+     */
+    public @Nullable File getTheFile() {
+        return this.yamlFile.getConfigurationFile();
+    }
 
-	public Object getOrSetDefaultValue(String path, Object value) {
-		if (!contains(path)){
-			setValue(path, value);
-			if (!newDefaultValueToSave) newDefaultValueToSave = true;
-			return value;
-		}else {
-			Object object = getValue(path);
-			if (object.getClass() != value.getClass()){
-				object = value;
-				setValue(path,value);
-				if (!newDefaultValueToSave) newDefaultValueToSave = true;
-			}
+    /**
+     * If the file exists, return the file path, otherwise return null
+     *
+     * @return The absolute path of the file.
+     */
+    public @Nullable String getAbsolutePath(){
+        return this.yamlFile.getConfigurationFile() != null ? this.yamlFile.getConfigurationFile().getAbsolutePath() : null;
+    }
 
-			return object;
-		}
-	}
+    /**
+     * Gets the YamlFile of this Config
+     *
+     * @return  The FileConfiguration Object
+     */
+    public YamlFile getConfiguration() {
+        return this.yamlFile;
+    }
 
-	/**
-	 * Sets the Value for the specified Path 
-	 * (IF the Path does not yet exist)
-	 *
-	 * @param  path The path in the Config File
-	 * @param  value The Value for that Path
-	 */
-	public void setDefaultValue(String path, Object value) {
-		if (!contains(path)){
-			setValue(path, value);
-			newDefaultValueToSave = true;
-		}
-	}
+    /**
+     * Saves the Config Object to it's File
+     *
+     * This is a synchronized action using a {@link ReentrantLock}
+     */
+    public void save() {
+        lock.lock();
+        try {
+            yamlFile.save();
+        } catch (IOException e) {
+            logger.warning("Failed to save file [" + getTheFile().getAbsolutePath() + "]");
+            e.printStackTrace();
+        }finally {
+            lock.unlock();
+        }
+    }
 
-	/**
-	 * Checks whether the Config contains the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      True/false
-	 */ 
-	public boolean contains(String path) {
-		return config.contains(path);
-	}
-	
-	/**
-	 * Returns the Object at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The Value at that Path
-	 */ 
-	public Object getValue(String path) {
-		return config.get(path);
-	}
+    /**
+     * Saves the Config Object to a File
+     *
+     * @param  file The File you are saving this Config to
+     */
+    public void save(File file) {
+        try {
+            yamlFile.save(file);
+        } catch (IOException e) {
+            logger.warning("Failed to save file [" + file.getAbsolutePath() + "]");
+            e.printStackTrace();
+        }
+    }
 
-	/**
-	 * Returns the Object T at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @param  loadableClass Clas that has a Loadable function
-	 * @return      The Value at that Path
-	 */
-	public <T> T getValue(String path, Class<? extends T> loadableClass){
-		if (!contains(path)) return null;
-		try {
-			return (T) getLoadableMethodAndInvoke(loadableClass).invoke(null,this,path);
-		}catch (Exception e){
-			throw new RuntimeException(e);
-		}
-	}
+    /**
+     * If the user has changed the default value, save it
+     */
+    public void saveIfNewDefaults() {
+        if (newDefaultValueToSave){
+            save();
+            newDefaultValueToSave = false;
+        }
+    }
 
-	/**
-	 * Returns the ItemStack at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The ItemStack at that Path
-	 */ 
-	public ItemStack getItem(String path) {
-		ItemStack item = config.getItemStack(path);
-		if (item == null) return null;
-		return item;
-	}
+    /**
+     * Saves the Config Object to its File,
+     * and ensure it's called async
+     */
+    public void saveAsync() {
+        CfgExecutor.getExecutorService().submit(() -> this.save());
+    }
 
-	/**
-	 * Returns the {@link FancyText} at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The FancyText at that Path
-	 */
-	public FancyText getFancyText(String path) {
-		if (contains(path + ".text")){
-			String text = getString(path + ".text");
-			String hoverText = getString(path + ".hoverText", null);
-			String actionText = getString(path + ".clickActionText", null);
-			String actionTypeName = getString(path + ".clickActionType", null);
-			ClickActionType actionType = actionTypeName != null && !actionTypeName.isEmpty() ? ClickActionType.valueOf(actionTypeName) : ClickActionType.NONE;
-			return new FancyText(text, hoverText, actionText, actionType);
-		}else if (contains(path)){
-			return new FancyText(getString(path));
-		}
-		return null;
-	}
+    /**
+     * Reloads the Configuration File
+     */
+    public void reload() {
+        try {
+            if (getTheFile().exists()){ //Reoad from the file
+                this.yamlFile.loadWithComments();
+                this.lastModified = getTheFile().lastModified();
+            }else { //Otherwise, read from an EmptyString
+                this.yamlFile.loadFromString("");
+                this.lastModified = 0;
+            }
+        } catch (InvalidConfigurationException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-	/**
-	 * Returns the {@link FCItemStack} at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The ItemStack at that Path
-	 */
-	public FCItemStack getFCItem(String path) {
-		FCItemStack fcItemStack = null;
-		if (contains(path + ".minecraftIdentifier")){
-			String minecraftIdentifier = config.getString(path + ".minecraftIdentifier");
-			if (contains(path + ".nbt")){
-				String nbt = " " + String.join("", config.getStringList(path + ".nbt"));
-				fcItemStack = FCItemStack.fromMinecraftIdentifier(minecraftIdentifier + nbt);
-			}else if (contains(path + ".invItem.name")){
-				fcItemStack = FCItemStack.fromMinecraftIdentifier(minecraftIdentifier);
-				String invItemName = config.getString(path + ".invItem.name");
-				InvItem invItem = InvItem.valueOf(invItemName);
-				if (!invItem.isEnabled()){
-					EverNifeCore.warning("Found an InvItem [" + invItem.name()  + "] but it is not enabled! The content will be ignored!");
-				}
-				List<ItemSlot> itemSlots = new ArrayList<>();
-				for (String slotString : getKeys(path + ".invItem.content")) {
-					Integer slot = Integer.parseInt(slotString);
-					itemSlots.add(new ItemSlot(slot, getFCItem(path + ".invItem.content." + slotString)));
-				}
-				invItem.setItemsTo(fcItemStack, itemSlots);
-			}else {
-				fcItemStack = FCItemStack.fromMinecraftIdentifier(minecraftIdentifier);
-			}
-		}
-		return fcItemStack;
-	}
+    /**
+     * Returns the time when this config was last modified.
+     *
+     * @return The last modified time of the config.
+     */
+    public long getLastModified() {
+        return lastModified;
+    }
 
-	public FCItemStack getFCItem(String path, FCItemStack def) {
-		FCItemStack fcItemStack = getFCItem(path);
-		return fcItemStack != null ? fcItemStack : def;
-	}
+    /**
+     * If the file doesn't exist, or if the last modified time of the file is different than the last modified time of the
+     * file when it was last read, then the file has been modified
+     *
+     * @return A boolean value.
+     */
+    public boolean hasBeenModified(){
+        if (getTheFile() == null || !getTheFile().exists()){
+            return lastModified != 0;
+        }
 
-	/**
-	 * Returns a randomly chosen String from an
-	 * ArrayList at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      A randomly chosen String from the ArrayList at that Path
-	 */ 
-	public String getRandomStringfromList(String path) {
-		return getStringList(path).get(random.nextInt(getStringList(path).size()));
-	}
-	
-	/**
-	 * Returns a randomly chosen Integer from an
-	 * ArrayList at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      A randomly chosen Integer from the ArrayList at that Path
-	 */ 
-	public int getRandomIntfromList(String path) {
-		return getIntList(path).get(random.nextInt(getIntList(path).size()));
-	}
-	
-	/**
-	 * Returns the String at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The String at that Path
-	 */
-	public String getString(String path) {
-		return config.getString(path);
-	}
-	public String getString(String path, String def) {
-		return config.getString(path,def);
-	}
+        return lastModified != getTheFile().lastModified();
+    }
 
-	/**
-	 * Returns the String (Coloring it) at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The String at that Path
-	 */
-	public String getColoredString(String path) {
-		return ChatColor.translateAlternateColorCodes('&',config.getString(path));
-	}
-	public String getColoredString(String path, String def) {
-		return ChatColor.translateAlternateColorCodes('&',config.getString(path,def));
-	}
+    // ------------------------------------------------------------------------------------------------------------------
+    //      Basic YamlFile Functions
+    // ------------------------------------------------------------------------------------------------------------------
 
-	/**
-	 * Returns the Integer at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The Integer at that Path
-	 */
-	public int getInt(String path) {
-		return config.getInt(path);
-	}
-	public int getInt(String path, int def) {
-		return config.getInt(path,def);
-	}
+    /**
+     * Actually store the object on the YamlFile
+     *
+     * @param  path The path in the Config File
+     * @param  value The Value for that Path
+     */
+    protected void store(String path, Object value) {
+        this.yamlFile.set(path, value);
+    }
 
-	/**
-	 * Returns the Boolean at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The Boolean at that Path
-	 */
-	public boolean getBoolean(String path) {
-		return config.getBoolean(path);
-	}
-	public boolean getBoolean(String path,boolean def) {
-		return config.getBoolean(path,def);
-	}
+    public ConfigSection getConfigSection(String path){
+        return new ConfigSection(this, path);
+    }
 
-	/**
-	 * Returns the Loadable at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The Boolean at that Path
-	 */
-	public <T> T getLoadable(String path, Class<? extends T> loadableClass) {
-		if (contains(path)){
-			try {
-				Method method = getLoadableMethodAndInvoke(loadableClass);
-				return (T) method.invoke(null, this, path);
-			}catch (Exception e){
-				throw new RuntimeException(e);
-			}
-		}
-		return null;
-	}
+    public ConfigurationSection getConfigurationSection(String path){
+        return getConfiguration().getConfigurationSection(path);
+    }
 
-	/**
-	 * Returns the Loadable at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The Boolean at that Path
-	 */
-	public <T> T getLoadableForced(String path, Class<? extends T> loadableClass) {
-		try {
-			Method method = getLoadableMethodAndInvoke(loadableClass);
-			return (T) method.invoke(null, this, path);
-		}catch (Exception e){
-			throw new RuntimeException(e);
-		}
-	}
+    /**
+     * Returns all Paths in this Config
+     *
+     * @return All Paths in this Config
+     */
+    public Set<String> getKeys() {
+        return yamlFile.getKeys(false);
+    }
 
-	public <T> T getLoadable(String path, Class<? extends T> loadableClass, T def) {
-		T loadaed = getLoadable(path, loadableClass);
-		return  loadaed != null ? loadaed : def;
-	}
+    /**
+     * Returns all Sub-Paths in this Config
+     *
+     * @param  path The path in the Config File
+     * @return All Sub-Paths of the specified Path
+     */
+    public Set<String> getKeys(String path) {
+        if (contains(path)){
+            return yamlFile.getConfigurationSection(path).getKeys(false);
+        }
+        return Collections.emptySet();
+    }
+
+    /**
+     * Returns all Sub-Paths in this Config
+     *
+     * @param  path The path in the Config File
+     * @param  deep If to do a deep serach
+     * @return All Sub-Paths of the specified Path
+     */
+    public Set<String> getKeys(String path, boolean deep) {
+        if (contains(path)){
+            return yamlFile.getConfigurationSection(path).getKeys(deep);
+        }
+        return Collections.emptySet();
+    }
+
+    /**
+     * Checks whether the Config contains the specified Path
+     *
+     * @param  path The path in the Config File
+     * @return      True/false
+     */
+    public boolean contains(String path) {
+        return yamlFile.contains(path);
+    }
+
+    /**
+     * Returns the Object at the specified Path
+     *
+     * @param  path The path in the Config File
+     * @return      The Value at that Path
+     */
+    public Object getValue(String path) {
+        return yamlFile.get(path);
+    }
+
+    /**
+     * Sets the Value for the specified Path
+     *
+     * @param  path The path in the Config File
+     * @param  value The Value for that Path
+     */
+    public void setValue(String path, Object value) {
+        //Remove Behavior
+        if (value == null) {
+            this.store(path, null);
+            return;
+        }
+
+        //Checking for Interables of Salvables
+        if (value instanceof Iterable){ //Lits, Sets, and all the rest
+            Iterator iterator = ((Iterable) value).iterator();
+            if (!iterator.hasNext()){ //Has at least one element
+                Object firstValue = iterator.next();
+
+                //IF this LIST is a Customizable Salvable
+                SmartLoadSave smartLoadSave = CfgLoadableSalvable.getLoadableStatus(firstValue.getClass());
+                if (smartLoadSave != null && smartLoadSave.isSalvable()){
+                    //Lets create a temporary list holding all elements!
+                    List newList = new ArrayList();
+                    newList.add(firstValue);
+                    iterator.forEachRemaining(o -> newList.add(o));
+
+                    //Erase previous list saved there
+                    this.setValue(path,null);
+
+                    if (smartLoadSave.canSerializeToStringList()){
+                        //We can serialize this object into a StringList
+                        setValue(path,
+                                newList.stream().map(o -> smartLoadSave.onStringSerialize(o)).collect(Collectors.toList())
+                        );
+                        return;
+                    }
+
+                    //If does not support being saved on a String, create custom Indexes
+                    //Save each element under "path.index"
+                    for (int index = 0; index < newList.size(); index++) {
+                        this.setValue(path + "." + index, newList.get(index));
+                    }
+                    return;
+                }
+            }
+            return;
+        }
+
+        //IF it is a Customizable Salvable
+        SmartLoadSave smartLoadSave = CfgLoadableSalvable.getLoadableStatus(value.getClass());
+        if (smartLoadSave != null && smartLoadSave.isSalvable()){
+            smartLoadSave.onConfigSave(new ConfigSection(this, path), value);
+            return;
+        }
+
+        //For Simple Salvables
+        if (value instanceof br.com.finalcraft.evernifecore.config.yaml.helper.Salvable){
+            ((br.com.finalcraft.evernifecore.config.yaml.helper.Salvable) value).onConfigSave(new ConfigSection(this, path));
+            return;
+        }
+
+        //UUID should be saved as String
+        if (value instanceof UUID) {
+            this.store(path, value.toString());
+            return;
+        }
+
+        //Default YML behavior
+        this.store(path, value);
+    }
+
+    /**
+     * Sets the Value for the specified Path
+     * (IF the Path does not yet exist)
+     *
+     * @param  path The path in the Config File
+     * @param  value The Value for that Path
+     */
+    public void setDefaultValue(String path, Object value) {
+        if (!contains(path)){
+            setValue(path, value);
+            newDefaultValueToSave = true;
+        }
+    }
+
+    // ------------------------------------------------------------------------------------------------------------------
+    //      Basic Java Elements Getters
+    // ------------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Returns the String at the specified Path
+     *
+     * @param  path The path in the Config File
+     * @return The String at that Path
+     */
+    public String getString(String path) {
+        return yamlFile.getString(path);
+    }
+
+    public String getString(String path, String def) {
+        return yamlFile.getString(path,def);
+    }
+
+    /**
+     * Returns the Boolean at the specified Path
+     *
+     * @param  path The path in the Config File
+     * @return The Boolean at that Path
+     */
+    public Boolean getBoolean(String path) {
+        return yamlFile.getBoolean(path);
+    }
+    public Boolean getBoolean(String path, Boolean def) {
+        return yamlFile.getBoolean(path,def);
+    }
+
+    /**
+     * Returns the Integer at the specified Path
+     *
+     * @param  path The path in the Config File
+     * @return The Integer at that Path
+     */
+    public Integer getInt(String path) {
+        return yamlFile.getInt(path);
+    }
+    public Integer getInt(String path, Integer def) {
+        return yamlFile.getInt(path,def);
+    }
+
+    /**
+     * Returns the Long at the specified Path
+     *
+     * @param  path The path in the Config File
+     * @return The Long at that Path
+     */
+    public Long getLong(String path) {
+       return getLong(path, null);
+    }
+    public Long getLong(String path, Long def) {
+        if (!contains(path)){
+            return def;
+        }
+        //Fix for old behavior of this config, we previously stringify 'long' values, why? who knows :/
+        if (yamlFile.isString(path)){
+            return Long.valueOf(yamlFile.getString(path));
+        }else {
+            return yamlFile.getLong(path);
+        }
+    }
+
+    /**
+     * Returns the Double at the specified Path
+     *
+     * @param  path The path in the Config File
+     * @return      The Double at that Path
+     */
+    public Double getDouble(String path) {
+        return yamlFile.getDouble(path);
+    }
+    public Double getDouble(String path, double def) {
+        return yamlFile.getDouble(path,def);
+    }
+
+    /**
+     * Returns the UUID at the specified Path
+     *
+     * @param  path The path in the Config File
+     * @return The UUID at that Path
+     */
+    public UUID getUUID(String path) {
+        String value = getString(path);
+        return value == null ? null : UUID.fromString(value);
+    }
+
+    /**
+     * If the UUID at the given path is not null, return it, otherwise return the default UUID
+     *
+     * @param path The path to the value you want to get.
+     * @param def The default value to return if the path is not found.
+     * @return A UUID object.
+     */
+    public UUID getUUID(String path, UUID def) {
+        UUID uuid = getUUID(path);
+        return uuid != null ? uuid : def;
+    }
 
 
-	/**
-	 * Returns the StringList at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The StringList at that Path
-	 */
-	public List<Location> getLocationList(String path) {
-		return (List<Location>) config.getList(path);
-	}
-	public List<Location> getLocationList(String path, List<Location> def) {
-		if (contains(path)) return (List<Location>) config.getList(path);
-		return def;
-	}
+    public List getList(String path) {
+        return yamlFile.getList(path);
+    }
+    public List getList(String path, List<String> def) {
+        return yamlFile.getList(path, def);
+    }
 
-	/**
-	 * Returns the StringList at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The StringList at that Path
-	 */
-	public List<String> getStringList(String path) {
-		return config.getStringList(path);
-	}
+    /**
+     * Returns the StringList at the specified Path
+     *
+     * @param  path The path in the Config File
+     * @return      The StringList at that Path
+     */
+    public List<String> getStringList(String path) {
+        return yamlFile.getStringList(path);
+    }
     public List<String> getStringList(String path, List<String> def) {
-        if (contains(path)) return config.getStringList(path);
+        if (contains(path)) return yamlFile.getStringList(path);
         return def;
     }
 
-	/**
-	 * Returns the StringList at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The StringList at that Path
-	 */
-	public <T> List<T> getLoadableList(String path, Class<? extends T> loadableClass) {
-		try {
-			List<T> loadableList = new ArrayList<>();
-			Method method = getLoadableMethodAndInvoke(loadableClass);
-			if (method == null) throw new NullPointerException("Loadable Class [" + loadableClass.getName() + "] does not have Loadable method!");
-			for (String index : getKeys(path)) {
-				T loadedValue = (T) method.invoke(null, this, path + "." + index);
-				loadableList.add(loadedValue);
-			}
-			return loadableList;
-		}catch (Exception e){
-			throw new RuntimeException(e);
-		}
-	}
+    // ------------------------------------------------------------------------------------------------------------------
+    //      Basic Java Elements GetOrDefault
+    // ------------------------------------------------------------------------------------------------------------------
 
-	public <T> List<T> getLoadableList(String path, Class<? extends T> loadableClass, List<T> def) {
-		if (contains(path)) return getLoadableList(path, loadableClass);
-		return def;
-	}
+    public <D> @NotNull List<D> getOrSetDefaultValue(@NotNull String path, @NotNull List<D> def) {
+        if (!contains(path)){
+            setValue(path, def);
+            if (!newDefaultValueToSave) newDefaultValueToSave = true;
+            return def;
+        }else {
+            if (def.size() > 0){
+                Object firstValue = def.get(0);
+                SmartLoadSave<D> smartLoadSave = CfgLoadableSalvable.getLoadableStatus(firstValue.getClass());
+                if (smartLoadSave != null && smartLoadSave.isLoadable()){
+                    return (List<D>) getLoadableList(path, def.get(0).getClass());
+                }
+            }
 
-	/**
-	 * Returns the StringList (Coloring it) at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The StringList at that Path
-	 */
-	public List<String> getColoredStringList(String path) {
-		List<String> coloredStringList = new ArrayList<String>();
-		for (String stringLine : getStringList(path)) {
-			coloredStringList.add(ChatColor.translateAlternateColorCodes('&',stringLine));
-		}
-		return coloredStringList;
-	}
-	public List<String> getColoredStringList(String path, List<String> def) {
-		if (contains(path)) return getColoredStringList(path);
-		return def;
-	}
+            return getList(path);
+        }
+    }
 
-	/**
-	 * Returns the ItemList at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The ItemList at that Path
-	 */ 
-	public List<ItemStack> getItemList(String path) {
-		List<ItemStack> list = new ArrayList<ItemStack>();
-		for (String key: getKeys(path)) {
-			if (!key.endsWith("_extra")) list.add(getItem(path + "." + key));
-		}
-		return list;
-	}
-	
-	/**
-	 * Returns the IntegerList at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The IntegerList at that Path
-	 */ 
-	public List<Integer> getIntList(String path) {
-		return config.getIntegerList(path);
-	}
-	
-	/**
-	 * Recreates the File of this Config
-	 */ 
-	public void createFile() {
-		try {
-			this.theFile.createNewFile();
-		} catch (IOException e) {
-		}
-	}
-	
-	/**
-	 * Returns the Float at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The Float at that Path
-	 */ 
-	public Float getFloat(String path) {
-		return Float.valueOf(String.valueOf(getValue(path)));
-	}
-	
-	/**
-	 * Returns the Long at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The Long at that Path
-	 */ 
-	public Long getLong(String path) {
-		Object obj = getValue(path);
-		return obj == null ? null : Long.valueOf(String.valueOf(obj));
-	}
-	public Long getLong(String path, long def) {
-		if (!contains(path)){
-			return def;
-		}
-		return getLong(path);
-	}
+    public <D> @NotNull D getOrSetDefaultValue(@NotNull String path, @NotNull D def) {
+        if (!contains(path)){
+            setValue(path, def);
+            if (!newDefaultValueToSave) newDefaultValueToSave = true;
+            return def;
+        }else {
+            SmartLoadSave<D> smartLoadSave = CfgLoadableSalvable.getLoadableStatus(def.getClass());
+            if (smartLoadSave != null && smartLoadSave.isLoadable()){
+                return (D) getLoadable(path, def.getClass());
+            }else {
+                return (D) getValue(path);
+            }
+        }
+    }
 
-	/**
-	 * Returns the Sound at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The Sound at that Path
-	 */ 
-	public Sound getSound(String path) {
-		return Sound.valueOf(getString(path));
-	}
-	
-	/**
-	 * Returns the Date at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The Date at that Path
-	 */ 
-	public Date getDate(String path) {
-		if (contains(path)){
-			return new Date(getLong(path));
-		}
-		return null;
-	}
-	
-	/**
-	 * Returns the Chunk at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The Chunk at that Path
-	 */ 
-	public Chunk getChunk(String path) {
-		return Bukkit.getWorld(getString(path + ".worldName")).getChunkAt(getInt(path + ".x"), getInt(path + ".z"));
-	}
-	
-	/**
-	 * Returns the UUID at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The UUID at that Path
-	 */ 
-	public UUID getUUID(String path) {
-		if (contains(path)){
-			return UUID.fromString(getString(path));
-		}
-		return null;
-	}
+    // ------------------------------------------------------------------------------------------------------------------
+    //      ECore/Bukkit Elements Getters
+    // ------------------------------------------------------------------------------------------------------------------
 
-	/**
-	 * Returns the UUID at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The UUID at that Path
-	 */
-	public UUID getUUID(String path, UUID def) {
-		UUID uuid = getUUID(path);
-		return uuid != null ? uuid : def;
-	}
-	
-	/**
-	 * Returns the World at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The World at that Path
-	 */ 
-	public World getWorld(String path) {
-		return Bukkit.getWorld(getString(path));
-	}
-	
-	/**
-	 * Returns the Double at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The Double at that Path
-	 */
-	public Double getDouble(String path) {
-		return config.getDouble(path);
-	}
-	public Double getDouble(String path, double def) {
-		return config.getDouble(path,def);
-	}
+    /**
+     * Returns the FCLocationController at the specified Path
+     *
+     * @param  path The path in the Config File
+     * @return      The FCLocationController at that Path
+     */
+    public Location getLocation(String path) {
+        if (!this.contains(path)) return null;
+        return new Location(
+                Bukkit.getWorld(
+                        getString(path + ".worldName")),
+                getDouble(path + ".x"),
+                getDouble(path + ".y"),
+                getDouble(path + ".z"),
+                getDouble(path + ".yaw").floatValue(),
+                getDouble(path + ".pitch").floatValue()
+        );
+    }
 
-	/**
-	 * Returns the FCLocationController at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @return      The FCLocationController at that Path
-	 */ 
-	public Location getLocation(String path) {
-		if (!this.contains(path)) return null;
-		if (this.contains(path + ".pitch")) {
-			return new Location(
-				Bukkit.getWorld(
-				getString(path + ".worldName")),
-				getDouble(path + ".x"),
-				getDouble(path + ".y"),
-				getDouble(path + ".z"),
-				getFloat(path + ".yaw"),
-				getFloat(path + ".pitch")
-			);
-		}
-		else {
-			return new Location(
-				Bukkit.getWorld(
-				this.getString(path + ".worldName")),
-				this.getDouble(path + ".x"),
-				this.getDouble(path + ".y"),
-				this.getDouble(path + ".z")
-			);
-		}
-	}
-	public Location getLocation(String path, Location def) {
-		if (this.config.contains(path)){
-			return getLocation(path);
-		}
-		return def;
-	}
-	
-	@Deprecated
-	public void setLocation(String path, Location location) {
-		setValue(path + ".x", location.getX());
-		setValue(path + ".y", location.getY());
-		setValue(path + ".z", location.getZ());
-		setValue(path + ".worldName", location.getWorld().getName());
-	}
-	
-	@Deprecated
-	public void setInventory(String path, Inventory inventory) {
-		for (int i = 0; i < inventory.getSize(); i++) {
-			setValue(path + "." + i, inventory.getItem(i));
-		}
-	}
-	
-	/**
-	 * Gets the Contents of an Inventory at the specified Path
-	 *
-	 * @param  path The path in the Config File
-	 * @param  size The Size of the Inventory
-	 * @param  title The Title of the Inventory
-	 * @return      The generated Inventory
-	 */ 
-	public Inventory getInventory(String path, int size, String title) {
-		Inventory inventory = Bukkit.createInventory(null, size, title);
-		for (int i = 0; i < size; i++) {
-			inventory.setItem(i, getItem(path + "." + i));
-		}
-		return inventory;
-	}
-	
-	/**
-	 * Returns all Paths in this Config
-	 *
-	 * @return      All Paths in this Config
-	 */ 
-	public Set<String> getKeys() {
-		return config.getKeys(false);
-	}
-	
-	/**
-	 * Returns all Sub-Paths in this Config
-	 *
-	 * @param  path The path in the Config File
-	 * @return      All Sub-Paths of the specified Path
-	 */ 
-	public Set<String> getKeys(String path) {
-		ConfigurationSection configurationSection = config.getConfigurationSection(path);
-		if (configurationSection != null){
-			return configurationSection.getKeys(false);
-		}
-		return Collections.emptySet();
-	}
+    // ------------------------------------------------------------------------------------------------------------------
+    //      Loadable System
+    // ------------------------------------------------------------------------------------------------------------------
 
-	/**
-	 * Returns all Sub-Paths in this Config
-	 *
-	 * @param  path The path in the Config File
-	 * @param  deep If to do a deep serach
-	 * @return      All Sub-Paths of the specified Path
-	 */
-	public Set<String> getKeys(String path, boolean deep) {
-		if (contains(path)){
-			return config.getConfigurationSection(path).getKeys(deep);
-		}
-		return Collections.emptySet();
-	}
-	
-	/**
-	 * Reloads the Configuration File
-	 */ 
-	public void reload() {
-		this.config = YamlConfiguration.loadConfiguration(this.theFile);
-		this.lastModified = this.theFile.lastModified();
-	}
+    /**
+     * If the path exists, get the loadable function for the class, and if it exists, apply it to the config section
+     *
+     * @param path The path to the config section you want to load.
+     * @param loadableClass The class of the loadable you want to load.
+     * @return A Loadable object or null
+     */
+    public <L> @Nullable L getLoadable(String path, Class<L> loadableClass) {
+        if (contains(path)){
+            SmartLoadSave<L> smartLoadSave = CfgLoadableSalvable.getLoadableStatus(loadableClass);
+            if (smartLoadSave == null || !smartLoadSave.isLoadable()){
+                throw new LoadableMethodException("Tried to load a non Loadable class [" + loadableClass.getName() + "]");
+            }
+            return smartLoadSave.onConfigLoad(new ConfigSection(this, path));
+        }
+        return null;
+    }
 
-	public ConfigurationSection getConfigurationSection(String path){
-		return getConfiguration().getConfigurationSection(path);
-	}
+    /**
+     * It takes a path, and a class, and returns a list of the class, with each element being loaded from the config
+     *
+     * @param path The path to the list in the config
+     * @param loadableClass The class that you want to load.
+     * @return A list of loadable objects.
+     */
+    public <L> @NotNull List<L> getLoadableList(String path, Class<? extends L> loadableClass) {
+        if (contains(path)){
+            SmartLoadSave<L> smartLoadSave = CfgLoadableSalvable.getLoadableStatus(loadableClass);
+            if (smartLoadSave == null || !smartLoadSave.isLoadable()){
+                throw new LoadableMethodException("Tried to load a non Loadable class [" + loadableClass.getName() + "]");
+            }
 
-	public static void shutdownSaveScheduller(){
-		if (!SCHEDULER.isShutdown() && !SCHEDULER.isTerminated()){
-			try {
-				SCHEDULER.shutdown();
-				boolean success = SCHEDULER.awaitTermination(30, TimeUnit.SECONDS);
-				if (!success){
-					EverNifeCore.warning("Failed to close Config.class Scheduller, TimeOut of 30 seconds Reached, this is really bad! Terminating all of them now!");
-					SCHEDULER.shutdownNow();
-				}
-			} catch (Exception e){
-				e.printStackTrace();
-			}
-		}
-	}
+            if (smartLoadSave.canSerializeToStringList()){//The stored value might be on a StringList
+                return getStringList(path).stream().map(serializedLine -> smartLoadSave.onStringDeserialize(serializedLine)).collect(Collectors.toList());
+            }
 
-	//------------------------------------------------------------------------------------------------------------------
+            List<L> loadableList = new ArrayList<>();
+            for (String index : getKeys(path)) {
+                L loadedValue = smartLoadSave.onConfigLoad(new ConfigSection(this, path + "." + index));
+                loadableList.add(loadedValue);
+            }
+            return loadableList;
+        }
+        return Collections.EMPTY_LIST;
+    }
 
-	public static interface Salvable{
-		public void onConfigSave(Config config, String path);
-	}
+    //------------------------------------------------------------------------------------------------------------------
+    //    Deprecated //Todo Remove on 2.0.2.5
+    //------------------------------------------------------------------------------------------------------------------
 
-	//------------------------------------------------------------------------------------------------------------------
+    @Deprecated
+    public static interface Salvable extends br.com.finalcraft.evernifecore.config.yaml.helper.Salvable {
+        public void onConfigSave(Config config, String path);
 
-	@Retention(RetentionPolicy.RUNTIME)
-	@Target(ElementType.METHOD)
-	public static @interface Loadable{
+        public default void onConfigSave(ConfigSection section){
+            onConfigSave(section.getConfig(), section.getPath());
+        }
+    }
 
-	}
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    @Deprecated
+    public static @interface Loadable{
 
-	public static Method getLoadableMethodAndInvoke(Class loadableClass){
-		Method method = MAP_OF_LOADABLE_METHODS.get(loadableClass);
-		if (method == null){
-			try {
-				for (Method declaredMethod : loadableClass.getDeclaredMethods()) {
-					if (declaredMethod.isAnnotationPresent(Loadable.class)){
-						method = declaredMethod;
-						break;
-					}
-				}
-				if (!method.isAccessible()){
-					method.setAccessible(true);
-				}
-				MAP_OF_LOADABLE_METHODS.put(loadableClass,method);
-			}catch (Exception e){
-				EverNifeCore.warning("Fatal Error on LoadableClass Method Getter: " + loadableClass.getName());
-				e.printStackTrace();
-			}
-		}
-		return method;
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
+    }
 
 }
