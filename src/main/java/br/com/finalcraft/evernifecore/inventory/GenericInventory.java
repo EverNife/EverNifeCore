@@ -1,7 +1,8 @@
 package br.com.finalcraft.evernifecore.inventory;
 
-import br.com.finalcraft.evernifecore.config.Config;
-import br.com.finalcraft.evernifecore.fcitemstack.FCItemStack;
+import br.com.finalcraft.evernifecore.config.yaml.helper.Loadable;
+import br.com.finalcraft.evernifecore.config.yaml.helper.Salvable;
+import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -11,7 +12,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
-public class GenericInventory implements Config.Salvable {
+public class GenericInventory implements Salvable {
 
     protected final HashMap<Integer, ItemSlot> items = new HashMap<>();
 
@@ -25,22 +26,22 @@ public class GenericInventory implements Config.Salvable {
     }
 
     @Override
-    public void onConfigSave(Config config, String path) {
-        config.setValue(path + ".items", null); //Clear content before saving it
+    public void onConfigSave(ConfigSection section) {
+        section.setValue("items", null); //Clear content before saving it
         for (ItemSlot itemSlot : items.values()) {
-            config.setValue(path + ".items." + itemSlot.getSlot(), itemSlot.getFcItemStack());
+            section.setValue("items." + itemSlot.getSlot(), itemSlot.getItemStack());
         }
     }
 
-    @Config.Loadable
-    public static GenericInventory onConfigLoad(Config config, String path){
+    @Loadable
+    public static GenericInventory onConfigLoad(ConfigSection section){
         List<ItemSlot> items = new ArrayList<>();
 
-        for (String key : config.getKeys(path + ".items")) {
+        for (String key : section.getKeys("items")) {
             try {
                 Integer slot = Integer.parseInt(key);
-                FCItemStack fcItemStack = config.getFCItem(path + ".items." + slot);
-                ItemSlot itemSlot = new ItemSlot(slot,fcItemStack);
+                ItemStack itemStack = section.getLoadable("items." + slot, ItemStack.class);
+                ItemSlot itemSlot = new ItemSlot(slot,itemStack);
                 items.add(itemSlot);
             }catch (NumberFormatException e){
                 e.printStackTrace();
@@ -54,9 +55,9 @@ public class GenericInventory implements Config.Salvable {
         return items.values();
     }
 
-    public FCItemStack getItem(int index){
+    public ItemStack getItem(int index){
         ItemSlot itemSlot = items.get(index);
-        return itemSlot != null ? itemSlot.getFcItemStack() : null;
+        return itemSlot != null ? itemSlot.getItemStack() : null;
     }
 
     public void restoreTo(Inventory inventory){
@@ -64,8 +65,8 @@ public class GenericInventory implements Config.Salvable {
         ItemStack[] inventoryContent = new ItemStack[inventory.getSize()];
 
         for (int i = 0; i < inventoryContent.length; i++) {
-            FCItemStack fcItemStack = getItem(i);
-            inventoryContent[i] = fcItemStack != null ? fcItemStack.getItemStack() : null;
+            ItemStack fcItemStack = getItem(i);
+            inventoryContent[i] = fcItemStack != null ? fcItemStack : null;
         }
 
         inventory.setContents(inventoryContent);

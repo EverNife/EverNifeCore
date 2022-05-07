@@ -28,7 +28,7 @@ public class TinkersInv extends ExtraInv {
     public void setPlayerExtraInv(Player player) {
         ItemStack[] tinkers = new ItemStack[getInvMaxSize()];
         for (ItemSlot itemSlot : getItemSlotList()) {
-            tinkers[itemSlot.getSlot()] = itemSlot.getFcItemStack().copyItemStack();
+            tinkers[itemSlot.getSlot()] = itemSlot.getItemStack().clone();
         }
         EverForgeLibIntegration.setTinkersInventory(player, tinkers);
     }

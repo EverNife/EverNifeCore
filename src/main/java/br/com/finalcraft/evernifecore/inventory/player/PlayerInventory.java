@@ -1,8 +1,9 @@
 package br.com.finalcraft.evernifecore.inventory.player;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.config.Config;
-import br.com.finalcraft.evernifecore.fcitemstack.FCItemStack;
+import br.com.finalcraft.evernifecore.config.yaml.helper.Loadable;
+import br.com.finalcraft.evernifecore.config.yaml.helper.Salvable;
+import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
 import br.com.finalcraft.evernifecore.inventory.player.extrainvs.ExtraInv;
 import br.com.finalcraft.evernifecore.inventory.player.extrainvs.ExtraInvType;
@@ -14,12 +15,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
-public class PlayerInventory implements Config.Salvable {
+public class PlayerInventory implements Salvable {
 
-    protected FCItemStack helmet;
-    protected FCItemStack chestplate;
-    protected FCItemStack leggings;
-    protected FCItemStack boots;
+    protected ItemStack helmet;
+    protected ItemStack chestplate;
+    protected ItemStack leggings;
+    protected ItemStack boots;
     protected List<ItemSlot> inventory = new ArrayList<>(); //0-35
     protected HashMap<ExtraInvType, ExtraInv> extraInvMap = new HashMap<>();
 
@@ -31,11 +32,11 @@ public class PlayerInventory implements Config.Salvable {
         this(null, null, null, null, inventory);
     }
 
-    public PlayerInventory(FCItemStack helmet, FCItemStack chestplate, FCItemStack leggings, FCItemStack boots, List<ItemSlot> inventory) {
+    public PlayerInventory(ItemStack helmet, ItemStack chestplate, ItemStack leggings, ItemStack boots, List<ItemSlot> inventory) {
         this(helmet, chestplate, leggings, boots, inventory, new ArrayList<>());
     }
 
-    public PlayerInventory(FCItemStack helmet, FCItemStack chestplate, FCItemStack leggings, FCItemStack boots, List<ItemSlot> inventory, List<ExtraInv> extraInvList) {
+    public PlayerInventory(ItemStack helmet, ItemStack chestplate, ItemStack leggings, ItemStack boots, List<ItemSlot> inventory, List<ExtraInv> extraInvList) {
         this.helmet = helmet;
         this.chestplate = chestplate;
         this.leggings = leggings;
@@ -54,15 +55,14 @@ public class PlayerInventory implements Config.Salvable {
         for (int index = 0; index < 36; index++){
             ItemStack itemStack = playerInventory.getItem(index);
             if (itemStack != null){
-                FCItemStack fcItemStack = new FCItemStack(itemStack);
-                ItemSlot itemSlot = new ItemSlot(index,fcItemStack);
+                ItemSlot itemSlot = new ItemSlot(index,itemStack.clone());
                 inventory.add(itemSlot);
             }
         }
-        this.helmet = playerInventory.getHelmet() != null ? new FCItemStack(playerInventory.getHelmet()) : null;
-        this.chestplate = playerInventory.getChestplate() != null ? new FCItemStack(playerInventory.getChestplate()) : null;
-        this.leggings = playerInventory.getLeggings() != null ? new FCItemStack(playerInventory.getLeggings()) : null;
-        this.boots = playerInventory.getBoots() != null ? new FCItemStack(playerInventory.getBoots()) : null;
+        this.helmet = playerInventory.getHelmet() != null ? playerInventory.getHelmet().clone() : null;
+        this.chestplate = playerInventory.getChestplate() != null ? playerInventory.getChestplate() : null;
+        this.leggings = playerInventory.getLeggings() != null ? playerInventory.getLeggings() : null;
+        this.boots = playerInventory.getBoots() != null ? playerInventory.getBoots() : null;
 
         for (ExtraInvType invType : ExtraInvType.values()) {
             if (invType.isEnabled()){
@@ -77,39 +77,39 @@ public class PlayerInventory implements Config.Salvable {
 
 
     @Override
-    public void onConfigSave(Config config, String path) {
-        config.setValue(path, null);
+    public void onConfigSave(ConfigSection section) {
+        section.setValue(null);
 
-        config.setValue(path + ".helmet", helmet);
-        config.setValue(path + ".chestplate", chestplate);
-        config.setValue(path + ".leggings", leggings);
-        config.setValue(path + ".boots", boots);
+        section.setValue("helmet", helmet);
+        section.setValue("chestplate", chestplate);
+        section.setValue("leggings", leggings);
+        section.setValue("boots", boots);
 
-        config.setValue(path + ".inventory", null); //Clear content before saving it
+        section.setValue("inventory", null); //Clear content before saving it
         for (ItemSlot itemSlot : inventory) {
-            config.setValue(path + ".inventory." + itemSlot.getSlot(), itemSlot.getFcItemStack());
+            section.setValue("inventory." + itemSlot.getSlot(), itemSlot.getItemStack());
         }
 
-        config.setValue(path + ".extra", null); //Clear content before saving it
+        section.setValue("extra", null); //Clear content before saving it
         for (ExtraInv extraInv : extraInvMap.values()) {
             for (ItemSlot itemSlot : extraInv.getItemSlotList()) {
-                config.setValue(path + ".extra." + extraInv.getName() + "." + itemSlot.getSlot(), itemSlot.getFcItemStack());
+                section.setValue("extra." + extraInv.getName() + "." + itemSlot.getSlot(), itemSlot.getItemStack());
             }
         }
     }
 
-    @Config.Loadable
-    public static PlayerInventory onConfigLoad(Config config, String path){
-        FCItemStack helmet = config.getFCItem(path + ".helmet",null);
-        FCItemStack chestplate = config.getFCItem(path + ".chestplate",null);
-        FCItemStack leggings = config.getFCItem(path + ".leggings",null);
-        FCItemStack boots = config.getFCItem(path + ".boots",null);
+    @Loadable
+    public static PlayerInventory onConfigLoad(ConfigSection section){
+        ItemStack helmet = section.getLoadable("helmet",ItemStack.class);
+        ItemStack chestplate = section.getLoadable("chestplate",ItemStack.class);
+        ItemStack leggings = section.getLoadable("leggings",ItemStack.class);
+        ItemStack boots = section.getLoadable("boots",ItemStack.class);
         List<ItemSlot> inventory = new ArrayList<>();
-        for (String key : config.getKeys(path + ".inventory")) {
+        for (String key : section.getKeys("inventory")) {
             try {
                 Integer slot = Integer.parseInt(key);
-                FCItemStack fcItemStack = config.getFCItem(path + ".inventory." + slot);
-                ItemSlot itemSlot = new ItemSlot(slot,fcItemStack);
+                ItemStack itemStack = section.getLoadable("inventory." + slot, ItemStack.class);
+                ItemSlot itemSlot = new ItemSlot(slot,itemStack);
                 inventory.add(itemSlot);
             }catch (NumberFormatException e){
                 e.printStackTrace();
@@ -117,44 +117,45 @@ public class PlayerInventory implements Config.Salvable {
         }
 
         List<ExtraInv> extraInvList = new ArrayList<>();
-        for (String extraInvKey : config.getKeys(path + ".extra")) {
+        for (String extraInvKey : section.getKeys("extra")) {
             try {
                 ExtraInvType extraInvType = ExtraInvType.valueOf(extraInvKey.toUpperCase());
                 if (!extraInvType.isEnabled()) continue;
+
                 ExtraInv extraInv = ExtraInvType.valueOf(extraInvKey.toUpperCase()).createExtraInv();
-                for (String itemSlotKey : config.getKeys(path + ".extra." + extraInvKey)) {
+                for (String itemSlotKey : section.getKeys("extra." + extraInvKey)) {
                     try {
                         Integer slot = Integer.parseInt(itemSlotKey);
-                        FCItemStack fcItemStack = config.getFCItem(path + ".extra." + extraInvKey + "." + slot);
-                        ItemSlot itemSlot = new ItemSlot(slot,fcItemStack);
+                        ItemStack itemStack = section.getLoadable("extra." + extraInvKey + "." + slot, ItemStack.class);
+                        ItemSlot itemSlot = new ItemSlot(slot,itemStack);
                         extraInv.getItemSlotList().add(itemSlot);
                     }catch (NumberFormatException e){
-                        EverNifeCore.info("Failed to load ItemSlot(iteSlot==" + itemSlotKey + ") from [" + (path + ".extra." + extraInvKey ) + "] \n --> " + config.getTheFile().getName());
+                        EverNifeCore.info("Failed to load ItemSlot(iteSlot==" + itemSlotKey + ") from " + (section.getPath() + ".extra." + extraInvKey ) + "] \n --> " + section.getConfig().getAbsolutePath());
                         e.printStackTrace();
                     }
                 }
                 extraInvList.add(extraInv);
             }catch (Exception e){
-                EverNifeCore.info("Failed to load ExtraInv(" + extraInvKey + ") from [" + (path + ".extra." + extraInvKey ) + "] \n --> " + config.getTheFile().getName());
+                EverNifeCore.info("Failed to load ExtraInv(" + extraInvKey + ") from [" + (section.getPath() + ".extra." + extraInvKey ) + "] \n --> " + section.getConfig().getAbsolutePath());
                 e.printStackTrace();
             }
         }
         return new PlayerInventory(helmet,chestplate,leggings,boots,inventory,extraInvList);
     }
 
-    public FCItemStack getHelmet() {
+    public ItemStack getHelmet() {
         return helmet;
     }
 
-    public FCItemStack getChestplate() {
+    public ItemStack getChestplate() {
         return chestplate;
     }
 
-    public FCItemStack getLeggings() {
+    public ItemStack getLeggings() {
         return leggings;
     }
 
-    public FCItemStack getBoots() {
+    public ItemStack getBoots() {
         return boots;
     }
 
@@ -174,10 +175,10 @@ public class PlayerInventory implements Config.Salvable {
         return extraInvMap.get(invType);
     }
 
-    public FCItemStack getItem(int index){
+    public ItemStack getItem(int index){
         for (ItemSlot itemSlot : this.inventory) {
             if (index == itemSlot.getSlot()){
-                return itemSlot.getFcItemStack();
+                return itemSlot.getItemStack();
             }
         }
         return null;
@@ -188,7 +189,7 @@ public class PlayerInventory implements Config.Salvable {
 
         ItemStack[] inventoryContent = new ItemStack[36];
         for (ItemSlot itemSlot : inventory) {
-            inventoryContent[itemSlot.getSlot()] = itemSlot.getFcItemStack().copyItemStack();
+            inventoryContent[itemSlot.getSlot()] = itemSlot.getItemStack().clone();
         }
         playerInventory.setContents(inventoryContent);
 
@@ -206,9 +207,9 @@ public class PlayerInventory implements Config.Salvable {
             extraInv.setPlayerExtraInv(player);
         }
 
-        playerInventory.setHelmet(this.getHelmet() == null ?  null : this.getHelmet().copyItemStack());
-        playerInventory.setChestplate(this.getChestplate() == null ?  null : this.getChestplate().copyItemStack());
-        playerInventory.setLeggings(this.getLeggings() == null ?  null : this.getLeggings().copyItemStack());
-        playerInventory.setBoots(this.getBoots() == null ?  null : this.getBoots().copyItemStack());
+        playerInventory.setHelmet(this.getHelmet() == null ?  null : this.getHelmet().clone());
+        playerInventory.setChestplate(this.getChestplate() == null ?  null : this.getChestplate().clone());
+        playerInventory.setLeggings(this.getLeggings() == null ?  null : this.getLeggings().clone());
+        playerInventory.setBoots(this.getBoots() == null ?  null : this.getBoots().clone());
     }
 }

@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.inventory.data;
 
-import br.com.finalcraft.evernifecore.fcitemstack.FCItemStack;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
@@ -10,18 +9,18 @@ import java.util.OptionalInt;
 public class ItemSlot {
 
     protected final int slot;
-    protected final FCItemStack fcItemStack;
-    public ItemSlot(int slot, FCItemStack fcItemStack) {
+    protected final ItemStack itemStack;
+    public ItemSlot(int slot, ItemStack itemStack) {
         this.slot = slot;
-        this.fcItemStack = fcItemStack;
+        this.itemStack = itemStack;
     }
 
     public int getSlot() {
         return slot;
     }
 
-    public FCItemStack getFcItemStack() {
-        return fcItemStack;
+    public ItemStack getItemStack() {
+        return itemStack;
     }
 
     public static List<ItemSlot> fromStackList(List<ItemStack> itemStackList){
@@ -29,7 +28,7 @@ public class ItemSlot {
         for (int i = 0; i < itemStackList.size(); i++) {
             ItemStack itemStack = itemStackList.get(i);
             if (itemStack != null){
-                itemSlotList.add(new ItemSlot(i, new FCItemStack(itemStack)));
+                itemSlotList.add(new ItemSlot(i, new ItemStack(itemStack)));
             }
         }
         return itemSlotList;
@@ -39,7 +38,7 @@ public class ItemSlot {
         List<ItemSlot> itemSlotList = new ArrayList<>();
         for (int i = 0; i < itemStacks.length; i++) {
             if (itemStacks[i] != null){
-                itemSlotList.add(new ItemSlot(i, new FCItemStack(itemStacks[i])));
+                itemSlotList.add(new ItemSlot(i, new ItemStack(itemStacks[i])));
             }
         }
         return itemSlotList;
@@ -50,7 +49,7 @@ public class ItemSlot {
         if (!maxSize.isPresent()) return new ItemStack[0];
         ItemStack[] itemStacks = new ItemStack[maxSize.getAsInt() + 1];
         for (ItemSlot itemSlot : itemSlotList) {
-            itemStacks[itemSlot.getSlot()] = itemSlot.getFcItemStack().getItemStack();
+            itemStacks[itemSlot.getSlot()] = itemSlot.getItemStack();
         }
         return itemStacks;
     }

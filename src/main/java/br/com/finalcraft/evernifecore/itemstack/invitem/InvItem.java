@@ -1,7 +1,6 @@
-package br.com.finalcraft.evernifecore.fcitemstack.iteminv;
+package br.com.finalcraft.evernifecore.itemstack.invitem;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.fcitemstack.FCItemStack;
 import br.com.finalcraft.evernifecore.integration.everforgelib.EverForgeLibIntegration;
 import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
 import org.bukkit.Material;
@@ -20,10 +19,10 @@ public enum InvItem {
         }
 
         @Override
-        public void setItemsTo(FCItemStack draconiumChest, List<ItemSlot> itemSlots) {
+        public ItemStack createChestWithItems(ItemStack draconiumChest, List<ItemSlot> itemSlots) {
             ItemStack[] inventory = ItemSlot.toStackList(itemSlots);
-            ItemStack result = EverForgeLibIntegration.setDraconicChestInventory(draconiumChest.getItemStack(), inventory);
-            draconiumChest.setItemStack(result);
+            ItemStack result = EverForgeLibIntegration.setDraconicChestInventory(draconiumChest, inventory);
+            return result;
         }
 
         @Override
@@ -46,7 +45,7 @@ public enum InvItem {
     }
 
     public abstract List<ItemSlot> getItemsFrom(ItemStack itemStack);
-    public abstract void setItemsTo(FCItemStack itemStack, List<ItemSlot> itemSlots);
+    public abstract ItemStack createChestWithItems(ItemStack customChest, List<ItemSlot> itemSlots);
     public abstract Boolean checkIfShouldBeEnabled();
 
     public boolean isEnabled(){

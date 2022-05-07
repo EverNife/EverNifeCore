@@ -1,5 +1,5 @@
 name: EverNifeCore
-version: 2.0.1.8
+version: 2.0.1.9
 author: EverNife
 main: br.com.finalcraft.evernifecore.EverNifeCore
 softdepend: [ WorldGuard, WorldEdit, GriefPreventionPlus , LuckPerms, Vault, MVdWPlaceholderAPI, Factions, GPPSkyBlock, PlaceholderAPI, ProtocolLib]

@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.itembuilder;
+package br.com.finalcraft.evernifecore.itemstack.itembuilder;
 
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;

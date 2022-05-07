@@ -2,8 +2,8 @@ package br.com.finalcraft.evernifecore.gui.item;
 
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.gui.custom.GuiComplex;
-import br.com.finalcraft.evernifecore.itembuilder.FCItemBuilder;
-import br.com.finalcraft.evernifecore.itembuilder.FCItemFactory;
+import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
+import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemFactory;
 import dev.triumphteam.gui.components.GuiAction;
 import dev.triumphteam.gui.guis.GuiItem;
 import org.bukkit.entity.Player;

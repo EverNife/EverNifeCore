@@ -30,7 +30,7 @@ public class BaublesInv extends ExtraInv {
     public void setPlayerExtraInv(Player player) {
         ItemStack[] baublesContent = new ItemStack[getInvMaxSize()];
         for (ItemSlot itemSlot : getItemSlotList()) {
-            baublesContent[itemSlot.getSlot()] = itemSlot.getFcItemStack().copyItemStack();
+            baublesContent[itemSlot.getSlot()] = itemSlot.getItemStack().clone();
         }
         EverForgeLibIntegration.setBaublesInventory(player, baublesContent);
     }

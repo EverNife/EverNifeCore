@@ -56,7 +56,7 @@ public class PlayerData implements IPlayerData{
         this.config = Objects.requireNonNull(config,"PlayConfig cannot be null!");
         this.playerName = Objects.requireNonNull(config.getString("PlayerData.Username"),"PlayName cannot be null!");
         this.uuid = Objects.requireNonNull(config.getUUID("PlayerData.UUID"),"PlayerUUID cannot be null!");
-        this.lastSeen = config.getLong("PlayerData.lastSeen",0);
+        this.lastSeen = config.getLong("PlayerData.lastSeen",0L);
 
         for (String cooldownID : config.getKeys("Cooldown")) {
             Cooldown cooldown = config.getLoadable("Cooldown." + cooldownID, Cooldown.class);
