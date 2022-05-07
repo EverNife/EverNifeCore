@@ -49,8 +49,8 @@ repositories {
 dependencies {
     implementation 'com.github.evernife:ChatMenuAPI:v1.1.3c'
     implementation 'com.github.evernife.libby:libby-core:d994023'
-
     implementation 'dev.triumphteam:triumph-gui:3.0.4-e1'
+    implementation 'com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8'
 
     compileOnly('org.hibernate:hibernate-core:5.4.30.Final')
 
@@ -98,6 +98,7 @@ shadowJar {
         include(dependency('com.github.evernife.libby:libby-core:d994023'))
         include(dependency('dev.triumphteam:triumph-gui:3.0.4-e1'))
     }
+    relocate 'org.yaml.snakeyaml', 'br.com.finalcraft.libs.snakeyaml'
 }
 
 jar {
