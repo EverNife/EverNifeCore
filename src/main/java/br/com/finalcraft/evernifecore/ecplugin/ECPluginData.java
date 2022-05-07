@@ -128,14 +128,17 @@ public class ECPluginData {
             //Now we need to look for the LocaleMessage and save it to the hardcoded files, for example EN_US
             if (localeMessage.needToBeSynced()){
                 for (Tuple<LocaleType, Config> tuple : hardcodedLocalizations) {
-                    FancyText originalHardcodedLocale = tuple.getBeta().getFancyText(localeMessage.getKey());
-                    if (originalHardcodedLocale == null){
-                        originalHardcodedLocale = new FancyText("[LOCALE_NOT_FOUND]");
+                    Config hardcodedConfig = tuple.getBeta();
+                    FancyText hardcodedOnConfig = hardcodedConfig.getLoadable(localeMessage.getKey(), FancyText.class);
+                    if (hardcodedOnConfig == null){
+                        hardcodedOnConfig = new FancyText("[LOCALE_NOT_FOUND]");
                     }
-                    Config config = tuple.getBeta();
-                    FancyText current = config.getFancyText(localeMessage.getKey());
-                    if (!originalHardcodedLocale.equals(current)){
-                        config.setValue(localeMessage.getKey(), originalHardcodedLocale);
+
+                    FancyText hardcodedOnCode = localeMessage.getFancyText(tuple.getAlfa().name());
+                    if (hardcodedOnCode == null) hardcodedOnCode = defaultFancyText;
+
+                    if (!hardcodedOnConfig.equals(hardcodedOnCode)){
+                        hardcodedConfig.setValue(localeMessage.getKey(), hardcodedOnCode);
                         tuple.getBeta().setValue("HasBeenChanged", true);
                     }
                 }
@@ -151,7 +154,7 @@ public class ECPluginData {
             localeMessage.setHasBeenSynced(true);
 
             //Now look for the customFile
-            FancyText customFancyText = this.customLangConfig.getFancyText(localeMessage.getKey());
+            FancyText customFancyText = this.customLangConfig.getLoadable(localeMessage.getKey(), FancyText.class);
             if (customFancyText == null){
                 //Update on the new file
                 customFancyText = defaultFancyText;
