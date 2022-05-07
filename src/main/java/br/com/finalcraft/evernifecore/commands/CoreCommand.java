@@ -58,9 +58,7 @@ public class CoreCommand {
             }
     )
     public void reload(CommandSender sender){
-        ECPluginManager.reloadPlugin(sender, EverNifeCore.instance, () -> {
-            ConfigManager.initialize(EverNifeCore.instance);
-        });
+        ECPluginManager.reloadPlugin(sender, EverNifeCore.instance);
     }
 
 }

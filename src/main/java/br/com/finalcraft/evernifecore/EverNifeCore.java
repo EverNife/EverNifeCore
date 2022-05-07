@@ -117,4 +117,10 @@ public class EverNifeCore extends JavaPlugin {
         ChatMenuAPI.disable();
     }
 
+    @ECPlugin.Reload
+    public void onReload(){
+        ConfigManager.initialize(this);
+        ConfigManager.reloadCooldownConfig();
+    }
+
 }
