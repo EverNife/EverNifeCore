@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.config;
 
+import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
 import br.com.finalcraft.evernifecore.config.yaml.exeption.LoadableMethodException;
 import br.com.finalcraft.evernifecore.config.yaml.helper.CfgExecutor;
 import br.com.finalcraft.evernifecore.config.yaml.helper.CfgLoadableSalvable;
@@ -18,10 +19,6 @@ import org.simpleyaml.exceptions.InvalidConfigurationException;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
@@ -395,8 +392,8 @@ public class Config {
         }
 
         //For Simple Salvables
-        if (value instanceof br.com.finalcraft.evernifecore.config.yaml.helper.Salvable){
-            ((br.com.finalcraft.evernifecore.config.yaml.helper.Salvable) value).onConfigSave(new ConfigSection(this, path));
+        if (value instanceof Salvable){
+            ((Salvable) value).onConfigSave(new ConfigSection(this, path));
             return;
         }
 
@@ -655,26 +652,6 @@ public class Config {
             return loadableList;
         }
         return Collections.EMPTY_LIST;
-    }
-
-    //------------------------------------------------------------------------------------------------------------------
-    //    Deprecated //Todo Remove on 2.0.2.5
-    //------------------------------------------------------------------------------------------------------------------
-
-    @Deprecated
-    public static interface Salvable extends br.com.finalcraft.evernifecore.config.yaml.helper.Salvable {
-        public void onConfigSave(Config config, String path);
-
-        public default void onConfigSave(ConfigSection section){
-            onConfigSave(section.getConfig(), section.getPath());
-        }
-    }
-
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.METHOD)
-    @Deprecated
-    public static @interface Loadable{
-
     }
 
 }

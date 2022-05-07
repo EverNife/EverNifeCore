@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.config.yaml.helper;
+package br.com.finalcraft.evernifecore.config.yaml.anntation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

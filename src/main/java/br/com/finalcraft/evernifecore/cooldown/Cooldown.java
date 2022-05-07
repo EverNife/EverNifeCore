@@ -3,6 +3,9 @@ package br.com.finalcraft.evernifecore.cooldown;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
+import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
+import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
+import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
@@ -13,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public abstract class Cooldown implements Config.Salvable {
+public abstract class Cooldown implements Salvable {
 
     protected final String identifier;
     protected long timeStart = 0; //millis
@@ -144,13 +147,13 @@ public abstract class Cooldown implements Config.Salvable {
     }
 
     @Override
-    public void onConfigSave(Config config, String path) {
-        config.setValue(path + ".identifier", this.identifier);
-        config.setValue(path + ".timeStart", this.timeStart);
-        config.setValue(path + ".timeDuration", this.timeDuration);
+    public void onConfigSave(ConfigSection section) {
+        section.setValue("identifier", this.identifier);
+        section.setValue("timeStart", this.timeStart);
+        section.setValue("timeDuration", this.timeDuration);
     }
 
-    @Config.Loadable
+    @Loadable
     public static Cooldown loadFromConfig(Config config, String path) {
         String identifier = config.getString(path + ".identifier");
         Long timeStart = config.getLong(path + ".timeStart");

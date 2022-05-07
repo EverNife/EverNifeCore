@@ -1,7 +1,8 @@
 package br.com.finalcraft.evernifecore.config.yaml.helper;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
+import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
 import br.com.finalcraft.evernifecore.config.yaml.exeption.LoadableMethodException;
 import br.com.finalcraft.evernifecore.config.yaml.helper.smartloadable.SmartLoadSave;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
@@ -17,7 +18,6 @@ import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -81,10 +81,10 @@ public class CfgLoadableSalvable {
     }
 
     private static <O> @NotNull Optional<Function<ConfigSection, O>> extractLoadableMethod(@NotNull Class<O> clazz){
-        final Method method = Arrays.stream(clazz.getDeclaredMethods()).filter(theMethod -> {
-            return theMethod.isAnnotationPresent(Loadable.class)
-                    || theMethod.isAnnotationPresent(Config.Loadable.class); //Deprecated Code, keeping it here for legacy support //TODO Remove this support on next major release
-        }).findFirst().orElse(null);
+        final Method method = Arrays.stream(clazz.getDeclaredMethods())
+                .filter(theMethod -> theMethod.isAnnotationPresent(Loadable.class))
+                .findFirst()
+                .orElse(null);
 
         if (method == null){
             return Optional.empty();

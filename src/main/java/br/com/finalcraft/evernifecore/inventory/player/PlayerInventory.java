@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.inventory.player;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.config.yaml.helper.Loadable;
-import br.com.finalcraft.evernifecore.config.yaml.helper.Salvable;
+import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
+import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
 import br.com.finalcraft.evernifecore.inventory.player.extrainvs.ExtraInv;

@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.config.yaml.helper;
+package br.com.finalcraft.evernifecore.config.yaml.anntation;
 
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 

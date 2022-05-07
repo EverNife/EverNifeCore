@@ -4,7 +4,6 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.PermissionNodes;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
-import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;

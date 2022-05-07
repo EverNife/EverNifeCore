@@ -1,12 +1,15 @@
 package br.com.finalcraft.evernifecore.minecraft.vector;
 
 import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
+import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
+import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.minecraft.region.RegionPos;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 
-public class ChunkPos implements Config.Salvable {
+public class ChunkPos implements Salvable {
     protected final int x;
     protected final int z;
 
@@ -83,12 +86,12 @@ public class ChunkPos implements Config.Salvable {
     }
 
     @Override
-    public void onConfigSave(Config config, String path) {
-        config.setValue(path + ".chunkX", x);
-        config.setValue(path + ".chunkZ", z);
+    public void onConfigSave(ConfigSection section) {
+        section.setValue("chunkX", x);
+        section.setValue("chunkZ", z);
     }
 
-    @Config.Loadable
+    @Loadable
     public static ChunkPos onConfigLoad(Config config, String path){
         int x = config.getInt(path + ".x");
         int z = config.getInt(path + ".z");
