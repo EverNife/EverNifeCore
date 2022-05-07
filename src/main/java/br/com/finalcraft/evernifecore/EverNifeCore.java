@@ -1,12 +1,12 @@
 package br.com.finalcraft.evernifecore;
 
-import br.com.finalcraft.evernifecore.autoupdater.SpigotUpdateChecker;
 import br.com.finalcraft.evernifecore.commands.CommandRegisterer;
-import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.config.yaml.helper.CfgExecutor;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.dependencies.DependencyManager;
+import br.com.finalcraft.evernifecore.dependencies.ECoreDependencies;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.featherboard.FeatherBoardUtils;
 import br.com.finalcraft.evernifecore.integration.VaultIntegration;
@@ -16,7 +16,6 @@ import br.com.finalcraft.evernifecore.listeners.PlayerInteractListener;
 import br.com.finalcraft.evernifecore.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.listeners.PluginListener;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
-import br.com.finalcraft.evernifecore.metrics.Metrics;
 import br.com.finalcraft.evernifecore.protection.handlers.ProtectionPlugins;
 import br.com.finalcraft.evernifecore.thread.SaveConfigThread;
 import br.com.finalcraft.evernifecore.version.MCVersion;
@@ -30,6 +29,21 @@ import org.bukkit.plugin.java.JavaPlugin;
         bstatsID = "13351"
 )
 public class EverNifeCore extends JavaPlugin {
+
+    private static final DependencyManager dependencyManager;
+
+    static {
+        dependencyManager = new DependencyManager();//This is the DefaultConstrutor for EverNifeCore DependencyManager
+        dependencyManager.addJitPack();
+        dependencyManager.addJCenter();
+        dependencyManager.addMavenCentral();
+        dependencyManager.addSonatype();
+        dependencyManager.addRepository("https://maven.petrus.dev/public");
+
+        //First thing to do when this class is loaded is to add REQUIRED dependencies, because there ara plugins that depends
+        //on EverNifeCore and are loaded before it, for example, FinalEconomy
+        ECoreDependencies.initialize(dependencyManager);
+    }
 
     public static EverNifeCore instance;
 
@@ -45,18 +59,7 @@ public class EverNifeCore extends JavaPlugin {
         instance.getLogger().warning("[Warning] " + msg);
     }
 
-    private static DependencyManager dependencyManager;
-
     public static DependencyManager getDependencyManager() {
-        if (EverNifeCore.instance == null) throw new IllegalStateException("EverNifeCore was not initialized yet, you can't get it's DependencyManager");
-        if (dependencyManager == null){
-            dependencyManager = new DependencyManager(EverNifeCore.instance);
-            dependencyManager.addJitPack();
-            dependencyManager.addJCenter();
-            dependencyManager.addMavenCentral();
-            dependencyManager.addSonatype();
-            dependencyManager.addRepository("https://maven.petrus.dev/public");
-        }
         return dependencyManager;
     }
 

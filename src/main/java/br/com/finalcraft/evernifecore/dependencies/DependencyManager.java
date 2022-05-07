@@ -30,13 +30,20 @@ import net.byteflux.libby.classloader.URLClassLoaderHelper;
 import net.byteflux.libby.logging.adapters.JDKLogAdapter;
 import org.bukkit.plugin.Plugin;
 
+import java.io.File;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.logging.Logger;
 
 public class DependencyManager extends LibraryManager {
 
     private final URLClassLoaderHelper classLoader;
+
+    public DependencyManager() {
+        super(new JDKLogAdapter(Logger.getLogger("DefaultDependencyManager")), new File("plugins/EverNifeCore/").toPath());
+        classLoader = new URLClassLoaderHelper((URLClassLoader) DependencyManager.class.getClassLoader());
+    }
 
     public DependencyManager(Plugin plugin) {
         super(new JDKLogAdapter((Objects.requireNonNull(plugin, "plugin")).getLogger()), plugin.getDataFolder().toPath());
