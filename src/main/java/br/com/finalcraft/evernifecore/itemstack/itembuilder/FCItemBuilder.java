@@ -15,7 +15,7 @@ import java.util.function.Supplier;
 
 public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
 
-    protected FCItemBuilder(@NotNull ItemStack itemStack) {
+    public FCItemBuilder(@NotNull ItemStack itemStack) {
         super(NMSUtils.get() != null
                 ? NMSUtils.get().validateItemStackHandle(itemStack) //Always build an item with a Valid MCItemStack on it;
                 : itemStack);

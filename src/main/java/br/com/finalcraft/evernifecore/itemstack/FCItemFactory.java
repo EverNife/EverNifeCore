@@ -1,6 +1,7 @@
-package br.com.finalcraft.evernifecore.itemstack.itembuilder;
+package br.com.finalcraft.evernifecore.itemstack;
 
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
