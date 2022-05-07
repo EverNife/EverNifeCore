@@ -1,7 +1,8 @@
-package br.com.finalcraft.evernifecore.itembuilder;
+package br.com.finalcraft.evernifecore.itemstack.itembuilder;
 
 import br.com.finalcraft.evernifecore.gui.item.GuiItemComplex;
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import dev.triumphteam.gui.builder.item.BaseItemBuilder;
 import org.bukkit.Material;
@@ -15,7 +16,9 @@ import java.util.function.Supplier;
 public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
 
     protected FCItemBuilder(@NotNull ItemStack itemStack) {
-        super(itemStack);
+        super(NMSUtils.get() != null
+                ? NMSUtils.get().validateItemStackHandle(itemStack) //Always build an item with a Valid MCItemStack on it;
+                : itemStack);
     }
 
     @NotNull
