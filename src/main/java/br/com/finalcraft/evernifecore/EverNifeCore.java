@@ -113,7 +113,7 @@ public class EverNifeCore extends JavaPlugin {
         HandlerList.unregisterAll(this);
         SaveConfigThread.INSTANCE.shutdown();
         PlayerController.savePlayerDataOnConfig();
-        Config.shutdownSaveScheduller();
+        CfgExecutor.shutdownExecutor();
         ChatMenuAPI.disable();
     }
 
