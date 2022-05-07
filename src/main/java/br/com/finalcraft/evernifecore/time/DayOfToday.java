@@ -52,9 +52,9 @@ public class DayOfToday {
         return new FCTimeFrame(currentTimeMillis());
     }
 
-    public static String getTimeToTomorrowFormated(){
+    public static String getTimeToTomorrowFormatted(){
         FCTimeFrame fcTimeFrame = getTimeToTomorrow();
-        return fcTimeFrame.getFormatedDiscursive();
+        return fcTimeFrame.getFormattedDiscursive();
     }
 
     public static long currentTimeMillis(){

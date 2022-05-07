@@ -39,8 +39,8 @@ public class UUIDsController {
         return uuidHashMap.get(playerName);
     }
 
-    public static String normalizeName(String unformatedPlayerName){
-        return uuidHashMap.get(uuidHashMap.get(unformatedPlayerName));
+    public static String normalizeName(String unformattedPlayerName){
+        return uuidHashMap.get(uuidHashMap.get(unformattedPlayerName));
     }
 
     public static Collection<UUID> getAllUUIDs(){

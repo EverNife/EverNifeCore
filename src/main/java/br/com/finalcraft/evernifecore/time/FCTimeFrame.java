@@ -96,13 +96,12 @@ public class FCTimeFrame {
         return TimeUnit.MILLISECONDS.toSeconds(this.millis);
     }
 
-    //TODO Fix Formatted typo '-'
-    public String getFormated(){
+    public String getFormatted(){
         Date date = new Date(millis);
         return ECSettings.SIMPLE_DATE_FORMAT.format(date);
     }
 
-    public String getFormatedNoHours(){
+    public String getFormattedNoHours(){
         Date date = new Date(millis);
         return ECSettings.DATE_FORMAT_WITH_HOURS.format(date);
     }
@@ -111,27 +110,27 @@ public class FCTimeFrame {
         return new FCTimeFrame(System.currentTimeMillis() - this.millis);
     }
 
-    public String getFormatedDiscursive(){
-        return getFormatedDiscursive("","");
+    public String getFormattedDiscursive(){
+        return getFormattedDiscursive("","");
     }
 
-    public String getShortenedFormatedDiscursive(){
-        return getFormatedDiscursive("","", false, true);
+    public String getShortenedFormattedDiscursive(){
+        return getFormattedDiscursive("","", false, true);
     }
 
-    public String getFormatedDiscursive(boolean includeMillis){
-        return getFormatedDiscursive("","", includeMillis);
+    public String getFormattedDiscursive(boolean includeMillis){
+        return getFormattedDiscursive("","", includeMillis);
     }
 
-    public String getFormatedDiscursive(final String numberColor, final String textColor){
-        return getFormatedDiscursive(numberColor,numberColor,false);
+    public String getFormattedDiscursive(final String numberColor, final String textColor){
+        return getFormattedDiscursive(numberColor,numberColor,false);
     }
 
-    public String getFormatedDiscursive(final String numberColor, final String textColor, boolean includeMillis){
-        return getFormatedDiscursive(numberColor, textColor, includeMillis, false);
+    public String getFormattedDiscursive(final String numberColor, final String textColor, boolean includeMillis){
+        return getFormattedDiscursive(numberColor, textColor, includeMillis, false);
     }
 
-    public String getFormatedDiscursive(final String numberColor, final String textColor, boolean includeMillis, boolean shortVersion){
+    public String getFormattedDiscursive(final String numberColor, final String textColor, boolean includeMillis, boolean shortVersion){
         final String dia;
         final String hora;
         final String minuto;
@@ -187,12 +186,12 @@ public class FCTimeFrame {
         return TimeUnit.MILLISECONDS.toDays(millis);
     }
 
-    public static String getFormated(Long millis){
+    public static String getFormatted(Long millis){
         Date date = new Date(millis);
         return ECSettings.DATE_FORMAT_WITH_HOURS.format(date);
     }
 
-    public static String getFormatedNoHours(Long millis){
+    public static String getFormattedNoHours(Long millis){
         Date date = new Date(millis);
         return ECSettings.SIMPLE_DATE_FORMAT.format(date);
     }

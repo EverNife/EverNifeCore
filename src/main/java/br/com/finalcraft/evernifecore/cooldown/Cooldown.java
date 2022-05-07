@@ -88,19 +88,19 @@ public abstract class Cooldown implements Config.Salvable {
     private static LocaleMessage YOU_NEED_TO_WAIT_MORE_TIME;
     public void warnPlayer(CommandSender commandSender){
         YOU_NEED_TO_WAIT_MORE_TIME
-                .addPlaceholder("%discursive_time%", getFCTimeFrame().getFormatedDiscursive("§6","§c"))
+                .addPlaceholder("%discursive_time%", getFCTimeFrame().getFormattedDiscursive("§6","§c"))
                 .send(commandSender);
     }
 
     public void warnPlayer(CommandSender commandSender, long customTimeInSeconds){
         YOU_NEED_TO_WAIT_MORE_TIME
-                .addPlaceholder("%discursive_time%", getFCTimeFrame(customTimeInSeconds).getFormatedDiscursive("§6","§c"))
+                .addPlaceholder("%discursive_time%", getFCTimeFrame(customTimeInSeconds).getFormattedDiscursive("§6","§c"))
                 .send(commandSender);
     }
 
     public void warnPlayer(CommandSender commandSender, long customTime, TimeUnit timeUnit){
         YOU_NEED_TO_WAIT_MORE_TIME
-                .addPlaceholder("%discursive_time%", getFCTimeFrame(customTime, timeUnit).getFormatedDiscursive("§6","§c"))
+                .addPlaceholder("%discursive_time%", getFCTimeFrame(customTime, timeUnit).getFormattedDiscursive("§6","§c"))
                 .send(commandSender);
     }
 

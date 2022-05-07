@@ -99,7 +99,7 @@ public class PageViewer<OBJ, VALUE> {
             }
 
             if (includeDate){
-                pageHeaderCache.add(new FancyText("§7Data de hoje: " + new FCTimeFrame(System.currentTimeMillis()).getFormatedNoHours()));
+                pageHeaderCache.add(new FancyText("§7Data de hoje: " + new FCTimeFrame(System.currentTimeMillis()).getFormattedNoHours()));
             }
 
             for (int number = lineStart; number < sortedList.size() && number < lineEnd; number++) {
