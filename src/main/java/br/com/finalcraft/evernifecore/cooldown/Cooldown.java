@@ -86,22 +86,25 @@ public abstract class Cooldown implements Config.Salvable {
     @FCLocale(lang = LocaleType.EN_US, text = "§cYou need to wait more %discursive_time% to do this!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§cVocê precisa esperar mais %discursive_time% para fazer isto!")
     private static LocaleMessage YOU_NEED_TO_WAIT_MORE_TIME;
-    public void warnPlayer(CommandSender commandSender){
+    public Cooldown warnPlayer(CommandSender commandSender){
         YOU_NEED_TO_WAIT_MORE_TIME
                 .addPlaceholder("%discursive_time%", getFCTimeFrame().getFormattedDiscursive("§6","§c"))
                 .send(commandSender);
+        return this;
     }
 
-    public void warnPlayer(CommandSender commandSender, long customTimeInSeconds){
+    public Cooldown warnPlayer(CommandSender commandSender, long customTimeInSeconds){
         YOU_NEED_TO_WAIT_MORE_TIME
                 .addPlaceholder("%discursive_time%", getFCTimeFrame(customTimeInSeconds).getFormattedDiscursive("§6","§c"))
                 .send(commandSender);
+        return this;
     }
 
-    public void warnPlayer(CommandSender commandSender, long customTime, TimeUnit timeUnit){
+    public Cooldown warnPlayer(CommandSender commandSender, long customTime, TimeUnit timeUnit){
         YOU_NEED_TO_WAIT_MORE_TIME
                 .addPlaceholder("%discursive_time%", getFCTimeFrame(customTime, timeUnit).getFormattedDiscursive("§6","§c"))
                 .send(commandSender);
+        return this;
     }
 
     public boolean isInCooldown(){
@@ -117,24 +120,27 @@ public abstract class Cooldown implements Config.Salvable {
     }
 
     //Convenient method, as almost always cooldows are based on seconds not millis
-    public void startWith(long timeInSeconds){
-        startWith(timeInSeconds, TimeUnit.SECONDS);
+    public Cooldown startWith(long timeInSeconds){
+        return startWith(timeInSeconds, TimeUnit.SECONDS);
     }
 
-    public void startWith(long value, TimeUnit timeUnit){
+    public Cooldown startWith(long value, TimeUnit timeUnit){
         this.timeDuration = timeUnit.toMillis(value);
         start();
+        return this;
     }
 
-    public void start(){
+    public Cooldown start(){
         this.timeStart = System.currentTimeMillis();
         if (persist) handleSaveIfPermanent();
+        return this;
     }
 
-    public void stop(){
+    public Cooldown stop(){
         this.timeStart = 0;
         this.persist = false;
         if (persist) handleStopIfPermanent();
+        return this;
     }
 
     @Override
