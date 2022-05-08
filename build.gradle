@@ -16,7 +16,7 @@ plugins {
 apply plugin: "com.github.johnrengelman.shadow"
 
 group 'br.com.finalcraft'
-version '2.0.1'
+version '2.0.2'
 
 targetCompatibility = 1.8
 sourceCompatibility = 1.8
