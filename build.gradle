@@ -8,7 +8,6 @@ buildscript {
 }
 
 plugins {
-    id 'java'
     id 'idea'
     id 'java-library'
     id 'maven-publish'
@@ -24,6 +23,10 @@ sourceCompatibility = 1.8
 
 compileJava.options.encoding = 'UTF-8'
 tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+javadoc {
     options.encoding = 'UTF-8'
 }
 
@@ -101,13 +104,14 @@ shadowJar {
     relocate 'org.yaml.snakeyaml', 'br.com.finalcraft.libs.snakeyaml'
 }
 
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
 jar {
     enabled = false //Disable default jar, only shadow jar willl be
     dependsOn(shadowJar { classifier = null })
-}
-
-task sourcesJar(type: Jar, dependsOn: classes) {
-    from sourceSets.main.allSource
 }
 
 tasks.withType(GenerateModuleMetadata) {
