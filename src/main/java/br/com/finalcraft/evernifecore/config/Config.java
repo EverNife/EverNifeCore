@@ -582,29 +582,6 @@ public class Config {
     }
 
     // ------------------------------------------------------------------------------------------------------------------
-    //      ECore/Bukkit Elements Getters
-    // ------------------------------------------------------------------------------------------------------------------
-
-    /**
-     * Returns the FCLocationController at the specified Path
-     *
-     * @param  path The path in the Config File
-     * @return      The FCLocationController at that Path
-     */
-    public Location getLocation(String path) {
-        if (!this.contains(path)) return null;
-        return new Location(
-                Bukkit.getWorld(
-                        getString(path + ".worldName")),
-                getDouble(path + ".x"),
-                getDouble(path + ".y"),
-                getDouble(path + ".z"),
-                getDouble(path + ".yaw").floatValue(),
-                getDouble(path + ".pitch").floatValue()
-        );
-    }
-
-    // ------------------------------------------------------------------------------------------------------------------
     //      Loadable System
     // ------------------------------------------------------------------------------------------------------------------
 
