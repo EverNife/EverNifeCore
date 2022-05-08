@@ -19,6 +19,7 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.protection.handlers.ProtectionPlugins;
 import br.com.finalcraft.evernifecore.thread.SaveConfigThread;
 import br.com.finalcraft.evernifecore.version.MCVersion;
+import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
 import me.tom.sparse.spigot.chat.menu.ChatMenuAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
@@ -43,6 +44,8 @@ public class EverNifeCore extends JavaPlugin {
         //First thing to do when this class is loaded is to add REQUIRED dependencies, because there ara plugins that depends
         //on EverNifeCore and are loaded before it, for example, FinalEconomy
         ECoreDependencies.initialize(dependencyManager);
+        MinecraftVersion.disableBStats();
+        MinecraftVersion.disableUpdateCheck();
     }
 
     public static EverNifeCore instance;
