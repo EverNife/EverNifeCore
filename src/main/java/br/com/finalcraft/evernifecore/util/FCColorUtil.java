@@ -15,7 +15,7 @@ public class FCColorUtil {
                 colors.add(value);
             }
         }
-        return colors.get(FCBukkitUtil.getRandom().nextInt(colors.size()));
+        return colors.get(FCMathUtil.getRandom().nextInt(colors.size()));
     }
 
     public static String colorfy(@Nullable String text){

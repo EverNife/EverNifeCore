@@ -41,12 +41,11 @@ public class FCEcoUtil {
     }
 
     /**
-     * Take money from a Player
+     * It takes money from the player.
      *
-     * @param playerData The Player's PlayerData
-     * @param value The amount of money
-     *
-     * @return <>true</> if success <>false</> otherwise
+     * @param playerData The player's data.
+     * @param value The amount of money to take from the player.
+     * @return A boolean value.
      */
     public static boolean ecoTake(PlayerData playerData, double value) {
         return EconomyManager.getProvider().ecoTake(playerData, value);
@@ -75,13 +74,11 @@ public class FCEcoUtil {
     }
 
     /**
-     * Check if the Player has enought money
+     * Returns true if the player has enough money, false if they don't.
      *
-     * @param playerData The Player's PlayerData
-     * @param value The amount of money
-     *
-     * @return <>true</> if the player has the money <>false</>
-     * otherwise
+     * @param playerData The player's data.
+     * @param value The amount of money to add/remove
+     * @return A boolean value.
      */
     public static boolean ecoHasEnough(PlayerData playerData, double value) {
         return ecoGet(playerData) >= value;

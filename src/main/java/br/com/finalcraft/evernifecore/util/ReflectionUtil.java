@@ -18,7 +18,7 @@ import java.util.stream.Stream;
 
 /**
  * A set of utilities to help with Reflection.
- * Based on {@link <a href="https://github.com/dmulloy2/ProtocolLib/blob/gradle/TinyProtocol/src/main/java/com/comphenix/tinyprotocol/Reflection.java">ProtocolLib Reflection</a>}.
+ * Based on <a href="https://github.com/dmulloy2/ProtocolLib/blob/gradle/TinyProtocol/src/main/java/com/comphenix/tinyprotocol/Reflection.java">ProtocolLib Reflection</a>.
  * Based on juanmuscaria version of ProtocolLib Reflection
  *
  * @author EverNife

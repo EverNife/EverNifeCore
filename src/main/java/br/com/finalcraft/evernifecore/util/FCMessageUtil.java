@@ -100,7 +100,7 @@ public class FCMessageUtil {
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê não tem money suficiente! §7§o(Money: %current_money%§l/§7§o%needed_money%)")
     private static LocaleMessage ECO_NOT_ENOUGHT;
     public static void ecoNotEnough(Player sender, double amountNeeded){
-        NumberWrapper<Double> currentMoney = NumberWrapper.of(FCBukkitUtil.getMoney(sender));
+        NumberWrapper<Double> currentMoney = NumberWrapper.of(FCEcoUtil.ecoGet(sender));
         NumberWrapper<Double> neededMoney = NumberWrapper.of(amountNeeded);
         ECO_NOT_ENOUGHT
                 .addPlaceholder("%current_money%", currentMoney)

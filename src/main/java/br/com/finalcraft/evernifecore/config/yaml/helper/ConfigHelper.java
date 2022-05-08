@@ -45,12 +45,13 @@ public class ConfigHelper {
         return configList;
     }
 
-
     /**
-     * Creates a handlers Directory if doest not exist at the targed directory
+     * It copies a file from the plugin's jar to a folder on the server
      *
-     * @param  assetName The asset name you want to copy
-     * @param  targetFolder The target folder you want to paste the theFile in
+     * @param plugin The plugin instance.
+     * @param assetName The name of the asset you want to copy.
+     * @param targetFolder The folder you want to copy the asset to.
+     * @return A file object
      */
     public static File copyAsset(Plugin plugin, String assetName, File targetFolder) throws IOException {
         File file = new File(targetFolder, assetName);

@@ -26,9 +26,6 @@ import java.util.*;
 
 public class FCBukkitUtil {
 
-    @Deprecated
-    public static Random random = new Random();
-    public static CommandSender consoleSender = Bukkit.getConsoleSender();
     private static MethodInvoker<Boolean> methodLoader_isLoaded;
     static {
         try {
@@ -42,11 +39,6 @@ public class FCBukkitUtil {
         }catch (Exception ignored){
             methodLoader_isLoaded = null;
         }
-    }
-
-
-    public static Random getRandom() {
-        return random;
     }
 
     public static void playSound(String playerName, String music) {
@@ -82,14 +74,6 @@ public class FCBukkitUtil {
                 player.playSound(player.getLocation(), music, SoundCategory.AMBIENT, 100, speed);
             }
         }
-    }
-
-    public static double normalizeDouble(double value) {
-        return FCMathUtil.normalizeDouble(value);
-    }
-
-    public static double normalizeDouble(double value, int zeros) {
-        return FCMathUtil.normalizeDouble(value, zeros);
     }
 
     public static boolean isFakePlayer(String playerName) {
@@ -133,11 +117,12 @@ public class FCBukkitUtil {
         }
     }
 
+
     /**
-     * Retorna uma instancia do OfflinePlayer correspondente ao nome passado (ignorecase)
+     * If the playerName has never joined the server, return null.
      *
-     * @param playerName O nome jogador a ser verificado
-     * @return retorna <>offlinePlayer</> se o jogador exisitr, <>null</> caso contrário
+     * @param playerName The name of the player you want to get the UUID of.
+     * @return The OfflinePlayer object of the player with the given name.
      */
     public static OfflinePlayer getOfflinePlayer(String playerName) {
         if (playerName == null || playerName.isEmpty()) return null;
@@ -150,86 +135,17 @@ public class FCBukkitUtil {
         return offlinePlayer.getLastPlayed() != 0 ? offlinePlayer : null;
     }
 
-    /**
-     * Retorna a quantidade de dinheiro que um jogador tem
-     *
-     * @param player O jogador em questão
-     * @return quantidade de dinheiro do jogador
-     */
-    @Deprecated
-    public static double getBalance(Player player) {
-        return getMoney(player);
-    }
-
-    @Deprecated
-    public static double getMoney(Player player) {
-        return VaultIntegration.ecoGet(player);
-    }
-
-
-    /**
-     * Adiciona dinheiro a conta de um jogador
-     *
-     * @param player O jogador em questão
-     * @param amount Quantia a ser adicionada
-     */
-    @Deprecated
-    public static void ecoGive(OfflinePlayer player, double amount) {
-        ecoGive(player, amount, false);
-    }
-
-    @Deprecated
-    public static void ecoGive(OfflinePlayer player, double amount, boolean silent) {
-        if (amount != 0) {
-            VaultIntegration.ecoGive(player, amount);
-            if (!silent) EverNifeCore.info("FCBukkitUtil Economy - [" + player.getName() + "]  ECO GIVE  " + amount);
-        }
-    }
-
-    /**
-     * Tira dinheiro de um jogador retorna o resultado da operação
-     *
-     * @param player O jogador em questão
-     * @param amount Quantia a ser removida
-     * @return retorna <>true</> se foi possivel remover o dinheiro do jogador e <>false</>
-     * caso contrário
-     */
-    @Deprecated
-    public static boolean ecoTake(OfflinePlayer player, double amount) {
-        return ecoTake(player, amount, false);
-    }
-
-    @Deprecated
-    public static boolean ecoTake(OfflinePlayer player, double amount, boolean silent) {
-        boolean ecoTake = VaultIntegration.ecoTake(player, amount);
-        if (ecoTake) {
-            if (!silent) EverNifeCore.info("FCBukkitUtil Economy - [" + player.getName() + "]  ECO TAKE  " + amount);
-        }
-        return ecoTake;
-    }
-
-    /**
-     * Verifica se um jogador possui uma determinada quantia de Dinheiro
-     *
-     * @param player O jogador em questão
-     * @param amout  A quantia de money a ser verificada
-     * @return retorna <>true</> se o jogador possuir o dinheiro e <>false</>
-     * caso contrário
-     */
-    @Deprecated
-    public static boolean ecoHasEnough(OfflinePlayer player, double amout) {
-        return VaultIntegration.ecoHasEnough(player, amout);
-    }
-
     @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cOnly players can use this command!.")
     @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cApenas jogadores podem usar esse comando!.")
     private static LocaleMessage ONLY_PLAYERS_CAN_USE_THIS_COMMAND;
+
     /**
-     * Verifica se um CommandSender é de fato um Player online!
+     * If the sender is not a player, send the sender the message
+     * "ONLY_PLAYERS_CAN_USE_THIS_COMMAND" and return true, otherwise
+     * return false
      *
-     * @param sender O jogador a ser verificado
-     * @return retorna <>true</> se não é um jogador e <>false</>
-     * caso contrário
+     * @param sender The CommandSender.
+     * @return if the sender is a player.
      */
     public static boolean isNotPlayer(CommandSender sender) {
         if (!(sender instanceof Player)) {
@@ -243,15 +159,13 @@ public class FCBukkitUtil {
     @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cYou do not have the permission §6[§e%permission%§6] §cto do that.")
     @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cVocê não tem a permissão §6[§e%permission%§6] §cpara fazer isto.")
     private static LocaleMessage YOU_DO_NOT_HAVE_PERMISSION;
+
     /**
-     * Verifica se um dado jogador possui uma determinada permissão
-     * e retorna true ou false, alem de notificar o jogador que ele precisa
-     * dessa determina permissão.
+     * If the player does not have the permission, send them a message and return false. Otherwise, return true
      *
-     * @param player     O jogador a ser verificado
-     * @param permission A permissão a ser checada
-     * @return retorna <>true</> se o jogador possui a permissão e <>false</>
-     * caso contrário
+     * @param player The player who is trying to execute the command.
+     * @param permission The permission you want to check.
+     * @return A boolean value.
      */
     public static boolean hasThePermission(CommandSender player, String permission) {
 
@@ -265,9 +179,11 @@ public class FCBukkitUtil {
     }
 
     /**
-     * Pega os blocos em volta de uma determinada BukkitLocation
+     * It returns a list of blocks in a radius of a location
      *
-     * @return List<Block> em volta do jogador
+     * @param location The location of the center of the circle.
+     * @param radius The radius of the circle.
+     * @return A list of blocks in a radius of the location.
      */
     public static List<Block> getBlocksInRadius(Location location, int radius) {
 
@@ -293,19 +209,11 @@ public class FCBukkitUtil {
     }
 
     /**
-     * Retorna um numero aleatório entre 0 e 99
-     */
-    public static int randomPercentage() {
-        return FCBukkitUtil.random.nextInt(100);
-    }
-
-
-    /**
      * Força o console a executar um comando!
      */
     public static void makeConsoleExecuteCommand(String theCommand) {
         if (Bukkit.getServer().isPrimaryThread()) {
-            Bukkit.dispatchCommand(consoleSender, theCommand);
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), theCommand);
         } else {
             EverNifeCore.warning("Calling [makeConsoleExecuteCommand(\"" + theCommand + "\")] out of Main Thread... i am fixing it for you, but... you may do your job!");
             makeConsoleExecuteCommandFromAssyncThread(theCommand);
@@ -318,7 +226,7 @@ public class FCBukkitUtil {
     public static void makeConsoleExecuteCommand(String... theCommands) {
         if (Bukkit.getServer().isPrimaryThread()) {
             for (String theCommand : theCommands) {
-                Bukkit.dispatchCommand(consoleSender, theCommand);
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), theCommand);
             }
         } else {
             EverNifeCore.warning("Calling [makeConsoleExecuteCommand(\"" + String.join("|", theCommands) + "\")] out of Main Thread... i am fixing it for you, but... you may do your job!");
@@ -333,7 +241,7 @@ public class FCBukkitUtil {
         new BukkitRunnable() {
             @Override
             public void run() {
-                Bukkit.dispatchCommand(consoleSender, theCommand);
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), theCommand);
             }
         }.runTask(EverNifeCore.instance);
     }
@@ -346,7 +254,7 @@ public class FCBukkitUtil {
             @Override
             public void run() {
                 for (String theCommand : theCommands) {
-                    Bukkit.dispatchCommand(consoleSender, theCommand);
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), theCommand);
                 }
             }
         }.runTask(EverNifeCore.instance);
@@ -357,20 +265,6 @@ public class FCBukkitUtil {
      */
     public static void makePlayerExecuteCommand(CommandSender player, String theCommand) {
         Bukkit.dispatchCommand(player, theCommand);
-    }
-
-    /**
-     * Transforma os argumentos inseridos em um Arraylist!
-     */
-    public static List<String> parseBukkitArgsToList(String[] args, int numOfArgs) {
-        List<String> argumentos = new ArrayList<String>();
-        for (int i = 0; i < numOfArgs; i++) {
-            if (i < args.length)
-                argumentos.add(args[i]);
-            else
-                argumentos.add("");
-        }
-        return argumentos;
     }
 
     /**
