@@ -109,6 +109,7 @@ shadowJar {
         include(dependency('dev.triumphteam:triumph-gui:3.0.4-e1'))
         include(dependency('com.github.EverNife.Item-NBT-API:item-nbt-api:a260cd6'))
         include(dependency('com.github.EverNife.Item-NBT-API:nbt-data-api:a260cd6'))
+//        include(dependency('com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8'))
     }
     relocate 'org.yaml.snakeyaml', 'br.com.finalcraft.libs.snakeyaml'
     relocate 'de.tr7zw.changeme.nbtapi', 'br.com.finalcraft.libs.nbtapi'
@@ -153,15 +154,24 @@ publishing {
             from(components.java)
             pom.withXml {
                 asNode().appendNode('url','https://petrus.dev')
+
                 asNode().dependencies.'*'.each() {
                     asNode().dependencies.'*'.each() {
-                        if (it.value().text().contains("triumphteamtriumph")){
+                        if (it.value().text().contains("triumphteamtriumph")
+                         //   || it.value().text().contains("Simple")
+                        ){
                             println("Keeping Dependency: " + it.value().text())
                         }else {
                             it.parent().remove(it) //Remove all dependencies from pom file
                         }
                     }
                 }
+                /* this does not work, sad :D
+                def repositoriesNode = asNode().appendNode('repositories')
+                def repositoryNode = repositoriesNode.appendNode('repository')
+                repositoryNode.appendNode('id', 'jitpack.io')
+                repositoryNode.appendNode('url', 'https://jitpack.io')
+                 */
             }
         }
     }
