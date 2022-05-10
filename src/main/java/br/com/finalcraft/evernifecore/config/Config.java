@@ -349,7 +349,7 @@ public class Config {
         //Checking for Interables of Salvables
         if (value instanceof Iterable){ //Lits, Sets, and all the rest
             Iterator iterator = ((Iterable) value).iterator();
-            if (!iterator.hasNext()){ //Has at least one element
+            if (iterator.hasNext()){ //Has at least one element
                 Object firstValue = iterator.next();
 
                 //IF this LIST is a Customizable Salvable
