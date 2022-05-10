@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import dev.triumphteam.gui.builder.item.BaseItemBuilder;
+import dev.triumphteam.gui.guis.GuiItem;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -24,6 +25,11 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
     @NotNull
     public GuiItemComplex asGuiItemComplex() {
         return new GuiItemComplex(build());
+    }
+
+    @NotNull
+    public GuiItem asGuiItem() {
+        return new GuiItem(build());
     }
 
     @NotNull
