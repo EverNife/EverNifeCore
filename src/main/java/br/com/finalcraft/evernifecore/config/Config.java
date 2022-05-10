@@ -443,10 +443,10 @@ public class Config {
      * @param  path The path in the Config File
      * @return The Boolean at that Path
      */
-    public Boolean getBoolean(String path) {
+    public boolean getBoolean(String path) {
         return yamlFile.getBoolean(path);
     }
-    public Boolean getBoolean(String path, Boolean def) {
+    public boolean getBoolean(String path, boolean def) {
         return yamlFile.getBoolean(path,def);
     }
 
@@ -456,10 +456,10 @@ public class Config {
      * @param  path The path in the Config File
      * @return The Integer at that Path
      */
-    public Integer getInt(String path) {
+    public int getInt(String path) {
         return yamlFile.getInt(path);
     }
-    public Integer getInt(String path, Integer def) {
+    public int getInt(String path, int def) {
         return yamlFile.getInt(path,def);
     }
 
@@ -469,10 +469,10 @@ public class Config {
      * @param  path The path in the Config File
      * @return The Long at that Path
      */
-    public Long getLong(String path) {
-       return getLong(path, null);
+    public long getLong(String path) {
+       return getLong(path, 0);
     }
-    public Long getLong(String path, Long def) {
+    public long getLong(String path, long def) {
         if (!contains(path)){
             return def;
         }
@@ -490,10 +490,10 @@ public class Config {
      * @param  path The path in the Config File
      * @return      The Double at that Path
      */
-    public Double getDouble(String path) {
+    public double getDouble(String path) {
         return yamlFile.getDouble(path);
     }
-    public Double getDouble(String path, double def) {
+    public double getDouble(String path, double def) {
         return yamlFile.getDouble(path,def);
     }
 

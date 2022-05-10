@@ -107,31 +107,31 @@ public class ConfigSection{
         return config.getString(concatSubPath(subPath),def);
     }
 
-    public Boolean getBoolean(@Nullable String subPath) {
+    public boolean getBoolean(@Nullable String subPath) {
         return config.getBoolean(concatSubPath(subPath));
     }
-    public Boolean getBoolean(@Nullable String subPath, Boolean def) {
+    public boolean getBoolean(@Nullable String subPath, boolean def) {
         return config.getBoolean(concatSubPath(subPath),def);
     }
 
-    public Integer getInt(@Nullable String subPath) {
+    public int getInt(@Nullable String subPath) {
         return config.getInt(concatSubPath(subPath));
     }
-    public Integer getInt(@Nullable String subPath, Integer def) {
+    public int getInt(@Nullable String subPath, int def) {
         return config.getInt(concatSubPath(subPath),def);
     }
 
-    public Long getLong(@Nullable String subPath) {
-        return config.getLong(concatSubPath(subPath), null);
+    public long getLong(@Nullable String subPath) {
+        return config.getLong(concatSubPath(subPath));
     }
-    public Long getLong(@Nullable String subPath, Long def) {
+    public long getLong(@Nullable String subPath, long def) {
         return config.getLong(concatSubPath(subPath), def);
     }
 
-    public Double getDouble(@Nullable String subPath) {
+    public double getDouble(@Nullable String subPath) {
         return config.getDouble(concatSubPath(subPath));
     }
-    public Double getDouble(@Nullable String subPath, double def) {
+    public double getDouble(@Nullable String subPath, double def) {
         return config.getDouble(concatSubPath(subPath),def);
     }
 

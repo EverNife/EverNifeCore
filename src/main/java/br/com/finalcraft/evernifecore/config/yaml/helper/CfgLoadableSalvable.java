@@ -214,8 +214,8 @@ public class CfgLoadableSalvable {
                             section.getDouble("x"),
                             section.getDouble("y"),
                             section.getDouble("z"),
-                            section.getDouble("yaw").floatValue(),
-                            section.getDouble("pitch").floatValue()
+                            (float) section.getDouble("yaw"),
+                            (float) section.getDouble("pitch")
                     );
                 });
         ;
