@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.config.yaml.helper.smartloadable;
 
+import br.com.finalcraft.evernifecore.config.yaml.exeption.ConfigLoadExeption;
+import br.com.finalcraft.evernifecore.config.yaml.exeption.ConfigSaveExeption;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 
 import java.util.function.BiConsumer;
@@ -29,7 +31,11 @@ public class SmartLoadSave<O> implements ISmartLoadSave<O>{
      * @param other The class to check against
      */
     public boolean match(Class other){
-        return this.acceptExtends == false ? this.clazz == other : this.clazz.isAssignableFrom(other);
+        return this.acceptExtends == true ? this.clazz.isAssignableFrom(other) : this.clazz == other;
+    }
+
+    public Class getLoadableSalvableClass() {
+        return clazz;
     }
 
     public boolean isAcceptExtends() {
@@ -101,12 +107,20 @@ public class SmartLoadSave<O> implements ISmartLoadSave<O>{
 
     @Override
     public void onConfigSave(ConfigSection section, O value) {
-        this.onConfigSave.accept(section, value);
+        try {
+            this.onConfigSave.accept(section, value);
+        }catch (Exception e){
+            throw new ConfigSaveExeption("Failed to Save the Object [" + value + "] on the " + section, e);
+        }
     }
 
     @Override
     public O onConfigLoad(ConfigSection section) {
-        return onConfigLoad.apply(section);
+        try {
+            return onConfigLoad.apply(section);
+        }catch (Exception e){
+            throw new ConfigLoadExeption("Failed to Load the Object [" + clazz.getName() + "] from the " + section, e);
+        }
     }
 
     @Override

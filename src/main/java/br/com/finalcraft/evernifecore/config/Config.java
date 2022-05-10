@@ -593,8 +593,11 @@ public class Config {
     public <L> @Nullable L getLoadable(String path, Class<L> loadableClass) {
         if (contains(path)){
             SmartLoadSave<L> smartLoadSave = CfgLoadableSalvable.getLoadableStatus(loadableClass);
-            if (smartLoadSave == null || !smartLoadSave.isLoadable()){
+            if (smartLoadSave == null){
                 throw new LoadableMethodException("Tried to load a non Loadable class [" + loadableClass.getName() + "]");
+            }
+            if (!smartLoadSave.isLoadable()){
+                throw new LoadableMethodException("Tried to load an @Annotated class that has no onConfigLoad Method [" + loadableClass.getName() + "]");
             }
             return smartLoadSave.onConfigLoad(new ConfigSection(this, path));
         }
@@ -611,8 +614,12 @@ public class Config {
     public <L> @NotNull List<L> getLoadableList(String path, Class<? extends L> loadableClass) {
         if (contains(path)){
             SmartLoadSave<L> smartLoadSave = CfgLoadableSalvable.getLoadableStatus(loadableClass);
-            if (smartLoadSave == null || !smartLoadSave.isLoadable()){
+            if (smartLoadSave == null){
                 throw new LoadableMethodException("Tried to load a non Loadable class [" + loadableClass.getName() + "]");
+            }
+
+            if (!smartLoadSave.isLoadable()){
+                throw new LoadableMethodException("Tried to load an @Annotated class that has no onConfigLoad Method [" + loadableClass.getName() + "]");
             }
 
             if (smartLoadSave.canSerializeToStringList()){//The stored value might be on a StringList

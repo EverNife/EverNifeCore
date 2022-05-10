@@ -39,16 +39,18 @@ public class CfgLoadableSalvable {
     }
 
     public static <O> @Nullable SmartLoadSave getLoadableStatus(Class<O> clazz){
+
         return CACHE_MAP.computeIfAbsent(clazz, aClass -> {
 
             //First of all, lets check if there is not already a loadable capable of loading this class:
-            SmartLoadSave<O> smartLoadSave = SMART_LOADABLES.stream().filter(smartLoadSave1 -> smartLoadSave1.match(clazz)).findFirst().orElse(null);
+            SmartLoadSave<O> smartLoadSave = SMART_LOADABLES.stream()
+                    .filter(smartLoadSave1 -> smartLoadSave1.match(clazz))
+                    .findFirst()
+                    .orElse(null);
 
             if (smartLoadSave == null){ //If does not exist, create a new one, we will only register if needed!
                 smartLoadSave = new SmartLoadSave(clazz);
-            }
-
-            if (smartLoadSave.getClass() != clazz || smartLoadSave.hasAlreadyBeenScanned()){
+            }else if (smartLoadSave.getLoadableSalvableClass() != clazz || smartLoadSave.hasAlreadyBeenScanned()){
                 //If we have already done the process bellow this check for this SmartLoadable
                 //or this is just a son of the smartLodable already registered, no need to look further
                 return Optional.of(smartLoadSave);
@@ -81,6 +83,7 @@ public class CfgLoadableSalvable {
     }
 
     private static <O> @NotNull Optional<Function<ConfigSection, O>> extractLoadableMethod(@NotNull Class<O> clazz){
+
         final Method method = Arrays.stream(clazz.getDeclaredMethods())
                 .filter(theMethod -> theMethod.isAnnotationPresent(Loadable.class))
                 .findFirst()
@@ -90,15 +93,17 @@ public class CfgLoadableSalvable {
             return Optional.empty();
         }
 
-        if (!method.isAccessible()){
-            method.setAccessible(true);
-        }
+        method.setAccessible(true);
 
         final Function<ConfigSection, O> onConfigLoad;
+        if (method.getParameterTypes().length == 0){
+            throw new LoadableMethodException("@Loadable Method [" + clazz.getName() + "#" + method.toString() +  "] has no arguments!");
+        }
         if (method.getParameterTypes().length > 2){
             throw new LoadableMethodException("@Loadable Method [" + clazz.getName() + "#" + method.toString() +  "] has more than two arguments!");
         }
-        if (method.getParameterTypes().length > 1){ //Config and Path
+
+        if (method.getParameterTypes().length == 2){ //Config and Path
             onConfigLoad = section -> {
                 try {
                     return (O) method.invoke(null, section.getConfig(), section.getPath());
