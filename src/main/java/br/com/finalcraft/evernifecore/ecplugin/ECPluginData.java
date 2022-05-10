@@ -61,9 +61,9 @@ public class ECPluginData {
             hardcodedLocalizations.add(Tuple.of(type, lang));
         }
 
-        this.plugin.getLogger().info("[FCLocale] Setting locale to [" + pluginLanguage +"]!");
-
         reloadAllCustomLocales();
+
+        this.plugin.getLogger().info("[FCLocale] Setting locale to [" + pluginLanguage +"]!");
     }
 
     public void addLocale(LocaleMessageImp localeMessageImp){
