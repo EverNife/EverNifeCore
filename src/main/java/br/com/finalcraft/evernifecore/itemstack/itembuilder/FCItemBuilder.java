@@ -10,16 +10,15 @@ import de.tr7zw.changeme.nbtapi.NBTCompound;
 import de.tr7zw.changeme.nbtapi.NBTContainer;
 import de.tr7zw.changeme.nbtapi.NBTItem;
 import dev.triumphteam.gui.builder.item.BaseItemBuilder;
-import dev.triumphteam.gui.builder.item.ItemBuilder;
 import dev.triumphteam.gui.guis.GuiItem;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
 
@@ -44,13 +43,19 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
     /**
      * Set the lore lines of an item
      * TranslateAlternateColorCodes before applying
+     * Also split at '\n'
      *
      * @param lore A {@link List} with the lore lines
      * @return {@link FCItemBuilder}
      */
     @Override
     public @NotNull FCItemBuilder lore(@NotNull List<String> lore) {
-        return super.lore(lore.stream().map(FCColorUtil::colorfy).collect(Collectors.toList()));
+        return super.lore(
+                Arrays.asList(
+                        FCColorUtil.colorfy(String.join("\n",lore))
+                                .split("\n")
+                )
+        );
     }
 
     /**
