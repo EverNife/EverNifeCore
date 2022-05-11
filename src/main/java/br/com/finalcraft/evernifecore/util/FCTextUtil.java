@@ -19,19 +19,19 @@ public class FCTextUtil {
         int side_widht = (MAX_WIDTH - text_widht) / 2;
         String sideString = TextUtil.generateWidth(' ', side_widht, false);
 
-        return sideString + stringToAlign;// + sideString;//Dont need to append second half of SPACES
+        return "§r" + sideString + stringToAlign + "§r";// + sideString;//Dont need to append second half of SPACES
     }
 
     public static String alignCenter(String stringToAlign, String borderFill){
         int text_widht = ChatMenuAPI.getWidth(stringToAlign);
         int side_widht = (int) Math.floor((MAX_WIDTH - text_widht) / 2D) ;
         String sideString = generateWidth(borderFill, side_widht, false);
-        String result = sideString + "§r" + stringToAlign + "§r" + sideString;
+        String result = "§r" + sideString + "§r" + stringToAlign + "§r" + sideString + "§r";
         return result;
     }
 
     public static String straightLineOf(String string){
-        return generateWidth(string, MAX_WIDTH, false);
+        return "§r" + generateWidth(string, MAX_WIDTH, false) + "§r";
     }
 
     public static String generateWidth(String string, int width, boolean canExceed) {
