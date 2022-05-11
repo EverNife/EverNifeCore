@@ -97,13 +97,11 @@ public class FCTimeFrame {
     }
 
     public String getFormatted(){
-        Date date = new Date(millis);
-        return ECSettings.SIMPLE_DATE_FORMAT.format(date);
+        return FCTimeFrame.getFormatted(this.millis);
     }
 
     public String getFormattedNoHours(){
-        Date date = new Date(millis);
-        return ECSettings.DATE_FORMAT_WITH_HOURS.format(date);
+        return FCTimeFrame.getFormattedNoHours(this.millis);
     }
 
     public FCTimeFrame getDiferenceUntilNow(){
