@@ -13,12 +13,14 @@ import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
 import br.com.finalcraft.evernifecore.itemstack.invitem.InvItem;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
+import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -26,6 +28,7 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 public class CfgLoadableSalvable {
 
@@ -223,6 +226,29 @@ public class CfgLoadableSalvable {
                             section.getDouble("z"),
                             (float) section.getDouble("yaw"),
                             (float) section.getDouble("pitch")
+                    );
+                })
+                .setOnStringSerialize(location -> { // WORLD | x y z yaw pitch
+                    return location.getWorld().getName() + " | "  + location.getX() + " " + location.getY() + " " + location.getZ() + " " + location.getYaw() + " " + location.getPitch();
+                })
+                .setOnStringDeserialize(serializedLocation -> {
+                    String[] split = serializedLocation.split(Pattern.quote("|")); // WORLD | x y z yaw pitch
+                    String[] splitCoords = split[1].split(" ");
+
+                    World world = Bukkit.getWorld(split[0]);
+                    Double x = FCInputReader.parseDouble(splitCoords[0]);
+                    Double y = FCInputReader.parseDouble(splitCoords[1]);
+                    Double z = FCInputReader.parseDouble(splitCoords[2]);
+                    Double yaw = FCInputReader.parseDouble(splitCoords[3]);
+                    Double pitch = FCInputReader.parseDouble(splitCoords[4]);
+
+                    return new Location(
+                            world,
+                            x,
+                            y,
+                            z,
+                            yaw.floatValue(),
+                            pitch.floatValue()
                     );
                 });
         ;
