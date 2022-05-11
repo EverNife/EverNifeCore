@@ -3,12 +3,14 @@ package br.com.finalcraft.evernifecore.itemstack.itembuilder;
 import br.com.finalcraft.evernifecore.gui.item.GuiItemComplex;
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
+import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.util.FCNBTUtil;
 import de.tr7zw.changeme.nbtapi.NBTCompound;
 import de.tr7zw.changeme.nbtapi.NBTContainer;
 import de.tr7zw.changeme.nbtapi.NBTItem;
 import dev.triumphteam.gui.builder.item.BaseItemBuilder;
+import dev.triumphteam.gui.builder.item.ItemBuilder;
 import dev.triumphteam.gui.guis.GuiItem;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -17,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
 
@@ -27,7 +30,31 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
     }
 
     /**
-     * Returns a GuiItemComplex object that contains the same data as this GuiItemBuilder object.
+     * Sets the display name of the item using {@link String}
+     * TranslateAlternateColorCodes before applying
+     *
+     * @param name The {@link String} name
+     * @return {@link FCItemBuilder}
+     */
+    @Override
+    public @NotNull FCItemBuilder name(@NotNull String name) {
+        return super.name(FCColorUtil.colorfy(name));
+    }
+
+    /**
+     * Set the lore lines of an item
+     * TranslateAlternateColorCodes before applying
+     *
+     * @param lore A {@link List} with the lore lines
+     * @return {@link FCItemBuilder}
+     */
+    @Override
+    public @NotNull FCItemBuilder lore(@NotNull List<String> lore) {
+        return super.lore(lore.stream().map(FCColorUtil::colorfy).collect(Collectors.toList()));
+    }
+
+    /**
+     * Returns a GuiItemComplex object that contains the ItemStack of this ItemBuilder.
      *
      * @return A GuiItemComplex object.
      */
@@ -36,19 +63,25 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
         return new GuiItemComplex(build());
     }
 
+
     /**
-     * "Apply a function to this builder and return this builder."
+     * Returns a GuiItem object that contains the ItemStack of this ItemBuilder.
      *
-     * The function is a bit more complicated than that, but that's the gist of it
-     *
-     * @param apply The function that will be applied to the builder.
-     * @return The FCItemBuilder object.
+     * @return A GuiItem object.
      */
     @NotNull
     public GuiItem asGuiItem() {
         return new GuiItem(build());
     }
 
+    /**
+     * "This function applies a consumer to the builder and returns the builder."
+     *
+     * The `apply` function is a very useful function that allows you to apply a consumer to the builder
+     *
+     * @param apply The function that will be applied to the builder.
+     * @return The FCItemBuilder object.
+     */
     @NotNull
     public FCItemBuilder apply(@NotNull Consumer<FCItemBuilder> apply){
         apply.accept(this);
