@@ -20,7 +20,21 @@ public class FCColorUtil {
 
     public static String colorfy(@Nullable String text){
         if (text == null) return null;
-        return ChatColor.translateAlternateColorCodes('&',text);
+        String colored = ChatColor.translateAlternateColorCodes('&',text);
+
+        String[] split = colored.split("\n");
+        if (split.length > 1){ //In case of '\n' lets repeat colors on each new '\n'
+            List<String> result = new ArrayList<>();
+            result.add(split[0]);
+            for (int i = 1; i < split.length; i++) {
+                String previous = result.get(i - 1);
+                String next = ChatColor.getLastColors(previous) + split[i];
+                result.add(next);
+            }
+            return String.join("\n", result);
+        }
+
+        return colored;
     }
 
     public static List<String> colorfy(@Nullable List<String> text){
