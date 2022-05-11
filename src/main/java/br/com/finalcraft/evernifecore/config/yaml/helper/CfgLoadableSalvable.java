@@ -131,6 +131,13 @@ public class CfgLoadableSalvable {
     static {
         addLoadableSalvable(NumberWrapper.class)
                 .setOnConfigSave((configSection, numberWrapper) -> configSection.setValue(numberWrapper.get()))
+                .setOnConfigLoad(section -> {
+                    Object obj = section.getValue(null);
+                    if (obj instanceof Number){
+                        return NumberWrapper.of((Number)obj);
+                    }
+                    throw new IllegalArgumentException("Tried to load a NumberWrapper that is not a Number [" + obj + "]");
+                })
         ;
 
         addLoadableSalvable(FancyText.class)
