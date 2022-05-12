@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.config.yaml.helper.CfgLoadableSalvable;
 import br.com.finalcraft.evernifecore.config.yaml.helper.ConfigHelper;
 import br.com.finalcraft.evernifecore.config.yaml.helper.smartloadable.SmartLoadSave;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
+import org.apache.commons.lang.Validate;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -590,7 +591,8 @@ public class Config {
      * @param loadableClass The class of the loadable you want to load.
      * @return A Loadable object or null
      */
-    public <L> @Nullable L getLoadable(String path, Class<L> loadableClass) {
+    public <L> @Nullable L getLoadable(@NotNull String path, @NotNull Class<L> loadableClass) {
+        Validate.notNull(loadableClass, "loadableClass cannot be null");
         if (contains(path)){
             SmartLoadSave<L> smartLoadSave = CfgLoadableSalvable.getLoadableStatus(loadableClass);
             if (smartLoadSave == null){
@@ -605,13 +607,27 @@ public class Config {
     }
 
     /**
+     * If the loadable at the given path is not null, return it, otherwise return the given default value.
+     *
+     * @param path The path to the value you want to get.
+     * @param loadableDefault The default value to return if the path is not found.
+     * @return The value of the path, or the default value if the path is not found.
+     */
+    public <L> @Nullable L getLoadable(@NotNull String path, @NotNull L loadableDefault) {
+        Validate.notNull(loadableDefault, "loadableDefault cannot be null");
+        L value = (L) getLoadable(path, loadableDefault.getClass());
+        return value != null ? value : loadableDefault;
+    }
+
+    /**
      * It takes a path, and a class, and returns a list of the class, with each element being loaded from the config
      *
      * @param path The path to the list in the config
      * @param loadableClass The class that you want to load.
      * @return A list of loadable objects.
      */
-    public <L> @NotNull List<L> getLoadableList(String path, Class<? extends L> loadableClass) {
+    public <L> @NotNull List<L> getLoadableList(@NotNull String path, @NotNull Class<? extends L> loadableClass) {
+        Validate.notNull(loadableClass, "loadableClass cannot be null");
         if (contains(path)){
             SmartLoadSave<L> smartLoadSave = CfgLoadableSalvable.getLoadableStatus(loadableClass);
             if (smartLoadSave == null){
@@ -636,4 +652,22 @@ public class Config {
         return Collections.EMPTY_LIST;
     }
 
+    /**
+     * "If the value at the given path is a List of Loadables, return it, otherwise return the default value."
+     *
+     * @param path The path to the list in the config file.
+     * @param loadableListDefault A list of the default values to be returned if the path is not found.
+     * @return A List of Loadable Objects
+     */
+    public <L> @NotNull List<L> getLoadableList(@NotNull String path, @NotNull List<L> loadableListDefault) {
+        Validate.notNull(loadableListDefault, "loadableListDefault cannot be null");
+        if (loadableListDefault.size() == 0){
+            throw new IllegalArgumentException("Cannot infer the Loadable class of an Empty Default List");
+        }
+        Object firstValue = loadableListDefault.get(0);
+
+        List<L> result = (List<L>) getLoadableList(path, firstValue.getClass());
+        return result != Collections.EMPTY_LIST ? result : loadableListDefault;
+
+    }
 }

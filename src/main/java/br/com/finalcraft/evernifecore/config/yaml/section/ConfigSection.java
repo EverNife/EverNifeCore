@@ -173,11 +173,19 @@ public class ConfigSection{
     //      Loadable System
     // ------------------------------------------------------------------------------------------------------------------
 
-    public <L> @Nullable L getLoadable(@Nullable String subPath, Class<L> loadableClass) {
+    public <L> @Nullable L getLoadable(@Nullable String subPath, @NotNull Class<L> loadableClass) {
         return config.getLoadable(concatSubPath(subPath), loadableClass);
     }
 
-    public <L> @NotNull List<L> getLoadableList(@Nullable String subPath, Class<? extends L> loadableClass) {
+    public <L> @Nullable L getLoadable(@Nullable String subPath, @NotNull L loadableDefault) {
+        return config.getLoadable(concatSubPath(subPath), loadableDefault);
+    }
+
+    public <L> @NotNull List<L> getLoadableList(@Nullable String subPath, @NotNull Class<? extends L> loadableClass) {
         return config.getLoadableList(concatSubPath(subPath), loadableClass);
+    }
+
+    public <L> @NotNull List<L> getLoadableList(@Nullable String subPath, @NotNull List<L> loadableListDefault) {
+        return config.getLoadableList(concatSubPath(subPath), loadableListDefault);
     }
 }
