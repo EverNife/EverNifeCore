@@ -65,7 +65,7 @@ dependencies {
     compileOnly('org.hibernate:hibernate-core:5.4.30.Final')
 
     compileOnly name: "AuthMe-5.4.0"
-    compileOnly 'net.luckperms:api:5.0'
+    compileOnly 'net.luckperms:api:5.4'
     compileOnly 'org.spigotmc:spigot-api:1.17.1-R0.1-SNAPSHOT'
     // @ DISCLAIMER @ //
     // @ DISCLAIMER @ //
