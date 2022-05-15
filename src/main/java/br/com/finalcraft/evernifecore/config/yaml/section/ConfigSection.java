@@ -27,7 +27,7 @@ public class ConfigSection{
         if (lastPathIndex == null){
             //Calculate last path index
             int lastDot = path.lastIndexOf(".");
-            this.lastPathIndex = path.substring(Math.max(lastDot, 0));
+            this.lastPathIndex = path.substring(Math.max(lastDot + 1, 0));
         }
         return lastPathIndex;
     }
