@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
 import dev.triumphteam.gui.components.GuiAction;
 import dev.triumphteam.gui.guis.GuiItem;
+import org.apache.commons.lang.Validate;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
@@ -43,9 +44,9 @@ public class GuiItemComplex extends GuiItem {
         }
     }
 
-    public GuiItemComplex setUpdateInterval(int updateInterval) {
-        assert updateInterval > 0 : "UpdateInterval must be higher than 0";
-        this.updateInterval = updateInterval;
+    public GuiItemComplex setUpdateInterval(int updateTicks) {
+        Validate.isTrue(updateTicks > 0, "updateTicks must be higher than 0");
+        this.updateInterval = updateTicks;
         return this;
     }
 

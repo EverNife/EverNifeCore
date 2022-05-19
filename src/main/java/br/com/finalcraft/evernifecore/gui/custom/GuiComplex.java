@@ -7,6 +7,7 @@ import dev.triumphteam.gui.components.GuiType;
 import dev.triumphteam.gui.components.InteractionModifier;
 import dev.triumphteam.gui.guis.Gui;
 import dev.triumphteam.gui.guis.GuiItem;
+import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -91,9 +92,9 @@ public class GuiComplex extends Gui {
 
     }
 
-    public GuiComplex setUpdateInterval(int updateInterval) {
-        assert updateInterval > 0 : "UpdateInterval must be higher than 0";
-        this.updateInterval = updateInterval;
+    public GuiComplex setUpdateInterval(int updateTicks) {
+        Validate.isTrue(updateTicks > 0, "updateTicks must be higher than 0");
+        this.updateInterval = updateTicks;
         return this;
     }
 
