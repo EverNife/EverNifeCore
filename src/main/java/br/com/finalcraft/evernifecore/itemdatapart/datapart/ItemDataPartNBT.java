@@ -2,6 +2,8 @@ package br.com.finalcraft.evernifecore.itemdatapart.datapart;
 
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
+import br.com.finalcraft.evernifecore.util.FCNBTUtil;
+import de.tr7zw.changeme.nbtapi.NBTItem;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
@@ -22,11 +24,10 @@ public class ItemDataPartNBT extends ItemDataPart {
 
     @Override
     public List<String> read(ItemStack i, List<String> output) {
-        if (false){ //TODO make this flag ignore DisplayName and ItemLore
-            ItemStack validItemStack = NMSUtils.get().validateItemStackHandle(i);
-            if (NMSUtils.get().hasNBTTagCompound(validItemStack)){
-                output.add("nbt: '" + NMSUtils.get().getNBTtoString(validItemStack) + "'");
-            }
+        NBTItem nbtItem = FCNBTUtil.getFrom(i.clone());
+        if (nbtItem.hasNBTData()){
+            nbtItem.removeKey("Display"); //Remove LORE and DisplayName
+            output.add("nbt: '" + nbtItem.toString());
         }
         return output;
     }
