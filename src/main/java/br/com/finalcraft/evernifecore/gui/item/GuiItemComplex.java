@@ -81,6 +81,11 @@ public class GuiItemComplex extends GuiItem {
             return new Context(guiComplex, guiItem, player);
         }
 
+        public void updateItemStack(Function<FCItemBuilder, ItemStack> updateItemStack){
+            ItemStack result = updateItemStack.apply(FCItemFactory.from(this.getGuiItem().getItemStack()));
+            this.getGuiItem().setItemStack(result);
+        }
+
         public Player getPlayer() {
             return player;
         }
