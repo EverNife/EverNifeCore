@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -24,10 +25,16 @@ public class PlayerInteractListener implements ECListener {
 
         final Player player = event.getPlayer();
 
-        final Block block = event.getClickedBlock();
+        Block block = event.getClickedBlock();
         if (block != null){
             if (CMDBlockInfo.isInDebugMode(player)){
-                Location location = player.getLocation();
+                Location location = block.getLocation();
+                if (player.isSneaking()){
+                    //Get faced block then
+                    BlockFace face = event.getBlockFace();
+                    block = block.getRelative(face);
+                    location = block.getLocation();
+                }
 
                 ItemStack itemStack = new ItemStack(block.getType());
                 itemStack.setDurability(block.getData());

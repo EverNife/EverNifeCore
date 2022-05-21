@@ -14,7 +14,7 @@ import java.util.UUID;
 
 public class CMDBlockInfo {
 
-    public static HashSet<UUID> INFO_HASHSET = new HashSet<>();
+    private static HashSet<UUID> INFO_HASHSET = new HashSet<>();
 
     @FCLocale(lang = LocaleType.EN_US, text = "§2§l ▶ §aINFO mode Enabled!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§2§l ▶ §aINFO mode Ativado!")
