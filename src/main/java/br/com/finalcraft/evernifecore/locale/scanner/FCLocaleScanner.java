@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.locale.FCMultiLocales;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
+import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import org.bukkit.plugin.Plugin;
 
 import java.lang.reflect.Field;
@@ -107,7 +108,11 @@ public class FCLocaleScanner {
             String hover = fcLocale.hover().isEmpty() ? null : fcLocale.hover();
             String runCommand = fcLocale.runCommand().isEmpty() ? null : fcLocale.runCommand();
             String lang = fcLocale.lang();
-            FancyText fancyText = new FancyText(text, hover, runCommand);
+            FancyText fancyText = new FancyText(
+                    FCColorUtil.colorfy(text),
+                    FCColorUtil.colorfy(hover),
+                    runCommand
+            );
 
             if (newLocale.getFancyText(lang) != null){
                 plugin.getLogger().severe("[FCLocale] Found a LocaleMessage with repeated {localeTypes} at key [" + key + "]! Ignoring new one!");
