@@ -380,7 +380,6 @@ public class Config {
                     return;
                 }
             }
-            return;
         }
 
         //IF it is a Customizable Salvable
