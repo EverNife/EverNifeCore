@@ -26,9 +26,9 @@ public class ItemDataPartNBT extends ItemDataPart {
     public List<String> read(ItemStack i, List<String> output) {
         NBTItem nbtItem = FCNBTUtil.getFrom(i.clone());//Clone it because we may need to remove the "display" tag
         if (nbtItem.hasNBTData()){
+            nbtItem.removeKey("display");//Remove LORE and DisplayName
             String nbt = nbtItem.toString();
             if (!"{}".equals(nbt)){
-                nbtItem.removeKey("display");//Remove LORE and DisplayName
                 output.add("nbt: " + nbt);
             }
         }
