@@ -1,8 +1,10 @@
 package br.com.finalcraft.evernifecore.listeners;
 
 import br.com.finalcraft.evernifecore.commands.debug.CMDBlockInfo;
-import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -15,6 +17,9 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 
 public class PlayerInteractListener implements ECListener {
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§7§o[INFO] (%x%, %y%, %z%) §b%block_type% §a§l[%block_id%:%block_meta%] &7&o(%biome%)", hover = "§7Disable with /blockinfo")
+    private static LocaleMessage BLOCK_DEBUG;
 
     @EventHandler(ignoreCancelled = false, priority = EventPriority.MONITOR)
     public void onRightClick(PlayerInteractEvent event) {
@@ -39,9 +44,15 @@ public class PlayerInteractListener implements ECListener {
                 ItemStack itemStack = new ItemStack(block.getType());
                 itemStack.setDurability(block.getData());
 
-                FancyText.of("§7§o[INFO] (" + location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ() + ") §b" + block.getType().name() + " §a§l[" + block.getType().getId() + ":" + block.getData() + "]")
-                        .setHoverText("§7Disable with /blockinfo")
-                        .setSuggestCommandAction(FCItemUtils.getBukkitIdentifier(itemStack))
+                BLOCK_DEBUG
+                        .addPlaceholder("%x%", location.getBlockX())
+                        .addPlaceholder("%y%", location.getBlockY())
+                        .addPlaceholder("%z%", location.getBlockZ())
+                        .addPlaceholder("%block_type%", block.getType().name())
+                        .addPlaceholder("%block_id%", block.getType().getId())
+                        .addPlaceholder("%block_meta%", block.getData())
+                        .addPlaceholder("%biome%", block.getBiome().name())
+                        .addSuggest(FCItemUtils.getBukkitIdentifier(itemStack))
                         .send(player);
             }
         }
