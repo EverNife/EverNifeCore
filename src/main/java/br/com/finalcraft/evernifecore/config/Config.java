@@ -295,7 +295,10 @@ public class Config {
      */
     public Set<String> getKeys(String path) {
         if (contains(path)){
-            return yamlFile.getConfigurationSection(path).getKeys(false);
+            ConfigurationSection configurationSection = yamlFile.getConfigurationSection(path);
+            if (configurationSection != null){ //Even containing this path, this path might not be a ConfigurationSection
+                return configurationSection.getKeys(false);
+            }
         }
         return Collections.emptySet();
     }
