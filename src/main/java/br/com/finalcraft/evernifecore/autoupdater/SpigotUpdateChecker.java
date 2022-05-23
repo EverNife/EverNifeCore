@@ -74,13 +74,14 @@ public class SpigotUpdateChecker {
             checkForUpdates = config.getOrSetDefaultValue(
                     "UpdateChecker.checkForUpdates",
                     true,
-                    "Should '" + plugin.getName() + "' check for updates on the Spigot platform?"
+                    "If '" + plugin.getName() + "' should check for updates on the Spigot platform."
             );
             autoDownload    = config.getOrSetDefaultValue(
                     "UpdateChecker.autoDownloadNewUpdates",
                     false,
-                    "Should '" + plugin.getName() + "' automatically download the new Update from the Spigot platform?"
+                    "If '" + plugin.getName() + "' should automatically download and install the new update."
             );
+            config.setComment("UpdateChecker","-----------------------\nAutomatic Update System\n-----------------------");
             config.saveIfNewDefaults();
         }else {
             checkForUpdates = true;
