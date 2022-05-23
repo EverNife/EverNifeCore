@@ -5,6 +5,10 @@ import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.dynamiccommand.DynamicCommand;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.time.DayOfToday;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCCommandUtil;
 import br.com.finalcraft.evernifecore.util.FCTextUtil;
@@ -22,6 +26,14 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class PageViewer<OBJ, VALUE> {
+
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7Data de hoje: %date_of_today%")
+    @FCLocale(lang = LocaleType.EN_US, text = "§7Date of today: %date_of_today%")
+    private static LocaleMessage DATE_OF_TODAY_IS;
+
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7De um total de %total_players% jogadores...")
+    @FCLocale(lang = LocaleType.EN_US, text = "§7From a total of %total_players% players...")
+    private static LocaleMessage OF_A_TOTAL_OF_X_PLAYERS;
 
     protected final Supplier<List<OBJ>> supplier;
     protected final Function<OBJ, VALUE> getValue;
@@ -99,7 +111,10 @@ public class PageViewer<OBJ, VALUE> {
             }
 
             if (includeDate){
-                pageHeaderCache.add(new FancyText("§7Data de hoje: " + new FCTimeFrame(System.currentTimeMillis()).getFormattedNoHours()));
+                pageHeaderCache.add(OF_A_TOTAL_OF_X_PLAYERS
+                        .addPlaceholder("%total_players%", DayOfToday.getTimeOfToday().getFormattedNoHours())
+                        .getFancyText(null)
+                );
             }
 
             for (int number = lineStart; number < sortedList.size() && number < lineEnd; number++) {
@@ -118,7 +133,10 @@ public class PageViewer<OBJ, VALUE> {
             }
 
             if (includeTotalPlayers){
-                pageHeaderCache.add(new FancyText("§7De um total de " + sortedList.size() + " jogadores..."));
+                pageHeaderCache.add(OF_A_TOTAL_OF_X_PLAYERS
+                        .addPlaceholder("%total_players%", sortedList.size())
+                        .getFancyText(null)
+                );
             }
 
             lastBuild = System.currentTimeMillis();

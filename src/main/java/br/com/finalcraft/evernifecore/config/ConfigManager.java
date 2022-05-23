@@ -9,9 +9,11 @@ import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
+import br.com.finalcraft.evernifecore.time.DayOfToday;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
+import br.com.finalcraft.evernifecore.util.pageviwer.PageViewer;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class ConfigManager {
@@ -47,7 +49,8 @@ public class ConfigManager {
                 FCBukkitUtil.class,
                 SpigotUpdateChecker.class,
                 HelpContext.class,
-                FCDefaultExecutor.class
+                FCDefaultExecutor.class,
+                PageViewer.class
         );
         FCLocaleManager.updateEverNifeCoreLocale();
     }
