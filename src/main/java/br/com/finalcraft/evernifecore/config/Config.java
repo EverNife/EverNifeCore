@@ -629,6 +629,16 @@ public class Config {
         }
     }
 
+    public <D> @NotNull List<D> getOrSetDefaultValue(@NotNull String path, @NotNull List<D> def, @NotNull String comment) {
+        List<D> theValue = getOrSetDefaultValue(path, def);
+        if (!getComment(path).equals(comment)){
+            setComment(path, comment);
+            newDefaultValueToSave = true;
+        }
+        return theValue;
+    }
+
+
     public <D> @NotNull D getOrSetDefaultValue(@NotNull String path, @NotNull D def) {
         if (!contains(path)){
             setValue(path, def);
@@ -642,6 +652,15 @@ public class Config {
                 return (D) getValue(path);
             }
         }
+    }
+
+    public <D> @NotNull D getOrSetDefaultValue(@NotNull String path, @NotNull D def, @NotNull String comment) {
+        D theValue = getOrSetDefaultValue(path, def);
+        if (!getComment(path).equals(comment)){
+            setComment(path, comment);
+            newDefaultValueToSave = true;
+        }
+        return theValue;
     }
 
     // ------------------------------------------------------------------------------------------------------------------
