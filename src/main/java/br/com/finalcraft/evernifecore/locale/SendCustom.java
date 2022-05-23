@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -71,8 +72,8 @@ public class SendCustom {
         }
     }
 
-    public FancyText getFancyText(CommandSender sender){
-        FancyText fancyText = localeMessage.getFancyText(sender).clone();
+    public FancyText getFancyText(@Nullable CommandSender sender){
+        FancyText fancyText = sender == null ? localeMessage.getDefaultFancyText().clone() : localeMessage.getFancyText(sender).clone();
         if (hover != null) fancyText.setHoverText(hover);
         if (action != null) fancyText.setRunCommandAction(action);
         if (suggest != null) fancyText.setSuggestCommandAction(suggest);
