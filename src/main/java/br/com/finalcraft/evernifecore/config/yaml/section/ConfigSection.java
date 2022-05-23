@@ -3,6 +3,9 @@ package br.com.finalcraft.evernifecore.config.yaml.section;
 import br.com.finalcraft.evernifecore.config.Config;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.simpleyaml.configuration.comments.CommentType;
+import org.simpleyaml.configuration.file.YamlConfigurationOptions;
+import org.simpleyaml.configuration.file.YamlFile;
 
 import java.util.List;
 import java.util.Set;
@@ -45,6 +48,26 @@ public class ConfigSection{
 
     private String concatSubPath(@Nullable String subPath){
         return subPath == null ? this.path : this.path + "." + subPath;
+    }
+
+    // ------------------------------------------------------------------------------------------------------------------
+    //      Comment System Functions
+    // ------------------------------------------------------------------------------------------------------------------
+
+    public void setComment(@NotNull String path, @NotNull String comment, @NotNull CommentType type) {
+        this.config.setComment(path, comment, type);
+    }
+
+    public void setComment(@NotNull String path, @NotNull String comment) {
+        this.config.setComment(path, comment);
+    }
+
+    public String getComment(@NotNull String path, @NotNull CommentType type) {
+        return this.config.getComment(path, type);
+    }
+
+    public String getComment(@NotNull String path) {
+        return this.config.getComment(path);
     }
 
     // ------------------------------------------------------------------------------------------------------------------

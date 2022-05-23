@@ -12,7 +12,9 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simpleyaml.configuration.ConfigurationSection;
+import org.simpleyaml.configuration.comments.CommentType;
 import org.simpleyaml.configuration.comments.format.YamlCommentFormat;
+import org.simpleyaml.configuration.file.YamlConfigurationOptions;
 import org.simpleyaml.configuration.file.YamlFile;
 import org.simpleyaml.exceptions.InvalidConfigurationException;
 
@@ -254,6 +256,66 @@ public class Config {
         }
 
         return lastModified != getTheFile().lastModified();
+    }
+
+    // ------------------------------------------------------------------------------------------------------------------
+    //      Comment System Functions
+    // ------------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Set a comment to the section or value selected by path.
+     * Comment will be indented automatically.
+     * Multi-line comments can be provided using \n character.
+     * <p/>
+     * Comment format will follow the rules of {@link YamlFile#options()} {@link YamlConfigurationOptions#commentFormatter()}.
+     *
+     * @param path    path of desired section or key
+     * @param comment the comment to add, # prefix is not needed
+     * @param type    either above (BLOCK) or SIDE
+     */
+    public void setComment(@NotNull String path, @NotNull String comment, @NotNull CommentType type) {
+        this.yamlFile.setComment(path, comment, type);
+    }
+
+    /**
+     * Set a block comment above the section or value selected by path.
+     * Comment will be indented automatically.
+     * Multi-line comments can be provided using \n character.
+     * <p/>
+     * Comment format will follow the rules of {@link YamlFile#options()} {@link YamlConfigurationOptions#commentFormatter()}.
+     *
+     * @param path    path of desired section or key
+     * @param comment the block comment to add, # character is not needed
+     */
+    public void setComment(@NotNull String path, @NotNull String comment) {
+        this.yamlFile.setComment(path, comment);
+    }
+
+    /**
+     * Retrieve the comment of the section or value selected by path.
+     * <p/>
+     * Comment format will follow the rules of {@link YamlFile#options()} {@link YamlConfigurationOptions#commentFormatter()}.
+     *
+     * @param path path of desired section or key
+     * @param type either above (BLOCK) or SIDE
+     * @return the comment of the section or value selected by path,
+     * or null if that path does not have any comment of this type
+     */
+    public String getComment(@NotNull String path, @NotNull CommentType type) {
+        return this.yamlFile.getComment(path, type);
+    }
+
+    /**
+     * Retrieve the block comment of the section or value selected by path.
+     * <p/>
+     * Comment format will follow the rules of {@link YamlFile#options()} {@link YamlConfigurationOptions#commentFormatter()}.
+     *
+     * @param path path of desired section or key
+     * @return the block comment of the section or value selected by path,
+     * or null if that path does not have any comment of type block
+     */
+    public String getComment(@NotNull String path) {
+        return this.yamlFile.getComment(path);
     }
 
     // ------------------------------------------------------------------------------------------------------------------
