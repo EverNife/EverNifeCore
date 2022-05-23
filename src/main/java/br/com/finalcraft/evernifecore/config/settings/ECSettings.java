@@ -3,9 +3,11 @@ package br.com.finalcraft.evernifecore.config.settings;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
+import br.com.finalcraft.evernifecore.time.DayOfToday;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.UUID;
 
@@ -44,7 +46,11 @@ public class ECSettings {
         useNamesInsteadOfUUIDToStorePlayerData = ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.useNamesInsteadOfUUIDToStorePlayerData", isUsingStorageWithPlayerName);
 
 
-        ZONE_ID_OF_DAY_OF_TODAY = ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.Time.ZONE_ID_OF_DAY_OF_TODAY", "America/Sao_Paulo");
+        ZONE_ID_OF_DAY_OF_TODAY = ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.Time.ZONE_ID_OF_DAY_OF_TODAY", ZoneId.systemDefault().getId());
+        ConfigManager.getMainConfig().setComment("Settings.Time.ZONE_ID_OF_DAY_OF_TODAY","The timezone used for the some of ECPlugins " +
+                "\nThis is useful when your HomeZone is not the same as the server zone!");
+        DayOfToday.initialize();
+
         SIMPLE_DATE_FORMAT = new SimpleDateFormat(
                 ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.Time.SIMPLE_DATE_FORMAT", "dd/MM/yyyy")
         );
