@@ -631,7 +631,8 @@ public class Config {
 
     public <D> @NotNull List<D> getOrSetDefaultValue(@NotNull String path, @NotNull List<D> def, @NotNull String comment) {
         List<D> theValue = getOrSetDefaultValue(path, def);
-        if (!getComment(path).equals(comment)){
+        String existingComment = getComment(path);
+        if (existingComment == null || !existingComment.equals(comment)){
             setComment(path, comment);
             newDefaultValueToSave = true;
         }
@@ -656,7 +657,8 @@ public class Config {
 
     public <D> @NotNull D getOrSetDefaultValue(@NotNull String path, @NotNull D def, @NotNull String comment) {
         D theValue = getOrSetDefaultValue(path, def);
-        if (!getComment(path).equals(comment)){
+        String existingComment = getComment(path);
+        if (existingComment == null || !existingComment.equals(comment)){
             setComment(path, comment);
             newDefaultValueToSave = true;
         }
