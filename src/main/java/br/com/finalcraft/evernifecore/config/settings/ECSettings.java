@@ -46,15 +46,15 @@ public class ECSettings {
         useNamesInsteadOfUUIDToStorePlayerData = ConfigManager.getMainConfig().getOrSetDefaultValue(
                 "Settings.useNamesInsteadOfUUIDToStorePlayerData",
                 isUsingStorageWithPlayerName,
-                "Should EverNifeCore store the PlayerData using the UUID of the player as the filename\n" +
-                        "\nor should it use the PLAYERNAME as file name! If you are not using your server on OFFLINE_MODE" +
-                        "\ndo not change this configuration."
+                "Should EverNifeCore store the PlayerData using the UUID of the player as the filename" +
+                        "\nor should it use the PLAYERNAME as file name! If you are not using your server on" +
+                        "\nOFFLINE_MODE do not change this configuration."
         );
 
         ZONE_ID_OF_DAY_OF_TODAY = ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.Time.ZONE_ID_OF_DAY_OF_TODAY",
                 ZoneId.systemDefault().getId(),
-                "The timezone used for the some of ECPlugins! This is useful" +
-                        "\n when your HomeZone is not the same as the server zone!");
+                "The timezone used for the some of ECPlugins! This is useful when your HomeZone" +
+                        "\nis not the same as the server zone!");
         DayOfToday.initialize();
 
         SIMPLE_DATE_FORMAT = new SimpleDateFormat(
