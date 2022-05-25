@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
+import br.com.finalcraft.evernifecore.version.MCVersion;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -18,7 +19,9 @@ import org.bukkit.inventory.ItemStack;
 
 public class PlayerInteractListener implements ECListener {
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§7§o[INFO] (%x%, %y%, %z%) §b%block_type% §a§l[%block_id%:%block_meta%] &7&o(%biome%)", hover = "§7Disable with /blockinfo")
+    @FCLocale(lang = LocaleType.EN_US, text = "§7§o[INFO] (%x%, %y%, %z%) §b%block_type% §a§l[%block_id_and_meta%] &7&o(%biome%)",
+            hover = "§7Disable with /blockinfo\nClick to copy the Material Name"
+    )
     private static LocaleMessage BLOCK_DEBUG;
 
     @EventHandler(ignoreCancelled = false, priority = EventPriority.MONITOR)
@@ -42,15 +45,19 @@ public class PlayerInteractListener implements ECListener {
                 }
 
                 ItemStack itemStack = new ItemStack(block.getType());
-                itemStack.setDurability(block.getData());
+
+                if (MCVersion.isBellow1_13()){
+                    itemStack.setDurability(block.getData());
+                }else {
+                    itemStack.setData(block.getState().getData());
+                }
 
                 BLOCK_DEBUG
                         .addPlaceholder("%x%", location.getBlockX())
                         .addPlaceholder("%y%", location.getBlockY())
                         .addPlaceholder("%z%", location.getBlockZ())
                         .addPlaceholder("%block_type%", block.getType().name())
-                        .addPlaceholder("%block_id%", block.getType().getId())
-                        .addPlaceholder("%block_meta%", block.getData())
+                        .addPlaceholder("%block_id_and_meta%", !MCVersion.isBellow1_13() ? "" : block.getType().getId())
                         .addPlaceholder("%biome%", block.getBiome().name())
                         .addSuggest(FCItemUtils.getBukkitIdentifier(itemStack))
                         .send(player);
