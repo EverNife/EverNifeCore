@@ -28,6 +28,8 @@ public enum MCVersion {
     v1_16_R2(1162, "v1_16"),
     v1_16_R3(1163, "v1_16"),
     v1_17_R1(1171, "v1_17"),
+    v1_18_R1(1181, "v1_18"),
+    v1_18_R2(1182, "v1_18"),
     ;
 
     private static MCVersion currentVersion = null;
