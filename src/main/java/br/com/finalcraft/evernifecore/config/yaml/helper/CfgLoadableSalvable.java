@@ -15,6 +15,7 @@ import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
+import br.com.finalcraft.evernifecore.util.FCNBTUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
@@ -275,7 +276,7 @@ public class CfgLoadableSalvable {
                                 Iterables.toArray(
                                         Splitter
                                                 .fixedLength(100)
-                                                .split(NMSUtils.get().getNBTtoString(itemStack)),
+                                                .split(FCNBTUtil.getFrom(itemStack).toString()),
                                         String.class
                                 )
                         );

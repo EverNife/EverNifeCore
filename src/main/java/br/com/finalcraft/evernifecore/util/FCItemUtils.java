@@ -153,7 +153,7 @@ public class FCItemUtils {
         String nbt = null;
         itemStack = NMSUtils.get().validateItemStackHandle(itemStack);
         if (withNbt){
-            nbt = NMSUtils.get().getNBTtoString(itemStack);
+            nbt = FCNBTUtil.getFrom(itemStack).toString();
         }
         return NMSUtils.get().getItemRegistryName(itemStack) + " " + itemStack.getAmount() + " " + itemStack.getDurability() + (nbt != null ? " " + nbt : "");
     }
