@@ -12,9 +12,9 @@ public class ItemDataPartNBT extends ItemDataPart {
 
     @Override
     public ItemStack transform(ItemStack item, String used_name, String argument) {
-        ItemStack override = NMSUtils.get().validateItemStackHandle(item);
-        NMSUtils.get().applyNBTFromString(override, argument.trim());
-        return override;
+        NBTItem nbtItem = FCNBTUtil.getFrom(item);
+        nbtItem.mergeCompound(FCNBTUtil.getFrom(argument.trim()));
+        return item;
     }
 
     @Override

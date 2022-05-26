@@ -15,6 +15,14 @@ import java.io.IOException;
 
 public class FCNBTUtil {
 
+    public static @NotNull NBTContainer empyNBT(){
+        return new NBTContainer("{}");
+    }
+
+    public static @NotNull NBTContainer getFrom(String nbt){
+        return new NBTContainer(nbt);
+    }
+
     public static @NotNull NBTPlayer getFrom(Player player){
         return new NBTPlayer(player);
     }
