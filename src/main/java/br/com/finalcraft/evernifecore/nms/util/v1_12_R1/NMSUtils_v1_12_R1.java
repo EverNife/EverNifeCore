@@ -196,7 +196,10 @@ public class NMSUtils_v1_12_R1 implements INMSUtils {
 
 	@Override
 	public boolean hasNBTTagCompound(org.bukkit.inventory.ItemStack itemStack) {
-		return getHandle(itemStack).hasTag();
+		if (itemStack instanceof CraftItemStack){
+			return getHandle(itemStack).hasTag();
+		}
+		return false;
 	}
 
 	@Override
