@@ -17,6 +17,7 @@
 
 package br.com.finalcraft.evernifecore.nms.util;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -32,41 +33,63 @@ import java.util.ArrayList;
 public interface INMSUtils {
 
 	@Deprecated
-	public boolean hasInventory(Block b);
+	public default boolean hasInventory(Block b){
+		throw new NotImplementedException("This feature will be removed from the API, don't use it!");
+	}
 
 	@Deprecated
-	public boolean hasInventory(Entity e);
+	public default boolean hasInventory(Entity e){
+		throw new NotImplementedException("This feature will be removed from the API, don't use it!");
+	}
 
 	@Deprecated
-	public boolean isInventoryOpen(Player p);
+	public default boolean isInventoryOpen(Player p){
+		throw new NotImplementedException("This feature will be removed from the API, don't use it!");
+	}
 
 	@Deprecated
-	public String getOpenInventoryName(Player p);
+	public default String getOpenInventoryName(Player p){
+		throw new NotImplementedException("This feature will be removed from the API, don't use it!");
+	}
 
 	@Deprecated
-	public void updateSlot(Player p, int slot, ItemStack item);
+	public default void updateSlot(Player p, int slot, ItemStack item){
+		throw new NotImplementedException("This feature will be removed from the API, don't use it!");
+	}
 
 	public String getItemRegistryName(ItemStack item);
 
 	public ItemStack getItemFromMinecraftIdentifier(String minecraftIdentifier);
 
 	@Deprecated
-	public ArrayList<ItemStack> getTopInvetnoryItems(Player p);
+	public default ArrayList<ItemStack> getTopInvetnoryItems(Player p){
+		throw new NotImplementedException("This feature will be removed from the API, don't use it!");
+	}
 
 	@Deprecated
-	public String toBaseBinary(ItemStack itemStack);
+	public default String toBaseBinary(ItemStack itemStack){
+		throw new NotImplementedException("This feature will be removed from the API, don't use it!");
+	}
 
 	@Deprecated
-	public ItemStack fromBaseBinary(String baseBinary64);
+	public default ItemStack fromBaseBinary(String baseBinary64){
+		throw new NotImplementedException("This feature will be removed from the API, don't use it!");
+	}
 
 	@Deprecated
-	public String getNBTtoString(ItemStack itemStack);
+	public default String getNBTtoString(ItemStack itemStack){
+		throw new NotImplementedException("This feature will be removed from the API, don't use it!");
+	}
 
 	@Deprecated
-	public void applyNBTFromString(ItemStack itemStack, String nbtJson);
+	public default void applyNBTFromString(ItemStack itemStack, String nbtJson){
+		throw new NotImplementedException("This feature will be removed from the API, don't use it!");
+	}
 
 	@Deprecated
-	public void clearNBT(ItemStack itemStack);
+	public default void clearNBT(ItemStack itemStack){
+		throw new NotImplementedException("This feature will be removed from the API, don't use it!");
+	}
 
 	public String getLocalizedName(ItemStack itemStack);
 
@@ -79,10 +102,14 @@ public interface INMSUtils {
 	public boolean hasNBTTagCompound(ItemStack itemStack);
 
 	@Deprecated
-	public void setNBTString(ItemStack itemStack, String key, String value);
+	public default void setNBTString(ItemStack itemStack, String key, String value){
+		throw new NotImplementedException("This feature will be removed from the API, don't use it!");
+	}
 
 	@Deprecated
-	public String getNBTString(ItemStack itemStack, String key);
+	public default String getNBTString(ItemStack itemStack, String key){
+		throw new NotImplementedException("This feature will be removed from the API, don't use it!");
+	}
 
 	public boolean isTool(ItemStack itemStack);
 
