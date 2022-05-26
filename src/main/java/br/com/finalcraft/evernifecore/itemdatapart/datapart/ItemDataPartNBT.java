@@ -1,10 +1,10 @@
 package br.com.finalcraft.evernifecore.itemdatapart.datapart;
 
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
-import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.FCNBTUtil;
 import de.tr7zw.changeme.nbtapi.NBTItem;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.List;
 
@@ -12,8 +12,11 @@ public class ItemDataPartNBT extends ItemDataPart {
 
     @Override
     public ItemStack transform(ItemStack item, String used_name, String argument) {
+        ItemMeta itemMeta = item.getItemMeta();
         NBTItem nbtItem = FCNBTUtil.getFrom(item);
+        nbtItem.clearNBT();
         nbtItem.mergeCompound(FCNBTUtil.getFrom(argument.trim()));
+        item.setItemMeta(itemMeta);
         return item;
     }
 
