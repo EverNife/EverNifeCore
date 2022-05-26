@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.itemdatapart.datapart;
 
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.util.FCNBTUtil;
+import br.com.finalcraft.evernifecore.version.MCVersion;
 import de.tr7zw.changeme.nbtapi.NBTItem;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -30,6 +31,9 @@ public class ItemDataPartNBT extends ItemDataPart {
         NBTItem nbtItem = FCNBTUtil.getFrom(i.clone());//Clone it because we may need to remove the "display" tag
         if (nbtItem.hasNBTData()){
             nbtItem.removeKey("display");//Remove LORE and DisplayName
+            if (!MCVersion.isBellow1_13()){
+                nbtItem.removeKey("Damage");//Remove Damage
+            }
             String nbt = nbtItem.toString();
             if (!"{}".equals(nbt)){
                 output.add("nbt: " + nbt);
