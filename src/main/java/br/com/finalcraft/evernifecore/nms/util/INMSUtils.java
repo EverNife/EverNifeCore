@@ -31,30 +31,41 @@ import java.util.ArrayList;
 //  - Add simple way for "force integrate"
 public interface INMSUtils {
 
+	@Deprecated
 	public boolean hasInventory(Block b);
 
+	@Deprecated
 	public boolean hasInventory(Entity e);
 
+	@Deprecated
 	public boolean isInventoryOpen(Player p);
 
+	@Deprecated
 	public String getOpenInventoryName(Player p);
 
+	@Deprecated
 	public void updateSlot(Player p, int slot, ItemStack item);
 
 	public String getItemRegistryName(ItemStack item);
 
 	public ItemStack getItemFromMinecraftIdentifier(String minecraftIdentifier);
 
+	@Deprecated
 	public ArrayList<ItemStack> getTopInvetnoryItems(Player p);
 
+	@Deprecated
 	public String toBaseBinary(ItemStack itemStack);
 
+	@Deprecated
 	public ItemStack fromBaseBinary(String baseBinary64);
 
+	@Deprecated
 	public String getNBTtoString(ItemStack itemStack);
 
+	@Deprecated
 	public void applyNBTFromString(ItemStack itemStack, String nbtJson);
 
+	@Deprecated
 	public void clearNBT(ItemStack itemStack);
 
 	public String getLocalizedName(ItemStack itemStack);
@@ -67,8 +78,10 @@ public interface INMSUtils {
 
 	public boolean hasNBTTagCompound(ItemStack itemStack);
 
+	@Deprecated
 	public void setNBTString(ItemStack itemStack, String key, String value);
 
+	@Deprecated
 	public String getNBTString(ItemStack itemStack, String key);
 
 	public boolean isTool(ItemStack itemStack);
