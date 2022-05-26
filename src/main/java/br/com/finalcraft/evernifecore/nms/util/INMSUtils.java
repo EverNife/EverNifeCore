@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.nms.util;
 
+import br.com.finalcraft.evernifecore.util.FCNBTUtil;
 import org.apache.commons.lang.NotImplementedException;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
@@ -82,7 +83,9 @@ public interface INMSUtils {
 
 	public void autoRespawnOnDeath(Player player);
 
-	public boolean hasNBTTagCompound(ItemStack itemStack);
+	public default boolean hasNBTTagCompound(ItemStack itemStack){
+		return FCNBTUtil.getFrom(itemStack).isEmpty();
+	}
 
 	@Deprecated
 	public default void setNBTString(ItemStack itemStack, String key, String value){

@@ -289,7 +289,7 @@ public class CfgLoadableSalvable {
                                     Iterables.toArray(
                                             Splitter
                                                     .fixedLength(100)
-                                                    .split(FCNBTUtil.getFrom(itemStack).toString()),
+                                                    .split(nbtString),
                                             String.class
                                     )
                             );
