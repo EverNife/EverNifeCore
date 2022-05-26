@@ -17,8 +17,10 @@ import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
 import br.com.finalcraft.evernifecore.util.FCNBTUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
+import br.com.finalcraft.evernifecore.version.MCVersion;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
+import de.tr7zw.changeme.nbtapi.NBTItem;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -261,6 +263,7 @@ public class CfgLoadableSalvable {
                     configSection.clear();//Clear any previous value
 
                     String mcIdentifier = FCItemUtils.getMinecraftIdentifier(itemStack, false);
+
                     if (NMSUtils.get().hasNBTTagCompound(itemStack)){
                         configSection.setValue("minecraftIdentifier", mcIdentifier); //Only present when there is NBT
                         InvItem invItem = InvItem.getInvItem(itemStack);
@@ -272,15 +275,26 @@ public class CfgLoadableSalvable {
                             return;
                         }
                         //Get the NBT and split it into a StringList of 100 chars lengh
-                        List<String> nbt = Arrays.asList(
-                                Iterables.toArray(
-                                        Splitter
-                                                .fixedLength(100)
-                                                .split(FCNBTUtil.getFrom(itemStack).toString()),
-                                        String.class
-                                )
-                        );
-                        configSection.setValue("nbt", nbt);
+                        String nbtString;
+                        if (MCVersion.isBellow1_13()){
+                            nbtString = FCNBTUtil.getFrom(itemStack).toString();
+                        }else {
+                            NBTItem nbtItem = new NBTItem(itemStack);
+                            nbtItem.removeKey("Damage"); //Don't need to save the damage twice
+                            nbtString = nbtItem.toString();
+                        }
+
+                        if (!nbtString.isEmpty() && !nbtString.equals("{}")){
+                            List<String> nbt = Arrays.asList(
+                                    Iterables.toArray(
+                                            Splitter
+                                                    .fixedLength(100)
+                                                    .split(FCNBTUtil.getFrom(itemStack).toString()),
+                                            String.class
+                                    )
+                            );
+                            configSection.setValue("nbt", nbt);
+                        }
                     }else {
                         configSection.setValue(null, mcIdentifier);
                     }
