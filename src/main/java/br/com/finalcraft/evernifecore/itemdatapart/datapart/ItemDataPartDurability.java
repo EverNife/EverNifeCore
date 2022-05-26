@@ -59,15 +59,19 @@ public class ItemDataPartDurability extends ItemDataPart {
 
     @Override
     public List<String> read(ItemStack itemStack, List<String> output) {
+        int damage = 0;
         if (MCVersion.isCurrentEqualOrHigher(MCVersion.v1_13_R1)){
             if (itemStack.hasItemMeta()) {
                 if (itemStack.getItemMeta() instanceof Damageable) {
                     Damageable d = (Damageable) itemStack.getItemMeta();
-                    output.add("durability:" + d.getDamage());
+                    damage = d.getDamage();
                 }
             }
         }else {
-            itemStack.getDurability();
+            damage = itemStack.getDurability();
+        }
+        if (damage != 0){
+            output.add("durability:" + damage);
         }
         return output;
     }
