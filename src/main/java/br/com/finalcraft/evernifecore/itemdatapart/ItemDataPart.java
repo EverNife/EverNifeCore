@@ -42,7 +42,7 @@ public abstract class ItemDataPart {
         if (MCVersion.isCurrentHigher(MCVersion.v1_8_R1)) ITEMFLAGS = registerType(new ItemDataPartItemflags());
         NAME = registerType(new ItemDataPartName());
         LORE = registerType(new ItemDataPartLore());
-        if (NMSUtils.get() != null) NBT = registerType(new ItemDataPartNBT());
+        NBT = registerType(new ItemDataPartNBT());
     }
 
     public static ItemDataPart registerType(ItemDataPart type) {
