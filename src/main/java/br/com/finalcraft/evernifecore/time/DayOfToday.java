@@ -2,7 +2,6 @@ package br.com.finalcraft.evernifecore.time;
 
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 
-import java.text.SimpleDateFormat;
 import java.time.*;
 import java.util.Calendar;
 import java.util.Date;

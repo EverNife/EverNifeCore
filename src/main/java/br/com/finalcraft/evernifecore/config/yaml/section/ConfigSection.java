@@ -4,8 +4,6 @@ import br.com.finalcraft.evernifecore.config.Config;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simpleyaml.configuration.comments.CommentType;
-import org.simpleyaml.configuration.file.YamlConfigurationOptions;
-import org.simpleyaml.configuration.file.YamlFile;
 
 import java.util.List;
 import java.util.Set;
