@@ -12,6 +12,6 @@ public class ECoreDependencies {
                         .version("1.8")
                         .relocate("org.yaml","br.com.finalcraft.libs.yaml")
                         .build()
-        ); //SnakeYML + Simple-YAML
+        ); //SnakeYAML + Simple-YAML
     }
 }
