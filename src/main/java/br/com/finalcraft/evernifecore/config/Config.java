@@ -734,7 +734,7 @@ public class Config {
             }
             return loadableList;
         }
-        return Collections.EMPTY_LIST;
+        return new ArrayList<>();
     }
 
     /**
@@ -752,7 +752,7 @@ public class Config {
         Object firstValue = loadableListDefault.get(0);
 
         List<L> result = (List<L>) getLoadableList(path, firstValue.getClass());
-        return result != Collections.EMPTY_LIST ? result : loadableListDefault;
+        return result.size() > 0 ? result : loadableListDefault;
 
     }
 }
