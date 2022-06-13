@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.test.placeholder;
 
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import lombok.Data;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -12,37 +13,12 @@ import java.util.UUID;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class PlaceholderTest {
 
+    @Data
     private static class SimplePlayer {
         String name;
         UUID uuid;
         int kills = new Random().nextInt(100);
         int deaths = new Random().nextInt(100);
-
-        public String getName() {
-            return name;
-        }
-
-        public UUID getUuid() {
-            return uuid;
-        }
-
-        public int getKills() {
-            return kills;
-        }
-
-        public int getDeaths() {
-            return deaths;
-        }
-
-        @Override
-        public String toString() {
-            return "SimplePlayer{" +
-                    "name='" + name + '\'' +
-                    ", uuid=" + uuid +
-                    ", kills=" + kills +
-                    ", deaths=" + deaths +
-                    '}';
-        }
     }
 
     @Test

@@ -99,6 +99,7 @@ dependencies {
 
     //Lombok
     compileOnly 'org.projectlombok:lombok:1.18.22'
+    testCompile 'org.projectlombok:lombok:1.18.22'
     annotationProcessor 'org.projectlombok:lombok:1.18.22'
 }
 
