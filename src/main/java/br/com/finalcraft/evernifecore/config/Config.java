@@ -72,7 +72,7 @@ public class Config {
 
         if (!targetFile.exists() && copyDefaults) {
             try {
-                ConfigHelper.copyAsset(plugin, configName, targetFile);
+                ConfigHelper.copyAsset(plugin, configName, plugin.getDataFolder());
             }catch (IOException e){
                 plugin.getLogger().warning("Failed to load Asset for the config [" + configName + "]!");
                 e.printStackTrace();
