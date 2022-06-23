@@ -42,10 +42,16 @@ public class ArgParserNumber extends ArgParser<Number> {
 
     @Override
     public Number parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException {
-        final Number number;
+        Number number;
         //We cannot use a ternary operator here because of NPE caused by boxingAndUnboxing of values.
         if (isInteger) {
             number = argumento.getInteger();
+            if (number == null){ //If the input argument is higher than Integer.MAX_VALUE, cast it to Integer.MAX_VALUE!
+                Long numberAsLong = argumento.getLong();
+                if (numberAsLong != null && numberAsLong >= Integer.MAX_VALUE){
+                    number = Integer.MAX_VALUE;
+                }
+            }
         }else {
             number = argumento.getDouble();
         }
