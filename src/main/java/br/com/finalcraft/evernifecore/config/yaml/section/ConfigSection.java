@@ -107,9 +107,15 @@ public class ConfigSection{
     public void setValue(String subPath, Object value) {
         config.setValue(concatSubPath(subPath), value);
     }
+    public void setValue(String subPath, Object value, String comment) {
+        config.setValue(concatSubPath(subPath), value, comment);
+    }
 
     public void setDefaultValue(String subPath, Object value) {
         config.setDefaultValue(concatSubPath(subPath), value);
+    }
+    public void setDefaultValue(String subPath, Object value, String comment) {
+        config.setDefaultValue(concatSubPath(subPath), value, comment);
     }
 
     public void clear(){

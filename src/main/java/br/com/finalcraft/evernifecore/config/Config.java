@@ -401,6 +401,21 @@ public class Config {
 
     /**
      * Sets the Value for the specified Path
+     * Also, if the value is not null, set the comment.
+     *
+     * @param path The path in the Config File
+     * @param value The Value for that Path
+     * @param comment The comment to add to the path
+     */
+    public void setValue(String path, Object value, String comment) {
+        this.setValue(path, value);
+        if (value != null){ //If this section has been erased, ignore the comment
+            setComment(path, comment);
+        }
+    }
+
+    /**
+     * Sets the Value for the specified Path
      *
      * @param  path The path in the Config File
      * @param  value The Value for that Path
@@ -478,10 +493,21 @@ public class Config {
      * @param  value The Value for that Path
      */
     public void setDefaultValue(String path, Object value) {
-        if (!contains(path)){
-            setValue(path, value);
-            newDefaultValueToSave = true;
-        }
+        getOrSetDefaultValue(path, value);
+    }
+
+    /**
+     * Sets the Value for the specified Path
+     * (IF the Path does not yet exist)
+     * Sets the Comment for the specified Path
+     * (IF the Path's comment is different from the passed one)
+     *
+     * @param  path The path in the Config File
+     * @param  value The Value for that Path
+     * @param  comment The Comment for that Path
+     */
+    public void setDefaultValue(String path, Object value, String comment) {
+        getOrSetDefaultValue(path, value, comment);
     }
 
     // ------------------------------------------------------------------------------------------------------------------
