@@ -173,7 +173,6 @@ public class ECPluginData {
         }
 
         if (anyChange){
-            plugin.getLogger().info("Saving the NewConfig to FIle");
             this.customLangConfig.save();
         }
     }
