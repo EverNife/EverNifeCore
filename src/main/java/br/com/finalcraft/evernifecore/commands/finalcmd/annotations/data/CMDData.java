@@ -6,6 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 @Getter
 @Accessors(fluent = true)
 @AllArgsConstructor
@@ -67,6 +70,17 @@ public class CMDData<T extends CMDData<T>> {
 
     public T locales(FCLocaleData locale, FCLocaleData... otherLocales){
         this.locales = FCArrayUtil.merge(locale, otherLocales);
+        return (T) this;
+    }
+
+    public T replace(String placeholder, String value){
+        this.labels = Arrays.stream(this.labels).map(s -> s.replace(placeholder, value)).collect(Collectors.toList()).toArray(new String[0]);
+        this.usage = this.usage.replace(placeholder, value);
+        this.desc = this.desc.replace(placeholder, value);
+        this.permission = this.permission.replace(placeholder, value);
+        for (FCLocaleData locale : this.locales) {
+            locale.replace(placeholder, value);
+        }
         return (T) this;
     }
 

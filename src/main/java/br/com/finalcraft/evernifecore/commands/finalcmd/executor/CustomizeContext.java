@@ -4,7 +4,6 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgData
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.CMDData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.FinalCMDData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.SubCMDData;
-import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import com.google.common.collect.ImmutableList;
 
@@ -55,13 +54,13 @@ public class CustomizeContext {
 
     public void replace(String placeholder, String value){
         //Replace a regex on every single CMDData's Locales and ArgData
-        allMethods.forEach(methodData -> {
-            for (FCLocaleData locale : methodData.getData().locales()) {
-                locale.replace(placeholder, value);
-            }
+        for (MethodData methodData : allMethods) {
+            methodData.getData().replace(placeholder, value);
+
             for (Tuple<ArgData, Class> tuple : (List<Tuple<ArgData, Class>>) methodData.getArgDataList()) {
-                tuple.getAlfa().replace(placeholder, value);
+                ArgData argData = tuple.getAlfa();
+                argData.replace(placeholder, value);
             }
-        });
+        }
     }
 }
