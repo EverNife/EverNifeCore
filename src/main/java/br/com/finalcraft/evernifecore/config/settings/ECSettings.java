@@ -19,6 +19,7 @@ public class ECSettings {
     public static String ZONE_ID_OF_DAY_OF_TODAY            = "America/Sao_Paulo";
     public static SimpleDateFormat SIMPLE_DATE_FORMAT       = new SimpleDateFormat("dd/MM/yyyy");
     public static SimpleDateFormat DATE_FORMAT_WITH_HOURS   = new SimpleDateFormat("dd/MM/yyyy HH:mm");
+    public static int PAGEVIEWERS_REFRESH_TIME = 5;
 
     //Guis
     public static int DEFAULT_GUI_UPDATE_TIME = 2;
@@ -63,6 +64,12 @@ public class ECSettings {
         DATE_FORMAT_WITH_HOURS = new SimpleDateFormat(
                 ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.Time.DATE_FORMAT_WITH_HOURS", "dd/MM/yyyy HH:mm")
         );
+
+        PAGEVIEWERS_REFRESH_TIME = ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.PageViewers.REFRESH_TIME", 5,
+                "The default amount of time the result of a '/top' command should be cached." +
+                        "\nFor example, when using FinalEconomy, the '/baltop' may be cached to prevent lag for X amount of seconds." +
+                        "\nIncrease this value if you find lag related to this feature! (very unlikely)" +
+                        "\nIf going to decrease, I suggest to at least keep to 1 second");
 
         ConfigManager.getMainConfig().saveIfNewDefaults();
     }

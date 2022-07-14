@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.util.pageviwer;
 
 import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.dynamiccommand.DynamicCommand;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
@@ -110,8 +111,8 @@ public class PageViewer<OBJ, VALUE> {
             }
 
             if (includeDate){
-                pageHeaderCache.add(OF_A_TOTAL_OF_X_PLAYERS
-                        .addPlaceholder("%total_players%", DayOfToday.getTimeOfToday().getFormattedNoHours())
+                pageHeaderCache.add(DATE_OF_TODAY_IS
+                        .addPlaceholder("%date_of_today%", DayOfToday.getTimeOfToday().getFormattedNoHours())
                         .getFancyText(null)
                 );
             }
@@ -244,7 +245,7 @@ public class PageViewer<OBJ, VALUE> {
         protected List<FancyText> formatHeader = Arrays.asList(new FancyText("§a§m" + FCTextUtil.straightLineOf("-")));
         protected FancyText formatLine = new FancyText("§7#  %number%:   §e%player%§f - §a%value%");
         protected List<FancyText> formatFooter = Collections.emptyList();
-        protected long cooldown = 15000; //15 seconds
+        protected long cooldown = ECSettings.PAGEVIEWERS_REFRESH_TIME * 1000; //15 seconds
         protected int lineStart = 0;
         protected int lineEnd = 50;
         protected int pageSize = 10;
