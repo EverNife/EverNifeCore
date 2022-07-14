@@ -16,10 +16,10 @@ public class ECSettings {
     public static boolean useNamesInsteadOfUUIDToStorePlayerData = false;
 
     //Time Related
-    public static String ZONE_ID_OF_DAY_OF_TODAY            = "America/Sao_Paulo";
-    public static SimpleDateFormat SIMPLE_DATE_FORMAT       = new SimpleDateFormat("dd/MM/yyyy");
-    public static SimpleDateFormat DATE_FORMAT_WITH_HOURS   = new SimpleDateFormat("dd/MM/yyyy HH:mm");
-    public static int PAGEVIEWERS_REFRESH_TIME = 5;
+    public static String ZONE_ID_OF_DAY_OF_TODAY;
+    public static SimpleDateFormat SIMPLE_DATE_FORMAT;
+    public static SimpleDateFormat DATE_FORMAT_WITH_HOURS;
+    public static int PAGEVIEWERS_REFRESH_TIME;
 
     //Guis
     public static int DEFAULT_GUI_UPDATE_TIME = 2;
