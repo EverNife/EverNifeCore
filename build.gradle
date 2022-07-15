@@ -74,7 +74,7 @@ dependencies {
     // @ DISCLAIMER @ //
     // @ DISCLAIMER @ //
     compileOnly name: "GriefPreventionPlus-13.3"
-    compileOnly name: "PlaceholderAPI"
+    compileOnly name: "PlaceholderAPI-2.11.2"
     compileOnly name: "worldguard-bukkit-6.2.2"
     compileOnly name: "worldedit-bukkit-6.0"
     compileOnly name: "Vault-1.6.7"
