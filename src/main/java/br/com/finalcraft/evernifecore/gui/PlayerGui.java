@@ -17,7 +17,7 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
     }
 
     public PlayerGui(P playerData, G gui) {
-        this.player = playerData.getPlayer();
+        this.player = playerData == null ? null : playerData.getPlayer();
         this.playerData = playerData;
         this.gui = gui;
     }
