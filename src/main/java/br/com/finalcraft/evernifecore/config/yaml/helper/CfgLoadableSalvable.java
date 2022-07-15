@@ -20,7 +20,7 @@ import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
-import de.tr7zw.changeme.nbtapi.NBTItem;
+import de.tr7zw.changeme.nbtapi.NBTContainer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -264,8 +264,22 @@ public class CfgLoadableSalvable {
 
                     String mcIdentifier = FCItemUtils.getMinecraftIdentifier(itemStack, false);
 
-                    if (NMSUtils.get().hasNBTTagCompound(itemStack)){
-                        configSection.setValue("minecraftIdentifier", mcIdentifier); //Only present when there is NBT
+                    NBTContainer nbtContainer = new NBTContainer(
+                            FCNBTUtil.getFrom(itemStack).toString() //On 1.16.5 editing the NBTItem might not work, so, lets copy the NBT first...
+                    );
+
+                    //Get the NBT and split it into a StringList of 100 chars lengh
+                    final String nbtString;
+                    if (MCVersion.isBellow1_13()){
+                        nbtString = nbtContainer.toString();
+                    }else {
+                        nbtContainer.removeKey("Damage"); //Don't need to save the damage twice
+                        nbtString = nbtContainer.toString();
+                    }
+
+                    if (!nbtString.isEmpty() && !nbtString.equals("{}")){ //If the NBT is not empty
+
+                        configSection.setValue("minecraftIdentifier", mcIdentifier);
                         InvItem invItem = InvItem.getInvItem(itemStack);
                         if (invItem != null){
                             configSection.setValue("invItem.name", invItem.name());
@@ -274,27 +288,17 @@ public class CfgLoadableSalvable {
                             }
                             return;
                         }
-                        //Get the NBT and split it into a StringList of 100 chars lengh
-                        String nbtString;
-                        if (MCVersion.isBellow1_13()){
-                            nbtString = FCNBTUtil.getFrom(itemStack).toString();
-                        }else {
-                            NBTItem nbtItem = new NBTItem(itemStack);
-                            nbtItem.removeKey("Damage"); //Don't need to save the damage twice
-                            nbtString = nbtItem.toString();
-                        }
 
-                        if (!nbtString.isEmpty() && !nbtString.equals("{}")){
-                            List<String> nbt = Arrays.asList(
-                                    Iterables.toArray(
-                                            Splitter
-                                                    .fixedLength(100)
-                                                    .split(nbtString),
-                                            String.class
-                                    )
-                            );
-                            configSection.setValue("nbt", nbt);
-                        }
+                        //split it into a StringList of 100 chars lengh
+                        List<String> nbt = Arrays.asList(
+                                Iterables.toArray(
+                                        Splitter
+                                                .fixedLength(100)
+                                                .split(nbtString),
+                                        String.class
+                                )
+                        );
+                        configSection.setValue("nbt", nbt);
                     }else {
                         configSection.setValue(null, mcIdentifier);
                     }
