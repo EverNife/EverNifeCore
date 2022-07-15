@@ -207,9 +207,6 @@ public class NMSUtils_v1_16_R3 implements INMSUtils {
 				throw new RuntimeException("No Registry found for: \"" + args[0] + "\" in [" + minecraftIdentifier + "]");
 			}
 			ItemStack itemStack = new ItemStack(item, count);
-			if (meta != 0){
-				itemStack.setDamage(meta);
-			}
 			if (args.length >= 4) {
 				StringBuilder stringBuilder = new StringBuilder();
 				for (int i = 3; i < args.length; i++) {
@@ -220,6 +217,9 @@ public class NMSUtils_v1_16_R3 implements INMSUtils {
 				}
 				NBTTagCompound nbtTagCompound = MojangsonParser.parse(stringBuilder.toString());
 				itemStack.setTag(nbtTagCompound);
+			}
+			if (meta != 0){
+				itemStack.setDamage(meta);
 			}
 			return CraftItemStack.asBukkitCopy(itemStack);
 		}catch (Exception e){
