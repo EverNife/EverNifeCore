@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.placeholder.base.PlaceholderProvider;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -49,8 +50,8 @@ public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O
     }
 
     @Override
-    public RegexReplacer<O> setDefaultParser(Function<O, Object> parser) {
-        getDefaultProvider().setDefaultParser(parser);
+    public RegexReplacer<O> setDefaultParser(BiFunction<O, String, Object> defaultParser) {
+        getDefaultProvider().setDefaultParser(defaultParser);
         return this;
     }
 

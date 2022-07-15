@@ -4,13 +4,14 @@ import br.com.finalcraft.evernifecore.placeholder.parser.SimpleParser;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class PlaceholderProvider<O extends Object> implements IProvider<O>{
 
     private final String provider_id;
     private final Map<String, SimpleParser> parser_map = new HashMap<>();
-    private SimpleParser generic_parser = null;
+    private BiFunction<O, String, Object> default_parser = null;
 
     public PlaceholderProvider(String providerID) {
         this.provider_id = providerID;
@@ -24,8 +25,8 @@ public class PlaceholderProvider<O extends Object> implements IProvider<O>{
         SimpleParser parser = parser_map.get(parameters);
 
         Object result = parser == null ? null : parser.apply(object);
-        if (result == null && generic_parser != null){
-            result = generic_parser.apply(object);
+        if (result == null && default_parser != null){
+            result = default_parser.apply(object, parameters);
         }
 
         return result == null ? null : String.valueOf(result);
@@ -44,8 +45,8 @@ public class PlaceholderProvider<O extends Object> implements IProvider<O>{
     }
 
     @Override
-    public PlaceholderProvider<O> setDefaultParser(Function<O, Object> parser) {
-        this.generic_parser = new SimpleParser("",parser);
+    public PlaceholderProvider<O> setDefaultParser(BiFunction<O, String, Object> defaultParser) {
+        this.default_parser = defaultParser;
         return this;
     }
 
