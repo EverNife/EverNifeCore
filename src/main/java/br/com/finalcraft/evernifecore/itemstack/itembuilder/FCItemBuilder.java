@@ -1,11 +1,13 @@
 package br.com.finalcraft.evernifecore.itemstack.itembuilder;
 
 import br.com.finalcraft.evernifecore.gui.item.GuiItemComplex;
+import br.com.finalcraft.evernifecore.gui.layout.LayoutIcon;
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.util.FCNBTUtil;
+import br.com.finalcraft.evernifecore.util.ReflectionUtil;
 import de.tr7zw.changeme.nbtapi.NBTCompound;
 import de.tr7zw.changeme.nbtapi.NBTContainer;
 import de.tr7zw.changeme.nbtapi.NBTItem;
@@ -77,6 +79,39 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
     @NotNull
     public GuiItem asGuiItem() {
         return new GuiItem(build());
+    }
+
+    /**
+     * Returns a GuiItem object that contains the ItemStack of this ItemBuilder.
+     *
+     * @return A GuiItem object.
+     */
+    @NotNull
+    public <GI extends GuiItem> GI asGuiItem(Class<GI> customGuiItem) {
+        return as(customGuiItem);
+    }
+
+    /**
+     * Returns a LayoutIcon object that contains the ItemStack of this ItemBuilder.
+     *
+     * @return A LayoutIcon object
+     */
+    @NotNull
+    public LayoutIcon asLayout() {
+        return new LayoutIcon(this.build(), new int[0], "");
+    }
+
+    /**
+     * Returns an ItemStackHolder object that contains the ItemStack of this ItemBuilder.
+     * An ItemStackHolder is any object that has a Construtor that has a sole argument
+     * of an ItemStack
+     *
+     * @return A LayoutIcon object
+     */
+    @NotNull
+    public <ItemStackHolder> ItemStackHolder as(Class<ItemStackHolder> itemStackHolderClass) {
+        return ReflectionUtil.getConstructor(itemStackHolderClass, ItemStack.class)
+                .invoke(this.build());
     }
 
     /**

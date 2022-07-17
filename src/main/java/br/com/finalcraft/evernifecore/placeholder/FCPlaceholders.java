@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 
 import java.util.List;
 
+@Deprecated
 public class FCPlaceholders {
 
     public static RegexReplacer<Player> PLAYER_REPLACER = new RegexReplacer<>();

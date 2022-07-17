@@ -11,7 +11,6 @@ import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
 import br.com.finalcraft.evernifecore.itemstack.invitem.InvItem;
-import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
