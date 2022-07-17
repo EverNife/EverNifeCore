@@ -7,7 +7,6 @@ import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
-import dev.triumphteam.gui.guis.BaseGui;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -19,12 +18,15 @@ import java.util.stream.Collectors;
 
 public class FCLayoutScanner {
 
-    public static <T extends LayoutBase> T loadLayout(Config config, Class<T> layoutClass){
+    public static <T extends LayoutBase> T loadLayout(Class<T> layoutClass){
+        Plugin plugin = JavaPlugin.getProvidingPlugin(layoutClass);
+        return loadLayout(plugin, new Config(plugin, "guis/" + layoutClass.getSimpleName() + ".yml"), layoutClass);
+    }
+
+    public static <T extends LayoutBase> T loadLayout(Plugin plugin, Config config, Class<T> layoutClass){
         try {
             T layoutInstance = layoutClass.newInstance();
             ConfigSection LAYOUT_SECTION = config.getConfigSection("Layout");
-
-            Plugin plugin = JavaPlugin.getProvidingPlugin(BaseGui.class);
 
             for (Field declaredField : layoutInstance.getClass().getDeclaredFields()) {
                 if (declaredField.getType() == LayoutIcon.class){
