@@ -11,6 +11,7 @@ import lombok.Setter;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -19,21 +20,17 @@ public class LayoutIcon {
 
     private final ItemStack itemStack;
     private final int[] slot;
+    private final boolean background;
 
     @Setter(AccessLevel.NONE)
     private final String permission;
 
     private transient List<String> dataPart = null; //Only populated on demand
 
-    public LayoutIcon(ItemStack itemStack, int[] slot, String permission) {
+    public LayoutIcon(ItemStack itemStack, int[] slot, boolean background, String permission, List<String> dataPart) {
         this.itemStack = itemStack;
         this.slot = slot;
-        this.permission = permission;
-    }
-
-    public LayoutIcon(ItemStack itemStack, int[] slot, String permission, List<String> dataPart) {
-        this.itemStack = itemStack;
-        this.slot = slot;
+        this.background = background;
         this.permission = permission;
         this.dataPart = dataPart;
     }
@@ -41,6 +38,11 @@ public class LayoutIcon {
     @NotNull
     public FCItemBuilder asFactory(){ //Even though it's return a FCItemBuilder, for better naming, lets keep 'asFactory'
         return FCItemFactory.from(this.getItemStack().clone());
+    }
+
+    @NotNull
+    public GuiItem applyTo(PlayerGui playerGui){
+        return applyTo(playerGui, GuiItem.class);
     }
 
     @NotNull
@@ -58,11 +60,12 @@ public class LayoutIcon {
 
     @NotNull
     public LayoutIcon parse(Function<List<String>, List<String>> placeholderParser){
-        List<String> newDataPart = placeholderParser.apply(this.getDataPart());
+        List<String> newDataPart = placeholderParser.apply(new ArrayList<>(getDataPart()));
 
         LayoutIcon layoutIcon = new LayoutIcon(
                 FCItemFactory.from(newDataPart).build(),
                 this.getSlot(),
+                background,
                 this.getPermission(),
                 newDataPart
         );
@@ -76,5 +79,9 @@ public class LayoutIcon {
             this.dataPart = ImmutableList.copyOf(FCItemFactory.from(this.getItemStack()).toDataPart());
         }
         return dataPart;
+    }
+
+    public boolean isBackground() {
+        return background;
     }
 }

@@ -17,4 +17,6 @@ public @interface LayoutIconData {
 
     FCLocale[] locale() default {};
 
+    boolean background() default false; //Background are Optional
+
 }

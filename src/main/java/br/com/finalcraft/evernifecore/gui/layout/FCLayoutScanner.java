@@ -7,13 +7,13 @@ import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
+import br.com.finalcraft.evernifecore.util.ReflectionUtil;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
-import java.util.List;
 import java.util.stream.Collectors;
 
 public class FCLayoutScanner {
@@ -24,63 +24,82 @@ public class FCLayoutScanner {
     }
 
     public static <T extends LayoutBase> T loadLayout(Plugin plugin, Config config, Class<T> layoutClass){
-        try {
-            T layoutInstance = layoutClass.newInstance();
-            ConfigSection LAYOUT_SECTION = config.getConfigSection("Layout");
 
-            for (Field declaredField : layoutInstance.getClass().getDeclaredFields()) {
-                if (declaredField.getType() == LayoutIcon.class){
+        T layoutInstance = ReflectionUtil.getConstructor(layoutClass).invoke();
+        layoutInstance.config = config;
 
-                    LayoutIcon layoutIcon = (LayoutIcon) declaredField.get(layoutInstance);
+        boolean hasAnyBackgroundAtStart = config.contains("Background");
 
-                    if (layoutIcon == null){
-                        plugin.getLogger().warning("[FCLayoutScanner] No LayoutIcon found on ["+ layoutClass.getClass().getName() + "] " + declaredField.toString());
-                        continue; //This is a dev error
-                    }
+        for (Field declaredField : layoutInstance.getClass().getDeclaredFields()) {
+            if (declaredField.getType() == LayoutIcon.class){
 
-                    String ICON_NAME = declaredField.getName();
-                    String permission = "";
-                    int[] slot = {-1};
-                    LocaleMessageImp localeMessage = null;
+                LayoutIcon layoutIcon = null;
+                try {
+                    layoutIcon = (LayoutIcon) declaredField.get(layoutInstance);
+                } catch (IllegalAccessException ignored) {
+                    ;
+                }
 
-                    LayoutIconData layoutIconData = declaredField.getAnnotation(LayoutIconData.class);
-                    if (layoutIconData != null){
-                        permission = layoutIconData.permission();
-                        slot = layoutIconData.slot();
+                if (layoutIcon == null){
+                    plugin.getLogger().warning("[FCLayoutScanner] No LayoutIcon found on ["+ layoutClass.getClass().getName() + "] " + declaredField.toString());
+                    continue; //This is a dev error
+                }
 
-                        //In case we have @FCLocale
-                        if (layoutIconData.locale().length > 0){
-                            FCLocaleData[] localeData = Arrays.stream(layoutIconData.locale())
-                                    .map(FCLocaleData::new)
-                                    .collect(Collectors.toList())
-                                    .toArray(new FCLocaleData[0]);
+                String ICON_NAME = declaredField.getName();
+                String permission = "";
+                int[] slot = {};
+                boolean background = false;
+                LocaleMessageImp localeMessage = new LocaleMessageImp(plugin,
+                        ICON_NAME,
+                        false
+                );;
 
-                            localeMessage = new LocaleMessageImp(plugin,
-                                    layoutClass.getSimpleName() + "." + ICON_NAME,
-                                    false
+                // =========== Apply Configurations from @LayoutIconData ===========
+                LayoutIconData layoutIconData = declaredField.getAnnotation(LayoutIconData.class);
+                if (layoutIconData != null){
+                    permission = layoutIconData.permission();
+                    slot = layoutIconData.slot();
+                    background = layoutIconData.background();
+
+                    //In case we have @FCLocale
+                    if (layoutIconData.locale().length > 0){
+                        FCLocaleData[] localeData = Arrays.stream(layoutIconData.locale())
+                                .map(FCLocaleData::new)
+                                .collect(Collectors.toList())
+                                .toArray(new FCLocaleData[0]);
+
+                        for (FCLocaleData fcLocale : localeData) {
+                            localeMessage.addLocale(fcLocale.lang(),
+                                    new FancyText(
+                                            fcLocale.text(),
+                                            fcLocale.hover()
+                                    )
                             );
-
-                            for (FCLocaleData fcLocale : localeData) {
-                                localeMessage.addLocale(fcLocale.lang(),
-                                        new FancyText(
-                                                fcLocale.text(),
-                                                fcLocale.hover()
-                                        )
-                                );
-                            }
                         }
                     }
+                }
 
+                if (localeMessage.getFancyTextMap().size() == 0){
+                    //This means there was no locale on this LayoutIcon
+                    //Lets just extract it from the ItemStak itself
+                    //TODO Add this in the future for Multiple Localization
+                }
 
-                    ConfigSection itemSection = LAYOUT_SECTION.getConfigSection(ICON_NAME);
+                // =========== Save Defaults on the Config ===========
+                String SECTION_KEY = background ? "Background" : "Layout";
+                ConfigSection itemSection = config.getConfigSection(SECTION_KEY + "." + ICON_NAME);
 
-                    // =========== Save Defaults ===========
-                    itemSection.setDefaultValue("Slot", slot.length == 1 ? slot[0] : slot); //Save Slot as INTEGER or INT_ARRAY based on it's size
+                if (background == false || !hasAnyBackgroundAtStart){
+                    //When a background, it will only save Defaults if there is already no existing Background LayoutIcon on the config
+
+                    itemSection.setDefaultValue("Slot", slot);
+
                     if (!permission.isEmpty()){
                         itemSection.setDefaultValue("Permission", permission);
                     }
+
                     FCItemBuilder itemBuilder = FCItemFactory.from(layoutIcon.getItemStack());
-                    if (localeMessage != null){
+                    if (localeMessage != null && localeMessage.getFancyTextMap().size() > 0){
                         String displayName = localeMessage.getDefaultFancyText().getText();
                         String hoverText = localeMessage.getDefaultFancyText().getHoverText();
 
@@ -94,29 +113,37 @@ public class FCLayoutScanner {
                     }
 
                     //The Default Values name and lore are based on the Default plugin locale.
-                    itemSection.setDefaultValue("DisplayItem",itemBuilder.toDataPart());
+                    itemSection.setDefaultValue("DisplayItem", itemBuilder.toDataPart());
+                }
 
-                    // ===========  Load Values ===========
-                    if (itemSection.getValue("Slot") instanceof List){
-                        slot = itemSection.getList("Slot").stream().mapToInt(value -> (int) value).toArray();
-                    }else {
-                        slot = new int[]{itemSection.getInt("Slot")};
-                    }
+                // ===========  Load Values From the Config ===========
+                try {
+                    slot = itemSection.getStringList("Slot")
+                            .stream()
+                            .mapToInt(value -> Integer.valueOf(value))
+                            .toArray();
                     permission = itemSection.getString("Permission","");
-                    ItemStack itemStack = itemSection.getLoadable("DisplayItem", ItemStack.class);
+                    ItemStack itemStack = FCItemFactory.from(
+                            itemSection.getStringList("DisplayItem")
+                    ).build();
 
-                    LayoutIcon newLayout = new LayoutIcon(itemStack, slot, permission);
+                    LayoutIcon newLayout = new LayoutIcon(itemStack, slot, false, permission, null);
                     declaredField.set(layoutInstance, newLayout);
-                    layoutInstance.getLayoutIcons().add(newLayout);
+
+                    if (background){
+                        layoutInstance.getBackgroundIcons().add(newLayout);
+                    }else {
+                        layoutInstance.getLayoutIcons().add(newLayout);
+                    }
+                }catch (Exception e){
+                    plugin.getLogger().warning("[FCLayoutScanner] Failed to load LayoutIcon {" + ICON_NAME + "} from " + config.getAbsolutePath());
+                    e.printStackTrace();
                 }
             }
-
-            return layoutInstance;
-        } catch (InstantiationException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
         }
+
+        config.saveIfNewDefaults();
+        return layoutInstance;
     }
 
 }

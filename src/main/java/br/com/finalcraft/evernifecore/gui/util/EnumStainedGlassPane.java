@@ -1,7 +1,9 @@
 package br.com.finalcraft.evernifecore.gui.util;
 
+import br.com.finalcraft.evernifecore.gui.layout.LayoutIcon;
+import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
+import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
 import br.com.finalcraft.evernifecore.version.MCVersion;
-import dev.triumphteam.gui.builder.item.ItemBuilder;
 import dev.triumphteam.gui.guis.GuiItem;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -28,6 +30,7 @@ public enum EnumStainedGlassPane {
     private final Material material;
     private final short damage;
     private final char colorCode;
+    private transient LayoutIcon layoutIcon = null;
     private transient GuiItem guiItem = null;
 
     EnumStainedGlassPane(char colorCode) {
@@ -54,10 +57,16 @@ public enum EnumStainedGlassPane {
         return colorCode;
     }
 
-    public ItemBuilder builder(){
-        ItemBuilder itemBuilder = ItemBuilder.from(material);
-        if (damage != 0) itemBuilder.durability(damage);
-        return itemBuilder;
+    public FCItemBuilder builder(){
+        return FCItemFactory.from(this.material)
+                .applyIf(() -> damage != 0, fcItemBuilder -> fcItemBuilder.durability(this.damage));
+    }
+
+    public LayoutIcon asLayout(){
+        if (layoutIcon == null) {
+            layoutIcon = builder().name("§" + this.colorCode + "§l❂").asLayout();
+        }
+        return layoutIcon;
     }
 
     public GuiItem asBackground(){

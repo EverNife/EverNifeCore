@@ -98,7 +98,7 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
      */
     @NotNull
     public LayoutIcon asLayout() {
-        return new LayoutIcon(this.build(), new int[0], "");
+        return new LayoutIcon(this.build(), new int[0], false, "", null);
     }
 
     /**
