@@ -10,6 +10,12 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
     private final P playerData;
     private final G gui;
 
+    public PlayerGui() {
+        this.player = null;
+        this.playerData = null;
+        this.gui = null;
+    }
+
     public PlayerGui(Player player, P playerData, G gui) {
         this.player = player;
         this.playerData = playerData;
@@ -19,6 +25,12 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
     public PlayerGui(P playerData, G gui) {
         this.player = playerData == null ? null : playerData.getPlayer();
         this.playerData = playerData;
+        this.gui = gui;
+    }
+
+    public PlayerGui(G gui) {
+        this.player = null;
+        this.playerData = null;
         this.gui = gui;
     }
 
