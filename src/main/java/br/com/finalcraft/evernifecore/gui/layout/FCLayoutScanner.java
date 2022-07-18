@@ -27,6 +27,13 @@ public class FCLayoutScanner {
 
         T layoutInstance = ReflectionUtil.getConstructor(layoutClass).invoke();
         layoutInstance.config = config;
+        layoutInstance.title = layoutInstance.defaultTitle();
+
+        if (layoutInstance.title.isEmpty()){
+            layoutInstance.title = "➲  §0§l" + layoutClass.getSimpleName();
+        }
+
+        layoutInstance.title = config.getOrSetDefaultValue("Settings.title", layoutInstance.title);
 
         boolean hasAnyBackgroundAtStart = config.contains("Background");
 

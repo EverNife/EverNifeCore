@@ -10,6 +10,7 @@ public abstract class LayoutBase {
     private List<LayoutIcon> layoutIcons = new ArrayList<>();
     private List<LayoutIcon> backgroundIcons = new ArrayList<>();
     protected Config config = null; //Populated on the Scanner
+    protected String title = null; //Populated on the Scanner
 
     public List<LayoutIcon> getLayoutIcons() {
         return layoutIcons;
@@ -21,5 +22,13 @@ public abstract class LayoutBase {
 
     public Config getConfig() {
         return config;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    protected String defaultTitle(){
+        return "";
     }
 }
