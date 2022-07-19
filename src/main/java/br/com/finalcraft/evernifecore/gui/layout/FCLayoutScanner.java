@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
+import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.ReflectionUtil;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -27,11 +28,7 @@ public class FCLayoutScanner {
 
         T layoutInstance = ReflectionUtil.getConstructor(layoutClass).invoke();
         layoutInstance.config = config;
-        layoutInstance.title = layoutInstance.defaultTitle();
-
-        if (layoutInstance.title.isEmpty()){
-            layoutInstance.title = "➲  §0§l" + layoutClass.getSimpleName();
-        }
+        layoutInstance.title = layoutInstance.defaultTitle().replace("%layout_name%", layoutClass.getSimpleName());
 
         layoutInstance.title = config.getOrSetDefaultValue("Settings.title", layoutInstance.title);
 
@@ -107,8 +104,8 @@ public class FCLayoutScanner {
 
                     FCItemBuilder itemBuilder = FCItemFactory.from(layoutIcon.getItemStack());
                     if (localeMessage != null && localeMessage.getFancyTextMap().size() > 0){
-                        String displayName = localeMessage.getDefaultFancyText().getText();
-                        String hoverText = localeMessage.getDefaultFancyText().getHoverText();
+                        String displayName = FCColorUtil.colorfy(localeMessage.getDefaultFancyText().getText());
+                        String hoverText = FCColorUtil.colorfy(localeMessage.getDefaultFancyText().getHoverText());
 
                         if (!displayName.isEmpty()){
                             itemBuilder.name(displayName);
@@ -148,6 +145,8 @@ public class FCLayoutScanner {
                 }
             }
         }
+
+        layoutInstance.onLayoutLoad();
 
         config.saveIfNewDefaults();
         return layoutInstance;

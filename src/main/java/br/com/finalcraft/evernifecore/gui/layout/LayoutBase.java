@@ -12,6 +12,17 @@ public abstract class LayoutBase {
     protected Config config = null; //Populated on the Scanner
     protected String title = null; //Populated on the Scanner
 
+    // =================================================================================================================
+    protected void onLayoutLoad(){
+
+    }
+
+    protected String defaultTitle(){
+        return "➲  §0§l%layout_name%";
+    }
+    // =================================================================================================================
+
+
     public List<LayoutIcon> getLayoutIcons() {
         return layoutIcons;
     }
@@ -26,9 +37,5 @@ public abstract class LayoutBase {
 
     public String getTitle() {
         return title;
-    }
-
-    protected String defaultTitle(){
-        return "";
     }
 }
