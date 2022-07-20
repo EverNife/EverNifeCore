@@ -22,7 +22,7 @@ public class FCGuiFactory {
         return new StorageBuilder();
     }
 
-    public static <G extends BaseGui, B extends BaseGuiBuilder<G, B>> B from(Class<? extends BaseGuiBuilder<G, B>> classBuilder){
+    public static <B extends BaseGuiBuilder> B from(Class<B> classBuilder){
         if (classBuilder == SimpleBuilder.class) return (B) simple();
         if (classBuilder == ComplexGuiBuilder.class) return (B) complex();
         if (classBuilder == StorageBuilder.class) return (B) storage();
