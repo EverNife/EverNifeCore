@@ -9,8 +9,10 @@ public abstract class LayoutBase {
 
     private List<LayoutIcon> layoutIcons = new ArrayList<>();
     private List<LayoutIcon> backgroundIcons = new ArrayList<>();
+
     protected Config config = null; //Populated on the Scanner
     protected String title = null; //Populated on the Scanner
+    protected int rows = 6; //Populated on the Scanner
 
     // =================================================================================================================
     protected void onLayoutLoad(){
@@ -20,8 +22,12 @@ public abstract class LayoutBase {
     protected String defaultTitle(){
         return "➲  §0§l%layout_name%";
     }
-    // =================================================================================================================
 
+    protected int defaultRows(){
+        return 6;
+    }
+
+    // =================================================================================================================
 
     public List<LayoutIcon> getLayoutIcons() {
         return layoutIcons;
@@ -37,5 +43,9 @@ public abstract class LayoutBase {
 
     public String getTitle() {
         return title;
+    }
+
+    public int getRows() {
+        return rows;
     }
 }
