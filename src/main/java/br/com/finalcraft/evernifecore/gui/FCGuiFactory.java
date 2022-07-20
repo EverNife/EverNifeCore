@@ -1,9 +1,11 @@
 package br.com.finalcraft.evernifecore.gui;
 
 import br.com.finalcraft.evernifecore.gui.builders.ComplexGuiBuilder;
+import dev.triumphteam.gui.builder.gui.BaseGuiBuilder;
 import dev.triumphteam.gui.builder.gui.SimpleBuilder;
 import dev.triumphteam.gui.builder.gui.StorageBuilder;
 import dev.triumphteam.gui.components.GuiType;
+import dev.triumphteam.gui.guis.BaseGui;
 import dev.triumphteam.gui.guis.Gui;
 
 public class FCGuiFactory {
@@ -18,6 +20,14 @@ public class FCGuiFactory {
 
     public static StorageBuilder storage(){
         return new StorageBuilder();
+    }
+
+    public static <G extends BaseGui, B extends BaseGuiBuilder<G, B>> B from(Class<? extends BaseGuiBuilder<G, B>> classBuilder){
+        if (classBuilder == SimpleBuilder.class) return (B) simple();
+        if (classBuilder == ComplexGuiBuilder.class) return (B) complex();
+        if (classBuilder == StorageBuilder.class) return (B) storage();
+
+        throw new IllegalArgumentException("No builder found for " + classBuilder.getName());
     }
 
 }
