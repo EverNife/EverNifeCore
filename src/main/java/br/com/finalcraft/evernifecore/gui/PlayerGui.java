@@ -6,16 +6,16 @@ import org.bukkit.entity.Player;
 
 public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
 
-    private final Player player;
-    private final P playerData;
-    private final G gui;
+    private Player player = null;
+    private P playerData = null;
+    private G gui = null;
+    private transient PlayerGui previousGui = null;
 
     public PlayerGui() {
-        this.player = null;
-        this.playerData = null;
-        this.gui = null;
+
     }
 
+    @Deprecated
     public PlayerGui(Player player, P playerData, G gui) {
         this.player = player;
         this.playerData = playerData;
@@ -29,9 +29,23 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
     }
 
     public PlayerGui(G gui) {
-        this.player = null;
-        this.playerData = null;
         this.gui = gui;
+    }
+
+    protected PlayerGui<P, G> setGui(G gui) {
+        this.gui = gui;
+        return this;
+    }
+
+    protected PlayerGui<P, G> setPlayer(Player player) {
+        this.player = player;
+        return this;
+    }
+
+    protected PlayerGui<P, G> setPlayerData(P playerData) {
+        this.playerData = playerData;
+        this.player = playerData != null ? player.getPlayer() : null;
+        return this;
     }
 
     public P getPlayerData() {
@@ -50,7 +64,16 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
         this.getGui().open(getPlayer());
     }
 
+    public void open(PlayerGui previousGui){
+        this.previousGui = previousGui;
+        this.getGui().open(getPlayer());
+    }
+
     public void close(){
         this.getGui().close(getPlayer());
+    }
+
+    public PlayerGui getPreviousGui() {
+        return previousGui;
     }
 }
