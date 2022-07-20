@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.gui;
 
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.gui.layout.IHasLayout;
 import dev.triumphteam.gui.guis.BaseGui;
 import org.bukkit.entity.Player;
 
@@ -30,6 +31,18 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
 
     public PlayerGui(G gui) {
         this.gui = gui;
+    }
+
+    protected void setupLayout(IHasLayout iHasLayout){
+        setGui((G) FCGuiFactory.simple()
+                .rows(iHasLayout.layout().getRows())
+                .title(iHasLayout.layout().getTitle())
+                .disableAllInteractions()
+                .create()
+        );
+
+        //Set Background
+        iHasLayout.layout().getBackgroundIcons().forEach(layoutIcon -> layoutIcon.applyTo(this));
     }
 
     protected PlayerGui<P, G> setGui(G gui) {
