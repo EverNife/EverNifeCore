@@ -212,7 +212,9 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
      */
     @NotNull
     public FCItemBuilder mergeNBTCompound(@NotNull NBTCompound compoundTag) {
+        this.itemStack.setItemMeta(this.meta); //Apply the current meta before merging it
         FCNBTUtil.getFrom(this.itemStack).mergeCompound(compoundTag);
+        this.meta = itemStack.getItemMeta(); //Get the ItemMeta back, maybe it was changed on the merging
         return this;
     }
 
