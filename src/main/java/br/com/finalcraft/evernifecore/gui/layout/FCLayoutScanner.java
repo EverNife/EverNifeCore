@@ -125,14 +125,21 @@ public class FCLayoutScanner {
 
                 // ===========  Load Values From the Config ===========
                 try {
-                    slot = itemSection.getStringList("Slot")
-                            .stream()
-                            .mapToInt(value -> Integer.valueOf(value))
-                            .toArray();
-                    permission = itemSection.getString("Permission","");
-                    ItemStack itemStack = FCItemFactory.from(
-                            itemSection.getStringList("DisplayItem")
-                    ).build();
+                    if (itemSection.contains("Slot")){
+                        slot = itemSection.getStringList("Slot")
+                                .stream()
+                                .mapToInt(value -> Integer.valueOf(value))
+                                .toArray();
+                    }
+
+                    permission = itemSection.getString("Permission", permission);
+
+                    ItemStack itemStack = layoutIcon.getItemStack();
+                    if (itemSection.contains("DisplayItem")){
+                        itemStack = FCItemFactory.from(
+                                itemSection.getStringList("DisplayItem")
+                        ).build();
+                    }
 
                     LayoutIcon newLayout = new LayoutIcon(itemStack, slot, false, permission, null);
                     declaredField.set(layoutInstance, newLayout);
