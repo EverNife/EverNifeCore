@@ -5,6 +5,8 @@ import br.com.finalcraft.evernifecore.gui.layout.IHasLayout;
 import dev.triumphteam.gui.guis.BaseGui;
 import org.bukkit.entity.Player;
 
+import java.util.function.Function;
+
 public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
 
     private Player player = null;
@@ -23,6 +25,11 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
         this.gui = gui;
     }
 
+    public PlayerGui(P playerData) {
+        this.player = playerData == null ? null : playerData.getPlayer();
+        this.playerData = playerData;
+    }
+
     public PlayerGui(P playerData, G gui) {
         this.player = playerData == null ? null : playerData.getPlayer();
         this.playerData = playerData;
@@ -34,9 +41,17 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
     }
 
     protected void setupLayout(IHasLayout iHasLayout){
+        setupLayout(iHasLayout, null);
+    }
+
+    protected void setupLayout(IHasLayout iHasLayout, Function<String,String> titleParser){
+        String title = iHasLayout.layout().getTitle();
+        if (titleParser != null){
+            title = titleParser.apply(title);
+        }
         setGui((G) FCGuiFactory.simple()
                 .rows(iHasLayout.layout().getRows())
-                .title(iHasLayout.layout().getTitle())
+                .title(title)
                 .disableAllInteractions()
                 .create()
         );
