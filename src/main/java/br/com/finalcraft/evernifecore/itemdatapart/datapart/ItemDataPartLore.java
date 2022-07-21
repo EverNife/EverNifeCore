@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.itemdatapart.datapart;
 
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -58,7 +59,11 @@ public class ItemDataPartLore extends ItemDataPart {
             for (String line : itemStack.getItemMeta().getLore()) {
                 String split[] = line.split("\\R", -1);
                 for (String splitedLine : split) {
-                    output.add("lore:" + splitedLine.replaceAll(String.valueOf(ChatColor.COLOR_CHAR), "&"));
+                    if (FCColorUtil.stripColor(splitedLine).isEmpty()){//Without colors, this line is empty!
+                        output.add("lore:");
+                    }else {
+                        output.add("lore:" + splitedLine.replaceAll(String.valueOf(ChatColor.COLOR_CHAR), "&"));
+                    }
                 }
             }
         }
