@@ -72,7 +72,7 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
 
     protected PlayerGui<P, G> setPlayerData(P playerData) {
         this.playerData = playerData;
-        this.player = playerData != null ? player.getPlayer() : null;
+        this.player = playerData == null ? null : playerData.getPlayer();
         return this;
     }
 
