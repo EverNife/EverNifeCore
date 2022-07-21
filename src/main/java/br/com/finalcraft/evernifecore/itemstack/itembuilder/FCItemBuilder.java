@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.itemstack.itembuilder;
 
 import br.com.finalcraft.evernifecore.gui.item.GuiItemComplex;
 import br.com.finalcraft.evernifecore.gui.layout.LayoutIcon;
+import br.com.finalcraft.evernifecore.gui.layout.LayoutIconBuilder;
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
@@ -24,10 +25,19 @@ import java.util.function.Supplier;
 
 public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
 
+    private transient LayoutIcon layout; //This will be present when the FCItemBuilder comes from an LayoutIcon
+
     public FCItemBuilder(@NotNull ItemStack itemStack) {
         super(NMSUtils.get() != null
                 ? NMSUtils.get().validateItemStackHandle(itemStack) //Always build an item with a Valid MCItemStack on it;
                 : itemStack);
+    }
+
+    public FCItemBuilder(@NotNull ItemStack itemStack, LayoutIcon layoutIcon) {
+        super(NMSUtils.get() != null
+                ? NMSUtils.get().validateItemStackHandle(itemStack) //Always build an item with a Valid MCItemStack on it;
+                : itemStack);
+        this.layout = layoutIcon;
     }
 
     /**
@@ -98,8 +108,16 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
      */
     @NotNull
     public LayoutIcon asLayout() {
-        return new LayoutIcon(this.build(), new int[0], false, "", null);
+        if (layout != null){
+            return LayoutIconBuilder.of(layout)
+                    .setDataPart(null) //Need to recalculate data-part as it was probably changed on the factory
+                    .setItemStack(build())
+                    .build();
+        }else {
+            return new LayoutIcon(this.build(), new int[0], false, "", null);
+        }
     }
+
 
     /**
      * Returns an ItemStackHolder object that contains the ItemStack of this ItemBuilder.

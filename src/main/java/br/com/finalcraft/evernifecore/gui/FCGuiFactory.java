@@ -5,7 +5,6 @@ import dev.triumphteam.gui.builder.gui.BaseGuiBuilder;
 import dev.triumphteam.gui.builder.gui.SimpleBuilder;
 import dev.triumphteam.gui.builder.gui.StorageBuilder;
 import dev.triumphteam.gui.components.GuiType;
-import dev.triumphteam.gui.guis.BaseGui;
 import dev.triumphteam.gui.guis.Gui;
 
 public class FCGuiFactory {

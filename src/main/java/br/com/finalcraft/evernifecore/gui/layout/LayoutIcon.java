@@ -5,9 +5,7 @@ import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
 import com.google.common.collect.ImmutableList;
 import dev.triumphteam.gui.guis.GuiItem;
-import lombok.AccessLevel;
 import lombok.Data;
-import lombok.Setter;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -21,8 +19,6 @@ public class LayoutIcon {
     private final ItemStack itemStack;
     private final int[] slot;
     private final boolean background;
-
-    @Setter(AccessLevel.NONE)
     private final String permission;
 
     private transient List<String> dataPart = null; //Only populated on demand
@@ -37,7 +33,7 @@ public class LayoutIcon {
 
     @NotNull
     public FCItemBuilder asFactory(){ //Even though it's return a FCItemBuilder, for better naming, lets keep 'asFactory'
-        return FCItemFactory.from(this.getItemStack().clone());
+        return new FCItemBuilder(this.getItemStack().clone(), this);
     }
 
     @NotNull
@@ -65,7 +61,7 @@ public class LayoutIcon {
         LayoutIcon layoutIcon = new LayoutIcon(
                 FCItemFactory.from(newDataPart).build(),
                 this.getSlot(),
-                background,
+                this.background,
                 this.getPermission(),
                 newDataPart
         );
@@ -83,5 +79,9 @@ public class LayoutIcon {
 
     public boolean isBackground() {
         return background;
+    }
+
+    public LayoutIconBuilder asBuilder(){
+        return LayoutIconBuilder.of(this);
     }
 }
