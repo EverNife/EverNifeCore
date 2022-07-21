@@ -94,7 +94,7 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
 
     public void open(PlayerGui previousGui){
         this.previousGui = previousGui;
-        this.getGui().open(getPlayer());
+        this.open();
     }
 
     public void close(){
