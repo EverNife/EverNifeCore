@@ -4,13 +4,11 @@ import br.com.finalcraft.evernifecore.gui.item.GuiItemComplex;
 import br.com.finalcraft.evernifecore.gui.layout.LayoutIcon;
 import br.com.finalcraft.evernifecore.gui.layout.LayoutIconBuilder;
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
-import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.util.FCNBTUtil;
 import br.com.finalcraft.evernifecore.util.ReflectionUtil;
-import br.com.finalcraft.evernifecore.version.MCVersion;
 import de.tr7zw.changeme.nbtapi.NBTCompound;
 import de.tr7zw.changeme.nbtapi.NBTContainer;
 import de.tr7zw.changeme.nbtapi.NBTItem;
@@ -18,7 +16,6 @@ import dev.triumphteam.gui.builder.item.BaseItemBuilder;
 import dev.triumphteam.gui.guis.GuiItem;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.Damageable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -187,29 +184,7 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
      */
     @NotNull
     public FCItemBuilder material(@NotNull Material material) {
-        if (MCVersion.isBellow1_13()){
-            itemStack.setType(material);
-        }else {
-            //Because of some crazynes of the newer versions, all this is necessary,
-            //if not, the item will be turn into AIR
-            ItemStack oldItem = this.build(); //Get Result Item with the new ItemMeta
-            ItemStack newItem = FCItemFactory.from(material).build(); //Plain new Item with no meta
-
-            //Copy Damage from before and apply directly
-            NBTContainer oldItemNBT = FCNBTUtil.getFrom(FCNBTUtil.getFrom(oldItem).toString());
-            if (oldItem.getItemMeta() instanceof Damageable){
-                oldItemNBT.removeKey("Damage"); //Lets remove Damage Key from the NBT
-                if (newItem.getItemMeta() instanceof Damageable){
-                    newItem.setDurability(oldItem.getDurability()); //Apply new Damage directly
-                }
-            }
-
-            //Apply previous NBT on the new Item
-            NBTItem newItemNBT = FCNBTUtil.getFrom(newItem);
-            newItemNBT.mergeCompound(oldItemNBT);
-            this.itemStack = newItem;
-            this.meta = newItem.getItemMeta();
-        }
+        itemStack.setType(material);
         return this;
     }
 
@@ -274,12 +249,5 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
     @NotNull
     public List<String> toDataPart(){
         return ItemDataPart.readItem(this.build());
-    }
-
-    @Override
-    public @NotNull ItemStack build() {
-        return NMSUtils.get() == null
-                ? super.build()
-                : NMSUtils.get().validateItemStackHandle(super.build()); //Validate ItemStack to prevent some NPE on nbts
     }
 }
