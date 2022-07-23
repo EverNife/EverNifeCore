@@ -65,8 +65,8 @@ public class ECPluginManager {
         //Some ECPlugins might have subModules or Addons, reload them if necessary
         for (ECPluginData ecPlugin : new ArrayList<>(ECPLUGINS_MAP.values())) {
             if (ecPlugin.canReload()){
-                for (Class<?> aClass : ecPlugin.getReloadAfter()) {
-                    if (instance.getClass() == aClass){
+                for (String pluginName : ecPlugin.getReloadAfter()) {
+                    if (instance.getName().equalsIgnoreCase(pluginName)){
                         ecPlugin.getPlugin().getLogger().info("[ECPlugin] Reloading by demand of ´" + instance.getName() + "´ reload.");
                         ecPlugin.reloadPlugin();
                     }

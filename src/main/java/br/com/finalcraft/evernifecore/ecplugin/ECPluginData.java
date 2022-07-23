@@ -22,7 +22,7 @@ public class ECPluginData {
 
     private final Plugin plugin;
     private final Runnable onReload;
-    private final Class<?>[] reloadAfter;
+    private final String[] reloadAfter;
     private String updateLink = null;
     private String pluginLanguage;
     private HashMap<String,LocaleMessageImp> localizedMessages = new HashMap();
@@ -53,7 +53,7 @@ public class ECPluginData {
             this.reloadAfter = reloadMethod.getAnnotation(ECPlugin.Reload.class).reloadAfter();
         }else {
             this.onReload = null;
-            this.reloadAfter = new Class[0];
+            this.reloadAfter = new String[0];
         }
 
         for (LocaleType type : LocaleType.values()) {
@@ -177,7 +177,7 @@ public class ECPluginData {
         }
     }
 
-    public Class<?>[] getReloadAfter() {
+    public String[] getReloadAfter() {
         return reloadAfter;
     }
 
