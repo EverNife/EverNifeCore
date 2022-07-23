@@ -45,27 +45,27 @@ public class ConfigSection{
     }
 
     private String concatSubPath(@Nullable String subPath){
-        return subPath == null ? this.path : this.path + "." + subPath;
+        return subPath == null || subPath.isEmpty() ? this.path : this.path + "." + subPath;
     }
 
     // ------------------------------------------------------------------------------------------------------------------
     //      Comment System Functions
     // ------------------------------------------------------------------------------------------------------------------
 
-    public void setComment(@NotNull String path, @NotNull String comment, @NotNull CommentType type) {
-        this.config.setComment(path, comment, type);
+    public void setComment(@Nullable String subPath, @NotNull String comment, @NotNull CommentType type) {
+        config.setComment(concatSubPath(subPath), comment, type);
     }
 
-    public void setComment(@NotNull String path, @NotNull String comment) {
-        this.config.setComment(path, comment);
+    public void setComment(@Nullable String subPath, @NotNull String comment) {
+        config.setComment(concatSubPath(subPath), comment);
     }
 
-    public String getComment(@NotNull String path, @NotNull CommentType type) {
-        return this.config.getComment(path, type);
+    public String getComment(@Nullable String subPath, @NotNull CommentType type) {
+        return config.getComment(concatSubPath(subPath), type);
     }
 
-    public String getComment(@NotNull String path) {
-        return this.config.getComment(path);
+    public String getComment(@Nullable String subPath) {
+        return config.getComment(concatSubPath(subPath));
     }
 
     // ------------------------------------------------------------------------------------------------------------------
