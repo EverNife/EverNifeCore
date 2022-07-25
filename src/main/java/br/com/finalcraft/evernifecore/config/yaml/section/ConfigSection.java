@@ -12,7 +12,7 @@ import java.util.UUID;
 public class ConfigSection{
 
     private final Config config;
-    private final String path;
+    private String path;
     private transient String lastPathIndex = null; //Only populated when requested!
 
     public ConfigSection(Config config, String path) {
@@ -46,6 +46,11 @@ public class ConfigSection{
 
     private String concatSubPath(@Nullable String subPath){
         return subPath == null || subPath.isEmpty() ? this.path : this.path + "." + subPath;
+    }
+
+    public void setCustomKeyIndex(String customKeyIndex) {
+        this.lastPathIndex = customKeyIndex;
+        this.path = path + "." + customKeyIndex;
     }
 
     // ------------------------------------------------------------------------------------------------------------------

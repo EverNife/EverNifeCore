@@ -452,10 +452,40 @@ public class Config {
                         return;
                     }
 
-                    //If does not support being saved on a String, create custom Indexes
+                    //If does not support being saved on a Single String, we need to create custom Indexes
                     //Save each element under "path.index"
-                    for (int index = 0; index < newList.size(); index++) {
-                        this.setValue(path + "." + index, newList.get(index));
+
+                    //There are two cases
+                        //The object does not use it's KEY as argument, so the index can be a simple number
+                        //The object uses the KEY as argument to be loaded, the index is a custom string
+
+                    //To find out, lets save the first value.
+                    //Yes, at each Iterable<> we waste one operation when the LoadableSalvable use a custom index
+                    this.setValue(path + ".0", newList.get(0));
+
+                    boolean useCustomIndex = false;
+
+                    //If the first value saved creates a SINGLE section inside itself to save it's contents, it means
+                    //it uses the KEY as an attribute
+
+                    //TODO Replace this system on the future, creating a variable inside the ConfigSection and
+                    // make the setValue() return this ConfigSection, even as a private Function
+
+                    Set<String> keys = this.getKeys(path + ".0");
+                    if (keys.size() == 1){
+                        String theOnlyKey = keys.iterator().next();
+                        useCustomIndex = this.yamlFile.isConfigurationSection(path + ".0." + theOnlyKey);
+                        if (useCustomIndex){
+                            this.setValue(path + ".0", null); //Erase the written value
+                        }
+                    }
+
+                    for (int count = useCustomIndex ? 0 : 1; count < newList.size(); count++) {
+                        String index = useCustomIndex == false
+                                ? "." + count //Simple Numbers as Index
+                                : ""; //Leave empty, it means the LoadableSalvable will create its own index
+
+                        this.setValue(path + index, newList.get(count));
                     }
                     return;
                 }
@@ -658,7 +688,7 @@ public class Config {
     public <D> @NotNull List<D> getOrSetDefaultValue(@NotNull String path, @NotNull List<D> def, @Nullable String comment) {
         List<D> theValue = getOrSetDefaultValue(path, def);
         String existingComment = getComment(path);
-        if ((existingComment == null && comment != null) || !existingComment.equals(comment)){
+        if ((existingComment == null && comment != null) || (existingComment != null && !existingComment.equals(comment))){
             setComment(path, comment);
             newDefaultValueToSave = true;
         }
@@ -684,7 +714,7 @@ public class Config {
     public <D> @NotNull D getOrSetDefaultValue(@NotNull String path, @NotNull D def, @Nullable String comment) {
         D theValue = getOrSetDefaultValue(path, def);
         String existingComment = getComment(path);
-        if ((existingComment == null && comment != null) || !existingComment.equals(comment)){
+        if ((existingComment == null && comment != null) || (existingComment != null && !existingComment.equals(comment))){
             setComment(path, comment);
             newDefaultValueToSave = true;
         }
