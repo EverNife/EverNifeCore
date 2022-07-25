@@ -47,6 +47,7 @@ public class LayoutIcon {
 
         if (this.permission.isEmpty() || (playerGui.getPlayer() != null && playerGui.getPlayer().hasPermission(this.permission))){
             for (int slot : this.slot) {
+                if (slot < 0) continue;
                 playerGui.getGui().setItem(slot, guiItem);
             }
         }
