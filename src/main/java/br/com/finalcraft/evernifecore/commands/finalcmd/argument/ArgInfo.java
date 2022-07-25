@@ -12,17 +12,11 @@ public class ArgInfo {
     private final int index;
     private final boolean required;
 
-    public ArgInfo(Class argumentType, ArgData argData, int index) {
+    public ArgInfo(Class argumentType, ArgData argData, int index, boolean required) {
         this.argumentType = argumentType;
         this.argData = argData;
         this.index = index;
-
-        ArgRequirementType type = ArgRequirementType.getArgumentType(argData.name());
-        if (type == null){
-            throw new ArgMountException("Failed to load ArgRequirementType from ArgData [" + argData.name() + "]");
-        }
-
-        this.required = type == ArgRequirementType.REQUIRED;
+        this.required = required;
     }
 
 }

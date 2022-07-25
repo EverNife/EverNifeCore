@@ -9,6 +9,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.SubCMDD
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgRequirementType;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgMountException;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.parameter.CMDParameterType;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
@@ -91,7 +93,12 @@ public class CMDMethodInterpreter {
                     argData.parser(parserClass);
                 }
 
-                ArgInfo argInfo = new ArgInfo(parameterClazz, argData, flagArgIndex); //If subcommand, move arg to the RIGHT 1 slot
+                ArgRequirementType type = ArgRequirementType.getArgumentType(argData.name());
+                if (type == null){
+                    throw new ArgMountException("Failed to load ArgRequirementType from ArgData [" + argData.name() + "]");
+                }
+
+                ArgInfo argInfo = new ArgInfo(parameterClazz, argData, flagArgIndex, type == ArgRequirementType.REQUIRED); //If subcommand, move arg to the RIGHT 1 slot
                 ArgParser parserInstance;
                 try {
                     Constructor<? extends ArgParser> constructor = argData.parser().getDeclaredConstructor(ArgInfo.class);
