@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.gui.layout;
 
 import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.evernifecore.config.cfg.SettingsScanner;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
@@ -155,6 +156,9 @@ public class FCLayoutScanner {
                 }
             }
         }
+
+        //Load Settings from this Layout as well
+        SettingsScanner.loadSettings(plugin, config, layoutInstance);
 
         layoutInstance.onLayoutLoad();
 
