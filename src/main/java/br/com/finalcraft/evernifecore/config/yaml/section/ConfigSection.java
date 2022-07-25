@@ -192,8 +192,16 @@ public class ConfigSection{
         return config.getOrSetDefaultValue(concatSubPath(subPath), def);
     }
 
+    public <D> @NotNull List<D> getOrSetDefaultValue(@Nullable String subPath, @NotNull List<D> def, @Nullable String comment) {
+        return config.getOrSetDefaultValue(concatSubPath(subPath), def, comment);
+    }
+
     public <D> @NotNull D getOrSetDefaultValue(@Nullable String subPath, @NotNull D def) {
         return config.getOrSetDefaultValue(concatSubPath(subPath), def);
+    }
+
+    public <D> @NotNull D getOrSetDefaultValue(@Nullable String subPath, @NotNull D def, @Nullable String comment) {
+        return config.getOrSetDefaultValue(concatSubPath(subPath), def, comment);
     }
 
     // ------------------------------------------------------------------------------------------------------------------

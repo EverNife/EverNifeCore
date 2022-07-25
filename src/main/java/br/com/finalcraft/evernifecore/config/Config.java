@@ -287,7 +287,7 @@ public class Config {
      * @param path    path of desired section or key
      * @param comment the block comment to add, # character is not needed
      */
-    public void setComment(@NotNull String path, @NotNull String comment) {
+    public void setComment(@NotNull String path, @Nullable String comment) {
         this.yamlFile.setComment(path, comment);
     }
 
@@ -655,10 +655,10 @@ public class Config {
         }
     }
 
-    public <D> @NotNull List<D> getOrSetDefaultValue(@NotNull String path, @NotNull List<D> def, @NotNull String comment) {
+    public <D> @NotNull List<D> getOrSetDefaultValue(@NotNull String path, @NotNull List<D> def, @Nullable String comment) {
         List<D> theValue = getOrSetDefaultValue(path, def);
         String existingComment = getComment(path);
-        if (existingComment == null || !existingComment.equals(comment)){
+        if ((existingComment == null && comment != null) || !existingComment.equals(comment)){
             setComment(path, comment);
             newDefaultValueToSave = true;
         }
@@ -681,10 +681,10 @@ public class Config {
         }
     }
 
-    public <D> @NotNull D getOrSetDefaultValue(@NotNull String path, @NotNull D def, @NotNull String comment) {
+    public <D> @NotNull D getOrSetDefaultValue(@NotNull String path, @NotNull D def, @Nullable String comment) {
         D theValue = getOrSetDefaultValue(path, def);
         String existingComment = getComment(path);
-        if (existingComment == null || !existingComment.equals(comment)){
+        if ((existingComment == null && comment != null) || !existingComment.equals(comment)){
             setComment(path, comment);
             newDefaultValueToSave = true;
         }
