@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.gui;
 
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.gui.layout.IHasLayout;
+import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import dev.triumphteam.gui.guis.BaseGui;
 import org.bukkit.entity.Player;
 
@@ -41,7 +42,11 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
     }
 
     protected void setupLayout(IHasLayout iHasLayout){
-        setupLayout(iHasLayout, null);
+        setupLayout(iHasLayout, (Function<String,String>) null);
+    }
+
+    protected void setupLayout(IHasLayout iHasLayout, CompoundReplacer compoundReplacer){
+        setupLayout(iHasLayout, s -> compoundReplacer.apply(s));
     }
 
     protected void setupLayout(IHasLayout iHasLayout, Function<String,String> titleParser){

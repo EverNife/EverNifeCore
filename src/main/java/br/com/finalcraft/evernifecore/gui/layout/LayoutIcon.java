@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.gui.layout;
 import br.com.finalcraft.evernifecore.gui.PlayerGui;
 import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
+import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import com.google.common.collect.ImmutableList;
 import dev.triumphteam.gui.guis.GuiItem;
 import lombok.Data;
@@ -68,6 +69,11 @@ public class LayoutIcon {
         );
 
         return layoutIcon;
+    }
+
+    @NotNull
+    public LayoutIcon parse(CompoundReplacer replacer){
+        return parse(stringList -> replacer.apply(stringList));
     }
 
     @NotNull

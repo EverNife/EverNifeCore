@@ -84,4 +84,8 @@ public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O
         return matcher.appendTail(builder).toString();
     }
 
+    public CompoundReplacer compound(O object){
+        return CompoundReplacer.from(this, object);
+    }
+
 }
