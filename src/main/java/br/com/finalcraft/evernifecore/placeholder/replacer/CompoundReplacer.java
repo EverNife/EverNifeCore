@@ -2,7 +2,6 @@ package br.com.finalcraft.evernifecore.placeholder.replacer;
 
 import br.com.finalcraft.evernifecore.integration.placeholders.PAPIIntegration;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
@@ -47,4 +46,9 @@ public class CompoundReplacer {
         return new CompoundReplacer().appendReplacer(regexReplacer, object);
     }
 
+    protected CompoundReplacer clone() {
+        CompoundReplacer newCompoundReplacer = new CompoundReplacer();
+        newCompoundReplacer.REGEX_REPLACERS.addAll(this.REGEX_REPLACERS);
+        return newCompoundReplacer;
+    }
 }
