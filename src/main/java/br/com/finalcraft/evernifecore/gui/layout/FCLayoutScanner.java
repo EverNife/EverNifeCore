@@ -15,7 +15,9 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class FCLayoutScanner {
@@ -100,7 +102,11 @@ public class FCLayoutScanner {
                 if (background == false || !hasAnyBackgroundAtStart){
                     //When a background, it will only save Defaults if there is already no existing Background LayoutIcon on the config
 
-                    itemSection.setDefaultValue("Slot", slot);
+                    List<String> slotsAsString = new ArrayList<>();
+                    for (int i : slot) {
+                        slotsAsString.add(String.valueOf(i));
+                    }
+                    itemSection.setDefaultValue("Slot", slotsAsString);
 
                     if (!permission.isEmpty()){
                         itemSection.setDefaultValue("Permission", permission);
@@ -125,6 +131,17 @@ public class FCLayoutScanner {
                 }
 
                 // ===========  Load Values From the Config ===========
+                if (background && !itemSection.contains()){
+                    //If is a background and is not present on file, ignore it
+                    try {
+                        declaredField.set(layoutInstance, null);
+                    } catch (IllegalAccessException e) {
+                        plugin.getLogger().warning("[FCLayoutScanner] Failed to load LayoutIconBackground {" + ICON_NAME + "} from " + layoutClass.getSimpleName());
+                        e.printStackTrace();
+                        continue;
+                    }
+                }
+
                 try {
                     if (itemSection.contains("Slot")){
                         slot = itemSection.getStringList("Slot")
@@ -145,9 +162,7 @@ public class FCLayoutScanner {
                     LayoutIcon newLayout = new LayoutIcon(itemStack, slot, false, permission, null);
                     declaredField.set(layoutInstance, newLayout);
 
-                    if (background){
-                        layoutInstance.getBackgroundIcons().add(newLayout);
-                    }else {
+                    if (!background){
                         layoutInstance.getLayoutIcons().add(newLayout);
                     }
                 }catch (Exception e){
@@ -155,6 +170,16 @@ public class FCLayoutScanner {
                     e.printStackTrace();
                 }
             }
+        }
+
+        for (String backgroundKey : config.getKeys("Background")) {
+            LayoutIcon backgroundIcon = config.getLoadable("Background." + backgroundKey, LayoutIcon.class);
+            layoutInstance.getBackgroundIcons().add(
+                    backgroundIcon
+                            .asBuilder()
+                            .setBackground(true)
+                            .build()
+            );
         }
 
         //Load Settings from this Layout as well
