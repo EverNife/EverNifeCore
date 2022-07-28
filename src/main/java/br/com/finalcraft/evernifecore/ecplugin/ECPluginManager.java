@@ -67,7 +67,7 @@ public class ECPluginManager {
             if (ecPlugin.canReload()){
                 for (String pluginName : ecPlugin.getReloadAfter()) {
                     if (instance.getName().equalsIgnoreCase(pluginName)){
-                        ecPlugin.getPlugin().getLogger().info("[ECPlugin] Reloading by demand of ´" + instance.getName() + "´ reload.");
+                        ecPlugin.getPlugin().getLogger().info("[ECPlugin] Reloading by demand of ´" + instance.getName() + "´.");
                         ecPlugin.reloadPlugin();
                     }
                 }
