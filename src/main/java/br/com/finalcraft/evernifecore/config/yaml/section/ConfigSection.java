@@ -33,6 +33,10 @@ public class ConfigSection{
         return lastPathIndex;
     }
 
+    public ConfigSection getFatherSection() {
+        return new ConfigSection(this.config, path.substring(0, Math.max(0, path.lastIndexOf("."))));
+    }
+
     public String getPath() {
         return path;
     }
