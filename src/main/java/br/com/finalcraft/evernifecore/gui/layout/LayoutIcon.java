@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.gui.layout;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
+import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.gui.PlayerGui;
 import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
@@ -11,6 +14,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -49,7 +53,12 @@ public class LayoutIcon {
         if (this.permission.isEmpty() || (playerGui.getPlayer() != null && playerGui.getPlayer().hasPermission(this.permission))){
             for (int slot : this.slot) {
                 if (slot < 0) continue;
-                playerGui.getGui().setItem(slot, guiItem);
+                try {
+                    playerGui.getGui().setItem(slot, guiItem);
+                }catch (Exception e){
+                    EverNifeCore.warning("Failed to apply LayoutIcon for {" + guiItem.getItemStack().getType() + "}: " + e.getMessage());
+                    e.printStackTrace();
+                }
             }
         }
 
@@ -90,5 +99,24 @@ public class LayoutIcon {
 
     public LayoutIconBuilder asBuilder(){
         return LayoutIconBuilder.of(this);
+    }
+
+    @Loadable
+    public static LayoutIcon onConfigLoad(ConfigSection section){
+        int[] slot = section.getStringList("Slot")
+                .stream()
+                .mapToInt(value -> Integer.valueOf(value))
+                .toArray();
+
+        String permission = section.getString("Permission","");
+
+        ItemStack itemStack = null;
+        if (section.contains("DisplayItem")){
+            itemStack = FCItemFactory.from(
+                    section.getStringList("DisplayItem")
+            ).build();
+        }
+
+        return new LayoutIcon(itemStack, slot, false, permission, null);
     }
 }
