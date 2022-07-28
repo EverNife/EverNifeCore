@@ -29,13 +29,14 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
 public class CfgLoadableSalvable {
 
     public static final List<SmartLoadSave> SMART_LOADABLES = new ArrayList<>(); //Holds all possible Loadables
-    public static final Map<Class, Optional<SmartLoadSave>> CACHE_MAP = new HashMap<>(); //Holds a cache for each class request
+    public static final Map<Class, Optional<SmartLoadSave>> CACHE_MAP = new ConcurrentHashMap<>(); //Holds a cache for each class request
 
     public static <O> SmartLoadSave<O> addLoadableSalvable(Class<O> clazz){
         SmartLoadSave smartLoadSave = new SmartLoadSave(clazz);
