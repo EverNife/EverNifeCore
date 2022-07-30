@@ -14,7 +14,6 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -48,7 +47,19 @@ public class LayoutIcon {
 
     @NotNull
     public <GI extends GuiItem> GI applyTo(PlayerGui playerGui, @NotNull Class<GI> customGuiItem) {
-        GI guiItem = FCItemFactory.from(this.itemStack).asGuiItem(customGuiItem);
+
+        ItemStack finalStack = this.itemStack;
+        if (this.dataPart == null){ //If this LayoutIcon was never parsed before!
+            CompoundReplacer replacer = playerGui.getReplacer();
+            if (!replacer.isEmpty()){ //Maybe the layout we are applying requires PAPI, or other default replacers
+                List<String> parsedDataPart = replacer.apply(FCItemFactory.from(this.getItemStack()).toDataPart());
+                finalStack = FCItemFactory.from(parsedDataPart).build();
+            }
+        }
+
+        GI guiItem = customGuiItem == GuiItem.class
+                ? (GI) FCItemFactory.from(finalStack).asGuiItem()
+                : FCItemFactory.from(finalStack).asGuiItem(customGuiItem);
 
         if (this.permission.isEmpty() || (playerGui.getPlayer() != null && playerGui.getPlayer().hasPermission(this.permission))){
             for (int slot : this.slot) {

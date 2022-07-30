@@ -2,11 +2,11 @@ package br.com.finalcraft.evernifecore.gui;
 
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.gui.layout.IHasLayout;
+import br.com.finalcraft.evernifecore.gui.layout.LayoutIcon;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import dev.triumphteam.gui.guis.BaseGui;
 import org.bukkit.entity.Player;
-
-import java.util.function.Function;
+import org.jetbrains.annotations.NotNull;
 
 public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
 
@@ -42,18 +42,12 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
     }
 
     protected void setupLayout(IHasLayout iHasLayout){
-        setupLayout(iHasLayout, (Function<String,String>) null);
+        setupLayout(iHasLayout, this.getReplacer());
     }
 
     protected void setupLayout(IHasLayout iHasLayout, CompoundReplacer compoundReplacer){
-        setupLayout(iHasLayout, s -> compoundReplacer.apply(s));
-    }
+        String title = compoundReplacer.apply(iHasLayout.layout().getTitle());
 
-    protected void setupLayout(IHasLayout iHasLayout, Function<String,String> titleParser){
-        String title = iHasLayout.layout().getTitle();
-        if (titleParser != null){
-            title = titleParser.apply(title);
-        }
         setGui((G) FCGuiFactory.simple()
                 .rows(iHasLayout.layout().getRows())
                 .title(title)
@@ -62,7 +56,9 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
         );
 
         //Set Background
-        iHasLayout.layout().getBackgroundIcons().forEach(layoutIcon -> layoutIcon.applyTo(this));
+        for (LayoutIcon backgroundIcon : iHasLayout.layout().getBackgroundIcons()) {
+            backgroundIcon.parse(compoundReplacer).applyTo(this);
+        }
     }
 
     protected PlayerGui<P, G> setGui(G gui) {
@@ -79,6 +75,15 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
         this.playerData = playerData;
         this.player = playerData == null ? null : playerData.getPlayer();
         return this;
+    }
+
+    @NotNull
+    public CompoundReplacer getReplacer() {
+        IHasLayout iHasLayout = this instanceof IHasLayout ? (IHasLayout) this : null;
+        if (iHasLayout != null && iHasLayout.layout().isIntegrateToPAPI() && this.getPlayer() != null){
+            return new CompoundReplacer().usePAPI(getPlayer());
+        }
+        return new CompoundReplacer();
     }
 
     public P getPlayerData() {
