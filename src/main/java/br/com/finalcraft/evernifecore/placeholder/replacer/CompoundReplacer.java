@@ -11,15 +11,23 @@ import java.util.List;
 public class CompoundReplacer {
 
     private List<Tuple<RegexReplacer, Object>> REGEX_REPLACERS = new ArrayList<>();
-    private Player usePAPI = null; //If not null, integrate with PlaceholderAPI
+    private Player papyUser = null; //If not null, integrate with PlaceholderAPI
 
     public <O> CompoundReplacer appendReplacer(RegexReplacer<O> regexReplacer, O object){
         this.REGEX_REPLACERS.add(Tuple.of(regexReplacer, object));
         return this;
     }
 
+    public CompoundReplacer merge(CompoundReplacer other){
+        this.REGEX_REPLACERS.addAll(other.REGEX_REPLACERS);
+        if (this.papyUser == null){
+            this.papyUser = other.papyUser;
+        }
+        return this;
+    }
+
     public CompoundReplacer usePAPI(@Nullable Player player){
-        this.usePAPI = player;
+        this.papyUser = player;
         return this;
     }
 
@@ -29,13 +37,15 @@ public class CompoundReplacer {
             Object watcher = tuple.getBeta();
             text = replacer.apply(text, watcher);
         }
-        if (usePAPI != null){
-            text = PAPIIntegration.parse(usePAPI, text);
+        if (papyUser != null){
+            text = PAPIIntegration.parse(papyUser, text);
         }
         return text;
     }
 
     public List<String> apply(List<String> texts){
+        if (isEmpty()) return texts; //Early Return to prevent wasted time
+
         for (int i = 0; i < texts.size(); i++) {
             texts.set(i, apply(texts.get(i)));
         }
@@ -46,9 +56,15 @@ public class CompoundReplacer {
         return new CompoundReplacer().appendReplacer(regexReplacer, object);
     }
 
-    protected CompoundReplacer clone() {
-        CompoundReplacer newCompoundReplacer = new CompoundReplacer();
-        newCompoundReplacer.REGEX_REPLACERS.addAll(this.REGEX_REPLACERS);
-        return newCompoundReplacer;
+    public boolean isEmpty(){
+        return !hasPAPIUser() && REGEX_REPLACERS.isEmpty();
+    }
+
+    public boolean hasPAPIUser(){
+        return papyUser != null;
+    }
+
+    public CompoundReplacer clone() {
+        return new CompoundReplacer().merge(this);
     }
 }
