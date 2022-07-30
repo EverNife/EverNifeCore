@@ -10,9 +10,11 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.ReflectionUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -32,11 +34,28 @@ public class FCLayoutScanner {
         T layoutInstance = ReflectionUtil.getConstructor(layoutClass).invoke();
         layoutInstance.config = config;
 
+        @Nullable LayoutBaseData layoutBaseData = layoutClass.getAnnotation(LayoutBaseData.class);
+
+        if (layoutBaseData != null){
+            layoutInstance.title = layoutBaseData.title();
+            layoutInstance.rows = layoutBaseData.rows();
+            layoutInstance.integrateToPAPI = layoutBaseData.integrateToPAPI();
+        }else {
+            layoutInstance.title = "➲  §0§l%layout_name%";
+            layoutInstance.rows = 6;
+            layoutInstance.integrateToPAPI = false;
+        }
+
         //Title
-        layoutInstance.title = layoutInstance.defaultTitle().replace("%layout_name%", layoutClass.getSimpleName());
+        layoutInstance.title = layoutInstance.title.replace("%layout_name%", layoutClass.getSimpleName());
         layoutInstance.title = config.getOrSetDefaultValue("Settings.title", layoutInstance.title);
         //Rows
-        layoutInstance.rows = config.getOrSetDefaultValue("Settings.rows", layoutInstance.defaultRows());
+        layoutInstance.rows = config.getOrSetDefaultValue("Settings.rows", layoutInstance.rows);
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")){
+            layoutInstance.integrateToPAPI = config.getOrSetDefaultValue("Settings.integrateToPAPI", layoutInstance.integrateToPAPI, "If the items and Title of this GUI should be PARSED by PlaceholderAPI");
+        }else {
+            layoutInstance.integrateToPAPI = false;
+        }
 
         boolean hasAnyBackgroundAtStart = config.contains("Background");
 

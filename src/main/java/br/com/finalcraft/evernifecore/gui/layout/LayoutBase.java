@@ -13,18 +13,15 @@ public abstract class LayoutBase {
     protected Config config = null; //Populated on the Scanner
     protected String title = null; //Populated on the Scanner
     protected int rows = 6; //Populated on the Scanner
+    protected boolean integrateToPAPI = false; //Populated on the Scanner
+
+    public LayoutBase() {
+        //Execute "PRIOR" ALL Layout AND configs has been loaded
+    }
 
     // =================================================================================================================
     protected void onLayoutLoad(){
-
-    }
-
-    protected String defaultTitle(){
-        return "➲  §0§l%layout_name%";
-    }
-
-    protected int defaultRows(){
-        return 6;
+        //Execute "AFTER" ALL Layout AND configs has been loaded
     }
 
     // =================================================================================================================
@@ -47,5 +44,9 @@ public abstract class LayoutBase {
 
     public int getRows() {
         return rows;
+    }
+
+    public boolean isIntegrateToPAPI() {
+        return integrateToPAPI;
     }
 }
