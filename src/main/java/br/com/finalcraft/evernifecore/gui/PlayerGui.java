@@ -46,7 +46,7 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
     }
 
     protected void setupLayout(IHasLayout iHasLayout){
-        this.setupLayout(iHasLayout, (Class<? extends BaseGuiBuilder<G,?>>) SimpleBuilder.class);
+        this.setupLayout(iHasLayout, (Class<? extends BaseGuiBuilder<G,?>>) (Object) SimpleBuilder.class);
     }
 
     protected <B extends BaseGuiBuilder<G,?>> void setupLayout(IHasLayout iHasLayout, Class<B> baseBuilder){
