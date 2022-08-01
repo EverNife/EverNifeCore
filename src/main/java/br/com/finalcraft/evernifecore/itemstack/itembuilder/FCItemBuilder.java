@@ -4,11 +4,9 @@ import br.com.finalcraft.evernifecore.gui.item.GuiItemComplex;
 import br.com.finalcraft.evernifecore.gui.layout.LayoutIcon;
 import br.com.finalcraft.evernifecore.gui.layout.LayoutIconBuilder;
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
-import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import br.com.finalcraft.evernifecore.util.FCInputReader;
-import br.com.finalcraft.evernifecore.util.FCNBTUtil;
-import br.com.finalcraft.evernifecore.util.ReflectionUtil;
+import br.com.finalcraft.evernifecore.util.*;
 import de.tr7zw.changeme.nbtapi.NBTCompound;
 import de.tr7zw.changeme.nbtapi.NBTContainer;
 import de.tr7zw.changeme.nbtapi.NBTItem;
@@ -16,6 +14,7 @@ import dev.triumphteam.gui.builder.item.BaseItemBuilder;
 import dev.triumphteam.gui.guis.GuiItem;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -109,12 +108,22 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
     @NotNull
     public LayoutIcon asLayout() {
         if (layout != null){
-            return LayoutIconBuilder.of(layout)
-                    .setDataPart(null) //Need to recalculate data-part as it was probably changed on the factory
-                    .setItemStack(build())
-                    .build();
+            ItemStack finalStack = this.build();
+            return new LayoutIcon(
+                    finalStack,
+                    layout.getSlot(),
+                    layout.isBackground(),
+                    layout.getPermission(),
+                    FCItemFactory.from(finalStack).toDataPart() //Need to recalculate data-part as it was probably changed on the factory
+            );
         }else {
-            return new LayoutIcon(this.build(), new int[0], false, "", null);
+            return new LayoutIcon(
+                    this.build(),
+                    new int[0],
+                    false,
+                    "",
+                    null //No need to calculate data-part, as this is the creation process, not an edition process
+            );
         }
     }
 
@@ -213,6 +222,27 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
     @NotNull
     public FCItemBuilder mergeNBTCompound(@NotNull NBTCompound compoundTag) {
         this.itemStack.setItemMeta(this.meta); //Apply the current meta before merging it
+
+        /*
+        // Maybe improve this to allow merge of special itens like magical arrows or skulls
+        // Need to study a little bit more
+        if (NMSUtils.get() != null){
+            System.out.println("Before Merging: " + FCItemUtils.getMinecraftIdentifier(this.itemStack, true));
+            System.out.println("New Content: " + compoundTag.toString());
+
+            String baseItemIdentifier = FCItemUtils.getMinecraftIdentifier(this.itemStack, false);
+
+            NBTContainer newNBT = new NBTContainer(FCNBTUtil.getFrom(this.itemStack).toString());
+            newNBT.mergeCompound(compoundTag);
+            String minecraftIdentifier = (baseItemIdentifier + " " + newNBT.toString()).trim();
+
+            this.itemStack = FCItemUtils.fromMinecraftIdentifier(minecraftIdentifier.trim());
+            this.meta = itemStack.getItemMeta();
+            System.out.println("After Merging: " + FCItemUtils.getMinecraftIdentifier(this.itemStack, true));
+            return this;
+        }
+        */
+
         FCNBTUtil.getFrom(this.itemStack).mergeCompound(compoundTag);
         this.meta = itemStack.getItemMeta(); //Get the ItemMeta back, maybe it was changed on the merging
         return this;
