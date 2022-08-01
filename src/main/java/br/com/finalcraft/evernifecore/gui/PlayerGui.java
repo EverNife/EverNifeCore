@@ -4,9 +4,13 @@ import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.gui.layout.IHasLayout;
 import br.com.finalcraft.evernifecore.gui.layout.LayoutIcon;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
+import dev.triumphteam.gui.builder.gui.BaseGuiBuilder;
+import dev.triumphteam.gui.builder.gui.SimpleBuilder;
 import dev.triumphteam.gui.guis.BaseGui;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.function.Supplier;
 
 public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
 
@@ -42,18 +46,25 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
     }
 
     protected void setupLayout(IHasLayout iHasLayout){
-        setupLayout(iHasLayout, this.getReplacer());
+        this.setupLayout(iHasLayout, (Class<? extends BaseGuiBuilder<G,?>>) SimpleBuilder.class);
     }
 
-    protected void setupLayout(IHasLayout iHasLayout, CompoundReplacer compoundReplacer){
-        String title = compoundReplacer.apply(iHasLayout.layout().getTitle());
+    protected <B extends BaseGuiBuilder<G,?>> void setupLayout(IHasLayout iHasLayout, Class<B> baseBuilder){
+        CompoundReplacer compoundReplacer = this.getReplacer();
 
-        setGui((G) FCGuiFactory.simple()
-                .rows(iHasLayout.layout().getRows())
-                .title(title)
-                .disableAllInteractions()
-                .create()
-        );
+        setupLayout(iHasLayout, compoundReplacer, () -> {
+            String title = compoundReplacer.apply(iHasLayout.layout().getTitle());
+
+            return FCGuiFactory.from(baseBuilder)
+                    .rows(iHasLayout.layout().getRows())
+                    .title(title)
+                    .disableAllInteractions()
+                    .create();
+        });
+    }
+
+    protected void setupLayout(IHasLayout iHasLayout, CompoundReplacer compoundReplacer, Supplier<G> guiBuilder){
+        setGui(guiBuilder.get());
 
         //Set Background
         for (LayoutIcon backgroundIcon : iHasLayout.layout().getBackgroundIcons()) {
