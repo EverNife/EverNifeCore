@@ -2,11 +2,13 @@ package br.com.finalcraft.evernifecore.itemstack.itembuilder;
 
 import br.com.finalcraft.evernifecore.gui.item.GuiItemComplex;
 import br.com.finalcraft.evernifecore.gui.layout.LayoutIcon;
-import br.com.finalcraft.evernifecore.gui.layout.LayoutIconBuilder;
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
-import br.com.finalcraft.evernifecore.util.*;
+import br.com.finalcraft.evernifecore.util.FCColorUtil;
+import br.com.finalcraft.evernifecore.util.FCInputReader;
+import br.com.finalcraft.evernifecore.util.FCNBTUtil;
+import br.com.finalcraft.evernifecore.util.ReflectionUtil;
 import de.tr7zw.changeme.nbtapi.NBTCompound;
 import de.tr7zw.changeme.nbtapi.NBTContainer;
 import de.tr7zw.changeme.nbtapi.NBTItem;
@@ -14,7 +16,6 @@ import dev.triumphteam.gui.builder.item.BaseItemBuilder;
 import dev.triumphteam.gui.guis.GuiItem;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.Damageable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;

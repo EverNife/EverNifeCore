@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.argument;
 
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgData;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgMountException;
 import lombok.Data;
 
 @Data
