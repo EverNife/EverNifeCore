@@ -89,6 +89,12 @@ public class LayoutIconBuilder {
     }
 
     public static LayoutIconBuilder of(LayoutIcon layoutIcon){
-        return new LayoutIconBuilder(layoutIcon.getItemStack().clone(), layoutIcon.getSlot(), layoutIcon.isBackground(), layoutIcon.getPermission(), layoutIcon.getDataPart());
+        return new LayoutIconBuilder(
+                layoutIcon.getItemStack().clone(),
+                layoutIcon.getSlot(),
+                layoutIcon.isBackground(),
+                layoutIcon.getPermission(),
+                layoutIcon.dataPart //Do not call the getDataPart() to prevent unecessary populate of the dataPart
+        );
     }
 }

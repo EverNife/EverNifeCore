@@ -12,6 +12,7 @@ import dev.triumphteam.gui.guis.GuiItem;
 import lombok.Data;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,12 +21,12 @@ import java.util.function.Function;
 @Data
 public class LayoutIcon {
 
-    private final ItemStack itemStack;
-    private final int[] slot;
-    private final boolean background;
-    private final String permission;
+    protected final ItemStack itemStack;
+    protected final int[] slot;
+    protected final boolean background;
+    protected final String permission;
 
-    private transient List<String> dataPart = null; //Only populated on demand
+    protected @Nullable transient List<String> dataPart; //Only populated on demand
 
     public LayoutIcon(ItemStack itemStack, int[] slot, boolean background, String permission, List<String> dataPart) {
         this.itemStack = itemStack;
