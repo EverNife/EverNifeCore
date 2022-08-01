@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import org.bukkit.command.CommandSender;
 
 import java.util.*;
@@ -79,6 +80,14 @@ public class FancyFormatter extends FancyText {
     public FancyFormatter replace(String placeholder, String value){
         for (int i = 0; i < this.fancyTextList.size(); i++) {
             this.fancyTextList.set(i, this.fancyTextList.get(i).replace(placeholder, value));
+        }
+        return this;
+    }
+
+    @Override
+    public FancyText replace(CompoundReplacer replacer) {
+        for (int i = 0; i < this.fancyTextList.size(); i++) {
+            this.fancyTextList.set(i, this.fancyTextList.get(i).replace(replacer));
         }
         return this;
     }

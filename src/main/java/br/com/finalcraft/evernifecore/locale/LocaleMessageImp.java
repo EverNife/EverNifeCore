@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.locale;
 
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
 
@@ -11,6 +12,7 @@ import java.util.function.Function;
 
 public class LocaleMessageImp implements LocaleMessage {
 
+    private final CompoundReplacer compoundReplacer = new CompoundReplacer();
     private final Plugin plugin;
     private final String key;
     private final HashMap<String, FancyText> fancyTextMap = new HashMap<>();
@@ -42,6 +44,11 @@ public class LocaleMessageImp implements LocaleMessage {
     @Override
     public SendCustom custom(){
         return new SendCustom(this);
+    }
+
+    @Override
+    public SendCustom addReplacer(CompoundReplacer compoundReplacer) {
+        return custom().addReplacer(compoundReplacer);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
+import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -85,6 +86,14 @@ public class FancyText {
         this.text = text.replace(placeholder, value);
         if (this.hoverText != null) this.hoverText = this.hoverText.replace(placeholder, value);
         if (this.clickActionText != null) this.clickActionText = this.clickActionText.replace(placeholder, value);
+        return this;
+    }
+
+    public FancyText replace(CompoundReplacer replacer){
+        setRecentChanged();
+        this.text = replacer.apply(this.text);
+        if (this.hoverText != null) this.hoverText = replacer.apply(this.hoverText);
+        if (this.clickActionText != null) this.clickActionText = replacer.apply(this.clickActionText);
         return this;
     }
 

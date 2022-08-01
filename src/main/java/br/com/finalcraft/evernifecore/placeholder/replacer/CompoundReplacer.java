@@ -11,7 +11,7 @@ import java.util.List;
 public class CompoundReplacer {
 
     private List<Tuple<RegexReplacer, Object>> REGEX_REPLACERS = new ArrayList<>();
-    private Player papyUser = null; //If not null, integrate with PlaceholderAPI
+    private Player papiUser = null; //If not null, integrate with PlaceholderAPI
 
     public <O> CompoundReplacer appendReplacer(RegexReplacer<O> regexReplacer, O object){
         this.REGEX_REPLACERS.add(Tuple.of(regexReplacer, object));
@@ -20,14 +20,14 @@ public class CompoundReplacer {
 
     public CompoundReplacer merge(CompoundReplacer other){
         this.REGEX_REPLACERS.addAll(other.REGEX_REPLACERS);
-        if (this.papyUser == null){
-            this.papyUser = other.papyUser;
+        if (this.papiUser == null){
+            this.papiUser = other.papiUser;
         }
         return this;
     }
 
     public CompoundReplacer usePAPI(@Nullable Player player){
-        this.papyUser = player;
+        this.papiUser = player;
         return this;
     }
 
@@ -37,8 +37,8 @@ public class CompoundReplacer {
             Object watcher = tuple.getBeta();
             text = replacer.apply(text, watcher);
         }
-        if (papyUser != null){
-            text = PAPIIntegration.parse(papyUser, text);
+        if (papiUser != null){
+            text = PAPIIntegration.parse(papiUser, text);
         }
         return text;
     }
@@ -61,7 +61,7 @@ public class CompoundReplacer {
     }
 
     public boolean hasPAPIUser(){
-        return papyUser != null;
+        return papiUser != null;
     }
 
     public CompoundReplacer clone() {

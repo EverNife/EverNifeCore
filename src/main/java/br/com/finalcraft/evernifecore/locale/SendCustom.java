@@ -3,6 +3,8 @@ package br.com.finalcraft.evernifecore.locale;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
+import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
@@ -16,6 +18,7 @@ import java.util.function.Function;
 public class SendCustom {
 
     protected final LocaleMessage localeMessage;
+    protected CompoundReplacer compoundReplacer = new CompoundReplacer();
     protected Map<String, Object> mapOfPlaceholders = new HashMap<String, Object>();
 
     protected transient String hover;
@@ -25,6 +28,11 @@ public class SendCustom {
 
     protected SendCustom(LocaleMessage localeMessage) {
         this.localeMessage = localeMessage;
+    }
+
+    public SendCustom addReplacer(CompoundReplacer compoundReplacer) {
+        this.compoundReplacer.merge(compoundReplacer);
+        return this;
     }
 
     public SendCustom addPlaceholder(String placeHolder, Object value) {
@@ -97,6 +105,9 @@ public class SendCustom {
 
             fancyText.replace(placeholder, value);
         }
+
+        fancyText.replace(compoundReplacer);
+
         return fancyText;
     }
 
