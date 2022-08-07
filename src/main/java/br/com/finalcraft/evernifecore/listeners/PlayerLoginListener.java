@@ -37,13 +37,19 @@ public class PlayerLoginListener implements ECListener {
         }
 
         PlayerData playerData = PlayerController.getPlayerData(event.getPlayer());
-        playerData.setPlayer(event.getPlayer()); //This is a bad practice, but in minecraft, what is not :D
+        playerData.setPlayer(event.getPlayer()); //[Store an instance of Player] is a bad practice, but in minecraft, what is not :D
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuitEvent(PlayerQuitEvent event) {
         PlayerData playerData = PlayerController.getPlayerData(event.getPlayer());
-        playerData.setPlayer(null); //This is a bad practice, but in minecraft, what is not :D
+        if (playerData != null){
+            //In some cases a Player may not have a PlayerData, this usually
+            //happens when the player has not been able to fully join the server,
+            //like when the Whitelist is turned on
+
+            playerData.setPlayer(null); //[Store an instance of Player] is a bad practice, but in minecraft, what is not :D
+        }
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -54,25 +60,25 @@ public class PlayerLoginListener implements ECListener {
         @EventHandler(priority = EventPriority.MONITOR)
         public void onPlayerLogin(PlayerJoinEvent event) {
             if (!FCBukkitUtil.isFakePlayer(event.getPlayer())){
-                fireDelayedFullyLoggedInEvent(event.getPlayer());
+                fireDelayedFullyLoggedInEvent(event.getPlayer(), false);
             }
         }
     }
 
     public static class AuthmeLogin implements ECListener{
         @EventHandler(priority = EventPriority.MONITOR)
-        public void onAuthmeLogin(LoginEvent event) {
-            fireDelayedFullyLoggedInEvent(event.getPlayer());
+        public void onAuthMeLogin(LoginEvent event) {
+            fireDelayedFullyLoggedInEvent(event.getPlayer(), true);
         }
     }
 
-    private static void fireDelayedFullyLoggedInEvent(Player player) {
+    private static void fireDelayedFullyLoggedInEvent(Player player, boolean authMeLogin) {
         new BukkitRunnable(){
             @Override
             public void run() {
                 if (player.isOnline()){
                     PlayerData playerData = PlayerController.getPlayerData(player);
-                    ECFullyLoggedInEvent event = new ECFullyLoggedInEvent(playerData, true);
+                    ECFullyLoggedInEvent event = new ECFullyLoggedInEvent(playerData, authMeLogin);
                     Bukkit.getPluginManager().callEvent(event);
                 }
             }
