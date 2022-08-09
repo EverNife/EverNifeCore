@@ -112,7 +112,7 @@ public class PageViewer<OBJ, VALUE> {
 
             if (includeDate){
                 pageHeaderCache.add(DATE_OF_TODAY_IS
-                        .addPlaceholder("%date_of_today%", DayOfToday.getTimeOfToday().getFormattedNoHours())
+                        .addPlaceholder("%date_of_today%", DayOfToday.getInstance().getTimeOfToday().getFormattedNoHours())
                         .getFancyText(null)
                 );
             }
