@@ -95,15 +95,6 @@ public class Config {
             }
         }
 
-        //Temporary Fix for https://github.com/Carleslc/Simple-YAML/issues/60
-        for (String key : this.yamlFile.getKeys(false)) {
-            String comment = this.yamlFile.getComment(key);
-            if (comment != null && comment.contains("EverNife's Config Manager")){
-                this.yamlFile.setComment(key, null);
-            }
-            break;
-        }
-
         this.yamlFile.options().headerFormatter()
                 .prefixFirst("# -----------------------------------------------------")
                 .suffixLast("\n# ----------------------------------------------------");
