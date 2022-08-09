@@ -45,5 +45,8 @@ public class FCArrayUtil {
         return theArray;
     }
 
+    public static <T> T randomElement(@NotNull T[] array){
+        return array[FCMathUtil.getRandom().nextInt(array.length)];
+    }
 
 }
