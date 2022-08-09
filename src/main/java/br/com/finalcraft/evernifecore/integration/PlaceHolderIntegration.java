@@ -5,7 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
-@Deprecated
+@Deprecated// TODO Remove on Next Major Release
 public class PlaceHolderIntegration {
 
     private static Boolean apiLoaded = null;
