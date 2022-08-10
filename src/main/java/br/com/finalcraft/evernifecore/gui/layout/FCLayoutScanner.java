@@ -48,7 +48,7 @@ public class FCLayoutScanner {
 
         //Title
         layoutInstance.title = layoutInstance.title.replace("%layout_name%", layoutClass.getSimpleName());
-        layoutInstance.title = config.getOrSetDefaultValue("Settings.title", layoutInstance.title);
+        layoutInstance.title = config.getOrSetDefaultValue("Settings.title", layoutInstance.title.replace("§","&"));
         //Rows
         layoutInstance.rows = config.getOrSetDefaultValue("Settings.rows", layoutInstance.rows);
         if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")){
