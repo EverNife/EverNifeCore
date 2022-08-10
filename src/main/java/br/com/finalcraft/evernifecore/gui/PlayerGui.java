@@ -46,17 +46,16 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
     }
 
     protected void setupLayout(IHasLayout iHasLayout){
-        this.setupLayout(iHasLayout, (Class<? extends BaseGuiBuilder<G,?>>) (Object) SimpleBuilder.class);
+        this.setupLayout(iHasLayout, (BaseGuiBuilder<G, ?>) FCGuiFactory.simple());
     }
 
-    protected <B extends BaseGuiBuilder<G,?>> void setupLayout(IHasLayout iHasLayout, Class<B> baseBuilder){
+    protected <B extends BaseGuiBuilder<G,?>> void setupLayout(IHasLayout iHasLayout, B baseBuilder){
         CompoundReplacer compoundReplacer = this.getReplacer();
 
         setupLayout(iHasLayout, compoundReplacer, () -> {
             String title = compoundReplacer.apply(iHasLayout.layout().getTitle());
 
-            return FCGuiFactory.from(baseBuilder)
-                    .rows(iHasLayout.layout().getRows())
+            return baseBuilder.rows(iHasLayout.layout().getRows())
                     .title(title)
                     .disableAllInteractions()
                     .create();
