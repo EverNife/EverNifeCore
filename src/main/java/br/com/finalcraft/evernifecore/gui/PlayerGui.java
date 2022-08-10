@@ -5,7 +5,6 @@ import br.com.finalcraft.evernifecore.gui.layout.IHasLayout;
 import br.com.finalcraft.evernifecore.gui.layout.LayoutIcon;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import dev.triumphteam.gui.builder.gui.BaseGuiBuilder;
-import dev.triumphteam.gui.builder.gui.SimpleBuilder;
 import dev.triumphteam.gui.guis.BaseGui;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;

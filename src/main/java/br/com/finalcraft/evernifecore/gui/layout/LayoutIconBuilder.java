@@ -84,6 +84,11 @@ public class LayoutIconBuilder {
         return build().applyTo(playerGui);
     }
 
+    @NotNull
+    public <GI extends GuiItem> GI applyTo(PlayerGui playerGui, @NotNull Class<GI> customGuiItem) {
+        return build().applyTo(playerGui, customGuiItem);
+    }
+
     public static LayoutIconBuilder of(){
         return new LayoutIconBuilder();
     }
