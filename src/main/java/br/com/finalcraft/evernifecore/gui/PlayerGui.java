@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.gui;
 
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.gui.layout.IHasLayout;
+import br.com.finalcraft.evernifecore.gui.layout.LayoutBase;
 import br.com.finalcraft.evernifecore.gui.layout.LayoutIcon;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import dev.triumphteam.gui.builder.gui.BaseGuiBuilder;
@@ -88,8 +89,8 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
 
     @NotNull
     public CompoundReplacer getReplacer() {
-        IHasLayout iHasLayout = this instanceof IHasLayout ? (IHasLayout) this : null;
-        if (iHasLayout != null && iHasLayout.layout().isIntegrateToPAPI() && this.getPlayer() != null){
+        LayoutBase layoutBase = (this instanceof IHasLayout) ? ((IHasLayout) this).layout() : null;
+        if (layoutBase != null && layoutBase.isIntegrateToPAPI() && this.getPlayer() != null){
             return new CompoundReplacer().usePAPI(getPlayer());
         }
         return new CompoundReplacer();
