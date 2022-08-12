@@ -90,7 +90,7 @@ public class PlayerController {
                         theConfigFile
                 );
             }catch (Exception e){
-                EverNifeCore.warning("Failed to move dormant PlaeyerData " + dormantFile.getName() + " to the PlayerData folder... this is a terrible (sad) problem!");
+                EverNifeCore.warning("Failed to move dormant PlayerData " + dormantFile.getName() + " to the PlayerData folder... this is a terrible (sad) problem!");
                 e.printStackTrace();
             }
         }
