@@ -61,7 +61,11 @@ public class PlayerController {
     }
 
     public static void savePlayerDataOnConfig(){
-        for (PlayerData playerData : MAP_OF_PLAYER_DATA.values()) {
+        List<PlayerData> playerDataList;
+        synchronized (MAP_OF_PLAYER_DATA){
+            playerDataList = new ArrayList<>(MAP_OF_PLAYER_DATA.values());
+        }
+        for (PlayerData playerData : playerDataList) {
             try {
                 playerData.savePlayerData();
             }catch (Throwable e){
@@ -94,7 +98,9 @@ public class PlayerController {
         PlayerData playerData = new PlayerData(config, playerName, playerUUID);
         playerData.forceSavePlayerData();
 
-        MAP_OF_PLAYER_DATA.put(playerUUID, playerData);
+        synchronized (MAP_OF_PLAYER_DATA){
+            MAP_OF_PLAYER_DATA.put(playerUUID, playerData);
+        }
         return playerData;
     }
 
