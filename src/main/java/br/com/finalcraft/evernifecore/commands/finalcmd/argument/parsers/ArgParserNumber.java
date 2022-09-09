@@ -46,10 +46,15 @@ public class ArgParserNumber extends ArgParser<Number> {
         //We cannot use a ternary operator here because of NPE caused by boxingAndUnboxing of values.
         if (isInteger) {
             number = argumento.getInteger();
-            if (number == null){ //If the input argument is higher than Integer.MAX_VALUE, cast it to Integer.MAX_VALUE!
+            if (number == null){
                 Long numberAsLong = argumento.getLong();
+                //If the input argument is higher than Integer.MAX_VALUE, cast it to Integer.MAX_VALUE!
                 if (numberAsLong != null && numberAsLong >= Integer.MAX_VALUE){
                     number = Integer.MAX_VALUE;
+                }
+                //If the input argument is lower than Integer.MIN_VALUE, cast it to Integer.MIN_VALUE!
+                if (numberAsLong != null && numberAsLong <= Integer.MIN_VALUE){
+                    number = Integer.MIN_VALUE;
                 }
             }
         }else {
