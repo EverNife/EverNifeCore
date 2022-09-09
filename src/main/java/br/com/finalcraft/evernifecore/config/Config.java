@@ -47,8 +47,6 @@ public class Config {
         if (getTheFile().exists()){
             try {
                 this.yamlFile.loadWithComments();
-            } catch (InvalidConfigurationException e) {
-                e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
             }
