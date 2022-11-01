@@ -19,8 +19,8 @@ import org.bukkit.scheduler.BukkitRunnable;
  */
 public class ECPlayerChangeChunkEvent extends Event implements Cancellable {
 
-    private static boolean hasBeenRegistered = false;
     private static final HandlerList handlers = new HandlerList(){
+        private boolean hasBeenRegistered = false;
         @Override
         public synchronized void register(RegisteredListener listener) {
             super.register(listener);

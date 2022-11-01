@@ -16,7 +16,7 @@ import org.bukkit.scheduler.BukkitRunnable;
  * A default CraftItemEvent that will tell not only what recipe was used
  * but will prevent a lot of common mistakes when hearing to craft events.
  *
- * This event has two main infos like the Amount of times a Recipe has ben
+ * This event has two main infos like the Amount of times a Recipe has been
  * executed as well as the total amount of items produced.
  *
  * For example, if you SHIFT_CLICK a craft recipe with 64 logs on a Crafting
@@ -27,8 +27,8 @@ import org.bukkit.scheduler.BukkitRunnable;
  */
 public class ECPlayerCraftItemEvent extends Event implements Cancellable {
 
-    private static boolean hasBeenRegistered = false;
     private static final HandlerList handlers = new HandlerList(){
+        private boolean hasBeenRegistered = false;
         @Override
         public synchronized void register(RegisteredListener listener) {
             super.register(listener);
@@ -47,13 +47,13 @@ public class ECPlayerCraftItemEvent extends Event implements Cancellable {
     private final CraftItemEvent craftItemEvent;
     private final Player player;
     private final int craftTimes;
-    private final int stackAmount;
+    private final int amountProduced;
 
-    public ECPlayerCraftItemEvent(CraftItemEvent craftItemEvent, Player player, int craftTimes, int stackAmount) {
+    public ECPlayerCraftItemEvent(CraftItemEvent craftItemEvent, Player player, int craftTimes, int amountProduced) {
         this.craftItemEvent = craftItemEvent;
         this.player = player;
         this.craftTimes = craftTimes;
-        this.stackAmount = stackAmount;
+        this.amountProduced = amountProduced;
     }
 
     /**
@@ -87,7 +87,7 @@ public class ECPlayerCraftItemEvent extends Event implements Cancellable {
      * @author EverNife
      */
     public int getAmountProduced() {
-        return stackAmount;
+        return amountProduced;
     }
 
     /**
