@@ -5,7 +5,6 @@ import br.com.finalcraft.evernifecore.nms.util.INMSUtils;
 import br.com.finalcraft.evernifecore.version.ServerType;
 import net.minecraft.server.v1_12_R1.*;
 import org.apache.commons.lang3.Validate;
-import org.bukkit.craftbukkit.v1_12_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_12_R1.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_12_R1.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_12_R1.inventory.CraftItemStack;
@@ -13,10 +12,7 @@ import org.bukkit.craftbukkit.v1_12_R1.util.CraftMagicNumbers;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
-import java.io.*;
 import java.lang.reflect.Field;
-import java.math.BigInteger;
-import java.util.ArrayList;
 
 public class NMSUtils_v1_12_R1 implements INMSUtils {
 
@@ -65,48 +61,6 @@ public class NMSUtils_v1_12_R1 implements INMSUtils {
 		}
 	}
 
-	@Override
-	public boolean hasInventory(org.bukkit.block.Block b) {
-		CraftWorld cworld = (CraftWorld) b.getWorld();
-		TileEntity te = cworld.getTileEntityAt(b.getX(), b.getY(), b.getZ());
-		return te instanceof IInventory;
-	}
-
-	@Override
-	public boolean hasInventory(org.bukkit.entity.Entity e) {
-		CraftEntity centity = (CraftEntity) e;
-		return centity.getHandle() instanceof IInventory;
-	}
-
-	@Override
-	public boolean isInventoryOpen(org.bukkit.entity.Player p) {
-		return getPlayerContainer(p).windowId != 0;
-	}
- 
-	@Override
-	public String getOpenInventoryName(org.bukkit.entity.Player p) {
-		return getPlayerContainer(p).getClass().getName();
-	}
-
-	@Override
-	public void updateSlot(org.bukkit.entity.Player p, int slot, org.bukkit.inventory.ItemStack item) {
-		CraftPlayer cplayer = (CraftPlayer) p;
-		EntityPlayer nmshuman = cplayer.getHandle();
-		nmshuman.playerConnection.sendPacket(new PacketPlayOutSetSlot(0, slot, CraftItemStack.asNMSCopy(item)));
-	}
-
-	@Override
-	public ArrayList<org.bukkit.inventory.ItemStack> getTopInvetnoryItems(org.bukkit.entity.Player p) {
-		ArrayList<org.bukkit.inventory.ItemStack> items = new ArrayList<org.bukkit.inventory.ItemStack>();
-		Container container = getPlayerContainer(p);
-		for (Slot slot : container.slots) {
-			if ((slot.getItem() != null) && !(slot.inventory instanceof PlayerInventory)) {
-				items.add(CraftItemStack.asCraftMirror(slot.getItem()));
-			}
-		}
-		return items;
-	}
-
 	private Container getPlayerContainer(org.bukkit.entity.Player p) {
 		return getNMSPlayer(p).activeContainer;
 	}
@@ -115,60 +69,6 @@ public class NMSUtils_v1_12_R1 implements INMSUtils {
 		CraftPlayer cplayer = (CraftPlayer) p;
 		EntityHuman nmshuman = cplayer.getHandle();
 		return nmshuman;
-	}
-
-	@Override
-	public String toBaseBinary(org.bukkit.inventory.ItemStack itemStack) {
-		try {
-			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-			DataOutputStream dataOutput = new DataOutputStream(outputStream);
-			NBTTagList nbtTagListItems = new NBTTagList();
-			NBTTagCompound nbtTagCompoundItem = new NBTTagCompound();
-			net.minecraft.server.v1_12_R1.ItemStack nmsItem = org.bukkit.craftbukkit.v1_12_R1.inventory.CraftItemStack.asNMSCopy(itemStack);
-			nmsItem.save(nbtTagCompoundItem);
-			nbtTagListItems.add(nbtTagCompoundItem);
-			NBTCompressedStreamTools.a(nbtTagCompoundItem, (DataOutput) dataOutput);
-			return new BigInteger(1, outputStream.toByteArray()).toString(32);
-		} catch (IOException e) {
-			EverNifeCore.info("Fail on ItemStack NMSUtils v1.12.2 (toBaseBinary): ");
-			throw new RuntimeException(e);
-		}
-	}
-	@Override
-	public String getNBTtoString(org.bukkit.inventory.ItemStack itemStack) {
-		if (!hasNBTTagCompound(itemStack)){
-			return null;
-		}
-		return getHandle(itemStack).getTag().toString();
-	}
-
-	@Override
-	public void applyNBTFromString(org.bukkit.inventory.ItemStack itemStack, String jsonNbt) {
-		try {
-			ItemStack mcStack = getHandle(itemStack);
-			mcStack.setTag(MojangsonParser.parse(jsonNbt));
-		}catch (Exception e){
-			throw new RuntimeException(e);
-		}
-	}
-
-	@Override
-	public void clearNBT(org.bukkit.inventory.ItemStack itemStack) {
-		ItemStack mcStack = getHandle(itemStack);
-		mcStack.setTag(new NBTTagCompound());
-	}
-
-	@Override
-	public org.bukkit.inventory.ItemStack fromBaseBinary(String baseBinary64) {
-		try {
-			ByteArrayInputStream inputStream = new ByteArrayInputStream(new BigInteger(baseBinary64, 32).toByteArray());
-			NBTTagCompound nbtTagCompoundRoot = NBTCompressedStreamTools.a(new DataInputStream(inputStream));
-			net.minecraft.server.v1_12_R1.ItemStack nmsItem = new net.minecraft.server.v1_12_R1.ItemStack(nbtTagCompoundRoot);
-			return org.bukkit.craftbukkit.v1_12_R1.inventory.CraftItemStack.asBukkitCopy(nmsItem);
-		}catch (Exception e){
-			EverNifeCore.info("Fail on ItemStack NMSUtils v1.12.2 (fromBaseBinary): ");
-			throw new RuntimeException(e);
-		}
 	}
 
 	@Override
@@ -192,39 +92,6 @@ public class NMSUtils_v1_12_R1 implements INMSUtils {
 		CraftPlayer craftPlayer = (CraftPlayer) player;
 		PacketPlayInClientCommand playInClientCommand = new PacketPlayInClientCommand(PacketPlayInClientCommand.EnumClientCommand.PERFORM_RESPAWN);
 		craftPlayer.getHandle().playerConnection.a(playInClientCommand);
-	}
-
-	@Override
-	public boolean hasNBTTagCompound(org.bukkit.inventory.ItemStack itemStack) {
-		if (itemStack instanceof CraftItemStack){
-			return getHandle(itemStack).hasTag();
-		}
-		return false;
-	}
-
-	@Override
-	public void setNBTString(org.bukkit.inventory.ItemStack itemStack, String key, String value) {
-		ItemStack mcStack = getHandle(itemStack);
-		if (!mcStack.hasTag()){
-			mcStack.setTag(new NBTTagCompound());
-		}
-		if (value == null){
-			mcStack.getTag().remove(key);
-		}else {
-			mcStack.getTag().setString(key, value);
-		}
-	}
-
-	@Override
-	public String getNBTString(org.bukkit.inventory.ItemStack itemStack, String key) {
-		ItemStack mcItemStack = getHandle(itemStack);
-		if (mcItemStack.hasTag()){
-			String result = mcItemStack.getTag().getString(key);
-			if (!result.isEmpty()){
-				return result;
-			}
-		}
-		return null;
 	}
 
 	@Override

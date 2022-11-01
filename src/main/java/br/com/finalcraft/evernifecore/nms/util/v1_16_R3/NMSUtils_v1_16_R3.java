@@ -61,12 +61,6 @@ public class NMSUtils_v1_16_R3 implements INMSUtils {
 		}
 	}
 
-	private EntityHuman getNMSPlayer(Player p) {
-		CraftPlayer cplayer = (CraftPlayer) p;
-		EntityHuman nmshuman = cplayer.getHandle();
-		return nmshuman;
-	}
-
 	@Override
 	public String getLocalizedName(org.bukkit.inventory.ItemStack itemStack) {
 		ItemStack nmsItem = CraftItemStack.asNMSCopy(itemStack);
@@ -88,14 +82,6 @@ public class NMSUtils_v1_16_R3 implements INMSUtils {
 		CraftPlayer craftPlayer = (CraftPlayer) player;
 		PacketPlayInClientCommand playInClientCommand = new PacketPlayInClientCommand(PacketPlayInClientCommand.EnumClientCommand.PERFORM_RESPAWN);
 		craftPlayer.getHandle().playerConnection.a(playInClientCommand);
-	}
-
-	@Override
-	public boolean hasNBTTagCompound(org.bukkit.inventory.ItemStack itemStack) {
-		if (itemStack instanceof CraftItemStack){
-			return getHandle(itemStack).hasTag();
-		}
-		return false;
 	}
 
 	@Override
