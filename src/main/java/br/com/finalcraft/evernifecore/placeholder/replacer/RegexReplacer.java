@@ -2,9 +2,13 @@ package br.com.finalcraft.evernifecore.placeholder.replacer;
 
 import br.com.finalcraft.evernifecore.placeholder.base.IProvider;
 import br.com.finalcraft.evernifecore.placeholder.base.PlaceholderProvider;
+import br.com.finalcraft.evernifecore.placeholder.manipulation.ManipulationContext;
+import br.com.finalcraft.evernifecore.placeholder.parser.ManipulatedParser;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -13,45 +17,67 @@ import java.util.regex.Pattern;
 public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O>  {
 
     private final Pattern pattern;
-    private final Map<String, PlaceholderProvider<O>> PROVIDERS = new HashMap<>();
-    private final PlaceholderProvider<O> DEFAULT_PROVIDER = new PlaceholderProvider<>(null);
+    private final PlaceholderProvider<O> provider = new PlaceholderProvider<>();
+    private final List<ManipulatedParser<O>> manipulators = new ArrayList<>();
 
     public RegexReplacer() {
-        this(Closure.PERCENT.pattern);
+        this(Closures.PERCENT.getPattern());
     }
 
     public RegexReplacer(final Pattern pattern) {
         this.pattern = pattern;
     }
 
-    public PlaceholderProvider<O> addProvider(String providerID){
-        return addProvider(new PlaceholderProvider(providerID));
+    public Pattern getPattern() {
+        return pattern;
     }
 
-    public PlaceholderProvider<O> addProvider(PlaceholderProvider<O> provider){
-        PROVIDERS.put(provider.getProviderID(), provider);
+    public PlaceholderProvider<O> getProvider() {
         return provider;
     }
 
-    public PlaceholderProvider<O> getDefaultProvider() {
-        return DEFAULT_PROVIDER;
+    public RegexReplacer<O> addManipulator(String manipulableString, BiFunction<O, ManipulationContext.SimpleContext, Object> parser){
+        this.manipulators.add(
+                new ManipulatedParser<>(
+                        manipulableString,
+                        parser
+                )
+        );
+        //Sort manipulators based on the prefix lengh, it might help performance, bigger prefixes first
+        Collections.sort(this.manipulators, Comparator.comparing(manipulatorParser -> manipulatorParser.getManipulator().getPrefix().length()));
+        Collections.reverse(this.manipulators);
+        return this;
     }
 
-    @Override
-    public RegexReplacer<O> addMappedParser(String name, Function<O, Object> parser) {
-        getDefaultProvider().addMappedParser(name, parser);
+    public <RC> RegexReplacer<O> addManipulator(String manipulableString, RegexReplacer<RC> regexReplacer, BiFunction<O, ManipulationContext.RContext<RC>, Object> parser){
+        this.manipulators.add(
+                new ManipulatedParser<>(
+                        manipulableString,
+                        regexReplacer,
+                        parser
+                )
+        );
+        //Sort manipulators based on the prefix lengh, it might help performance, bigger prefixes first
+        Collections.sort(this.manipulators, Comparator.comparing(manipulatorParser -> manipulatorParser.getManipulator().getPrefix().length()));
+        Collections.reverse(this.manipulators);
         return this;
     }
 
     @Override
-    public RegexReplacer<O> addMappedParser(String name, String description, Function<O, Object> parser) {
-        getDefaultProvider().addMappedParser(name, description, parser);
+    public RegexReplacer<O> addParser(String name, Function<O, Object> parser) {
+        getProvider().addParser(name, parser);
+        return this;
+    }
+
+    @Override
+    public RegexReplacer<O> addParser(String name, String description, Function<O, Object> parser) {
+        getProvider().addParser(name, description, parser);
         return this;
     }
 
     @Override
     public RegexReplacer<O> setDefaultParser(BiFunction<O, String, Object> defaultParser) {
-        getDefaultProvider().setDefaultParser(defaultParser);
+        getProvider().setDefaultParser(defaultParser);
         return this;
     }
 
@@ -67,17 +93,27 @@ public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O
         do {
             final String identifier = matcher.group("identifier");
             final String parameters = matcher.group("parameters");
+            final String full_placeholder = (identifier != null ? (identifier + "_") : "") + parameters;
 
-            PlaceholderProvider<O> provider = identifier == null ? null : PROVIDERS.get(identifier);
-            final String requested;
-            if (provider != null){
-                requested = provider.parse(object, parameters);
-            }else {
-                String prefix = (identifier != null ? (identifier + "_") : "");
-                requested = DEFAULT_PROVIDER.parse(object, prefix + parameters); //Default Provider will ignore identifier
+            String requested = null; //Store the result of this placeholder, or null in case there is no match
+
+            //First check the Manipulators, for overly complex placeholders
+            if (this.manipulators.size() > 0){
+                for (ManipulatedParser<O> manipulatedParser : this.manipulators) {
+                    if (manipulatedParser.getManipulator().match(full_placeholder)){
+                        requested = manipulatedParser.parse(object, full_placeholder);
+                        break;
+                    }
+                }
             }
 
-            matcher.appendReplacement(builder, requested != null ? requested : matcher.group(0));
+            if (requested == null){
+                requested = this.provider.parse(object, full_placeholder); //Default Provider will ignore identifier
+            }
+
+            if (requested != null){
+                matcher.appendReplacement(builder, requested);
+            }
         }
         while (matcher.find());
 

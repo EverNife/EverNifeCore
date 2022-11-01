@@ -11,12 +11,12 @@ public class FCPlaceholders {
     public static RegexReplacer<Player> PLAYER_REPLACER = new RegexReplacer<>();
 
     static {
-        PLAYER_REPLACER.getDefaultProvider().addMappedParser(
+        PLAYER_REPLACER.getProvider().addParser(
                 "player_name",
                 "The Player's Name",
                 player -> player.getName()
         );
-        PLAYER_REPLACER.getDefaultProvider().addMappedParser(
+        PLAYER_REPLACER.getProvider().addParser(
                 "player_uuid",
                 "The Player's UUID",
                 player -> player.getUniqueId()

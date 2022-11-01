@@ -67,4 +67,12 @@ public class CompoundReplacer {
     public CompoundReplacer clone() {
         return new CompoundReplacer().merge(this);
     }
+
+    public List<Tuple<RegexReplacer, Object>> getRegexReplacers() {
+        return REGEX_REPLACERS;
+    }
+
+    public @Nullable Player getPapiUser() {
+        return papiUser;
+    }
 }
