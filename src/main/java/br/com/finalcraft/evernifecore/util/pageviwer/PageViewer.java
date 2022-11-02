@@ -318,7 +318,7 @@ public class PageViewer<OBJ, VALUE> {
         }
 
         public Builder<OBJ, VALUE> setLineEnd(int lineEnd) {
-            this.lineEnd = lineEnd < 0 ? Integer.MAX_VALUE : lineEnd;
+            this.lineEnd = lineEnd <= 0 ? Integer.MAX_VALUE : lineEnd;
             return this;
         }
 
