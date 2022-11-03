@@ -104,6 +104,13 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.24'
 }
 
+ext.getCallingTask = { ->
+    gradle.startParameter.taskNames.size() == 0
+            ? ""
+            : gradle.startParameter.taskNames.get(0)
+}
+
+
 shadowJar {
     archiveName = "${baseName}-${version}.${extension}"
     dependencies {
@@ -113,7 +120,7 @@ shadowJar {
         include(dependency('com.github.EverNife.Item-NBT-API:item-nbt-api:7d30eda0c5'))
         include(dependency('com.github.EverNife.Item-NBT-API:nbt-data-api:7d30eda0c5'))
     }
-    if (gradle.startParameter.taskNames.get(0).equals("publish")){
+    if (getCallingTask().equals("publish")){
         println "[Shadowing ExtraJars for Maven Publish]"
         dependencies {
             include(dependency('com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8.1'))
