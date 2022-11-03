@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -30,7 +31,7 @@ public class Argumento {
     }
 
     public String colorize(){
-        return ChatColor.translateAlternateColorCodes('&',argumento);
+        return FCColorUtil.colorfy(argumento);
     }
 
     public boolean equals(String anotherString){
@@ -128,15 +129,15 @@ public class Argumento {
 
         Number number = null;
 
-        if (clazz == Integer.class)  {
+        if (clazz == Integer.class) {
             number = getInteger();
-        } else if (clazz == Long.class)     {
+        } else if (clazz == Long.class) {
             number = getLong();
-        } else if (clazz == Float.class)    {
+        } else if (clazz == Float.class) {
             number = getFloat();
-        } else if (clazz == Double.class)   {
+        } else if (clazz == Double.class) {
             number = getDouble();
-        } else if (clazz == Byte.class)     {
+        } else if (clazz == Byte.class) {
             number = Byte.valueOf((byte)(int)getInteger());
         }
 
