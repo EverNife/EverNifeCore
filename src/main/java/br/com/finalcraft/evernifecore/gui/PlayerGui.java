@@ -23,13 +23,6 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
 
     }
 
-    @Deprecated
-    public PlayerGui(Player player, P playerData, G gui) {
-        this.player = player;
-        this.playerData = playerData;
-        this.gui = gui;
-    }
-
     public PlayerGui(P playerData) {
         this.player = playerData == null ? null : playerData.getPlayer();
         this.playerData = playerData;
