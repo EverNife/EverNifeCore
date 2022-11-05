@@ -25,7 +25,7 @@ public enum ServerType {
         return name;
     }
 
-    private static ServerType serverType;
+    private static ServerType serverType = null;
     private static Boolean moddedServer = null;
     private static Boolean personalEverNifeServer = null;
 
@@ -92,6 +92,10 @@ public enum ServerType {
                         ? "cpw.mods.fml.common.Loader"
                         : "net.minecraftforge.fml.common.Loader"
         );
+
+        if (isEverNifePersonalServer()){
+            return UNKNOWN;
+        }
 
         if (moddedServer){
             if (FCBukkitUtil.isClassLoaded("com.pixelmonmod.pixelmon.Pixelmon")){
