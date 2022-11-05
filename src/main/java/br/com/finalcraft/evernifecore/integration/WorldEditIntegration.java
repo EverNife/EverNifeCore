@@ -78,47 +78,4 @@ public class WorldEditIntegration {
         return true;
     }
 
-    public static boolean assyncPasteSchematic(File schematic, Location targetLocation, CustomMask customMask){
-
-        com.sk89q.worldedit.world.World world = new BukkitWorld(targetLocation.getWorld());
-        Vector newOrigin = new Vector(targetLocation.getBlockX(), targetLocation.getBlockY(), targetLocation.getBlockZ());
-
-        EditSession editSession = worldEditPlugin.getWorldEdit().getEditSessionFactory().getEditSession(world, -1);
-        editSession.setBlockChangeLimit(-1);
-        editSession.enableQueue();
-
-        // Read the schematic and paste it into the world
-        try(Closer closer = Closer.create()) {
-
-            FileInputStream fis = closer.register(new FileInputStream(schematic));
-            BufferedInputStream bis = closer.register(new BufferedInputStream(fis));
-            ClipboardReader reader = ClipboardFormat.SCHEMATIC.getReader(bis);
-
-            WorldData worldData = world.getWorldData();
-            Clipboard clipboard = reader.read(worldData);
-            ClipboardHolder clipboardHolder = new ClipboardHolder(clipboard, worldData);
-
-            // Build operation
-            BlockTransformExtent extent = new BlockTransformExtent(clipboardHolder.getClipboard(), clipboardHolder.getTransform(), editSession.getWorld().getWorldData().getBlockRegistry());
-            ForwardExtentCopy copy = new ForwardExtentCopy(extent, clipboard.getRegion(), clipboard.getOrigin(), editSession, newOrigin);
-            copy.setTransform(clipboardHolder.getTransform());
-
-            if (customMask != null){
-                customMask.setupFor(clipboard,targetLocation.getWorld(),newOrigin);
-                copy.setSourceMask(customMask);
-            }
-
-            Operations.completeLegacy(copy);
-        } catch(MaxChangedBlocksException e) {
-            worldEditPlugin.getLogger().warning("exceeded the block limit while restoring schematic, limit in exception: " + e.getBlockLimit() + ", limit passed by EverNifeCore: -1");
-            return false;
-        } catch(IOException e) {
-            worldEditPlugin.getLogger().warning("An error occured while restoring schematic, enable debug to see the complete stacktrace");
-            return false;
-        }
-        editSession.flushQueue();
-        return true;
-    }
-
-
 }
