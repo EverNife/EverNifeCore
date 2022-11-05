@@ -19,11 +19,6 @@ public class HelpLine {
         this.permission = permission;
     }
 
-    @Deprecated
-    public FancyText getFancyText() {
-        return this.localeMessage.getDefaultFancyText();
-    }
-
     public LocaleMessage getLocaleMessage() {
         return this.localeMessage;
     }
