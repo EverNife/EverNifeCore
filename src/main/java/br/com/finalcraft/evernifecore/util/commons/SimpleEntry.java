@@ -8,12 +8,12 @@ public class SimpleEntry<K,V> implements Map.Entry<K,V>{
     private final K key;
     private final V value;
 
-    public SimpleEntry(K key, V value) {
+    private SimpleEntry(K key, V value) {
         this.key = key;
         this.value = value;
     }
 
-    public static <K,V> SimpleEntry<K,V> from(K key, V value) {
+    public static <K,V> SimpleEntry<K,V> of(K key, V value) {
         return new SimpleEntry<>(key, value);
     }
 

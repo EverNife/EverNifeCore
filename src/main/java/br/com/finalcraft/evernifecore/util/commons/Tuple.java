@@ -7,14 +7,9 @@ public class Tuple<ALFA, BETA> {
     private ALFA alfa;
     private BETA beta;
 
-    public Tuple(ALFA alfa, BETA beta) {
+    private Tuple(ALFA alfa, BETA beta) {
         this.alfa = alfa;
         this.beta = beta;
-    }
-
-    @Deprecated
-    public static <ALFA,BETA> Tuple<ALFA,BETA> from(ALFA alfa, BETA beta) {
-        return of(alfa, beta);
     }
 
     public ALFA getAlfa() {

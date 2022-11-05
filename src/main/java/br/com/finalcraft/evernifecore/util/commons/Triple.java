@@ -6,15 +6,10 @@ public class Triple<ALFA, BETA, GAMA> {
     public BETA beta;
     public GAMA gama;
 
-    public Triple(ALFA alfa, BETA beta, GAMA gama) {
+    private Triple(ALFA alfa, BETA beta, GAMA gama) {
         this.alfa = alfa;
         this.beta = beta;
         this.gama = gama;
-    }
-
-    @Deprecated
-    public static <ALFA,BETA,GAMA> Triple<ALFA,BETA,GAMA> from(ALFA alfa, BETA beta, GAMA gama) {
-        return of(alfa,beta,gama);
     }
 
     public static <ALFA,BETA,GAMA> Triple<ALFA,BETA,GAMA> of(ALFA alfa, BETA beta, GAMA gama) {
