@@ -11,7 +11,6 @@ public interface LocaleMessage {
 
     public void send(CommandSender... commandSenders);
 
-    @Deprecated
     public SendCustom custom();
 
     public SendCustom addReplacer(CompoundReplacer compoundReplacer);
