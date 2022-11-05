@@ -176,7 +176,7 @@ public class FCTimeFrame {
         return TimeUnit.MILLISECONDS.toSeconds(millis);
     }
 
-    public static Long getMiutes(Long millis) {
+    public static Long getMinutes(Long millis) {
         return TimeUnit.MILLISECONDS.toMinutes(millis);
     }
 
