@@ -10,17 +10,12 @@ import org.bukkit.entity.Player;
 
 public class LuckPermsIntegration {
 
-    public static LuckPerms api = null;
-
     public static LuckPerms getApi() {
-        if (api == null){
-            api = LuckPermsProvider.get();
-        }
-        return api;
+        return LuckPermsProvider.get();
     }
 
     public static User getUser(Player player){
-        return getApi().getUserManager().getUser(player.getUniqueId());
+        return LuckPermsProvider.get().getUserManager().getUser(player.getUniqueId());
     }
 
     public static String getMetaValue(Player player, String name){
