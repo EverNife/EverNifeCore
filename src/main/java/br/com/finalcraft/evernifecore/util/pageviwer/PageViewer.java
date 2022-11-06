@@ -25,7 +25,7 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class PageViewer<OBJ, VALUE> {
+public class PageViewer<OBJ, COMPARED_VALUE> {
 
     @FCLocale(lang = LocaleType.PT_BR, text = "§7Data de hoje: %date_of_today%")
     @FCLocale(lang = LocaleType.EN_US, text = "§7Date of today: %date_of_today%")
@@ -36,8 +36,8 @@ public class PageViewer<OBJ, VALUE> {
     private static LocaleMessage OF_A_TOTAL_OF_X_PLAYERS;
 
     protected final Supplier<List<OBJ>> supplier;
-    protected final Function<OBJ, VALUE> getValue;
-    protected final Comparator<SortedItem<OBJ, VALUE>> comparator;
+    protected final Function<OBJ, COMPARED_VALUE> getValue;
+    protected final Comparator<SortedItem<OBJ, COMPARED_VALUE>> comparator;
     protected final List<FancyText> formatHeader;
     protected final FancyText formatLine;
     protected final List<FancyText> formatFooter;
@@ -55,7 +55,7 @@ public class PageViewer<OBJ, VALUE> {
     protected transient List<FancyText> pageFooterCache = null;
     protected transient long lastBuild = 0L;
 
-    public PageViewer(Supplier<List<OBJ>> supplier, Function<OBJ, VALUE> getValue, Comparator<SortedItem<OBJ, VALUE>> comparator, List<FancyText> formatHeader, FancyText formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, int pageSize, boolean includeDate, boolean includeTotalPlayers, boolean nextAndPreviousPageButton) {
+    public PageViewer(Supplier<List<OBJ>> supplier, Function<OBJ, COMPARED_VALUE> getValue, Comparator<SortedItem<OBJ, COMPARED_VALUE>> comparator, List<FancyText> formatHeader, FancyText formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, int pageSize, boolean includeDate, boolean includeTotalPlayers, boolean nextAndPreviousPageButton) {
         this.supplier = supplier;
         this.getValue = getValue;
         this.comparator = comparator;
@@ -88,11 +88,11 @@ public class PageViewer<OBJ, VALUE> {
             pageLinesCache = new WeakReference<>(new ArrayList<>());
             pageFooterCache = new ArrayList<>();
 
-            List<SortedItem<OBJ, VALUE>> sortedList = new ArrayList<>();
+            List<SortedItem<OBJ, COMPARED_VALUE>> sortedList = new ArrayList<>();
 
             for (OBJ item : supplier.get()) {
-                VALUE value = getValue.apply(item);
-                sortedList.add(new SortedItem(item, value));
+                COMPARED_VALUE comparedValue = getValue.apply(item);
+                sortedList.add(new SortedItem(item, comparedValue));
             }
 
             Collections.sort(sortedList, comparator);
@@ -119,7 +119,7 @@ public class PageViewer<OBJ, VALUE> {
 
             for (int number = lineStart; number < sortedList.size() && number < lineEnd; number++) {
                 final FancyText fancyText = formatLine.clone();
-                final SortedItem<OBJ, VALUE> sortedItem = sortedList.get(number);
+                final SortedItem<OBJ, COMPARED_VALUE> sortedItem = sortedList.get(number);
 
                 placeholders.entrySet().forEach(entry -> fancyText.replace(entry.getKey(), String.valueOf(entry.getValue().apply(sortedItem.getObject()))));
                 fancyText.replace("%number%", String.valueOf(number + 1));
@@ -226,6 +226,38 @@ public class PageViewer<OBJ, VALUE> {
 
     public static <OBJ, VALUE> Builder<OBJ, VALUE> builder(Supplier<List<OBJ>> supplier, Function<OBJ, VALUE> getValue){
         return new Builder<>(supplier, getValue);
+    }
+
+    public static <OBJ> StepBuilder.StepOne<OBJ> of(Class<OBJ> watchedObjectClass){
+        return new StepBuilder.StepOne<>();
+    }
+
+    private static class StepBuilder{
+
+        public static class StepOne<OBJ>{
+
+            private StepOne() {
+            }
+
+            public StepTwo<OBJ> setSuplier(Supplier<List<OBJ>> supplier){
+                return new StepTwo<OBJ>(supplier);
+            }
+
+        }
+
+        public static class StepTwo<OBJ>{
+
+            private final Supplier<List<OBJ>> supplier;
+
+            private StepTwo(Supplier<List<OBJ>> supplier) {
+                this.supplier = supplier;
+            }
+
+            public <COMPARED_VALUE> Builder<OBJ, COMPARED_VALUE> setExtractor(Function<OBJ, COMPARED_VALUE> valueExtractor){
+                return new Builder(supplier, valueExtractor);
+            }
+        }
+
     }
 
     public static class Builder<OBJ, VALUE>{
