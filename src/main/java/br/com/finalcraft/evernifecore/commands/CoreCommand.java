@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.PermissionNodes;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
@@ -27,10 +28,10 @@ public class CoreCommand {
             }
     )
     public void info(CommandSender sender, @Arg(name = "[page]", context = "[1:*]") Integer page){
-        PageViewer.builder(
-                        () -> new ArrayList<>(ECPluginManager.getECPluginsMap().values()),
-                        ecPlugin -> ecPlugin.getPlugin().getName()
-                ).setFormatLine(
+        PageViewer.of(ECPluginData.class)
+                .setSuplier(() -> new ArrayList<>(ECPluginManager.getECPluginsMap().values()))
+                .setExtractor(ecPluginData -> ecPluginData.getPlugin().getName())
+                .setFormatLine(
                         FancyText.of("§7# %number%: §e§l◆ §a %value% §7§o(%version%)").setHoverText("%plugin_info%")
                                 .append("%can_update%").setHoverText("§aClique to go to DownloadLink").setOpenLinkAction("%update_link%")
                 )
