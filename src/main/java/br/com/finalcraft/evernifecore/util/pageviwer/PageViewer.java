@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.util.pageviwer;
 
-import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.dynamiccommand.DynamicCommand;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
@@ -36,8 +35,8 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
     private static LocaleMessage OF_A_TOTAL_OF_X_PLAYERS;
 
     protected final Supplier<List<OBJ>> supplier;
-    protected final Function<OBJ, COMPARED_VALUE> getValue;
-    protected final Comparator<SortedItem<OBJ, COMPARED_VALUE>> comparator;
+    protected final @Nullable Function<OBJ, COMPARED_VALUE> valueExtrator;
+    protected final @Nullable Comparator<SortedItem<OBJ, COMPARED_VALUE>> comparator;
     protected final List<FancyText> formatHeader;
     protected final FancyText formatLine;
     protected final List<FancyText> formatFooter;
@@ -55,9 +54,9 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
     protected transient List<FancyText> pageFooterCache = null;
     protected transient long lastBuild = 0L;
 
-    public PageViewer(Supplier<List<OBJ>> supplier, Function<OBJ, COMPARED_VALUE> getValue, Comparator<SortedItem<OBJ, COMPARED_VALUE>> comparator, List<FancyText> formatHeader, FancyText formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, int pageSize, boolean includeDate, boolean includeTotalPlayers, boolean nextAndPreviousPageButton) {
+    public PageViewer(Supplier<List<OBJ>> supplier, @Nullable Function<OBJ, COMPARED_VALUE> valueExtrator, @Nullable Comparator<SortedItem<OBJ, COMPARED_VALUE>> comparator, List<FancyText> formatHeader, FancyText formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, int pageSize, boolean includeDate, boolean includeTotalPlayers, boolean nextAndPreviousPageButton) {
         this.supplier = supplier;
-        this.getValue = getValue;
+        this.valueExtrator = valueExtrator;
         this.comparator = comparator;
         this.formatHeader = formatHeader;
         this.formatLine = formatLine;
@@ -91,18 +90,23 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
             List<SortedItem<OBJ, COMPARED_VALUE>> sortedList = new ArrayList<>();
 
             for (OBJ item : supplier.get()) {
-                COMPARED_VALUE comparedValue = getValue.apply(item);
+                COMPARED_VALUE comparedValue = valueExtrator != null ? valueExtrator.apply(item) : null;
                 sortedList.add(new SortedItem(item, comparedValue));
             }
 
-            Collections.sort(sortedList, comparator);
-            Collections.reverse(sortedList);
+            if (comparator != null){
+                Collections.sort(sortedList, comparator);
+                Collections.reverse(sortedList);
+            }
+
 
             if (sortedList.size() > 0){ //Add more default placeholders here, like "%player%" name
                 SortedItem sortedItem = sortedList.get(0);
-                if (sortedItem.object instanceof Player) placeholders.put("%player%", obj -> ((Player) obj).getName());
-                else if (sortedItem.object instanceof PlayerData) placeholders.put("%player%", obj -> ((PlayerData) obj).getPlayerName());
-                else if (sortedItem.object instanceof PDSection) placeholders.put("%player%", obj -> ((PDSection) obj).getPlayerName());
+                if (sortedItem.object instanceof Player) {
+                    placeholders.put("%player%", obj -> ((Player) obj).getName());
+                } else if (sortedItem.object instanceof IPlayerData) {
+                    placeholders.put("%player%", obj -> ((IPlayerData) obj).getPlayerName());
+                }
             }
 
             for (FancyText formatHeaderText : formatHeader) {
@@ -224,7 +228,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         }
     }
 
-    public static <OBJ, VALUE> Builder<OBJ, VALUE> builder(Supplier<List<OBJ>> supplier, Function<OBJ, VALUE> getValue){
+    public static <OBJ, COMPARED_VALUE> Builder<OBJ, COMPARED_VALUE> builder(Supplier<List<OBJ>> supplier, Function<OBJ, COMPARED_VALUE> getValue){
         return new Builder<>(supplier, getValue);
     }
 
@@ -260,13 +264,13 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
     }
 
-    public static class Builder<OBJ, VALUE>{
+    public static class Builder<OBJ, COMPARED_VALUE>{
         protected Supplier<List<OBJ>> supplier;
-        protected Function<OBJ, VALUE> getValue;
+        protected Function<OBJ, COMPARED_VALUE> valueExtrator;
 
         private final Comparator<Number> doubleComparator = Comparator.comparingDouble(Number::doubleValue);
         private final Comparator<Object> stringComparator = Comparator.comparing(Object::toString);
-        protected Comparator<SortedItem<OBJ, VALUE>> comparator = (o1, o2) -> {
+        protected Comparator<SortedItem<OBJ, COMPARED_VALUE>> comparator = (o1, o2) -> {
             Object value1 = o1.getValue();
             Object value2 = o2.getValue();
             if (value1 instanceof Number){
@@ -287,102 +291,106 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
         protected final HashMap<String, Function<OBJ,Object>> placeholders = new HashMap<>();
 
-        protected Builder(Supplier<List<OBJ>> supplier, Function<OBJ, VALUE> getValue) {
+        protected Builder(Supplier<List<OBJ>> supplier, Function<OBJ, COMPARED_VALUE> valueExtrator) {
             this.supplier = supplier;
-            this.getValue = getValue;
-
-            addPlaceholder("%value%", (Function<OBJ, Object>) getValue);
+            this.valueExtrator = valueExtrator;
         }
 
-        public Builder<OBJ, VALUE> setComparator(Comparator<SortedItem<OBJ, VALUE>> comparator) {
+        //Null Comparator means keep the supplier order
+        public Builder<OBJ, COMPARED_VALUE> setComparator(@Nullable Comparator<SortedItem<OBJ, COMPARED_VALUE>> comparator) {
             this.comparator = comparator;
             return this;
         }
 
-        public Builder<OBJ, VALUE> setFormatHeader(List<FancyText> formatHeader) {
+        public Builder<OBJ, COMPARED_VALUE> setFormatHeader(List<FancyText> formatHeader) {
             this.formatHeader = formatHeader;
             return this;
         }
 
-        public Builder<OBJ, VALUE> setFormatHeader(FancyText... formatHeader) {
+        public Builder<OBJ, COMPARED_VALUE> setFormatHeader(FancyText... formatHeader) {
             this.formatHeader = Arrays.asList(formatHeader);
             return this;
         }
 
-        public Builder<OBJ, VALUE> setFormatHeader(String... formatHeader) {
+        public Builder<OBJ, COMPARED_VALUE> setFormatHeader(String... formatHeader) {
             this.formatHeader = Arrays.asList(formatHeader).stream().map(FancyText::new).collect(Collectors.toList());
             return this;
         }
 
-        public Builder<OBJ, VALUE> setFormatLine(String formatLine) {
+        public Builder<OBJ, COMPARED_VALUE> setFormatLine(String formatLine) {
             this.formatLine = new FancyText(formatLine);
             return this;
         }
 
-        public Builder<OBJ, VALUE> setFormatLine(FancyText formatLine) {
+        public Builder<OBJ, COMPARED_VALUE> setFormatLine(FancyText formatLine) {
             this.formatLine = formatLine;
             return this;
         }
 
-        public Builder<OBJ, VALUE> setFormatFooter(List<FancyText> formatFooter) {
+        public Builder<OBJ, COMPARED_VALUE> setFormatFooter(List<FancyText> formatFooter) {
             this.formatFooter = formatFooter;
             return this;
         }
 
-        public Builder<OBJ, VALUE> setFormatFooter(FancyText... formatFooter) {
+        public Builder<OBJ, COMPARED_VALUE> setFormatFooter(FancyText... formatFooter) {
             this.formatFooter = Arrays.asList(formatFooter);
             return this;
         }
 
-        public Builder<OBJ, VALUE> setFormatFooter(String... formatFooter) {
+        public Builder<OBJ, COMPARED_VALUE> setFormatFooter(String... formatFooter) {
             this.formatFooter = Arrays.asList(formatFooter).stream().map(FancyText::new).collect(Collectors.toList());
             return this;
         }
 
-        public Builder<OBJ, VALUE> setCooldown(int cooldown) {
+        public Builder<OBJ, COMPARED_VALUE> setCooldown(int cooldown) {
             this.cooldown = cooldown * 1000;
             return this;
         }
 
-        public Builder<OBJ, VALUE> setLineStart(int lineStart) {
+        public Builder<OBJ, COMPARED_VALUE> setLineStart(int lineStart) {
             this.lineStart = lineStart;
             return this;
         }
 
-        public Builder<OBJ, VALUE> setLineEnd(int lineEnd) {
+        public Builder<OBJ, COMPARED_VALUE> setLineEnd(int lineEnd) {
             this.lineEnd = lineEnd <= 0 ? Integer.MAX_VALUE : lineEnd;
             return this;
         }
 
-        public Builder<OBJ, VALUE> setIncludeDate(boolean includeDate) {
+        public Builder<OBJ, COMPARED_VALUE> setIncludeDate(boolean includeDate) {
             this.includeDate = includeDate;
             return this;
         }
 
-        public Builder<OBJ, VALUE> setIncludeTotalPlayers(boolean includeTotalPlayers) {
+        public Builder<OBJ, COMPARED_VALUE> setIncludeTotalPlayers(boolean includeTotalPlayers) {
             this.includeTotalPlayers = includeTotalPlayers;
             return this;
         }
 
-        public Builder<OBJ, VALUE> setPageSize(int pageSize) {
+        public Builder<OBJ, COMPARED_VALUE> setPageSize(int pageSize) {
             this.pageSize = pageSize;
             return this;
         }
 
-        public Builder<OBJ, VALUE> addPlaceholder(String placeholder, Function<OBJ, Object> function){
+        public Builder<OBJ, COMPARED_VALUE> addPlaceholder(String placeholder, Function<OBJ, Object> function){
             placeholders.put(placeholder, function);
             return this;
         }
 
-        public Builder<OBJ, VALUE> setNextAndPreviousPageButton(boolean nextAndPreviousPageButton) {
+        public Builder<OBJ, COMPARED_VALUE> setNextAndPreviousPageButton(boolean nextAndPreviousPageButton) {
             this.nextAndPreviousPageButton = nextAndPreviousPageButton;
             return this;
         }
 
-        public PageViewer<OBJ, VALUE> build(){
-            PageViewer<OBJ, VALUE> pageViewer = new PageViewer<>(
+        public PageViewer<OBJ, COMPARED_VALUE> build(){
+
+            if (this.valueExtrator != null){
+                addPlaceholder("%value%", (Function<OBJ, Object>) valueExtrator);
+            }
+
+            PageViewer<OBJ, COMPARED_VALUE> pageViewer = new PageViewer<>(
                     supplier,
-                    getValue,
+                    valueExtrator,
                     comparator,
                     formatHeader,
                     formatLine,
@@ -393,7 +401,8 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
                     pageSize,
                     includeDate,
                     includeTotalPlayers,
-                    nextAndPreviousPageButton);
+                    nextAndPreviousPageButton
+            );
 
             pageViewer.placeholders.putAll(this.placeholders);
 
