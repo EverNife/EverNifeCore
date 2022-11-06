@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.locale;
 
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -44,7 +45,7 @@ public class SendCustomComplex extends SendCustom {
     public void send(CommandSender... commandSenders){
         for (CommandSender sender : commandSenders) {
 
-            List<FancyText> fancyTexts = new ArrayList<>();
+            FancyFormatter formatter = new FancyFormatter();
             for (SendCustom sendCustom : concatList) {
 
                 FancyText fancyText = sendCustom.localeMessage.getFancyText(sender).clone();
@@ -73,10 +74,10 @@ public class SendCustomComplex extends SendCustom {
                     fancyText.replace(placeholder, value);
                 }
 
-                fancyTexts.add(fancyText);
+                formatter.append(fancyText);
             }
 
-            FancyText.sendTo(sender, fancyTexts);
+            formatter.send(sender);
         }
     }
 }

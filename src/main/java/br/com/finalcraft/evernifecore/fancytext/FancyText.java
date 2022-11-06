@@ -362,36 +362,4 @@ public class FancyText {
         return new FancyText(String.join("\n",lines));
     }
 
-    // ------------------------------------------------------------------------------------------------------
-    // Deprecated code kept to keep legacy suport
-    // ------------------------------------------------------------------------------------------------------
-
-    @Deprecated
-    public FancyText(String text, String hoverText, String commandActionText, boolean suggestionCommand) {
-        this.text = text;
-        this.hoverText = hoverText;
-        if (suggestionCommand){
-            setSuggestCommandAction(commandActionText);
-        }else {
-            setRunCommandAction(commandActionText);
-        }
-    }
-
-    @Deprecated
-    public static void sendTo(CommandSender sender, FancyText... fancyTexts){
-        FancyFormatter fancyFormatter = fancyTexts[0].clone().getOrCreateFormmater();
-        for (int i = 1; i < fancyTexts.length; i++) {
-            fancyFormatter.append(fancyTexts[i]);
-        }
-        fancyFormatter.send(sender);
-    }
-
-    @Deprecated
-    public static void sendTo(CommandSender sender, List<FancyText> fancyTexts){
-        FancyFormatter fancyFormatter = fancyTexts.get(0).clone().getOrCreateFormmater();
-        for (int i = 1; i < fancyTexts.size(); i++) {
-            fancyFormatter.append(fancyTexts.get(i));
-        }
-        fancyFormatter.send(sender);
-    }
 }
