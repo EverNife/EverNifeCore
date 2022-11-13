@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.help;
 
-import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import org.bukkit.command.CommandSender;

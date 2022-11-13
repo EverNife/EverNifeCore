@@ -4,36 +4,40 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
+import br.com.finalcraft.evernifecore.time.FCTimeFrame;
+import br.com.finalcraft.evernifecore.util.FCScheduller;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 
 public class PlayerController {
 
     private static Map<UUID,PlayerData> MAP_OF_PLAYER_DATA = new HashMap<UUID, PlayerData>();
 
     public static void initialize(){
-        synchronized (MAP_OF_PLAYER_DATA){
-            MAP_OF_PLAYER_DATA.clear();
+        long start = System.currentTimeMillis();
+        HashMap<UUID,PlayerData> newHashMap = new HashMap();
+        List<Runnable> runnableList = new ArrayList<>();
 
-            for (Map.Entry<UUID, String> entry : UUIDsController.getEntrySet()) {
-                final UUID playerUUID = entry.getKey();
-                final String playerName = entry.getValue();
+        for (Map.Entry<UUID, String> entry : UUIDsController.getEntrySet()) {
+            final UUID playerUUID = entry.getKey();
+            final String playerName = entry.getValue();
 
-                String playerDataFileName = ECSettings.useNamesInsteadOfUUIDToStorePlayerData ? playerName : playerUUID.toString();
+            String playerDataFileName = ECSettings.useNamesInsteadOfUUIDToStorePlayerData ? playerName : playerUUID.toString();
 
-                File theConfigFile = new File(EverNifeCore.instance.getDataFolder(), "PlayerData/" + playerDataFileName + ".yml");
-                if (theConfigFile.exists()){
+            File theConfigFile = new File(EverNifeCore.instance.getDataFolder(), "PlayerData/" + playerDataFileName + ".yml");
+            if (theConfigFile.exists()){
+                runnableList.add(() -> {
                     try {
                         Config config = new Config(theConfigFile);
                         PlayerData playerData = new PlayerData(config);
-                        MAP_OF_PLAYER_DATA.put(playerUUID, playerData);
+                        newHashMap.put(playerUUID, playerData);
                     }catch (Exception e){
                         EverNifeCore.warning("Failed to load PlayerData [" + theConfigFile.getName() + "] moving it to the corrupt folder. \nTheFile: " + theConfigFile.getAbsolutePath() + " .");
                         e.printStackTrace();
@@ -49,14 +53,34 @@ public class PlayerController {
                             e2.printStackTrace();
                         }
                     }
-                }
+                });
             }
+        }
 
-            for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-                getOrCreateOne(onlinePlayer.getUniqueId()).setPlayer(onlinePlayer);
-            }
+        CountDownLatch latch = new CountDownLatch(runnableList.size());
 
-            EverNifeCore.info(ChatColor.translateAlternateColorCodes('&',"&aFinished Loading PlayerData of " + MAP_OF_PLAYER_DATA.size() + " players!"));
+        for (Runnable runnable : runnableList) {
+            FCScheduller.runAssync(() -> {
+                runnable.run();
+                latch.countDown();
+            });
+        }
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            getOrCreateOne(onlinePlayer.getUniqueId()).setPlayer(onlinePlayer);
+        }
+
+        long end = System.currentTimeMillis();
+        EverNifeCore.info(String.format("Finished Loading PlayerData of %s players! (%s)", newHashMap.size(), new FCTimeFrame(end-start).getFormattedDiscursive()));
+
+        synchronized (MAP_OF_PLAYER_DATA){
+            MAP_OF_PLAYER_DATA = newHashMap;
         }
     }
 

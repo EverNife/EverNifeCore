@@ -39,7 +39,6 @@ public class ConfigManager {
 
         UUIDsController.loadUUIDs();
         ECSettings.initialize();
-        PlayerController.initialize();
 
         FCLocaleManager.loadLocale(EverNifeCore.instance,
                 FCMessageUtil.class,
@@ -52,6 +51,8 @@ public class ConfigManager {
                 PageViewer.class
         );
         FCLocaleManager.updateEverNifeCoreLocale();
+
+        PlayerController.initialize();
     }
 
     public static void reloadCooldownConfig(){
