@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.commands.finalcmd.implementation;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.IFinalCMDExecutor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.FinalCMDData;
+import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDAccessValidation;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDMethodInterpreter;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.FCDefaultExecutor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
@@ -14,6 +15,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandException;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginIdentifiableCommand;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -143,15 +145,19 @@ public class FinalCMDPluginCommand extends Command implements PluginIdentifiable
 
         int index = args.length - 1;
 
+        boolean isPlayer = sender instanceof Player;
+
         //The TabComplete is based on the FirstArg.
         CMDMethodInterpreter interpreter = (args.length == 0 || args[0].isEmpty()) ? null : getSubCommand(args[0]);
         if (interpreter == null){
             interpreter = mainInterpreter;
         }
 
-        if (interpreter == null && subCommands.size() > 0){ //For the first arg of all sub commands we need ot check each permission
+        if (interpreter == null && subCommands.size() > 0){
             return subCommands.stream()
-                    .filter(subCommand -> subCommand.getCmdData().permission().isEmpty() || sender.hasPermission(subCommand.getCmdData().permission()))
+                    .filter(subCommand -> subCommand.getCmdData().permission().isEmpty() || sender.hasPermission(subCommand.getCmdData().permission())) //For the first arg of all sub commands we need ot check each permission
+                    .filter(subCommand -> !subCommand.isPlayerOnly() ? true : isPlayer) //If is the console calling this tab completion, ignore the subCommand if it's a 'playerOnly' subCMD
+                    .filter(subCommand -> subCommand.getCmdData().cmdAccessValidation().onPreTabValidation(new CMDAccessValidation.Context(subCommand, sender))) //Apply a final custom filtering, in case this cmd has a custom cmdAccessValidation
                     .map(subCommand -> subCommand.getLabels()[0])
                     .filter(s -> StringUtils.startsWithIgnoreCase(s, args[index]))
                     .collect(Collectors.toList());

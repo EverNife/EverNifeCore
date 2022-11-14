@@ -47,7 +47,7 @@ public class CMDMethodInterpreter {
     private final JavaPlugin owningPlugin;
     private final Method method;
     private final Object executor;
-    private final CMDData cmdData;
+    private final CMDData<?> cmdData;
     private final String[] labels; //Alias of the command or name of the subCMD
     private final boolean isSubCommand;
     private final boolean playerOnly;
@@ -135,7 +135,7 @@ public class CMDMethodInterpreter {
         this.helpLine = buildHelpLine();
     }
 
-    public CMDData getCmdData() {
+    public CMDData<?> getCmdData() {
         return cmdData;
     }
 

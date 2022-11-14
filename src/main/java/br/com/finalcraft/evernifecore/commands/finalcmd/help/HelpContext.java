@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.help;
 
+import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDAccessValidation;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDMethodInterpreter;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
@@ -7,6 +8,7 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import com.google.common.collect.ImmutableList;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -57,8 +59,18 @@ public class HelpContext {
     public void sendTo(CommandSender sender, String label){
         sender.sendMessage(helpHeader.isEmpty() ? "§2§m-----------------------------------------------------" : helpHeader);
 
+        boolean isPlayer = sender instanceof Player;
+
         for (CMDMethodInterpreter subCommand : finalCMDPluginCommand.subCommands) {
             if (!subCommand.getCmdData().permission().isEmpty() && !sender.hasPermission(subCommand.getCmdData().permission())){
+                continue;
+            }
+
+            if (!isPlayer && subCommand.isPlayerOnly()){
+                continue;
+            }
+
+            if (subCommand.getCmdData().cmdAccessValidation().onPreTabValidation(new CMDAccessValidation.Context(subCommand, sender)) != true){
                 continue;
             }
 

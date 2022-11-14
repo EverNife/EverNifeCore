@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data;
 
+import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDAccessValidation;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.util.FCArrayUtil;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -11,21 +11,28 @@ import java.util.stream.Collectors;
 
 @Getter
 @Accessors(fluent = true)
-@AllArgsConstructor
 public class CMDData<T extends CMDData<T>> {
 
-    private String[] labels; //This means both command ALIASES or SubCommands names
-    private String usage;
-    private String desc;
+    private String[] labels = new String[0]; //This means both command ALIASES or SubCommands names
+    private String usage = "";
+    private String desc = "";
     private String permission;
-    private FCLocaleData[] locales;
+    private String context = "";
+    private CMDAccessValidation cmdAccessValidation = CMDAccessValidation.FULLY_ALLOWED;
+    private FCLocaleData[] locales = new FCLocaleData[0];
 
     public CMDData() {
-        labels = new String[0];
-        usage = "";
-        desc = "";
-        permission = "";
-        locales = new FCLocaleData[0];
+
+    }
+
+    public CMDData(String[] labels, String usage, String desc, String permission, String context, FCLocaleData[] locales) {
+        this();
+        this.labels = labels;
+        this.usage = usage;
+        this.desc = desc;
+        this.permission = permission;
+        this.context = context;
+        this.locales = locales;
     }
 
     //Override this CMDData with data from other CMDData
@@ -56,6 +63,16 @@ public class CMDData<T extends CMDData<T>> {
     public T desc(String desc) {
         this.desc = desc;
         return (T) this;
+    }
+
+    public CMDData<T> context(String context) {
+        this.context = context;
+        return this;
+    }
+
+    public CMDData<T> setCmdAccessValidation(CMDAccessValidation cmdAccessValidation) {
+        this.cmdAccessValidation = cmdAccessValidation;
+        return this;
     }
 
     public T permission(String permission) {
