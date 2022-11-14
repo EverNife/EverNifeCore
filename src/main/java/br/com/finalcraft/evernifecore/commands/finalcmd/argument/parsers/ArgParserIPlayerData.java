@@ -42,6 +42,11 @@ public class ArgParserIPlayerData extends ArgParser<IPlayerData> {
             throw new ArgParseException();
         }
 
+        if (this.online && !playerData.isPlayerOnline()){
+            FCMessageUtil.playerNotOnline(sender, playerData.getPlayerName());
+            throw new ArgParseException();
+        }
+
         if (PlayerData.class.equals(argInfo.getArgumentType())){
             return playerData;
         }
