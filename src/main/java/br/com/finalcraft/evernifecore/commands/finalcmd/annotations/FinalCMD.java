@@ -19,6 +19,8 @@ public @interface FinalCMD {
 
     String permission() default "";
 
+    String context() default "";
+
     String helpHeader() default "";
 
     CMDHelpType useDefaultHelp() default CMDHelpType.FULL;
@@ -35,6 +37,8 @@ public @interface FinalCMD {
         String desc() default "";
 
         String permission() default "";
+
+        String context() default "";
 
         FCLocale[] locales() default {};
     }

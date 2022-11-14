@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.commands.misc;
 import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.ICustomFinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
-import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CustomizeContext;
+import br.com.finalcraft.evernifecore.commands.finalcmd.executor.contexts.CustomizeContext;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;

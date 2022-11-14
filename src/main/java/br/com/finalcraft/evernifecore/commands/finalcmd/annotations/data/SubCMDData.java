@@ -20,6 +20,7 @@ public class SubCMDData extends CMDData<SubCMDData> {
                 subCMD.usage(),
                 subCMD.desc(),
                 subCMD.permission(),
+                subCMD.context(),
                 Arrays.stream(subCMD.locales())
                         .map(FCLocaleData::new)
                         .collect(Collectors.toList())

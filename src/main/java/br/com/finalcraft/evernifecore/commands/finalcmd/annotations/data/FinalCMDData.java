@@ -25,6 +25,7 @@ public class FinalCMDData extends CMDData<FinalCMDData> {
                 finalCMD.usage(),
                 finalCMD.desc(),
                 finalCMD.permission(),
+                finalCMD.context(),
                 Arrays.stream(finalCMD.locales())
                         .map(FCLocaleData::new)
                         .collect(Collectors.toList())
