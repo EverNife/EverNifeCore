@@ -25,11 +25,11 @@ public class CustomizeContext {
         this.mainMethod = mainMethod;
         this.subMethods = ImmutableList.copyOf(subMethods);
 
-        List<MethodData> list = new ArrayList<>();
+        List<MethodData<?>> list = new ArrayList<>();
         list.add(mainMethod);
         list.addAll(subMethods);
 
-        this.allMethods = ImmutableList.copyOf(list);;
+        this.allMethods = ImmutableList.copyOf(list);
     }
 
     public MethodData<FinalCMDData> getMainMethod() {
@@ -53,7 +53,11 @@ public class CustomizeContext {
     }
 
     public List<CMDData<?>> getAllCMDData() {
-        return allMethods.stream().map(MethodData::getData).collect(Collectors.toList());
+        List<CMDData<?>> cmdDataList = new ArrayList<>();
+        for (MethodData<?> methodData : allMethods) {
+            cmdDataList.add(methodData.getData());
+        }
+        return cmdDataList;
     }
 
     public void replace(String placeholder, String value){
