@@ -1,7 +1,9 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAccessValidation;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
+import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.CMDData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.FinalCMDData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.SubCMDData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
@@ -137,6 +139,17 @@ public class FinalCMDManager {
                     ((ICustomFinalCMD) executor).customize(customizeContext);
                 }
 
+                //After customization, lets load the Validators locales
+                for (CMDData<?> cmdData : customizeContext.getAllCMDData()) {
+                    //If its not the default validator, lets load its locale
+                    Class validationClass = cmdData.cmdAccessValidation().getClass();
+                    if (validationClass != CMDAccessValidation.Allowed.class){
+                        //Maybe the Validation class is not from this ECPlugin, so lets make sure its loaded on its proper owner
+                        Plugin plugin = JavaPlugin.getProvidingPlugin(validationClass);
+                        FCLocaleManager.loadLocale(plugin, validationClass);
+                    }
+                }
+
                 CMDMethodInterpreter mainMethodInterpreter = (mainCommandMethod == null ? null : new CMDMethodInterpreter(pluginInstance, customizeContext.getMainMethod(), executor));
 
                 FinalCMDPluginCommand newCommand = new FinalCMDPluginCommand(pluginInstance, finalCMDData, mainMethodInterpreter);
@@ -165,6 +178,17 @@ public class FinalCMDManager {
                     if (executor instanceof ICustomFinalCMD){
                         //Apply command customization if necessary
                         ((ICustomFinalCMD) executor).customize(customizeContext);
+                    }
+
+                    //After customization, lets load the Validators locales
+                    for (CMDData<?> cmdData : customizeContext.getAllCMDData()) {
+                        //If its not the default validator, lets load its locale
+                        Class validationClass = cmdData.cmdAccessValidation().getClass();
+                        if (validationClass != CMDAccessValidation.Allowed.class){
+                            //Maybe the Validation class is not from this ECPlugin, so lets make sure its loaded on its proper owner
+                            Plugin plugin = JavaPlugin.getProvidingPlugin(validationClass);
+                            FCLocaleManager.loadLocale(plugin, validationClass);
+                        }
                     }
 
                     CMDMethodInterpreter mainMethodInterpreter = mainCommandMethod == null ? null : new CMDMethodInterpreter(pluginInstance, customizeContext.getMainMethod(), executor);
