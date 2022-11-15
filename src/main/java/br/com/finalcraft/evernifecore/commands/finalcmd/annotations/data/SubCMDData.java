@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data;
 
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
+import br.com.finalcraft.evernifecore.util.ReflectionUtil;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -21,6 +22,7 @@ public class SubCMDData extends CMDData<SubCMDData> {
                 subCMD.desc(),
                 subCMD.permission(),
                 subCMD.context(),
+                ReflectionUtil.getConstructor(subCMD.validation()).invoke(),
                 Arrays.stream(subCMD.locales())
                         .map(FCLocaleData::new)
                         .collect(Collectors.toList())

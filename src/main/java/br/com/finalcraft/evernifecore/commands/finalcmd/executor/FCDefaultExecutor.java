@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.commands.finalcmd.executor;
 
 import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.IFinalCMDExecutor;
+import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAccessValidation;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.CMDHelpType;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.FinalCMDData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;

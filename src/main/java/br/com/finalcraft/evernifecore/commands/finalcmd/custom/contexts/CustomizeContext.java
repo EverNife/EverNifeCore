@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.commands.finalcmd.executor.contexts;
+package br.com.finalcraft.evernifecore.commands.finalcmd.custom.contexts;
 
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.CMDData;

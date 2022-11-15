@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.help;
 
-import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDAccessValidation;
+import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAccessValidation;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDMethodInterpreter;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.locale.FCLocale;

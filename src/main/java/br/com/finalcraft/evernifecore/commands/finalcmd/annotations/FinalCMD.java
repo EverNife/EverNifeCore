@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.annotations;
 
+import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAccessValidation;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 
 import java.lang.annotation.ElementType;
@@ -21,6 +22,8 @@ public @interface FinalCMD {
 
     String context() default "";
 
+    Class<? extends CMDAccessValidation> validation() default CMDAccessValidation.Allowed.class;
+
     String helpHeader() default "";
 
     CMDHelpType useDefaultHelp() default CMDHelpType.FULL;
@@ -39,6 +42,8 @@ public @interface FinalCMD {
         String permission() default "";
 
         String context() default "";
+
+        Class<? extends CMDAccessValidation> validation() default CMDAccessValidation.Allowed.class;
 
         FCLocale[] locales() default {};
     }

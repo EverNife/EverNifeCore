@@ -1,5 +1,7 @@
-package br.com.finalcraft.evernifecore.commands.finalcmd.executor;
+package br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation;
 
+import br.com.finalcraft.evernifecore.commands.finalcmd.custom.ICustomFinalCMD;
+import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDMethodInterpreter;
 import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
@@ -9,16 +11,17 @@ import org.bukkit.entity.Player;
 /**
  * Used to validate command access and HelpContext display based on customizable contexts
  *
- * Lets say for example there is a FinalCMD that implements {@link br.com.finalcraft.evernifecore.commands.finalcmd.ICustomFinalCMD}
+ * Lets say for example there is a FinalCMD that implements {@link ICustomFinalCMD}
  * and it wants to only show some specific subCommands on the help line, and only allow the user to access these subCommands
  * when the player matches a specific requirement, lets say, be a CLAN_LEADER.
  *
- * So, to achieve this customization, the {@link br.com.finalcraft.evernifecore.commands.finalcmd.ICustomFinalCMD} must customize the
+ * So, to achieve this customization, the {@link ICustomFinalCMD} must customize the
  * cmdDatas using this context that is called before those actions
  */
 public abstract class CMDAccessValidation {
 
-    public static CMDAccessValidation FULLY_ALLOWED = new CMDAccessValidation() {
+    public static class Allowed extends CMDAccessValidation{
+
         @Override
         public boolean onPreCommandValidation(Context context) {
             return true;
@@ -28,7 +31,8 @@ public abstract class CMDAccessValidation {
         public boolean onPreTabValidation(Context context) {
             return true;
         }
-    };
+
+    }
 
     /**
      * Called before invoking and parsing all the arguments of the FinalCMD

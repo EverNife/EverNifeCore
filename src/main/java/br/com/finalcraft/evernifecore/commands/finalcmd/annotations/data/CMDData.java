@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data;
 
-import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDAccessValidation;
+import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAccessValidation;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.util.FCArrayUtil;
 import lombok.Getter;
@@ -18,20 +18,21 @@ public class CMDData<T extends CMDData<T>> {
     private String desc = "";
     private String permission;
     private String context = "";
-    private CMDAccessValidation cmdAccessValidation = CMDAccessValidation.FULLY_ALLOWED;
+    private CMDAccessValidation cmdAccessValidation = new CMDAccessValidation.Allowed();
     private FCLocaleData[] locales = new FCLocaleData[0];
 
     public CMDData() {
 
     }
 
-    public CMDData(String[] labels, String usage, String desc, String permission, String context, FCLocaleData[] locales) {
+    public CMDData(String[] labels, String usage, String desc, String permission, String context, CMDAccessValidation cmdAccessValidation, FCLocaleData[] locales) {
         this();
         this.labels = labels;
         this.usage = usage;
         this.desc = desc;
         this.permission = permission;
         this.context = context;
+        this.cmdAccessValidation = cmdAccessValidation;
         this.locales = locales;
     }
 
