@@ -16,6 +16,10 @@ public interface ECListener extends Listener {
         return true;
     }
 
+    public default boolean silentRegistration(){
+        return false;
+    }
+
     public default void onRegister(){
         //Do Nothing
     }
@@ -44,7 +48,9 @@ public interface ECListener extends Listener {
                 return false;
             }
 
-            pluginInstance.getLogger().info("[ECListener] Registering Listener [" + listener.getClass().getName() + "]");
+            if (!listener.silentRegistration()){
+                pluginInstance.getLogger().info("[ECListener] Registering Listener [" + listener.getClass().getName() + "]");
+            }
             try {
                 listener.onRegister();
             }catch (Throwable e){
