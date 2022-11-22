@@ -20,7 +20,6 @@ public class NMSUtils_v1_16_R3 implements INMSUtils {
 
 	private Class fakePlayerClass = null; 	// net.minecraftforge.common.util.FakePlayer
 	private Field handle_field = null; 		// CraftItemStack.handle
-	private Field entity_field = null; 		// CraftEntity.entity
 	private Field tag_field = null; 		// ItemStack.tag
 
 	public NMSUtils_v1_16_R3() {
@@ -37,15 +36,6 @@ public class NMSUtils_v1_16_R3 implements INMSUtils {
 			if (handle_field == null){
 				handle_field = CraftItemStack.class.getDeclaredField("handle");
 				handle_field.setAccessible(true);
-			}
-		}catch (Exception e){
-			throw new RuntimeException("Failed to check HandleField from CraftItemStack");
-		}
-
-		try {
-			if (entity_field == null){
-				entity_field = CraftEntity.class.getDeclaredField("entity");
-				entity_field.setAccessible(true);
 			}
 		}catch (Exception e){
 			throw new RuntimeException("Failed to check HandleField from CraftItemStack");
@@ -145,21 +135,16 @@ public class NMSUtils_v1_16_R3 implements INMSUtils {
 	@Override
 	public boolean isFakePlayer(Player player) {
 		if (fakePlayerClass != null){
-			Entity mcEntity = (Entity) asMinecraftEntity(player);
-			return fakePlayerClass.isInstance(mcEntity);
+			CraftPlayer craftPlayer = (CraftPlayer) player;
+			EntityPlayer entityPlayer = craftPlayer.getHandle();
+			return fakePlayerClass.isInstance(entityPlayer);
 		}
 		return false;
 	}
 
 	@Override
 	public Object asMinecraftEntity(Entity entity) {
-		try {
-			CraftEntity craftEntity = (CraftEntity) entity;
-			Entity mcEntity = (Entity) entity_field.get(craftEntity);
-			return mcEntity;
-		}catch (Exception e){
-			throw new RuntimeException(e);
-		}
+		return ((CraftEntity) entity).getHandle();
 	}
 
 	@Override
