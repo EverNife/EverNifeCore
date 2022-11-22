@@ -37,18 +37,13 @@ public class Argumento {
         return this.argumento.equals(anotherString);
     }
 
-    public boolean match(String... possibilities){
-        return equalsIgnoreCase(possibilities);
-    }
-
     public boolean equalsIgnoreCase(String anotherString){
         return argumento.equalsIgnoreCase(anotherString);
     }
 
     public boolean equalsIgnoreCase(String... possibilities){
-        String lowerCaseArg = argumento.toLowerCase();
         for (String possibility : possibilities){
-            if (possibility.toLowerCase().equals(lowerCaseArg)){
+            if (possibility.equalsIgnoreCase(argumento)){
                 return true;
             }
         }
