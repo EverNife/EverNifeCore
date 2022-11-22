@@ -51,6 +51,9 @@ public interface ECListener extends Listener {
             if (!listener.silentRegistration()){
                 pluginInstance.getLogger().info("[ECListener] Registering Listener [" + listener.getClass().getName() + "]");
             }
+
+            //Check for locales
+            FCLocaleManager.loadLocale(pluginInstance, true, listener.getClass());
             try {
                 listener.onRegister();
             }catch (Throwable e){
@@ -59,9 +62,6 @@ public interface ECListener extends Listener {
                 return false;
             }
             Bukkit.getServer().getPluginManager().registerEvents(listener, pluginInstance);
-
-            //Check for locales
-            FCLocaleManager.loadLocale(pluginInstance, true, listener.getClass());
 
             return true;
         }catch (Throwable t){
