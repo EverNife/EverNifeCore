@@ -56,6 +56,10 @@ public class DynamicCommand {
         return runs;
     }
 
+    public String scheduleAndReturnCommandString(){
+        return DynamicCommandManager.scheduleDynamicCommand(this);
+    }
+
     public void incrementRun(){
         this.runs++;
     }
