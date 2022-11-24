@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.argumento;
 
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.TimeUtil;
+import org.apache.commons.lang.Validate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,9 +72,14 @@ public class MultiArgumentos {
     public FlagedArgumento getFlag(String flagName){
         flagify();
         if (flags.size() > 0){
-            flagName = flagName.toLowerCase();
+            Validate.isTrue(!flagName.isEmpty(), "The flagName cannot be empty");
+
+            String flagNameWithoutLeadingSlash = flagName.charAt(0) == '-' ? flagName.substring(1) : null;
+            //Sometimes I forget I cannot call this function with the leading slash,
+            // rather than correcting myself, lets make the function adapt to me
             for (FlagedArgumento flag : flags) {
-                if (flag.getFlagName().equals(flagName)){
+                if (flag.getFlagName().equalsIgnoreCase(flagName)
+                        || (flagNameWithoutLeadingSlash != null && flag.getFlagName().equalsIgnoreCase(flagNameWithoutLeadingSlash)) ){
                     return flag;
                 }
             }
