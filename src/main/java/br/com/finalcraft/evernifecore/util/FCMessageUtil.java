@@ -128,7 +128,7 @@ public class FCMessageUtil {
         NEEDS_TO_BE_UUID.addPlaceholder("%argumento%", argumento).send(sender);
     }
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §7[§2%argumento%§7]§c needs to be a real number!")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou do not have enough money! §7§o(Money: %current_money%§l/§7§o%needed_money%)")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê não tem money suficiente! §7§o(Money: %current_money%§l/§7§o%needed_money%)")
     private static LocaleMessage ECO_NOT_ENOUGHT;
     public static void ecoNotEnough(Player sender, double amountNeeded){
