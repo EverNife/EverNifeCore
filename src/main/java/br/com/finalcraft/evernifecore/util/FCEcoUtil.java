@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.util;
 
+import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.economy.ontime.EconomyManager;
@@ -14,8 +15,8 @@ public class FCEcoUtil {
      *
      * @param playerData The Player's PlayerData
      */
-    public static double ecoGet(PlayerData playerData){
-        return EconomyManager.getProvider().ecoGet(playerData);
+    public static double ecoGet(IPlayerData playerData){
+        return EconomyManager.getProvider().ecoGet(playerData.getPlayerData());
     }
 
     public static double ecoGet(OfflinePlayer player) {
@@ -30,8 +31,8 @@ public class FCEcoUtil {
      * @param playerData The Player's PlayerData
      * @param value The amount of money
      */
-    public static void ecoGive(PlayerData playerData, double value) {
-        EconomyManager.getProvider().ecoGive(playerData, value);
+    public static void ecoGive(IPlayerData playerData, double value) {
+        EconomyManager.getProvider().ecoGive(playerData.getPlayerData(), value);
     }
 
     public static void ecoGive(OfflinePlayer player, double value) {
@@ -47,8 +48,8 @@ public class FCEcoUtil {
      * @param value The amount of money to take from the player.
      * @return A boolean value.
      */
-    public static boolean ecoTake(PlayerData playerData, double value) {
-        return EconomyManager.getProvider().ecoTake(playerData, value);
+    public static boolean ecoTake(IPlayerData playerData, double value) {
+        return EconomyManager.getProvider().ecoTake(playerData.getPlayerData(), value);
     }
 
     public static boolean ecoTake(OfflinePlayer player, double value) {
@@ -63,8 +64,8 @@ public class FCEcoUtil {
      * @param playerData The Player's PlayerData
      * @param value The amount of money
      */
-    public static void ecoSet(PlayerData playerData, double value) {
-        EconomyManager.getProvider().ecoSet(playerData, value);
+    public static void ecoSet(IPlayerData playerData, double value) {
+        EconomyManager.getProvider().ecoSet(playerData.getPlayerData(), value);
     }
 
     public static void ecoSet(OfflinePlayer player, double value) {
@@ -80,7 +81,7 @@ public class FCEcoUtil {
      * @param value The amount of money to add/remove
      * @return A boolean value.
      */
-    public static boolean ecoHasEnough(PlayerData playerData, double value) {
+    public static boolean ecoHasEnough(IPlayerData playerData, double value) {
         return ecoGet(playerData) >= value;
     }
 
