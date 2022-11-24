@@ -69,6 +69,22 @@ public class FCMessageUtil {
                 .send(sender);
     }
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need to be looking at an entity!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa estar olhando para uma entidade!")
+    private static LocaleMessage NEEDS_TO_BE_LOOKING_AT_ENTITY;
+    public static void needsToBeLookingAtEntity(CommandSender sender){
+        NEEDS_TO_BE_LOOKING_AT_BLOCK.send(sender);
+    }
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need to be looking at an entity §e[%entity_name%]§c!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa estar olhando para uma entidade §e[%entity_name%]§c!")
+    private static LocaleMessage NEEDS_TO_BE_LOOKING_AT_A_SPECIFIC_ENTITY;
+    public static void needsToBeLookingAtEntity(CommandSender sender, String entityName){
+        NEEDS_TO_BE_LOOKING_AT_A_SPECIFIC_BLOCK
+                .addPlaceholder("%entity_name%", entityName)
+                .send(sender);
+    }
+
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need to have an §7[§2%item_name%§7]§c in your inventory!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa ter um §7[§2%item_name%§7]§c em seu inventário!")
     private static LocaleMessage NEEDS_TO_HAVE_ON_INVENTORY;
