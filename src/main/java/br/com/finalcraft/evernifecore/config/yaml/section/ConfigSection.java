@@ -17,7 +17,7 @@ public class ConfigSection{
 
     public ConfigSection(Config config, String path) {
         this.config = config;
-        this.path = path;
+        this.path = path == null ? "" : path;
     }
 
     public Config getConfig() {
@@ -49,12 +49,22 @@ public class ConfigSection{
     }
 
     private String concatSubPath(@Nullable String subPath){
-        return subPath == null || subPath.isEmpty() ? this.path : this.path + "." + subPath;
+        if (subPath == null || subPath.isEmpty()){
+            return this.path;
+        }
+
+        if (this.path.isEmpty()){
+            return subPath;
+        }
+
+        return this.path + "." + subPath;
     }
 
     public void setCustomKeyIndex(String customKeyIndex) {
         this.lastPathIndex = customKeyIndex;
-        this.path = path + "." + customKeyIndex;
+        this.path = this.path.isEmpty()
+                ? customKeyIndex
+                : this.path + "." + customKeyIndex;
     }
 
     // ------------------------------------------------------------------------------------------------------------------
