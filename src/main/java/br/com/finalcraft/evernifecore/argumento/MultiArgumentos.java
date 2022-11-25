@@ -74,9 +74,12 @@ public class MultiArgumentos {
         if (flags.size() > 0){
             Validate.isTrue(!flagName.isEmpty(), "The flagName cannot be empty");
 
-            String flagNameWithoutLeadingSlash = flagName.charAt(0) == '-' ? flagName.substring(1) : null;
+            String flagNameWithoutLeadingSlash = (flagName.length() > 2 && flagName.charAt(0) == '-' && flagName.charAt(1) != '-')
+                    ? flagName.substring(1)
+                    : null;
             //Sometimes I forget I cannot call this function with the leading slash,
             // rather than correcting myself, lets make the function adapt to me
+            // but only remove the leading sash if there is a single leading slash
             for (FlagedArgumento flag : flags) {
                 if (flag.getFlagName().equalsIgnoreCase(flagName)
                         || (flagNameWithoutLeadingSlash != null && flag.getFlagName().equalsIgnoreCase(flagNameWithoutLeadingSlash)) ){
