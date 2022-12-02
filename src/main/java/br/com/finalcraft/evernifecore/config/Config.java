@@ -48,7 +48,7 @@ public class Config {
             try {
                 this.yamlFile.loadWithComments();
             } catch (IOException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
         }
     }
