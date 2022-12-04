@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.config;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
 import br.com.finalcraft.evernifecore.config.yaml.exeption.LoadableMethodException;
 import br.com.finalcraft.evernifecore.config.yaml.helper.CfgExecutor;
@@ -7,6 +8,7 @@ import br.com.finalcraft.evernifecore.config.yaml.helper.CfgLoadableSalvable;
 import br.com.finalcraft.evernifecore.config.yaml.helper.ConfigHelper;
 import br.com.finalcraft.evernifecore.config.yaml.helper.smartloadable.SmartLoadSave;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.Validate;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -22,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -36,6 +39,28 @@ public class Config {
     protected transient boolean newDefaultValueToSave = false;
 
     // ------------------------------------------------------------------------------------------------------------------
+    //      Load Function
+    // ------------------------------------------------------------------------------------------------------------------
+
+    private void loadWithComments(){
+        if (getTheFile().exists()){
+            try {
+                this.yamlFile.loadWithComments();
+            } catch (IOException e) {
+                //In case of an error, usually by a MalFormed YML File, it's better to create a new file and just notify the console
+                EverNifeCore.warning(String.format("Failed to load YML file at [%s]", this.getAbsolutePath()));
+                e.printStackTrace();
+                try {
+                    FileUtils.copyFile(this.getTheFile(), new File(this.getTheFile().getParentFile(), this.getTheFile().getName() + ".corrupted"));
+                }catch (Exception e2){
+                    EverNifeCore.instance.getLogger().log(Level.SEVERE, String.format("[SEVERE_ERROR] Failed to create a COPY of the corrupted file at [%s]!", this.getAbsolutePath()));
+                    e2.printStackTrace();
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------------------------------------------------------
     //      Constructors
     // ------------------------------------------------------------------------------------------------------------------
 
@@ -43,14 +68,7 @@ public class Config {
         this.yamlFile = yamlFile;
         this.lastModified = getTheFile() == null ? 0 : getTheFile().lastModified();
 
-        //Do file Loading if exists
-        if (getTheFile().exists()){
-            try {
-                this.yamlFile.loadWithComments();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
+        loadWithComments(); //Do file Loading if exists
     }
 
     public Config(File theFile) {
@@ -82,16 +100,7 @@ public class Config {
 
         yamlFile.setCommentFormat(YamlCommentFormat.PRETTY);
 
-        //Do file Loading if exists
-        if (getTheFile().exists()){
-            try {
-                this.yamlFile.loadWithComments();
-            } catch (InvalidConfigurationException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        this.loadWithComments(); //Do file Loading if exists
 
         this.yamlFile.options().headerFormatter()
                 .prefixFirst("# -----------------------------------------------------")
@@ -211,7 +220,7 @@ public class Config {
     public void reload() {
         try {
             if (getTheFile().exists()){ //Reoad from the file
-                this.yamlFile.loadWithComments();
+                loadWithComments();
                 this.lastModified = getTheFile().lastModified();
             }else { //Otherwise, read from an EmptyString
                 this.yamlFile.loadFromString("");
