@@ -1,0 +1,82 @@
+package br.com.finalcraft.evernifecore.protection.worldguard;
+
+import com.sk89q.worldguard.domains.DefaultDomain;
+import com.sk89q.worldguard.protection.flags.Flag;
+import com.sk89q.worldguard.protection.regions.ProtectedRegion;
+import org.apache.commons.lang.Validate;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+public interface FCWorldGuardRegion {
+
+    public ProtectedRegion getProtectedRegion();
+
+    public boolean contains(Location location);
+
+    public World getWorld();
+
+    public Location getMaximumPoint();
+
+    public Location getMinimumPoint();
+
+    //------------------------------------------------------------------------------------------------------------------
+    // Defaults
+    //------------------------------------------------------------------------------------------------------------------
+
+    public default List<Player> getAllPlayersInside(){
+        List<Player> list = new ArrayList<>();
+        for (Player player : getWorld().getPlayers()) {
+            if (this.contains(player)){
+                list.add(player);
+            }
+        }
+        return list;
+    }
+
+    public default String getId(){
+        return this.getProtectedRegion().getId();
+    }
+
+    public default DefaultDomain getOwners() {
+        return this.getProtectedRegion().getOwners();
+    }
+
+    public default DefaultDomain getMembers() {
+        return this.getProtectedRegion().getMembers();
+    }
+
+    public default Map<Flag<?>, Object> getFlags(){
+        return this.getProtectedRegion().getFlags();
+    }
+
+    public default boolean isDirty(){
+        return this.getProtectedRegion().isDirty();
+    }
+
+    public default void setDirty(boolean dirty){
+        this.getProtectedRegion().setDirty(dirty);
+    }
+
+    public default boolean contains(Player player){
+        return contains(player.getLocation());
+    }
+
+    public default <T extends Flag<V>, V> void setFlag(@NotNull T flag, @Nullable V val) {
+        Validate.notNull(flag);
+        this.setDirty(true);
+        if (val == null) {
+            this.getFlags().remove(flag);
+        } else {
+            this.getFlags().put(flag, val);
+        }
+    }
+
+
+}
