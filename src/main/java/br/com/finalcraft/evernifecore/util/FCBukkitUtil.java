@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.util;
 
 import br.com.finalcraft.everforgelib.util.StatisticUtil;
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
@@ -384,7 +384,7 @@ public class FCBukkitUtil {
         return methodLoader_isLoaded.invoke(null, modname);
     }
 
-    public static long getOntime(PlayerData playerData){
+    public static long getOntime(IPlayerData playerData){
         return OntimeManager.getProvider().getOntime(playerData); //Ontime provider might be overridden by the OnTime plugin
     }
 

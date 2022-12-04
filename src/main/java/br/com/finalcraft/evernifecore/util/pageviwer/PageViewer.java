@@ -9,7 +9,6 @@ import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.time.DayOfToday;
-import br.com.finalcraft.evernifecore.util.FCCommandUtil;
 import br.com.finalcraft.evernifecore.util.FCTextUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import org.bukkit.command.CommandSender;
@@ -193,13 +192,13 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
             Function<Integer, String> moveToPage = integer -> {
                 if (integer == 0) return null;//No Previous page
                 if (integer > lastPage) return null;//No Next page
-                return FCCommandUtil.dynamicCommand(DynamicCommand.builder()
+                return DynamicCommand.builder()
                         .setRunOnlyOnce(false)
                         .setAction(context -> {
                             send(integer, context.getSender());
                         })
                         .createDynamicCommand()
-                );
+                        .scheduleAndReturnCommandString();
             };
 
             nextAndPreviousPage =

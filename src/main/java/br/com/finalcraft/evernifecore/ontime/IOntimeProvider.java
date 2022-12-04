@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.ontime;
 
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 
 public interface IOntimeProvider {
 
-    public long getOntime(PlayerData playerData);
+    public long getOntime(IPlayerData playerData);
 
 }

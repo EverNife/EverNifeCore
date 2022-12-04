@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.util;
 
 import br.com.finalcraft.evernifecore.dynamiccommand.DynamicCommand;
-import br.com.finalcraft.evernifecore.dynamiccommand.DynamicCommandManager;
 
 public class FCCommandUtil {
 
@@ -28,23 +27,10 @@ public class FCCommandUtil {
      * @return The Command link to this runnable, like "/%label% UUID"
      */
     public static String dynamicCommand(Runnable runnable, long maxTimeInSeconds){
-        return DynamicCommandManager.scheduleDynamicCommand(
-                DynamicCommand.builder()
-                        .setAction(context -> runnable.run())
-                        .setCooldown(maxTimeInSeconds)
-                        .createDynamicCommand()
-        );
-    }
-
-    /**
-     * Creates a Command String that will execute this dynamicCommand when the
-     * command is executed by the player
-     *
-     * @param dynamicCommand The dynamicCommand
-     *
-     * @return The Command link to this dynamicCommand, like "/%label% UUID"
-     */
-    public static String dynamicCommand(DynamicCommand dynamicCommand){
-        return DynamicCommandManager.scheduleDynamicCommand(dynamicCommand);
+        return DynamicCommand.builder()
+                .setAction(context -> runnable.run())
+                .setCooldown(maxTimeInSeconds)
+                .createDynamicCommand()
+                .scheduleAndReturnCommandString();
     }
 }

@@ -118,7 +118,7 @@ public class PlayerController {
                 e.printStackTrace();
             }
         }
-        Config config       = new Config(theConfigFile);
+        Config config = new Config(theConfigFile);
         PlayerData playerData = new PlayerData(config, playerName, playerUUID);
         playerData.forceSavePlayerData();
 
