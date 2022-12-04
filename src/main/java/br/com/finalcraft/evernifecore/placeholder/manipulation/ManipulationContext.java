@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.placeholder.manipulation;
 
+import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.placeholder.replacer.Closures;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import org.jetbrains.annotations.NotNull;
@@ -56,6 +57,14 @@ public abstract class ManipulationContext {
         }
 
         return manipulationResult.get(closure);
+    }
+
+    public @NotNull Argumento getArgumento(String closure){
+        if (!manipulationResult.containsKey(closure)) {
+            throw new IllegalArgumentException(String.format("Tried to retrieve a closure from the ManipulationContext that does not belong to this context.\nTried to retrieve '%s' from [%s]", closure, closure));
+        }
+
+        return new Argumento(manipulationResult.get(closure));
     }
 
     public static class SimpleContext extends ManipulationContext{
