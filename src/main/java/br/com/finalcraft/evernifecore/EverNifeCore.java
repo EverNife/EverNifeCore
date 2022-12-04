@@ -16,7 +16,6 @@ import br.com.finalcraft.evernifecore.listeners.PlayerInteractListener;
 import br.com.finalcraft.evernifecore.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.listeners.PluginListener;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
-import br.com.finalcraft.evernifecore.protection.handlers.ProtectionPlugins;
 import br.com.finalcraft.evernifecore.thread.SaveConfigThread;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
@@ -98,9 +97,6 @@ public class EverNifeCore extends JavaPlugin {
 
         if (Bukkit.getPluginManager().isPluginEnabled("FeatherBoard")) try{FeatherBoardUtils.initialize();}catch (Throwable e){e.printStackTrace();}
         if (Bukkit.getPluginManager().isPluginEnabled("WorldEdit")) try{WorldEditIntegration.initialize();}catch (Throwable e){e.printStackTrace();}
-
-        info("§aSearching for Protection plugins...");
-        ProtectionPlugins.initialize();
 
         SaveConfigThread.INSTANCE.start();
 
