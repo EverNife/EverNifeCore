@@ -3,7 +3,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath "com.github.jengelman.gradle.plugins:shadow:4.0.4"
+        classpath "com.github.jengelman.gradle.plugins:shadow:6.1.0"
     }
 }
 
@@ -54,13 +54,17 @@ repositories {
 }
 
 dependencies {
+    implementation project(':modules:VersionedPlugins')
+    implementation project(':modules:v1_7_10')//Also includes 1.12.2 code
+    implementation project(':modules:v1_16_5')
+
     implementation 'com.github.evernife:ChatMenuAPI:v1.1.3c'
     implementation 'com.github.evernife.libby:libby-core:d994023'
     implementation 'dev.triumphteam:triumph-gui:3.0.4-e1'
     implementation 'com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8.2'
     implementation 'com.github.EverNife.Item-NBT-API:item-nbt-api:7d30eda0c5'
     implementation 'com.github.EverNife.Item-NBT-API:nbt-data-api:7d30eda0c5'
-
+    implementation 'net.md-5:bungeecord-chat:1.16-R0.1' //This works from 1.7.10 onwards, is the same API
 
     compileOnly('org.hibernate:hibernate-core:5.4.30.Final')
 
@@ -75,25 +79,25 @@ dependencies {
     // @ DISCLAIMER @ //
     compileOnly name: "GriefPreventionPlus-13.3"
     compileOnly name: "PlaceholderAPI-2.11.2"
-    compileOnly name: "worldguard-bukkit-6.2.2"
-    compileOnly name: "worldedit-bukkit-6.0"
+
+    compileOnly name: "worldguard-bukkit-6.2.2" //Prior to 1.12
+    compileOnly name: "worldedit-bukkit-6.0" //Prior to 1.12
+
     compileOnly name: "Vault-1.6.7"
     compileOnly name: "FeatherBoard-4.28.1" //This is a paid plugin, you need to buy it in order to build this project
     compileOnly name: "BossShopPro-v1.9.8" //This WAS a paid plugin, (you need to buy it in order to build this project)~I Think
     compileOnly name: "MVdWPlaceholderAPI"
     compileOnly name: "ProtocolLib"
-    implementation name: "craftbukkit1710" //Thats on you to find out
-    implementation name: "craftbukkit1122" //Thats on you to find out
-    implementation name: "craftbukkit1165" //Thats on you to find out
-    implementation 'net.md-5:bungeecord-chat:1.16-R0.1' //This works from 1.7.10 onwards, is the same API
+    compileOnly name: "craftbukkit1710" //Thats on you to find out
+    compileOnly name: "craftbukkit1122" //Thats on you to find out
+    compileOnly name: "craftbukkit1165" //Thats on you to find out
     compileOnly group: 'commons-io', name: 'commons-io', version: '2.6' //Necessary for ReflectionUtils
-    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
-    testCompile group: 'junit', name: 'junit', version: '4.12'
 
-    //Annotations
-    compile 'org.jetbrains:annotations:23.0.0'
+    api 'org.jetbrains:annotations:23.0.0'
+    api group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
 
     //JUnit
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
 
@@ -119,6 +123,10 @@ shadowJar {
         include(dependency('dev.triumphteam:triumph-gui:3.0.4-e1'))
         include(dependency('com.github.EverNife.Item-NBT-API:item-nbt-api:7d30eda0c5'))
         include(dependency('com.github.EverNife.Item-NBT-API:nbt-data-api:7d30eda0c5'))
+
+        include(project(':modules:VersionedPlugins'))
+        include(project(':modules:v1_7_10'))
+        include(project(':modules:v1_16_5'))
     }
     if (getCallingTask().equals("publish")){
         println "[Shadowing ExtraJars for Maven Publish]"
@@ -165,7 +173,6 @@ publishing {
     }
     publications {
         petrus(MavenPublication) {
-            artifact(shadowJar)
             groupId = project.group
             from(components.java)
             pom.withXml {

@@ -1,0 +1,70 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+}
+
+plugins {
+    id 'idea'
+    id 'java-library'
+}
+
+group 'br.com.finalcraft'
+version 'dont-matter'
+
+targetCompatibility = 1.8
+sourceCompatibility = 1.8
+
+compileJava.options.encoding = 'UTF-8'
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+javadoc {
+    options.encoding = 'UTF-8'
+}
+
+//This might keep function(parameter variable's Names) on the compiled jar
+compileJava.options.compilerArgs.add '-parameters'
+compileTestJava.options.compilerArgs.add '-parameters'
+
+repositories {
+    flatDir { //Change this to where are your local libs
+        dirs 'C:/Users/Petrus/Desktop/Meus/workshop/workshop/MyOwnPlugins/Bukkit/FinalCraftCore/libs'
+        dirs 'C:/Users/Petrus/Desktop/Meus/workshop/workshop/PublicLibs'
+        dirs 'C:/Users/Petrus/Desktop/Meus/workshop/workshop/PublicLibs/Bukkit'
+    }
+    mavenCentral()
+    maven {
+        name = 'spigotmc-repo'
+        url = 'https://hub.spigotmc.org/nexus/content/groups/public/'
+    }
+    maven { url = "https://maven.petrus.dev/public" }
+}
+
+dependencies {
+    compileOnly 'org.spigotmc:spigot-api:1.19.2-R0.1-SNAPSHOT'
+
+    compileOnly name: "GriefPreventionPlus-13.3"
+    compileOnly name: "PlaceholderAPI-2.11.2"
+    compileOnly name: "worldguard-bukkit-7.0.5-dist"    //Up to 1.16
+    compileOnly name: "worldedit-bukkit-7.2.5-dist"//Up to 1.16
+
+    implementation name: "craftbukkit1710" //Thats on you to find out
+    implementation name: "craftbukkit1122" //Thats on you to find out
+    implementation name: "craftbukkit1165" //Thats on you to find out
+
+    compileOnly group: 'commons-io', name: 'commons-io', version: '2.6' //Necessary for ReflectionUtils
+    compileOnly group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    implementation("com.google.guava:guava:31.1-jre")
+
+    //Annotations
+    api 'org.jetbrains:annotations:23.0.0'
+
+    //Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.24'
+    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+    testCompileOnly 'org.projectlombok:lombok:1.18.24'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.24'
+}

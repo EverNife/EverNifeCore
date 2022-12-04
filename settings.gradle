@@ -1,0 +1,5 @@
+rootProject.name = 'EverNifeCore'
+
+include 'modules:v1_7_10'
+include 'modules:v1_16_5'
+include 'modules:VersionedPlugins'
