@@ -101,7 +101,7 @@ public class BlockPos implements Comparable<BlockPos>, Salvable {
 
     @Override
     public String toString() {
-        return "[" + x + "," + y + "," + z + "]";
+        return this.x + "|" + this.y + "|" + this.z;
     }
 
     @Override

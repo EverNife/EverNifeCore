@@ -33,7 +33,7 @@ public class RegionPos {
 
     @Override
     public String toString() {
-        return "[" + this.x + ", " + this.z + "]";
+        return this.x + "|" + this.z;
     }
 
     @Override
