@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.economy.ontime;
+package br.com.finalcraft.evernifecore.economy;
 
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 
