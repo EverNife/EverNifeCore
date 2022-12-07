@@ -2,16 +2,16 @@ package br.com.finalcraft.evernifecore.minecraft.worlddata;
 
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import org.bukkit.Location;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class ServerData<O extends Object> {
 
     private final Map<String, WorldData<O>> worldDataMap = new LinkedHashMap<>();
 
-    public @NotNull Map<String, WorldData<O>> getWorldDataMap() {
+    public Map<String, WorldData<O>> getWorldDataMap() {
         return worldDataMap;
     }
 
@@ -27,7 +27,7 @@ public class ServerData<O extends Object> {
         return worldDataMap.get(worldName);
     }
 
-    public @NotNull WorldData<O> getOrCreateWorldData(String worldName){
+    public WorldData<O> getOrCreateWorldData(String worldName){
         return worldDataMap.computeIfAbsent(worldName, s -> new WorldData<>(this, worldName));
     }
 
@@ -40,7 +40,7 @@ public class ServerData<O extends Object> {
                 ? getWorldData(worldName) //we are removing a value
                 : getOrCreateWorldData(worldName);
 
-        if (worldData == null && value == null){
+        if (worldData == null){//This can be null only when 'value' is null as well, so lets early return
             return null;
         }
 

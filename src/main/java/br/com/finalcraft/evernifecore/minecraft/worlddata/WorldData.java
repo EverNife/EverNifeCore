@@ -2,10 +2,10 @@ package br.com.finalcraft.evernifecore.minecraft.worlddata;
 
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class WorldData<O extends Object> {
 
@@ -22,7 +22,7 @@ public class WorldData<O extends Object> {
         return serverData;
     }
 
-    public @NotNull String getWorldName() {
+    public String getWorldName() {
         return worldName;
     }
 
@@ -42,7 +42,7 @@ public class WorldData<O extends Object> {
         return chunkDataMap.get(chunkPos);
     }
 
-    public @NotNull ChunkData<O> getOrCreateChunkData(ChunkPos chunkPos){
+    public ChunkData<O> getOrCreateChunkData(ChunkPos chunkPos){
         return chunkDataMap.computeIfAbsent(chunkPos, c -> new ChunkData<>(this, chunkPos));
     }
 
@@ -56,14 +56,14 @@ public class WorldData<O extends Object> {
                 ? getChunkData(chunkPos) //we are removing a value
                 : getOrCreateChunkData(chunkPos);
 
-        if (chunkData == null && value == null){
+        if (chunkData == null){//This can be null only when 'value' is null as well, so lets early return
             return null;
         }
 
         return chunkData.setBlockData(blockPos, value);
     }
 
-    public @Nullable O getBlockData(@NotNull BlockPos blockPos){
+    public @Nullable O getBlockData(BlockPos blockPos){
         ChunkData<O> chunkData = getChunkData(blockPos.getChunkPos());
         return chunkData == null ? null : chunkData.getBlockData(blockPos);
     }

@@ -2,10 +2,10 @@ package br.com.finalcraft.evernifecore.minecraft.worlddata;
 
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class ChunkData<O extends Object> {
 
@@ -13,7 +13,7 @@ public class ChunkData<O extends Object> {
     private final ChunkPos chunkPos;
     private final Map<BlockPos, O> posDataMap = new LinkedHashMap<>();
 
-    public ChunkData(@Nullable WorldData<O> worldData, @NotNull ChunkPos chunkPos) {
+    public ChunkData(@Nullable WorldData<O> worldData, ChunkPos chunkPos) {
         this.worldData = worldData;
         this.chunkPos = chunkPos;
     }
@@ -22,11 +22,11 @@ public class ChunkData<O extends Object> {
         return worldData;
     }
 
-    public @NotNull ChunkPos getChunkPos() {
+    public ChunkPos getChunkPos() {
         return chunkPos;
     }
 
-    public @NotNull Map<BlockPos, O> getPosDataMap() {
+    public Map<BlockPos, O> getPosDataMap() {
         return posDataMap;
     }
 
