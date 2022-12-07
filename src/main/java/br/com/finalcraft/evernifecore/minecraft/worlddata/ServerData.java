@@ -5,56 +5,59 @@ import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class ServerData<O extends Object> {
 
-    private final Map<String, WorldData<O>> worldNameMap = new HashMap<>();
+    private final Map<String, WorldData<O>> worldDataMap = new LinkedHashMap<>();
 
-    public @Nullable WorldData<O> getWorldData(@NotNull String worldName){
-        return worldNameMap.get(worldName);
+    public @NotNull Map<String, WorldData<O>> getWorldDataMap() {
+        return worldDataMap;
     }
 
-    public @NotNull WorldData<O> getOrCreateWorldData(@NotNull String worldName){
-        return worldNameMap.computeIfAbsent(worldName, s -> new WorldData<>());
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Map Manipulators
+    // -----------------------------------------------------------------------------------------------------------------
+
+    public @Nullable WorldData<O> setWorldData(String worldName, WorldData<O> worldData){
+        return worldDataMap.put(worldName, worldData);
     }
 
-    public @Nullable O getBlockData(@NotNull Location location){
-        return this.getBlockData(location.getWorld().getName(), BlockPos.from(location));
+    public @Nullable WorldData<O> getWorldData(String worldName){
+        return worldDataMap.get(worldName);
     }
 
-    public @Nullable O getBlockData(@NotNull String worldName, @NotNull BlockPos blockPos){
+    public @NotNull WorldData<O> getOrCreateWorldData(String worldName){
+        return worldDataMap.computeIfAbsent(worldName, s -> new WorldData<>(this, worldName));
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Utility Methods to prevent code replication
+    // -----------------------------------------------------------------------------------------------------------------
+
+    public @Nullable O setBlockData(String worldName, BlockPos blockPos, @Nullable O value){
+        WorldData<O> worldData = value == null
+                ? getWorldData(worldName) //we are removing a value
+                : getOrCreateWorldData(worldName);
+
+        if (worldData == null && value == null){
+            return null;
+        }
+
+        return worldData.setBlockData(blockPos, value);
+    }
+
+    public @Nullable O setBlockData(Location location, @Nullable O value){
+        return this.setBlockData(location.getWorld().getName(), BlockPos.from(location), value);
+    }
+
+    public @Nullable O getBlockData(String worldName, BlockPos blockPos){
         WorldData<O> worldData = getWorldData(worldName);
         return worldData == null ? null : worldData.getBlockData(blockPos);
     }
 
-    public @Nullable O setBlockData(@NotNull Location location, @NotNull O value){
-        return this.setBlockData(location.getWorld().getName(), BlockPos.from(location), value);
-    }
-
-    public @Nullable O setBlockData(@NotNull String worldName, @NotNull BlockPos blockPos, @NotNull O value){
-        return this.getOrCreateWorldData(worldName)
-                .setBlockData(blockPos, value);
-    }
-
-    public @Nullable O removeBlockData(@NotNull Location location){
-        return this.removeBlockData(location.getWorld().getName(), BlockPos.from(location));
-    }
-
-    public @Nullable O removeBlockData(@NotNull String worldName, @NotNull BlockPos blockPos){
-        WorldData<O> worldData = getWorldData(worldName);
-        return worldData == null ? null : worldData.removeBlockData(blockPos);
-    }
-
-    public @NotNull Map<String, WorldData<O>> getWorldNameMap() {
-        return worldNameMap;
-    }
-
-    public @NotNull Collection<WorldData<O>> getAllWorldData(){
-        return worldNameMap.size() == 0 ? Collections.EMPTY_LIST : worldNameMap.values();
+    public @Nullable O getBlockData(Location location){
+        return this.getBlockData(location.getWorld().getName(), BlockPos.from(location));
     }
 
 }

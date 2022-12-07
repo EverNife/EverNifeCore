@@ -1,36 +1,49 @@
 package br.com.finalcraft.evernifecore.minecraft.worlddata;
 
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
+import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class ChunkData<O extends Object> {
 
-    private final Map<BlockPos, O> blockPosMap = new HashMap<>();
+    private final WorldData<O> worldData; //father
+    private final ChunkPos chunkPos;
+    private final Map<BlockPos, O> posDataMap = new LinkedHashMap<>();
 
-    public @Nullable O getBlockData(@Nullable BlockPos blockPos){
-        return blockPosMap.get(blockPos);
+    public ChunkData(@Nullable WorldData<O> worldData, @NotNull ChunkPos chunkPos) {
+        this.worldData = worldData;
+        this.chunkPos = chunkPos;
     }
 
-    public @Nullable O setBlockData(@NotNull BlockPos blockPos, @NotNull O value){
-        return blockPosMap.put(blockPos, value);
+    public @Nullable WorldData getWorldData() {
+        return worldData;
     }
 
-    public @Nullable O removeBlockData(@NotNull BlockPos blockPos){
-        return blockPosMap.remove(blockPos);
+    public @NotNull ChunkPos getChunkPos() {
+        return chunkPos;
     }
 
-    public @NotNull Map<BlockPos, O> getBlockPosMap() {
-        return blockPosMap;
+    public @NotNull Map<BlockPos, O> getPosDataMap() {
+        return posDataMap;
     }
 
-    public @NotNull Collection<O> getAllBlockData(){
-        return blockPosMap.size() == 0 ? Collections.EMPTY_LIST : blockPosMap.values();
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Map Manipulators
+    // -----------------------------------------------------------------------------------------------------------------
+
+    public @Nullable O setBlockData(BlockPos blockPos, @Nullable O value){
+        if (value == null){
+            return posDataMap.remove(blockPos);
+        }else {
+            return posDataMap.put(blockPos, value);
+        }
+    }
+
+    public @Nullable O getBlockData(BlockPos blockPos){
+        return posDataMap.get(blockPos);
     }
 
 }
