@@ -14,11 +14,11 @@ public class ActionBarAPI {
     private static Map<UUID, PlayerActionBarManager> PLAYER_ACTION_BAR_MAP = new HashMap<>();
 
     public static void send(Player player, String message){
-        send(player, ActionBarMessage.of(message).build());
+        ActionBarMessage.of(message).send(player);
     }
 
     public static void send(Player player, ActionBarMessage actionBarMessage){
-        if (MCVersion.isBellow1_7_10()) return;//ActionBar is not present on legacy minecraft
+        if (MCVersion.isBellow1_7_10()) return;//ActionBar is not present on 1_7_10
 
         PlayerActionBarManager playerActionBarManager = PLAYER_ACTION_BAR_MAP.get(player.getUniqueId());
 
@@ -30,8 +30,8 @@ public class ActionBarAPI {
         playerActionBarManager.addMessage(actionBarMessage);
     }
 
-    public static void clearActionBar(Player player){
-        if (MCVersion.isBellow1_7_10()) return;//ActionBar is not present on legacy minecraft
+    public static void clear(Player player){
+        if (MCVersion.isBellow1_7_10()) return;//ActionBar is not present on 1_7_10
 
         PlayerActionBarManager playerActionBarManager = PLAYER_ACTION_BAR_MAP.get(player.getUniqueId());
 
@@ -41,5 +41,9 @@ public class ActionBarAPI {
         }
 
         PlayerActionBarManager.spigot_sendMessage(player, ChatMessageType.ACTION_BAR, new TextComponent(""));
+    }
+
+    public static ActionBarMessage.Builder message(String message){
+        return ActionBarMessage.of(message);
     }
 }

@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.actionbar;
 
+import org.bukkit.entity.Player;
+
 public class ActionBarMessage {
 
     private final String actionBarID;
@@ -28,6 +30,13 @@ public class ActionBarMessage {
 
     public String getActionBarText() {
         return actionBarText;
+    }
+
+    public ActionBarMessage send(Player... players){
+        for (Player player : players) {
+            ActionBarAPI.send(player, this);
+        }
+        return this;
     }
 
     //------------------------------------------------------------------------------------------------------------------
@@ -65,6 +74,10 @@ public class ActionBarMessage {
 
         public ActionBarMessage build(){
             return new ActionBarMessage(this.actionBarID, this.actionBarText, System.currentTimeMillis() + 1000 * this.seconds, this.priority);
+        }
+
+        public ActionBarMessage send(Player... players){
+            return this.build().send(players);
         }
     }
 
