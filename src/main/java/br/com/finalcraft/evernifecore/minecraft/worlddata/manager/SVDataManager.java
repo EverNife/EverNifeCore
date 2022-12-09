@@ -1,0 +1,263 @@
+package br.com.finalcraft.evernifecore.minecraft.worlddata.manager;
+
+import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.evernifecore.config.yaml.helper.ConfigHelper;
+import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
+import br.com.finalcraft.evernifecore.minecraft.region.RegionPos;
+import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
+import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
+import br.com.finalcraft.evernifecore.minecraft.worlddata.BlockMetaData;
+import br.com.finalcraft.evernifecore.minecraft.worlddata.ServerData;
+import br.com.finalcraft.evernifecore.minecraft.worlddata.WorldData;
+import br.com.finalcraft.evernifecore.minecraft.worlddata.manager.config.ServerConfigData;
+import br.com.finalcraft.evernifecore.util.FCInputReader;
+import lombok.Data;
+import org.apache.commons.io.FileUtils;
+
+import java.io.File;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.regex.Pattern;
+
+public class SVDataManager<O> extends ServerData<O>{
+
+    private final File mainFolder; //Main folder to store this data
+    private final Class<O> watchedClass;
+
+    private final BiFunction<ConfigSection, WorldBlockPos, O> onConfigLoad; //How to load the object from file
+    private final BiConsumer<ConfigSection, BlockMetaData<O>> onConfigSave; //How to save the object to the file
+    private final BiConsumer<ConfigSection, BlockMetaData<O>> onConfigRemove; //How to remove the object from the file
+    private final ServerConfigData configData;
+
+    private transient LinkedHashSet<BlockMetaDataOperation<O>> blocksToSaveOrRemove;
+
+    public SVDataManager(File mainFolder, Class<O> watchedClass, BiFunction<ConfigSection, WorldBlockPos, O> onConfigLoad, BiConsumer<ConfigSection, BlockMetaData<O>> onConfigSave, BiConsumer<ConfigSection, BlockMetaData<O>> onConfigRemove) {
+        this.mainFolder = mainFolder;
+        this.watchedClass = watchedClass;
+        this.onConfigLoad = onConfigLoad;
+        this.onConfigSave = onConfigSave;
+        this.onConfigRemove = onConfigRemove;
+        this.configData = new ServerConfigData(mainFolder);
+        this.blocksToSaveOrRemove = new LinkedHashSet<>();
+    }
+
+    public Class<O> getWatchedClass() {
+        return watchedClass;
+    }
+
+    @Override
+    public void onBlockMetaSet(BlockMetaData blockMetaData) {
+        this.blocksToSaveOrRemove.add(new BlockMetaDataOperation<>(blockMetaData, false));
+    }
+
+    @Override
+    public void onBlockMetaRemove(BlockMetaData blockMetaData) {
+        this.blocksToSaveOrRemove.add(new BlockMetaDataOperation<>(blockMetaData, true));
+    }
+
+    public File getMainFolder() {
+        return mainFolder;
+    }
+
+    public ServerConfigData getConfigData() {
+        return configData;
+    }
+
+    public LinkedHashSet<BlockMetaDataOperation<O>> getBlocksToSaveOrRemove() {
+        return blocksToSaveOrRemove;
+    }
+
+    public void save(){
+        if (this.blocksToSaveOrRemove.size() == 0){
+            return;
+        }
+
+        LinkedHashSet<BlockMetaDataOperation<O>> blocksOldReference = this.blocksToSaveOrRemove;
+        synchronized (blocksToSaveOrRemove){
+            blocksToSaveOrRemove = new LinkedHashSet<>();
+        }
+
+        HashSet<Config> configsToSave = new HashSet<>();
+        for (BlockMetaDataOperation<O> operation : blocksOldReference) {
+            BlockPos blockPos = operation.getBlockMetaData().getBlockPos();
+            ChunkPos chunkPos = operation.getBlockMetaData().getChunkData().getChunkPos();
+            RegionPos regionPos = chunkPos.getRegionPos();
+            String worldName = operation.getBlockMetaData().getChunkData().getWorldData().getWorldName();
+
+            Config config = configData.getOrCreateConfigData(worldName, regionPos);
+            ConfigSection section = config.getConfigSection(chunkPos + "." + blockPos);
+
+            if (operation.isRemove()){
+                this.onConfigRemove.accept(section, operation.getBlockMetaData());
+            }else {
+                this.onConfigSave.accept(section, operation.getBlockMetaData());
+            }
+
+            configsToSave.add(config);
+        }
+
+        for (Config config : configsToSave) {
+            config.save();
+        }
+
+        //Finally, delete all empty Configs, no need to remove than from the map though
+        for (Config config : this.configData.getAllConfigs()) {
+            if (config.getKeys().isEmpty()){
+                if (config.getTheFile().exists()){
+                    FileUtils.deleteQuietly(config.getTheFile());
+                }
+            }
+        }
+    }
+
+    public int load(){
+        this.worldDataMap.clear();
+        this.configData.getConfigMap().clear();
+        this.blocksToSaveOrRemove.clear();
+
+        int loadedObjects = 0;
+
+        if (!this.mainFolder.exists()){
+            return 0;
+        }
+
+        for (Config config : ConfigHelper.getAllConfings(mainFolder, true)) {
+            try {
+                //FileName is   'r.Xcoord.zCoord.yml'
+                String[] split = config.getTheFile().getName().split(Pattern.quote("."));
+
+                if (!split[1].equals("region")){
+                    continue;
+                }
+
+                Integer xCoord = FCInputReader.parseInt(split[1]);
+                Integer zCoord = FCInputReader.parseInt(split[2]);
+                RegionPos regionPos = new RegionPos(xCoord, zCoord);
+                String worldName = config.getTheFile().getParentFile().getName();
+                this.configData.setConfigData(worldName, regionPos, config);
+
+                WorldData<O> worldData = this.getOrCreateWorldData(worldName);
+
+                for (String chunkPosSerialized : config.getKeys("")) {
+                    for (String blockPosSerialized : config.getKeys(chunkPosSerialized)) {
+                        String splitBlockPos[] = blockPosSerialized.split("\\|");
+                        BlockPos blockPos = new BlockPos(
+                                FCInputReader.parseInt(splitBlockPos[0]),
+                                FCInputReader.parseInt(splitBlockPos[1]),
+                                FCInputReader.parseInt(splitBlockPos[2])
+                        );
+
+                        ConfigSection section = config.getConfigSection(chunkPosSerialized + "." + blockPosSerialized);
+                        try {
+                            O value = this.onConfigLoad.apply(section, new WorldBlockPos(worldName, blockPos));
+                            worldData.setBlockData(blockPos, value);
+                            loadedObjects++;
+                        }catch (Exception e){
+                            EverNifeCore.warning(String.format("Failed to load BlockPos Data from the config at [%s]",  section.toString()));
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }catch (Exception e){
+                EverNifeCore.warning(String.format("Failed to load RegionData for the SVDataManager at [%s]",  config.getAbsolutePath()));
+                e.printStackTrace();
+            }
+        }
+
+        this.blocksToSaveOrRemove.clear();//We need to clear again because several items may have been set!
+        return loadedObjects;
+    }
+
+    /**
+     * Utility class to help identify BlockPos that should be saved
+     */
+    @Data
+    private class BlockMetaDataOperation<O> {
+        private final BlockMetaData<O> blockMetaData;
+        private final boolean remove;
+    }
+
+    @Data
+    public static class WorldBlockPos {
+        private final String worldName;
+        private final BlockPos blockPos;
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  StepBuilder
+    // -----------------------------------------------------------------------------------------------------------------
+
+    public static <O> IStepStoreAtFolder<O> targeting(Class<O> watchedClass){
+        return new BuilderImp(watchedClass);
+    }
+
+    public static interface IStepStoreAtFolder<O> {
+        public IBuilder<O> storeAtFolder(File baseFolder);
+    }
+
+    public static interface IBuilder<O> {
+        public IBuilder<O> setOnConfigLoad(BiFunction<ConfigSection, WorldBlockPos, O> onConfigLoad);
+        public IBuilder<O> setOnConfigSave(BiConsumer<ConfigSection, BlockMetaData<O>> onConfigSave);
+        public IBuilder<O> setOnConfigRemove(BiConsumer<ConfigSection, BlockMetaData<O>> onConfigRemove);
+        public SVDataManager<O> build();
+    }
+
+    public static class BuilderImp<O> implements IStepStoreAtFolder<O>, IBuilder<O> {
+        private final Class<O> watchedClass;
+        private File baseFolder = null; //Main folder to store this data
+        private BiFunction<ConfigSection, WorldBlockPos, O> onConfigLoad = null; //How to load the object from file
+        private BiConsumer<ConfigSection, BlockMetaData<O>> onConfigSave = null; //How to save the object to the file
+        private BiConsumer<ConfigSection, BlockMetaData<O>> onConfigRemove = null; //How to remove the object from the file
+
+        public BuilderImp(Class<O> watchedClass) {
+            this.watchedClass = watchedClass;
+        }
+
+        @Override
+        public BuilderImp<O> storeAtFolder(File baseFolder) {
+            this.baseFolder = baseFolder;
+            return this;
+        }
+
+        @Override
+        public IBuilder<O> setOnConfigLoad(BiFunction<ConfigSection, WorldBlockPos, O> onConfigLoad) {
+            this.onConfigLoad = onConfigLoad;
+            return this;
+        }
+
+        @Override
+        public IBuilder<O> setOnConfigSave(BiConsumer<ConfigSection, BlockMetaData<O>> onConfigSave) {
+            this.onConfigSave = onConfigSave;
+            return this;
+        }
+
+        @Override
+        public IBuilder<O> setOnConfigRemove(BiConsumer<ConfigSection, BlockMetaData<O>> onConfigRemove) {
+            this.onConfigRemove = onConfigRemove;
+            return this;
+        }
+
+        public SVDataManager<O> build(){
+            if (onConfigLoad == null){ //If not set, we assume the objct is a LoadableSalvable
+                onConfigLoad = (configSection, worldBlockPos) -> configSection.getLoadable("", watchedClass);
+            }
+            if (onConfigSave == null){ //If not set, we assume the objct is a LoadableSalvable
+                onConfigSave = (configSection, blockMetaData) -> configSection.setValue("", blockMetaData.getValue());
+            }
+            if (onConfigRemove == null){ //If not set, do simple removal
+                onConfigRemove = (configSection, blockMetaData) -> configSection.setValue("", null);
+            }
+
+            return new SVDataManager<>(
+                    baseFolder,
+                    watchedClass,
+                    onConfigLoad,
+                    onConfigSave,
+                    onConfigRemove
+            );
+        }
+    }
+}

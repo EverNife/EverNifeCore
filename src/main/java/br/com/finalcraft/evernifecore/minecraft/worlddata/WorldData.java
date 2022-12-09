@@ -4,14 +4,16 @@ import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class WorldData<O extends Object> {
 
-    private final ServerData<O> serverData;
-    private final String worldName;
-    private final Map<ChunkPos, ChunkData<O>> chunkDataMap = new LinkedHashMap<>();
+    protected final ServerData<O> serverData; //father
+    protected final String worldName;
+    protected final Map<ChunkPos, ChunkData<O>> chunkDataMap = new LinkedHashMap<>();
 
     public WorldData(ServerData<O> serverData, String worldName) {
         this.serverData = serverData;
@@ -50,7 +52,7 @@ public class WorldData<O extends Object> {
     //  Utility Methods to prevent code replication
     // -----------------------------------------------------------------------------------------------------------------
 
-    public @Nullable O setBlockData(BlockPos blockPos, @Nullable O value){
+    public @Nullable BlockMetaData<O> setBlockData(BlockPos blockPos, @Nullable O value){
         ChunkPos chunkPos = blockPos.getChunkPos();
         ChunkData<O> chunkData = value == null
                 ? getChunkData(chunkPos) //we are removing a value
@@ -63,9 +65,22 @@ public class WorldData<O extends Object> {
         return chunkData.setBlockData(blockPos, value);
     }
 
-    public @Nullable O getBlockData(BlockPos blockPos){
+    public @Nullable BlockMetaData<O> getBlockMetaData(BlockPos blockPos){
         ChunkData<O> chunkData = getChunkData(blockPos.getChunkPos());
-        return chunkData == null ? null : chunkData.getBlockData(blockPos);
+        return chunkData == null ? null : chunkData.getBlockMetaData(blockPos);
+    }
+
+    public @Nullable O getBlockData(BlockPos blockPos){
+        BlockMetaData<O> blockMetaData = getBlockMetaData(blockPos);
+        return blockMetaData == null ? null : blockMetaData.getValue();
+    }
+
+    public List<BlockMetaData<O>> getAllBlockData(){
+        List<BlockMetaData<O>> allBlockData = new ArrayList<>();
+        for (ChunkData<O> value : chunkDataMap.values()) {
+            allBlockData.addAll(value.getAllBlockData());
+        }
+        return allBlockData;
     }
 
 }
