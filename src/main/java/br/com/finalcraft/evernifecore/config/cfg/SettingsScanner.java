@@ -58,9 +58,9 @@ public class SettingsScanner {
 
                 try {
                     Class type = declaredField.getType();
-                    if (type == Double.class) newValue = new Double(((Number) newValue).doubleValue());
-                    if (type == Integer.class) newValue = new Integer(((Number) newValue).intValue());
-                    if (type == Float.class) newValue = new Float(((Number) newValue).floatValue());
+                    if (type == Double.class) newValue = Double.valueOf(((Number) newValue).doubleValue());
+                    if (type == Integer.class) newValue = Integer.valueOf(((Number) newValue).intValue());
+                    if (type == Float.class) newValue = Float.valueOf(((Number) newValue).floatValue());
 
                     declaredField.set(instance, newValue);
                 } catch (IllegalAccessException e) {
