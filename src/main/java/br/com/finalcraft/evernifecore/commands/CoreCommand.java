@@ -28,9 +28,9 @@ public class CoreCommand {
             }
     )
     public void info(CommandSender sender, @Arg(name = "[page]", context = "[1:*]") Integer page){
-        PageViewer.of(ECPluginData.class)
-                .setSuplier(() -> new ArrayList<>(ECPluginManager.getECPluginsMap().values()))
-                .setExtractor(ecPluginData -> ecPluginData.getPlugin().getName())
+        PageViewer.targeting(ECPluginData.class)
+                .withSuplier(() -> new ArrayList<>(ECPluginManager.getECPluginsMap().values()))
+                .extracting(ecPluginData -> ecPluginData.getPlugin().getName())
                 .setFormatLine(
                         FancyText.of("§7# %number%: §e§l◆ §a %value% §7§o(%version%)").setHoverText("%plugin_info%")
                                 .append("%can_update%").setHoverText("§aClique to go to DownloadLink").setOpenLinkAction("%update_link%")

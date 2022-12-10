@@ -227,49 +227,69 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         }
     }
 
-    public static <OBJ, COMPARED_VALUE> Builder<OBJ, COMPARED_VALUE> builder(Supplier<List<OBJ>> supplier, Function<OBJ, COMPARED_VALUE> getValue){
-        return new Builder<>(supplier, getValue);
+    public static <O> IStepWithSuplier<O> targeting(Class<O> comparedClass){
+        return new BuilderImp<>(null, null);
     }
 
-    public static <OBJ> StepBuilder.StepOne<OBJ> of(Class<OBJ> watchedObjectClass){
-        return new StepBuilder.StepOne<>();
-    }
+    public static interface IStepWithSuplier<O>{
 
-    private static class StepBuilder{
-
-        public static class StepOne<OBJ>{
-
-            private StepOne() {
-            }
-
-            public StepTwo<OBJ> setSuplier(Supplier<List<OBJ>> supplier){
-                return new StepTwo<OBJ>(supplier);
-            }
-
-        }
-
-        public static class StepTwo<OBJ>{
-
-            private final Supplier<List<OBJ>> supplier;
-
-            private StepTwo(Supplier<List<OBJ>> supplier) {
-                this.supplier = supplier;
-            }
-
-            public <COMPARED_VALUE> Builder<OBJ, COMPARED_VALUE> setExtractor(Function<OBJ, COMPARED_VALUE> valueExtractor){
-                return new Builder(supplier, valueExtractor);
-            }
-        }
+        public IStepExtracting<O> withSuplier(Supplier<List<O>> supplier);
 
     }
 
-    public static class Builder<OBJ, COMPARED_VALUE>{
-        protected Supplier<List<OBJ>> supplier;
-        protected Function<OBJ, COMPARED_VALUE> valueExtrator;
+    public static interface IStepExtracting<O>{
+
+        public <C> IBuilder<O,C> extracting(Function<O, C> valueExtractor);
+
+    }
+
+    public static interface IBuilder<O, C>{
+
+        //Null Comparator means keep the supplier order
+        public IBuilder<O, C> setComparator(@Nullable Comparator<SortedItem<O, C>> comparator);
+
+        public IBuilder<O, C> setFormatHeader(List<FancyText> formatHeader);
+
+        public IBuilder<O, C> setFormatHeader(FancyText... formatHeader);
+
+        public IBuilder<O, C> setFormatHeader(String... formatHeader);
+
+        public IBuilder<O, C> setFormatLine(String formatLine);
+
+        public IBuilder<O, C> setFormatLine(FancyText formatLine);
+
+        public IBuilder<O, C> setFormatFooter(List<FancyText> formatFooter);
+
+        public IBuilder<O, C> setFormatFooter(FancyText... formatFooter);
+
+        public IBuilder<O, C> setFormatFooter(String... formatFooter);
+
+        public IBuilder<O, C> setCooldown(int cooldown);
+
+        public IBuilder<O, C> setLineStart(int lineStart);
+
+        public IBuilder<O, C> setLineEnd(int lineEnd);
+
+        public IBuilder<O, C> setIncludeDate(boolean includeDate);
+
+        public IBuilder<O, C> setIncludeTotalPlayers(boolean includeTotalPlayers);
+
+        public IBuilder<O, C> setPageSize(int pageSize);
+
+        public IBuilder<O, C> addPlaceholder(String placeholder, Function<O, Object> function);
+
+        public IBuilder<O, C> setNextAndPreviousPageButton(boolean nextAndPreviousPageButton);
+
+        public PageViewer<O, C> build();
+    }
+
+    public static class BuilderImp<O, C> implements IBuilder<O, C>, IStepWithSuplier<O>, IStepExtracting<O>{
+        protected Supplier<List<O>> supplier;
+        protected Function<O, C> valueExtrator;
 
         private final Comparator<Number> doubleComparator = Comparator.comparingDouble(Number::doubleValue);
         private final Comparator<Object> stringComparator = Comparator.comparing(Object::toString);
-        protected Comparator<SortedItem<OBJ, COMPARED_VALUE>> comparator = (o1, o2) -> {
+        protected Comparator<SortedItem<O, C>> comparator = (o1, o2) -> {
             Object value1 = o1.getValue();
             Object value2 = o2.getValue();
             if (value1 instanceof Number){
@@ -288,106 +308,136 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         protected boolean includeTotalPlayers = false;
         protected boolean nextAndPreviousPageButton = true;
 
-        protected final HashMap<String, Function<OBJ,Object>> placeholders = new HashMap<>();
+        protected final HashMap<String, Function<O,Object>> placeholders = new HashMap<>();
 
-        protected Builder(Supplier<List<OBJ>> supplier, Function<OBJ, COMPARED_VALUE> valueExtrator) {
+        protected BuilderImp(Supplier<List<O>> supplier, Function<O, C> valueExtrator) {
             this.supplier = supplier;
             this.valueExtrator = valueExtrator;
         }
 
+        @Override
+        public IStepExtracting<O> withSuplier(Supplier<List<O>> supplier) {
+            this.supplier = supplier;
+            return this;
+        }
+
+        @Override
+        public <C> IBuilder<O, C> extracting(Function<O, C> valueExtractor) {
+            this.valueExtrator = valueExtrator;
+            return (IBuilder<O, C>) this;
+        }
+
         //Null Comparator means keep the supplier order
-        public Builder<OBJ, COMPARED_VALUE> setComparator(@Nullable Comparator<SortedItem<OBJ, COMPARED_VALUE>> comparator) {
+        @Override
+        public BuilderImp<O, C> setComparator(@Nullable Comparator<SortedItem<O, C>> comparator) {
             this.comparator = comparator;
             return this;
         }
 
-        public Builder<OBJ, COMPARED_VALUE> setFormatHeader(List<FancyText> formatHeader) {
+        @Override
+        public BuilderImp<O, C> setFormatHeader(List<FancyText> formatHeader) {
             this.formatHeader = formatHeader;
             return this;
         }
 
-        public Builder<OBJ, COMPARED_VALUE> setFormatHeader(FancyText... formatHeader) {
+        @Override
+        public BuilderImp<O, C> setFormatHeader(FancyText... formatHeader) {
             this.formatHeader = Arrays.asList(formatHeader);
             return this;
         }
 
-        public Builder<OBJ, COMPARED_VALUE> setFormatHeader(String... formatHeader) {
+        @Override
+        public BuilderImp<O, C> setFormatHeader(String... formatHeader) {
             this.formatHeader = Arrays.asList(formatHeader).stream().map(FancyText::new).collect(Collectors.toList());
             return this;
         }
 
-        public Builder<OBJ, COMPARED_VALUE> setFormatLine(String formatLine) {
+        @Override
+        public BuilderImp<O, C> setFormatLine(String formatLine) {
             this.formatLine = new FancyText(formatLine);
             return this;
         }
 
-        public Builder<OBJ, COMPARED_VALUE> setFormatLine(FancyText formatLine) {
+        @Override
+        public BuilderImp<O, C> setFormatLine(FancyText formatLine) {
             this.formatLine = formatLine;
             return this;
         }
 
-        public Builder<OBJ, COMPARED_VALUE> setFormatFooter(List<FancyText> formatFooter) {
+        @Override
+        public BuilderImp<O, C> setFormatFooter(List<FancyText> formatFooter) {
             this.formatFooter = formatFooter;
             return this;
         }
 
-        public Builder<OBJ, COMPARED_VALUE> setFormatFooter(FancyText... formatFooter) {
+        @Override
+        public BuilderImp<O, C> setFormatFooter(FancyText... formatFooter) {
             this.formatFooter = Arrays.asList(formatFooter);
             return this;
         }
 
-        public Builder<OBJ, COMPARED_VALUE> setFormatFooter(String... formatFooter) {
+        @Override
+        public BuilderImp<O, C> setFormatFooter(String... formatFooter) {
             this.formatFooter = Arrays.asList(formatFooter).stream().map(FancyText::new).collect(Collectors.toList());
             return this;
         }
 
-        public Builder<OBJ, COMPARED_VALUE> setCooldown(int cooldown) {
+        @Override
+        public BuilderImp<O, C> setCooldown(int cooldown) {
             this.cooldown = cooldown * 1000;
             return this;
         }
 
-        public Builder<OBJ, COMPARED_VALUE> setLineStart(int lineStart) {
+        @Override
+        public BuilderImp<O, C> setLineStart(int lineStart) {
             this.lineStart = lineStart;
             return this;
         }
 
-        public Builder<OBJ, COMPARED_VALUE> setLineEnd(int lineEnd) {
+        @Override
+        public BuilderImp<O, C> setLineEnd(int lineEnd) {
             this.lineEnd = lineEnd <= 0 ? Integer.MAX_VALUE : lineEnd;
             return this;
         }
 
-        public Builder<OBJ, COMPARED_VALUE> setIncludeDate(boolean includeDate) {
+        @Override
+        public BuilderImp<O, C> setIncludeDate(boolean includeDate) {
             this.includeDate = includeDate;
             return this;
         }
 
-        public Builder<OBJ, COMPARED_VALUE> setIncludeTotalPlayers(boolean includeTotalPlayers) {
+        @Override
+        public BuilderImp<O, C> setIncludeTotalPlayers(boolean includeTotalPlayers) {
             this.includeTotalPlayers = includeTotalPlayers;
             return this;
         }
 
-        public Builder<OBJ, COMPARED_VALUE> setPageSize(int pageSize) {
+        @Override
+        public BuilderImp<O, C> setPageSize(int pageSize) {
             this.pageSize = pageSize;
             return this;
         }
 
-        public Builder<OBJ, COMPARED_VALUE> addPlaceholder(String placeholder, Function<OBJ, Object> function){
+        @Override
+        public BuilderImp<O, C> addPlaceholder(String placeholder, Function<O, Object> function){
             placeholders.put(placeholder, function);
             return this;
         }
 
-        public Builder<OBJ, COMPARED_VALUE> setNextAndPreviousPageButton(boolean nextAndPreviousPageButton) {
+        @Override
+        public BuilderImp<O, C> setNextAndPreviousPageButton(boolean nextAndPreviousPageButton) {
             this.nextAndPreviousPageButton = nextAndPreviousPageButton;
             return this;
         }
 
-        public PageViewer<OBJ, COMPARED_VALUE> build(){
+        @Override
+        public PageViewer<O, C> build(){
 
             if (this.valueExtrator != null){
-                addPlaceholder("%value%", (Function<OBJ, Object>) valueExtrator);
+                addPlaceholder("%value%", (Function<O, Object>) valueExtrator);
             }
 
-            PageViewer<OBJ, COMPARED_VALUE> pageViewer = new PageViewer<>(
+            PageViewer<O, C> pageViewer = new PageViewer<>(
                     supplier,
                     valueExtrator,
                     comparator,
