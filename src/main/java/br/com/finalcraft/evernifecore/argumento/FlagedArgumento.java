@@ -14,7 +14,7 @@ public class FlagedArgumento extends Argumento {
 
     public FlagedArgumento(String argumento) {
         super(argumento.contains(":") ? argumento.split(Pattern.quote(":"))[1] : "true");
-        flagName = argumento.split(Pattern.quote(":"))[0].substring(0).toLowerCase();
+        flagName = argumento.split(Pattern.quote(":"))[0].toLowerCase();
     }
 
     public boolean isSet(){
