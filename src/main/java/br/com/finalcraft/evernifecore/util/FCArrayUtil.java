@@ -49,4 +49,8 @@ public class FCArrayUtil {
         return array[FCMathUtil.getRandom().nextInt(array.length)];
     }
 
+    public static <T> T[] toArray(T... objects){
+        return objects;
+    }
+
 }

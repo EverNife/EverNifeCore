@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.listeners.base;
 
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
+import br.com.finalcraft.evernifecore.util.FCArrayUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
@@ -9,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
 public interface ECListener extends Listener {
 
     public default String[] requiredPlugins(){
-        return null;
+        return FCArrayUtil.toArray();
     }
 
     public default boolean canRegister(){
@@ -79,10 +80,6 @@ public interface ECListener extends Listener {
             pluginInstance.getLogger().warning("[ECListener] Failed to register Listener: [" + clazz.getName() + "] " + t.getClass().getSimpleName() + " [" + t.getMessage() + "]");
         }
         return false;
-    }
-
-    public static String[] toArray(String... strings){
-        return strings;
     }
 
 }
