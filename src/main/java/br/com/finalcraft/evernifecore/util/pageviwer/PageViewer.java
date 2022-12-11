@@ -239,7 +239,8 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
     public static interface IStepExtracting<O>{
 
-        public <C> IBuilder<O,C> extracting(Function<O, C> valueExtractor);
+        //Null Extraction means keep the supplier order
+        public <C> IBuilder<O,C> extracting(@Nullable Function<O, C> valueExtractor);
 
     }
 
@@ -264,7 +265,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
         public IBuilder<O, C> setFormatFooter(String... formatFooter);
 
-        public IBuilder<O, C> setCooldown(int cooldown);
+        public IBuilder<O, C> setCooldown(int cooldownSeconds);
 
         public IBuilder<O, C> setLineStart(int lineStart);
 
@@ -383,8 +384,8 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         }
 
         @Override
-        public BuilderImp<O, C> setCooldown(int cooldown) {
-            this.cooldown = cooldown * 1000;
+        public BuilderImp<O, C> setCooldown(int cooldownSeconds) {
+            this.cooldown = cooldownSeconds * 1000;
             return this;
         }
 
