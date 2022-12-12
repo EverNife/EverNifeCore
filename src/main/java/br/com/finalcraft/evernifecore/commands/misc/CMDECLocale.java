@@ -51,7 +51,7 @@ public class CMDECLocale {
                         FancyText.of((isThisSelected ? "§a§l" : "") +  "[" + localeType.name() + "]§7")
                                 .setHoverText(isThisSelected ? "§aThis locale is already selected!" : "Click to Change Locale to: " + localeType.name())
                                 .setRunCommandAction(isThisSelected ? null : FCCommandUtil.dynamicCommand(() -> {
-                                    FCBukkitUtil.makeConsoleExecuteCommand("/" + label + " set " + ecplugin.getPlugin().getName() + " " + localeType.name());
+                                    FCBukkitUtil.makeConsoleExecuteCommand(label + " set " + ecplugin.getPlugin().getName() + " " + localeType.name());
                                     this.list(sender, label);//Send this command again
                                 }))
                 );
