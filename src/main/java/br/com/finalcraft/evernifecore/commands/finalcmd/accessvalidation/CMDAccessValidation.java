@@ -71,7 +71,7 @@ public abstract class CMDAccessValidation {
         }
 
         public boolean isPlayer(){
-            return sender instanceof Player == false;
+            return sender instanceof Player;
         }
 
         public PlayerData getPlayerData(){
