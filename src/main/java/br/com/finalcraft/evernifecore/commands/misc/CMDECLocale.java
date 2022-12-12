@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.util.FCCommandUtil;
 import br.com.finalcraft.evernifecore.util.FCTextUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -49,7 +50,10 @@ public class CMDECLocale {
                 formatter.append(
                         FancyText.of((isThisSelected ? "§a§l" : "") +  "[" + localeType.name() + "]§7")
                                 .setHoverText(isThisSelected ? "§aThis locale is already selected!" : "Click to Change Locale to: " + localeType.name())
-                                .setRunCommandAction(isThisSelected ? null : "/" + label + " set " + ecplugin.getPlugin().getName() + " " + localeType.name())
+                                .setRunCommandAction(isThisSelected ? null : FCCommandUtil.dynamicCommand(() -> {
+                                    FCBukkitUtil.makeConsoleExecuteCommand("/" + label + " set " + ecplugin.getPlugin().getName() + " " + localeType.name());
+                                    this.list(sender, label);//Send this command again
+                                }))
                 );
             }
             if (ecplugin.getCustomLangConfig() != null){
