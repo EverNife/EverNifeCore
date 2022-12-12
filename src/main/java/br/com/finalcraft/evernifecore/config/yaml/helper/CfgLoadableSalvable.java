@@ -135,6 +135,13 @@ public class CfgLoadableSalvable {
     //------------------------------------------------------------------------------------------------------------------
 
     static {
+        addLoadableSalvable(UUID.class)
+                .setOnConfigSave((configSection, uuid) -> configSection.setValue(uuid.toString()))
+                .setOnConfigLoad(configSection -> UUID.fromString(configSection.getString("")))
+                .setOnStringSerialize(uuid -> uuid.toString())
+                .setOnStringDeserialize(serializedUUID -> UUID.fromString(serializedUUID));
+        ;
+
         addLoadableSalvable(NumberWrapper.class)
                 .setOnConfigSave((configSection, numberWrapper) -> configSection.setValue(numberWrapper.get()))
                 .setOnConfigLoad(section -> {

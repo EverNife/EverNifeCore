@@ -503,12 +503,6 @@ public class Config {
             return;
         }
 
-        //UUID should be saved as String
-        if (value instanceof UUID) {
-            this.store(path, value.toString());
-            return;
-        }
-
         //Default YML behavior
         this.store(path, value);
     }
