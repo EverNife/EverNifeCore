@@ -286,7 +286,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
     public static class BuilderImp<O, C> implements IBuilder<O, C>, IStepWithSuplier<O>, IStepExtracting<O>{
         protected Supplier<List<O>> supplier;
-        protected Function<O, C> valueExtrator;
+        protected Function<O, C> valueExtractor;
 
         private final Comparator<Number> doubleComparator = Comparator.comparingDouble(Number::doubleValue);
         private final Comparator<Object> stringComparator = Comparator.comparing(Object::toString);
@@ -311,9 +311,9 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
         protected final HashMap<String, Function<O,Object>> placeholders = new HashMap<>();
 
-        protected BuilderImp(Supplier<List<O>> supplier, Function<O, C> valueExtrator) {
+        protected BuilderImp(Supplier<List<O>> supplier, Function<O, C> valueExtractor) {
             this.supplier = supplier;
-            this.valueExtrator = valueExtrator;
+            this.valueExtractor = valueExtractor;
         }
 
         @Override
@@ -323,9 +323,9 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         }
 
         @Override
-        public <C> IBuilder<O, C> extracting(Function<O, C> valueExtractor) {
-            this.valueExtrator = valueExtrator;
-            return (IBuilder<O, C>) this;
+        public <C2> IBuilder<O, C2> extracting(Function<O, C2> valueExtractor) {
+            this.valueExtractor = (Function<O, C>) valueExtractor;
+            return (IBuilder<O, C2>) this;
         }
 
         //Null Comparator means keep the supplier order
@@ -434,13 +434,13 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         @Override
         public PageViewer<O, C> build(){
 
-            if (this.valueExtrator != null){
-                addPlaceholder("%value%", (Function<O, Object>) valueExtrator);
+            if (this.valueExtractor != null){
+                addPlaceholder("%value%", (Function<O, Object>) valueExtractor);
             }
 
             PageViewer<O, C> pageViewer = new PageViewer<>(
                     supplier,
-                    valueExtrator,
+                    valueExtractor,
                     comparator,
                     formatHeader,
                     formatLine,
