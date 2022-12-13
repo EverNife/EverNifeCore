@@ -42,7 +42,7 @@ public enum MCVersion {
         String svPackageVersionName = svPackage[svPackage.length - 1];
         for (MCVersion version : MCVersion.values()) {
             if (version.name().equalsIgnoreCase(svPackageVersionName)) {
-                return currentVersion;
+                return version;
             }
         }
         throw new IllegalStateException("Failed to calculate the Minecraft Version of this Server!");
