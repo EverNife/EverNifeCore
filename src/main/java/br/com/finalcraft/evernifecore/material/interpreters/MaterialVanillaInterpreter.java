@@ -1,16 +1,17 @@
-package br.com.finalcraft.evernifecore.util;
+package br.com.finalcraft.evernifecore.material.interpreters;
 
 import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
+import br.com.finalcraft.evernifecore.util.FCItemUtils;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class FCMaterialUtil {
+public class MaterialVanillaInterpreter {
 
-    private static Map<Material, Boolean> isVanilla = new HashMap();
-    public static boolean isVanilla(Material material) {
+    private Map<Material, Boolean> isVanilla = new HashMap();
+    public boolean isVanilla(Material material) {
         Boolean vanilla = isVanilla.get(material);
         if (vanilla != null){
             return vanilla;
