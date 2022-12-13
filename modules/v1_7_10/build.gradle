@@ -44,7 +44,7 @@ repositories {
 
 dependencies {
     implementation project(':modules:VersionedPlugins')
-    compileOnly 'org.spigotmc:spigot-api:1.19.2-R0.1-SNAPSHOT'
+    compileOnly 'org.bukkit:bukkit:1.12.2-R0.1-SNAPSHOT'
 
     compileOnly name: "worldguard-bukkit-6.2.2" //Prior to 1.12
     compileOnly name: "worldedit-bukkit-6.0" //Prior to 1.12
