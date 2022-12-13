@@ -10,7 +10,7 @@ import org.bukkit.inventory.ItemStack;
 
 public class BaublesInv extends ExtraInv {
 
-    private static final int SIZE = MCVersion.isBellow1_7_10() ? 4 : 7;
+    private static final int SIZE = MCVersion.isLowerEquals1_7_10() ? 4 : 7;
     @Override
     public int getInvMaxSize() {
         return SIZE;

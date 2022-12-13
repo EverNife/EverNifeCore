@@ -24,7 +24,7 @@ public class PAPIIntegration {
         PAPIRegexReplacer papiRegexReplacer = new PAPIRegexReplacer(playerDataType);
         SimplePAPIHook simplePAPIHook = new SimplePAPIHook(plugin, papiRegexReplacer);
 
-        if (MCVersion.isBellow1_7_10()){
+        if (MCVersion.isLowerEquals1_7_10()){
             PlaceholderAPI.registerPlaceholderHook(pluginBaseID, simplePAPIHook);
         }else {
             PlaceholderAPIPlugin.getInstance().getLocalExpansionManager().register(new PlaceholderExpansion() {

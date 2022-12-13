@@ -34,7 +34,7 @@ public enum EnumWool {
     private transient GuiItem guiItem = null;
 
     EnumWool(char colorCode) {
-        if (MCVersion.isCurrentEqualOrHigher(MCVersion.v1_13_R1)) {
+        if (MCVersion.isCurrentHigherEquals(MCVersion.v1_13_R1)) {
             int firstGlassPaneOrdinal = Material.WHITE_WOOL.ordinal();
             this.material = Material.values()[firstGlassPaneOrdinal + this.ordinal()];
             this.damage = 0;

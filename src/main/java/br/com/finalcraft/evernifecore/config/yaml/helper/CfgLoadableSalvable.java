@@ -277,7 +277,7 @@ public class CfgLoadableSalvable {
 
                     //Get the NBT and split it into a StringList of 100 chars lengh
                     final String nbtString;
-                    if (MCVersion.isBellow1_13()){
+                    if (MCVersion.isLowerEquals1_12()){
                         nbtString = nbtContainer.toString();
                     }else {
                         nbtContainer.removeKey("Damage"); //Don't need to save the damage twice

@@ -18,7 +18,7 @@ public class ActionBarAPI {
     }
 
     public static void send(Player player, ActionBarMessage actionBarMessage){
-        if (MCVersion.isBellow1_7_10()) return;//ActionBar is not present on 1_7_10
+        if (MCVersion.isLowerEquals1_7_10()) return;//ActionBar is not present on 1_7_10
 
         PlayerActionBarManager playerActionBarManager = PLAYER_ACTION_BAR_MAP.get(player.getUniqueId());
 
@@ -31,7 +31,7 @@ public class ActionBarAPI {
     }
 
     public static void clear(Player player){
-        if (MCVersion.isBellow1_7_10()) return;//ActionBar is not present on 1_7_10
+        if (MCVersion.isLowerEquals1_7_10()) return;//ActionBar is not present on 1_7_10
 
         PlayerActionBarManager playerActionBarManager = PLAYER_ACTION_BAR_MAP.get(player.getUniqueId());
 

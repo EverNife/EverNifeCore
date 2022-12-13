@@ -36,30 +36,31 @@ public enum MCVersion {
     ;
 
     private static MCVersion currentVersion = null;
-    private static Boolean legacy = null;
 
-    public static MCVersion calculateVersion() {
-        String[] v = Bukkit.getServer().getClass().getPackage().getName().split("\\.");
-        String vv = v[v.length - 1];
+    private static MCVersion calculateVersion() {
+        String[] svPackage = Bukkit.getServer().getClass().getPackage().getName().split("\\.");
+        String svPackageVersionName = svPackage[svPackage.length - 1];
         for (MCVersion version : MCVersion.values()) {
-            if (version.name().equalsIgnoreCase(vv)) {
-                currentVersion = version;
+            if (version.name().equalsIgnoreCase(svPackageVersionName)) {
                 return currentVersion;
             }
         }
-        return null;
+        throw new IllegalStateException("Failed to calculate the Minecraft Version of this Server!");
     }
 
-    public static boolean isBellow1_7_10(){//Bellow Or Equals
+    public static boolean isLowerEquals1_7_10(){
         return isCurrentLowerEquals(MCVersion.v1_7_R4);
     }
 
-    public static boolean isBellow1_13(){
-        return isCurrentLowerEquals(MCVersion.v1_13_R2);
+    public static boolean isLowerEquals1_12(){
+        return isCurrentLowerEquals(MCVersion.v1_12_R2);
+    }
+
+    public static boolean isLowerEquals1_16(){
+        return isCurrentLowerEquals(MCVersion.v1_16_R3);
     }
 
     // Operations
-
     private int value;
     private String shortVersion;
 
@@ -77,7 +78,9 @@ public enum MCVersion {
     }
 
     public static MCVersion getCurrent() {
-        return currentVersion != null ? currentVersion : calculateVersion();
+        return currentVersion != null
+                ? currentVersion
+                : (currentVersion = calculateVersion());
     }
 
     public boolean isLower(MCVersion otherVersion) {
@@ -88,6 +91,10 @@ public enum MCVersion {
         return this.getValue() <= otherVersion.getValue();
     }
 
+    public boolean isEqual(MCVersion otherVersion) {
+        return this.getValue() == otherVersion.getValue();
+    }
+
     public boolean isHigher(MCVersion otherVersion) {
         return this.getValue() > otherVersion.getValue();
     }
@@ -96,13 +103,9 @@ public enum MCVersion {
         return this.getValue() >= otherVersion.getValue();
     }
 
-    public boolean isEqual(MCVersion otherVersion) {
-        return this.getValue() == otherVersion.getValue();
-    }
-
-    public boolean isEqualOrHigher(MCVersion otherVersion) {
-        return this.getValue() >= otherVersion.getValue();
-    }
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Static Utility Functions to make life easier!
+    // -----------------------------------------------------------------------------------------------------------------
 
     public static boolean isCurrentLower(MCVersion otherVersion) {
         return getCurrent().isLower(otherVersion);
@@ -112,20 +115,16 @@ public enum MCVersion {
         return getCurrent().isLowerEquals(otherVersion);
     }
 
+    public static boolean isCurrentEqual(MCVersion otherVersion) {
+        return getCurrent().isEqual(otherVersion);
+    }
+
     public static boolean isCurrentHigher(MCVersion otherVersion) {
         return getCurrent().isHigher(otherVersion);
     }
 
     public static boolean isCurrentHigherEquals(MCVersion otherVersion) {
         return getCurrent().isHigherEquals(otherVersion);
-    }
-
-    public static boolean isCurrentEqual(MCVersion otherVersion) {
-        return getCurrent().isEqual(otherVersion);
-    }
-
-    public static boolean isCurrentEqualOrHigher(MCVersion otherVersion) {
-        return getCurrent().isEqualOrHigher(otherVersion);
     }
 
 }

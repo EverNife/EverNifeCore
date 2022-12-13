@@ -88,7 +88,7 @@ public enum ServerType {
     private static ServerType calculateServerType() {
 
         moddedServer = FCBukkitUtil.isClassLoaded(
-                MCVersion.isBellow1_7_10()
+                MCVersion.isLowerEquals1_7_10()
                         ? "cpw.mods.fml.common.Loader"
                         : "net.minecraftforge.fml.common.Loader"
         );
@@ -107,7 +107,7 @@ public enum ServerType {
             }
 
             if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.gppskyblock.GPPSkyBlock")){
-                if (MCVersion.isBellow1_7_10()){
+                if (MCVersion.isLowerEquals1_7_10()){
                     return ServerType.SKYLORDS;
                 }else {
                     return ServerType.SKYHORIZON;

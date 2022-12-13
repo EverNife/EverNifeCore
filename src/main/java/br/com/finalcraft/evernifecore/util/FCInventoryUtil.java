@@ -70,7 +70,7 @@ public class FCInventoryUtil {
 
     public static int getMaxFitAmount(ItemStack stack, Inventory inv) {
         ItemStack[] contents =
-                !MCVersion.isBellow1_7_10() ? inv.getStorageContents()  //Ignore Armor and Shield slots if PlayerInventory
+                !MCVersion.isLowerEquals1_7_10() ? inv.getStorageContents()  //Ignore Armor and Shield slots if PlayerInventory
                         : inv.getContents(); // 1.7.10 does not have "getStorageContents()"
 
         int result = 0;
