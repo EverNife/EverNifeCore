@@ -11,6 +11,8 @@ import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
 import br.com.finalcraft.evernifecore.itemstack.invitem.InvItem;
+import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
+import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
@@ -152,6 +154,21 @@ public class CfgLoadableSalvable {
                     throw new IllegalArgumentException("Tried to load a NumberWrapper that is not a Number [" + obj + "]");
                 })
         ;
+
+        addLoadableSalvable(BlockPos.class)
+                .setOnConfigSave((configSection, blockPos) -> {
+                    configSection.setValue("x", blockPos.getX());
+                    configSection.setValue("y", blockPos.getY());
+                    configSection.setValue("z", blockPos.getZ());
+                })
+                .setOnConfigLoad(configSection -> new BlockPos(configSection.getInt("x"),configSection.getInt("y"),configSection.getInt("z")));
+
+        addLoadableSalvable(ChunkPos.class)
+                .setOnConfigSave((configSection, chunkPos) -> {
+                    configSection.setValue("x", chunkPos.getX());
+                    configSection.setValue("z", chunkPos.getZ());
+                })
+                .setOnConfigLoad(configSection -> new ChunkPos(configSection.getInt("x"),configSection.getInt("z")));
 
         addLoadableSalvable(FancyText.class)
                 .setAllowExtends(true)//FancyFormatter should come in this as well
