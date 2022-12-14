@@ -68,7 +68,7 @@ public class ArgParserEnum extends ArgParser<Enum> {
             throw new ArgParseException();
         }
 
-        return null;
+        return result;
     }
 
     @Override
