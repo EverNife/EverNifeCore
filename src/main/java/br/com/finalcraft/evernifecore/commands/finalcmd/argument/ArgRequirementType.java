@@ -25,7 +25,7 @@ public enum ArgRequirementType {
 
     public static @Nullable ArgRequirementType getArgumentType(@NotNull String argument){
 
-        if (argument.length() > 2) {
+        if (argument.length() >= 2) {
             for (ArgRequirementType requirementType : values()) {
                 if (argument.charAt(0) == requirementType.start && argument.charAt(argument.length() - 1) == requirementType.end){
                     return requirementType;
