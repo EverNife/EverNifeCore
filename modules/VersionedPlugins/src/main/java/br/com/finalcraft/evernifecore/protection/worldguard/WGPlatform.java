@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.protection.worldguard;
 
+import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import br.com.finalcraft.evernifecore.protection.worldguard.adapter.FCRegionManager;
 import br.com.finalcraft.evernifecore.protection.worldguard.adapter.FCRegionResultSet;
 import com.sk89q.worldguard.LocalPlayer;
@@ -52,6 +53,9 @@ public abstract class WGPlatform {
 
     public abstract FCWorldGuardRegion wrapRegion(@NotNull World world, ProtectedRegion protectedRegion);
 
+    protected abstract FCWorldGuardRegion createFCWorldGuardRegion(String id, BlockPos pt1, BlockPos pt2);
+
+    protected abstract FCWorldGuardRegion createFCWorldGuardRegion(String id, boolean isTransient, BlockPos pt1, BlockPos pt2);
 
     public LocalPlayer wrapPlayer(@NotNull OfflinePlayer player){
         if (player.isOnline()){

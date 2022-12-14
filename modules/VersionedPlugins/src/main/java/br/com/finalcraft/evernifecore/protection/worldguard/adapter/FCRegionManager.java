@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.protection.worldguard.adapter;
 
 import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
 import br.com.finalcraft.evernifecore.protection.worldguard.WGPlatform;
+import com.sk89q.worldguard.protection.RegionResultSet;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import org.bukkit.Location;
@@ -46,5 +47,9 @@ public abstract class FCRegionManager {
     }
 
     public abstract FCRegionResultSet getApplicableRegions(Location location);
+
+    public FCRegionResultSet getApplicableRegions(FCWorldGuardRegion region){
+        return new FCRegionResultSet(this.world, (RegionResultSet) this.getRegionManager().getApplicableRegions(region.getProtectedRegion()));
+    }
 
 }
