@@ -47,11 +47,16 @@ public class ArgParserEnum extends ArgParser<Enum> {
                     .collect(Collectors.joining("|"));
         }
 
-        possibilities = ImmutableList.copyOf(
-                ArgsParserUtil.parseStringContextSelectional(context)
-        );
+        if (argInfo.getArgData().name().equals("<>")){
+            argInfo.getArgData().name("<" + context + ">");
+        }
+        if (argInfo.getArgData().name().equals("[]")){
+            argInfo.getArgData().name("[" + context + "]");
+        }
 
-        Validate.isTrue(possibilities.size() > 0, "Can't create a ArgParserEnum without a single option! [context=='" + context + "']");
+        possibilities = ImmutableList.copyOf(ArgsParserUtil.parseStringContextSelectional("<" + context + ">"));
+
+        Validate.isTrue(possibilities.size() > 0, "Can't create a ArgParserEnum without at least one option! [context=='" + context + "']");
     }
 
     @Override

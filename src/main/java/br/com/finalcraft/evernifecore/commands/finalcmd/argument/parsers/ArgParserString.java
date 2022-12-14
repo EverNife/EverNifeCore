@@ -27,7 +27,7 @@ public class ArgParserString extends ArgParser<String> {
 
         possibilities = ImmutableList.copyOf(ArgsParserUtil.parseStringContextSelectional(context));
 
-        Validate.isTrue(possibilities.size() > 0, "Can't create a ArgParserString without a single option! [context=='" + context + "']");
+        Validate.isTrue(possibilities.size() > 0, "Can't create a ArgParserString without at least one option! [context=='" + context + "']");
     }
 
     @Override
