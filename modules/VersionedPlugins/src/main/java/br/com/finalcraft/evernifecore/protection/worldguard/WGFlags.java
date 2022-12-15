@@ -189,12 +189,15 @@ public class WGFlags {
     static {
         for (Field declaredField : WGFlags.class.getDeclaredFields()) {
             try {
-                if (declaredField.get(null) != null){
-                    declaredField.set(null, getFlagFromWorldGuard(declaredField.getName().replace("_","-").toLowerCase()));
+                if (declaredField.get(null) == null){
+                    String flagName = declaredField.getName().replace("_","-").toLowerCase();
+                    Flag flag = getFlagFromWorldGuard(flagName);
+                    declaredField.set(null, flag);
                 }
-            } catch (Exception e) {
-                System.out.println("[EverNifeCore] Failed to create symlink for the WorldGuardFlag: " + declaredField);
-                e.printStackTrace();
+            } catch (Exception ignored) {
+                //For now, lets fail-silent
+                //System.out.println("[EverNifeCore] Failed to create symlink for the WorldGuardFlag: " + declaredField);
+                //e.printStackTrace();
             }
         }
     }
