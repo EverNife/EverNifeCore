@@ -15,8 +15,7 @@ import org.bukkit.command.CommandSender;
 import java.util.ArrayList;
 
 @FinalCMD(
-        aliases = {"evernifecore","ecore"},
-        permission = PermissionNodes.EVERNIFECORE_COMMAND_RELOAD
+        aliases = {"evernifecore","ecore"}
 )
 public class CoreCommand {
 
@@ -25,7 +24,8 @@ public class CoreCommand {
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "Show info of the EverNifeCore and its addons!"),
                     @FCLocale(lang = LocaleType.PT_BR, text = "Mostra informações do EverNifeCore e de seus addons!")
-            }
+            },
+            permission = PermissionNodes.EVERNIFECORE_COMMAND_INFO
     )
     public void info(CommandSender sender, @Arg(name = "[page]", context = "[1:*]") Integer page){
         PageViewer.targeting(ECPluginData.class)
@@ -55,7 +55,8 @@ public class CoreCommand {
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "Fully reload EverNifeCore! Including all PlayerData of all players!"),
                     @FCLocale(lang = LocaleType.PT_BR, text = "Da reload no EverNifeCore! Incluindo todos os PlayerData de todos os jogadores!")
-            }
+            },
+            permission = PermissionNodes.EVERNIFECORE_COMMAND_RELOAD
     )
     public void reload(CommandSender sender){
         ECPluginManager.reloadPlugin(sender, EverNifeCore.instance);
