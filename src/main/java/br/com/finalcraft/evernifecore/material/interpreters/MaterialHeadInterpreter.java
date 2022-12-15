@@ -9,7 +9,7 @@ import java.util.HashSet;
 
 public class MaterialHeadInterpreter {
 
-    private final HashSet<Material> HEAD_MATERIALS = MCVersion.isLowerEquals1_12()
+    private final HashSet<Material> HEAD_MATERIALS = MCVersion.isLowerEquals(MCVersion.v1_12)
             ? Sets.newHashSet(FCInputReader.parseMaterial("SKULL"), FCInputReader.parseMaterial("SKULL_ITEM"))
             : Sets.newHashSet(Material.PLAYER_HEAD, Material.ZOMBIE_HEAD, Material.CREEPER_HEAD, Material.DRAGON_HEAD, Material.SKELETON_SKULL, Material.WITHER_SKELETON_SKULL);
 

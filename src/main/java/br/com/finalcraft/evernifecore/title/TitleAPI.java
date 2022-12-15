@@ -16,7 +16,7 @@ public class TitleAPI {
     }
 
     public static void send(Player player, TitleMessage message){
-        if (MCVersion.isLowerEquals1_7_10()) return;//Title is not present on 1_7_10
+        if (MCVersion.isLowerEquals(MCVersion.v1_7_10)) return;//Title is not present on 1_7_10
 
         PlayerTitleManager playerTitleManager = MANAGER_MAP.get(player.getUniqueId());
 
@@ -29,7 +29,7 @@ public class TitleAPI {
     }
 
     public static void clear(Player player){
-        if (MCVersion.isLowerEquals1_7_10()) return;//Title is not present on 1_7_10
+        if (MCVersion.isLowerEquals(MCVersion.v1_7_10)) return;//Title is not present on 1_7_10
 
         PlayerTitleManager playerTitleManager = MANAGER_MAP.get(player.getUniqueId());
 

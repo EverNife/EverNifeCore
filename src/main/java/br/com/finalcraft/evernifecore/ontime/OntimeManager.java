@@ -9,7 +9,7 @@ import org.bukkit.Statistic;
 public class OntimeManager {
 
     private static final Statistic PLAY_ONE_TICK =
-            MCVersion.isCurrentHigherEquals(MCVersion.v1_13_R1) ?
+            MCVersion.isHigherEquals(MCVersion.v1_13) ?
                     Statistic.PLAY_ONE_MINUTE :
                     Statistic.valueOf("PLAY_ONE_TICK");
 

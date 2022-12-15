@@ -22,7 +22,7 @@ public class ItemDataPartDurability extends ItemDataPart {
             return item;
         }
 
-        if (MCVersion.isCurrentHigherEquals(MCVersion.v1_13_R1)){
+        if (MCVersion.isHigherEquals(MCVersion.v1_13)){
             if (!(item.getItemMeta() instanceof Damageable)) {
                 EverNifeCore.warning("Mistake in Config: Unable to add damage/durability to items of type '" + item.getType() + "'.");
                 return item;
@@ -40,7 +40,7 @@ public class ItemDataPartDurability extends ItemDataPart {
 
     @Override
     public boolean isSimilar(ItemStack base_item, ItemStack other_item) {
-        if (MCVersion.isCurrentHigherEquals(MCVersion.v1_13_R1)){
+        if (MCVersion.isHigherEquals(MCVersion.v1_13)){
             if (base_item.getItemMeta() instanceof Damageable != other_item.getItemMeta() instanceof Damageable) {
                 return false;
             }
@@ -60,7 +60,7 @@ public class ItemDataPartDurability extends ItemDataPart {
     @Override
     public List<String> read(ItemStack itemStack, List<String> output) {
         int damage = 0;
-        if (MCVersion.isCurrentHigherEquals(MCVersion.v1_13_R1)){
+        if (MCVersion.isHigherEquals(MCVersion.v1_13)){
             if (itemStack.hasItemMeta()) {
                 if (itemStack.getItemMeta() instanceof Damageable) {
                     Damageable d = (Damageable) itemStack.getItemMeta();

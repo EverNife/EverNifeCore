@@ -10,9 +10,9 @@ import java.util.HashSet;
 
 public class MaterialSignInterpreter {
 
-    private final Class SIGN_DATA_CLASS_LEGACY = MCVersion.isLowerEquals1_12() ? ReflectionUtil.getClass("org.bukkit.material.Sign") : null;
-    private final Class SIGN_DATA_CLASS_MODERN = !MCVersion.isLowerEquals1_12() ? ReflectionUtil.getClass("org.bukkit.block.data.type.Sign") : null;
-    private final Class WAALL_SIGN_DATA_CLASS_MODERN = !MCVersion.isLowerEquals1_12() ? ReflectionUtil.getClass("org.bukkit.block.data.type.WallSign") : null;
+    private final Class SIGN_DATA_CLASS_LEGACY = MCVersion.isLowerEquals(MCVersion.v1_12) ? ReflectionUtil.getClass("org.bukkit.material.Sign") : null;
+    private final Class SIGN_DATA_CLASS_MODERN = !MCVersion.isLowerEquals(MCVersion.v1_12) ? ReflectionUtil.getClass("org.bukkit.block.data.type.Sign") : null;
+    private final Class WAALL_SIGN_DATA_CLASS_MODERN = !MCVersion.isLowerEquals(MCVersion.v1_12) ? ReflectionUtil.getClass("org.bukkit.block.data.type.WallSign") : null;
 
     private HashSet<Material> SIGN_MATERIALS_1_12_BELLOW = Sets.newHashSet(
             FCInputReader.parseMaterial("SIGN"),
@@ -21,7 +21,7 @@ public class MaterialSignInterpreter {
     );
 
     public boolean isSign(Material material){
-        if (MCVersion.isLowerEquals1_12()){
+        if (MCVersion.isLowerEquals(MCVersion.v1_12)){
             return SIGN_MATERIALS_1_12_BELLOW.contains(material) || material.getData() == SIGN_DATA_CLASS_LEGACY;
         }else {
             //Field isLegacy() is only present on post 1.13 MC version

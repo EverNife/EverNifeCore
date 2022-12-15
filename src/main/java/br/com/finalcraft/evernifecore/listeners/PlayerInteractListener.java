@@ -47,7 +47,7 @@ public class PlayerInteractListener implements ECListener {
 
                 ItemStack itemStack = new ItemStack(block.getType());
 
-                if (MCVersion.isLowerEquals1_12()){
+                if (MCVersion.isLowerEquals(MCVersion.v1_12)){
                     itemStack.setDurability(block.getData());
                 }else {
                     itemStack.setData(block.getState().getData());
@@ -58,7 +58,7 @@ public class PlayerInteractListener implements ECListener {
                         .addPlaceholder("%y%", location.getBlockY())
                         .addPlaceholder("%z%", location.getBlockZ())
                         .addPlaceholder("%block_type%", block.getType().name())
-                        .addPlaceholder("%block_id_and_meta%", !MCVersion.isLowerEquals1_12() ? "" : block.getType().getId())
+                        .addPlaceholder("%block_id_and_meta%", MCVersion.isHigherEquals(MCVersion.v1_13) ? "" : block.getType().getId())
                         .addPlaceholder("%biome%", block.getBiome().name())
                         .addSuggest(FCItemUtils.getBukkitIdentifier(itemStack))
                         .send(player);

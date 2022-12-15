@@ -34,7 +34,7 @@ public enum EnumStainedGlassPane {
     private transient GuiItem guiItem = null;
 
     EnumStainedGlassPane(char colorCode) {
-        if (MCVersion.isCurrentHigherEquals(MCVersion.v1_13_R1)) {
+        if (MCVersion.isHigherEquals(MCVersion.v1_13)) {
             int firstGlassPaneOrdinal = Material.WHITE_STAINED_GLASS_PANE.ordinal();
             this.material = Material.values()[firstGlassPaneOrdinal + this.ordinal()];
             this.damage = 0;

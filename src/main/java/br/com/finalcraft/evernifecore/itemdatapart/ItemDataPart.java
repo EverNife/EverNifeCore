@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.itemdatapart;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.itemdatapart.datapart.*;
+import br.com.finalcraft.evernifecore.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -37,8 +38,8 @@ public abstract class ItemDataPart {
         MATERIAL = registerType(new ItemDataPartMaterial());
         DURABILITY = registerType(new ItemDataPartDurability());
         AMOUNT = registerType(new ItemDataPartAmount());
-        if (MCVersion.isCurrentHigher(MCVersion.v1_14_R1)) CUSTOMMODELDATA = registerType(new ItemDataPartCustomModelData());
-        if (MCVersion.isCurrentHigher(MCVersion.v1_8_R1)) ITEMFLAGS = registerType(new ItemDataPartItemflags());
+        if (MCVersion.getCurrent().isHigherEquals(MCDetailedVersion.v1_14_R1)) CUSTOMMODELDATA = registerType(new ItemDataPartCustomModelData());
+        if (MCVersion.getCurrent().isHigherEquals(MCDetailedVersion.v1_8_R1)) ITEMFLAGS = registerType(new ItemDataPartItemflags());
         NAME = registerType(new ItemDataPartName());
         LORE = registerType(new ItemDataPartLore());
         NBT = registerType(new ItemDataPartNBT());
