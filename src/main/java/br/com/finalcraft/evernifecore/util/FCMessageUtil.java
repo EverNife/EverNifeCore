@@ -39,6 +39,20 @@ public class FCMessageUtil {
         WORLD_NOT_FOUND.addPlaceholder("%searched_name%", searchedName).send(sender);
     }
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cYou do not have the permission to do that.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cVocê não tem a permissão para fazer isto.")
+    private static LocaleMessage YOU_DO_NOT_HAVE_PERMISSION;
+    public static void needsThePermission(CommandSender sender){
+        YOU_DO_NOT_HAVE_PERMISSION.send(sender);
+    }
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cYou do not have the permission §6[§e%permission%§6] §cto do that.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cVocê não tem a permissão §6[§e%permission%§6] §cpara fazer isto.")
+    private static LocaleMessage YOU_DO_NOT_HAVE_SPECIFIC_PERMISSION;
+    public static void needsThePermission(CommandSender sender, String permission){
+        YOU_DO_NOT_HAVE_SPECIFIC_PERMISSION.addPlaceholder("%permission%", permission).send(sender);
+    }
+
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need to be holding an item in your hand!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa estar segurando um item em sua mão!")
     private static LocaleMessage NEEDS_TO_BE_HOLDING_ITEM;

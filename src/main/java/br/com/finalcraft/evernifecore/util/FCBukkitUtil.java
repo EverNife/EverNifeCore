@@ -155,10 +155,6 @@ public class FCBukkitUtil {
         return false;
     }
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cYou do not have the permission §6[§e%permission%§6] §cto do that.")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cVocê não tem a permissão §6[§e%permission%§6] §cpara fazer isto.")
-    private static LocaleMessage YOU_DO_NOT_HAVE_PERMISSION;
-
     /**
      * If the player does not have the permission, send them a message and return false. Otherwise, return true
      *
@@ -169,9 +165,7 @@ public class FCBukkitUtil {
     public static boolean hasThePermission(CommandSender player, String permission) {
 
         if (!player.hasPermission(permission)) {
-            YOU_DO_NOT_HAVE_PERMISSION
-                    .addPlaceholder("%permission%",permission)
-                    .send(player);
+            FCMessageUtil.needsThePermission(player, permission);
             return false;
         }
         return true;
