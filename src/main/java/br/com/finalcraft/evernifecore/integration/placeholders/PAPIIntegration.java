@@ -63,11 +63,12 @@ public class PAPIIntegration {
         if (enabled == null){
             enabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
         }
+
         if (enabled){
-            return PlaceholderAPI.setPlaceholders(player, text);
-        } else {
-            return FCColorUtil.colorfy(text);
+            text = PlaceholderAPI.setPlaceholders(player, text);
         }
+
+        return FCColorUtil.colorfy(text);
     }
 
 }
