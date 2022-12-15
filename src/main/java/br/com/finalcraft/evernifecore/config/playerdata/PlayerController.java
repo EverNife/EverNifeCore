@@ -72,15 +72,15 @@ public class PlayerController {
             throw new RuntimeException(e);
         }
 
-        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-            getOrCreateOne(onlinePlayer.getUniqueId()).setPlayer(onlinePlayer);
-        }
-
         long end = System.currentTimeMillis();
         EverNifeCore.info(String.format("Finished Loading PlayerData of %s players! (%s)", newHashMap.size(), new FCTimeFrame(end-start).getFormattedDiscursive()));
 
         synchronized (MAP_OF_PLAYER_DATA){
             MAP_OF_PLAYER_DATA = newHashMap;
+        }
+
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            getOrCreateOne(onlinePlayer.getUniqueId()).setPlayer(onlinePlayer);
         }
     }
 
