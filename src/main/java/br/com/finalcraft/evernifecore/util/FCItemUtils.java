@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.util;
 
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
+import br.com.finalcraft.evernifecore.version.MCVersion;
+import de.tr7zw.changeme.nbtapi.NBTContainer;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -96,8 +98,14 @@ public class FCItemUtils {
         String nbt = null;
         itemStack = NMSUtils.get().validateItemStackHandle(itemStack);
         if (withNbt){
-            nbt = FCNBTUtil.getFrom(itemStack).toString();
+            NBTContainer nbtContainer = FCNBTUtil.getFrom(
+                    FCNBTUtil.getFrom(itemStack).toString().toString()
+            );
+            if (MCVersion.isHigherEquals(MCVersion.v1_16)){
+                nbtContainer.removeKey("Damage");
+            }
+            nbt = nbtContainer.toString();
         }
-        return NMSUtils.get().getItemRegistryName(itemStack) + " " + itemStack.getAmount() + " " + itemStack.getDurability() + (nbt != null ? " " + nbt : "");
+        return NMSUtils.get().getItemRegistryName(itemStack) + " " + itemStack.getAmount() + " " + itemStack.getDurability() + (nbt != null && !nbt.equals("{}") ? " " + nbt : "");
     }
 }
