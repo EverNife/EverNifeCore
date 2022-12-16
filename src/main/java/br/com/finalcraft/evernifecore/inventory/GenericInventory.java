@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.inventory;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
@@ -17,19 +18,20 @@ public class GenericInventory implements Salvable {
     protected final HashMap<Integer, ItemInSlot> items = new HashMap<>();
 
     public GenericInventory() {
+
     }
 
-    public GenericInventory(Collection<ItemInSlot> itemInSlots) {
-        for (ItemInSlot itemInSlot : itemInSlots) {
+    public GenericInventory(Collection<ItemInSlot> itemsInSlots) {
+        for (ItemInSlot itemInSlot : itemsInSlots) {
             this.items.put(itemInSlot.getSlot(), itemInSlot);
         }
     }
 
     @Override
     public void onConfigSave(ConfigSection section) {
-        section.setValue("items", null); //Clear content before saving it
+        section.setValue("", null); //Clear content before saving it
         for (ItemInSlot itemInSlot : items.values()) {
-            section.setValue("items." + itemInSlot.getSlot(), itemInSlot.getItemStack());
+            section.setValue(String.valueOf(itemInSlot.getSlot()), itemInSlot.getItemStack());
         }
     }
 
@@ -37,13 +39,15 @@ public class GenericInventory implements Salvable {
     public static GenericInventory onConfigLoad(ConfigSection section){
         List<ItemInSlot> items = new ArrayList<>();
 
-        for (String key : section.getKeys("items")) {
+        for (String key : section.getKeys("")) {
+            ConfigSection itemSection = section.getConfigSection(key);
             try {
                 Integer slot = Integer.parseInt(key);
-                ItemStack itemStack = section.getLoadable("items." + slot, ItemStack.class);
+                ItemStack itemStack = itemSection.getLoadable("", ItemStack.class);
                 ItemInSlot itemInSlot = new ItemInSlot(slot,itemStack);
                 items.add(itemInSlot);
-            }catch (NumberFormatException e){
+            }catch (Exception e){
+                EverNifeCore.info("Failed to load ItemSlot from [" + itemSection + "]");
                 e.printStackTrace();
             }
         }
@@ -60,8 +64,11 @@ public class GenericInventory implements Salvable {
         return itemInSlot != null ? itemInSlot.getItemStack() : null;
     }
 
-    public void restoreTo(Inventory inventory){
+    public void setItem(int index, ItemStack itemStack){
+        items.put(index, new ItemInSlot(index, itemStack));
+    }
 
+    public void restoreTo(Inventory inventory){
         ItemStack[] inventoryContent = new ItemStack[inventory.getSize()];
 
         for (int i = 0; i < inventoryContent.length; i++) {

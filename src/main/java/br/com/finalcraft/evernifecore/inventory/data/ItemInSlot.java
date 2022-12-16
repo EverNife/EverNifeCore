@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.inventory.data;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.OptionalInt;
 
@@ -44,7 +45,7 @@ public class ItemInSlot {
         return itemInSlotList;
     }
 
-    public static ItemStack[] toStackList(List<ItemInSlot> itemInSlotList){
+    public static ItemStack[] toStackList(Collection<ItemInSlot> itemInSlotList){
         OptionalInt maxSize = itemInSlotList.stream().mapToInt(ItemInSlot::getSlot).max();
         if (!maxSize.isPresent()) return new ItemStack[0];
         ItemStack[] itemStacks = new ItemStack[maxSize.getAsInt() + 1];

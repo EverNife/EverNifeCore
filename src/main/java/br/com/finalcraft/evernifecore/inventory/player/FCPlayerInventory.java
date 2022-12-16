@@ -4,16 +4,16 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
+import br.com.finalcraft.evernifecore.inventory.GenericInventory;
 import br.com.finalcraft.evernifecore.inventory.data.ItemInSlot;
-import br.com.finalcraft.evernifecore.inventory.player.extrainvs.ExtraInv;
-import br.com.finalcraft.evernifecore.inventory.player.extrainvs.ExtraInvType;
+import br.com.finalcraft.evernifecore.inventory.extrainvs.ExtraInv;
+import br.com.finalcraft.evernifecore.inventory.extrainvs.ExtraInvManager;
+import br.com.finalcraft.evernifecore.inventory.extrainvs.factory.IExtraInvFactory;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 
 public class FCPlayerInventory implements Salvable {
@@ -22,33 +22,24 @@ public class FCPlayerInventory implements Salvable {
     protected ItemStack chestplate;
     protected ItemStack leggings;
     protected ItemStack boots;
-    protected List<ItemInSlot> inventory = new ArrayList<>(); //0-35
-    protected HashMap<ExtraInvType, ExtraInv> extraInvMap = new HashMap<>();
+    protected GenericInventory inventory = new GenericInventory(); //0-35
+    protected List<ExtraInv> extraInvs = new ArrayList<>();
 
     public FCPlayerInventory() {
-        this(null, null, null, null, new ArrayList<>());
+        this(null, null, null, null, new GenericInventory());
     }
 
-    public FCPlayerInventory(List<ItemInSlot> inventory) {
-        this(null, null, null, null, inventory);
-    }
-
-    public FCPlayerInventory(ItemStack helmet, ItemStack chestplate, ItemStack leggings, ItemStack boots, List<ItemInSlot> inventory) {
+    public FCPlayerInventory(ItemStack helmet, ItemStack chestplate, ItemStack leggings, ItemStack boots, GenericInventory inventory) {
         this(helmet, chestplate, leggings, boots, inventory, new ArrayList<>());
     }
 
-    public FCPlayerInventory(ItemStack helmet, ItemStack chestplate, ItemStack leggings, ItemStack boots, List<ItemInSlot> inventory, List<ExtraInv> extraInvList) {
+    public FCPlayerInventory(ItemStack helmet, ItemStack chestplate, ItemStack leggings, ItemStack boots, GenericInventory inventory, List<ExtraInv> extraInvs) {
         this.helmet = helmet;
         this.chestplate = chestplate;
         this.leggings = leggings;
         this.boots = boots;
         this.inventory = inventory;
-
-        if (extraInvList != null){
-            for (ExtraInv extraInv : extraInvList) {
-                this.extraInvMap.put(extraInv.getType(), extraInv);
-            }
-        }
+        this.extraInvs = extraInvs;
     }
 
     public FCPlayerInventory(Player player) {
@@ -56,26 +47,20 @@ public class FCPlayerInventory implements Salvable {
         for (int index = 0; index < 36; index++){
             ItemStack itemStack = playerInventory.getItem(index);
             if (itemStack != null){
-                ItemInSlot itemInSlot = new ItemInSlot(index,itemStack.clone());
-                inventory.add(itemInSlot);
+                inventory.setItem(index, itemStack.clone());
             }
         }
+
         this.helmet = playerInventory.getHelmet() != null ? playerInventory.getHelmet().clone() : null;
         this.chestplate = playerInventory.getChestplate() != null ? playerInventory.getChestplate() : null;
         this.leggings = playerInventory.getLeggings() != null ? playerInventory.getLeggings() : null;
         this.boots = playerInventory.getBoots() != null ? playerInventory.getBoots() : null;
 
-        for (ExtraInvType invType : ExtraInvType.values()) {
-            if (invType.isEnabled()){
-                ExtraInv extraInv = invType.createExtraInv();
-                ItemStack[] extraInvItems = extraInv.getPlayerExtraInv(player);
-                List<ItemInSlot> itemInSlotList = ItemInSlot.fromStackList(extraInvItems);
-                extraInv.getItemSlotList().addAll(itemInSlotList);
-                extraInvMap.put(invType, extraInv);
-            }
+        for (IExtraInvFactory iventoryFactory : ExtraInvManager.getAllFactories()) {
+            ExtraInv extraInv = iventoryFactory.getPlayerExtraInv(player);
+            extraInvs.add(extraInv);
         }
     }
-
 
     @Override
     public void onConfigSave(ConfigSection section) {
@@ -85,17 +70,12 @@ public class FCPlayerInventory implements Salvable {
         section.setValue("chestplate", chestplate);
         section.setValue("leggings", leggings);
         section.setValue("boots", boots);
-
-        section.setValue("inventory", null); //Clear content before saving it
-        for (ItemInSlot itemInSlot : inventory) {
-            section.setValue("inventory." + itemInSlot.getSlot(), itemInSlot.getItemStack());
-        }
-
+        section.setValue("inventory", inventory);
         section.setValue("extra", null); //Clear content before saving it
-        for (ExtraInv extraInv : extraInvMap.values()) {
-            for (ItemInSlot itemInSlot : extraInv.getItemSlotList()) {
-                section.setValue("extra." + extraInv.getName() + "." + itemInSlot.getSlot(), itemInSlot.getItemStack());
-            }
+
+        for (ExtraInv extraInv : extraInvs) {
+            String extraInvID = extraInv.getFactory().getId();
+            section.setValue("extra." + extraInvID, extraInv);
         }
     }
 
@@ -105,43 +85,26 @@ public class FCPlayerInventory implements Salvable {
         ItemStack chestplate = section.getLoadable("chestplate",ItemStack.class);
         ItemStack leggings = section.getLoadable("leggings",ItemStack.class);
         ItemStack boots = section.getLoadable("boots",ItemStack.class);
-        List<ItemInSlot> inventory = new ArrayList<>();
-        for (String key : section.getKeys("inventory")) {
-            try {
-                Integer slot = Integer.parseInt(key);
-                ItemStack itemStack = section.getLoadable("inventory." + slot, ItemStack.class);
-                ItemInSlot itemInSlot = new ItemInSlot(slot,itemStack);
-                inventory.add(itemInSlot);
-            }catch (NumberFormatException e){
-                e.printStackTrace();
-            }
-        }
+        GenericInventory inventory = section.getLoadable("inventory", GenericInventory.class);
 
         List<ExtraInv> extraInvList = new ArrayList<>();
         for (String extraInvKey : section.getKeys("extra")) {
+            ConfigSection extraInvSection = section.getConfigSection("extra." + extraInvKey);
             try {
-                ExtraInvType extraInvType = ExtraInvType.valueOf(extraInvKey.toUpperCase());
-                if (!extraInvType.isEnabled()) continue;
-
-                ExtraInv extraInv = ExtraInvType.valueOf(extraInvKey.toUpperCase()).createExtraInv();
-                for (String itemSlotKey : section.getKeys("extra." + extraInvKey)) {
-                    try {
-                        Integer slot = Integer.parseInt(itemSlotKey);
-                        ItemStack itemStack = section.getLoadable("extra." + extraInvKey + "." + slot, ItemStack.class);
-                        ItemInSlot itemInSlot = new ItemInSlot(slot,itemStack);
-                        extraInv.getItemSlotList().add(itemInSlot);
-                    }catch (NumberFormatException e){
-                        EverNifeCore.info("Failed to load ItemSlot(iteSlot==" + itemSlotKey + ") from " + (section.getPath() + ".extra." + extraInvKey ) + "] \n --> " + section.getConfig().getAbsolutePath());
-                        e.printStackTrace();
-                    }
+                IExtraInvFactory factory = ExtraInvManager.getFactory(extraInvKey);
+                if (factory == null){
+                    continue;
                 }
+
+                ExtraInv extraInv = factory.loadExtraInv(extraInvSection);
                 extraInvList.add(extraInv);
             }catch (Exception e){
-                EverNifeCore.info("Failed to load ExtraInv(" + extraInvKey + ") from [" + (section.getPath() + ".extra." + extraInvKey ) + "] \n --> " + section.getConfig().getAbsolutePath());
+                EverNifeCore.info("Failed to load ExtraInv(" + extraInvKey + ") at " + extraInvSection.toString());
                 e.printStackTrace();
             }
         }
-        return new FCPlayerInventory(helmet,chestplate,leggings,boots,inventory,extraInvList);
+
+        return new FCPlayerInventory(helmet, chestplate, leggings, boots, inventory, extraInvList);
     }
 
     public ItemStack getHelmet() {
@@ -160,52 +123,40 @@ public class FCPlayerInventory implements Salvable {
         return boots;
     }
 
-    public List<ItemInSlot> getInventory() {
+    public GenericInventory getInventory() {
         return inventory;
     }
 
-    public HashMap<ExtraInvType, ExtraInv> getExtraInvMap() {
-        return extraInvMap;
+    public List<ExtraInv> getExtraInvs(){
+        return extraInvs;
     }
 
-    public Collection<ExtraInv> getExtraInvs(){
-        return extraInvMap.values();
-    }
-
-    public ExtraInv getExtraInv(ExtraInvType invType){
-        return extraInvMap.get(invType);
-    }
-
-    public ItemStack getItem(int index){
-        for (ItemInSlot itemInSlot : this.inventory) {
-            if (index == itemInSlot.getSlot()){
-                return itemInSlot.getItemStack();
-            }
-        }
-        return null;
+    public ExtraInv getExtraInv(String extraInvId){
+        return extraInvs.stream()
+                .filter(extraInv -> extraInv.getFactory().getId().equals(extraInvId))
+                .findFirst()
+                .orElse(null);
     }
 
     public void restoreTo(Player player){
-        org.bukkit.inventory.PlayerInventory playerInventory = player.getInventory();
+        PlayerInventory playerInventory = player.getInventory();
 
         ItemStack[] inventoryContent = new ItemStack[36];
-        for (ItemInSlot itemInSlot : inventory) {
+        for (ItemInSlot itemInSlot : inventory.getItems()) {
             inventoryContent[itemInSlot.getSlot()] = itemInSlot.getItemStack().clone();
         }
         playerInventory.setContents(inventoryContent);
 
-        for (ExtraInvType invType : ExtraInvType.values()) {
-            if (invType.isEnabled()){
-                ExtraInv extraInv = getExtraInv(invType);
-                if (extraInv == null){
-                    extraInv = invType.createExtraInv();
-                }
-                extraInv.setPlayerExtraInv(player);
-            }
-        }
+        for (IExtraInvFactory factory : ExtraInvManager.getAllFactories()) {
+            // We need to ge all factories, rather than use 'this.getExtraInvs()'
+            // because if there is a factory that is not present on 'this.extraInvs()',
+            // it means that we need to erase that extraInv on the player
 
-        for (ExtraInv extraInv : this.extraInvMap.values()) {
-            extraInv.setPlayerExtraInv(player);
+            ExtraInv extraInv = this.getExtraInv(factory.getId());
+            if (extraInv == null){
+                extraInv = factory.createEmptyExtraInv();
+            }
+            factory.setPlayerExtraInv(player, extraInv);
         }
 
         playerInventory.setHelmet(this.getHelmet() == null ?  null : this.getHelmet().clone());
