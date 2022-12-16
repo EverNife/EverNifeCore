@@ -9,7 +9,7 @@ import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
-import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
+import br.com.finalcraft.evernifecore.inventory.data.ItemInSlot;
 import br.com.finalcraft.evernifecore.itemstack.invitem.InvItem;
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
@@ -304,11 +304,11 @@ public class CfgLoadableSalvable {
                     if (!nbtString.isEmpty() && !nbtString.equals("{}")){ //If the NBT is not empty
 
                         configSection.setValue("minecraftIdentifier", mcIdentifier);
-                        InvItem invItem = InvItem.getInvItem(itemStack);
+                        InvItem invItem = InvItem.of(itemStack.getType());
                         if (invItem != null){
-                            configSection.setValue("invItem.name", invItem.name());
-                            for (ItemSlot itemSlot : invItem.getItemsFrom(itemStack)) {
-                                configSection.setValue("invItem.content." + itemSlot.getSlot(), itemSlot.getItemStack());
+                            configSection.setValue("invItem.name", invItem.getName());
+                            for (ItemInSlot itemInSlot : invItem.getItemsFrom(itemStack)) {
+                                configSection.setValue("invItem.content." + itemInSlot.getSlot(), itemInSlot.getItemStack());
                             }
                             return;
                         }
@@ -337,17 +337,17 @@ public class CfgLoadableSalvable {
                                 }else if (configSection.contains("invItem.name")){
                                     ItemStack customChest = FCItemUtils.fromMinecraftIdentifier(minecraftIdentifier);
                                     String invItemName = configSection.getString("invItem.name");
-                                    InvItem invItem = InvItem.valueOf(invItemName);
-                                    if (!invItem.isEnabled()){
-                                        EverNifeCore.warning("Found an InvItem [" + invItem.name()  + "] but it is not enabled! The content will be ignored!");
+                                    InvItem invItem = InvItem.of(invItemName);
+                                    if (invItem == null){
+                                        EverNifeCore.warning("Found an InvItem [" + invItemName  + "] but it is not enabled! The content will be ignored!");
                                         return customChest;
                                     }
-                                    List<ItemSlot> itemSlots = new ArrayList<>();
+                                    List<ItemInSlot> itemInSlots = new ArrayList<>();
                                     for (String slot : configSection.getKeys("invItem.content")) {
                                         ItemStack slotItem = configSection.getLoadable("invItem.content." + slot, ItemStack.class);
-                                        itemSlots.add(new ItemSlot(Integer.parseInt(slot), slotItem));
+                                        itemInSlots.add(new ItemInSlot(Integer.parseInt(slot), slotItem));
                                     }
-                                    return invItem.createChestWithItems(customChest, itemSlots);
+                                    return invItem.createChestWithItems(customChest, itemInSlots);
                                 }else {
                                     return FCItemUtils.fromMinecraftIdentifier(minecraftIdentifier);
                                 }

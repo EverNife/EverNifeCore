@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.inventory.player.extrainvs.wrappers;
 
 import br.com.finalcraft.evernifecore.integration.everforgelib.EverForgeLibIntegration;
-import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
+import br.com.finalcraft.evernifecore.inventory.data.ItemInSlot;
 import br.com.finalcraft.evernifecore.inventory.player.extrainvs.ExtraInv;
 import br.com.finalcraft.evernifecore.inventory.player.extrainvs.ExtraInvType;
 import br.com.finalcraft.evernifecore.version.MCVersion;
@@ -29,8 +29,8 @@ public class BaublesInv extends ExtraInv {
     @Override
     public void setPlayerExtraInv(Player player) {
         ItemStack[] baublesContent = new ItemStack[getInvMaxSize()];
-        for (ItemSlot itemSlot : getItemSlotList()) {
-            baublesContent[itemSlot.getSlot()] = itemSlot.getItemStack().clone();
+        for (ItemInSlot itemInSlot : getItemSlotList()) {
+            baublesContent[itemInSlot.getSlot()] = itemInSlot.getItemStack().clone();
         }
         EverForgeLibIntegration.setBaublesInventory(player, baublesContent);
     }

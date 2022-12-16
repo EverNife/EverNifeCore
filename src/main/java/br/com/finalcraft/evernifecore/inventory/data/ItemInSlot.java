@@ -6,11 +6,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
 
-public class ItemSlot {
+public class ItemInSlot {
 
     protected final int slot;
     protected final ItemStack itemStack;
-    public ItemSlot(int slot, ItemStack itemStack) {
+    public ItemInSlot(int slot, ItemStack itemStack) {
         this.slot = slot;
         this.itemStack = itemStack;
     }
@@ -23,33 +23,33 @@ public class ItemSlot {
         return itemStack;
     }
 
-    public static List<ItemSlot> fromStackList(List<ItemStack> itemStackList){
-        List<ItemSlot> itemSlotList = new ArrayList<>();
+    public static List<ItemInSlot> fromStackList(List<ItemStack> itemStackList){
+        List<ItemInSlot> itemInSlotList = new ArrayList<>();
         for (int i = 0; i < itemStackList.size(); i++) {
             ItemStack itemStack = itemStackList.get(i);
             if (itemStack != null){
-                itemSlotList.add(new ItemSlot(i, new ItemStack(itemStack)));
+                itemInSlotList.add(new ItemInSlot(i, new ItemStack(itemStack)));
             }
         }
-        return itemSlotList;
+        return itemInSlotList;
     }
 
-    public static List<ItemSlot> fromStackList(ItemStack[] itemStacks){
-        List<ItemSlot> itemSlotList = new ArrayList<>();
+    public static List<ItemInSlot> fromStackList(ItemStack[] itemStacks){
+        List<ItemInSlot> itemInSlotList = new ArrayList<>();
         for (int i = 0; i < itemStacks.length; i++) {
             if (itemStacks[i] != null){
-                itemSlotList.add(new ItemSlot(i, new ItemStack(itemStacks[i])));
+                itemInSlotList.add(new ItemInSlot(i, new ItemStack(itemStacks[i])));
             }
         }
-        return itemSlotList;
+        return itemInSlotList;
     }
 
-    public static ItemStack[] toStackList(List<ItemSlot> itemSlotList){
-        OptionalInt maxSize = itemSlotList.stream().mapToInt(ItemSlot::getSlot).max();
+    public static ItemStack[] toStackList(List<ItemInSlot> itemInSlotList){
+        OptionalInt maxSize = itemInSlotList.stream().mapToInt(ItemInSlot::getSlot).max();
         if (!maxSize.isPresent()) return new ItemStack[0];
         ItemStack[] itemStacks = new ItemStack[maxSize.getAsInt() + 1];
-        for (ItemSlot itemSlot : itemSlotList) {
-            itemStacks[itemSlot.getSlot()] = itemSlot.getItemStack();
+        for (ItemInSlot itemInSlot : itemInSlotList) {
+            itemStacks[itemInSlot.getSlot()] = itemInSlot.getItemStack();
         }
         return itemStacks;
     }

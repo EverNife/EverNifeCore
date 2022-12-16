@@ -1,74 +1,67 @@
 package br.com.finalcraft.evernifecore.itemstack.invitem;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.integration.everforgelib.EverForgeLibIntegration;
-import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
+import br.com.finalcraft.evernifecore.inventory.data.ItemInSlot;
+import br.com.finalcraft.evernifecore.itemstack.invitem.imp.InvItemDraconicChest;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-public enum InvItem {
-    DRACONIC_CHEST("DRACONICEVOLUTION_DRACONIUMCHEST",
-            "DRACONICEVOLUTION_DRACONIUM_CHEST"){
-        @Override
-        public List<ItemSlot> getItemsFrom(ItemStack draconiumChest) {
-            ItemStack[] inventory = EverForgeLibIntegration.getDraconicChestIventory(draconiumChest);
-            return ItemSlot.fromStackList(inventory);
-        }
+public abstract class InvItem {
 
-        @Override
-        public ItemStack createChestWithItems(ItemStack draconiumChest, List<ItemSlot> itemSlots) {
-            ItemStack[] inventory = ItemSlot.toStackList(itemSlots);
-            ItemStack result = EverForgeLibIntegration.setDraconicChestInventory(draconiumChest, inventory);
-            return result;
-        }
-
-        @Override
-        public Boolean checkIfShouldBeEnabled() {
-            return EverForgeLibIntegration.draconicLoaded && material != null;
-        }
-    };
-
-    protected Boolean enabled = null;
     protected final Material material;
 
-    InvItem(String... materialName) {
-        Material tempMaterial = null;
-        for (String name : materialName) {
-            tempMaterial = Material.getMaterial(name);
-            if (tempMaterial != null) break;
-        }
-        this.material = tempMaterial;
-//        this.material = Arrays.asList(materialName).stream().map(Material::getMaterial).filter(Objects::nonNull).findFirst().orElse(null);
+    public InvItem() {
+        this.material = calculateMaterial();
     }
 
-    public abstract List<ItemSlot> getItemsFrom(ItemStack itemStack);
-    public abstract ItemStack createChestWithItems(ItemStack customChest, List<ItemSlot> itemSlots);
+    protected abstract @Nullable Material calculateMaterial();
+
     public abstract Boolean checkIfShouldBeEnabled();
 
-    public boolean isEnabled(){
-        return enabled != null ? enabled : (enabled = checkIfShouldBeEnabled());
-    }
+    public abstract String getName();
+
+    public abstract List<ItemInSlot> getItemsFrom(ItemStack itemStack);
+
+    public abstract ItemStack createChestWithItems(ItemStack customChest, List<ItemInSlot> itemInSlots);
 
     public Material getMaterial() {
         return material;
     }
 
-    private static HashMap<Material, InvItem> mapOfInvItems = null;
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Static Methods
+    // -----------------------------------------------------------------------------------------------------------------
 
-    public static InvItem getInvItem(ItemStack itemStack){
-        if (mapOfInvItems == null) {
-            mapOfInvItems = new HashMap<>();
-            EverNifeCore.info("Checking for InvItems!");
-            for (InvItem invItem : values()) {
-                EverNifeCore.info("[InvItem] " + invItem.name() + " ENABLED: " + invItem.isEnabled());
-                if (invItem.isEnabled()){
-                    mapOfInvItems.put(invItem.getMaterial(), invItem);
-                }
+    public static HashMap<Material, InvItem> INV_MATERIALS_MAP = new HashMap<>();
+    public static HashMap<String, InvItem> INV_NAME_MAP = new HashMap<>();
+
+    static {
+        EverNifeCore.info("Checking for InvItems!");
+
+        List<InvItem> BUIT_IN_INV_ITEMS = Arrays.asList(
+                new InvItemDraconicChest()
+        );
+
+        for (InvItem invItem : BUIT_IN_INV_ITEMS) {
+            boolean isEnabled = invItem.getMaterial() != null;
+            EverNifeCore.info("[InvItem] <" + invItem.getName() + "> ENABLED: " + isEnabled);
+            if (isEnabled){
+                INV_MATERIALS_MAP.put(invItem.getMaterial(), invItem);
+                INV_NAME_MAP.put(invItem.getName(), invItem);
             }
         }
-        return mapOfInvItems.size() == 0 ? null : mapOfInvItems.get(itemStack.getType());
+    }
+
+    public static @Nullable InvItem of(Material material){
+        return INV_MATERIALS_MAP.get(material);
+    }
+
+    public static @Nullable InvItem of(String invItemName){
+        return INV_NAME_MAP.get(invItemName);
     }
 }

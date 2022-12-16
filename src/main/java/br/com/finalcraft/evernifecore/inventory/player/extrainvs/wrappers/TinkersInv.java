@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.inventory.player.extrainvs.wrappers;
 
 import br.com.finalcraft.evernifecore.integration.everforgelib.EverForgeLibIntegration;
-import br.com.finalcraft.evernifecore.inventory.data.ItemSlot;
+import br.com.finalcraft.evernifecore.inventory.data.ItemInSlot;
 import br.com.finalcraft.evernifecore.inventory.player.extrainvs.ExtraInv;
 import br.com.finalcraft.evernifecore.inventory.player.extrainvs.ExtraInvType;
 import org.bukkit.entity.Player;
@@ -27,8 +27,8 @@ public class TinkersInv extends ExtraInv {
     @Override
     public void setPlayerExtraInv(Player player) {
         ItemStack[] tinkers = new ItemStack[getInvMaxSize()];
-        for (ItemSlot itemSlot : getItemSlotList()) {
-            tinkers[itemSlot.getSlot()] = itemSlot.getItemStack().clone();
+        for (ItemInSlot itemInSlot : getItemSlotList()) {
+            tinkers[itemInSlot.getSlot()] = itemInSlot.getItemStack().clone();
         }
         EverForgeLibIntegration.setTinkersInventory(player, tinkers);
     }
