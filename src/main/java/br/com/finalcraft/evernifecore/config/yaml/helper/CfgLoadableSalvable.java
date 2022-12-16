@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.inventory.data.ItemInSlot;
 import br.com.finalcraft.evernifecore.itemstack.invitem.InvItem;
+import br.com.finalcraft.evernifecore.itemstack.invitem.InvItemManager;
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
@@ -304,9 +305,9 @@ public class CfgLoadableSalvable {
                     if (!nbtString.isEmpty() && !nbtString.equals("{}")){ //If the NBT is not empty
 
                         configSection.setValue("minecraftIdentifier", mcIdentifier);
-                        InvItem invItem = InvItem.of(itemStack.getType());
+                        InvItem invItem = InvItemManager.of(itemStack.getType());
                         if (invItem != null){
-                            configSection.setValue("invItem.name", invItem.getName());
+                            configSection.setValue("invItem.name", invItem.getId());
                             for (ItemInSlot itemInSlot : invItem.getItemsFrom(itemStack)) {
                                 configSection.setValue("invItem.content." + itemInSlot.getSlot(), itemInSlot.getItemStack());
                             }
@@ -337,7 +338,7 @@ public class CfgLoadableSalvable {
                                 }else if (configSection.contains("invItem.name")){
                                     ItemStack customChest = FCItemUtils.fromMinecraftIdentifier(minecraftIdentifier);
                                     String invItemName = configSection.getString("invItem.name");
-                                    InvItem invItem = InvItem.of(invItemName);
+                                    InvItem invItem = InvItemManager.of(invItemName);
                                     if (invItem == null){
                                         EverNifeCore.warning("Found an InvItem [" + invItemName  + "] but it is not enabled! The content will be ignored!");
                                         return customChest;
@@ -347,7 +348,7 @@ public class CfgLoadableSalvable {
                                         ItemStack slotItem = configSection.getLoadable("invItem.content." + slot, ItemStack.class);
                                         itemInSlots.add(new ItemInSlot(Integer.parseInt(slot), slotItem));
                                     }
-                                    return invItem.createChestWithItems(customChest, itemInSlots);
+                                    return invItem.setItemsTo(customChest, itemInSlots);
                                 }else {
                                     return FCItemUtils.fromMinecraftIdentifier(minecraftIdentifier);
                                 }

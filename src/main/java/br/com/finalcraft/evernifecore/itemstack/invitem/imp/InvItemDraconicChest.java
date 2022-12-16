@@ -7,29 +7,31 @@ import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public class InvItemDraconicChest extends InvItem {
+public class InvItemDraconicChest implements InvItem {
 
-    @Override
-    public String getName() {
-        return "DRACONIC_CHEST";
-    }
+    private final Material material;
 
-    @Override
-    protected @Nullable Material calculateMaterial() {
-        if (EverForgeLibIntegration.draconicLoaded == false) return null;
-
-        return MCVersion.isEqual(MCVersion.v1_7_10) ? FCInputReader.parseMaterial("DRACONICEVOLUTION_DRACONIUMCHEST")
+    public InvItemDraconicChest() {
+        this.material = MCVersion.isEqual(MCVersion.v1_7_10) ? FCInputReader.parseMaterial("DRACONICEVOLUTION_DRACONIUMCHEST")
                 : MCVersion.isEqual(MCVersion.v1_12) ? FCInputReader.parseMaterial("DRACONICEVOLUTION_DRACONIUM_CHEST")
                 : null;
+
+        if (this.material == null){
+            throw new IllegalStateException("There is no Draconic Chest found on this Server!");
+        }
     }
 
     @Override
-    public Boolean checkIfShouldBeEnabled() {
-        return EverForgeLibIntegration.draconicLoaded && material != null;
+    public Material getMaterial() {
+        return material;
+    }
+
+    @Override
+    public String getId() {
+        return "DRACONIC_CHEST";
     }
 
     @Override
@@ -39,7 +41,7 @@ public class InvItemDraconicChest extends InvItem {
     }
 
     @Override
-    public ItemStack createChestWithItems(ItemStack draconiumChest, List<ItemInSlot> itemInSlots) {
+    public ItemStack setItemsTo(ItemStack draconiumChest, List<ItemInSlot> itemInSlots) {
         ItemStack[] inventory = ItemInSlot.toStackList(itemInSlots);
         ItemStack result = EverForgeLibIntegration.setDraconicChestInventory(draconiumChest, inventory);
         return result;
