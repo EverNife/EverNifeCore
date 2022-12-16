@@ -52,12 +52,12 @@ public enum MCDetailedVersion {
     private int value;
     private String shortVersion;
 
-    MCDetailedVersion(Integer value, String ShortVersion) {
+    MCDetailedVersion(int value, String ShortVersion) {
         this.value = value;
         this.shortVersion = ShortVersion;
     }
 
-    public Integer getValue() {
+    public int getValue() {
         return value;
     }
 
