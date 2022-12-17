@@ -14,6 +14,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class FCPlayerInventory implements Salvable {
@@ -27,6 +28,10 @@ public class FCPlayerInventory implements Salvable {
 
     public FCPlayerInventory() {
         this(null, null, null, null, new GenericInventory());
+    }
+
+    public FCPlayerInventory(Collection<ItemInSlot> inventoryContent) {
+        this(null, null, null, null, new GenericInventory(inventoryContent));
     }
 
     public FCPlayerInventory(ItemStack helmet, ItemStack chestplate, ItemStack leggings, ItemStack boots, GenericInventory inventory) {
