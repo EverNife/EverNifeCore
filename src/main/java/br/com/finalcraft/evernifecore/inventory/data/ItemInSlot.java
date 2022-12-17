@@ -24,32 +24,33 @@ public class ItemInSlot {
         return itemStack;
     }
 
-    public static List<ItemInSlot> fromStackList(List<ItemStack> itemStackList){
-        List<ItemInSlot> itemInSlotList = new ArrayList<>();
-        for (int i = 0; i < itemStackList.size(); i++) {
-            ItemStack itemStack = itemStackList.get(i);
+    public static List<ItemInSlot> fromStacks(Collection<ItemStack> itemStacks){
+        List<ItemInSlot> itemsInSlotList = new ArrayList<>();
+        int count = 0;
+        for (ItemStack itemStack : itemStacks) {
             if (itemStack != null){
-                itemInSlotList.add(new ItemInSlot(i, new ItemStack(itemStack)));
+                itemsInSlotList.add(new ItemInSlot(count, new ItemStack(itemStack)));
             }
+            count++;
         }
-        return itemInSlotList;
+        return itemsInSlotList;
     }
 
-    public static List<ItemInSlot> fromStackList(ItemStack[] itemStacks){
-        List<ItemInSlot> itemInSlotList = new ArrayList<>();
+    public static List<ItemInSlot> fromStacks(ItemStack... itemStacks){
+        List<ItemInSlot> itemsInSlotList = new ArrayList<>();
         for (int i = 0; i < itemStacks.length; i++) {
             if (itemStacks[i] != null){
-                itemInSlotList.add(new ItemInSlot(i, new ItemStack(itemStacks[i])));
+                itemsInSlotList.add(new ItemInSlot(i, new ItemStack(itemStacks[i])));
             }
         }
-        return itemInSlotList;
+        return itemsInSlotList;
     }
 
-    public static ItemStack[] toStackList(Collection<ItemInSlot> itemInSlotList){
-        OptionalInt maxSize = itemInSlotList.stream().mapToInt(ItemInSlot::getSlot).max();
+    public static ItemStack[] toArray(Collection<ItemInSlot> itemInSlots){
+        OptionalInt maxSize = itemInSlots.stream().mapToInt(ItemInSlot::getSlot).max();
         if (!maxSize.isPresent()) return new ItemStack[0];
         ItemStack[] itemStacks = new ItemStack[maxSize.getAsInt() + 1];
-        for (ItemInSlot itemInSlot : itemInSlotList) {
+        for (ItemInSlot itemInSlot : itemInSlots) {
             itemStacks[itemInSlot.getSlot()] = itemInSlot.getItemStack();
         }
         return itemStacks;

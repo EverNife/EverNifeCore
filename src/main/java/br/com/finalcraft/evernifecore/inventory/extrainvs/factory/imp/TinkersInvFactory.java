@@ -23,12 +23,12 @@ public class TinkersInvFactory implements IExtraInvFactory {
 
     @Override
     public ExtraInv getPlayerExtraInv(Player player) {
-        return new ExtraInv(this, ItemInSlot.fromStackList(EverForgeLibIntegration.getTinkersInventory(player)));
+        return new ExtraInv(this, ItemInSlot.fromStacks(EverForgeLibIntegration.getTinkersInventory(player)));
     }
 
     @Override
     public void setPlayerExtraInv(Player player, ExtraInv extraInv) {
-        ItemStack[] inventoryContent = Arrays.copyOf(ItemInSlot.toStackList(extraInv.getItems()),this.getInvMaxSize());
+        ItemStack[] inventoryContent = Arrays.copyOf(ItemInSlot.toArray(extraInv.getItems()),this.getInvMaxSize());
         EverForgeLibIntegration.setTinkersInventory(player, inventoryContent);
     }
 }

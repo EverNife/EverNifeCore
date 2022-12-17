@@ -37,12 +37,12 @@ public class InvItemDraconicChest implements InvItem {
     @Override
     public List<ItemInSlot> getItemsFrom(ItemStack draconiumChest) {
         ItemStack[] inventory = EverForgeLibIntegration.getDraconicChestIventory(draconiumChest);
-        return ItemInSlot.fromStackList(inventory);
+        return ItemInSlot.fromStacks(inventory);
     }
 
     @Override
     public ItemStack setItemsTo(ItemStack draconiumChest, List<ItemInSlot> itemInSlots) {
-        ItemStack[] inventory = ItemInSlot.toStackList(itemInSlots);
+        ItemStack[] inventory = ItemInSlot.toArray(itemInSlots);
         ItemStack result = EverForgeLibIntegration.setDraconicChestInventory(draconiumChest, inventory);
         return result;
     }
