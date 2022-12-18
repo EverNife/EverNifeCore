@@ -91,6 +91,9 @@ public class FCPlayerInventory implements Salvable {
         ItemStack leggings = section.getLoadable("leggings",ItemStack.class);
         ItemStack boots = section.getLoadable("boots",ItemStack.class);
         GenericInventory inventory = section.getLoadable("inventory", GenericInventory.class);
+        if (inventory == null){
+            inventory = new GenericInventory();
+        }
 
         List<ExtraInv> extraInvList = new ArrayList<>();
         for (String extraInvKey : section.getKeys("extra")) {
