@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
+import br.com.finalcraft.evernifecore.util.FCTextUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -30,21 +31,22 @@ public class CMDItemInfo {
             return;
         }
 
+        player.sendMessage("§m§7" + FCTextUtil.straightLineOf("-"));
         if (NMSUtils.get() != null){
             FancyText.of("§d ● §eLocalizedName: §a" + FCItemUtils.getLocalizedName(heldItem))
-                    .setHoverText("Click to copy!")
+                    .setHoverText("Click to copy! [" + FCItemUtils.getLocalizedName(heldItem) + "]")
                     .setSuggestCommandAction(FCItemUtils.getLocalizedName(heldItem))
                     .send(player);
 
-            FancyText.of("§d ● §eMCIdentifier: §a" + FCItemUtils.getMinecraftIdentifier(heldItem))
-                    .setHoverText("Click to copy!")
+            FancyText.of("\n§d ● §eMCIdentifier: §a" + FCItemUtils.getMinecraftIdentifier(heldItem))
+                    .setHoverText("Click to copy! [" + FCItemUtils.getMinecraftIdentifier(heldItem) + "]")
                     .setSuggestCommandAction(FCItemUtils.getMinecraftIdentifier(heldItem))
                     .send(player);
         }
 
-        String readLines = "§a" + ItemDataPart.readItem(heldItem).stream().collect(Collectors.joining("\n"));
-        FancyText.of(readLines)
-                .setHoverText(readLines)
+        String readLines = ItemDataPart.readItem(heldItem).stream().collect(Collectors.joining("\n - "));
+        FancyText.of("§b ▼ \n - " + readLines)
+                .setHoverText("§b - " + readLines)
                 .setSuggestCommandAction(readLines)
                 .send(player);
 
