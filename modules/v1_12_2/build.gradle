@@ -46,7 +46,7 @@ dependencies {
     implementation project(':modules:VersionedPlugins')
     compileOnly 'org.bukkit:bukkit:1.12.2-R0.1-SNAPSHOT'
 
-    compileOnly name: "worldguard-bukkit-6.1" //Prior to 1.7.10
+    compileOnly name: "worldguard-bukkit-6.2.2" //Prior to 1.12
     compileOnly name: "worldedit-bukkit-6.0" //Prior to 1.12
     implementation name: "craftbukkit1710" //Thats on you to find out
     implementation name: "craftbukkit1122" //Thats on you to find out

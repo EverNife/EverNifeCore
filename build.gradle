@@ -57,7 +57,8 @@ dependencies {
     compileOnly 'org.spigotmc:spigot-api:1.19.2-R0.1-SNAPSHOT'
 
     implementation project(':modules:VersionedPlugins')
-    implementation project(':modules:v1_7_10')//Also includes 1.12.2 code
+    implementation project(':modules:v1_7_10')
+    implementation project(':modules:v1_12_2')
     implementation project(':modules:v1_16_5')
 
     implementation 'com.github.evernife:ChatMenuAPI:v1.1.3c'
@@ -127,6 +128,7 @@ shadowJar {
 
         include(project(':modules:VersionedPlugins'))
         include(project(':modules:v1_7_10'))
+        include(project(':modules:v1_12_2'))
         include(project(':modules:v1_16_5'))
     }
     if (getCallingTask().equals("publish")){

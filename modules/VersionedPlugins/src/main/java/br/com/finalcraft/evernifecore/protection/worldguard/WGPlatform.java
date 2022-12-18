@@ -28,8 +28,11 @@ public abstract class WGPlatform {
     private static final WGPlatform INSTANCE;
 
     static {
-        String apiClassname = Bukkit.getPluginManager().getPlugin("WorldGuard").getDescription().getVersion().startsWith("6")
-                ? "v1_7_R4" //WorldGuard 6.*
+        String wgVersion = Bukkit.getPluginManager().getPlugin("WorldGuard").getDescription().getVersion();
+        String apiClassname = wgVersion.startsWith("6.1")
+                ? "v1_7_R4" //WorldGuard 6.0
+                : wgVersion.startsWith("6.2")
+                ? "v1_12_R2" //WorldGuard 6.2
                 : "v1_16_R3"; //WorldGuard 7.*
 
         WGPlatform wgPlatform = null;
@@ -47,7 +50,7 @@ public abstract class WGPlatform {
     }
 
 
-    public abstract SimpleFlagRegistry getFlagRegistry();
+    public abstract IFCFlagRegistry getFlagRegistry();
 
     public abstract FCRegionManager getRegionManager(World world);
 
@@ -87,11 +90,13 @@ public abstract class WGPlatform {
 
     public void registerFlag(@NotNull Flag<?> flag, @NotNull Plugin plugin) {
         try {
-            SimpleFlagRegistry simpleFlagRegistry = getFlagRegistry();
-            Field flagsMapField = simpleFlagRegistry.getClass().getDeclaredField("flags");
+            //This is the default way of registering a flag on WorldGuard for all MC versions, expect for 1.7.10
+            // SO i override it only there!
+            SimpleFlagRegistry flagRegistry = (SimpleFlagRegistry) getFlagRegistry().getHandle();//NULL only on 1.7.10
+            Field flagsMapField = flagRegistry.getClass().getDeclaredField("flags");
             flagsMapField.setAccessible(true);
 
-            ConcurrentMap<String, Flag<?>> flags = (ConcurrentMap<String, Flag<?>>) flagsMapField.get(simpleFlagRegistry);
+            ConcurrentMap<String, Flag<?>> flags = (ConcurrentMap<String, Flag<?>>) flagsMapField.get(flagRegistry);
 
             flags.remove(flag.getName().toLowerCase());
             flags.put(flag.getName().toLowerCase(), flag);
