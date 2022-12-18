@@ -11,7 +11,6 @@ import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.featherboard.FeatherBoardUtils;
 import br.com.finalcraft.evernifecore.integration.VaultIntegration;
 import br.com.finalcraft.evernifecore.integration.WorldEditIntegration;
-import br.com.finalcraft.evernifecore.integration.everforgelib.EverForgeLibIntegration;
 import br.com.finalcraft.evernifecore.listeners.PlayerInteractListener;
 import br.com.finalcraft.evernifecore.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.listeners.PluginListener;
@@ -70,7 +69,6 @@ public class EverNifeCore extends JavaPlugin {
         instance = this;
         info("§aStarting EverNifeCore");
         info("§aServer Minecraft Version " + MCVersion.getCurrent().name() + " !");
-        EverForgeLibIntegration.initialize();
 
         info("§aLoading up Configurations...");
         ConfigManager.initialize(this);

@@ -1,8 +1,9 @@
 package br.com.finalcraft.evernifecore.inventory.extrainvs;
 
 import br.com.finalcraft.evernifecore.integration.everforgelib.EverForgeLibIntegration;
-import br.com.finalcraft.evernifecore.inventory.extrainvs.factory.imp.BaublesInvFactory;
 import br.com.finalcraft.evernifecore.inventory.extrainvs.factory.IExtraInvFactory;
+import br.com.finalcraft.evernifecore.inventory.extrainvs.factory.imp.ArmourersInvFactory;
+import br.com.finalcraft.evernifecore.inventory.extrainvs.factory.imp.BaublesInvFactory;
 import br.com.finalcraft.evernifecore.inventory.extrainvs.factory.imp.TinkersInvFactory;
 
 import java.util.ArrayList;
@@ -15,6 +16,7 @@ public class ExtraInvManager {
     static {
         if (EverForgeLibIntegration.baublesLoaded) getAllFactories().add(new BaublesInvFactory());
         if (EverForgeLibIntegration.tinkersLoaded) getAllFactories().add(new TinkersInvFactory());
+        if (EverForgeLibIntegration.armourersWorkShopLoaded) getAllFactories().add(new ArmourersInvFactory());
     }
 
     public static List<IExtraInvFactory> getAllFactories() {

@@ -15,6 +15,10 @@ public class ExtraInv extends GenericInventory {
         this.factory = factory;
     }
 
+    public ExtraInv(IExtraInvFactory factory) {
+        this.factory = factory;
+    }
+
     public IExtraInvFactory getFactory() {
         return factory;
     }
