@@ -25,12 +25,12 @@ public class FCFileLogger {
         }
     }
 
-    public void log(String message){
-        logLine(message);
+    public PrintStream getPs() {
+        return ps;
     }
 
-    public void logLine(String s) {
-        ps.println(s);
+    public void log(String message){
+        this.getPs().println(message);
     }
 
     public void close() {
