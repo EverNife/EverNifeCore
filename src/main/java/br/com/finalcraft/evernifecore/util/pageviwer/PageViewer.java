@@ -301,7 +301,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         protected List<FancyText> formatHeader = Arrays.asList(new FancyText("§a§m" + FCTextUtil.straightLineOf("-")));
         protected FancyText formatLine = new FancyText("§7#  %number%:   §e%player%§f - §a%value%");
         protected List<FancyText> formatFooter = Collections.emptyList();
-        protected long cooldown = ECSettings.PAGEVIEWERS_REFRESH_TIME * 1000; //15 seconds
+        protected long cooldown = ECSettings.PAGEVIEWERS_REFRESH_TIME * 1000; //def 5 seconds
         protected int lineStart = 0;
         protected int lineEnd = 50;
         protected int pageSize = 10;
