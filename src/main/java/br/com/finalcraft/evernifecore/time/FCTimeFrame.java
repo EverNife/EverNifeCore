@@ -1,11 +1,10 @@
 package br.com.finalcraft.evernifecore.time;
 
-import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.util.FCTimeUtil;
 
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 public class FCTimeFrame {
@@ -38,82 +37,50 @@ public class FCTimeFrame {
     @FCLocale(lang = LocaleType.PT_BR, text = "e")
     private static LocaleMessage AND;
 
-    protected Long days;
-    protected Long hours;
-    protected Long minutes;
-    protected Long seconds;
-    protected Long millis;
+    protected long days;
+    protected long hours;
+    protected long minutes;
+    protected long seconds;
+    protected long millis;
 
-    public FCTimeFrame() {
-        this.millis = System.currentTimeMillis();
-        days = TimeUnit.MILLISECONDS.toDays(millis);
-        hours = TimeUnit.MILLISECONDS.toHours(millis - TimeUnit.DAYS.toMillis(days));
-        minutes = TimeUnit.MILLISECONDS.toMinutes((millis - TimeUnit.DAYS.toMillis(days)) - TimeUnit.HOURS.toMillis(hours));
-        seconds = TimeUnit.MILLISECONDS.toSeconds(((millis - TimeUnit.DAYS.toMillis(days)) - TimeUnit.HOURS.toMillis(hours)) - TimeUnit.MINUTES.toMillis(minutes));
-    }
-
-    public FCTimeFrame(Long millis) {
+    protected FCTimeFrame(long millis) {
         this.millis = millis;
-        days = TimeUnit.MILLISECONDS.toDays(millis);
-        hours = TimeUnit.MILLISECONDS.toHours(millis - TimeUnit.DAYS.toMillis(days));
-        minutes = TimeUnit.MILLISECONDS.toMinutes((millis - TimeUnit.DAYS.toMillis(days)) - TimeUnit.HOURS.toMillis(hours));
-        seconds = TimeUnit.MILLISECONDS.toSeconds(((millis - TimeUnit.DAYS.toMillis(days)) - TimeUnit.HOURS.toMillis(hours)) - TimeUnit.MINUTES.toMillis(minutes));
+        this.days = TimeUnit.MILLISECONDS.toDays(millis);
+        this.hours = TimeUnit.MILLISECONDS.toHours(millis - TimeUnit.DAYS.toMillis(days));
+        this.minutes = TimeUnit.MILLISECONDS.toMinutes((millis - TimeUnit.DAYS.toMillis(days)) - TimeUnit.HOURS.toMillis(hours));
+        this.seconds = TimeUnit.MILLISECONDS.toSeconds(((millis - TimeUnit.DAYS.toMillis(days)) - TimeUnit.HOURS.toMillis(hours)) - TimeUnit.MINUTES.toMillis(minutes));
     }
 
-    public Long getDays() {
+    public long getDays() {
         return days;
     }
 
-    public Long getHours() {
+    public long getHours() {
         return hours;
     }
 
-    public Long getMinutes() {
+    public long getMinutes() {
         return minutes;
     }
 
-    public Long getSeconds() {
+    public long getSeconds() {
         return seconds;
     }
 
-    public Long getMillis() {
+    public long getMillis() {
         return millis;
     }
 
-    public Long getAllInDays(){
-        return TimeUnit.MILLISECONDS.toDays(this.millis);
-    }
-
-    public Long getAllInHours(){
-        return TimeUnit.MILLISECONDS.toHours(this.millis);
-    }
-
-    public Long getALlInMinutes(){
-        return TimeUnit.MILLISECONDS.toMinutes(this.millis);
-    }
-
-    public Long getAllInSeconds(){
-        return TimeUnit.MILLISECONDS.toSeconds(this.millis);
-    }
-
     public String getFormatted(){
-        return FCTimeFrame.getFormatted(this.millis);
+        return FCTimeUtil.getFormatted(this.millis);
     }
 
     public String getFormattedNoHours(){
-        return FCTimeFrame.getFormattedNoHours(this.millis);
-    }
-
-    public FCTimeFrame getDiferenceUntilNow(){
-        return new FCTimeFrame(System.currentTimeMillis() - this.millis);
+        return FCTimeUtil.getFormattedNoHours(this.millis);
     }
 
     public String getFormattedDiscursive(){
-        return getFormattedDiscursive("","");
-    }
-
-    public String getShortenedFormattedDiscursive(){
-        return getFormattedDiscursive("","", false, true);
+        return getFormattedDiscursive(true);
     }
 
     public String getFormattedDiscursive(boolean includeMillis){
@@ -121,7 +88,7 @@ public class FCTimeFrame {
     }
 
     public String getFormattedDiscursive(final String numberColor, final String textColor){
-        return getFormattedDiscursive(numberColor,numberColor,false);
+        return getFormattedDiscursive(numberColor, textColor, false);
     }
 
     public String getFormattedDiscursive(final String numberColor, final String textColor, boolean includeMillis){
@@ -156,12 +123,8 @@ public class FCTimeFrame {
         }else if (this.getMinutes() > 0){
             return numberColor + this.getMinutes() + SPACE + textColor + minuto + " " + E + " " + numberColor + this.getSeconds() + SPACE + textColor + segundo;
         }else {
-            return numberColor + this.getSeconds() + (this.getSeconds() == 0 || includeMillis ? "." + (this.millis % 1000) : "") + " " +textColor + segundo;
+            return numberColor + this.getSeconds() + (this.getSeconds() == 0 || includeMillis ? "." + (this.millis % 1000) : "") + " " + textColor + segundo;
         }
-    }
-
-    public Date toDate(){
-        return new Date(this.millis);
     }
 
     @Override
@@ -169,33 +132,15 @@ public class FCTimeFrame {
         return this.getFormattedDiscursive();
     }
 
-    // -----------------------------------------------------------------------------------------------------------------------------//
-    // Static Commands
-    // -----------------------------------------------------------------------------------------------------------------------------//
+    // ----------------------------------------------------------------------------------------------------------------//
+    //  Static Methods
+    // ----------------------------------------------------------------------------------------------------------------//
 
-    public static FCTimeFrame fromDate(Date date){
-        return new FCTimeFrame(date.getTime());
+    public static FCTimeFrame of(long millis){
+        return new FCTimeFrame(millis);
     }
 
-    public static Long getSeconds(Long millis) {
-        return TimeUnit.MILLISECONDS.toSeconds(millis);
-    }
-
-    public static Long getMinutes(Long millis) {
-        return TimeUnit.MILLISECONDS.toMinutes(millis);
-    }
-
-    public static Long getDays(Long millis) {
-        return TimeUnit.MILLISECONDS.toDays(millis);
-    }
-
-    public static String getFormatted(Long millis){
-        Date date = new Date(millis);
-        return ECSettings.DATE_FORMAT_WITH_HOURS.format(date);
-    }
-
-    public static String getFormattedNoHours(Long millis){
-        Date date = new Date(millis);
-        return ECSettings.SIMPLE_DATE_FORMAT.format(date);
+    public static FCTimeFrame now(){
+        return new FCTimeFrame(System.currentTimeMillis());
     }
 }

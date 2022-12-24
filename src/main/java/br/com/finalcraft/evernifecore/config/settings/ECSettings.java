@@ -4,10 +4,11 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.time.DayOfToday;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 
 import java.io.File;
-import java.text.SimpleDateFormat;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.UUID;
 
@@ -17,8 +18,8 @@ public class ECSettings {
 
     //Time Related
     public static String ZONE_ID_OF_DAY_OF_TODAY;
-    public static SimpleDateFormat SIMPLE_DATE_FORMAT;
-    public static SimpleDateFormat DATE_FORMAT_WITH_HOURS;
+    public static DateTimeFormatter SIMPLE_DATE_FORMAT;
+    public static DateTimeFormatter DATE_FORMAT_WITH_HOURS;
     public static int PAGEVIEWERS_REFRESH_TIME;
 
     //Guis
@@ -44,6 +45,7 @@ public class ECSettings {
                 }
             }
         }
+
         useNamesInsteadOfUUIDToStorePlayerData = ConfigManager.getMainConfig().getOrSetDefaultValue(
                 "Settings.useNamesInsteadOfUUIDToStorePlayerData",
                 isUsingStorageWithPlayerName,
@@ -56,12 +58,13 @@ public class ECSettings {
                 ZoneId.systemDefault().getId(),
                 "The timezone used for the some of ECPlugins! This is useful when your HomeZone" +
                         "\nis not the same as the server zone!");
-        DayOfToday.initialize();
+        FCReflectionUtil.getField(DayOfToday.class, "INSTANCE")
+                .set(null, new DayOfToday(ZONE_ID_OF_DAY_OF_TODAY));
 
-        SIMPLE_DATE_FORMAT = new SimpleDateFormat(
+        SIMPLE_DATE_FORMAT = DateTimeFormatter.ofPattern(
                 ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.Time.SIMPLE_DATE_FORMAT", "dd/MM/yyyy")
         );
-        DATE_FORMAT_WITH_HOURS = new SimpleDateFormat(
+        DATE_FORMAT_WITH_HOURS = DateTimeFormatter.ofPattern(
                 ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.Time.DATE_FORMAT_WITH_HOURS", "dd/MM/yyyy HH:mm")
         );
 

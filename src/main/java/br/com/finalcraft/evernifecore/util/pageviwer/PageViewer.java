@@ -8,8 +8,8 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.time.DayOfToday;
 import br.com.finalcraft.evernifecore.util.FCTextUtil;
+import br.com.finalcraft.evernifecore.util.FCTimeUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -115,7 +115,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
             if (includeDate){
                 pageHeaderCache.add(DATE_OF_TODAY_IS
-                        .addPlaceholder("%date_of_today%", DayOfToday.getInstance().getTimeOfToday().getFormattedNoHours())
+                        .addPlaceholder("%date_of_today%", FCTimeUtil.getFormattedNoHours(System.currentTimeMillis()))
                         .getFancyText(null)
                 );
             }

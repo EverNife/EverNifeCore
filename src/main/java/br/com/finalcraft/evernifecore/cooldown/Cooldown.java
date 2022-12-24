@@ -75,15 +75,15 @@ public abstract class Cooldown implements Salvable {
     }
 
     public FCTimeFrame getFCTimeFrame(){
-        return new FCTimeFrame(this.getTimeLeft());
+        return FCTimeFrame.of(this.getTimeLeft());
     }
 
     public FCTimeFrame getFCTimeFrame(long customTimeInSeconds){
-        return new FCTimeFrame(this.getTimeLeft(customTimeInSeconds));
+        return FCTimeFrame.of(this.getTimeLeft(customTimeInSeconds));
     }
 
     public FCTimeFrame getFCTimeFrame(long customTime, TimeUnit timeUnit){
-        return new FCTimeFrame(this.getTimeLeft(customTime, timeUnit));
+        return FCTimeFrame.of(this.getTimeLeft(customTime, timeUnit));
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§cYou need to wait more %discursive_time%§c to do this!")

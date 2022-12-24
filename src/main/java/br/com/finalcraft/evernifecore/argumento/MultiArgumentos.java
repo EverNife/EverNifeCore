@@ -105,8 +105,8 @@ public class MultiArgumentos {
         String joinString = String.join(" ", stringArgs.subList(indexStart, indexEndExclusive));
         if (joinString.isEmpty()) return null;
         try {
-            Long textToMillis = FCTimeUtil.toMilliSec(joinString);
-            if (textToMillis != null) return new FCTimeFrame(textToMillis);
+            Long textToMillis = FCTimeUtil.toMillis(joinString);
+            if (textToMillis != null) return FCTimeFrame.of(textToMillis);
         }catch (Exception ignored){
 
         }

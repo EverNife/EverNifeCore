@@ -53,7 +53,7 @@ public class ECPluginManager {
         long end = System.currentTimeMillis();
 
         //Notify the Console
-        ecPluginData.getPlugin().getLogger().info("§e[Reloading] §a" + ecPluginData.getPlugin().getName() + " has been reloaded! §7(It took " + new FCTimeFrame(end - start).getFormattedDiscursive(true) + ")");
+        ecPluginData.getPlugin().getLogger().info("§e[Reloading] §a" + ecPluginData.getPlugin().getName() + " has been reloaded! §7(It took " + FCTimeFrame.of(end - start).getFormattedDiscursive(true) + ")");
 
         //Notify the sender if it's a Player
         if (sender != null && sender instanceof Player == true){
