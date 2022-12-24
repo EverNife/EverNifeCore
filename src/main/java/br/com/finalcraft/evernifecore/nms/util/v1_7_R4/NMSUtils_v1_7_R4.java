@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.nms.util.v1_7_R4;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.nms.util.INMSUtils;
-import br.com.finalcraft.evernifecore.util.ReflectionUtil;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.reflection.FieldAccessor;
 import br.com.finalcraft.evernifecore.util.reflection.MethodInvoker;
 import net.minecraft.server.v1_7_R4.*;
@@ -18,15 +18,15 @@ public class NMSUtils_v1_7_R4 implements INMSUtils {
 
 	public static NMSUtils_v1_7_R4 instance;
 
-	private final MethodInvoker<NBTTagCompound> crucible_JsonToNBT_getTagFromJson = ReflectionUtil.getMethod(			//Crucible_JsonToNBT.getTagFromJson()
+	private final MethodInvoker<NBTTagCompound> crucible_JsonToNBT_getTagFromJson = FCReflectionUtil.getMethod(			//Crucible_JsonToNBT.getTagFromJson()
 			"io.github.crucible.nbt.Crucible_JsonToNBT","getTagFromJson", String.class
 	);
 
-	private final FieldAccessor<ItemStack> handle_field = ReflectionUtil.getField( 										// CraftItemStack.handle
+	private final FieldAccessor<ItemStack> handle_field = FCReflectionUtil.getField( 										// CraftItemStack.handle
 			CraftItemStack.class,"handle", ItemStack.class
 	);
 
-	private final FieldAccessor<net.minecraft.server.v1_7_R4.Entity> entity_field = ReflectionUtil.getField(			// CraftEntity.entity
+	private final FieldAccessor<net.minecraft.server.v1_7_R4.Entity> entity_field = FCReflectionUtil.getField(			// CraftEntity.entity
 			CraftEntity.class,"entity", net.minecraft.server.v1_7_R4.Entity.class
 	);
 	private Class fakePlayerClass = null; 																				// net.minecraftforge.common.util.FakePlayer

@@ -18,7 +18,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.FCMultiLocales;
-import br.com.finalcraft.evernifecore.util.ReflectionUtil;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -80,7 +80,7 @@ public class FinalCMDManager {
 
             //Checking for all methods that have a @FinalCMD
             for (Method declaredMethod : methods) {
-                FinalCMD finalCMD = ReflectionUtil.getAnnotationDeeply(declaredMethod, FinalCMD.class);
+                FinalCMD finalCMD = FCReflectionUtil.getAnnotationDeeply(declaredMethod, FinalCMD.class);
                 if (finalCMD != null){
                     finalCMDMainMethods.add(Tuple.of(finalCMD, declaredMethod));
                 }
@@ -88,7 +88,7 @@ public class FinalCMDManager {
 
             //If there is no method with @FinalCMD annotation, maybe the class itself is annotated
             if (finalCMDMainMethods.size() == 0){
-                FinalCMD finalCMD = ReflectionUtil.getAnnotationDeeply(executor.getClass(), FinalCMD.class);
+                FinalCMD finalCMD = FCReflectionUtil.getAnnotationDeeply(executor.getClass(), FinalCMD.class);
                 if (finalCMD == null){
                     pluginInstance.getLogger().severe("Tried to register a FinalCMD(" + executor.getClass().getName() + ") without any @FinalCMD Annotation!");
                     return false;
@@ -126,7 +126,7 @@ public class FinalCMDManager {
 
                 List<MethodData<SubCMDData>> subCommandsMethodData = new ArrayList<>();
                 for (Method declaredMethod : methods) {
-                    FinalCMD.SubCMD subCMD = ReflectionUtil.getAnnotationDeeply(declaredMethod, FinalCMD.SubCMD.class);
+                    FinalCMD.SubCMD subCMD = FCReflectionUtil.getAnnotationDeeply(declaredMethod, FinalCMD.SubCMD.class);
                     if (subCMD != null){
                         SubCMDData subCMDData = new SubCMDData(subCMD);
                         subCommandsMethodData.add(new MethodData(subCMDData, declaredMethod));

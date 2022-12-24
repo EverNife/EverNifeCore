@@ -13,9 +13,9 @@ public class FCEntityUtil {
     private static MethodInvoker getMCEntity = null;
     public static LivingEntity getBukkitEntity(IScriptLivingBase scriptLivingBase){
         if (getBukkitEntity == null){
-            getMCEntity = ReflectionUtil.getMethod(IScriptLivingBase.class, "getMCEntity");
+            getMCEntity = FCReflectionUtil.getMethod(IScriptLivingBase.class, "getMCEntity");
             Class clazzEntityLivingBase = getMCEntity.get().getReturnType();
-            getBukkitEntity = ReflectionUtil.getMethod(clazzEntityLivingBase, "getBukkitEntity");
+            getBukkitEntity = FCReflectionUtil.getMethod(clazzEntityLivingBase, "getBukkitEntity");
         }
         //return scriptLivingBase.getMCEntity().getBukkitEntity();
         Object mcEntity = getMCEntity.invoke(scriptLivingBase);

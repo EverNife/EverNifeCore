@@ -4,7 +4,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.CMDHelpType;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.util.FCTextUtil;
-import br.com.finalcraft.evernifecore.util.ReflectionUtil;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -27,7 +27,7 @@ public class FinalCMDData extends CMDData<FinalCMDData> {
                 finalCMD.desc(),
                 finalCMD.permission(),
                 finalCMD.context(),
-                ReflectionUtil.getConstructor(finalCMD.validation()).invoke(),
+                FCReflectionUtil.getConstructor(finalCMD.validation()).invoke(),
                 Arrays.stream(finalCMD.locales())
                         .map(FCLocaleData::new)
                         .collect(Collectors.toList())

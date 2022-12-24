@@ -29,7 +29,7 @@ import br.com.finalcraft.evernifecore.locale.scanner.FCLocaleScanner;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
-import br.com.finalcraft.evernifecore.util.ReflectionUtil;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -69,7 +69,7 @@ public class CMDMethodInterpreter {
 
         boolean playerOnly = false;
 
-        List<Tuple<Class, Annotation[]>> argsAndAnnotations = ReflectionUtil.getArgsAndAnnotationsDeeply(method);
+        List<Tuple<Class, Annotation[]>> argsAndAnnotations = FCReflectionUtil.getArgsAndAnnotationsDeeply(method);
 
         int flagArgIndex = isSubCommand ? 1 : 0;
 

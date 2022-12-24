@@ -28,7 +28,7 @@ public class FCBukkitUtil {
     private static MethodInvoker<Boolean> methodLoader_isLoaded;
     static {
         try {
-            methodLoader_isLoaded = ReflectionUtil.getMethod(
+            methodLoader_isLoaded = FCReflectionUtil.getMethod(
                     MCVersion.isLowerEquals(MCVersion.v1_7_10)
                             ? "cpw.mods.fml.common.Loader"
                             : "net.minecraftforge.fml.common.Loader",

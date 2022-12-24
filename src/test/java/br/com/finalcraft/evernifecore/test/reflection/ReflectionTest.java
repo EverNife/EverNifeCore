@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.test.reflection;
 
-import br.com.finalcraft.evernifecore.util.ReflectionUtil;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.reflection.ConstructorInvoker;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -40,13 +40,13 @@ public class ReflectionTest {
         TestClass test;
         ConstructorInvoker<TestClass> constructorInvoker;
 
-        constructorInvoker = ReflectionUtil.getConstructor(TestClass.class, int.class, Boolean.class, Float.class, double.class);
+        constructorInvoker = FCReflectionUtil.getConstructor(TestClass.class, int.class, Boolean.class, Float.class, double.class);
         test = constructorInvoker.invoke(1,true, 1F, 1D);
 
         System.out.println("Test1: ");
         System.out.println(test);
 
-        constructorInvoker = ReflectionUtil.getConstructor(TestClass.class, Integer.class, Boolean.class, Float.class, Double.class);
+        constructorInvoker = FCReflectionUtil.getConstructor(TestClass.class, Integer.class, Boolean.class, Float.class, Double.class);
         test = constructorInvoker.invoke(2,false, 2F, 2D);
 
         System.out.println("Test2: ");

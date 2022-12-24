@@ -8,7 +8,7 @@ import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.util.FCNBTUtil;
-import br.com.finalcraft.evernifecore.util.ReflectionUtil;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import de.tr7zw.changeme.nbtapi.NBTCompound;
 import de.tr7zw.changeme.nbtapi.NBTContainer;
 import de.tr7zw.changeme.nbtapi.NBTItem;
@@ -138,7 +138,7 @@ public class FCItemBuilder extends BaseItemBuilder<FCItemBuilder> {
      */
     @NotNull
     public <ItemStackHolder> ItemStackHolder as(Class<ItemStackHolder> itemStackHolderClass) {
-        return ReflectionUtil.getConstructor(itemStackHolderClass, ItemStack.class)
+        return FCReflectionUtil.getConstructor(itemStackHolderClass, ItemStack.class)
                 .invoke(this.build());
     }
 

@@ -9,7 +9,7 @@ import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import br.com.finalcraft.evernifecore.util.ReflectionUtil;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -31,7 +31,7 @@ public class FCLayoutScanner {
 
     public static <T extends LayoutBase> T loadLayout(Plugin plugin, Config config, Class<T> layoutClass){
 
-        T layoutInstance = ReflectionUtil.getConstructor(layoutClass).invoke();
+        T layoutInstance = FCReflectionUtil.getConstructor(layoutClass).invoke();
         layoutInstance.config = config;
 
         @Nullable LayoutBaseData layoutBaseData = layoutClass.getAnnotation(LayoutBaseData.class);

@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.integration;
 
-import br.com.finalcraft.evernifecore.util.ReflectionUtil;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.reflection.FieldAccessor;
 import org.black_ixx.bossshop.BossShop;
 import org.black_ixx.bossshop.api.BossShopAPI;
@@ -44,7 +44,7 @@ public class BossShopIntegration {
         return isPresent() ? bossShopPlugin : null;
     }
 
-    private static FieldAccessor<Map<ClickType, ActionSet>> ACTIONS_FIELD = ReflectionUtil.getField(BSBuyAdvanced.class, "actions");
+    private static FieldAccessor<Map<ClickType, ActionSet>> ACTIONS_FIELD = FCReflectionUtil.getField(BSBuyAdvanced.class, "actions");
     public static BSBuy cloneBSBuy(BSBuy bsBuy, String newName){
         BSBuy clone;
         if (bsBuy instanceof BSBuyAdvanced){

@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.fancytext;
 
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
-import br.com.finalcraft.evernifecore.util.ReflectionUtil;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.reflection.MethodInvoker;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -23,11 +23,11 @@ public class FancyTextManager {
 
     static {
         String CRAFT_PLAYER_CLASS = "org.bukkit.craftbukkit." + MCVersion.getCurrent().name() + ".entity.CraftPlayer";
-        method_spigot = ReflectionUtil.getMethods(ReflectionUtil.getClass(CRAFT_PLAYER_CLASS),
+        method_spigot = FCReflectionUtil.getMethods(FCReflectionUtil.getClass(CRAFT_PLAYER_CLASS),
                 method -> {
                     return method.toString().equals("public org.bukkit.entity.Player$Spigot " + CRAFT_PLAYER_CLASS + ".spigot()");
                 }).findFirst().get();
-        method_sendmessage = ReflectionUtil.getMethods(method_spigot.get().getReturnType(),
+        method_sendmessage = FCReflectionUtil.getMethods(method_spigot.get().getReturnType(),
                 method -> {
                     return method.toString().equals("public void org.bukkit.entity.Player$Spigot.sendMessage(net.md_5.bungee.api.chat.BaseComponent[])");
                 }).findFirst().get();

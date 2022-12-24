@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.integration.BossShopIntegration;
 import br.com.finalcraft.evernifecore.integration.bossshop.customizer.ECItemStackTranslator;
 import br.com.finalcraft.evernifecore.integration.bossshop.datapart.ItemDataPartNBT;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
-import br.com.finalcraft.evernifecore.util.ReflectionUtil;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.reflection.FieldAccessor;
 import org.black_ixx.bossshop.core.BSBuy;
 import org.black_ixx.bossshop.events.BSLoadShopItemsEvent;
@@ -35,7 +35,7 @@ public class BossShopListener implements ECListener {
 
         //This event is fired right after the plugin is reloaded, nice time to Override the ItemStackTranslator
         EverNifeCore.info("Replacing BossShopPro ItemStackTranslator");
-        FieldAccessor<ItemStackTranslator> translatorField = ReflectionUtil.getField(ClassManager.class, "itemstackTranslator");
+        FieldAccessor<ItemStackTranslator> translatorField = FCReflectionUtil.getField(ClassManager.class, "itemstackTranslator");
         translatorField.set(ClassManager.manager, EC_ITEM_STACK_TRANSLATOR);
     }
 

@@ -23,7 +23,7 @@ import java.util.stream.Stream;
  *
  * @author EverNife
  */
-public class ReflectionUtil {
+public class FCReflectionUtil {
 
     /**
      * Retrieve a field accessor for a specific field type and name.
@@ -558,11 +558,11 @@ public class ReflectionUtil {
                     }
                     try {
                         if (clazz1.isPrimitive()){
-                            if (!Objects.equals(clazz1, ReflectionUtil.getField(clazz2,"TYPE").get(null))){
+                            if (!Objects.equals(clazz1, FCReflectionUtil.getField(clazz2,"TYPE").get(null))){
                                 return false;
                             }
                         }else {
-                            if (!Objects.equals(clazz1, ReflectionUtil.getField(clazz2,"TYPE").get(null)) == false){
+                            if (!Objects.equals(clazz1, FCReflectionUtil.getField(clazz2,"TYPE").get(null)) == false){
                                 return false;
                             }
                         }
