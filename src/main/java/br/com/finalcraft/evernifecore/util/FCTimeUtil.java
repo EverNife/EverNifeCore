@@ -1,35 +1,87 @@
 package br.com.finalcraft.evernifecore.util;
 
+import java.util.concurrent.TimeUnit;
+
 public class FCTimeUtil {
 
     /**
      * Convert a Time String to the amount of milliseconds.
-     * These Strings are used for the temporary advancedban punish commands.
      *
-     * @param s the time string
+     * @param text the time string
      * @return the amount of milliseconds equivalent to the given string
      */
-    public static long toMilliSec(String s) {
-        // This is not my regex :P | From: http://stackoverflow.com/a/8270824
-        // This is not my code  :P | From: https://github.com/DevLeoko/AdvancedBan/blob/master/core/src/main/java/me/leoko/advancedban/manager/TimeManager.java
-        String[] sl = s.toLowerCase().split("(?<=\\D)(?=\\d)|(?<=\\d)(?=\\D)");
+    public static Long toMilliSec(String text) {
+        try {
+            // Regex for: 'How to split a string between letters and digits' | From: http://stackoverflow.com/a/8270824
+            String[] split = (text + " ").split("(?<=\\D)(?=\\d)|(?<=\\d)(?=\\D)");
+            for (int i = 0; i < split.length; i++) {
+                split[i] = split[i].trim();
+            }
 
-        long i = Long.parseLong(sl[0]);
-        switch (sl[1]) {
+            long totalValue = 0;
+
+            for (int i = 0; i < split.length; i+= 2) {
+                Long time = Long.parseLong(split[i]);
+                String type = split[i + 1];
+
+                totalValue += toMilliSec(time, type);
+            }
+
+            return totalValue;
+        } catch (Exception ignored) {
+
+        }
+        return null;
+    }
+
+    private static Long toMilliSec(long value, String type){
+        switch (type == null ? "" : type.toLowerCase()) {
+            case "":
+            case "n":
+            case "nanos":
+                return value;
             case "s":
-                return i * 1000;
+            case "seg":
+            case "sec":
+            case "second":
+            case "seconds":
+            case "segundo":
+            case "segundos":
+                return TimeUnit.SECONDS.toMillis(value);
             case "m":
-                return i * 1000 * 60;
+            case "min":
+            case "minute":
+            case "minutes":
+            case "minuto":
+            case "minutos":
+                return TimeUnit.MINUTES.toMillis(value);
             case "h":
-                return i * 1000 * 60 * 60;
+            case "hour":
+            case "hours":
+            case "hora":
+            case "horas":
+                return TimeUnit.HOURS.toMillis(value);
             case "d":
-                return i * 1000 * 60 * 60 * 24;
+            case "day":
+            case "days":
+            case "dia":
+            case "dias":
+                return TimeUnit.DAYS.toMillis(value);
             case "w":
-                return i * 1000 * 60 * 60 * 24 * 7;
+            case "week":
+            case "weeks":
+            case "sem":
+            case "semana":
+            case "semanas":
+                return TimeUnit.DAYS.toMillis(value * 7);
             case "mo":
-                return i * 1000 * 60 * 60 * 24 * 30;
+            case "month":
+            case "mes":
+            case "mês":
+            case "meses":
+                return TimeUnit.DAYS.toMillis(value * 30);
             default:
-                return -1;
+                return null;
         }
     }
 

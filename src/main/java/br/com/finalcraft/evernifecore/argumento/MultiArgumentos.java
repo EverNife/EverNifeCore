@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.argumento;
 
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
-import br.com.finalcraft.evernifecore.util.TimeUtil;
+import br.com.finalcraft.evernifecore.util.FCTimeUtil;
 import org.apache.commons.lang.Validate;
 
 import java.util.ArrayList;
@@ -105,7 +105,7 @@ public class MultiArgumentos {
         String joinString = String.join(" ", stringArgs.subList(indexStart, indexEndExclusive));
         if (joinString.isEmpty()) return null;
         try {
-            Long textToMillis = TimeUtil.toMilliSec(joinString);
+            Long textToMillis = FCTimeUtil.toMilliSec(joinString);
             if (textToMillis != null) return new FCTimeFrame(textToMillis);
         }catch (Exception ignored){
 
