@@ -126,25 +126,25 @@ public class WGFlags {
      * @deprecated The type of this flag will change from a StringFlag to a ComponentFlag to support JSON text
      *              in a future release. If you depend on the type of this flag, take proper precaution for future breakage.
      */
-    @Deprecated
+    //@Deprecated
     public static StringFlag GREET_MESSAGE;
     /**
      * @deprecated The type of this flag will change from a StringFlag to a ComponentFlag to support JSON text
      *              in a future release. If you depend on the type of this flag, take proper precaution for future breakage.
      */
-    @Deprecated
+    //@Deprecated
     public static StringFlag FAREWELL_MESSAGE;
     /**
      * @deprecated The type of this flag will change from a StringFlag to a ComponentFlag to support JSON text
      *              in a future release. If you depend on the type of this flag, take proper precaution for future breakage.
      */
-    @Deprecated
+    //@Deprecated
     public static StringFlag GREET_TITLE;
     /**
      * @deprecated The type of this flag will change from a StringFlag to a ComponentFlag to support JSON text
      *              in a future release. If you depend on the type of this flag, take proper precaution for future breakage.
      */
-    @Deprecated
+    //@Deprecated
     public static StringFlag FAREWELL_TITLE;
 
     public static BooleanFlag NOTIFY_ENTER;
@@ -167,19 +167,19 @@ public class WGFlags {
      * @deprecated The type of this flag will change from a StringFlag to a ComponentFlag to support JSON text
      *              in a future release. If you depend on the type of this flag, take proper precaution for future breakage.
      */
-    @Deprecated
+    //@Deprecated
     public static StringFlag DENY_MESSAGE = (StringFlag) getFlagFromWorldGuard("deny-message");
     /**
      * @deprecated The type of this flag will change from a StringFlag to a ComponentFlag to support JSON text
      *              in a future release. If you depend on the type of this flag, take proper precaution for future breakage.
      */
-    @Deprecated
+    //@Deprecated
     public static StringFlag ENTRY_DENY_MESSAGE = (StringFlag) getFlagFromWorldGuard("entry-deny-message");
     /**
      * @deprecated The type of this flag will change from a StringFlag to a ComponentFlag to support JSON text
      *              in a future release. If you depend on the type of this flag, take proper precaution for future breakage.
      */
-    @Deprecated
+    //@Deprecated
     public static StringFlag EXIT_DENY_MESSAGE = (StringFlag) getFlagFromWorldGuard("exit-deny-message");
 
     private static Flag<?> getFlagFromWorldGuard(final String flagName) {
