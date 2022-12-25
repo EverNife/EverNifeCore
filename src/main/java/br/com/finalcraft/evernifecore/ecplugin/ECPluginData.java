@@ -6,10 +6,12 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.logger.ECLogger;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -32,10 +34,15 @@ public class ECPluginData {
     private final List<Tuple<LocaleType, Config>> hardcodedLocalizations = new ArrayList<>();
     private boolean markedForLocaleReload = false;
 
+    //debug
+    private Boolean debugEnabled = null;
+
     public ECPluginData(Plugin plugin) {
         this.plugin = plugin;
 
-        //Handle RELOADING of this plugin
+        // -------------------------------------------- //
+        //  Handle @ECPlugin.Reload
+        // -------------------------------------------- //
         final Method reloadMethod = Arrays.stream(plugin.getClass().getDeclaredMethods())
                 .filter(method -> method.getAnnotation(ECPlugin.Reload.class) != null)
                 .findFirst()
@@ -56,6 +63,26 @@ public class ECPluginData {
             this.reloadAfter = new String[0];
         }
 
+        // -------------------------------------------- //
+        //  Handle @ECPlugin.Logger
+        // -------------------------------------------- //
+        final Field loggerField = Arrays.stream(plugin.getClass().getDeclaredFields())
+                .filter(field -> field.getAnnotation(ECPlugin.Logger.class) != null)
+                .findFirst()
+                .orElse(null);
+        if (loggerField != null){
+            if (loggerField.getDeclaringClass() != ECLogger.class){
+                plugin.getLogger().severe("The field (" + loggerField.getName() + ") of (" + plugin.getName() + ") is not a ECLogger!");
+            }else {
+                try {
+                    loggerField.set(plugin, new ECLogger(this));
+                } catch (IllegalAccessException e) {
+                    plugin.getLogger().warning("Failed to instantiate ECLogger on (" + plugin.getName() + ")");
+                    e.printStackTrace();
+                }
+            }
+        }
+
         for (LocaleType type : LocaleType.values()) {
             Config lang = new Config(plugin, "localization/lang_" + type.name() + ".yml");
             hardcodedLocalizations.add(Tuple.of(type, lang));
@@ -64,6 +91,24 @@ public class ECPluginData {
         reloadAllCustomLocales();
 
         this.plugin.getLogger().info("[FCLocale] Setting locale to [" + pluginLanguage +"]!");
+    }
+
+    public boolean isDebugEnabled(){
+        if (debugEnabled == null){
+            Config config = new Config(plugin, "config.yml");
+            debugEnabled = config.getOrSetDefaultValue(
+                    "DebugMode.enabled",
+                    false,
+                    "If '" + plugin.getName() + "' should log debug messages on the console!"
+            );
+            config.setComment("DebugMode","-----------------------\n     Debug System\n-----------------------");
+            config.saveIfNewDefaults();
+        }
+        return debugEnabled;
+    }
+
+    public void setDebugEnabled(Boolean debugEnabled) {
+        this.debugEnabled = debugEnabled;
     }
 
     public void addLocale(LocaleMessageImp localeMessageImp){

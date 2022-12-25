@@ -45,6 +45,8 @@ public class ECPluginManager {
 
         long start = System.currentTimeMillis();
 
+        ecPluginData.setDebugEnabled(null); //By setting to null, will 're-check' the config.yml for the debug value when needed
+
         //Do the reload
         runnable.run();
         //Reload locales as well
@@ -80,8 +82,8 @@ public class ECPluginManager {
         }
     }
 
-    public static void removePluginData(String playerName){
-        ECPLUGINS_MAP.remove(playerName);
+    public static void removePluginData(String pluginName){
+        ECPLUGINS_MAP.remove(pluginName);
     }
 
     public static HashMap<String, ECPluginData> getECPluginsMap() {

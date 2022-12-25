@@ -62,7 +62,7 @@ public class PluginListener implements ECListener {
         /*
          * This will remove the data from this plugin if it was a ECPlugin
          *
-         * Data Like "TabCompletion" and "Localization" from cache
+         * Will remove data Like "TabCompletion" and "Localization" from the memory cache
          */
         ECPluginManager.removePluginData(event.getPlugin().getName());
     }
