@@ -63,26 +63,6 @@ public class ECPluginData {
             this.reloadAfter = new String[0];
         }
 
-        // -------------------------------------------- //
-        //  Handle @ECPlugin.Logger
-        // -------------------------------------------- //
-        final Field loggerField = Arrays.stream(plugin.getClass().getDeclaredFields())
-                .filter(field -> field.getAnnotation(ECPlugin.Logger.class) != null)
-                .findFirst()
-                .orElse(null);
-        if (loggerField != null){
-            if (loggerField.getDeclaringClass() != ECLogger.class){
-                plugin.getLogger().severe("The field (" + loggerField.getName() + ") of (" + plugin.getName() + ") is not a ECLogger!");
-            }else {
-                try {
-                    loggerField.set(plugin, new ECLogger(this));
-                } catch (IllegalAccessException e) {
-                    plugin.getLogger().warning("Failed to instantiate ECLogger on (" + plugin.getName() + ")");
-                    e.printStackTrace();
-                }
-            }
-        }
-
         for (LocaleType type : LocaleType.values()) {
             Config lang = new Config(plugin, "localization/lang_" + type.name() + ".yml");
             hardcodedLocalizations.add(Tuple.of(type, lang));

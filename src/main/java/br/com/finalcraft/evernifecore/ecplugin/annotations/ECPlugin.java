@@ -23,11 +23,4 @@ public @interface ECPlugin {
 
     }
 
-    //Method for the Logger Instantiation under an ECPlugin
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target({ElementType.FIELD})
-    public static @interface Logger {
-
-    }
-
 }

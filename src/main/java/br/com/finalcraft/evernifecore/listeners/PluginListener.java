@@ -25,7 +25,9 @@ public class PluginListener implements ECListener {
 
     @Override
     public void onRegister() {
-        for (Plugin plugin : Arrays.stream(Bukkit.getPluginManager().getPlugins()).filter(plugin -> plugin.isEnabled()).collect(Collectors.toList())) {
+        for (Plugin plugin : Arrays.stream(Bukkit.getPluginManager().getPlugins())
+                .filter(plugin -> plugin.isEnabled())
+                .collect(Collectors.toList())) {
             onPluginEnable(new PluginEnableEvent(plugin));
         }
     }
