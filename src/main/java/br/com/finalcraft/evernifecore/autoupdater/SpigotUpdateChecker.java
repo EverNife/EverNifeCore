@@ -8,7 +8,7 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.util.FCScheduller;
+import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -49,7 +49,7 @@ public class SpigotUpdateChecker {
             return; //Don't need to do anything more!
         }
 
-        FCScheduller.runAssync(() -> {
+        FCScheduler.runAssync(() -> {
             spigotUpdateChecker.execute(plugin);
         });
     }

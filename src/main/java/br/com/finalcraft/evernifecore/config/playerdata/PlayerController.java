@@ -4,8 +4,8 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
+import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
-import br.com.finalcraft.evernifecore.util.FCScheduller;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -60,7 +60,7 @@ public class PlayerController {
         CountDownLatch latch = new CountDownLatch(runnableList.size());
 
         for (Runnable runnable : runnableList) {
-            FCScheduller.runAssync(() -> {
+            FCScheduler.runAssync(() -> {
                 runnable.run();
                 latch.countDown();
             });

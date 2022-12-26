@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.dependencies.util;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.dependencies.DependencyManager;
-import br.com.finalcraft.evernifecore.util.FCScheduller;
+import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import com.google.common.collect.ImmutableSet;
 import net.byteflux.libby.Library;
 import net.byteflux.libby.classloader.IsolatedClassLoader;
@@ -34,7 +34,7 @@ public class IsolatedCLUtil {
         CountDownLatch latch = new CountDownLatch(set.size());
 
         for (Library library : set) {
-            FCScheduller.runAssync(() -> {
+            FCScheduler.runAssync(() -> {
                 try {
                     Path path = dependencyManager.downloadLibrary(library);
                     classLoader.addPath(path);
