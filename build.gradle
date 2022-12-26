@@ -62,7 +62,7 @@ dependencies {
     implementation project(':modules:v1_16_5')
 
     implementation 'com.github.evernife:ChatMenuAPI:v1.1.3c'
-    implementation 'com.github.evernife.libby:libby-core:d994023'
+    implementation 'com.github.alessiodp.libby:libby-core:43d25ade72'
     implementation 'dev.triumphteam:triumph-gui:3.0.4-e1'
     implementation 'com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8.2'
     implementation 'com.github.EverNife.Item-NBT-API:item-nbt-api:7d30eda0c5'
@@ -121,7 +121,7 @@ shadowJar {
     archiveName = "${baseName}-${version}.${extension}"
     dependencies {
         include(dependency('com.github.evernife:ChatMenuAPI:v1.1.3c'))
-        include(dependency('com.github.evernife.libby:libby-core:d994023'))
+        include(dependency('com.github.alessiodp.libby:libby-core:43d25ade72'))
         include(dependency('dev.triumphteam:triumph-gui:3.0.4-e1'))
         include(dependency('com.github.EverNife.Item-NBT-API:item-nbt-api:7d30eda0c5'))
         include(dependency('com.github.EverNife.Item-NBT-API:nbt-data-api:7d30eda0c5'))
