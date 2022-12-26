@@ -33,14 +33,14 @@ public class ECLogger {
 
     public void debug(String message, Object... params) {
         if (getEcPluginData().isDebugEnabled()){
-            String formatted = "[Debug]" + (params.length == 0 ? message : String.format(message, params));
+            String formatted = "[Debug] " + (params.length == 0 ? message : String.format(message, params));
             plugin.getLogger().info(formatted);
         }
     }
 
     public void debug(Supplier<String> supplier) {
         if (getEcPluginData().isDebugEnabled()){
-            String formatted = "[Debug]" + supplier.get();
+            String formatted = "[Debug] " + supplier.get();
             plugin.getLogger().info(formatted);
         }
     }
