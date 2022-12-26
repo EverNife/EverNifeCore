@@ -1,14 +1,14 @@
 package br.com.finalcraft.evernifecore.util;
 
-import com.sk89q.worldedit.BlockVector;
+import br.com.finalcraft.evernifecore.util.commons.SimpleEntry;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.World;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class FCLocationUtil {
 
@@ -48,15 +48,10 @@ public class FCLocationUtil {
         return allChunks;
     }
 
-    public static Location getLocationFrom(World world, BlockVector blockVector){
-        return new Location(world, blockVector.getX(), blockVector.getY(), blockVector.getZ());
-    }
-
-    public static BlockVector getBlockVectorFrom(Location location){
-        return new BlockVector(location.getX(), location.getY(), location.getZ());
-    }
-
     //------------------------------------------------------------------------------------------------------------------
+    //  Some Location Utilities
+    //------------------------------------------------------------------------------------------------------------------
+
     public static Location getNearestLocation(Location reference, List<Location> locationList){
         return getNearestLocation(reference, locationList, Integer.MAX_VALUE);
     }
@@ -68,34 +63,13 @@ public class FCLocationUtil {
 
     public static List<Location> getNearestLocationList(Location reference, List<Location> locationList, int maxDistance){
         if (locationList.size() == 0) return null;
-        class NearLocation implements Comparable<NearLocation>{
-            final Location location;
-            final double distance;
-            public NearLocation(Location location, double distance) {
-                this.location = location;
-                this.distance = distance;
-            }
 
-            @Override
-            public int compareTo(NearLocation o) {
-                return Double.compare(this.distance,o.distance);
-            }
-        }
-        List<NearLocation> orderedNearLocationList = new ArrayList<>();
-        for (Location location : locationList) {
-            double distance = reference.distance(location);
-            if (distance < maxDistance){
-                orderedNearLocationList.add(new NearLocation(location,distance));
-            }
-        }
-        Collections.sort(orderedNearLocationList);
-        List<Location> newLocationList = new ArrayList<>();
-        for (NearLocation nearLocation : orderedNearLocationList) {
-            newLocationList.add(nearLocation.location);
-        }
-        return newLocationList;
+        return locationList.stream()
+                .map(location -> SimpleEntry.of(location, location.distance(reference)))
+                .filter(entry -> entry.getValue() <= maxDistance)
+                .sorted(Comparator.comparing(SimpleEntry::getValue))
+                .map(SimpleEntry::getKey)
+                .collect(Collectors.toList());
     }
-
-    //------------------------------------------------------------------------------------------------------------------
 
 }
