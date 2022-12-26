@@ -77,6 +77,10 @@ public interface FCWorldGuardRegion {
         return contains(player.getLocation());
     }
 
+    public default boolean contains(BlockPos blockPos){
+        return contains(blockPos.getLocation(null));
+    }
+
     public default <T extends Flag<V>, V> void setFlag(@NotNull T flag, @Nullable V val) {
         Validate.notNull(flag);
         this.setDirty(true);
