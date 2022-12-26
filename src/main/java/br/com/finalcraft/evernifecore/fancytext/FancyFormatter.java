@@ -158,7 +158,7 @@ public class FancyFormatter extends FancyText {
         return new FancyText(text, hoverText, clickActionText, clickActionType).getOrCreateFormmater();
     }
 
-    public static FancyFormatter of(Collection<String> lines) {
-        return new FancyText(String.join("\n",lines)).getOrCreateFormmater();
+    public static FancyFormatter of(FancyText... fancyTexts) {
+        return new FancyFormatter().append(fancyTexts);
     }
 }

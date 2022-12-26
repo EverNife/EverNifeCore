@@ -358,8 +358,4 @@ public class FancyText {
         return new FancyText(text, hoverText, clickActionText, clickActionType);
     }
 
-    public static FancyText of(Collection<String> lines) {
-        return new FancyText(String.join("\n",lines));
-    }
-
 }
