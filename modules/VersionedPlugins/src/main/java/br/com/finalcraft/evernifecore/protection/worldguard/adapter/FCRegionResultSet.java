@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.protection.worldguard.adapter;
 
 import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
 import br.com.finalcraft.evernifecore.protection.worldguard.WGPlatform;
+import com.google.common.collect.ImmutableList;
 import com.sk89q.worldguard.protection.RegionResultSet;
 import com.sk89q.worldguard.protection.association.RegionAssociable;
 import com.sk89q.worldguard.protection.flags.Flag;
@@ -82,10 +83,10 @@ public class FCRegionResultSet {
     }
 
     public List<FCWorldGuardRegion> getRegions() {
-        if (fcWorldGuardRegions != null) return fcWorldGuardRegions;
-        fcWorldGuardRegions = new ArrayList<>();
-        for (ProtectedRegion region : regionResultSet.getRegions()) {
-            fcWorldGuardRegions.add(WGPlatform.getInstance().wrapRegion(world, region));
+        if (fcWorldGuardRegions == null){
+            fcWorldGuardRegions = regionResultSet.getRegions().stream()
+                    .map(region -> WGPlatform.getInstance().wrapRegion(world, region))
+                    .collect(ImmutableList.toImmutableList());
         }
         return fcWorldGuardRegions;
     }
