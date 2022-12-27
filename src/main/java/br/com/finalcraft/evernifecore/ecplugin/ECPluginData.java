@@ -46,7 +46,7 @@ public class ECPluginData {
         // -------------------------------------------- //
         final ECPlugin ecPlugin = FCReflectionUtil.getAnnotationDeeply(plugin.getClass(), ECPlugin.class);
 
-        if (ecPlugin.debugModuleEnum() != IDebugModule.class){
+        if (ecPlugin != null && ecPlugin.debugModuleEnum() != IDebugModule.class){
             if (!ecPlugin.debugModuleEnum().isEnum()){
                 plugin.getLogger().warning("Failed to read debugModuleEnum from @ECPlugin, " + ecPlugin.debugModuleEnum().getName() + "  is not an enum!");
             }else {
@@ -105,6 +105,9 @@ public class ECPluginData {
             }
 
             config.setComment("DebugMode","-----------------------\n     Debug System\n-----------------------");
+            if (config.contains("DebugMode.DebugModules")){
+                config.setComment("DebugMode.DebugModules","List of DebugModules that are enabled!\nThe debug modules bellow will only work when 'DebugMode.enabled' is 'true'");
+            }
             config.saveIfNewDefaults();
         }
         return debugEnabled && (debugModule == null || debugModule.isEnabled());
