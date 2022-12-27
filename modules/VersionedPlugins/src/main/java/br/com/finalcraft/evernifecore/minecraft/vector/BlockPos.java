@@ -1,16 +1,20 @@
 package br.com.finalcraft.evernifecore.minecraft.vector;
 
 import br.com.finalcraft.evernifecore.minecraft.region.RegionPos;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 
+@Getter
+@EqualsAndHashCode
 public class BlockPos implements Comparable<BlockPos> {
 
-    private int floor_double(double value){
+    private static int floor_double(double value){
         int i = (int) value;
-        return value < (double)i ? i - 1 : i;
+        return value < (double) i ? i - 1 : i;
     }
 
     protected final int x;
@@ -37,16 +41,16 @@ public class BlockPos implements Comparable<BlockPos> {
         return from(entity.getLocation());
     }
 
-    public int getX() {
-        return x;
+    public BlockPos setX(int x){
+        return new BlockPos(x, this.y, this.z);
     }
 
-    public int getY() {
-        return y;
+    public BlockPos setY(int y){
+        return new BlockPos(this.x, y, this.z);
     }
 
-    public int getZ() {
-        return z;
+    public BlockPos setZ(int z){
+        return new BlockPos(this.x, this.y, z);
     }
 
     public BlockPos add(int x, int y, int z){
@@ -70,23 +74,6 @@ public class BlockPos implements Comparable<BlockPos> {
     }
 
     @Override
-    public int hashCode() { //Forge HashCode for BlockPost https://forums.minecraftforge.net/topic/88361-discussion-safe-to-use-blockposhashcode/
-        return (this.getY() + this.getZ() * 31) * 31 + this.getX();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof BlockPos)) return false;
-
-        BlockPos blockPos = (BlockPos) o;
-
-        if (this.x != blockPos.x) return false;
-        if (this.y != blockPos.y) return false;
-        return z == blockPos.z;
-    }
-
-    @Override
     public int compareTo(BlockPos o) {
         if (this.getY() == o.getY()) {
             return this.getZ() == o.getZ() ? this.getX() - o.getX() : this.getZ() - o.getZ();
@@ -100,54 +87,4 @@ public class BlockPos implements Comparable<BlockPos> {
         return this.x + "|" + this.y + "|" + this.z;
     }
 
-    public static class MutableBlockPos extends BlockPos {
-        protected int x;
-        protected int y;
-        protected int z;
-
-        public MutableBlockPos() {
-            super(0, 0, 0);
-            this.x = 0;
-            this.y = 0;
-            this.z = 0;
-        }
-
-        public int getX() {
-            return this.x;
-        }
-
-        public int getY() {
-            return this.y;
-        }
-
-        public int getZ() {
-            return this.z;
-        }
-
-        public MutableBlockPos setPos(int x, int y, int z) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            return this;
-        }
-
-        public MutableBlockPos setX(int x) {
-            this.x = x;
-            return this;
-        }
-
-        public MutableBlockPos setY(int y) {
-            this.y = y;
-            return this;
-        }
-
-        public MutableBlockPos setZ(int z) {
-            this.z = z;
-            return this;
-        }
-
-        public BlockPos toImmutable() {
-            return new BlockPos(x,y,z);
-        }
-    }
 }
