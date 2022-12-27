@@ -106,7 +106,7 @@ public class ECPluginData {
 
             config.setComment("DebugMode","-----------------------\n     Debug System\n-----------------------");
             if (config.contains("DebugMode.DebugModules")){
-                config.setComment("DebugMode.DebugModules","List of DebugModules that are enabled!\nThe debug modules bellow will only work when 'DebugMode.enabled' is 'true'");
+                config.setComment("DebugMode.DebugModules","List of DebugModules that are enabled!\nThese debug modules bellow will only work when 'DebugMode.enabled' is 'true'");
             }
             config.saveIfNewDefaults();
         }
