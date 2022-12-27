@@ -76,13 +76,13 @@ public class CMDMethodInterpreter {
         for (int index = 0; index < argsAndAnnotations.size(); index++) {
 
             Tuple<Class, Annotation[]> tuple = argsAndAnnotations.get(index);
-            Class parameterClazz = tuple.getAlfa();
+            Class parameterClazz = tuple.getLeft();
 
-            Arg arg = (Arg) Arrays.stream(tuple.getBeta()).filter(annotation -> annotation.annotationType() == Arg.class).findFirst().orElse(null);
+            Arg arg = (Arg) Arrays.stream(tuple.getRight()).filter(annotation -> annotation.annotationType() == Arg.class).findFirst().orElse(null);
 
             if (arg != null){
                 //If @Arg is present, we take the ArgData from our MethodData as it may have been customized over the command creation
-                ArgData argData = ((List<Tuple<ArgData, Class>>)methodData.getArgDataList()).remove(0).getAlfa();
+                ArgData argData = ((List<Tuple<ArgData, Class>>)methodData.getArgDataList()).remove(0).getLeft();
 
                 if (ArgParser.class == argData.parser()){
                     //This means the DEFAULT parser, so, we look over the ArgParserManager
@@ -262,8 +262,8 @@ public class CMDMethodInterpreter {
 
             Tuple<CMDParameterType, Class> tuple = simpleArguments.get(index);
 
-            CMDParameterType parameterType = tuple.getAlfa();
-            Class parameterClass = tuple.getBeta();
+            CMDParameterType parameterType = tuple.getLeft();
+            Class parameterClass = tuple.getRight();
 
             if (parameterType.getClazz() == CommandSender.class) { theArgs[index] = sender; continue; }
             if (parameterType.getClazz() == Player.class) { theArgs[index] = sender; continue; }

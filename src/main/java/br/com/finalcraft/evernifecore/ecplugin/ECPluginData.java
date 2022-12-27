@@ -179,18 +179,18 @@ public class ECPluginData {
             //Now we need to look for the LocaleMessage and save it to the hardcoded files, for example EN_US
             if (localeMessage.needToBeSynced()){
                 for (Tuple<LocaleType, Config> tuple : hardcodedLocalizations) {
-                    Config hardcodedConfig = tuple.getBeta();
+                    Config hardcodedConfig = tuple.getRight();
                     FancyText hardcodedOnConfig = hardcodedConfig.getLoadable(localeMessage.getKey(), FancyText.class);
                     if (hardcodedOnConfig == null){
                         hardcodedOnConfig = new FancyText("[LOCALE_NOT_FOUND]");
                     }
 
-                    FancyText hardcodedOnCode = localeMessage.getFancyText(tuple.getAlfa().name());
+                    FancyText hardcodedOnCode = localeMessage.getFancyText(tuple.getLeft().name());
                     if (hardcodedOnCode == null) hardcodedOnCode = defaultFancyText;
 
                     if (!hardcodedOnConfig.equals(hardcodedOnCode)){
                         hardcodedConfig.setValue(localeMessage.getKey(), hardcodedOnCode);
-                        tuple.getBeta().setValue("HasBeenChanged", true);
+                        tuple.getRight().setValue("HasBeenChanged", true);
                     }
                 }
                 if (isHardcodedLocale){
@@ -217,9 +217,9 @@ public class ECPluginData {
 
         //Validate Hardcoded Localization Files
         for (Tuple<LocaleType, Config> tuple : hardcodedLocalizations) {
-            if (!tuple.getBeta().getTheFile().exists() || tuple.getBeta().getBoolean("HasBeenChanged", false)){
-                tuple.getBeta().setValue("HasBeenChanged", null);
-                tuple.getBeta().saveAsync();
+            if (!tuple.getRight().getTheFile().exists() || tuple.getRight().getBoolean("HasBeenChanged", false)){
+                tuple.getRight().setValue("HasBeenChanged", null);
+                tuple.getRight().saveAsync();
             }
         }
 

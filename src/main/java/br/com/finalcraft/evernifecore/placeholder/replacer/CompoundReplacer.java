@@ -33,8 +33,8 @@ public class CompoundReplacer {
 
     public String apply(String text) {
         for (Tuple<RegexReplacer, Object> tuple : REGEX_REPLACERS) {
-            RegexReplacer replacer = tuple.getAlfa();
-            Object watcher = tuple.getBeta();
+            RegexReplacer replacer = tuple.getLeft();
+            Object watcher = tuple.getRight();
             text = replacer.apply(text, watcher);
         }
         if (papiUser != null){

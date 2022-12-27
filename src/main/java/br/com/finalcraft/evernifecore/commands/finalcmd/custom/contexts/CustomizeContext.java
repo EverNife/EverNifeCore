@@ -66,7 +66,7 @@ public class CustomizeContext {
             methodData.getData().replace(placeholder, value);
 
             for (Tuple<ArgData, Class> tuple : methodData.getArgDataList()) {
-                ArgData argData = tuple.getAlfa();
+                ArgData argData = tuple.getLeft();
                 argData.replace(placeholder, value);
             }
         }

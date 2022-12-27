@@ -46,8 +46,8 @@ public class ArgParserManager {
 
         public Class<? extends ArgParser> getParser(Class argument){
             for (Tuple<Class, Class<? extends ArgParser>> parser : parsers) {
-                if (parser.getAlfa().equals(argument) || parser.getAlfa().isAssignableFrom(argument)){
-                    return parser.getBeta();
+                if (parser.getLeft().equals(argument) || parser.getLeft().isAssignableFrom(argument)){
+                    return parser.getRight();
                 }
             }
             return null;

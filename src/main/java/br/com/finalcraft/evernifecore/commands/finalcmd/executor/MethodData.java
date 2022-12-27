@@ -27,9 +27,9 @@ public class MethodData<T extends CMDData> {
         if (method == null) return;
         //Add all @Arg methods
         for (Tuple<Class, Annotation[]> tuple : FCReflectionUtil.getArgsAndAnnotationsDeeply(method)) {
-            Arg arg = (Arg) Arrays.stream(tuple.getBeta()).filter(annotation -> annotation.annotationType() == Arg.class).findFirst().orElse(null);
+            Arg arg = (Arg) Arrays.stream(tuple.getRight()).filter(annotation -> annotation.annotationType() == Arg.class).findFirst().orElse(null);
             if (arg != null){
-                argDataList.add(Tuple.of(new ArgData(arg), tuple.getAlfa()));
+                argDataList.add(Tuple.of(new ArgData(arg), tuple.getLeft()));
             }
         }
     }

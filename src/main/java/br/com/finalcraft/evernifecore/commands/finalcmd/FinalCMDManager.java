@@ -118,8 +118,8 @@ public class FinalCMDManager {
             if (finalCMDMainMethods.size() == 1){ //Check for SubCommands, maybe this @FinalCMD is in the Class
                 Tuple<FinalCMD, Method> tuple = finalCMDMainMethods.get(0);
 
-                final FinalCMD finalCMD = tuple.getAlfa();
-                @Nullable Method mainCommandMethod = tuple.getBeta(); //Method is null if we have a @FinalCMD annotation to the class rather than the function
+                final FinalCMD finalCMD = tuple.getLeft();
+                @Nullable Method mainCommandMethod = tuple.getRight(); //Method is null if we have a @FinalCMD annotation to the class rather than the function
 
                 FinalCMDData finalCMDData = new FinalCMDData(finalCMD);
                 MethodData<FinalCMDData> mainMethodData = new MethodData(finalCMDData, mainCommandMethod);
@@ -169,8 +169,8 @@ public class FinalCMDManager {
             // Each one is a different command without any SubCommand
             for (Tuple<FinalCMD, Method> tuple : finalCMDMainMethods) {
                 try {
-                    FinalCMD finalCMD = tuple.getAlfa();
-                    Method mainCommandMethod = tuple.getBeta();
+                    FinalCMD finalCMD = tuple.getLeft();
+                    Method mainCommandMethod = tuple.getRight();
 
                     FinalCMDData finalCMDData = new FinalCMDData(finalCMD);
                     MethodData<FinalCMDData> mainMethodData = new MethodData(finalCMDData, mainCommandMethod);
@@ -199,7 +199,7 @@ public class FinalCMDManager {
                     newCommand.addLocaleMessages(localeMessageFields);
                     newCommand.registerCommand();
                 }catch (Throwable e){
-                    pluginInstance.getLogger().severe("Error registering a FinalCMD on the class [" + executor.getClass().getName() + "] method " + tuple.getBeta().getName() + "!");
+                    pluginInstance.getLogger().severe("Error registering a FinalCMD on the class [" + executor.getClass().getName() + "] method " + tuple.getRight().getName() + "!");
                     e.printStackTrace();
                 }
             }

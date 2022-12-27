@@ -76,13 +76,13 @@ public class ArgParserNumber extends ArgParser<Number> {
         if (boundaries != null){
             NumberWrapper value = NumberWrapper.of(number);
 
-            if (!value.isBoundedLower(boundaries.getAlfa())){
-                FCMessageUtil.notBoundedLower(sender, value.get(), boundaries.getAlfa());
+            if (!value.isBoundedLower(boundaries.getLeft())){
+                FCMessageUtil.notBoundedLower(sender, value.get(), boundaries.getLeft());
                 throw new ArgParseException();
             }
 
-            if (!value.isBoundedUpper(boundaries.getBeta())){
-                FCMessageUtil.notBoundedUpper(sender, value.get(), boundaries.getBeta());
+            if (!value.isBoundedUpper(boundaries.getRight())){
+                FCMessageUtil.notBoundedUpper(sender, value.get(), boundaries.getRight());
                 throw new ArgParseException();
             }
 
