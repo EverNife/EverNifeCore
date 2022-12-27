@@ -377,6 +377,24 @@ public class Config {
         return Collections.emptySet();
     }
 
+    public Set<ConfigSection> getKeysSections() {
+        return getKeys().stream()
+                .map(key -> new ConfigSection(this, key))
+                .collect(Collectors.toSet());
+    }
+
+    public Set<ConfigSection> getKeysSections(String path) {
+        return getKeys(path).stream()
+                .map(key -> new ConfigSection(this, path + "." + key))
+                .collect(Collectors.toSet());
+    }
+
+    public Set<ConfigSection> getKeysSections(String path, boolean deep) {
+        return getKeys(path, deep).stream()
+                .map(key -> new ConfigSection(this, path + "." + key))
+                .collect(Collectors.toSet());
+    }
+
     /**
      * Checks whether the Config contains the specified Path
      *
