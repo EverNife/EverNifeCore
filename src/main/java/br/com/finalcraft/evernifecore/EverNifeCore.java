@@ -15,6 +15,8 @@ import br.com.finalcraft.evernifecore.listeners.PlayerInteractListener;
 import br.com.finalcraft.evernifecore.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.listeners.PluginListener;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.logger.ECDebugModule;
+import br.com.finalcraft.evernifecore.logger.ECLogger;
 import br.com.finalcraft.evernifecore.thread.SaveConfigThread;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
@@ -25,7 +27,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 @ECPlugin(
         spigotID = "97739",
-        bstatsID = "13351"
+        bstatsID = "13351",
+        debugModuleEnum = ECDebugModule.class
 )
 public class EverNifeCore extends JavaPlugin {
 
@@ -47,6 +50,12 @@ public class EverNifeCore extends JavaPlugin {
     }
 
     public static EverNifeCore instance;
+
+    private ECLogger<ECDebugModule> ecLogger = new ECLogger<>(this);
+
+    public static ECLogger<ECDebugModule> getLog(){
+        return instance.ecLogger;
+    }
 
     public static void info(String msg) {
         instance.getLogger().info("[Info] " + msg);

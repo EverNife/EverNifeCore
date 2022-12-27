@@ -2,12 +2,13 @@ package br.com.finalcraft.evernifecore.logger;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
+import br.com.finalcraft.evernifecore.logger.debug.IDebugModule;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
-public class ECLogger {
+public class ECLogger<DL extends IDebugModule> {
 
     private final JavaPlugin plugin;
     private transient ECPluginData ecPluginData = null;
@@ -41,6 +42,20 @@ public class ECLogger {
     public void debug(Supplier<String> supplier) {
         if (getEcPluginData().isDebugEnabled()){
             String formatted = "[Debug] " + supplier.get();
+            plugin.getLogger().info(formatted);
+        }
+    }
+
+    public void debugModule(DL debugModule, String message, Object... params) {
+        if (getEcPluginData().isDebugEnabled(debugModule)){
+            String formatted = "[Debug (" + debugModule.getName()  + ") ] " + (params.length == 0 ? message : String.format(message, params));
+            plugin.getLogger().info(formatted);
+        }
+    }
+
+    public void debugModule(DL debugModule, Supplier<String> supplier) {
+        if (getEcPluginData().isDebugEnabled(debugModule)){
+            String formatted = "[Debug (" + debugModule.getName()  + ") ] " + supplier.get();
             plugin.getLogger().info(formatted);
         }
     }

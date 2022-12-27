@@ -6,6 +6,8 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.logger.debug.IDebugModule;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
@@ -33,10 +35,24 @@ public class ECPluginData {
     private boolean markedForLocaleReload = false;
 
     //debug
+    private transient IDebugModule[] debugModules = new IDebugModule[0];
     private Boolean debugEnabled = null;
 
     public ECPluginData(Plugin plugin) {
         this.plugin = plugin;
+
+        // -------------------------------------------- //
+        //  Handle @ECPlugin
+        // -------------------------------------------- //
+        final ECPlugin ecPlugin = FCReflectionUtil.getAnnotationDeeply(plugin.getClass(), ECPlugin.class);
+
+        if (ecPlugin.debugModuleEnum() != IDebugModule.class){
+            if (!ecPlugin.debugModuleEnum().isEnum()){
+                plugin.getLogger().warning("Failed to read debugModuleEnum from @ECPlugin, " + ecPlugin.debugModuleEnum().getName() + "  is not an enum!");
+            }else {
+                debugModules = ecPlugin.debugModuleEnum().getEnumConstants();
+            }
+        }
 
         // -------------------------------------------- //
         //  Handle @ECPlugin.Reload
@@ -67,11 +83,14 @@ public class ECPluginData {
         }
 
         reloadAllCustomLocales();
-
-        this.plugin.getLogger().info("[FCLocale] Setting locale to [" + pluginLanguage +"]!");
+        //this.plugin.getLogger().info("[FCLocale] Setting locale to [" + pluginLanguage +"]!");
     }
 
     public boolean isDebugEnabled(){
+        return isDebugEnabled(null);
+    }
+
+    public boolean isDebugEnabled(@Nullable IDebugModule debugModule){
         if (debugEnabled == null){
             Config config = new Config(plugin, "config.yml");
             debugEnabled = config.getOrSetDefaultValue(
@@ -79,10 +98,16 @@ public class ECPluginData {
                     false,
                     "If '" + plugin.getName() + "' should log debug messages on the console!"
             );
+
+            for (IDebugModule module : debugModules) {
+                boolean enabled = module.onConfigLoad(config.getConfigSection("DebugMode"));
+                module.setEnabled(enabled);
+            }
+
             config.setComment("DebugMode","-----------------------\n     Debug System\n-----------------------");
             config.saveIfNewDefaults();
         }
-        return debugEnabled;
+        return debugEnabled && (debugModule == null || debugModule.isEnabled());
     }
 
     public void setDebugEnabled(Boolean debugEnabled) {
