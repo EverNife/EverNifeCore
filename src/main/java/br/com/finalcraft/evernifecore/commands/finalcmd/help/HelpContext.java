@@ -6,10 +6,12 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDP
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import com.google.common.collect.ImmutableList;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -57,7 +59,8 @@ public class HelpContext {
     }
 
     public void sendTo(CommandSender sender, String label){
-        sender.sendMessage(helpHeader.isEmpty() ? "§2§m-----------------------------------------------------" : helpHeader);
+
+        List<Runnable> helpLinesToSend = new ArrayList<>();
 
         boolean isPlayer = sender instanceof Player;
 
@@ -74,9 +77,20 @@ public class HelpContext {
                 continue;
             }
 
-            subCommand.getHelpLine().setLabelsUsed(label, subCommand.getCmdData().labels()[0]).sendTo(sender);
+            helpLinesToSend.add(() -> {
+                subCommand.getHelpLine().setLabelsUsed(label, subCommand.getCmdData().labels()[0]).sendTo(sender);
+            });
         }
 
+        if (helpLinesToSend.size() == 0){
+            FCMessageUtil.needsThePermission(sender);
+            return;
+        }
+
+        sender.sendMessage(helpHeader.isEmpty() ? "§2§m-----------------------------------------------------" : helpHeader);
+        for (Runnable helpLine : helpLinesToSend) {
+            helpLine.run();//send each line
+        }
         sender.sendMessage("");
         HOLD_MOUSE_OVER.send(sender);
         sender.sendMessage("§2§m-----------------------------------------------------");
