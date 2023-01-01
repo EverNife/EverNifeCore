@@ -6,6 +6,7 @@ public abstract class SimpleThread {
 
     protected final JavaPlugin javaPlugin = JavaPlugin.getProvidingPlugin(this.getClass());
     protected transient Thread thread;
+    protected final String threadName;
 
     protected Thread getOrCreateThread(){
         if (thread == null || !thread.isAlive()){
@@ -22,18 +23,22 @@ public abstract class SimpleThread {
                     }
                 }
             };
+            thread.setName(this.getThreadName());
+            thread.setDaemon(true);
         }
         return thread;
     }
 
-    public SimpleThread() {
-        getOrCreateThread().setName("[" + this.getClass().getSimpleName() + "]");
-        getOrCreateThread().setDaemon(true);
+    public SimpleThread(String threadName) {
+        this.threadName = threadName;
     }
 
-    public SimpleThread(String name) {
-        getOrCreateThread().setName(name);
-        getOrCreateThread().setDaemon(true);
+    public SimpleThread() {
+        this.threadName = "[" + this.getClass().getSimpleName() + "]";
+    }
+
+    public String getThreadName() {
+        return threadName;
     }
 
     public void start(){
