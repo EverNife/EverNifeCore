@@ -114,14 +114,14 @@ public class FCTimeFrame {
 
         final String SPACE = shortVersion ? "" : " ";
         final String COMMA = shortVersion ? " " : ", ";
-        final String E = AND.getDefaultFancyText().getText();
+        final String E = shortVersion ? "" : AND.getDefaultFancyText().getText();
 
         if (this.getDays() > 0){
-            return numberColor + this.getDays() + SPACE + textColor + dia + COMMA + numberColor + this.getHours() + SPACE + textColor + hora + COMMA + numberColor + this.getMinutes() + SPACE + textColor + minuto + " " + E + " " + numberColor + this.getSeconds() + SPACE + textColor + segundo;
+            return numberColor + this.getDays() + SPACE + textColor + dia + COMMA + numberColor + this.getHours() + SPACE + textColor + hora + COMMA + numberColor + this.getMinutes() + SPACE + textColor + minuto + SPACE + E + " " + numberColor + this.getSeconds() + SPACE + textColor + segundo;
         }else if (this.getHours() > 0){
-            return numberColor + this.getHours() + SPACE + textColor + hora + COMMA + numberColor + this.getMinutes() + SPACE + textColor + minuto + " " + E + " " + numberColor + this.getSeconds() + SPACE + textColor + segundo;
+            return numberColor + this.getHours() + SPACE + textColor + hora + COMMA + numberColor + this.getMinutes() + SPACE + textColor + minuto + SPACE + E + " " + numberColor + this.getSeconds() + SPACE + textColor + segundo;
         }else if (this.getMinutes() > 0){
-            return numberColor + this.getMinutes() + SPACE + textColor + minuto + " " + E + " " + numberColor + this.getSeconds() + SPACE + textColor + segundo;
+            return numberColor + this.getMinutes() + SPACE + textColor + minuto + SPACE + E + " " + numberColor + this.getSeconds() + SPACE + textColor + segundo;
         }else {
             return numberColor + this.getSeconds() + (this.getSeconds() == 0 || includeMillis ? "." + (this.millis % 1000) : "") + " " + textColor + segundo;
         }
