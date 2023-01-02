@@ -56,8 +56,14 @@ public class ECSettings {
 
         ZONE_ID_OF_DAY_OF_TODAY = ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.Time.ZONE_ID_OF_DAY_OF_TODAY",
                 ZoneId.systemDefault().getId(),
-                "The timezone used for the some of ECPlugins! This is useful when your HomeZone" +
-                        "\nis not the same as the server zone!");
+                "The timezone used for the some of ECPlugins!" +
+                        "\nThis is useful when your HomeZone is not the same as the server zone!" +
+                        "\n" +
+                        "\nYou can use GMT zones, for example:" +
+                        "\n - 'GMT'       # Time at GMT." +
+                        "\n - 'GMT-3'     # Time at GMT minus 3 Hours." +
+                        "\n - 'GMT+8'     # Time at GMT plus 8 Hours."
+        );
         FCReflectionUtil.getField(DayOfToday.class, "INSTANCE")
                 .set(null, new DayOfToday(ZONE_ID_OF_DAY_OF_TODAY));
 
