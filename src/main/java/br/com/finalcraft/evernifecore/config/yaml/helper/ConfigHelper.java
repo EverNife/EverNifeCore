@@ -37,7 +37,7 @@ public class ConfigHelper {
                         configList.add(new Config(innerFile));
                     }
                 }else if (recursive){
-                    configList.addAll(getAllConfings(directory, recursive));
+                    configList.addAll(getAllConfings(innerFile, recursive));
                 }
             }
         }
