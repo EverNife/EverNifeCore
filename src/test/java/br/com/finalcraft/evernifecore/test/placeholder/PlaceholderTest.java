@@ -64,7 +64,7 @@ public class PlaceholderTest {
             );
         });
 
-        SimplePlayer simplePlayer = new SimplePlayer( "Xablau", UUID.randomUUID());
+        SimplePlayer simplePlayer = new SimplePlayer( "X$blau", UUID.randomUUID());
 
         String text = "Hello %name% (%uuid%), you have %kills% kills and %deaths% deaths, your KDR is %kdr%";
 
@@ -72,6 +72,7 @@ public class PlaceholderTest {
                 REGEX_REPLACER.apply(text, simplePlayer)
         );
 
+        System.out.println(REGEX_REPLACER.apply("%name%", simplePlayer));
         assert REGEX_REPLACER.apply("%name%", simplePlayer).equals(String.valueOf(simplePlayer.name));
         assert REGEX_REPLACER.apply("%uuid%", simplePlayer).equals(String.valueOf(simplePlayer.uuid));
         assert REGEX_REPLACER.apply("%kills%", simplePlayer).equals(String.valueOf(simplePlayer.kills));

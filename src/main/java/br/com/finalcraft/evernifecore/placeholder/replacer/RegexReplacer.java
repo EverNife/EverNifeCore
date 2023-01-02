@@ -112,6 +112,7 @@ public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O
             }
 
             if (requested != null){
+                requested = requested.replace("$", "\\$"); // '$' needs to be escaped in replacement to prevent 'Illegal group reference'
                 matcher.appendReplacement(builder, requested);
             }
         }
