@@ -123,7 +123,12 @@ public class FCTimeFrame {
         }else if (this.getMinutes() > 0){
             return numberColor + this.getMinutes() + SPACE + textColor + minuto + SPACE + E + " " + numberColor + this.getSeconds() + SPACE + textColor + segundo;
         }else {
-            return numberColor + this.getSeconds() + (this.getSeconds() == 0 || includeMillis ? "." + (this.millis % 1000) : "") + " " + textColor + segundo;
+            String millisString = "";
+            if (this.getSeconds() == 0 || includeMillis){
+                int millisInt = (int) (this.millis % 1000);
+                millisString = "." + (millisInt < 100 ? "0" : "") + (millisInt < 10 ? "0" : "") + millisInt;
+            }
+            return numberColor + this.getSeconds() + millisString + " " + textColor + segundo;
         }
     }
 
