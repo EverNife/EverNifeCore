@@ -11,6 +11,11 @@ import java.util.Map;
 public class MaterialVanillaInterpreter {
 
     private Map<Material, Boolean> isVanilla = new HashMap();
+
+    public MaterialVanillaInterpreter() {
+        this.isVanilla.put(Material.AIR, true);
+    }
+
     public boolean isVanilla(Material material) {
         Boolean vanilla = isVanilla.get(material);
         if (vanilla != null){
