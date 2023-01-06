@@ -4,6 +4,7 @@ import org.bukkit.ChatColor;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class FCColorUtil {
@@ -37,12 +38,14 @@ public class FCColorUtil {
         return colored;
     }
 
+    //Returns a new List<String> with the colored strings
     public static List<String> colorfy(@Nullable List<String> text){
         if (text == null) return null;
-        for (int i = 0; i < text.size(); i++) {
-            text.set(i, colorfy(text.get(i)));
-        }
-        return text;
+        return new ArrayList<>(
+                Arrays.asList(
+                        FCColorUtil.colorfy(String.join("\n",text)).split("\n")
+                )
+        );
     }
 
     public static String stripColor(@Nullable final String input){
