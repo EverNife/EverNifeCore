@@ -57,21 +57,21 @@ public enum EnumStainedGlassPane {
         return colorCode;
     }
 
-    public FCItemBuilder builder(){
+    public FCItemBuilder asBuilder(){
         return FCItemFactory.from(this.material)
                 .applyIf(() -> damage != 0, fcItemBuilder -> fcItemBuilder.durability(this.damage));
     }
 
     public LayoutIcon asLayout(){
         if (layoutIcon == null) {
-            layoutIcon = builder().name("§" + this.colorCode + "§l❂").asLayout();
+            layoutIcon = asBuilder().displayName("§" + this.colorCode + "§l❂").asLayout();
         }
         return layoutIcon;
     }
 
     public GuiItem asBackground(){
         if (guiItem == null) {
-            guiItem = builder().name("§" + this.colorCode + "§l❂").asGuiItem();
+            guiItem = asBuilder().displayName("§" + this.colorCode + "§l❂").asGuiItem();
             guiItem.setAction(event -> event.setCancelled(true));
         }
         return guiItem;
