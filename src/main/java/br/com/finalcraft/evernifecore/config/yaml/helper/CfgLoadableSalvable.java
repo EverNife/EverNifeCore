@@ -31,6 +31,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -102,6 +103,10 @@ public class CfgLoadableSalvable {
             return Optional.empty();
         }
 
+        if (!Modifier.isStatic(method.getModifiers())){
+            throw new LoadableMethodException("@Loadable Method [" + clazz.getName() + "#" + method.toString() +  "] is not static!");
+        }
+
         method.setAccessible(true);
 
         final Function<ConfigSection, O> onConfigLoad;
@@ -125,6 +130,7 @@ public class CfgLoadableSalvable {
                 try {
                     return (O) method.invoke(null, section);
                 }catch (Exception e){
+                    //se o metodo for statico retorna null
                     throw new RuntimeException(e);
                 }
             };
