@@ -1,16 +1,11 @@
 package br.com.finalcraft.evernifecore.config.settings;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
-import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.time.DayOfToday;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 
-import java.io.File;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
-import java.util.UUID;
 
 public class ECSettings {
 

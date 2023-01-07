@@ -138,7 +138,7 @@ public class FCLayoutScanner {
                         String hoverText = FCColorUtil.colorfy(localeMessage.getDefaultFancyText().getHoverText());
 
                         if (!displayName.isEmpty()){
-                            itemBuilder.name(displayName);
+                            itemBuilder.displayName(displayName);
                         }
 
                         if (!hoverText.isEmpty()){
