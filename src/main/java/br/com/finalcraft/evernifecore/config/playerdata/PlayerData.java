@@ -12,12 +12,13 @@ import java.util.*;
 public class PlayerData implements IPlayerData{
 
     //PlayerData
-    protected Config config;
-    protected String playerName;
-    protected UUID uuid;
+    protected final Config config;
+    protected final String playerName;
+    protected final UUID uuid;
     protected long lastSeen;
-    protected Map<String, PlayerCooldown> cooldownHashMap = new HashMap<>();
+    protected final Map<String, PlayerCooldown> cooldownHashMap = new HashMap<>();
 
+    //Transient Data
     protected transient Player player = null;
     protected transient boolean recentChanged = false;
 
@@ -49,9 +50,6 @@ public class PlayerData implements IPlayerData{
         }
     }
 
-    protected PlayerData() {
-    }
-
     public PlayerData(Config config) {
         this.config = Objects.requireNonNull(config,"PlayConfig cannot be null!");
         this.playerName = Objects.requireNonNull(config.getString("PlayerData.Username"),"PlayName cannot be null!");
@@ -69,12 +67,13 @@ public class PlayerData implements IPlayerData{
         this.config = config;
         this.playerName = playerName;
         this.uuid = uuid;
-        this.lastSeen = 0;
+        this.lastSeen = System.currentTimeMillis();
     }
 
     public void setRecentChanged(){
-        if (this.recentChanged == false)
+        if (this.recentChanged == false){
             this.recentChanged = true;
+        }
     }
 
     //Save Single PlayerData into YML
@@ -85,35 +84,36 @@ public class PlayerData implements IPlayerData{
 
     //Save Single PlayerData into YML
     public boolean savePlayerData(){
-        if (this.recentChanged){
-            //Player Data
-            config.setValue("PlayerData.Username",this.playerName);
-            config.setValue("PlayerData.UUID",this.uuid);
-            config.setValue("PlayerData.lastSeen",this.lastSeen);
-
-            // Loop all PDSections and save than if needed
-            for (PDSection pDSection : new ArrayList<>(mapOfPDSections.values())){
-                try {
-                    if (pDSection.recentChanged){
-                        pDSection.savePDSection();
-                        pDSection.recentChanged = false;
-                    }
-                }catch (Throwable e){
-                    EverNifeCore.warning("Failed to save PDSection {" + pDSection.getClass().getName() + "} at [" + this.getConfig().getTheFile().getAbsolutePath() + "]");
-                    e.printStackTrace();
-                }
-            }
-
-            this.recentChanged = false;
-            config.saveAsync();
-            return true;
+        if (this.recentChanged == false){
+            return false;
         }
-        return false;
+        this.recentChanged = false;
+
+        //Player Data
+        config.setValue("PlayerData.Username",this.playerName);
+        config.setValue("PlayerData.UUID",this.uuid);
+        config.setValue("PlayerData.lastSeen",this.lastSeen);
+
+        // Loop all PDSections and save them if needed
+        for (PDSection pDSection : new ArrayList<>(mapOfPDSections.values())){
+            try {
+                if (pDSection.recentChanged){
+                    pDSection.savePDSection();
+                    pDSection.recentChanged = false;
+                }
+            }catch (Throwable e){
+                EverNifeCore.warning("Failed to save PDSection {" + pDSection.getClass().getName() + "} at [" + this.getConfig().getTheFile().getAbsolutePath() + "]");
+                e.printStackTrace();
+            }
+        }
+
+        config.saveAsync();
+        return true;
     }
 
     public void setPlayer(Player player){
         this.player = player;
-        lastSeen = System.currentTimeMillis();
+        this.lastSeen = System.currentTimeMillis();
     }
 
     @Override

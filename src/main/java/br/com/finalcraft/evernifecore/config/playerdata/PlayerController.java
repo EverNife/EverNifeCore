@@ -199,6 +199,45 @@ public class PlayerController {
         return list;
     }
 
+    //Returns a new instance of the PlayerData
+    public static PlayerData reloadPlayerData(UUID playerUUID){
+        MAP_OF_PLAYER_DATA.remove(playerUUID);
+
+        final String playerName = UUIDsController.getNameFromUUID(playerUUID);
+        if (playerName == null){
+            throw new IllegalArgumentException("The UUID must have a playerName associated with it!");
+        }
+
+        final String playerDataFileName = ECSettings.useNamesInsteadOfUUIDToStorePlayerData ? playerName : playerUUID.toString();
+
+        File theConfigFile = new File(EverNifeCore.instance.getDataFolder(), "PlayerData/" + playerDataFileName + ".yml");
+        if (theConfigFile.exists()){
+            try {
+                Config config = new Config(theConfigFile);
+                PlayerData playerData = new PlayerData(config);
+                MAP_OF_PLAYER_DATA.put(playerUUID, playerData);
+                return playerData;
+            }catch (Exception e){
+                EverNifeCore.warning("Failed to load PlayerData [" + theConfigFile.getName() + "] moving it to the corrupt folder. \nTheFile: " + theConfigFile.getAbsolutePath() + " .");
+                e.printStackTrace();
+                try {
+                    File corruptFolder = new File(theConfigFile.getParentFile().getParent(), "CorruptedPlayerData");
+                    corruptFolder.mkdirs();
+                    FileUtils.moveFile(
+                            theConfigFile,
+                            new File(corruptFolder, playerDataFileName + "_" + System.currentTimeMillis() + ".yml")
+                    );
+                }catch (IOException e2){
+                    EverNifeCore.warning("Failed to move the Corrupted PlayerData of " + theConfigFile.getAbsolutePath() + " to the corrupt folder.");
+                    e2.printStackTrace();
+                }
+            }
+        }
+
+        //In case we were not able to actually reload this player data, we create a new one!
+        return getOrCreateOne(playerUUID);
+    }
+
     //Erase all PDSections reference from all PlayerData
     public static void clearPDSections(Class<? extends PDSection> pdSectionClass){
         for (PlayerData playerData : getAllPlayerData()) {

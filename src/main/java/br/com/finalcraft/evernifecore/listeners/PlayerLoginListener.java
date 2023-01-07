@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.events.ECFullyLoggedInEvent;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
@@ -26,8 +27,15 @@ public class PlayerLoginListener implements ECListener {
             return;
         }
 
-        UUIDsController.addUUIDName(event.getUniqueId(),event.getName());
-        PlayerController.getOrCreateOne(event.getUniqueId());
+        UUIDsController.addOrUpdateUUIDName(event.getUniqueId(),event.getName());
+        PlayerData playerData = PlayerController.getOrCreateOne(event.getUniqueId());
+
+        if (!ECSettings.useNamesInsteadOfUUIDToStorePlayerData && !event.getName().equals(playerData.getPlayerName())){
+            //When in online mode there is the possibility for the player to change his name
+            //So we need to update the name in the playerData!
+            playerData.getConfig().setValue("PlayerData.Username",event.getName());
+            PlayerController.reloadPlayerData(event.getUniqueId());
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

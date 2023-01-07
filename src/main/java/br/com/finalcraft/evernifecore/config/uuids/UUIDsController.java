@@ -18,13 +18,14 @@ public class UUIDsController {
         }
     }
 
-    public static void addUUIDName(UUID playerUUID, String playerName){
-        if (uuidHashMap.contains(playerUUID)){
+    public static void addOrUpdateUUIDName(UUID playerUUID, String playerName){
+        String existingPlayerName = uuidHashMap.get(playerUUID);
+        if (existingPlayerName != null && existingPlayerName.equals(playerName)){
             return;
         }
         ConfigManager.getPlayerUUIDs().setValue("StoredUUIDs." + playerUUID.toString(),playerName);
-        ConfigManager.getPlayerUUIDs().save();
-        uuidHashMap.put(playerUUID,playerName);
+        ConfigManager.getPlayerUUIDs().saveAsync();
+        uuidHashMap.put(playerUUID, playerName);
     }
 
     public static String getNameFromUUID(UUID playerUUID){
