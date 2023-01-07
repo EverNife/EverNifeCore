@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * This class is a mirror of {@link dev.triumphteam.gui.builder.item.BaseItemBuilder} but with:
@@ -153,6 +154,19 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
     public B lore(@NotNull final Consumer<List<String>> lore) {
         final List<String> newLore = meta.hasLore() ? meta.getLore() : new ArrayList<>();
         lore.accept(newLore);
+        return lore(newLore.isEmpty() ? null : newLore);
+    }
+
+    /**
+     * Function for freely editing to the lore
+     *
+     * @param lore A {@link Function} with the {@link List} of lore {@link String}
+     * @return {@link ItemBuilder}
+     */
+    @NotNull
+    public B lore(@NotNull final Function<List<String>, List<String>> lore) {
+        List<String> newLore = meta.hasLore() ? meta.getLore() : new ArrayList<>();
+        newLore = lore.apply(newLore);
         return lore(newLore.isEmpty() ? null : newLore);
     }
 
