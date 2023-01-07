@@ -46,6 +46,9 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
         CompoundReplacer compoundReplacer = this.getReplacer();
 
         setupLayout(iHasLayout, compoundReplacer, () -> {
+            if (iHasLayout.layout() == null){
+                throw new IllegalStateException(String.format("The layout() method for the class [%s] returned a null value!", this.getClass().getSimpleName()));
+            }
             String title = compoundReplacer.apply(iHasLayout.layout().getTitle());
 
             return baseBuilder.rows(iHasLayout.layout().getRows())
