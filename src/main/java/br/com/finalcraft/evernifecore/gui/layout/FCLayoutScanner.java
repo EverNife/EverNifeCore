@@ -40,10 +40,7 @@ public class FCLayoutScanner {
             layoutInstance.title = layoutBaseData.title();
             layoutInstance.rows = layoutBaseData.rows();
             layoutInstance.integrateToPAPI = layoutBaseData.integrateToPAPI();
-        }else {
-            layoutInstance.title = "➲  §0§l%layout_name%";
-            layoutInstance.rows = 6;
-            layoutInstance.integrateToPAPI = false;
+            layoutInstance.guiBuilder = layoutBaseData.guiBuilder();
         }
 
         //Title

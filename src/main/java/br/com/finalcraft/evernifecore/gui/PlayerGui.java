@@ -38,31 +38,33 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
         this.gui = gui;
     }
 
-    protected void setupLayout(IHasLayout iHasLayout){
-        this.setupLayout(iHasLayout, (BaseGuiBuilder<G, ?>) FCGuiFactory.simple());
+    protected void setupLayout(@NotNull IHasLayout iHasLayout){
+        if (iHasLayout.layout() == null) throw new NullPointerException(String.format("The layout() method for the class [%s] returned a null value!", this.getClass().getSimpleName()));
+        this.setupLayout(iHasLayout.layout(), FCGuiFactory.from(iHasLayout.layout().getGuiBuilder()));
     }
 
-    protected <B extends BaseGuiBuilder<G,?>> void setupLayout(IHasLayout iHasLayout, B baseBuilder){
+    protected <B extends BaseGuiBuilder<G,?>, LB extends LayoutBase> void setupLayout(@NotNull LB layoutBase, @NotNull B baseBuilder){
+        if (layoutBase == null) throw new NullPointerException(String.format("The layoutBase cannot be null!", this.getClass().getSimpleName()));
+
         CompoundReplacer compoundReplacer = this.getReplacer();
+        setupLayout(layoutBase, compoundReplacer, () -> {
+            String title = compoundReplacer.apply(layoutBase.getTitle());
 
-        setupLayout(iHasLayout, compoundReplacer, () -> {
-            if (iHasLayout.layout() == null){
-                throw new IllegalStateException(String.format("The layout() method for the class [%s] returned a null value!", this.getClass().getSimpleName()));
-            }
-            String title = compoundReplacer.apply(iHasLayout.layout().getTitle());
-
-            return baseBuilder.rows(iHasLayout.layout().getRows())
+            return baseBuilder.rows(layoutBase.getRows())
                     .title(title)
                     .disableAllInteractions()
                     .create();
         });
     }
 
-    protected void setupLayout(IHasLayout iHasLayout, CompoundReplacer compoundReplacer, Supplier<G> guiBuilder){
+    protected <LB extends LayoutBase> void setupLayout(@NotNull LB layoutBase, @NotNull CompoundReplacer compoundReplacer, @NotNull Supplier<G> guiBuilder){
+        if (layoutBase == null) throw new NullPointerException(String.format("The layoutBase cannot be null!", this.getClass().getSimpleName()));
+        if (compoundReplacer == null) throw new NullPointerException(String.format("The compoundReplacer cannot be null!", this.getClass().getSimpleName()));
+
         setGui(guiBuilder.get());
 
         //Set Background
-        for (LayoutIcon backgroundIcon : iHasLayout.layout().getBackgroundIcons()) {
+        for (LayoutIcon backgroundIcon : layoutBase.getBackgroundIcons()) {
             backgroundIcon.parse(compoundReplacer).applyTo(this);
         }
     }
