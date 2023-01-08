@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.EverNifeCoreReloadEvent;
 import br.com.finalcraft.evernifecore.api.events.reload.ECPluginPreReloadEvent;
 import br.com.finalcraft.evernifecore.api.events.reload.ECPluginReloadEvent;
+import br.com.finalcraft.evernifecore.sound.FCSound;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import org.apache.commons.lang.NotImplementedException;
@@ -60,6 +61,7 @@ public class ECPluginManager {
         //Notify the sender if it's a Player
         if (sender != null && sender instanceof Player == true){
             FCMessageUtil.pluginHasBeenReloaded(sender, instance.getName());
+            FCSound.LEVEL_UP.playSoundFor((Player) sender);
         }
 
         Bukkit.getPluginManager().callEvent(new ECPluginReloadEvent(ecPluginData));
