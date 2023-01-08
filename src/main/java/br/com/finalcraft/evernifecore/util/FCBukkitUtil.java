@@ -60,47 +60,13 @@ public class FCBukkitUtil {
         }
     }
 
-    public static void playSound(String playerName, String music) {
-        Player player = Bukkit.getPlayer(playerName);
-        if (player != null){
-            if (MCVersion.isLowerEquals(MCVersion.v1_7_10)){
-                makeConsoleExecuteCommand("playsound " + music + " " + playerName + " ~0 ~0 ~0 100");
-            }else {
-                player.playSound(player.getLocation(), music, SoundCategory.AMBIENT, 100, 1);
-            }
-        }
-    }
-
-    public static void playSoundAll(String music) {
-        if (MCVersion.isLowerEquals(MCVersion.v1_7_10)){
-            for (Player player : Bukkit.getServer().getOnlinePlayers()) {
-                makeConsoleExecuteCommand("playsound " + music + " " + player.getName() + " ~0 ~0 ~0 100");
-            }
-        }else {
-            for (Player player : Bukkit.getServer().getOnlinePlayers()) {
-                player.playSound(player.getLocation(), music, SoundCategory.AMBIENT, 100, 1);
-            }
-        }
-    }
-
-    public static void playSoundAll(String music, int speed) {
-        if (MCVersion.isLowerEquals(MCVersion.v1_7_10)){
-            for (Player player : Bukkit.getServer().getOnlinePlayers()) {
-                makeConsoleExecuteCommand("playsound " + music + " " + player.getName() + " ~0 ~0 ~0 100 " + speed);
-            }
-        }else {
-            for (Player player : Bukkit.getServer().getOnlinePlayers()) {
-                player.playSound(player.getLocation(), music, SoundCategory.AMBIENT, 100, speed);
-            }
-        }
-    }
-
     public static boolean isFakePlayer(String playerName) {
         Player player = Bukkit.getPlayer(playerName);
         return player == null || isFakePlayer(player);
     }
 
     public static boolean isFakePlayer(Player player) {
+        if (isModLoaded == null) return false;
         //TODO Remove this nullCheck
         return ServerType.isModdedServer() && NMSUtils.get() != null ? NMSUtils.get().isFakePlayer(player) : false;
     }
