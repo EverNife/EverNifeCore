@@ -42,5 +42,5 @@ public interface INMSUtils {
 
 	public Object asMinecraftEntity(Entity entity);
 
-	public ItemStack validateItemStackHandle(ItemStack itemStack);
+	public ItemStack validateItemStackHandle(ItemStack itemStack); //This method makes sure the item has a valid handle
 }

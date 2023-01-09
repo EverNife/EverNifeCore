@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.itemstack.itembuilder;
 
+import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.util.FCNBTUtil;
@@ -48,9 +49,10 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
     protected FCBaseItemBuilder(@NotNull final ItemStack itemStack) {
         Validate.notNull(itemStack, "Item can't be null!");
 
-        this.itemStack = itemStack;
+        this.itemStack = NMSUtils.get() != null ? NMSUtils.get().validateItemStackHandle(itemStack.clone()) : itemStack.clone();//Clone the item for this builder! Also validade it!
         this.meta = itemStack.hasItemMeta() ? itemStack.getItemMeta() : Bukkit.getItemFactory().getItemMeta(itemStack.getType());
         this.nbtCompound = FCNBTUtil.getFrom(FCNBTUtil.getFrom(itemStack).toString());//Create a copy of the NBTCompound of the itemStack
+        this.nbtCompound.removeKey("display");//Remove LORE and DisplayName, its redundant as they are save on the meta
     }
 
     /**
