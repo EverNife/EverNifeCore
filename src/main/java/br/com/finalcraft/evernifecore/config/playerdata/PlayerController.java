@@ -81,6 +81,7 @@ public class PlayerController {
 
         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
             getOrCreateOne(onlinePlayer.getUniqueId()).setPlayer(onlinePlayer);
+            UUIDsController.addOrUpdateUUIDName(onlinePlayer.getUniqueId(), onlinePlayer.getName());
         }
     }
 
