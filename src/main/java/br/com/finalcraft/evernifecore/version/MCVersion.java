@@ -42,4 +42,28 @@ public enum MCVersion {
         return MCDetailedVersion.getCurrent().isHigherEquals(otherVersion.getDetailedVersion());
     }
 
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Comparing with Detailed Version
+    // -----------------------------------------------------------------------------------------------------------------
+
+    public static boolean isLower(MCDetailedVersion otherVersion) {
+        return MCDetailedVersion.getCurrent().isLower(otherVersion);
+    }
+
+    public static boolean isLowerEquals(MCDetailedVersion otherVersion) {
+        return MCDetailedVersion.getCurrent().isLowerEquals(otherVersion);
+    }
+
+    public static boolean isEqual(MCDetailedVersion otherVersion) {
+        return MCDetailedVersion.getCurrent().isEqual(otherVersion);
+    }
+
+    public static boolean isHigher(MCDetailedVersion otherVersion) {
+        return MCDetailedVersion.getCurrent().isHigher(otherVersion);
+    }
+
+    public static boolean isHigherEquals(MCDetailedVersion otherVersion) {
+        return MCDetailedVersion.getCurrent().isHigherEquals(otherVersion);
+    }
+
 }
