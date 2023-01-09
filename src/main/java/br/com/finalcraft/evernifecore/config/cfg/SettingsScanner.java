@@ -24,13 +24,14 @@ public class SettingsScanner {
 
                 Object defValue = null;
                 try {
+                    declaredField.setAccessible(true);
                     defValue = declaredField.get(instance);
                 } catch (IllegalAccessException ignored) {
                     ;
                 }
 
                 if (defValue == null){
-                    plugin.getLogger().warning("Failed to load ConfigSetting for [" + instance.getClass().getSimpleName() + " - " + declaredField.toString() + "] As there is not DEFAULT_VALUE");
+                    plugin.getLogger().warning("Failed to load ConfigSetting for [" + instance.getClass().getSimpleName() + " - " + declaredField.toString() + "] As there are no DEFAULT_VALUE set");
                     continue;
                 }
 
