@@ -193,7 +193,7 @@ public class FCLayoutScanner {
             LayoutIcon backgroundIcon = config.getLoadable("Background." + backgroundKey, LayoutIcon.class);
             layoutInstance.getBackgroundIcons().add(
                     backgroundIcon
-                            .asBuilder()
+                            .asLayoutBuilder()
                             .setBackground(true)
                             .build()
             );

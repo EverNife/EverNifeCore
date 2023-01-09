@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.itemstack.itembuilder;
 
 import br.com.finalcraft.evernifecore.gui.item.GuiItemComplex;
 import br.com.finalcraft.evernifecore.gui.layout.LayoutIcon;
+import br.com.finalcraft.evernifecore.gui.layout.LayoutIconBuilder;
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
@@ -82,6 +83,10 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
                     null //No need to calculate data-part, as this is the creation process, not an edition process
             );
         }
+    }
+
+    public LayoutIconBuilder asLayoutBuilder(){
+        return this.asLayout().asLayoutBuilder();
     }
 
     /**

@@ -109,7 +109,12 @@ public class LayoutIcon {
         return background;
     }
 
+    @Deprecated
     public LayoutIconBuilder asBuilder(){
+        return LayoutIconBuilder.of(this);
+    }
+
+    public LayoutIconBuilder asLayoutBuilder(){
         return LayoutIconBuilder.of(this);
     }
 

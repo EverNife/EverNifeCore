@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.gui.layout;
 
 import br.com.finalcraft.evernifecore.gui.PlayerGui;
+import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
 import dev.triumphteam.gui.guis.GuiItem;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -73,6 +74,10 @@ public class LayoutIconBuilder {
     public LayoutIconBuilder setDataPart(List<String> dataPart) {
         this.dataPart = dataPart;
         return this;
+    }
+
+    public FCItemBuilder asFactory(){ //Even though it's return a FCItemBuilder, for better naming, lets keep 'asFactory'
+        return this.build().asFactory();
     }
 
     public LayoutIcon build() {
