@@ -73,7 +73,7 @@ public class PlayerController {
         }
 
         long end = System.currentTimeMillis();
-        EverNifeCore.info(String.format("Finished Loading PlayerData of %s players! (%s)", newHashMap.size(), FCTimeFrame.of(end-start).getFormattedDiscursive()));
+        EverNifeCore.getLog().info("Finished Loading PlayerData of %s players! (%s)", newHashMap.size(), FCTimeFrame.of(end-start).getFormattedDiscursive());
 
         synchronized (MAP_OF_PLAYER_DATA){
             MAP_OF_PLAYER_DATA = newHashMap;

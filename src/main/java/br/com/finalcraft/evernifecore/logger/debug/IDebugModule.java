@@ -14,8 +14,12 @@ public interface IDebugModule {
 
     public void setEnabled(boolean enabled);
 
+    public default boolean isEnabledByDefault(){
+        return true;
+    }
+
     public default boolean onConfigLoad(ConfigSection section){
-        return section.getOrSetDefaultValue("DebugModules." + getName(), true, getComment());
+        return section.getOrSetDefaultValue("DebugModules." + getName(), isEnabledByDefault(), getComment());
     }
 
 }
