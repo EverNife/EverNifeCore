@@ -1,16 +1,16 @@
 package br.com.finalcraft.evernifecore.itemstack.itembuilder;
 
+import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.util.FCNBTUtil;
+import br.com.finalcraft.evernifecore.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import de.tr7zw.changeme.nbtapi.NBTCompound;
 import de.tr7zw.changeme.nbtapi.NBTItem;
 import dev.triumphteam.gui.builder.item.ItemBuilder;
 import dev.triumphteam.gui.components.util.VersionHelper;
 import org.apache.commons.lang.Validate;
-import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
@@ -42,45 +42,79 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
             Material.LEATHER_HELMET, Material.LEATHER_CHESTPLATE, Material.LEATHER_LEGGINGS, Material.LEATHER_BOOTS
     );
 
-    protected ItemStack itemStack;
-    protected ItemMeta meta;
-    protected transient NBTCompound nbtCompound; //Only populated when needed
+    protected @NotNull ItemStack itemStack;
+    protected @NotNull ItemMeta meta;
+    protected @NotNull transient NBTCompound nbtCompound; //Only populated when needed
 
     protected FCBaseItemBuilder(@NotNull final ItemStack itemStack) {
         Validate.notNull(itemStack, "Item can't be null!");
+        Validate.isTrue(itemStack.getType() != Material.AIR, "Item can't be AIR!");
 
         this.itemStack = NMSUtils.get() != null ? NMSUtils.get().validateItemStackHandle(itemStack.clone()) : itemStack.clone();//Clone the item for this builder! Also validade it!
-        this.meta = itemStack.hasItemMeta() ? itemStack.getItemMeta() : Bukkit.getItemFactory().getItemMeta(itemStack.getType());
+        this.meta = itemStack.getItemMeta();//getItemMeta is only null when the material is AIR
         this.nbtCompound = FCNBTUtil.getFrom(FCNBTUtil.getFrom(itemStack).toString());//Create a copy of the NBTCompound of the itemStack
         this.nbtCompound.removeKey("display");//Remove LORE and DisplayName, its redundant as they are save on the meta
     }
 
+    protected B changeItemStack(@NotNull ItemStack newStack) {
+        //So let's create a new meta
+        ItemMeta newMeta = newStack.getItemMeta();
+
+        //And merge the old meta into the new meta
+        newMeta.setDisplayName(meta.getDisplayName());
+        newMeta.setLore(meta.getLore());
+        meta.getEnchants().forEach((enchantment, level) -> newMeta.addEnchant(enchantment, level, true));
+        if (MCVersion.getCurrent().isHigherEquals(MCDetailedVersion.v1_10_R1) && meta.isUnbreakable()) newMeta.setUnbreakable(true);
+        if (MCVersion.getCurrent().isHigherEquals(MCDetailedVersion.v1_14_R1)){
+            if (meta.hasCustomModelData()) newMeta.setCustomModelData(meta.getCustomModelData());
+            if (meta.hasAttributeModifiers()) newMeta.setAttributeModifiers(meta.getAttributeModifiers());
+        }
+
+        this.itemStack = newStack;
+        this.meta = newMeta;
+        //this.nbtCompound = ????; //There is no need to update the nbt! At least for now
+
+        return (B) this;
+    }
+
     /**
-     * Sets the material of the item.
+     * Sets the material of the item. It acually
+     * creates a new ItemStack with that material, then
+     * copy every single entry of the previous MetaData
+     * to the new MetaData. There is no change to the
+     * builders NBTTagCompound!
      *
      * @param material The material of the item.
      * @return The FCItemBuilder class
      */
     @NotNull
     public B material(@NotNull Material material) {
-        itemStack.setType(material);
-        return (B) this;
+        Validate.notNull(material, "Material can't be null!");
+        Validate.isTrue(itemStack.getType() != Material.AIR, "Material can't be AIR!");
+
+        //On modern versions there are no reliable way to change 'just the material'.
+        //It turns the ItemStack into AIR sometimes, at least I think it does!!!
+        //So let's create a new item
+        ItemStack newStack = FCItemFactory.from(material).build();
+        return this.changeItemStack(newStack);
     }
 
     /**
-     * Sets the material of the item to the material with the given name.
+     * Sets the material of the item. It acually
+     * creates a new ItemStack with that material, then
+     * copy every single entry of the previous MetaData
+     * to the new MetaData. There is no change to the
+     * builders NBTTagCompound!
      *
-     * @param material The material of the item.
+     * @param itemIdentifier The itemIdentifier of the item.
+     *                       can be a BukkitIdentifier
+     *                       or a Minecraft Identifier
      * @return The FCItemBuilder object
      */
     @NotNull
-    public B material(@NotNull String material) {
-        Material theMaterial = FCInputReader.parseMaterial(material);
-        if (theMaterial == null){
-            throw new IllegalArgumentException("The materialName '" + material + "' is not a valid Bukkit Material");
-        }
-        itemStack.setType(theMaterial);
-        return (B) this;
+    public B material(@NotNull String itemIdentifier) {
+        ItemStack newStack = FCItemFactory.from(itemIdentifier).build();
+        return this.changeItemStack(newStack);
     }
 
     /**
