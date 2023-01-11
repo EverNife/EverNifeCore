@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.config.yaml.helper.CfgLoadableSalvable;
 import br.com.finalcraft.evernifecore.config.yaml.helper.ConfigHelper;
 import br.com.finalcraft.evernifecore.config.yaml.helper.smartloadable.SmartLoadSave;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
+import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.Validate;
 import org.bukkit.plugin.Plugin;
@@ -716,6 +717,11 @@ public class Config {
             if (smartLoadSave != null && smartLoadSave.isLoadable()){
                 return (D) getLoadable(path, def.getClass());
             }else {
+                Object value = getValue(path);
+                if (def instanceof Number && value instanceof Number){//Number is screwed, we need to recast! Mainly between INTEGER and LONG
+                    if (def instanceof Integer) return (D) Integer.valueOf(NumberWrapper.of((Number)value).intValue());
+                    if (def instanceof Long) return (D) Long.valueOf(NumberWrapper.of((Number)value).longValue());
+                }
                 return (D) getValue(path);
             }
         }
