@@ -76,6 +76,8 @@ public class EverNifeCore extends JavaPlugin {
     @Override
     public void onEnable() {
         instance = this;
+        MinecraftVersion.replaceLogger(this.getLogger());//Replace [NBT-API] logger
+
         info("§aStarting EverNifeCore");
         info("§aServer Minecraft Version " + MCVersion.getCurrent().name() + " !");
 
