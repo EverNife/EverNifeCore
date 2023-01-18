@@ -100,6 +100,9 @@ public class FCBukkitUtil {
                 world.dropItem(location, exceededItem.getValue());
             }
         }
+        //Update the inventory, because the player might have a gui open!
+        //And giving an item without updating the gui will create a visual glitch!
+        player.updateInventory();
     }
 
 
