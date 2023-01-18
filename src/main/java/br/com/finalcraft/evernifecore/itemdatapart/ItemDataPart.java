@@ -6,6 +6,8 @@ import br.com.finalcraft.evernifecore.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,32 +24,23 @@ public abstract class ItemDataPart {
             PRIORITY_LATE = 80,
             PRIORITY_VERY_LATE = 100;
 
-    public static ItemDataPart
-            AMOUNT,
-            CUSTOMMODELDATA,
-            DURABILITY,
-            ITEMFLAGS,
-            LORE,
-            MATERIAL,
-            NAME,
-            NBT;
+    public static List<ItemDataPart> ALL_REGISTERED_TYPES = new ArrayList<>();
 
-    public static List<ItemDataPart> ALL_REGISTERED_TYPES = new ArrayList<>();;
+    public static ItemDataPart MATERIAL         = registerType(new ItemDataPartMaterial());
+    public static ItemDataPart DURABILITY       = registerType(new ItemDataPartDurability());
+    public static ItemDataPart AMOUNT           = registerType(new ItemDataPartAmount());
+    public static ItemDataPart CUSTOMMODELDATA  = registerType(new ItemDataPartCustomModelData());
+    public static ItemDataPart ITEMFLAGS        = registerType(new ItemDataPartItemflags());
+    public static ItemDataPart NAME             = registerType(new ItemDataPartName());
+    public static ItemDataPart LORE             = registerType(new ItemDataPartLore());
+    public static ItemDataPart NBT              = registerType(new ItemDataPartNBT());
 
-    static {
-        MATERIAL = registerType(new ItemDataPartMaterial());
-        DURABILITY = registerType(new ItemDataPartDurability());
-        AMOUNT = registerType(new ItemDataPartAmount());
-        if (MCVersion.getCurrent().isHigherEquals(MCDetailedVersion.v1_14_R1)) CUSTOMMODELDATA = registerType(new ItemDataPartCustomModelData());
-        if (MCVersion.getCurrent().isHigherEquals(MCDetailedVersion.v1_8_R1)) ITEMFLAGS = registerType(new ItemDataPartItemflags());
-        NAME = registerType(new ItemDataPartName());
-        LORE = registerType(new ItemDataPartLore());
-        NBT = registerType(new ItemDataPartNBT());
-    }
-
-    public static ItemDataPart registerType(ItemDataPart type) {
-        ALL_REGISTERED_TYPES.add(type);
-        return type;
+    public static @Nullable <DP extends ItemDataPart> DP registerType(@NotNull DP type) {
+        if (MCVersion.isHigherEquals(type.getMinimumVersion())){
+            ALL_REGISTERED_TYPES.add(type);
+            return type;
+        }
+        return null;
     }
 
     public static ItemDataPart detectTypeSpecial(String whole_line) {
