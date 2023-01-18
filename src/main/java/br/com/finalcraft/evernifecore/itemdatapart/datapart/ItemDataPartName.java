@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.itemdatapart.datapart;
 
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import org.bukkit.ChatColor;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -11,10 +12,9 @@ public class ItemDataPartName extends ItemDataPart {
 
     @Override
     public ItemStack transform(ItemStack item, String used_name, String argument) {
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(ChatColor.translateAlternateColorCodes('&',argument));
-        item.setItemMeta(meta);
-        return item;
+        return FCItemFactory.from(item)
+                .displayName(argument)
+                .build();
     }
 
     @Override
