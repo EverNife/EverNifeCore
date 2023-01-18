@@ -5,18 +5,18 @@ import lombok.experimental.Accessors;
 
 @Data
 @Accessors(chain = true)
-public class Tuple<ALFA, BETA> {
+public class Tuple<LEFT, RIGHT> {
 
-    private ALFA left;
-    private BETA right;
+    private LEFT left;
+    private RIGHT right;
 
-    private Tuple(ALFA left, BETA right) {
+    private Tuple(LEFT left, RIGHT right) {
         this.left = left;
         this.right = right;
     }
 
-    public static <ALFA, BETA> Tuple<ALFA, BETA> of(ALFA alfa, BETA beta){
-        return new Tuple<>(alfa,beta);
+    public static <LEFT, RIGHT> Tuple<LEFT, RIGHT> of(LEFT left, RIGHT right){
+        return new Tuple<>(left, right);
     }
 
 }
