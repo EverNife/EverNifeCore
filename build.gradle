@@ -145,6 +145,10 @@ shadowJar {
 java {
  //   withJavadocJar()
  //   withSourcesJar()
+    if (getCallingTask().equals("publish")){
+        println "[Appending SourcesJar]"
+        withSourcesJar()
+    }
 }
 
 jar {
