@@ -2,7 +2,6 @@ package br.com.finalcraft.evernifecore.minecraft.worlddata.manager;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.Config;
-import br.com.finalcraft.evernifecore.config.yaml.helper.ConfigHelper;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.minecraft.region.RegionPos;
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
@@ -11,13 +10,16 @@ import br.com.finalcraft.evernifecore.minecraft.worlddata.BlockMetaData;
 import br.com.finalcraft.evernifecore.minecraft.worlddata.ServerData;
 import br.com.finalcraft.evernifecore.minecraft.worlddata.WorldData;
 import br.com.finalcraft.evernifecore.minecraft.worlddata.manager.config.ServerConfigData;
+import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import lombok.Data;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Phaser;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.regex.Pattern;
@@ -118,57 +120,98 @@ public class SVDataManager<O> extends ServerData<O>{
         this.configData.getConfigMap().clear();
         this.blocksToSaveOrRemove.clear();
 
-        int loadedObjects = 0;
+        AtomicInteger loadedObjects = new AtomicInteger();
 
         if (!this.mainFolder.exists()){
             return 0;
         }
 
-        for (Config config : ConfigHelper.getAllConfings(mainFolder, true)) {
-            try {
-                //FileName is   'r.Xcoord.zCoord.yml'
-                String[] split = config.getTheFile().getName().split(Pattern.quote("."));
+        Queue<Config> configs = new ConcurrentLinkedQueue<>();
+        final Phaser phaser = new Phaser(1); // Similar to CountDownLatch, but it can be increased/decreased while it's running
 
-                if (!split[1].equals("region")){
-                    continue;
-                }
-
-                Integer xCoord = FCInputReader.parseInt(split[1]);
-                Integer zCoord = FCInputReader.parseInt(split[2]);
-                RegionPos regionPos = new RegionPos(xCoord, zCoord);
-                String worldName = config.getTheFile().getParentFile().getName();
-                this.configData.setConfigData(worldName, regionPos, config);
-
-                WorldData<O> worldData = this.getOrCreateWorldData(worldName);
-
-                for (String chunkPosSerialized : config.getKeys("")) {
-                    for (String blockPosSerialized : config.getKeys(chunkPosSerialized)) {
-                        String splitBlockPos[] = blockPosSerialized.split("\\|");
-                        BlockPos blockPos = new BlockPos(
-                                FCInputReader.parseInt(splitBlockPos[0]),
-                                FCInputReader.parseInt(splitBlockPos[1]),
-                                FCInputReader.parseInt(splitBlockPos[2])
-                        );
-
-                        ConfigSection section = config.getConfigSection(chunkPosSerialized + "." + blockPosSerialized);
+        long start = System.currentTimeMillis();
+        FileUtils.iterateFiles(mainFolder, new String[]{"yml"}, true)
+                .forEachRemaining(file -> {
+                    phaser.register(); //Increase the phaser count
+                    FCScheduler.runAssync(() -> {
                         try {
-                            O value = this.onConfigLoad.apply(section, new WorldBlockPos(worldName, blockPos));
-                            worldData.setBlockData(blockPos, value);
-                            loadedObjects++;
+                            Config config = new Config(file);
+                            configs.add(config);
                         }catch (Exception e){
-                            EverNifeCore.warning(String.format("Failed to load BlockPos Data from the config at [%s]",  section.toString()));
                             e.printStackTrace();
+                        }finally {
+                            phaser.arriveAndDeregister();
+                        }
+                    });
+                });
+
+        phaser.arriveAndAwaitAdvance(); // await any async tasks to complete
+        EverNifeCore.getLog().debug("SVDataManager.load()[PHASE-CONFIG-LOAD] - Took %s ms to load [%s] configs", System.currentTimeMillis() - start, configs.size());
+
+        start = System.currentTimeMillis();
+        for (Config config : configs) {
+            phaser.register();
+            FCScheduler.runAssync(() -> {
+                try {
+                    //FileName is   'r.Xcoord.zCoord.yml'
+                    String[] split = config.getTheFile().getName().split(Pattern.quote("."));
+
+                    if (!split[0].equals("r")){
+                        EverNifeCore.getLog().warning("Failed to load config file [%s] - Invalid file name", config.getTheFile().getName());
+                        return;
+                    }
+
+                    Integer xCoord = FCInputReader.parseInt(split[1]);
+                    Integer zCoord = FCInputReader.parseInt(split[2]);
+                    RegionPos regionPos = new RegionPos(xCoord, zCoord);
+                    String worldName = config.getTheFile().getParentFile().getName();
+                    synchronized (this.configData){
+                        this.configData.setConfigData(worldName, regionPos, config);
+                    }
+
+                    WorldData<O> worldData = this.getOrCreateWorldData(worldName);
+                    List<Runnable> insertOperations = new ArrayList<>();
+
+                    for (String chunkPosSerialized : config.getKeys("")) {
+                        for (String blockPosSerialized : config.getKeys(chunkPosSerialized)) {
+                            String splitBlockPos[] = blockPosSerialized.split("\\|");
+                            BlockPos blockPos = new BlockPos(
+                                    FCInputReader.parseInt(splitBlockPos[0]),
+                                    FCInputReader.parseInt(splitBlockPos[1]),
+                                    FCInputReader.parseInt(splitBlockPos[2])
+                            );
+
+                            ConfigSection section = config.getConfigSection(chunkPosSerialized + "." + blockPosSerialized);
+                            try {
+                                O value = this.onConfigLoad.apply(section, new WorldBlockPos(worldName, blockPos));
+                                insertOperations.add(() -> {
+                                    worldData.setBlockData(blockPos, value);
+                                });
+                                loadedObjects.incrementAndGet();
+                            }catch (Exception e){
+                                EverNifeCore.warning(String.format("Failed to load BlockPos Data from the config at [%s]",  section.toString()));
+                                e.printStackTrace();
+                            }
                         }
                     }
+
+                    synchronized (worldData){
+                        insertOperations.forEach(Runnable::run);
+                    }
+                }catch (Exception e){
+                    EverNifeCore.warning(String.format("Failed to load RegionData for the SVDataManager at [%s]",  config.getAbsolutePath()));
+                    e.printStackTrace();
+                }finally {
+                    phaser.arriveAndDeregister();
                 }
-            }catch (Exception e){
-                EverNifeCore.warning(String.format("Failed to load RegionData for the SVDataManager at [%s]",  config.getAbsolutePath()));
-                e.printStackTrace();
-            }
+            });
         }
 
+        phaser.arriveAndAwaitAdvance(); // await any async tasks to complete
+        EverNifeCore.getLog().debug("SVDataManager.load()[PHASE-CONFIG-EXTRACT] - Took %s ms to load [%s] objects", System.currentTimeMillis() - start, loadedObjects.get());
+
         this.blocksToSaveOrRemove.clear();//We need to clear again because several items may have been set!
-        return loadedObjects;
+        return loadedObjects.get();
     }
 
     /**

@@ -32,7 +32,7 @@ public abstract class ServerData<O extends Object> {
         return worldDataMap.get(worldName);
     }
 
-    public WorldData<O> getOrCreateWorldData(String worldName){
+    public synchronized WorldData<O> getOrCreateWorldData(String worldName){
         return worldDataMap.computeIfAbsent(worldName, s -> new WorldData<>(this, worldName));
     }
 
