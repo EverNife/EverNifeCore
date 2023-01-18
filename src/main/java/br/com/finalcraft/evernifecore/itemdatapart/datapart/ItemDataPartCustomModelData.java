@@ -3,6 +3,8 @@ package br.com.finalcraft.evernifecore.itemdatapart.datapart;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
+import br.com.finalcraft.evernifecore.version.MCDetailedVersion;
+import br.com.finalcraft.evernifecore.version.MCVersion;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -55,5 +57,10 @@ public class ItemDataPartCustomModelData extends ItemDataPart {
     @Override
     public String[] createNames() {
         return new String[]{"CustomModelData"};
+    }
+
+    @Override
+    public MCDetailedVersion getMinimumVersion() {
+        return MCDetailedVersion.v1_14_R1;
     }
 }

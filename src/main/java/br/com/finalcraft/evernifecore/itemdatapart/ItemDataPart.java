@@ -195,6 +195,10 @@ public abstract class ItemDataPart {
         }
     }
 
+    public MCDetailedVersion getMinimumVersion() {
+        return MCVersion.v1_7_10.getDetailedVersion();
+    }
+
     public abstract ItemStack transform(ItemStack itemStack, String used_name, String argument);
 
     public abstract boolean isSimilar(ItemStack base_item, ItemStack other_item);//Return true in case of success

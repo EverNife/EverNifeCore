@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.itemdatapart.datapart;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.version.MCDetailedVersion;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -69,4 +70,8 @@ public class ItemDataPartItemflags extends ItemDataPart {
         return new String[]{"itemflag", "hideflag", "flag", "itemflags", "hideflags", "flags"};
     }
 
+    @Override
+    public MCDetailedVersion getMinimumVersion() {
+        return MCDetailedVersion.v1_8_R1;
+    }
 }
