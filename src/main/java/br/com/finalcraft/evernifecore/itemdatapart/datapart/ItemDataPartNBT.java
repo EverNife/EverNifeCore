@@ -1,11 +1,11 @@
 package br.com.finalcraft.evernifecore.itemdatapart.datapart;
 
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.util.FCNBTUtil;
 import br.com.finalcraft.evernifecore.version.MCVersion;
-import de.tr7zw.changeme.nbtapi.NBTItem;
+import de.tr7zw.changeme.nbtapi.NBTCompound;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.List;
 
@@ -13,12 +13,9 @@ public class ItemDataPartNBT extends ItemDataPart {
 
     @Override
     public ItemStack transform(ItemStack item, String used_name, String argument) {
-        ItemMeta itemMeta = item.getItemMeta();
-        NBTItem nbtItem = FCNBTUtil.getFrom(item);
-        nbtItem.clearNBT();
-        nbtItem.mergeCompound(FCNBTUtil.getFrom(argument.trim()));
-        item.setItemMeta(itemMeta);
-        return item;
+        return FCItemFactory.from(item)
+                .setNbt(FCNBTUtil.getFrom(argument.trim()))
+                .build();
     }
 
     @Override
@@ -28,17 +25,20 @@ public class ItemDataPartNBT extends ItemDataPart {
 
     @Override
     public List<String> read(ItemStack i, List<String> output) {
-        NBTItem nbtItem = FCNBTUtil.getFrom(i.clone());//Clone it because we may need to remove the "display" tag
-        if (nbtItem.hasNBTData()){
-            nbtItem.removeKey("display");//Remove LORE and DisplayName
-            if (!MCVersion.isLowerEquals(MCVersion.v1_12)){
-                nbtItem.removeKey("Damage");//Remove Damage
+        NBTCompound compound = FCNBTUtil.getFrom( //Clone it because we may need to remove the "display" tag, and the "Damage" tag as well
+                FCNBTUtil.getFrom(i).toString()
+        );
+
+        if (!compound.isEmpty()){
+            compound.removeKey("display");//Remove LORE and DisplayName
+            if (MCVersion.isHigherEquals(MCVersion.v1_13)){
+                compound.removeKey("Damage");//Remove Damage key
             }
-            String nbt = nbtItem.toString();
-            if (!"{}".equals(nbt)){
-                output.add("nbt: " + nbt);
+            if (!compound.isEmpty()){
+                output.add("nbt: " + compound.toString());
             }
         }
+
         return output;
     }
 
