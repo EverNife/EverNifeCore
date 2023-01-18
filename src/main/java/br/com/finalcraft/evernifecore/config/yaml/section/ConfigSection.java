@@ -115,8 +115,8 @@ public class ConfigSection{
         return config.contains(concatSubPath(subPath));
     }
 
-    public Object getValue(String path) {
-        return config.getValue(path);
+    public Object getValue(String subPath) {
+        return config.getValue(concatSubPath(subPath));
     }
 
 
