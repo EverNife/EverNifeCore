@@ -288,16 +288,15 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         protected Supplier<List<O>> supplier;
         protected Function<O, C> valueExtractor;
 
-        private final Comparator<Number> doubleComparator = Comparator.comparingDouble(Number::doubleValue);
-        private final Comparator<Object> stringComparator = Comparator.comparing(Object::toString);
         protected Comparator<SortedItem<O, C>> comparator = (o1, o2) -> {
             Object value1 = o1.getValue();
             Object value2 = o2.getValue();
             if (value1 instanceof Number){
-                return doubleComparator.compare((Number)value1,(Number)value2);
+                return Double.compare(((Number)value1).doubleValue(), ((Number)value2).doubleValue());
             }
-            return stringComparator.compare(String.valueOf(value1),String.valueOf(value2));
+            return String.CASE_INSENSITIVE_ORDER.compare(String.valueOf(value2), String.valueOf(value1));//The order is reversed, to keep the highest value on top
         };
+
         protected List<FancyText> formatHeader = Arrays.asList(new FancyText("§a§m" + FCTextUtil.straightLineOf("-")));
         protected FancyText formatLine = new FancyText("§7#  %number%:   §e%player%§f - §a%value%");
         protected List<FancyText> formatFooter = Collections.emptyList();
