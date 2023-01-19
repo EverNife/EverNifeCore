@@ -3,7 +3,6 @@ package br.com.finalcraft.evernifecore.gui.layout;
 import br.com.finalcraft.evernifecore.config.Config;
 import dev.triumphteam.gui.builder.gui.BaseGuiBuilder;
 import dev.triumphteam.gui.builder.gui.SimpleBuilder;
-import dev.triumphteam.gui.guis.Gui;
 
 import java.util.ArrayList;
 import java.util.List;
