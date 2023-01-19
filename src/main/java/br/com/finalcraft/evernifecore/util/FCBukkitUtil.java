@@ -29,7 +29,7 @@ public class FCBukkitUtil {
     private static Function<String, Boolean> isModLoaded = null;
     static {
         try {
-            if (isClassLoaded("cpw.mods.fml.common.Loader")) { //Minecraft 1.7.10
+            if (FCReflectionUtil.isClassLoaded("cpw.mods.fml.common.Loader")) { //Minecraft 1.7.10
                 isModLoaded = new Function<String, Boolean>() {
                     private final MethodInvoker<Boolean> isModLoaded = FCReflectionUtil.getMethod("cpw.mods.fml.common.Loader", "isModLoaded", String.class);
                     @Override
@@ -37,7 +37,7 @@ public class FCBukkitUtil {
                         return isModLoaded.invoke(null, modName);
                     }
                 };
-            }else if (isClassLoaded("net.minecraftforge.fml.common.Loader")){
+            }else if (FCReflectionUtil.isClassLoaded("net.minecraftforge.fml.common.Loader")){
                 isModLoaded = new Function<String, Boolean>() {
                     private final MethodInvoker<Boolean> isModLoaded = FCReflectionUtil.getMethod("net.minecraftforge.fml.common.Loader", "isModLoaded", String.class);
                     @Override
@@ -45,7 +45,7 @@ public class FCBukkitUtil {
                         return isModLoaded.invoke(null, modName);
                     }
                 };
-            }else if (isClassLoaded("net.minecraftforge.fml.ModList")){
+            }else if (FCReflectionUtil.isClassLoaded("net.minecraftforge.fml.ModList")){
                 isModLoaded = new Function<String, Boolean>() {
                     private final Object modListObj = FCReflectionUtil.getMethod("net.minecraftforge.fml.ModList", "get").invoke(null);
                     private final MethodInvoker<Boolean> isLoaded = FCReflectionUtil.getMethod("net.minecraftforge.fml.ModList", "isLoaded", String.class);
@@ -351,15 +351,6 @@ public class FCBukkitUtil {
             return player.getTargetBlock(null, maxDistance);
         }
         return null;
-    }
-
-    public static boolean isClassLoaded(String className) {
-        try {
-            Class.forName(className);
-            return true;
-        } catch (ClassNotFoundException var2) {
-            return false;
-        }
     }
 
     public static boolean isModLoaded(String modname){

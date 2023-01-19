@@ -476,7 +476,7 @@ public class FCReflectionUtil {
      * @param name the class name.
      * @return true if the class exists.
      */
-    public static boolean doesClassExist(String name) {
+    public static boolean isClassLoaded(String name) {
         try {
             Class c = Class.forName(name);
             if (c != null)

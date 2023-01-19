@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.version;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import org.bukkit.Bukkit;
 
 //This is a personal class for my OWN PERSONAL PRIVATE servers... don't use it, this class might change a lot over the time
@@ -87,7 +87,7 @@ public enum ServerType {
 
     private static ServerType calculateServerType() {
 
-        moddedServer = FCBukkitUtil.isClassLoaded(
+        moddedServer = FCReflectionUtil.isClassLoaded(
                 MCVersion.isLowerEquals(MCVersion.v1_7_10)
                         ? "cpw.mods.fml.common.Loader"
                         : "net.minecraftforge.fml.common.Loader"
@@ -98,15 +98,15 @@ public enum ServerType {
         }
 
         if (moddedServer){
-            if (FCBukkitUtil.isClassLoaded("com.pixelmonmod.pixelmon.Pixelmon")){
+            if (FCReflectionUtil.isClassLoaded("com.pixelmonmod.pixelmon.Pixelmon")){
                 return ServerType.PIXELMON;
             }
 
-            if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.dragonblockutils.DragonBlockUtils")){
+            if (FCReflectionUtil.isClassLoaded("br.com.finalcraft.dragonblockutils.DragonBlockUtils")){
                 return ServerType.DRAGONBLOCK;
             }
 
-            if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.gppskyblock.GPPSkyBlock")){
+            if (FCReflectionUtil.isClassLoaded("br.com.finalcraft.gppskyblock.GPPSkyBlock")){
                 if (MCVersion.isLowerEquals(MCVersion.v1_7_10)){
                     return ServerType.SKYLORDS;
                 }else {
@@ -114,15 +114,15 @@ public enum ServerType {
                 }
             }
 
-            if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.evernifeworldrpg.EverNifeWorldRPG")){
+            if (FCReflectionUtil.isClassLoaded("br.com.finalcraft.evernifeworldrpg.EverNifeWorldRPG")){
                 return ServerType.IDEAL;
             }
 
-            if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.evernifedarkdecimagick.EverNifeDarkDeciMagick")){
+            if (FCReflectionUtil.isClassLoaded("br.com.finalcraft.evernifedarkdecimagick.EverNifeDarkDeciMagick")){
                 return ServerType.DECIMATION;
             }
 
-            if (FCBukkitUtil.isClassLoaded("com.vicmatskiv.mw.ModernWarfareMod")){
+            if (FCReflectionUtil.isClassLoaded("com.vicmatskiv.mw.ModernWarfareMod")){
                 return ServerType.SURVIVALZ;
             }
         }

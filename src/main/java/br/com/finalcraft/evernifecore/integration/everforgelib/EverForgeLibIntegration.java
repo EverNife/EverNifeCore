@@ -7,7 +7,7 @@ import br.com.finalcraft.everforgelib.integration.ModHookTinkersConstruct;
 import br.com.finalcraft.everforgelib.integration.data.AWShopSubInventory;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
-import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.commons.SimpleEntry;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -33,22 +33,22 @@ public class EverForgeLibIntegration {
             EverNifeCore.info("Found EverForgeLib... searching for mods to integrate!");
             apiLoaded = true;
 
-            if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.everforgelib.integration.ModHookBaubles") && ModHookBaubles.isHooked()){
+            if (FCReflectionUtil.isClassLoaded("br.com.finalcraft.everforgelib.integration.ModHookBaubles") && ModHookBaubles.isHooked()){
                 baublesLoaded = true;
                 EverNifeCore.info("[EVERFORLIB-HOOKING] - Boubles Enabled!");
             }
 
-            if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.everforgelib.integration.ModHookTinkersConstruct") && ModHookTinkersConstruct.isHooked()){
+            if (FCReflectionUtil.isClassLoaded("br.com.finalcraft.everforgelib.integration.ModHookTinkersConstruct") && ModHookTinkersConstruct.isHooked()){
                 tinkersLoaded = true;
                 EverNifeCore.info("[EVERFORLIB-HOOKING] - TinkersConstruct Enabled!");
             }
 
-            if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.everforgelib.integration.ModHookDraconicEvolution") && ModHookDraconicEvolution.isHooked()){
+            if (FCReflectionUtil.isClassLoaded("br.com.finalcraft.everforgelib.integration.ModHookDraconicEvolution") && ModHookDraconicEvolution.isHooked()){
                 draconicLoaded = true;
                 EverNifeCore.info("[EVERFORLIB-HOOKING] - DraconicEvolution Enabled!");
             }
 
-            if (FCBukkitUtil.isClassLoaded("br.com.finalcraft.everforgelib.integration.ModHookArmourersWorkshop") && ModHookArmourersWorkshop.isHooked()){
+            if (FCReflectionUtil.isClassLoaded("br.com.finalcraft.everforgelib.integration.ModHookArmourersWorkshop") && ModHookArmourersWorkshop.isHooked()){
                 armourersWorkShopLoaded = true;
                 EverNifeCore.info("[EVERFORLIB-HOOKING] - ArmourersWorkshop Enabled!");
             }
