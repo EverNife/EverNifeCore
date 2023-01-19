@@ -10,6 +10,8 @@ import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.inventory.data.ItemInSlot;
+import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.itemstack.invitem.InvItem;
 import br.com.finalcraft.evernifecore.itemstack.invitem.InvItemManager;
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
@@ -17,12 +19,7 @@ import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
-import br.com.finalcraft.evernifecore.util.FCNBTUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
-import br.com.finalcraft.evernifecore.version.MCVersion;
-import com.google.common.base.Splitter;
-import com.google.common.collect.Iterables;
-import de.tr7zw.changeme.nbtapi.NBTContainer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -293,60 +290,35 @@ public class CfgLoadableSalvable {
 
                     configSection.clear();//Clear any previous value
 
-                    String mcIdentifier = FCItemUtils.getMinecraftIdentifier(itemStack, false);
-
-                    NBTContainer nbtContainer = new NBTContainer(
-                            FCNBTUtil.getFrom(itemStack).toString() //On 1.16.5 editing the NBTItem might not work, so, lets copy the NBT first...
-                    );
-
-                    //Get the NBT and split it into a StringList of 100 chars lengh
-                    final String nbtString;
-                    if (MCVersion.isLowerEquals(MCVersion.v1_12)){
-                        nbtString = nbtContainer.toString();
-                    }else {
-                        nbtContainer.removeKey("Damage"); //Don't need to save the damage twice
-                        nbtString = nbtContainer.toString();
-                    }
-
-                    if (!nbtString.isEmpty() && !nbtString.equals("{}")){ //If the NBT is not empty
-
-                        configSection.setValue("minecraftIdentifier", mcIdentifier);
-                        InvItem invItem = InvItemManager.of(itemStack.getType());
-                        if (invItem != null){
-                            configSection.setValue("invItem.name", invItem.getId());
-                            for (ItemInSlot itemInSlot : invItem.getItemsFrom(itemStack)) {
-                                configSection.setValue("invItem.content." + itemInSlot.getSlot(), itemInSlot.getItemStack());
-                            }
-                            return;
+                    InvItem invItem = InvItemManager.of(itemStack.getType());
+                    if (invItem != null){
+                        configSection.setValue("minecraftIdentifier", FCItemUtils.getMinecraftIdentifier(itemStack, false));
+                        configSection.setValue("invItem.name", invItem.getId());
+                        //TODO save IvnItens with their custom nbt as well like displayName and Lore, alongside their internal items!
+                        //TODO Do this wehn create the new separated integration for EverForgeLib!
+                        for (ItemInSlot itemInSlot : invItem.getItemsFrom(itemStack)) {
+                            configSection.setValue("invItem.content." + itemInSlot.getSlot(), itemInSlot.getItemStack());
                         }
-
-                        //split it into a StringList of 100 chars lengh
-                        List<String> nbt = Arrays.asList(
-                                Iterables.toArray(
-                                        Splitter
-                                                .fixedLength(100)
-                                                .split(nbtString),
-                                        String.class
-                                )
-                        );
-                        configSection.setValue("nbt", nbt);
                     }else {
-                        configSection.setValue(null, mcIdentifier);
+
+                        configSection.setValue("", ItemDataPart.readItem(itemStack));
+
                     }
                 })
                 .setOnConfigLoad(
                         configSection -> {
-                            if (configSection.contains("minecraftIdentifier")){
+                            if (configSection.contains("minecraftIdentifier")){ //This IF here is for legacy support! To keep compatibility with EverNifeCore 2.0.2 or Prior
+
                                 String minecraftIdentifier = configSection.getString("minecraftIdentifier");
-                                if (configSection.contains("nbt")){
+                                if (configSection.contains("nbt")){ //Load the nbt if its separated from the identifier!
                                     String nbt = " " + String.join("", configSection.getStringList("nbt"));
-                                    return FCItemUtils.fromMinecraftIdentifier(minecraftIdentifier + nbt);
+                                    return FCItemFactory.from(minecraftIdentifier + nbt).build();
                                 }else if (configSection.contains("invItem.name")){
-                                    ItemStack customChest = FCItemUtils.fromMinecraftIdentifier(minecraftIdentifier);
+                                    ItemStack customChest = FCItemFactory.from(minecraftIdentifier).build();
                                     String invItemName = configSection.getString("invItem.name");
                                     InvItem invItem = InvItemManager.of(invItemName);
                                     if (invItem == null){
-                                        EverNifeCore.warning("Found an InvItem [" + invItemName  + "] but it is not enabled! The content will be ignored!");
+                                        EverNifeCore.getLog().warning("Found an InvItem [%s] on the section [%s] that doesn't exists! The content will be ignored!", invItemName, configSection.getPath());
                                         return customChest;
                                     }
                                     List<ItemInSlot> itemInSlots = new ArrayList<>();
@@ -358,8 +330,19 @@ public class CfgLoadableSalvable {
                                 }else {
                                     return FCItemUtils.fromMinecraftIdentifier(minecraftIdentifier);
                                 }
-                            }else {//Attempt to Load from BUKKIT or MC identifier, just in case
-                                return FCItemUtils.fromIdentifier(configSection.getString(null));
+
+                            }else {
+                                //IF the key 'minecraftIdentifier' is not present, then this can be three things:
+                                //1. A Bukkit Identifier    (MINECRAFT_STONE)
+                                //2. A Minecraft Identifier (minecraft:stone)
+                                //3. An ItemDataPart        (List<String>)
+                                Object value = configSection.getValue("");
+
+                                if (value instanceof List){
+                                    return FCItemFactory.from((List<String>) value).build();
+                                }else {
+                                    return FCItemFactory.from(String.valueOf(value)).build();
+                                }
                             }
                         }
                 )
