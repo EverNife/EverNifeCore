@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.gui.PlayerGui;
+import br.com.finalcraft.evernifecore.gui.util.EnumWool;
 import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
@@ -179,6 +180,52 @@ public class LayoutIcon {
                     .applyIf(() -> FCInputReader.parseMaterial("EVERPOKEUTILS_BACK") != null, fcItemBuilder -> fcItemBuilder.material("EVERPOKEUTILS_BACK"))
                     .displayName(BACK_BUTTON.getDefaultFancyText().getText())
                     .lore(BACK_BUTTON.getDefaultFancyText().getHoverText())
+                    .asLayout();
+        }
+
+        @FCLocale(lang = LocaleType.EN_US, text = "§a§lConfirm", hover = "" +
+                "§2§m------------------------------------§r" +
+                "\n" +
+                "\n§a ✎ Click here to CONFIRM this operation!" +
+                "\n" +
+                "\n§2§m------------------------------------§r")
+        @FCLocale(lang = LocaleType.PT_BR, text = "§a§lConfirmar", hover = "" +
+                "§2§m------------------------------------§r" +
+                "\n" +
+                "\n§a ✎ Clique aqui para CONFIRMAR essa operação!" +
+                "\n" +
+                "\n§2§m------------------------------------§r")
+        private static LocaleMessage CONFIRM_BUTTON;
+
+        public static LayoutIcon getConfirmButton(){
+            return EnumWool.LIME
+                    .asBuilder()
+                    .applyIf(() -> FCInputReader.parseMaterial("EVERPOKEUTILS_POSITIVO") != null, fcItemBuilder -> fcItemBuilder.material("EVERPOKEUTILS_POSITIVO"))
+                    .displayName(CONFIRM_BUTTON.getDefaultFancyText().getText())
+                    .lore(CONFIRM_BUTTON.getDefaultFancyText().getHoverText())
+                    .asLayout();
+        }
+
+        @FCLocale(lang = LocaleType.EN_US, text = "§c§lDeny", hover = "" +
+                "§2§m------------------------------------§r" +
+                "\n" +
+                "\n§c ✎ Click here to DENY this operation!" +
+                "\n" +
+                "\n§2§m------------------------------------§r")
+        @FCLocale(lang = LocaleType.PT_BR, text = "§c§lCancelar", hover = "" +
+                "§2§m------------------------------------§r" +
+                "\n" +
+                "\n§c ✎ Clique aqui para CANCELAR essa operação!" +
+                "\n" +
+                "\n§2§m------------------------------------§r")
+        private static LocaleMessage DENY_BUTTON;
+
+        public static LayoutIcon getDenyButton(){
+            return EnumWool.RED
+                    .asBuilder()
+                    .applyIf(() -> FCInputReader.parseMaterial("EVERPOKEUTILS_NEGATIVO") != null, fcItemBuilder -> fcItemBuilder.material("EVERPOKEUTILS_NEGATIVO"))
+                    .displayName(DENY_BUTTON.getDefaultFancyText().getText())
+                    .lore(DENY_BUTTON.getDefaultFancyText().getHoverText())
                     .asLayout();
         }
     }
