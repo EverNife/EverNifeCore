@@ -26,7 +26,29 @@ public class MultiArgumentos {
         for (int i = 0; i < args.length; i++) {
             String theArg = args[i];
             if (flagedArgs && theArg.charAt(0) == '-' && !(theArg.length() > 1 &&  Character.isDigit(theArg.charAt(1)))){
-                flags.add(new FlagedArgumento(theArg));
+
+                FlagedArgumento flagedArgumento = new FlagedArgumento(theArg);
+
+                if (flagedArgumento.getFlagValue().length() > 0 && flagedArgumento.getFlagValue().charAt(0) == '\''){
+                    //If the first char is ' then we need to get the next args until we find the last '
+                    StringBuilder stringBuilder = new StringBuilder();
+                    boolean foundLastQuote = false;
+                    int j = i;
+                    for (; j < args.length; j++) {
+                        String arg = args[j];
+                        stringBuilder.append(arg);
+                        if (arg.charAt(arg.length() - 1) == '\''){
+                            foundLastQuote = true;
+                            break;
+                        }
+                    }
+                    if (foundLastQuote){
+                        flagedArgumento = new FlagedArgumento(stringBuilder.toString());
+                        i = j;
+                    }
+                }
+
+                flags.add(flagedArgumento);
                 continue;
             }
             stringArgs.add(theArg);

@@ -25,6 +25,10 @@ public class FlagedArgumento extends Argumento {
         return flagName;
     }
 
+    public String getFlagValue() {
+        return super.toString();
+    }
+
     @Override
     public String toString() {
         return flagName + ':' + super.toString();
