@@ -130,33 +130,9 @@ public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O
     //  Utility Methods
     // -----------------------------------------------------------------------------------------------------------------
 
-    public RegexReplacer<O> addParser(String name, Object value){
-        this.addParser(name, o -> value);
-        return this;
-    }
-
-    public RegexReplacer<O> addParser(String[] name, Object value){
-        for (String alias : name) {
-            this.addParser(alias, o -> value);
-        }
-        return this;
-    }
-
     public RegexReplacer<O> addParser(String[] name, Function<O, Object> parser){
         for (String alias : name) {
             this.addParser(alias, parser);
-        }
-        return this;
-    }
-
-    public RegexReplacer<O> addParser(String name, String description, Object value){
-        this.addParser(name, description, o -> value);
-        return this;
-    }
-
-    public RegexReplacer<O> addParser(String[] name, String description, Object value){
-        for (String alias : name) {
-            this.addParser(alias, description, o -> value);
         }
         return this;
     }
