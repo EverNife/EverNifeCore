@@ -15,7 +15,7 @@ public class ArgumentoTest {
         assert argumentos.get(1).getDouble() == 30.2D;
         assert argumentos.get(1).getInteger() == null;
 
-        argumentos = new MultiArgumentos("hello -teste:1 my --teste:2 friend ---teste:3".split(" "));
+        argumentos = new MultiArgumentos("hello -teste:1 my -testeString:'Here Comes The Mighty Duster!' --teste:2 friend ---teste:3".split(" "));
 
         System.out.println("Before Taking the first Flag, we have:");
         for (Argumento arg : argumentos.getArgs()) {
@@ -23,10 +23,12 @@ public class ArgumentoTest {
         }
 
         //When getting the firt flag, the MultiArgumentos is rearanged to remove all flags from its body
-        assert argumentos.getFlag("teste").getInteger() == 1;
+        assert argumentos.getFlag("teste").getInteger() == argumentos.getFlag("-teste").getInteger();
+
         assert argumentos.getFlag("-teste").getInteger() == 1;
         assert argumentos.getFlag("--teste").getInteger() == 2;
         assert argumentos.getFlag("---teste").getInteger() == 3;
+        assert argumentos.getFlag("-testeString").equals("Here Comes The Mighty Duster!");
 
         //After flagify, argumentos should be in proper order
         assert argumentos.get(0).equals("hello") == true;
@@ -37,9 +39,11 @@ public class ArgumentoTest {
         for (Argumento arg : argumentos.getArgs()) {
             System.out.println(" > " + arg);
         }
+
         for (FlagedArgumento flag : argumentos.getFlags()) {
             System.out.println(" \\--> " + flag);
         }
+
     }
 
 }
