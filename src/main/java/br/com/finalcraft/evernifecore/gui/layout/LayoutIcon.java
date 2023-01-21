@@ -199,7 +199,7 @@ public class LayoutIcon {
 
         public static LayoutIcon getConfirmButton(){
             return EnumWool.LIME
-                    .asBuilder()
+                    .asFactory()
                     .applyIf(() -> FCInputReader.parseMaterial("EVERPOKEUTILS_POSITIVO") != null, fcItemBuilder -> fcItemBuilder.material("EVERPOKEUTILS_POSITIVO"))
                     .displayName(CONFIRM_BUTTON.getDefaultFancyText().getText())
                     .lore(CONFIRM_BUTTON.getDefaultFancyText().getHoverText())
@@ -222,7 +222,7 @@ public class LayoutIcon {
 
         public static LayoutIcon getDenyButton(){
             return EnumWool.RED
-                    .asBuilder()
+                    .asFactory()
                     .applyIf(() -> FCInputReader.parseMaterial("EVERPOKEUTILS_NEGATIVO") != null, fcItemBuilder -> fcItemBuilder.material("EVERPOKEUTILS_NEGATIVO"))
                     .displayName(DENY_BUTTON.getDefaultFancyText().getText())
                     .lore(DENY_BUTTON.getDefaultFancyText().getHoverText())
