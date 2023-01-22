@@ -73,7 +73,7 @@ public class MultiArgumentos {
                             //Remove prefix   '   from the flag value
                             StringBuilder stringBuilder = new StringBuilder(flagedArgumento.getFlagName() + ":" + StringUtils.substring(flagedArgumento.getFlagValue(), 1));
 
-                            //Then serach for the existance of an ending quote
+                            //Then search for the existance of an ending quote
                             int j = i + 1;
                             for (; j < stringArgs.size(); j++) {
                                 flagIndexes.add(j);
