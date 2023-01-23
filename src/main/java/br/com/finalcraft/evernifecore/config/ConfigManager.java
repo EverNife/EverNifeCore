@@ -8,7 +8,7 @@ import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
-import br.com.finalcraft.evernifecore.gui.layout.LayoutIcon;
+import br.com.finalcraft.evernifecore.gui.layout.DefaultIcons;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
@@ -50,7 +50,7 @@ public class ConfigManager {
                 HelpContext.class,
                 FCDefaultExecutor.class,
                 PageViewer.class,
-                LayoutIcon.DefaultIcons.class
+                DefaultIcons.class
         );
         FCLocaleManager.updateEverNifeCoreLocale();
 
