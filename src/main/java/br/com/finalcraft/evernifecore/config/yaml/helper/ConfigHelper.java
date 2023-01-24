@@ -49,18 +49,18 @@ public class ConfigHelper {
      * It copies a file from the plugin's jar to a folder on the server
      *
      * @param plugin The plugin instance.
-     * @param assetName The name of the asset you want to copy.
-     * @param targetFolder The folder you want to copy the asset to.
+     * @param assetPath The asset path from the plugin you want to copy.
+     *                  Example: "assets/config.yml"
+     * @param targetFile The File where to place the asset to.
      * @return A file object
      */
-    public static File copyAsset(Plugin plugin, String assetName, File targetFolder) throws IOException {
-        File file = new File(targetFolder, assetName);
-        if (!file.exists()){
-            file.mkdirs();
-            InputStream inputStream = plugin.getResource(assetName);
-            Files.copy(inputStream, file.getAbsoluteFile().toPath(), new CopyOption[]{StandardCopyOption.REPLACE_EXISTING});
+    public static File copyAsset(Plugin plugin, String assetPath, File targetFile) throws IOException {
+        if (!targetFile.exists()){
+            targetFile.getParentFile().mkdirs();
+            InputStream inputStream = plugin.getResource(assetPath);
+            Files.copy(inputStream, targetFile.getAbsoluteFile().toPath(), new CopyOption[]{StandardCopyOption.REPLACE_EXISTING});
         }
-        return file;
+        return targetFile;
     }
 
 }
