@@ -20,6 +20,7 @@ import org.simpleyaml.configuration.comments.format.YamlCommentFormat;
 import org.simpleyaml.configuration.file.YamlConfigurationOptions;
 import org.simpleyaml.configuration.file.YamlFile;
 import org.simpleyaml.configuration.implementation.api.QuoteStyle;
+import org.simpleyaml.configuration.implementation.snakeyaml.SnakeYamlImplementation;
 import org.simpleyaml.exceptions.InvalidConfigurationException;
 
 import java.io.File;
@@ -45,9 +46,14 @@ public class Config {
     // ------------------------------------------------------------------------------------------------------------------
 
     private void loadWithComments(){
+        yamlFile.options().quoteStyleDefaults().setQuoteStyle(List.class, QuoteStyle.DOUBLE);
+        yamlFile.options().quoteStyleDefaults().setQuoteStyle(String.class, QuoteStyle.DOUBLE);
+
+        final SnakeYamlImplementation implementation = (SnakeYamlImplementation) yamlFile.getImplementation();
+        implementation.getDumperOptions().setSplitLines(false);
+
         if (getTheFile().exists()){
             try {
-                this.yamlFile.options().quoteStyleDefaults().setQuoteStyle(List.class, QuoteStyle.SINGLE);
                 this.yamlFile.loadWithComments();
             } catch (IOException e) {
                 //In case of an error, usually by a MalFormed YML File, it's better to create a new file and just notify the console
