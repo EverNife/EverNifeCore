@@ -46,6 +46,7 @@ public class Config {
     // ------------------------------------------------------------------------------------------------------------------
 
     private void loadWithComments(){
+        yamlFile.options().quoteStyleDefaults().setDefaultQuoteStyle(QuoteStyle.PLAIN);
         yamlFile.options().quoteStyleDefaults().setQuoteStyle(List.class, QuoteStyle.DOUBLE);
         yamlFile.options().quoteStyleDefaults().setQuoteStyle(String.class, QuoteStyle.DOUBLE);
 
