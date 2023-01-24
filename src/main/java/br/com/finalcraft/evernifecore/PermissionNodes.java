@@ -11,6 +11,8 @@ public class PermissionNodes {
     public static final String EVERNIFECORE_COMMAND_BLOCKINFO           = "evernifecore.command.blockinfo";
     public static final String EVERNIFECORE_COMMAND_ITEMINFO            = "evernifecore.command.iteminfo";
     public static final String EVERNIFECORE_COMMAND_FCLOCALE            = "evernifecore.command.fclocale";
+    public static final String EVERNIFECORE_PAGEVIEWER_ALL              = "evernifecore.pageviewer.all";
+    public static final String EVERNIFECORE_PAGEVIEWER_INTERVAL         = "evernifecore.pageviewer.interval";
     public static final String UPDATECHECK_PERMISSION_TEMPLATE          = "%plugin%.updatecheck.warn";
 
 }

@@ -157,6 +157,26 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         send(page, start, end, sender);
     }
 
+    public void send(@Nullable PageVizualization pageVizualization, @NotNull CommandSender... sender){
+        if (pageVizualization == null){
+            send(1, sender);
+            return;
+        }
+
+        if (pageVizualization.isShowAll()){
+            send(1, 0, Integer.MAX_VALUE, sender);
+            return;
+        }
+
+        int page = pageVizualization.getPageStart();
+        int pageEnd = pageVizualization.getPageEnd();
+        int diff = pageEnd - page;
+
+        int start = NumberWrapper.of((page - 1) * pageSize).boundUpper(lineEnd - pageSize).intValue();
+        int end = NumberWrapper.of((page * pageSize) + (pageSize * diff)).boundUpper(lineEnd).intValue();
+        send(page, start, end, sender);
+    }
+
     public void send(int page, int lineStart, int lineEnd, CommandSender... sender){
         validateCachedLines();
 
