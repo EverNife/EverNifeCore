@@ -182,7 +182,6 @@ public class CfgLoadableSalvable {
 
                     if (fancyText instanceof FancyFormatter){
                         FancyFormatter fancyFormatter = (FancyFormatter) fancyText;
-                        configSection.setValue(null);//Erase previous value first
                         configSection.setValue("formatter", true);
                         for (int index = 0; index < fancyFormatter.getFancyTextList().size(); index++) {
                             configSection.setValue(String.valueOf(index + 1), fancyFormatter.getFancyTextList().get(index));
@@ -190,18 +189,30 @@ public class CfgLoadableSalvable {
                         return;
                     }
 
-                    boolean hover = fancyText.getHoverText() != null && !fancyText.getHoverText().isEmpty();
-                    boolean action = fancyText.getClickActionText() != null && !fancyText.getClickActionText().isEmpty();
+                    boolean hasHover = fancyText.getHoverText() != null && !fancyText.getHoverText().isEmpty();
+                    boolean hasAction = fancyText.getClickActionText() != null && !fancyText.getClickActionText().isEmpty();
 
-                    if (hover || action){
-                        configSection.setValue("text", fancyText.getText().replace("§","&"));
-                        if (hover) configSection.setValue("hoverText", fancyText.getHoverText().replace("§","&"));
-                        if (action) {
-                            configSection.setValue("clickActionText", fancyText.getClickActionText().replace("§","&"));
-                            configSection.setValue("clickActionType", fancyText.getClickActionType().name());
-                        }
-                    }else {
-                        configSection.setValue(fancyText.getText().replace("§","&"));
+                    String text = fancyText.getText().replace("§","&");
+                    Object saveText = text.contains("\n") ? Arrays.asList(text.split("\n")) : text;
+
+                    if (hasHover == false && hasAction == false) {
+                        //If there is no hover or action, just save the text
+                        configSection.setValue(saveText);
+                        return;
+                    }
+
+                    configSection.setValue("text", saveText);
+
+                    if (hasHover) {
+                        String hoverText = fancyText.getHoverText().replace("§","&");
+                        Object saveHover = hoverText.contains("\n") ? Arrays.asList(hoverText.split("\n")) : hoverText;
+                        configSection.setValue("hoverText", saveHover);
+                    }
+                    if (hasAction) {
+                        String clickActionText = fancyText.getClickActionText().replace("§","&");
+                        Object saveAction = clickActionText.contains("\n") ? Arrays.asList(clickActionText.split("\n")) : clickActionText;
+                        configSection.setValue("clickActionText", saveAction);
+                        configSection.setValue("clickActionType", fancyText.getClickActionType().name());
                     }
                 })
                 .setOnConfigLoad(
@@ -218,11 +229,23 @@ public class CfgLoadableSalvable {
 
                                 return fancyFormatter;
                             }else { //Normal FancyText
+
+                                //Create a helper function to convert List<String> into a single String
+                                Function<Object, String> getStringFromStringOrStringList = obj -> {
+                                    if (obj instanceof String){
+                                        return (String) obj;
+                                    }else if (obj instanceof List){
+                                        return String.join("\n", (List<String>) obj);
+                                    }
+                                    return null;
+                                };
+
                                 if (configSection.contains(("text"))){
-                                    String text = configSection.getString("text");
-                                    String hoverText = configSection.getString("hoverText", null);
-                                    String actionText = configSection.getString("clickActionText", null);
-                                    String actionTypeName = configSection.getString("clickActionType", null);
+                                    //This means this fancyText has more than just the text
+                                    String text = getStringFromStringOrStringList.apply(configSection.getValue("text"));
+                                    String hoverText = getStringFromStringOrStringList.apply(configSection.getValue("hoverText"));
+                                    String actionText = getStringFromStringOrStringList.apply(configSection.getValue("clickActionText"));
+                                    String actionTypeName = getStringFromStringOrStringList.apply(configSection.getValue("clickActionType"));
                                     ClickActionType actionType = actionTypeName != null && !actionTypeName.isEmpty() ? ClickActionType.valueOf(actionTypeName) : ClickActionType.NONE;
                                     return new FancyText(
                                             FCColorUtil.colorfy(text),
@@ -231,7 +254,7 @@ public class CfgLoadableSalvable {
                                             actionType
                                     );
                                 }else {
-                                    return new FancyText(FCColorUtil.colorfy(configSection.getString(null)));
+                                    return new FancyText(FCColorUtil.colorfy(getStringFromStringOrStringList.apply(configSection.getString(null))));
                                 }
                             }
                         }
