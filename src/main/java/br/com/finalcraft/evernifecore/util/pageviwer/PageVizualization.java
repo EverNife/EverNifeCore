@@ -7,7 +7,7 @@ public class PageVizualization {
 
     private final int pageStart;
     private final int pageEnd;
-    private boolean showAll;
+    private final boolean showAll;
 
     public PageVizualization(int pageStart, int pageEnd, boolean showAll) {
         this.pageStart = pageStart;
