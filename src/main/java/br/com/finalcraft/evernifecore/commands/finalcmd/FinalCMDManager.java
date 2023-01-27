@@ -20,7 +20,7 @@ import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.FCMultiLocales;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
-import br.com.finalcraft.evernifecore.util.pageviwer.PageVizualization;
+import br.com.finalcraft.evernifecore.pageviwer.PageVizualization;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;

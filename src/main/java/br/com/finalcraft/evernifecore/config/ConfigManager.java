@@ -13,7 +13,7 @@ import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
-import br.com.finalcraft.evernifecore.util.pageviwer.PageViewer;
+import br.com.finalcraft.evernifecore.pageviwer.PageViewer;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class ConfigManager {

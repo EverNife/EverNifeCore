@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
-import br.com.finalcraft.evernifecore.util.pageviwer.PageVizualization;
+import br.com.finalcraft.evernifecore.pageviwer.PageVizualization;
 import com.google.common.collect.ImmutableList;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;

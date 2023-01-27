@@ -9,7 +9,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.util.pageviwer.PageViewer;
+import br.com.finalcraft.evernifecore.pageviwer.PageViewer;
 import org.bukkit.command.CommandSender;
 
 import java.util.ArrayList;
