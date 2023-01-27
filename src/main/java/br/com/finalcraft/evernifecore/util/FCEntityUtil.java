@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.util;
 
 import br.com.finalcraft.everforgelib.api.customnpcs.IScriptLivingBase;
 import br.com.finalcraft.everforgelib.api.customnpcs.IScriptPlayer;
-import br.com.finalcraft.evernifecore.util.reflection.MethodInvoker;
+import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;

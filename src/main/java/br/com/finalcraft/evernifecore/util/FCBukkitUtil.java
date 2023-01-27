@@ -9,7 +9,7 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.ontime.OntimeManager;
-import br.com.finalcraft.evernifecore.util.reflection.MethodInvoker;
+import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import br.com.finalcraft.evernifecore.version.ServerType;
 import org.bukkit.*;

@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.fancytext;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
-import br.com.finalcraft.evernifecore.util.reflection.MethodInvoker;
+import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;

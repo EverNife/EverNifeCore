@@ -6,7 +6,7 @@ import br.com.finalcraft.evernifecore.integration.bossshop.customizer.ECItemStac
 import br.com.finalcraft.evernifecore.integration.bossshop.datapart.ItemDataPartNBT;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
-import br.com.finalcraft.evernifecore.util.reflection.FieldAccessor;
+import br.com.finalcraft.evernifecore.reflection.FieldAccessor;
 import org.black_ixx.bossshop.core.BSBuy;
 import org.black_ixx.bossshop.events.BSLoadShopItemsEvent;
 import org.black_ixx.bossshop.events.BSRegisterTypesEvent;

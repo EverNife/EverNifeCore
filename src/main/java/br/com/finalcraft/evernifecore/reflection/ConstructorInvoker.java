@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.util.reflection;
+package br.com.finalcraft.evernifecore.reflection;
 
 public interface ConstructorInvoker<T> {
     /**

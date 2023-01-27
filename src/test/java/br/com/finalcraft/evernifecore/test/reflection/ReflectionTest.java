@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.test.reflection;
 
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
-import br.com.finalcraft.evernifecore.util.reflection.ConstructorInvoker;
+import br.com.finalcraft.evernifecore.reflection.ConstructorInvoker;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
