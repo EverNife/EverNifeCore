@@ -25,11 +25,12 @@ public class FCTimeUtil {
      * Convert a Time String to the amount of milliseconds.
      *
      * The text input can be in two formats:
-     *  1- HH:mm:ss     --> 20:         : 20 hours
-     *  2- HH:mm:ss     --> 20:30       : 20 hours and 30 minutes
-     *  3- HH:mm:ss     --> 20:00:30    : 20 hours and 30 seconds
-     *  4- XhYmZs       --> 20h30m      : 20 hours and 30 minutes
-     *  5- XhYmZs       --> 20          : 20 seconds
+     *  1- HH:mm:ss     --> 20:             : 20 hours
+     *  2- HH:mm:ss     --> 20:30           : 20 hours and 30 minutes
+     *  3- HH:mm:ss     --> 20:00:30        : 20 hours and 30 seconds
+     *  4- XhYmZs       --> 20h30m          : 20 hours and 30 minutes
+     *  5- XhYmZs       --> 20              : 20 seconds
+     *  6- XhYmZs       --> 20 hours 1 m    : 20 hours and 1 minute
      *
      * @param text the time string
      * @return the amount of milliseconds equivalent to the given string
