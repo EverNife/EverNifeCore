@@ -142,6 +142,13 @@ public class FCMessageUtil {
         NEEDS_TO_BE_UUID.addPlaceholder("%argumento%", argumento).send(sender);
     }
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §7[§2%argumento%§7]§c needs to be a valid TimeFrame! §eFor Example: '30s' or '1h 30m 10s'")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §7[§2%argumento%§7]§c precisa ser uma TimeFrame Valido! §ePor exemplo: '30s' ou '1h 30m 10s'")
+    private static LocaleMessage NEEDS_TO_BE_TIME_FRAME;
+    public static void needsToBeTimeFrame(CommandSender sender, String argumento){
+        NEEDS_TO_BE_TIME_FRAME.addPlaceholder("%argumento%", argumento).send(sender);
+    }
+
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou do not have enough money! §7§o(Money: %current_money%§l/§7§o%needed_money%)")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê não tem money suficiente! §7§o(Money: %current_money%§l/§7§o%needed_money%)")
     private static LocaleMessage ECO_NOT_ENOUGHT;
