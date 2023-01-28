@@ -99,4 +99,24 @@ public class DefaultIcons {
                 .asLayout();
     }
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§a§lInfo", hover = "" +
+            "§2§m------------------------------------§r" +
+            "\n" +
+            "\n" +
+            "\n" +
+            "\n§2§m------------------------------------§r")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§a§lInfo", hover = "" +
+            "§2§m------------------------------------§r" +
+            "\n" +
+            "\n" +
+            "\n" +
+            "\n§2§m------------------------------------§r")
+    private static LocaleMessage INFORMATION_BUTTON;
+
+    public static LayoutIcon getInformationButton() {
+        return FCItemFactory.from(Material.PAPER)
+                .displayName(INFORMATION_BUTTON.getDefaultFancyText().getText())
+                .lore(INFORMATION_BUTTON.getDefaultFancyText().getHoverText())
+                .asLayout();
+    }
 }
