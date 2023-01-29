@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.logger;
 import br.com.finalcraft.evernifecore.logger.debug.IDebugModule;
 
 public enum ECDebugModule implements IDebugModule {
-    TESTE,
+    ARG_PARSER,
     ;
 
     private final String comment;
