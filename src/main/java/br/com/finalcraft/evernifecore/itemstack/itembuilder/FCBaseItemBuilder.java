@@ -430,20 +430,24 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
             //I don't know, but it is.
             //If we don't do this way, will not work
 
-            //This behavior here DOES NOT WORK on +1.8
             if (nbtCompound.isEmpty()){
                 ItemStack clone = this.itemStack.clone();
                 clone.setItemMeta(meta.clone());
                 return clone;
             }else {
-                NBTItem nbtItem = new NBTItem(this.itemStack.clone());
-                nbtItem.mergeCompound(this.nbtCompound);
-                nbtItem.getItem().setItemMeta(this.meta.clone());
-                return nbtItem.getItem();
+                // Somehow the code bellow does not work on 1.8 +
+                ItemStack clone = this.itemStack.clone();
+
+                NBTItem cloneNBT = new NBTItem(clone);//Create a clone from the clone inside the NBTItem
+                cloneNBT.mergeCompound(this.nbtCompound);
+                clone = cloneNBT.getItem();
+
+                clone.setItemMeta(this.meta.clone());
+                return clone;
             }
         }
 
-        //Only Directly Apply works on 1.8+
+        //Somehow the code bellow does not work on 1.7.10
         ItemStack clone = this.itemStack.clone();
         clone.setItemMeta(meta.clone());
 
