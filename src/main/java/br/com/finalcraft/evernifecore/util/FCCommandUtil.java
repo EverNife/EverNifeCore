@@ -9,7 +9,7 @@ public class FCCommandUtil {
      * Creates a Command String that will execute this runnable when the command
      * is executed by the player
      *
-     * @param runnable The runnable of to this command
+     * @param runnable The runnable for this command
      *
      * @return The Command link to this runnable, like "/%label% UUID"
      */
@@ -21,7 +21,7 @@ public class FCCommandUtil {
      * Creates a Command String that will execute this runnable when the command
      * is executed by the player
      *
-     * @param runnable The runnable of to this command
+     * @param runnable The runnable for this command
      * @param maxTimeInSeconds The max amount of time this command can be run
      *
      * @return The Command link to this runnable, like "/%label% UUID"
