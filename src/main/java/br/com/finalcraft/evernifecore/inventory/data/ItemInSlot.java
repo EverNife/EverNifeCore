@@ -27,7 +27,7 @@ public class ItemInSlot {
         int count = 0;
         for (ItemStack itemStack : itemStacks) {
             if (itemStack != null){
-                itemsInSlotList.add(new ItemInSlot(count, FCItemFactory.from(itemStack.clone()).build()));//Store a VALIDATED copy
+                itemsInSlotList.add(new ItemInSlot(count, FCItemFactory.from(itemStack).build()));//Store a VALIDATED copy
             }
             count++;
         }
