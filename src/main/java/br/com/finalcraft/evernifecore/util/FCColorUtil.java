@@ -28,9 +28,15 @@ public class FCColorUtil {
             List<String> result = new ArrayList<>();
             result.add(split[0]);
             for (int i = 1; i < split.length; i++) {
-                String previous = result.get(i - 1);
-                String next = ChatColor.getLastColors(previous) + split[i];
-                result.add(next);
+                String previousLine = result.get(i - 1);
+                String previousColor = ChatColor.getLastColors(previousLine);
+
+                String nextLine = split[i];
+                if (!nextLine.startsWith(previousColor)){//Only if the new line doesn't already have the color, apply it
+                    nextLine = previousColor + nextLine;
+                }
+
+                result.add(nextLine);
             }
             return String.join("\n", result);
         }
