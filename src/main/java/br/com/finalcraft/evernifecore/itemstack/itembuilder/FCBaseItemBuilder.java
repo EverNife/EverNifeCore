@@ -50,10 +50,10 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
         Validate.notNull(itemStack, "Item can't be null!");
         Validate.isTrue(itemStack.getType() != Material.AIR, "Item can't be AIR!");
 
-        this.itemStack = NMSUtils.get() != null ? NMSUtils.get().validateItemStackHandle(itemStack.clone()) : itemStack.clone();//Clone the item for this builder! Also validade it!
+        this.itemStack = NMSUtils.get() != null ? NMSUtils.get().validateItemStackHandle(itemStack.clone()) : itemStack.clone();//Clone the item for this builder! Also, validade it!
         this.meta = itemStack.getItemMeta();//getItemMeta is only null when the material is AIR
         this.nbtCompound = FCNBTUtil.getFrom(FCNBTUtil.getFrom(itemStack).toString());//Create a copy of the NBTCompound of the itemStack
-        this.nbtCompound.removeKey("display");//Remove LORE and DisplayName, its redundant as they are save on the meta
+        this.nbtCompound.removeKey("display");//Remove LORE and DisplayName, its redundant as they are saved on the meta
     }
 
     protected B changeItemStack(@NotNull ItemStack newStack) {
@@ -424,39 +424,16 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      */
     @NotNull
     public ItemStack build() {
-
-        if (MCVersion.isEqual(MCVersion.v1_7_10)){
-            //I don't know why it's different from other versions,
-            //I don't know, but it is.
-            //If we don't do this way, will not work
-
-            if (nbtCompound.isEmpty()){
-                ItemStack clone = this.itemStack.clone();
-                clone.setItemMeta(meta.clone());
-                return clone;
-            }else {
-                // Somehow the code bellow does not work on 1.8 +
-                ItemStack clone = this.itemStack.clone();
-
-                NBTItem cloneNBT = new NBTItem(clone);//Create a clone from the clone inside the NBTItem
-                cloneNBT.mergeCompound(this.nbtCompound);
-                clone = cloneNBT.getItem();
-
-                clone.setItemMeta(this.meta.clone());
-                return clone;
-            }
+        if (nbtCompound.isEmpty()){
+            ItemStack clone = this.itemStack.clone();
+            clone.setItemMeta(meta.clone());
+            return clone;
+        }else {
+            NBTItem cloneNBT = new NBTItem(this.itemStack);//NBTItem creates an internal clone
+            cloneNBT.getItem().setItemMeta(this.meta.clone());
+            cloneNBT.mergeCompound(this.nbtCompound);
+            return cloneNBT.getItem();
         }
-
-        //Somehow the code bellow does not work on 1.7.10
-        ItemStack clone = this.itemStack.clone();
-        clone.setItemMeta(meta.clone());
-
-        if (!this.nbtCompound.isEmpty()){
-            NBTItem nbtItem = FCNBTUtil.getFrom(clone);
-            nbtItem.mergeCompound(nbtCompound);
-        }
-
-        return clone;
     }
 
     // -----------------------------------------------------------------------------------------------------------------
