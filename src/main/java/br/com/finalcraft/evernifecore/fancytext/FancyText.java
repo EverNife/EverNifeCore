@@ -14,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class FancyText {
 
@@ -275,7 +276,9 @@ public class FancyText {
     }
 
     public void broadcast(){
-        send(Bukkit.getOnlinePlayers().toArray(new Player[0]));
+        List<CommandSender> senders = Bukkit.getOnlinePlayers().stream().collect(Collectors.toList());
+        senders.add(0, Bukkit.getConsoleSender());
+        send(senders.toArray(new Player[0]));
     }
 
     public FancyText clone() {
