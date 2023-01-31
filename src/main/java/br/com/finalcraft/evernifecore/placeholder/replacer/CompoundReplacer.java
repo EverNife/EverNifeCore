@@ -13,6 +13,14 @@ public class CompoundReplacer {
     private List<Tuple<RegexReplacer, Object>> REGEX_REPLACERS = new ArrayList<>();
     private Player papiUser = null; //If not null, integrate with PlaceholderAPI
 
+    public CompoundReplacer() {
+
+    }
+
+    public static <O> CompoundReplacer from(RegexReplacer<O> regexReplacer, O object){
+        return new CompoundReplacer().appendReplacer(regexReplacer, object);
+    }
+
     public <O> CompoundReplacer appendReplacer(RegexReplacer<O> regexReplacer, O object){
         this.REGEX_REPLACERS.add(Tuple.of(regexReplacer, object));
         return this;
@@ -50,10 +58,6 @@ public class CompoundReplacer {
             texts.set(i, apply(texts.get(i)));
         }
         return texts;
-    }
-
-    public static <O> CompoundReplacer from(RegexReplacer<O> regexReplacer, O object){
-        return new CompoundReplacer().appendReplacer(regexReplacer, object);
     }
 
     public boolean isEmpty(){
