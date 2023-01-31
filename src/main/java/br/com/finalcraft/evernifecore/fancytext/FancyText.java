@@ -5,6 +5,7 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
+import org.apache.commons.lang3.ArrayUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -12,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -276,9 +278,11 @@ public class FancyText {
     }
 
     public void broadcast(){
-        List<CommandSender> senders = Bukkit.getOnlinePlayers().stream().collect(Collectors.toList());
-        senders.add(0, Bukkit.getConsoleSender());
-        send(senders.toArray(new CommandSender[0]));
+        CommandSender[] senders = ArrayUtils.addAll(
+                new CommandSender[]{Bukkit.getConsoleSender()},
+                Bukkit.getOnlinePlayers().toArray(new CommandSender[0])
+        );
+        send(senders);
     }
 
     public FancyText clone() {
