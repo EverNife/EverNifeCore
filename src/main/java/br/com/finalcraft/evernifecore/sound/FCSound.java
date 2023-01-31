@@ -19,6 +19,7 @@ public class FCSound {
     public static FCSound ANVIL_USE = FCSound.of(MCVersion.isLowerEquals(MCDetailedVersion.v1_8_R3) ? "random.anvil_use" : "block.anvil.use");
     public static FCSound ANVIL_LAND = FCSound.of(MCVersion.isLowerEquals(MCDetailedVersion.v1_8_R3) ? "random.anvil_land" : "block.anvil.land");
     public static FCSound CHICKEN_EGG_POP = FCSound.of(MCVersion.isLowerEquals(MCDetailedVersion.v1_8_R3) ? "random.pop" : "entity.chicken.egg");
+    public static FCSound ITEM_BREAK = FCSound.of(MCVersion.isLowerEquals(MCDetailedVersion.v1_8_R3) ? "random.break" : "entity.item.break");
 
     public static FCSound SUCCESSFUL_HIT = FCSound.of(MCVersion.isLowerEquals(MCDetailedVersion.v1_8_R3) ? "random.successful_hit" : "entity.player.attack.nodamage");
     public static FCSound BURP = FCSound.of(MCVersion.isLowerEquals(MCDetailedVersion.v1_8_R3) ? "random.burp" : "entity.player.burp");
