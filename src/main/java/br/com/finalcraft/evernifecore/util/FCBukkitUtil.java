@@ -37,7 +37,7 @@ public class FCBukkitUtil {
                         return isModLoaded.invoke(null, modName);
                     }
                 };
-            }else if (FCReflectionUtil.isClassLoaded("net.minecraftforge.fml.common.Loader")){
+            }else if (FCReflectionUtil.isClassLoaded("net.minecraftforge.fml.common.Loader")){ //Minecraft 1.12.2
                 isModLoaded = new Function<String, Boolean>() {
                     private final MethodInvoker<Boolean> isModLoaded = FCReflectionUtil.getMethod("net.minecraftforge.fml.common.Loader", "isModLoaded", String.class);
                     @Override
@@ -45,7 +45,7 @@ public class FCBukkitUtil {
                         return isModLoaded.invoke(null, modName);
                     }
                 };
-            }else if (FCReflectionUtil.isClassLoaded("net.minecraftforge.fml.ModList")){
+            }else if (FCReflectionUtil.isClassLoaded("net.minecraftforge.fml.ModList")){ //Minecraft 1.16.5
                 isModLoaded = new Function<String, Boolean>() {
                     private final Object modListObj = FCReflectionUtil.getMethod("net.minecraftforge.fml.ModList", "get").invoke(null);
                     private final MethodInvoker<Boolean> isLoaded = FCReflectionUtil.getMethod("net.minecraftforge.fml.ModList", "isLoaded", String.class);
@@ -351,6 +351,10 @@ public class FCBukkitUtil {
             return player.getTargetBlock(null, maxDistance);
         }
         return null;
+    }
+
+    public static boolean isForge(){
+        return isModLoaded != null;
     }
 
     public static boolean isModLoaded(String modname){
