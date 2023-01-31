@@ -278,7 +278,7 @@ public class FancyText {
     public void broadcast(){
         List<CommandSender> senders = Bukkit.getOnlinePlayers().stream().collect(Collectors.toList());
         senders.add(0, Bukkit.getConsoleSender());
-        send(senders.toArray(new Player[0]));
+        send(senders.toArray(new CommandSender[0]));
     }
 
     public FancyText clone() {
