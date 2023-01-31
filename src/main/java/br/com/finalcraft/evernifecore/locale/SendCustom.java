@@ -30,7 +30,7 @@ public class SendCustom {
     }
 
     public SendCustom addReplacer(CompoundReplacer compoundReplacer) {
-        this.compoundReplacer.merge(compoundReplacer);
+        this.compoundReplacer.appendReplacer(compoundReplacer);
         return this;
     }
 

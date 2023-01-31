@@ -18,7 +18,7 @@ public class CompoundReplacer {
         return this;
     }
 
-    public CompoundReplacer merge(CompoundReplacer other){
+    public CompoundReplacer appendReplacer(CompoundReplacer other){
         this.REGEX_REPLACERS.addAll(other.REGEX_REPLACERS);
         if (this.papiUser == null){
             this.papiUser = other.papiUser;
@@ -65,7 +65,7 @@ public class CompoundReplacer {
     }
 
     public CompoundReplacer clone() {
-        return new CompoundReplacer().merge(this);
+        return new CompoundReplacer().appendReplacer(this);
     }
 
     public List<Tuple<RegexReplacer, Object>> getRegexReplacers() {
