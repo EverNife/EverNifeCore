@@ -81,8 +81,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * Sets the material of the item. It acually
      * creates a new ItemStack with that material, then
      * copy every single entry of the previous MetaData
-     * to the new MetaData. There is no change to the
-     * builders NBTTagCompound!
+     * to the new MetaData. There is no change to this
+     * builder's NBTTagCompound!
      *
      * @param material The material of the item.
      * @return The FCItemBuilder class
