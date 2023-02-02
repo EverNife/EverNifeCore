@@ -12,15 +12,13 @@ public class FCFileLogger {
         File theLogFile = new File(rootFolder,logFileName);
         try {
             if (!theLogFile.exists()) {
+                theLogFile.getParentFile().mkdirs();
                 theLogFile.createNewFile();
             }
             FileOutputStream fos = new FileOutputStream(theLogFile, true);
             this.ps = new PrintStream(fos);
-        } catch (FileNotFoundException e) {
-            EverNifeCore.instance.getLogger().severe("Log file not found!");
-            e.printStackTrace();
         } catch (IOException e) {
-            EverNifeCore.instance.getLogger().severe("Could not create log file!");
+            EverNifeCore.getLog().severe("Failed to create the FCFileLogger at %s", theLogFile.getAbsolutePath());
             e.printStackTrace();
         }
     }
