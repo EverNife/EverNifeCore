@@ -7,11 +7,9 @@ import com.sk89q.worldguard.protection.RegionResultSet;
 import com.sk89q.worldguard.protection.association.RegionAssociable;
 import com.sk89q.worldguard.protection.flags.Flag;
 import com.sk89q.worldguard.protection.flags.StateFlag;
-import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
