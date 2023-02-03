@@ -42,11 +42,11 @@ public class ChunkData<O extends Object> {
                 ? posDataMap.remove(blockPos)
                 : posDataMap.put(blockPos, newValue = new BlockMetaData<>(blockPos, this, value));
 
-        if (previousBlockMeta != null){
+        if (previousBlockMeta != null && this.worldData != null && this.worldData.serverData != null){
             this.getWorldData().getServerData().onBlockMetaRemove(previousBlockMeta);
         }
 
-        if (newValue != null){
+        if (newValue != null && this.worldData != null && this.worldData.serverData != null){
             this.getWorldData().getServerData().onBlockMetaSet(newValue);
         }
 
