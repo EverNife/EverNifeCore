@@ -114,6 +114,7 @@ public class PlayerData implements IPlayerData{
     public void setPlayer(Player player){
         this.player = player;
         this.lastSeen = System.currentTimeMillis();
+        this.setRecentChanged();
     }
 
     @Override
