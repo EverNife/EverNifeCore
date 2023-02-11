@@ -50,15 +50,21 @@ public enum MCDetailedVersion {
 
     // Operations
     private int value;
+    private int shortValue;
     private String shortVersion;
 
-    MCDetailedVersion(int value, String ShortVersion) {
+    MCDetailedVersion(int value, String shortVersion) {
         this.value = value;
-        this.shortVersion = ShortVersion;
+        this.shortValue = Integer.parseInt(shortVersion.replace("v", "").replace("_", ""));
+        this.shortVersion = shortVersion;
     }
 
     public int getValue() {
         return value;
+    }
+
+    public int getShortValue() {
+        return shortValue;
     }
 
     public String getShortVersion() {

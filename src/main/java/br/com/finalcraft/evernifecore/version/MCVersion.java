@@ -23,23 +23,23 @@ public enum MCVersion {
     }
 
     public static boolean isLower(MCVersion otherVersion) {
-        return MCDetailedVersion.getCurrent().isLower(otherVersion.getDetailedVersion());
+        return MCDetailedVersion.getCurrent().getShortValue() < otherVersion.getDetailedVersion().getShortValue();
     }
 
     public static boolean isLowerEquals(MCVersion otherVersion) {
-        return MCDetailedVersion.getCurrent().isLowerEquals(otherVersion.getDetailedVersion());
+        return MCDetailedVersion.getCurrent().getShortValue() <= otherVersion.getDetailedVersion().getShortValue();
     }
 
     public static boolean isEqual(MCVersion otherVersion) {
-        return MCDetailedVersion.getCurrent().isEqual(otherVersion.getDetailedVersion());
+        return MCDetailedVersion.getCurrent().getShortValue() == otherVersion.getDetailedVersion().getShortValue();
     }
 
     public static boolean isHigher(MCVersion otherVersion) {
-        return MCDetailedVersion.getCurrent().isHigher(otherVersion.getDetailedVersion());
+        return MCDetailedVersion.getCurrent().getShortValue() > otherVersion.getDetailedVersion().getShortValue();
     }
 
     public static boolean isHigherEquals(MCVersion otherVersion) {
-        return MCDetailedVersion.getCurrent().isHigherEquals(otherVersion.getDetailedVersion());
+        return MCDetailedVersion.getCurrent().getShortValue() >= otherVersion.getDetailedVersion().getShortValue();
     }
 
     // -----------------------------------------------------------------------------------------------------------------
