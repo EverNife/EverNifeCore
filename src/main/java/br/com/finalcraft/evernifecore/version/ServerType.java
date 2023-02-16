@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.version;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import org.bukkit.Bukkit;
 
@@ -26,7 +27,6 @@ public enum ServerType {
     }
 
     private static ServerType serverType = null;
-    private static Boolean moddedServer = null;
     private static Boolean personalEverNifeServer = null;
 
     public static boolean isSkylords(){
@@ -50,7 +50,7 @@ public enum ServerType {
     }
 
     public static boolean isVanilla(){
-        return !moddedServer;
+        return !FCBukkitUtil.isForge();
     }
 
     public static boolean isVanillaFactions(){
@@ -66,8 +66,7 @@ public enum ServerType {
     }
 
     public static boolean isModdedServer(){
-        if (moddedServer == null) getCurrent();//Enforce Calculate
-        return moddedServer;
+        return FCBukkitUtil.isForge();
     }
 
     public static boolean isSkyBlock(){
@@ -87,17 +86,11 @@ public enum ServerType {
 
     private static ServerType calculateServerType() {
 
-        moddedServer = FCReflectionUtil.isClassLoaded(
-                MCVersion.isLowerEquals(MCVersion.v1_7_10)
-                        ? "cpw.mods.fml.common.Loader"
-                        : "net.minecraftforge.fml.common.Loader"
-        );
-
-        if (isEverNifePersonalServer()){
+        if (!isEverNifePersonalServer()){
             return UNKNOWN;
         }
 
-        if (moddedServer){
+        if (FCBukkitUtil.isForge()){
             if (FCReflectionUtil.isClassLoaded("com.pixelmonmod.pixelmon.Pixelmon")){
                 return ServerType.PIXELMON;
             }
