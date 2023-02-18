@@ -86,15 +86,21 @@ public class PlayerController {
     }
 
     public static void savePlayerDataOnConfig(){
-        List<PlayerData> playerDataList;
+        List<Map.Entry<UUID, PlayerData>> allPlayerData;
         synchronized (MAP_OF_PLAYER_DATA){
-            playerDataList = new ArrayList<>(MAP_OF_PLAYER_DATA.values());
+            allPlayerData = new ArrayList<>(MAP_OF_PLAYER_DATA.entrySet());
         }
-        for (PlayerData playerData : playerDataList) {
+        for (Map.Entry<UUID, PlayerData> entry : allPlayerData) {
+            UUID uuid = entry.getKey();
+            PlayerData playerData = entry.getValue();
+
             try {
                 playerData.savePlayerData();
             }catch (Throwable e){
-                EverNifeCore.warning("Failed to save PlayerData of: " + playerData.getPlayerName());
+                String playerName = playerData != null && playerData.getPlayerName() != null
+                        ? playerData.getPlayerName()
+                        : UUIDsController.getNameFromUUID(uuid);
+                EverNifeCore.getLog().warning("Failed to save PlayerData of [%s] (%s)!", uuid, playerName);
                 e.printStackTrace();
             }
         }

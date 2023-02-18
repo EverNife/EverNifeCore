@@ -33,7 +33,7 @@ public class PlayerLoginListener implements ECListener {
         if (!ECSettings.useNamesInsteadOfUUIDToStorePlayerData && !event.getName().equals(playerData.getPlayerName())){
             //When in online mode there is the possibility for the player to change his name
             //So we need to update the name in the playerData!
-            playerData.getConfig().setValue("PlayerData.Username",event.getName());
+            playerData.getConfig().setValue("PlayerData.Username", event.getName());
             PlayerController.reloadPlayerData(event.getUniqueId());
         }
     }
