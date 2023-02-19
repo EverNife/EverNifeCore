@@ -23,7 +23,9 @@ public class ArgParserString extends ArgParser<String> {
         super(argInfo);
 
         //If context is empty, take the name for it
-        String context = !argInfo.getArgData().name().isEmpty() ? argInfo.getArgData().name() : argInfo.getArgData().context();
+        String context = argInfo.getArgData().context().isEmpty()
+                ? argInfo.getArgData().name()
+                : argInfo.getArgData().context();
 
         possibilities = ImmutableList.copyOf(ArgsParserUtil.parseStringContextSelectional(context));
 
