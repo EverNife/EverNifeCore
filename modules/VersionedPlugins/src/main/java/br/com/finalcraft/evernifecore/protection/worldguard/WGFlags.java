@@ -112,10 +112,10 @@ public class WGFlags {
 
 
     // idk?
-    public static @DefaultState(state = false) StateFlag INVINCIBILITY;
+    public static @DefaultState(state = false) StateFlag INVINCIBILITY = (StateFlag) getFlagFromWorldGuard("invincible");
     public static @DefaultState(state = true) StateFlag FALL_DAMAGE;
-    public static @DefaultState(state = true) StateFlag HEALTH_REGEN;
-    public static @DefaultState(state = true) StateFlag HUNGER_DRAIN;
+    public static @DefaultState(state = true) StateFlag HEALTH_REGEN = (StateFlag) getFlagFromWorldGuard("natural-health-regen");
+    public static @DefaultState(state = true) StateFlag HUNGER_DRAIN = (StateFlag) getFlagFromWorldGuard("natural-hunger-drain");
 
     // session and movement based flags
     public static @DefaultState(state = true) StateFlag ENTRY;
