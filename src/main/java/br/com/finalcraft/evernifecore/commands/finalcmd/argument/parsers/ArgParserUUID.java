@@ -12,7 +12,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class ArgParserUUID extends ArgParser<UUID> {
@@ -49,17 +51,16 @@ public class ArgParserUUID extends ArgParser<UUID> {
 
     @Override
     public @NotNull List<String> tabComplete(Context context) {
-        Collection<PlayerData> playerDataList = online ? Bukkit.getOnlinePlayers().stream().map(PlayerController::getPlayerData).collect(Collectors.toList()) : PlayerController.getAllPlayerData();
+        Collection<PlayerData> playerDataList = online
+                ? Bukkit.getOnlinePlayers().stream().map(PlayerController::getPlayerData).collect(Collectors.toList())
+                : PlayerController.getAllPlayerData();
 
-        List<String> matchedPlayers = new ArrayList<>();
-        for (PlayerData playerData : playerDataList) {
-            String uuid = playerData.getUniqueId().toString();
-            if (StringUtil.startsWithIgnoreCase(uuid, context.getLastWord())) {
-                matchedPlayers.add(uuid);
-            }
-        }
 
-        Collections.sort(matchedPlayers, String.CASE_INSENSITIVE_ORDER);
-        return matchedPlayers;
+        return playerDataList.stream()
+                .map(playerData -> playerData.getUniqueId().toString())
+                .filter(s -> StringUtil.startsWithIgnoreCase(s, context.getLastWord()))
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(Collectors.toList());
+
     }
 }

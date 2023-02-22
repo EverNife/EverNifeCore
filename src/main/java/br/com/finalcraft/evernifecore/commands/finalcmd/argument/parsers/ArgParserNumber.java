@@ -107,7 +107,13 @@ public class ArgParserNumber extends ArgParser<Number> {
     @Override
     public @NotNull List<String> tabComplete(Context context) {
         if (possibilities != null){
-            return possibilities.stream().map(aDouble -> FCMathUtil.toString(aDouble)).filter(s -> StringUtil.startsWithIgnoreCase(s, context.getLastWord())).collect(Collectors.toList());
+
+            return possibilities.stream()
+                    .map(aDouble -> FCMathUtil.toString(aDouble))
+                    .filter(s -> StringUtil.startsWithIgnoreCase(s, context.getLastWord()))
+                    .sorted(String.CASE_INSENSITIVE_ORDER)
+                    .collect(Collectors.toList());
+
         }
 
         return ImmutableList.of();

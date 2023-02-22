@@ -14,9 +14,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -56,17 +54,16 @@ public class ArgParserIPlayerData extends ArgParser<IPlayerData> {
 
     @Override
     public @NotNull List<String> tabComplete(Context context) {
-        Collection<PlayerData> playerDataList = online ? Bukkit.getOnlinePlayers().stream().map(PlayerController::getPlayerData).collect(Collectors.toList()) : PlayerController.getAllPlayerData();
 
-        List<String> matchedPlayers = new ArrayList<>();
-        for (PlayerData playerData : playerDataList) {
-            String name = playerData.getPlayerName();
-            if (StringUtil.startsWithIgnoreCase(name, context.getLastWord())) {
-                matchedPlayers.add(name);
-            }
-        }
+        Collection<PlayerData> playerDataList = online
+                ? Bukkit.getOnlinePlayers().stream().map(PlayerController::getPlayerData).collect(Collectors.toList())
+                : PlayerController.getAllPlayerData();
 
-        Collections.sort(matchedPlayers, String.CASE_INSENSITIVE_ORDER);
-        return matchedPlayers;
+        return playerDataList.stream()
+                .map(playerData -> playerData.getPlayerName())
+                .filter(s -> StringUtil.startsWithIgnoreCase(s, context.getLastWord()))
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(Collectors.toList());
+
     }
 }

@@ -73,6 +73,11 @@ public class ArgParserEnum extends ArgParser<Enum> {
 
     @Override
     public @NotNull List<String> tabComplete(Context context) {
-        return possibilities.stream().filter(s -> StringUtil.startsWithIgnoreCase(s, context.getLastWord())).collect(Collectors.toList());
+
+        return possibilities.stream()
+                .filter(s -> StringUtil.startsWithIgnoreCase(s, context.getLastWord()))
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(Collectors.toList());
+
     }
 }

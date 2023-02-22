@@ -11,9 +11,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ArgParserWorld extends ArgParser<World> {
 
@@ -37,16 +36,11 @@ public class ArgParserWorld extends ArgParser<World> {
     @Override
     public @NotNull List<String> tabComplete(Context context) {
 
-        List<String> matchedWorlds = new ArrayList<>();
+        return Bukkit.getWorlds().stream()
+                .map(world -> world.getName())
+                .filter(s -> StringUtil.startsWithIgnoreCase(s, context.getLastWord()))
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(Collectors.toList());
 
-        for (World world : Bukkit.getWorlds()) {
-            if (StringUtil.startsWithIgnoreCase(world.getName(), context.getLastWord())){
-                matchedWorlds.add(world.getName());
-            }
-        }
-
-        Collections.sort(matchedWorlds, String.CASE_INSENSITIVE_ORDER);
-
-        return matchedWorlds;
     }
 }
