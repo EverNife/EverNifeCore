@@ -33,18 +33,23 @@ public class CMDItemInfo {
         player.sendMessage("§m§7" + FCTextUtil.straightLineOf("-"));
         if (NMSUtils.get() != null){
             FancyText.of("§d ● §eLocalizedName: §a" + FCItemUtils.getLocalizedName(heldItem))
-                    .setHoverText("Click to copy! [" + FCItemUtils.getLocalizedName(heldItem) + "]")
+                    .setHoverText("§7Click to copy! [§a" + FCItemUtils.getLocalizedName(heldItem) + "§7]")
                     .setSuggestCommandAction(FCItemUtils.getLocalizedName(heldItem))
                     .send(player);
 
             FancyText.of("\n§d ● §eMCIdentifier: §a" + FCItemUtils.getMinecraftIdentifier(heldItem))
-                    .setHoverText("Click to copy! [" + FCItemUtils.getMinecraftIdentifier(heldItem) + "]")
+                    .setHoverText("§7Click to copy! [§a" + FCItemUtils.getMinecraftIdentifier(heldItem) + "§7]")
                     .setSuggestCommandAction(FCItemUtils.getMinecraftIdentifier(heldItem))
                     .send(player);
         }
 
         String readLines = ItemDataPart.readItem(heldItem).stream().collect(Collectors.joining("\n - "));
-        FancyText.of("§b ▼ \n - " + readLines)
+
+        FancyText.of("§b ▼ ")
+                .setHoverText("§7Click to copy! [§a" + FCItemUtils.getBukkitIdentifier(heldItem) + "§7]")
+                .setSuggestCommandAction(FCItemUtils.getBukkitIdentifier(heldItem))
+
+                .append("\n - " + readLines)
                 .setHoverText("§b - " + readLines)
                 .setSuggestCommandAction(readLines)
                 .send(player);
