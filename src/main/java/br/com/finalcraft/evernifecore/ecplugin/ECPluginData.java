@@ -135,11 +135,15 @@ public class ECPluginData {
                     .replace(".yml","")
                     .replace("lang_","");
             localization_config.saveIfNewDefaults();
-            requiredEntireReload=true;
+            requiredEntireReload = true;
         }
 
         //If the plugin is using a HardcodedLocale there is no need to make great changes
-        boolean isHardcodedLocale = Arrays.stream(LocaleType.values()).map(Enum::name).filter(s -> s.equals(this.getPluginLanguage())).findAny().isPresent();
+        boolean isHardcodedLocale = Arrays.stream(LocaleType.values())
+                .map(Enum::name)
+                .filter(s -> s.equals(this.getPluginLanguage()))
+                .findAny()
+                .isPresent();
 
         if (!isHardcodedLocale &&
                 (this.customLangConfig == null //There was no config, first load of the plugin
