@@ -2,7 +2,10 @@ package br.com.finalcraft.evernifecore.logger;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
 
 public class FCFileLogger {
 

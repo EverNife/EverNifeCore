@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.util;
 
-import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import br.com.finalcraft.evernifecore.reflection.ConstructorInvoker;
 import br.com.finalcraft.evernifecore.reflection.FieldAccessor;
 import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
+import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

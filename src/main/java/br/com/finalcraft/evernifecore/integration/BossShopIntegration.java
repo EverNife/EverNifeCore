@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.integration;
 
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.reflection.FieldAccessor;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import org.black_ixx.bossshop.BossShop;
 import org.black_ixx.bossshop.api.BossShopAPI;
 import org.black_ixx.bossshop.core.BSBuy;
