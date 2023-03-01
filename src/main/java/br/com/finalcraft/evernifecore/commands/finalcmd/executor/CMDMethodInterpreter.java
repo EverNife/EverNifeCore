@@ -95,7 +95,7 @@ public class CMDMethodInterpreter {
 
                 ArgRequirementType type = ArgRequirementType.getArgumentType(argData.name());
                 if (type == null){
-                    throw new ArgMountException("Failed to load ArgRequirementType from ArgData [" + argData.name() + "]");
+                    throw new ArgMountException("Failed to load ArgRequirementType from ArgData [" + argData.name() + "], usually this means the ArgData.name() is not Quoted with <> or []");
                 }
 
                 ArgInfo argInfo = new ArgInfo(parameterClazz, argData, flagArgIndex, type == ArgRequirementType.REQUIRED); //If subcommand, move arg to the RIGHT 1 slot
