@@ -155,9 +155,9 @@ public class CMDMethodInterpreter {
             ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(owningPlugin);
             localeMessage = new LocaleMessageImp(owningPlugin, localeMessageKey, false);
             FancyText fancyText = new FancyText(null, cmdData.desc());
-            for (LocaleType lang : LocaleType.values()) {
+            for (String lang : LocaleType.values()) {
                 localeMessage.addLocale(
-                        lang.name(),
+                        lang,
                         fancyText
                 );
             }

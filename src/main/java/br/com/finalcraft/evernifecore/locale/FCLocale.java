@@ -9,5 +9,5 @@ public @interface FCLocale {
     String text() default "";
     String hover() default "";
     String runCommand() default "";
-    LocaleType lang() default LocaleType.EN_US;
+    String lang() default LocaleType.EN_US;
 }

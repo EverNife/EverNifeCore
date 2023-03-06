@@ -22,14 +22,14 @@ public class FCLocaleData {
         text = "";
         hover = "";
         runCommand = "";
-        lang = LocaleType.EN_US.name();
+        lang = LocaleType.EN_US;
     }
 
     public FCLocaleData(FCLocale locale) {
         this.text = locale.text();
         this.hover = locale.hover();
         this.runCommand = locale.runCommand();
-        this.lang = locale.lang().name();
+        this.lang = LocaleType.normalize(locale.lang()); //If "eN_uS" is passed, it will be normalized to "EN_US"
     }
 
     public FCLocaleData replace(String placeholder, String value){

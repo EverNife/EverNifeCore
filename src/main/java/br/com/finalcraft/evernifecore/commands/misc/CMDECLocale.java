@@ -45,13 +45,13 @@ public class CMDECLocale {
         for (ECPluginData ecplugin : sortedPlugins) {
             formatter.append("\n§d ♦ §b" + ecplugin.getPlugin().getName() + " §7");
 
-            for (LocaleType localeType : LocaleType.values()) {
-                boolean isThisSelected = ecplugin.getPluginLanguage().equals(localeType.name());
+            for (String localeType : LocaleType.values()) {
+                boolean isThisSelected = ecplugin.getPluginLanguage().equals(localeType);
                 formatter.append(
-                        FancyText.of((isThisSelected ? "§a§l" : "") +  "[" + localeType.name() + "]§7")
-                                .setHoverText(isThisSelected ? "§aThis locale is already selected!" : "Click to Change Locale to: " + localeType.name())
+                        FancyText.of((isThisSelected ? "§a§l" : "") +  "[" + localeType + "]§7")
+                                .setHoverText(isThisSelected ? "§aThis locale is already selected!" : "Click to Change Locale to: " + localeType)
                                 .setRunCommandAction(isThisSelected ? null : FCCommandUtil.dynamicCommand(() -> {
-                                    FCBukkitUtil.makeConsoleExecuteCommand(label + " set " + ecplugin.getPlugin().getName() + " " + localeType.name());
+                                    FCBukkitUtil.makeConsoleExecuteCommand(label + " set " + ecplugin.getPlugin().getName() + " " + localeType);
                                     this.list(sender, label);//Send this command again
                                 }))
                 );
@@ -90,9 +90,9 @@ public class CMDECLocale {
             return;
         }
 
-        LocaleType localeType = null;
-        for (LocaleType value : LocaleType.values()) {
-            if (argumentos.get(2).equalsIgnoreCase(value.name())){
+        String localeType = null;
+        for (String value : LocaleType.values()) {
+            if (argumentos.get(2).equalsIgnoreCase(value)){
                 localeType = value;
                 break;
             }
@@ -100,7 +100,7 @@ public class CMDECLocale {
 
         Config localization_config = new Config(plugin, "localization/localization_config.yml");
 
-        String newLocaleValue = "lang_" + (localeType != null ? localeType.name() : argumentos.get(2)) + ".yml";
+        String newLocaleValue = "lang_" + (localeType != null ? localeType : argumentos.get(2)) + ".yml";
         String previousLocaleValue = localization_config.getString("Localization.fileName");
 
         if (!newLocaleValue.equals(previousLocaleValue)){
