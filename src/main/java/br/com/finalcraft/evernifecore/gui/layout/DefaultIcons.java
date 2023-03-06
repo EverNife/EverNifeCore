@@ -18,7 +18,7 @@ public class DefaultIcons {
     public static LayoutIcon getPreviousPageButton() {
         return FCItemFactory
                 .from(Material.REDSTONE)
-                .applyIf(() -> MCVersion.isHigherEquals(MCVersion.v1_16), builder -> builder.material(Material.SPECTRAL_ARROW))
+                .applyIf(() -> MCVersion.isHigherEquals(MCVersion.v1_12), builder -> builder.material(Material.SPECTRAL_ARROW))
                 .applyIf(() -> FCInputReader.parseMaterial("EVERPOKEUTILS_BACK") != null, fcItemBuilder -> fcItemBuilder.material("EVERPOKEUTILS_BACK"))
                 .displayName(PREVIOUS_PAGE.getDefaultFancyText().getText())
                 .lore(PREVIOUS_PAGE.getDefaultFancyText().getHoverText())
