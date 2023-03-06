@@ -32,7 +32,7 @@ public class FCInputReader {
     public static Material parseMaterial(String materialName) {
         Material material = Material.matchMaterial(materialName);
         if (material == null) {
-            if (MCVersion.isHigherEquals(MCVersion.v1_12)){
+            if (MCVersion.isHigherEquals(MCVersion.v1_13)){
                 material = Material.matchMaterial(materialName, true);
             }
         }
