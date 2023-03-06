@@ -42,6 +42,12 @@ public class LocaleMessageImp implements LocaleMessage {
     }
 
     @Override
+    public void broadcast(){
+        custom().broadcast();//Use a custom to replace CONTEXT placeholders!
+    }
+
+
+    @Override
     public SendCustom custom(){
         return new SendCustom(this);
     }

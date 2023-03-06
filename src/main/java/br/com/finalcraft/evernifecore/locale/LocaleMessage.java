@@ -14,13 +14,7 @@ public interface LocaleMessage {
 
     public void send(CommandSender... commandSenders);
 
-    public default void broadcast(){
-        CommandSender[] senders = ArrayUtils.addAll(
-                new CommandSender[]{Bukkit.getConsoleSender()},
-                Bukkit.getOnlinePlayers().toArray(new CommandSender[0])
-        );
-        send(Bukkit.getOnlinePlayers().toArray(new Player[0]));
-    }
+    public void broadcast();
 
     public SendCustom custom();
 
