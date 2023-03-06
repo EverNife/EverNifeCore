@@ -98,8 +98,8 @@ public class SendCustom {
 
         LocaleMessageImp localeMessageImp = (LocaleMessageImp) localeMessage;
         List<Map.Entry<String, Object>> allPlaceholdersReplacers = new ArrayList<Map.Entry<String, Object>>();
-        allPlaceholdersReplacers.addAll(localeMessageImp.getContextPlaceholders().entrySet()); //Context Placeholders, like %label%
         allPlaceholdersReplacers.addAll(mapOfPlaceholders.entrySet()); //Custom placeholders, created by demand
+        allPlaceholdersReplacers.addAll(localeMessageImp.getContextPlaceholders().entrySet()); //Context Placeholders, like %label%
 
         boolean isPlayer = sender instanceof Player;
         final PlayerData playerData = isPlayer ? PlayerController.getPlayerData((Player) sender) : null;
