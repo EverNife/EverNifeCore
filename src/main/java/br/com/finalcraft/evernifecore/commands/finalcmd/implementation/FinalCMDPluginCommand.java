@@ -82,6 +82,26 @@ public class FinalCMDPluginCommand extends Command implements PluginIdentifiable
 
         this.helpContext = new HelpContext(finalCMD.helpHeader(), this);
 
+        String calculatedPermission = finalCMD.permission();
+        if (mainInterpreter != null && mainInterpreter.getCmdData().permission() != null && !mainInterpreter.getCmdData().permission().isEmpty()){
+            calculatedPermission = mainInterpreter.getCmdData().permission();
+        }else if (subCommands.size() > 0){
+            if (subCommands.stream().map(subCommand -> subCommand.getCmdData().permission()).filter(String::isEmpty).findFirst().isPresent()){
+                calculatedPermission = null; //If there is at least one subcommand that has no permission, then the main command will have no permission
+            }else {
+                calculatedPermission = subCommands.stream()
+                        .map(subCommand -> subCommand.getCmdData().permission())
+                        .filter(Objects::nonNull)
+                        .filter(permission -> !permission.isEmpty())
+                        .collect(Collectors.joining(";"));
+            }
+        }
+        this.setPermission(
+                calculatedPermission != null && !calculatedPermission.isEmpty()
+                        ? calculatedPermission
+                        : null
+        );
+
         return FinalCMDManager.getCommandMap().register(owningPlugin.getName(), this);
     }
 
