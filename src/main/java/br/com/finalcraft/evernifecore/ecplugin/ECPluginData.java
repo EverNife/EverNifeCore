@@ -8,17 +8,14 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.logger.debug.IDebugModule;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
-import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class ECPluginData {
 
@@ -31,7 +28,7 @@ public class ECPluginData {
 
     private Config localization_config;
     private Config customLangConfig;
-    private final List<Tuple<String, Config>> hardcodedLocalizations = new ArrayList<>();
+    private final Map<String, Config> hardcodedLocalizations = new LinkedHashMap();
     private boolean markedForLocaleReload = false;
 
     //debug
@@ -77,11 +74,6 @@ public class ECPluginData {
             this.reloadAfter = new String[0];
         }
 
-        for (String type : LocaleType.values()) {
-            Config lang = new Config(plugin, "localization/lang_" + type + ".yml");
-            hardcodedLocalizations.add(Tuple.of(type, lang));
-        }
-
         reloadAllCustomLocales();
         //this.plugin.getLogger().info("[FCLocale] Setting locale to [" + pluginLanguage +"]!");
     }
@@ -117,6 +109,13 @@ public class ECPluginData {
         this.debugEnabled = debugEnabled;
     }
 
+    public void addHardcodedLocaleIfNeeded(String lang){
+        if (!hardcodedLocalizations.containsKey(lang)){
+            hardcodedLocalizations.put(lang, new Config(plugin, "localization/lang_" + lang + ".yml"));
+            markedForLocaleReload = true;
+        }
+    }
+
     public void addLocale(LocaleMessageImp localeMessageImp){
         localizedMessages.put(localeMessageImp.getKey(), localeMessageImp);
         if (localeMessageImp.needToBeSynced()){
@@ -139,10 +138,7 @@ public class ECPluginData {
         }
 
         //If the plugin is using a HardcodedLocale there is no need to make great changes
-        boolean isHardcodedLocale = Arrays.stream(LocaleType.values())
-                .filter(s -> s.equals(this.getPluginLanguage()))
-                .findAny()
-                .isPresent();
+        boolean isHardcodedLocale = hardcodedLocalizations.containsKey(this.getPluginLanguage());
 
         if (!isHardcodedLocale &&
                 (this.customLangConfig == null //There was no config, first load of the plugin
@@ -165,15 +161,15 @@ public class ECPluginData {
         boolean anyChange = false;
         for (LocaleMessageImp localeMessage : localizedMessages.values()) {
 
-            if (!localeMessage.shouldSyncToFile()){
-                //Ignore this locale
-                continue;
-            }
-
             //Set a DefaultValue for this Custom LocaleMessage based on the ENGLISH hardcoded LocaleMessage, or the next one
             FancyText defaultFancyText = null;
-            for (String locale : LocaleType.values()) {
-                defaultFancyText = localeMessage.getFancyText(locale);
+            Set<String> ALL_POSSIBLE_LOCALES = new LinkedHashSet<>();
+
+            ALL_POSSIBLE_LOCALES.addAll(Arrays.stream(LocaleType.values()).collect(Collectors.toList())); //Add 'EN_US' and 'PT_BR' First
+            ALL_POSSIBLE_LOCALES.addAll(hardcodedLocalizations.keySet()); //Add other hardcoded locales after, like "PT_BR_CUSTOM"
+
+            for (String possibleLocale : ALL_POSSIBLE_LOCALES) {
+                defaultFancyText = localeMessage.getFancyText(possibleLocale);
                 if (defaultFancyText != null){
                     break;
                 }
@@ -181,19 +177,29 @@ public class ECPluginData {
 
             //Now we need to look for the LocaleMessage and save it to the hardcoded files, for example EN_US
             if (localeMessage.needToBeSynced()){
-                for (Tuple<String, Config> tuple : hardcodedLocalizations) {
-                    Config hardcodedConfig = tuple.getRight();
+                for (Map.Entry<String, Config> entry : hardcodedLocalizations.entrySet()) {
+                    Config hardcodedConfig = entry.getValue();
                     FancyText hardcodedOnConfig = hardcodedConfig.getLoadable(localeMessage.getKey(), FancyText.class);
                     if (hardcodedOnConfig == null){
                         hardcodedOnConfig = new FancyText("[LOCALE_NOT_FOUND]");
                     }
 
-                    FancyText hardcodedOnCode = localeMessage.getFancyText(tuple.getLeft());
-                    if (hardcodedOnCode == null) hardcodedOnCode = defaultFancyText;
+                    FancyText hardcodedOnCode = localeMessage.getFancyText(entry.getKey());
+                    if (hardcodedOnCode == null) {
+                        hardcodedOnCode = defaultFancyText;
+                    }
 
                     if (!hardcodedOnConfig.equals(hardcodedOnCode)){
+
+                        if (!localeMessage.shouldSyncToFile()){
+                            localeMessage.addLocale(entry.getKey(), hardcodedOnCode);
+                            //Ignore this locale is this might be, for example a custom locale created by demand at the CMDInterpreter
+                            //This should not be saved to the file
+                            continue;
+                        }
+
                         hardcodedConfig.setValue(localeMessage.getKey(), hardcodedOnCode);
-                        tuple.getRight().setValue("HasBeenChanged", true);
+                        entry.getValue().setValue("HasBeenChanged", true);
                     }
                 }
                 if (isHardcodedLocale){
@@ -205,6 +211,7 @@ public class ECPluginData {
             if (!localeMessage.needToBeSynced()){
                 continue;
             }
+
             localeMessage.setHasBeenSynced(true);
 
             //Now look for the customFile
@@ -219,10 +226,10 @@ public class ECPluginData {
         }
 
         //Validate Hardcoded Localization Files
-        for (Tuple<String, Config> tuple : hardcodedLocalizations) {
-            if (!tuple.getRight().getTheFile().exists() || tuple.getRight().getBoolean("HasBeenChanged", false)){
-                tuple.getRight().setValue("HasBeenChanged", null);
-                tuple.getRight().saveAsync();
+        for (Map.Entry<String, Config> entry : hardcodedLocalizations.entrySet()) {
+            if (!entry.getValue().getTheFile().exists() || entry.getValue().getBoolean("HasBeenChanged", false)){
+                entry.getValue().setValue("HasBeenChanged", null);
+                entry.getValue().saveAsync();
             }
         }
 

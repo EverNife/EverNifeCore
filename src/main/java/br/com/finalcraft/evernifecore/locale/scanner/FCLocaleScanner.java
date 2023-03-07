@@ -56,10 +56,12 @@ public class FCLocaleScanner {
 
                 String key = declaredField.getDeclaringClass().getSimpleName() + "." + declaredField.getName().toUpperCase().replace("__",".").toUpperCase();
 
-                LocaleMessageImp localeMessage = scanForLocale(plugin, key, true, Arrays.stream(fcLocales)
+                FCLocaleData[] fcLocaleDatas = Arrays.stream(fcLocales)
                         .map(FCLocaleData::new)
                         .collect(Collectors.toList())
-                        .toArray(new FCLocaleData[0]));
+                        .toArray(new FCLocaleData[0]);
+
+                LocaleMessageImp localeMessage = scanForLocale(plugin, key, true, fcLocaleDatas);
 
                 try {
                     declaredField.set(null, localeMessage);
@@ -120,6 +122,7 @@ public class FCLocaleScanner {
             }
 
             newLocale.addLocale(lang, fancyText);
+            ecPluginData.addHardcodedLocaleIfNeeded(lang);
         }
 
         return newLocale;
