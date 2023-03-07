@@ -18,7 +18,11 @@ public class FCScheduler {
         return runnable instanceof BukkitRunnable ? (BukkitRunnable) runnable : new BukkitRunnable() {
             @Override
             public void run() {
-                runnable.run();
+                try {
+                    runnable.run();
+                }catch (Throwable throwable){
+                    throwable.printStackTrace();
+                }
             }
         };
     }
@@ -46,11 +50,23 @@ public class FCScheduler {
     // -----------------------------------------------------------------------------------------------------------------
 
     public static void runAssync(Runnable runnable){
-        scheduler.submit(runnable);
+        scheduler.submit(() -> {
+            try {
+                runnable.run();
+            }catch (Throwable throwable){
+                throwable.printStackTrace();
+            }
+        });
     }
 
     public static void scheduleAssync(Runnable runnable, long delayMillis){
-        scheduler.schedule(runnable, delayMillis, TimeUnit.MILLISECONDS);
+        scheduler.schedule(() -> {
+            try {
+                runnable.run();
+            }catch (Throwable throwable){
+                throwable.printStackTrace();
+            }
+        }, delayMillis, TimeUnit.MILLISECONDS);
     }
 
     public static void scheduleAssyncInTicks(Runnable runnable, long delayTicks){
