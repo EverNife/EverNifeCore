@@ -155,15 +155,12 @@ public class CMDMethodInterpreter {
             ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(owningPlugin);
             localeMessage = new LocaleMessageImp(owningPlugin, localeMessageKey, false);
             FancyText fancyText = new FancyText(null, cmdData.desc());
-            localeMessage.addLocale(LocaleType.EN_US,fancyText);
-            ecPluginData.markForLocaleReload();
+            //Add to the default locale only
+            localeMessage.addLocale(ecPluginData.getPluginLanguage(), fancyText);
         }
 
-        Set<FancyText> fancyTexts = new HashSet<>(localeMessage.getFancyTextMap().values());
-        //The HashMap values() might have several repeated values, we need to filter it to prevent reprocess the same FancyText more than once
-
-        for (FancyText fancyText : fancyTexts) {
-            //By Default, any Method FCLocale for both FinalCMD and SubCMD should be in the 'hover' not on the  'text'
+        for (FancyText fancyText : localeMessage.getFancyTextMap().values()) {
+            //By Default, any Method FCLocale for both FinalCMD and SubCMD should be in the 'hover' not on the 'text'
             //So, we will check boths in here and priorize the hover and remove the text, as the 'text' of these
             //help lines are the USAGE and the hover is the DESCRIPTION
             final String description = fancyText.getHoverText() != null && !fancyText.getHoverText().isEmpty() ? fancyText.getHoverText() : fancyText.getText();
