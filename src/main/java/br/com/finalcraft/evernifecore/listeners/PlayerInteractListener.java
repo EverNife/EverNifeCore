@@ -19,8 +19,10 @@ import org.bukkit.inventory.ItemStack;
 
 public class PlayerInteractListener implements ECListener {
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§7§o[INFO] (%x%, %y%, %z%) §b%block_type% §a§l[%block_id_and_meta%] &7&o(%biome%)",
-            hover = "§7Disable with /blockinfo\nClick to copy the Material Name"
+    @FCLocale(lang = LocaleType.EN_US,
+            text = "§7§o[INFO] (%x%, %y%, %z%) §b%block_type% §a§l[%block_id_and_meta%] &7&o(%biome%)",
+            hover = "§7Disable with /blockinfo" +
+                    "\nClick to copy the Material Name"
     )
     private static LocaleMessage BLOCK_DEBUG;
 

@@ -10,4 +10,11 @@ public @interface FCLocale {
     String hover() default "";
     String runCommand() default "";
     String lang() default LocaleType.EN_US;
+    Child[] children() default {};
+
+    public static @interface Child {
+        String text() default "";
+        String hover() default "";
+        String runCommand() default "";
+    }
 }

@@ -121,6 +121,21 @@ public class FCLocaleScanner {
                 continue;
             }
 
+            if (fcLocale.children().length > 0){
+                //Append chidren making this FancyText a FancyFormamtter
+                for (FCLocaleData.Child child : fcLocale.children()) {
+                    text = child.text();
+                    hover = child.hover().isEmpty() ? null : child.hover();
+                    runCommand = child.runCommand().isEmpty() ? null : child.runCommand();
+
+                    fancyText = fancyText.append(
+                            FCColorUtil.colorfy(text),
+                            FCColorUtil.colorfy(hover),
+                            runCommand
+                    );
+                }
+            }
+
             newLocale.addLocale(lang, fancyText);
             ecPluginData.addHardcodedLocaleIfNeeded(lang);
         }
