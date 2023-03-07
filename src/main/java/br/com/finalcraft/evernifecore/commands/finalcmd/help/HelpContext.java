@@ -17,8 +17,8 @@ import java.util.stream.Collectors;
 
 public class HelpContext {
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§3§oMove the mouse over the commands to see their description!")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§3§oPasse o mouse em cima dos comandos para ver a descrição!")
+    @FCLocale(lang = LocaleType.EN_US, text = "§3§oMove the mouse over the commands to see their description!", hover = "§7Move the mouse over the commands to see their description!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§3§oPasse o mouse em cima dos comandos para ver a descrição!", hover = "§7Passe o mouse em cima dos comandos para ver a descrição!")
     public static LocaleMessage HOLD_MOUSE_OVER;
 
     private final String helpHeader;
