@@ -15,6 +15,12 @@ public class ComparableItem {
 
     protected transient String localized_name;
 
+    public ComparableItem(ItemStack itemStack) {
+        this.itemStack = itemStack;
+        this.material = itemStack.getType();
+        this.damageValue = itemStack.getDurability();
+    }
+
     protected ComparableItem(ItemStack itemStack, Material material, Short damageValue) {
         this.itemStack = itemStack;
         this.material = material;
