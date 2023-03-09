@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDMethodInterp
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.FCDefaultExecutor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser;
+import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
@@ -103,6 +104,16 @@ public class FinalCMDPluginCommand extends Command implements PluginIdentifiable
         );
 
         return FinalCMDManager.getCommandMap().register(owningPlugin.getName(), this);
+    }
+
+    @Override
+    public boolean testPermission(@NotNull CommandSender target) {
+        if (testPermissionSilent(target)) {
+            return true;
+        }
+
+        FCMessageUtil.needsThePermission(target, getPermission());
+        return false;
     }
 
     /**
