@@ -12,8 +12,8 @@ public class SaveConfigThread extends SimpleThread {
             Thread.sleep(30000);//30 Seconds
             try {
                 PlayerController.savePlayerDataOnConfig();
-            } catch (Exception e) {
-                EverNifeCore.warning("Failed to save PlayerData, this is a serious problem:");
+            } catch (Throwable e) {
+                EverNifeCore.getLog().severe("Failed to call PlayerController.savePlayerDataOnConfig(), this is a serious problem:");
                 e.printStackTrace();
             }
         }

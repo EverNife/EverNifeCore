@@ -23,7 +23,7 @@ public class UUIDsController {
         if (existingPlayerName != null && existingPlayerName.equals(playerName)){
             return;
         }
-        ConfigManager.getPlayerUUIDs().setValue("StoredUUIDs." + playerUUID.toString(),playerName);
+        ConfigManager.getPlayerUUIDs().setValue("StoredUUIDs." + playerUUID.toString(), playerName);
         ConfigManager.getPlayerUUIDs().saveAsync();
         uuidHashMap.put(playerUUID, playerName);
     }

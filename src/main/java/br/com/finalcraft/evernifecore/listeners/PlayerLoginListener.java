@@ -27,7 +27,7 @@ public class PlayerLoginListener implements ECListener {
             return;
         }
 
-        UUIDsController.addOrUpdateUUIDName(event.getUniqueId(),event.getName());
+        UUIDsController.addOrUpdateUUIDName(event.getUniqueId(), event.getName());
         PlayerData playerData = PlayerController.getOrCreateOne(event.getUniqueId());
 
         if (!ECSettings.useNamesInsteadOfUUIDToStorePlayerData && !event.getName().equals(playerData.getPlayerName())){
