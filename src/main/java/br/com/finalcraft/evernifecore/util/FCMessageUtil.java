@@ -99,11 +99,21 @@ public class FCMessageUtil {
                 .send(sender);
     }
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need to have an §7[§2%item_name%§7]§c in your inventory!")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa ter um §7[§2%item_name%§7]§c em seu inventário!")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need to have an §7§l[§e%item_name%§7§l]§c in your inventory!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa ter um(a) §7§l[§e%item_name%§7§l]§c em seu inventário!")
     private static LocaleMessage NEEDS_TO_HAVE_ON_INVENTORY;
     public static void needsToHaveOnInventory(CommandSender sender, String itemName){
         NEEDS_TO_HAVE_ON_INVENTORY.addPlaceholder("%item_name%", itemName).send(sender);
+    }
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need to have §7§l[§6%item_amount%x §e%item_name%§7§l]§c in your inventory!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa ter §7§l[§6%item_amount%x §e%item_name%§7§l]§c em seu inventário!")
+    private static LocaleMessage NEEDS_TO_HAVE_ON_INVENTORY_AMOUNT;
+    public static void needsToHaveOnInventory(CommandSender sender, String itemName, int amount){
+        NEEDS_TO_HAVE_ON_INVENTORY_AMOUNT
+                .addPlaceholder("%item_amount%", amount)
+                .addPlaceholder("%item_name%", itemName)
+                .send(sender);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need more space on the inventory!")
