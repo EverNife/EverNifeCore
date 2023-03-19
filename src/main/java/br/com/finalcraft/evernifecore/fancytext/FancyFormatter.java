@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.fancytext;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import org.bukkit.command.CommandSender;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -107,6 +108,32 @@ public class FancyFormatter extends FancyText {
     }
 
     //Mirrored functions
+
+    @Override
+    public String getText() {
+        return this.fancyTextList.get(fancyTextList.size() - 1).getText();
+    }
+
+    @Override
+    public String getHoverText() {
+        return this.fancyTextList.get(fancyTextList.size() - 1).getHoverText();
+    }
+
+    @Override
+    public String getClickActionText() {
+        return this.fancyTextList.get(fancyTextList.size() - 1).getClickActionText();
+    }
+
+    @Override
+    public ClickActionType getClickActionType() {
+        return this.fancyTextList.get(fancyTextList.size() - 1).getClickActionType();
+    }
+
+    @Override
+    public FancyText setHoverText(ItemStack hoverItem) {
+        this.fancyTextList.get(fancyTextList.size() - 1).setHoverText(hoverItem);
+        return this;
+    }
 
     @Override
     public FancyFormatter setHoverText(String hoverText) {

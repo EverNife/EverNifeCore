@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
+import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
@@ -9,6 +10,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -121,6 +123,15 @@ public class FancyText {
     }
 
     /**
+     * Sets the hover to a specific item
+     */
+    public FancyText setHoverText(ItemStack hoverItem) {
+        setRecentChanged();
+        this.hoverText = "$show_item$" + NMSUtils.get().serializeItemStack(hoverItem);
+        return this;
+    }
+
+    /**
      * Seta o a HoverMessage dessa FancyMessage;
      */
     public FancyText setHoverText(String hoverText) {
@@ -212,15 +223,20 @@ public class FancyText {
         TextComponent baseTextComponent = new TextComponent();
         if (this.hoverText != null && !this.hoverText.isEmpty()){
 
-            List<String> hoverLines = splitAtNewLine(this.hoverText);
+            if (hoverText.startsWith("$show_item$")){
+                baseTextComponent.setHoverEvent(new HoverEvent( HoverEvent.Action.SHOW_ITEM, new ComponentBuilder( hoverText.substring(11) ).create() ));
+            }else {
+                List<String> hoverLines = splitAtNewLine(this.hoverText);
 
-            for (int i = 1; i < hoverLines.size(); i++) { //From the second line forward
-                hoverLines.set(i, ChatColor.getLastColors(hoverLines.get(i - 1)) + hoverLines.get(i));
+                for (int i = 1; i < hoverLines.size(); i++) { //From the second line forward
+                    hoverLines.set(i, ChatColor.getLastColors(hoverLines.get(i - 1)) + hoverLines.get(i));
+                }
+
+                final String fixedHoverText = String.join("\n", hoverLines);
+
+                baseTextComponent.setHoverEvent(new HoverEvent( HoverEvent.Action.SHOW_TEXT, new ComponentBuilder( fixedHoverText ).create() ));
             }
 
-            final String fixedHoverText = String.join("\n", hoverLines);
-
-            baseTextComponent.setHoverEvent(new HoverEvent( HoverEvent.Action.SHOW_TEXT, new ComponentBuilder( fixedHoverText ).create() ));
         }
 
         if (this.clickActionText != null){
