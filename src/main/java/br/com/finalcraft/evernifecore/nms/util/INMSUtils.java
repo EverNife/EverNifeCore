@@ -22,6 +22,8 @@ public interface INMSUtils {
 
 	public Object asMinecraftItemStack(org.bukkit.inventory.ItemStack itemStack);
 
+	public String serializeItemStack(org.bukkit.inventory.ItemStack itemStack);
+
 	public void autoRespawnOnDeath(Player player);
 
 	public boolean isTool(ItemStack itemStack);

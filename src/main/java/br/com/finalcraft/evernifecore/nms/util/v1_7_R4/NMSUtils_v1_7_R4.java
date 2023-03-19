@@ -66,6 +66,14 @@ public class NMSUtils_v1_7_R4 implements INMSUtils {
 	}
 
 	@Override
+	public String serializeItemStack(org.bukkit.inventory.ItemStack itemStack) {
+		net.minecraft.server.v1_7_R4.ItemStack nmsItem = CraftItemStack.asNMSCopy(itemStack);
+		NBTTagCompound compound = new NBTTagCompound();
+		nmsItem.save(compound);
+		return compound.toString();
+	}
+
+	@Override
 	public void autoRespawnOnDeath(org.bukkit.entity.Player player){
 		CraftPlayer craftPlayer = (CraftPlayer) player;
 		PacketPlayInClientCommand playInClientCommand = new PacketPlayInClientCommand(EnumClientCommand.PERFORM_RESPAWN);

@@ -83,6 +83,14 @@ public class NMSUtils_v1_12_R1 implements INMSUtils {
 	}
 
 	@Override
+	public String serializeItemStack(org.bukkit.inventory.ItemStack itemStack) {
+		net.minecraft.server.v1_12_R1.ItemStack nmsItem = org.bukkit.craftbukkit.v1_12_R1.inventory.CraftItemStack.asNMSCopy(itemStack);
+		NBTTagCompound compound = new NBTTagCompound();
+		nmsItem.save(compound);
+		return compound.toString();
+	}
+
+	@Override
 	public Object asMinecraftItemStack(org.bukkit.inventory.ItemStack itemStack) {
 		return org.bukkit.craftbukkit.v1_12_R1.inventory.CraftItemStack.asNMSCopy(itemStack);
 	}
