@@ -133,6 +133,26 @@ public class BlockPos implements Comparable<BlockPos> {
         return this.multiply(n, n, n);
     }
 
+    public double distance(BlockPos other) {
+        return Math.sqrt(distanceSq(other));
+    }
+
+    public int distanceSq(BlockPos other) {
+        int dx = other.getX() - this.getX();
+        int dy = other.getY() - this.getY();
+        int dz = other.getZ() - this.getZ();
+        return dx * dx + dy * dy + dz * dz;
+    }
+
+    public boolean containedWithin(BlockPos min, BlockPos max) {
+        return this.getX() >= min.getX()
+            && this.getX() <= max.getX()
+            && this.getY() >= min.getY()
+            && this.getY() <= max.getY()
+            && this.getZ() >= min.getZ()
+            && this.getZ() <= max.getZ();
+    }
+
     public Location getLocation(World world){
         return new Location(world, this.x, this.y, this.z);
     }
