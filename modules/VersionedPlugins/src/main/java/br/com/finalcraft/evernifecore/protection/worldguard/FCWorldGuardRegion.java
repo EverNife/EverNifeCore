@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.protection.worldguard;
 
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
+import br.com.finalcraft.evernifecore.vectors.CuboidSelection;
 import com.sk89q.worldguard.domains.DefaultDomain;
 import com.sk89q.worldguard.protection.flags.Flag;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
@@ -16,6 +17,10 @@ import java.util.List;
 import java.util.Map;
 
 public interface FCWorldGuardRegion {
+
+    public static FCWorldGuardRegion of(String id, CuboidSelection selection){
+        return WGPlatform.getInstance().createFCWorldGuardRegion(id, selection.getPos1(), selection.getPos2());
+    }
 
     public static FCWorldGuardRegion of(String id, BlockPos pt1, BlockPos pt2){
         return WGPlatform.getInstance().createFCWorldGuardRegion(id, pt1, pt2);

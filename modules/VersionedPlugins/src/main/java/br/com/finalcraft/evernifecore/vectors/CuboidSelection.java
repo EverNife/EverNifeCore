@@ -16,6 +16,10 @@ public class CuboidSelection {
         this.recalculate();
     }
 
+    public static CuboidSelection of(BlockPos pos1, BlockPos pos2){
+        return new CuboidSelection(pos1, pos2);
+    }
+
     private void recalculate(){
         int minX = Math.min(pos1.getX(), pos2.getX());
         int minY = Math.min(pos1.getY(), pos2.getY());
