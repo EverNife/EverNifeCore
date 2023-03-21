@@ -47,6 +47,7 @@ repositories {
     }
     maven { url = "https://jitpack.io" }
     maven { url = "https://maven.petrus.dev/public" }
+    maven { url = 'https://repo.glaremasters.me/repository/bloodshot'; name = "griefdefender" }
 }
 
 dependencies {
@@ -97,6 +98,8 @@ dependencies {
     compileOnly name: "craftbukkit1122" //Thats on you to find out
     compileOnly name: "craftbukkit1165" //Thats on you to find out
     compileOnly group: 'commons-io', name: 'commons-io', version: '2.6' //Necessary for ReflectionUtils
+
+    compileOnly group: 'com.griefdefender', name: 'api', version: '2.1.0-SNAPSHOT'
 
     api 'org.jetbrains:annotations:23.0.0'
     api group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
