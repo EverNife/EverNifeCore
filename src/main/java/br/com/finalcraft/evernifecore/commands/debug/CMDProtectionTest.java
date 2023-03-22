@@ -81,24 +81,24 @@ public class CMDProtectionTest implements ICustomFinalCMD {
                         .collect(Collectors.joining(", "))
         );
         BlockPos blockPos = BlockPos.from(player.getLocation());
-        formatter.append("\n§2§l ▶ §aCan Build: ").setHoverText(blockPos.toString()).append(protectionHandler.canBuild(player, player.getLocation()) ? "§eYes" : "§cNo");
-        formatter.append("\n§2§l ▶ §aCan Break: ").setHoverText(blockPos.toString()).append(protectionHandler.canBreak(player, player.getLocation()) ? "§eYes" : "§cNo");
-        formatter.append("\n§2§l ▶ §aCan Interact: ").setHoverText(blockPos.toString()).append(protectionHandler.canInteract(player, player.getLocation()) ? "§eYes" : "§cNo");
-        formatter.append("\n§2§l ▶ §aCan PvP §7§o(Self Hit)§a: ").setHoverText(blockPos.toString()).append(protectionHandler.canAttack(player, player) ? "§eYes" : "§cNo");
-        formatter.append("\n§2§l ▶ §aCan AOE Build §7§o(radius 5)§a: ").setHoverText(blockPos.toString() + " rad= 5").append(protectionHandler.canUseAoE(player, player.getLocation(), 5) ? "§eYes" : "§cNo");
+        formatter.append("\n§2§l ▶ §aCan Build: ").setHoverText(String.format("§7[§6%s§7]§e Check if you can §bBuild Here!", blockPos)).append(protectionHandler.canBuild(player, player.getLocation()) ? "§eYes" : "§cNo");
+        formatter.append("\n§2§l ▶ §aCan Break: ").setHoverText(String.format("§7[§6%s§7]§e Check if you can §bBreak Here!", blockPos)).append(protectionHandler.canBreak(player, player.getLocation()) ? "§eYes" : "§cNo");
+        formatter.append("\n§2§l ▶ §aCan Interact: ").setHoverText(String.format("§7[§6%s§7]§e Check if you can §bInteract Here!", blockPos)).append(protectionHandler.canInteract(player, player.getLocation()) ? "§eYes" : "§cNo");
+        formatter.append("\n§2§l ▶ §aCan PvP §7§o(Self Hit)§a: ").setHoverText(String.format("§7[§6%s§7]§e Check if you can §bHit Yourself (PvP) Here!", blockPos)).append(protectionHandler.canAttack(player, player) ? "§eYes" : "§cNo");
+        formatter.append("\n§2§l ▶ §aCan AOE Use/Break/Build §7§o(radius 5)§a: ").setHoverText(String.format("§7[§6%s§7]§e Check if you can §bUse Area of Effect Items in Here!\n§7 - With Radius=5!", blockPos)).append(protectionHandler.canUseAoE(player, player.getLocation(), 5) ? "§eYes" : "§cNo");
         CuboidSelection cuboidSelection = new CuboidSelection(
                 BlockPos.from(player).add(BlockPos.at(10,10,10)),
                 BlockPos.from(player).subtract(BlockPos.at(10,10,10))
         );
         boolean canBreakOnRegion = protectionHandler.canBreakOnRegion(player, player.getLocation().getWorld(), cuboidSelection);
         boolean canBuildOnRegion = protectionHandler.canBuildOnRegion(player, player.getLocation().getWorld(), cuboidSelection);
-        formatter.append("\n§2§l ▶ §aCan CuboidSelection Build §7§o(radius 10)§a: ").setHoverText(cuboidSelection.toString()).append(canBreakOnRegion ? "§eYes" : "§cNo");
-        formatter.append("\n§2§l ▶ §aCan CuboidSelection Break §7§o(radius 10)§a: ").setHoverText(cuboidSelection.toString()).append(canBuildOnRegion ? "§eYes" : "§cNo");
+        formatter.append("\n§2§l ▶ §aCan CuboidSelection Break §7§o(radius 10)§a: ").setHoverText(String.format("§7[§6%s§7]§e Check if you can §bBuild AROUND Here!\n§7 - With Radius=10!", cuboidSelection)).append(canBreakOnRegion ? "§eYes" : "§cNo");
+        formatter.append("\n§2§l ▶ §aCan CuboidSelection Build §7§o(radius 10)§a: ").setHoverText(String.format("§7[§6%s§7]§e Check if you can §bBreak AROUND Here!\n§7 - With Radius=10!", cuboidSelection)).append(canBuildOnRegion ? "§eYes" : "§cNo");
         formatter.send(player);
 
         if (MCVersion.isHigherEquals(MCVersion.v1_13)){
-            cuboidSelection.setPos1(cuboidSelection.getPos1().setY(player.getLocation().getBlockY()));
-            cuboidSelection.setPos2(cuboidSelection.getPos2().setY(player.getLocation().getBlockY()));
+            cuboidSelection.setPos1(cuboidSelection.getPos1().setY(player.getLocation().getBlockY() - 1));
+            cuboidSelection.setPos2(cuboidSelection.getPos2().setY(player.getLocation().getBlockY() - 1));
 
             FCScheduler.runAssync(() -> {
                 Particle.DustOptions GREEN_PARTICLE = new Particle.DustOptions(Color.fromRGB(0, 255, 0), 1.0F);
