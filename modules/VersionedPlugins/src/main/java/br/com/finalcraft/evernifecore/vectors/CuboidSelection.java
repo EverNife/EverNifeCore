@@ -2,6 +2,8 @@ package br.com.finalcraft.evernifecore.vectors;
 
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 
+import java.util.Objects;
+
 public class CuboidSelection {
 
     private BlockPos pos1;
@@ -39,14 +41,16 @@ public class CuboidSelection {
         return pos2;
     }
 
-    public void setPos1(BlockPos pos1) {
+    public CuboidSelection setPos1(BlockPos pos1) {
         this.pos1 = pos1;
         this.recalculate();
+        return this;
     }
 
-    public void setPos2(BlockPos pos2) {
+    public CuboidSelection setPos2(BlockPos pos2) {
         this.pos2 = pos2;
         this.recalculate();
+        return this;
     }
 
     public BlockPos getMinium() {
@@ -61,13 +65,14 @@ public class CuboidSelection {
         return other.containedWithin(this.getMinium(), this.getMaximum());
     }
 
-    public void shift(BlockPos change) {
+    public CuboidSelection shift(BlockPos change) {
         this.pos1 = this.pos1.add(change);
         this.pos2 = this.pos2.add(change);
         this.recalculate();
+        return this;
     }
 
-    public void contract(BlockPos... changes) {
+    public CuboidSelection contract(BlockPos... changes) {
 
         for (BlockPos change : changes) {
             if (change.getX() < 0) {
@@ -114,10 +119,10 @@ public class CuboidSelection {
         }
 
         this.recalculate();
+        return this;
     }
 
-    public void expand(BlockPos... changes) {
-
+    public CuboidSelection expand(BlockPos... changes) {
         for (BlockPos change : changes) {
             if (change.getX() > 0) {
                 if (Math.max(pos1.getX(), pos2.getX()) == pos1.getX()) {
@@ -163,5 +168,35 @@ public class CuboidSelection {
         }
 
         this.recalculate();
+        return this;
+    }
+
+    public CuboidSelection clone(){
+        return new CuboidSelection(this.pos1, this.pos2);
+    }
+
+    public CuboidSelection expandVert(){
+        this.pos1 = this.pos1.setY(0);
+        this.pos2 = this.pos2.setY(255);
+        this.recalculate();
+        return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof CuboidSelection)) return false;
+        CuboidSelection that = (CuboidSelection) o;
+        return getMinium().equals(that.getMinium()) && getMaximum().equals(that.getMaximum());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getMinium(), getMaximum());
+    }
+
+    @Override
+    public String toString() {
+        return minium + " # " + maximum;
     }
 }
