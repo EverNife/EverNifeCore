@@ -35,6 +35,10 @@ public class ProtectionAll implements ProtectionHandler{
         this.PROTECTION_HANDLERS.addAll(protectionHandlers);
     }
 
+    public List<ProtectionHandler> getProtectionHandlers() {
+        return PROTECTION_HANDLERS;
+    }
+
     @Override
     public String getName() {
         return "ProtectionAll";
