@@ -111,10 +111,6 @@ public class GriefDefenderHandler implements ProtectionHandler {
         Claim claim = GriefDefender.getCore().getClaimAt(firstCorner);
 
         if (claim != null && !claim.isWilderness()){
-            EverNifeCore.getLog().info("Claims [%s] INSIDE: result: %s",
-                    claim.getUniqueId().toString().substring(0,8) + ":" + claim.getType(),
-                    isOwnerOrTrusted(claim, player.getUniqueId(), TrustTypes.BUILDER)
-            );
             if (!isOwnerOrTrusted(claim, player.getUniqueId(), TrustTypes.BUILDER)){
                 return false; //He cannot even place blocks on the first block checked
             }
@@ -158,19 +154,11 @@ public class GriefDefenderHandler implements ProtectionHandler {
 
                 for (Claim overlapedClaim : claimResult.getClaims()) {
                     if (!isOwnerOrTrusted(overlapedClaim, player.getUniqueId(), TrustTypes.BUILDER)){
-                        EverNifeCore.getLog().info("Claims [%s] OVERLAPPING_CLAIM: result: %s",
-                                claimResult.getClaims().stream().map(claim1 -> claim1.getUniqueId().toString().substring(0,8) + ":" + claim1.getType()).collect(Collectors.joining(", ")),
-                                false
-                        );
                         return false;
                     }
                 }
             }
 
-            EverNifeCore.getLog().info("Claims [%s] OVERLAPPING_CLAIM: result: %s",
-                    claimResult.getClaims().stream().map(claim1 -> claim1.getUniqueId() + "").collect(Collectors.joining(", ")),
-                    true
-            );
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
