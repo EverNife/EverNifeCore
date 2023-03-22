@@ -1,8 +1,10 @@
 package br.com.finalcraft.evernifecore.autoupdater;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.PermissionNodes;
 import br.com.finalcraft.evernifecore.api.events.ECFullyLoggedInEvent;
 import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
@@ -49,8 +51,9 @@ public class SpigotUpdateChecker {
             return; //Don't need to do anything more!
         }
 
+        ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(plugin);
         FCScheduler.runAssync(() -> {
-            spigotUpdateChecker.execute(plugin);
+            spigotUpdateChecker.execute(ecPluginData);
         });
     }
 
@@ -90,7 +93,8 @@ public class SpigotUpdateChecker {
 
     }
 
-    public void execute(@NotNull JavaPlugin plugin){
+    public void execute(@NotNull ECPluginData ecPlugin){
+        JavaPlugin plugin = (JavaPlugin) ecPlugin.getPlugin();
         UpdateResult updateResult = checkForUpdates(plugin);
 
         switch (updateResult){
@@ -112,7 +116,7 @@ public class SpigotUpdateChecker {
 
         //If we are not downloading it, we need to warn staffs on join
         final String SPIGOT_URL = "https://www.spigotmc.org/resources/" + resourceId + "/";
-        ECPluginManager.getOrCreateECorePluginData(plugin).setUpdateLink(SPIGOT_URL);
+        ecPlugin.setUpdateLink(SPIGOT_URL);
         ECListener.register(plugin, new ECListener() {
             private final String PLUGIN_NAME = plugin.getName();
             private final String PERMISSION = PermissionNodes.UPDATECHECK_PERMISSION_TEMPLATE.replace("%plugin%",PLUGIN_NAME.toLowerCase());
@@ -148,7 +152,7 @@ public class SpigotUpdateChecker {
             this.newVersion = new BufferedReader(new InputStreamReader(connection.getInputStream())).readLine();
             connection.disconnect();
 
-            if (this.currentVersion.compareTo(newVersion) >= 0){
+            if (this.isNewerOrEqualNextVersion(newVersion)){
                 return UpdateResult.ALREADY_UPDATED;
             }
 
@@ -212,7 +216,7 @@ public class SpigotUpdateChecker {
             if (bukkitPluginJar != null){
                 if (bukkitPluginJar.pluginName.equalsIgnoreCase(plugin.getDescription().getName()) && !bukkitPluginJar.version.equalsIgnoreCase(plugin.getDescription().getVersion())){
 
-                    if (currentVersion.compareTo(bukkitPluginJar.version) <= 0){
+                    if (!this.isNewerOrEqualNextVersion(bukkitPluginJar.version)){
                         plugin.getLogger().severe("----------------------------- [UpdateChecker] -----------------------------" +
                                 "\nI was going to delete the plugin [" + bukkitPluginJar.file.getAbsolutePath() + "] but it seems to be newer than the current version? Is that correct?!" +
                                 "\nThis can happen if you have renamed the " + plugin.getName() + " plugin's jar name! This way the AutoUpdater will not work!" +
@@ -232,4 +236,23 @@ public class SpigotUpdateChecker {
         }
     }
 
+    private boolean isNewerOrEqualNextVersion(String nextVersion) {
+        try {
+            String[] parts1 = this.currentVersion.split("\\.");
+            String[] parts2 = nextVersion.split("\\.");
+            int length = Math.max(parts1.length, parts2.length);
+            for (int i = 0; i < length; i++) {
+                int currentV1 = (i < parts1.length) ? Integer.parseInt(parts1[i]) : 0;
+                int newV1 = (i < parts2.length) ? Integer.parseInt(parts2[i]) : 0;
+                if (currentV1 != newV1) {
+                    return currentV1 > newV1;
+                }
+            }
+            return true;
+        }catch (Exception e){
+            EverNifeCore.getLog().warning("[UpdateChecker] Error while comparing versions: %s and %s", currentVersion, nextVersion);
+            e.printStackTrace();
+        }
+        return currentVersion.compareTo(nextVersion) >= 0;
+    }
 }
