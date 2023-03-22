@@ -13,6 +13,7 @@ public class PermissionNodes {
     public static final String EVERNIFECORE_COMMAND_FCLOCALE            = "evernifecore.command.fclocale";
     public static final String EVERNIFECORE_PAGEVIEWER_ALL              = "evernifecore.pageviewer.all";
     public static final String EVERNIFECORE_PAGEVIEWER_INTERVAL         = "evernifecore.pageviewer.interval";
+    public static final String EVERNIFECORE_COMMAND_TESTPROTECTION      = "evernifecore.command.protectiontest";
     public static final String UPDATECHECK_PERMISSION_TEMPLATE          = "%plugin%.updatecheck.warn";
 
 }
