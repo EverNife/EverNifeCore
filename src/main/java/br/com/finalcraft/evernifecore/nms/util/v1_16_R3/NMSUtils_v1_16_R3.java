@@ -54,7 +54,7 @@ public class NMSUtils_v1_16_R3 implements INMSUtils {
 	@Override
 	public String getLocalizedName(org.bukkit.inventory.ItemStack itemStack) {
 		ItemStack nmsItem = CraftItemStack.asNMSCopy(itemStack);
-		return nmsItem.getName().getString();
+		return nmsItem.getItem().h(nmsItem).getString();
 	}
 
 	@Override

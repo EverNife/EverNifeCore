@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.protection;
 
-import br.com.finalcraft.evernifecore.protection.integration.imp.WorldGuardHandler;
 import br.com.finalcraft.evernifecore.protection.worldguard.WGFlags;
 import br.com.finalcraft.evernifecore.protection.worldguard.WGPlatform;
 import org.bukkit.block.Block;
