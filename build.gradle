@@ -47,7 +47,6 @@ repositories {
     }
     maven { url = "https://jitpack.io" }
     maven { url = "https://maven.petrus.dev/public" }
-    maven { url = 'https://repo.glaremasters.me/repository/bloodshot'; name = "griefdefender" }
 }
 
 dependencies {
@@ -83,6 +82,7 @@ dependencies {
     // This is a private jar, if you want to compile EverNifeCore you need to remove the folders that use this jar
     // @ DISCLAIMER @ //
     // @ DISCLAIMER @ //
+    compileOnly name: "griefdefender-bukkit-2.2.1"
     compileOnly name: "GriefPreventionPlus-13.3"
     compileOnly name: "PlaceholderAPI-2.11.2"
 
@@ -99,7 +99,6 @@ dependencies {
     compileOnly name: "craftbukkit1165" //Thats on you to find out
     compileOnly group: 'commons-io', name: 'commons-io', version: '2.6' //Necessary for ReflectionUtils
 
-    compileOnly group: 'com.griefdefender', name: 'api', version: '2.1.0-SNAPSHOT'
 
     api 'org.jetbrains:annotations:23.0.0'
     api group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
