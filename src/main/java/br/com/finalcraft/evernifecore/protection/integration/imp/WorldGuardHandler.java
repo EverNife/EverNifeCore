@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.protection.integration.imp;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import br.com.finalcraft.evernifecore.protection.integration.ProtectionHandler;
 import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
@@ -16,6 +17,9 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 public class WorldGuardHandler implements ProtectionHandler {
 
     @Override
@@ -25,26 +29,26 @@ public class WorldGuardHandler implements ProtectionHandler {
 
     @Override
     public boolean canBuild(Player player, Location location) {
-        return this.check(player, location, WGFlags.BUILD); //Myabe we could check for BLOCK_PALCE as well ?
+        return this.queryState(player, location, WGFlags.PASSTHROUGH, WGFlags.BUILD, WGFlags.BLOCK_PLACE);//If any of these are TRUE, then we can build
     }
 
     @Override
     public boolean canBreak(Player player, Location location) {
-        return this.check(player, location, WGFlags.BUILD); //Myabe we could check for BLOCK_BREAK as well ?
+        return this.queryState(player, location, WGFlags.PASSTHROUGH, WGFlags.BUILD, WGFlags.BLOCK_BREAK);//If any of these are TRUE, then we can break
     }
 
     @Override
     public boolean canInteract(Player player, Location location) {
-        return this.check(player, location, WGFlags.INTERACT);
+        return this.queryState(player, location, WGFlags.PASSTHROUGH, WGFlags.BUILD, WGFlags.INTERACT);//If any of these are TRUE, then we can interact
     }
 
     @Override
     public boolean canAttack(Player player, Entity entity) {
         if (entity instanceof Player) {
-            return this.check(player, entity.getLocation(), WGFlags.PVP);
+            return this.queryState(player, entity.getLocation(), WGFlags.PVP);
         }
         if (entity instanceof Animals || entity instanceof Villager) {
-            return this.check(player, entity.getLocation(), WGFlags.DAMAGE_ANIMALS);
+            return this.queryState(player, entity.getLocation(), WGFlags.PASSTHROUGH, WGFlags.DAMAGE_ANIMALS);
         }
         return true;
     }
@@ -67,27 +71,31 @@ public class WorldGuardHandler implements ProtectionHandler {
     public boolean canBuildOnRegion(Player player, World world, CuboidSelection cuboidSelection) {
         FCRegionResultSet regions = getRegionsAtSelection(world, cuboidSelection);
         LocalPlayer localPlayer = WGPlatform.getInstance().wrapPlayer(player);
-        return regions.testState(localPlayer, WGFlags.BUILD); //Myabe we could check for BLOCK_PLACE as well ?
+        return regions.testState(localPlayer, WGFlags.PASSTHROUGH, WGFlags.BUILD, WGFlags.BLOCK_PLACE);
     }
 
     @Override
     public boolean canBreakOnRegion(Player player, World world, CuboidSelection cuboidSelection) {
         FCRegionResultSet regions = getRegionsAtSelection(world, cuboidSelection);
         LocalPlayer localPlayer = WGPlatform.getInstance().wrapPlayer(player);
-        return regions.testState(localPlayer, WGFlags.BUILD); //Myabe we could check for BLOCK_BREAK as well ?
+        return regions.testState(localPlayer, WGFlags.PASSTHROUGH, WGFlags.BUILD, WGFlags.BLOCK_BREAK);
     }
 
-    protected boolean check(Player player, Location location, StateFlag flag) {
+    protected boolean queryState(Player player, Location location, StateFlag... flags) {
         FCRegionResultSet regions = this.getRegionsAtSelection(location);
         LocalPlayer localPlayer = WGPlatform.getInstance().wrapPlayer(player);
 
-        StateFlag.State state = regions.queryState(localPlayer, flag);
+        StateFlag.State state = regions.queryState(localPlayer, flags);
 
-        if (state != null && state != StateFlag.State.ALLOW){
-            return false;
+        EverNifeCore.getLog().info("Regions [%s] queryState: <%s> result: %s", regions.getRegions().stream()
+                .map(region -> region.getId()).collect(Collectors.joining(", ")), Arrays.toString(flags), state
+        );
+
+        if (state != null && state == StateFlag.State.ALLOW){
+            return true;
         }
 
-        return true;
+        return false;
     }
 
     protected FCRegionResultSet getRegionsAtSelection(Location location) {
