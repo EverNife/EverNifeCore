@@ -531,7 +531,7 @@ public class FCReflectionUtil {
     }
 
     /**
-     * Check if two arrays of classes are equal, ignoring the fact if thei are primitives
+     * Check if two arrays of classes are equal, ignoring the fact of they being primitives
      *
      * Params:
      * array1 – one array to be tested for equality
@@ -540,41 +540,42 @@ public class FCReflectionUtil {
      * @return true if the two arrays are equal
      */
     public static boolean arrayEqualsIgnorePrimitives(Class[] array1, Class[] array2){
-        if (array1==array2)
+        if (array1 == array2){
             return true;
-        if (array1==null || array2==null)
+        }
+        if (array1 == null || array2 == null || array1.length != array2.length){
             return false;
-        if (array1.length != array2.length) return false;
+        }
 
         for (int i = 0; i < array1.length; i++) {
             Class clazz1 = array1[i];
             Class clazz2 = array2[i];
 
-            if (!Objects.equals(clazz1, clazz2)){
-
-                if (clazz1.isPrimitive() || clazz2.isPrimitive()){ //Do extra check in case on of them is primitive
-                    if (clazz1.isPrimitive() && clazz2.isPrimitive()){ //If both are primitives, i have already compared than, return
-                        return false;
-                    }
-                    try {
-                        if (clazz1.isPrimitive()){
-                            if (!Objects.equals(clazz1, FCReflectionUtil.getField(clazz2,"TYPE").get(null))){
-                                return false;
-                            }
-                        }else {
-                            if (!Objects.equals(clazz1, FCReflectionUtil.getField(clazz2,"TYPE").get(null)) == false){
-                                return false;
-                            }
-                        }
-                    }catch (Exception ignored){
-                        return false; //If Exception, they are really not equal
-                    }
-                    continue; //Their primitives are equal! Do next array check
-                }
-
-                return false;
+            if (Objects.equals(clazz1, clazz2)){
+                continue; //If both are the same, there are no further checks needed
             }
 
+            if (clazz1.isPrimitive() && clazz2.isPrimitive()){
+                return false; //If both are primitives, there are no further checks needed as well
+            }
+
+            if (!clazz1.isPrimitive() && !clazz2.isPrimitive()){
+                return false; //If both are non-primitives, there are no further checks needed as well
+            }
+
+            try {
+                Object primitve = clazz1.isPrimitive() ? clazz1 : clazz2;
+                Object nonPrimitveInnerType = clazz1.isPrimitive()
+                        ? FCReflectionUtil.getField(clazz2,"TYPE").get(null)
+                        : FCReflectionUtil.getField(clazz1,"TYPE").get(null);
+
+                if (Objects.equals(primitve, nonPrimitveInnerType)){
+                    continue;
+                }
+            }catch (Exception ignored){
+
+            }
+            return false; //If Exception or inner-primives comparassion fail, they are really not equal!
         }
         return true;
     }
