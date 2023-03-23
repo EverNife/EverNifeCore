@@ -18,11 +18,17 @@ public class CuboidSelection {
         this.recalculate();
     }
 
+    public static CuboidSelection of(BlockPos center){
+        return new CuboidSelection(center, center);
+    }
+
     public static CuboidSelection of(BlockPos pos1, BlockPos pos2){
         return new CuboidSelection(pos1, pos2);
     }
 
     private void recalculate(){
+        pos1 = pos1.boundY(0, 255);
+        pos2 = pos2.boundY(0, 255);
         int minX = Math.min(pos1.getX(), pos2.getX());
         int minY = Math.min(pos1.getY(), pos2.getY());
         int minZ = Math.min(pos1.getZ(), pos2.getZ());
@@ -72,9 +78,10 @@ public class CuboidSelection {
         return this;
     }
 
-    public CuboidSelection contract(BlockPos... changes) {
+    public CuboidSelection contract(BlockPos blockPos, BlockPos... otherBlockPos) {
 
-        for (BlockPos change : changes) {
+        for (int i = -1; i < otherBlockPos.length; i++) {
+            BlockPos change = i == -1 ? blockPos : otherBlockPos[i];
             if (change.getX() < 0) {
                 if (Math.max(pos1.getX(), pos2.getX()) == pos1.getX()) {
                     pos1 = pos1.add(change.getX(), 0, 0);
@@ -122,8 +129,14 @@ public class CuboidSelection {
         return this;
     }
 
-    public CuboidSelection expand(BlockPos... changes) {
-        for (BlockPos change : changes) {
+    public CuboidSelection expand(int amount){
+        return this.expand(new BlockPos(amount,amount,amount), new BlockPos(-amount,-amount,-amount));
+    }
+
+    public CuboidSelection expand(BlockPos blockPos, BlockPos... otherBlockPos) {
+
+        for (int i = -1; i < otherBlockPos.length; i++) {
+            BlockPos change = i == -1 ? blockPos : otherBlockPos[i];
             if (change.getX() > 0) {
                 if (Math.max(pos1.getX(), pos2.getX()) == pos1.getX()) {
                     pos1 = pos1.add(change.getX(), 0, 0);
@@ -175,9 +188,26 @@ public class CuboidSelection {
         return new CuboidSelection(this.pos1, this.pos2);
     }
 
+    public CuboidSelection expandHoriz(int amount){
+        expand(new BlockPos(amount, 0, amount), new BlockPos(-amount, 0, amount));
+        this.recalculate();
+        return this;
+    }
+
+    public CuboidSelection expandVert(int amount){
+        expand(new BlockPos(0, amount, 0), new BlockPos(0, -amount, 0));
+        this.recalculate();
+        return this;
+    }
+
     public CuboidSelection expandVert(){
-        this.pos1 = this.pos1.setY(0);
-        this.pos2 = this.pos2.setY(255);
+        if (this.pos1.getY() < this.pos2.getY()){
+            this.pos1 = this.pos1.setY(0);
+            this.pos2 = this.pos2.setY(255);
+        } else{
+            this.pos1 = this.pos1.setY(255);
+            this.pos2 = this.pos2.setY(0);
+        }
         this.recalculate();
         return this;
     }

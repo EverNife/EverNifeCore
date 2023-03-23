@@ -133,6 +133,33 @@ public class BlockPos implements Comparable<BlockPos> {
         return this.multiply(n, n, n);
     }
 
+    public BlockPos boundX(int min, int max) {
+        if (this.y < min) {
+            return this.setY(min);
+        } else if (this.y > max) {
+           return this.setY(max);
+        }
+        return this;
+    }
+
+    public BlockPos boundY(int min, int max) {
+        if (this.y < min) {
+            return this.setY(min);
+        } else if (this.y > max) {
+            return this.setY(max);
+        }
+        return this;
+    }
+
+    public BlockPos boundZ(int min, int max) {
+        if (this.y < min) {
+            return this.setY(min);
+        } else if (this.y > max) {
+            return this.setY(max);
+        }
+        return this;
+    }
+
     public double distance(BlockPos other) {
         return Math.sqrt(distanceSq(other));
     }
