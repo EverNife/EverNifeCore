@@ -75,9 +75,9 @@ public class ProtectionAll implements ProtectionHandler{
     }
 
     @Override
-    public boolean canAttack(Player damager, Entity damaged) {
+    public boolean canAttack(Player player, Entity victim) {
         for (ProtectionHandler protectionHandler : PROTECTION_HANDLERS) {
-            if (!protectionHandler.canAttack(damager, damaged)){
+            if (!protectionHandler.canAttack(player, victim)){
                 return false;
             }
         }

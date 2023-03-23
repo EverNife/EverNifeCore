@@ -44,12 +44,12 @@ public interface ProtectionHandler {
 
 	/**
 	 * Returns whether the player has the permission to attack the specified entity.
-	 * @param	damager		the player to check for attack permission
-	 * @param	damaged		the entity attacked by the player
+	 * @param	player		the player to check for attack permission
+	 * @param	victim		the entity attacked by the player
 	 * @return				whether the player can attack the entity
 	 * @see Entity
 	 * */
-	boolean canAttack(Player damager, Entity damaged);
+	boolean canAttack(Player player, Entity victim);
 	
 	/**
 	 * Returns whether the player has the permission to use an Area of Effect item at

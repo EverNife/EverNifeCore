@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.protection.integration.imp;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import br.com.finalcraft.evernifecore.protection.integration.ProtectionHandler;
 import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
@@ -21,7 +20,6 @@ import org.bukkit.inventory.ItemStack;
 
 import java.lang.reflect.Constructor;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class GriefDefenderHandler implements ProtectionHandler {
 
@@ -85,10 +83,10 @@ public class GriefDefenderHandler implements ProtectionHandler {
 
     private final ItemStack STONE = new ItemStack(Material.STONE);
     @Override
-    public boolean canAttack(Player player, Entity entity) {
-        Claim claimAtVictim = GriefDefender.getCore().getClaimAt(entity.getLocation());
+    public boolean canAttack(Player player, Entity victim) {
+        Claim claimAtVictim = GriefDefender.getCore().getClaimAt(victim.getLocation());
 
-        return claimAtVictim.canHurtEntity(player, STONE, entity, null);
+        return claimAtVictim.canHurtEntity(player, STONE, victim, null);
     }
 
     @Override
@@ -166,13 +164,13 @@ public class GriefDefenderHandler implements ProtectionHandler {
         return true;
     }
 
-    private boolean isOwnerOrTrusted(Claim claim, UUID playerUUID, TrustType trustType){
-        return playerUUID.equals(claim.getOwnerUniqueId()) || claim.isUserTrusted(playerUUID, trustType);
-    }
-
     @Override
     public boolean canBreakOnRegion(Player player, World world, CuboidSelection cuboidSelection) {
         return canBuildOnRegion(player, world, cuboidSelection);
+    }
+
+    private boolean isOwnerOrTrusted(Claim claim, UUID playerUUID, TrustType trustType){
+        return playerUUID.equals(claim.getOwnerUniqueId()) || claim.isUserTrusted(playerUUID, trustType);
     }
 
 }
