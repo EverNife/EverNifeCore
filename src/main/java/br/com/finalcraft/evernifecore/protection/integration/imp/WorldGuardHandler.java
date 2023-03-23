@@ -23,13 +23,17 @@ public class WorldGuardHandler implements ProtectionHandler {
 
     @Override
     public boolean canBuild(Player player, Location location) {
+        if (player.hasPermission("worldguard.region.bypass." + location.getWorld().getName())){
+            return true;
+        }
+
         FCRegionResultSet regions = this.getRegionsAtSelection(location);
         LocalPlayer localPlayer = WGPlatform.getInstance().wrapPlayer(player);
 
         //Get the default value for the location! [PASSTHROUGH and BUILD] defaults to 'allowBuild', empty region list (__global__) means true as well
-        boolean allowByDefault = regions.queryState(localPlayer, WGFlags.PASSTHROUGH, WGFlags.BUILD) == StateFlag.State.ALLOW || regions.size() == 0;
+        boolean allowByDefault = regions.queryValue(localPlayer, WGFlags.PASSTHROUGH) == StateFlag.State.DENY || regions.queryState(localPlayer, WGFlags.BUILD) == StateFlag.State.ALLOW;
 
-        StateFlag.State state = regions.queryState(localPlayer, WGFlags.BLOCK_PLACE); //the null value for this flag implies 'allow'
+        StateFlag.State state = regions.queryValue(localPlayer, WGFlags.BLOCK_PLACE); //the null value for this flag implies 'allow'
 
         if (state == StateFlag.State.DENY){
             return false;
@@ -40,13 +44,17 @@ public class WorldGuardHandler implements ProtectionHandler {
 
     @Override
     public boolean canBreak(Player player, Location location) {
+        if (player.hasPermission("worldguard.region.bypass." + location.getWorld().getName())){
+            return true;
+        }
+
         FCRegionResultSet regions = this.getRegionsAtSelection(location);
         LocalPlayer localPlayer = WGPlatform.getInstance().wrapPlayer(player);
 
         //Get the default value for the location! [PASSTHROUGH and BUILD] defaults to 'allowBreak', empty region list (__global__) means true as well
-        boolean allowByDefault = regions.queryState(localPlayer, WGFlags.PASSTHROUGH, WGFlags.BUILD) == StateFlag.State.ALLOW || regions.size() == 0;
+        boolean allowByDefault = regions.queryValue(localPlayer, WGFlags.PASSTHROUGH) == StateFlag.State.DENY || regions.queryState(localPlayer, WGFlags.BUILD) == StateFlag.State.ALLOW;
 
-        StateFlag.State state = regions.queryState(localPlayer, WGFlags.BLOCK_BREAK); //the null value for this flag implies 'allow'
+        StateFlag.State state = regions.queryValue(localPlayer, WGFlags.BLOCK_BREAK); //the null value for this flag implies 'allow'
 
         if (state == StateFlag.State.DENY){
             return false;
@@ -57,13 +65,17 @@ public class WorldGuardHandler implements ProtectionHandler {
 
     @Override
     public boolean canInteract(Player player, Location location) {
+        if (player.hasPermission("worldguard.region.bypass." + location.getWorld().getName())){
+            return true;
+        }
+
         FCRegionResultSet regions = this.getRegionsAtSelection(location);
         LocalPlayer localPlayer = WGPlatform.getInstance().wrapPlayer(player);
 
         //Get the default value for the location! [PASSTHROUGH and BUILD] defaults to 'allowInteract', empty region list (__global__) means true as well
-        boolean allowByDefault = regions.queryState(localPlayer, WGFlags.PASSTHROUGH, WGFlags.BUILD) == StateFlag.State.ALLOW || regions.size() == 0;
+        boolean allowByDefault = regions.queryValue(localPlayer, WGFlags.PASSTHROUGH) == StateFlag.State.DENY || regions.queryState(localPlayer, WGFlags.BUILD) == StateFlag.State.ALLOW;
 
-        StateFlag.State state = regions.queryState(localPlayer, WGFlags.INTERACT); //the null value for this flag implies 'allow'
+        StateFlag.State state = regions.queryValue(localPlayer, WGFlags.INTERACT); //the null value for this flag implies 'allow'
 
         if (state == StateFlag.State.DENY){
             return false;
@@ -74,13 +86,17 @@ public class WorldGuardHandler implements ProtectionHandler {
 
     @Override
     public boolean canAttack(Player player, Entity victim) {
+        if (player.hasPermission("worldguard.region.bypass." + victim.getWorld().getName())){
+            return true;
+        }
+
         FCRegionResultSet regions = this.getRegionsAtSelection(victim.getLocation());
         LocalPlayer localPlayer = WGPlatform.getInstance().wrapPlayer(player);
 
         //Get the default value for the location! [PASSTHROUGH and BUILD] defaults to 'allowInteract', empty region list (__global__) means true as well
-        boolean allowByDefault = regions.queryState(localPlayer, WGFlags.PASSTHROUGH, WGFlags.BUILD) == StateFlag.State.ALLOW || regions.size() == 0;
+        boolean allowByDefault = regions.queryValue(localPlayer, WGFlags.PASSTHROUGH) == StateFlag.State.DENY || regions.queryState(localPlayer, WGFlags.BUILD) == StateFlag.State.ALLOW;
 
-        StateFlag.State state = regions.queryState(
+        StateFlag.State state = regions.queryValue(
                 localPlayer,
                 (victim instanceof Player)
                         ? WGFlags.PVP
@@ -96,26 +112,39 @@ public class WorldGuardHandler implements ProtectionHandler {
 
     @Override
     public boolean canUseAoE(Player player, Location location, int range) {
-        return canBreakOnRegion(
-                player,
-                location.getWorld(),
-                CuboidSelection.of(
-                        BlockPos.from(location).add(-range, location.getBlockY(), -range),
-                        BlockPos.from(location).add(range, 255 - location.getBlockY(), range)
-                )
-        );
+        if (player.hasPermission("worldguard.region.bypass." + location.getWorld().getName())){
+            return true;
+        }
 
+        CuboidSelection cuboidSelection = CuboidSelection.of(BlockPos.from(location)).expand(range).expandVert();
+        FCRegionResultSet regions = this.getRegionsAtSelection(location.getWorld(), cuboidSelection);
+        LocalPlayer localPlayer = WGPlatform.getInstance().wrapPlayer(player);
+
+        //Get the default value for the location! [PASSTHROUGH and BUILD] defaults to 'allowBreak', empty region list (__global__) means true as well
+        boolean allowByDefault = regions.queryValue(localPlayer, WGFlags.PASSTHROUGH) == StateFlag.State.DENY || regions.queryState(localPlayer, WGFlags.BUILD) == StateFlag.State.ALLOW;
+
+        StateFlag.State state = regions.queryState(localPlayer, WGFlags.BLOCK_BREAK, WGFlags.BLOCK_PLACE); //the null value for these flags implies 'allow'
+
+        if (state == StateFlag.State.DENY){
+            return false;
+        }
+
+        return allowByDefault;
     }
 
     @Override
     public boolean canBuildOnRegion(Player player, World world, CuboidSelection cuboidSelection) {
+        if (player.hasPermission("worldguard.region.bypass." + world.getName())){
+            return true;
+        }
+
         FCRegionResultSet regions = this.getRegionsAtSelection(world, cuboidSelection);
         LocalPlayer localPlayer = WGPlatform.getInstance().wrapPlayer(player);
 
         //Get the default value for the location! [PASSTHROUGH and BUILD] defaults to 'allowBuild', empty region list (__global__) means true as well
-        boolean allowByDefault = regions.queryState(localPlayer, WGFlags.PASSTHROUGH, WGFlags.BUILD) == StateFlag.State.ALLOW || regions.size() == 0;
+        boolean allowByDefault = regions.queryValue(localPlayer, WGFlags.PASSTHROUGH) == StateFlag.State.DENY || regions.queryState(localPlayer, WGFlags.BUILD) == StateFlag.State.ALLOW;
 
-        StateFlag.State state = regions.queryState(localPlayer, WGFlags.BLOCK_PLACE); //the null value for this flag implies 'allow'
+        StateFlag.State state = regions.queryValue(localPlayer, WGFlags.BLOCK_PLACE); //the null value for this flag implies 'allow'
 
         if (state == StateFlag.State.DENY){
             return false;
@@ -126,13 +155,17 @@ public class WorldGuardHandler implements ProtectionHandler {
 
     @Override
     public boolean canBreakOnRegion(Player player, World world, CuboidSelection cuboidSelection) {
+        if (player.hasPermission("worldguard.region.bypass." + world.getName())){
+            return true;
+        }
+
         FCRegionResultSet regions = this.getRegionsAtSelection(world, cuboidSelection);
         LocalPlayer localPlayer = WGPlatform.getInstance().wrapPlayer(player);
 
         //Get the default value for the location! [PASSTHROUGH and BUILD] defaults to 'allowBreak', empty region list (__global__) means true as well
-        boolean allowByDefault = regions.queryState(localPlayer, WGFlags.PASSTHROUGH, WGFlags.BUILD) == StateFlag.State.ALLOW || regions.size() == 0;
+        boolean allowByDefault = regions.queryValue(localPlayer, WGFlags.PASSTHROUGH) == StateFlag.State.DENY || regions.queryState(localPlayer, WGFlags.BUILD) == StateFlag.State.ALLOW;
 
-        StateFlag.State state = regions.queryState(localPlayer, WGFlags.BLOCK_BREAK); //the null value for this flag implies 'allow'
+        StateFlag.State state = regions.queryValue(localPlayer, WGFlags.BLOCK_BREAK); //the null value for this flag implies 'allow'
 
         if (state == StateFlag.State.DENY){
             return false;
