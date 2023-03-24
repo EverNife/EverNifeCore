@@ -19,6 +19,12 @@ public class FCColorUtil {
         return colors.get(FCMathUtil.getRandom().nextInt(colors.size()));
     }
 
+    public static String decolorfy(@Nullable String text){
+        if (text == null) return null;
+        //TODO do something better
+        return text.replace("§", "&");
+    }
+
     public static String colorfy(@Nullable String text){
         if (text == null) return null;
         String colored = ChatColor.translateAlternateColorCodes('&',text);
