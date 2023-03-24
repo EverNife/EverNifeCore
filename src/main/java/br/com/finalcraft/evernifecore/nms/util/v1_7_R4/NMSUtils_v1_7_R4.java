@@ -52,7 +52,10 @@ public class NMSUtils_v1_7_R4 implements INMSUtils {
 	@Override
 	public String getLocalizedName(org.bukkit.inventory.ItemStack itemStack) {
 		net.minecraft.server.v1_7_R4.ItemStack nmsItem = CraftItemStack.asNMSCopy(itemStack);
-		return nmsItem.getName();
+		String localizedName = nmsItem.getItem().n(nmsItem);
+		EnumItemRarity itemRarity = nmsItem.w();
+		String prefixColor = itemRarity == EnumItemRarity.COMMON ? "" : itemRarity.e.toString();
+		return prefixColor + localizedName;
 	}
 
 	@Override

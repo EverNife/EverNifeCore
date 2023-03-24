@@ -54,7 +54,10 @@ public class NMSUtils_v1_16_R3 implements INMSUtils {
 	@Override
 	public String getLocalizedName(org.bukkit.inventory.ItemStack itemStack) {
 		ItemStack nmsItem = CraftItemStack.asNMSCopy(itemStack);
-		return nmsItem.getItem().h(nmsItem).getString();
+		String localizedName = nmsItem.getItem().h(nmsItem).getString();
+		EnumItemRarity itemRarity = nmsItem.v();
+		String prefixColor = itemRarity == EnumItemRarity.COMMON ? "" : itemRarity.e.toString();
+		return prefixColor + localizedName;
 	}
 
 	@Override
