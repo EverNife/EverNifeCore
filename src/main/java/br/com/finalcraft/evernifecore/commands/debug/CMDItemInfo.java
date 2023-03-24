@@ -6,10 +6,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
-import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
-import br.com.finalcraft.evernifecore.util.FCItemUtils;
-import br.com.finalcraft.evernifecore.util.FCMessageUtil;
-import br.com.finalcraft.evernifecore.util.FCTextUtil;
+import br.com.finalcraft.evernifecore.util.*;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -32,11 +29,24 @@ public class CMDItemInfo {
 
         player.sendMessage("§m§7" + FCTextUtil.straightLineOf("-"));
         if (NMSUtils.get() != null){
-            FancyText.of("§d ● §eLocalizedName: §a" + FCItemUtils.getLocalizedName(heldItem))
-                    .setHoverText("§7Click to copy! [§a" + FCItemUtils.getLocalizedName(heldItem) + "§7]")
-                    .setSuggestCommandAction(FCItemUtils.getLocalizedName(heldItem))
+            String localizedName = FCItemUtils.getLocalizedName(heldItem);
+            String uncolorfiedLocalizedName = FCColorUtil.decolorfy(localizedName);
+            FancyText.of("§d ● §eLocalizedName: §a" + localizedName)
+                    .setHoverText("§7Click to copy! [§a" + uncolorfiedLocalizedName + "§7]")
+                    .setSuggestCommandAction(uncolorfiedLocalizedName)
                     .send(player);
+        }
 
+        String displayName = FCItemUtils.getDisplayName(heldItem);
+        if (displayName != null){
+            String uncolorfiedDisplayName = FCColorUtil.decolorfy(displayName);
+            FancyText.of("§d ● §eDisplayName: §r" + displayName)
+                    .setHoverText("§7Click to copy! [§a" + uncolorfiedDisplayName + "§7]")
+                    .setSuggestCommandAction(uncolorfiedDisplayName)
+                    .send(player);
+        }
+
+        if (NMSUtils.get() != null){
             FancyText.of("\n§d ● §eMCIdentifier: §a" + FCItemUtils.getMinecraftIdentifier(heldItem))
                     .setHoverText("§7Click to copy! [§a" + FCItemUtils.getMinecraftIdentifier(heldItem) + "§7]")
                     .setSuggestCommandAction(FCItemUtils.getMinecraftIdentifier(heldItem))
