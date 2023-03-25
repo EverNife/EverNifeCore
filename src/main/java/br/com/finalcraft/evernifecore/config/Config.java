@@ -390,19 +390,19 @@ public class Config {
     public Set<ConfigSection> getKeysSections() {
         return getKeys().stream()
                 .map(key -> new ConfigSection(this, key))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     public Set<ConfigSection> getKeysSections(String path) {
         return getKeys(path).stream()
                 .map(key -> new ConfigSection(this, path + "." + key))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     public Set<ConfigSection> getKeysSections(String path, boolean deep) {
         return getKeys(path, deep).stream()
                 .map(key -> new ConfigSection(this, path + "." + key))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /**
