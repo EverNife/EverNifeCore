@@ -107,6 +107,18 @@ public class ConfigSection{
         return config.getKeys(concatSubPath(subPath), deep);
     }
 
+    public Set<ConfigSection> getKeysSections() {
+        return config.getKeysSections(this.path);
+    }
+
+    public Set<ConfigSection> getKeysSections(String subPath) {
+        return config.getKeysSections(concatSubPath(subPath));
+    }
+
+    public Set<ConfigSection> getKeysSections(String subPath, boolean deep) {
+        return config.getKeysSections(concatSubPath(subPath), deep);
+    }
+
     public boolean contains() {
         return config.contains(this.path);
     }
