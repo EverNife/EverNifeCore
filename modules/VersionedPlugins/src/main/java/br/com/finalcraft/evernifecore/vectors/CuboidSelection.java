@@ -1,7 +1,10 @@
 package br.com.finalcraft.evernifecore.vectors;
 
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
+import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class CuboidSelection {
@@ -65,6 +68,34 @@ public class CuboidSelection {
 
     public BlockPos getMaximum() {
         return maximum;
+    }
+
+    public int getVolume(){
+        return (maximum.getX() - minium.getX() + 1) * (maximum.getY() - minium.getY() + 1) * (maximum.getZ() - minium.getZ() + 1);
+    }
+
+    public int getArea(){
+        return (maximum.getX() - minium.getX() + 1) * (maximum.getZ() - minium.getZ() + 1);
+    }
+
+    public List<ChunkPos> getChunks(){
+        ChunkPos minChunk = getMinium().getChunkPos();
+        ChunkPos maxChunk = getMaximum().getChunkPos();
+
+        final int lowerX = minChunk.getX();
+        final int lowerZ = minChunk.getZ();
+        final int upperX = maxChunk.getX();
+        final int upperZ = maxChunk.getZ();
+
+        List<ChunkPos> allChunks = new ArrayList<>();
+
+        for (int x = lowerX; x <= upperX; x++) {
+            for (int z = lowerZ; z <= upperZ; z++) {
+                allChunks.add(new ChunkPos(x,z));
+            }
+        }
+
+        return allChunks;
     }
 
     public boolean contains(BlockPos other){

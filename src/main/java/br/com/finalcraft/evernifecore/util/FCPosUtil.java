@@ -3,10 +3,9 @@ package br.com.finalcraft.evernifecore.util;
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
 import br.com.finalcraft.evernifecore.util.commons.MinMax;
+import br.com.finalcraft.evernifecore.vectors.CuboidSelection;
 import org.apache.commons.lang3.Validate;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -46,25 +45,7 @@ public class FCPosUtil {
     }
 
     public static List<ChunkPos> getAllChunksBetween(BlockPos loc1, BlockPos loc2){
-        MinMax<BlockPos> minimumAndMaximum = getMinimumAndMaximum(Arrays.asList(loc1, loc2));
-
-        ChunkPos minChunk = minimumAndMaximum.getMin().getChunkPos();
-        ChunkPos maxChunk = minimumAndMaximum.getMax().getChunkPos();
-
-        final int lowerX = minChunk.getX();
-        final int lowerZ = minChunk.getZ();
-        final int upperX = maxChunk.getX();
-        final int upperZ = maxChunk.getZ();
-
-        List<ChunkPos> allChunks = new ArrayList<>();
-
-        for (int x = lowerX; x <= upperX; x++) {
-            for (int z = lowerZ; z <= upperZ; z++) {
-                allChunks.add(new ChunkPos(x,z));
-            }
-        }
-
-        return allChunks;
+        return CuboidSelection.of(loc1, loc2).getChunks();
     }
 
 
