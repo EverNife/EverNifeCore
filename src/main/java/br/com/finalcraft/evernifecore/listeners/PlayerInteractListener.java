@@ -20,7 +20,7 @@ import org.bukkit.inventory.ItemStack;
 public class PlayerInteractListener implements ECListener {
 
     @FCLocale(lang = LocaleType.EN_US,
-            text = "§7§o[INFO] (%x%, %y%, %z%) §b%block_type% §a§l[%block_id_and_meta%] &7&o(%biome%)",
+            text = "§7§o[INFO] (%x%, %y%, %z%) §b%block_type%%block_meta% §a§l[%block_id%%block_meta%] &7&o(%biome%)",
             hover = "§7Disable with /blockinfo" +
                     "\nClick to copy the Material Name"
     )
@@ -59,7 +59,8 @@ public class PlayerInteractListener implements ECListener {
                         .addPlaceholder("%y%", location.getBlockY())
                         .addPlaceholder("%z%", location.getBlockZ())
                         .addPlaceholder("%block_type%", block.getType().name())
-                        .addPlaceholder("%block_id_and_meta%", MCVersion.isHigherEquals(MCVersion.v1_13) ? "" : block.getType().getId())
+                        .addPlaceholder("%block_id%", MCVersion.isHigherEquals(MCVersion.v1_13) ? "" : block.getType().getId())
+                        .addPlaceholder("%block_meta%", MCVersion.isHigherEquals(MCVersion.v1_13) ? "" : block.getData() == 0 ? "" : ":" + block.getData())
                         .addPlaceholder("%biome%", block.getBiome().name())
                         .addSuggest(FCItemUtils.getBukkitIdentifier(itemStack))
                         .send(player);
