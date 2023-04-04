@@ -9,22 +9,22 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 public enum EnumStainedGlassPane {
-    WHITE('7'),
-    ORANGE('6'),
-    MAGENTA('d'),
-    LIGHT_BLUE('b'),
-    YELLOW('e'),
-    LIME('a'),
-    PINK('c'),
-    GRAY('7'),
-    LIGHT_GRAY('7'),
-    CYAN('3'),
-    PURPLE('d'),
-    BLUE('9'),
-    BROWN('c'),
-    GREEN('2'),
-    RED('c'),
-    BLACK('7'),
+    WHITE('7'),     //0
+    ORANGE('6'),    //1
+    MAGENTA('d'),   //2
+    LIGHT_BLUE('b'),//3
+    YELLOW('e'),    //4
+    LIME('a'),      //5
+    PINK('c'),      //6
+    GRAY('7'),      //7
+    LIGHT_GRAY('7'),//8
+    CYAN('3'),      //9
+    PURPLE('d'),    //10
+    BLUE('9'),      //11
+    BROWN('c'),     //12
+    GREEN('2'),     //13
+    RED('c'),       //14
+    BLACK('7'),     //15
     ;
 
     private final Material material;
