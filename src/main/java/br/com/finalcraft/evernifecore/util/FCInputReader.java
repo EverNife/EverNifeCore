@@ -1,7 +1,10 @@
 package br.com.finalcraft.evernifecore.util;
 
+import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import org.bukkit.Material;
+
+import java.util.UUID;
 
 public class FCInputReader {
 
@@ -37,6 +40,15 @@ public class FCInputReader {
             }
         }
         return material;
+    }
+
+    public static UUID parseUUID(String uuid){
+        if (uuid.isEmpty() || uuid.length() != 36) return null;
+        try {
+            return UUID.fromString(uuid);
+        }catch (Exception ignored){
+            return null;
+        }
     }
 
 }

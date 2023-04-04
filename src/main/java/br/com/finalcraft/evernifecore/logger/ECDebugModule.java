@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.logger.debug.IDebugModule;
 
 public enum ECDebugModule implements IDebugModule {
     LOCALIZATION,
+    PLAYER_DATA,
     ARG_PARSER,
     ;
 

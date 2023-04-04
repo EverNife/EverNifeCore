@@ -15,23 +15,23 @@ public class PlayerData implements IPlayerData{
     protected final Config config;
     protected final String playerName;
     protected final UUID uuid;
-    protected long lastSeen;
     protected final Map<String, PlayerCooldown> cooldownHashMap = new HashMap<>();
+    protected long lastSeen;
 
     //Transient Data
     protected transient Player player = null;
     protected transient boolean recentChanged = false;
 
     // PDSection Controller
-    private final Map<Class<? extends PDSection>, PDSection> mapOfPDSections = new HashMap();
+    private final Map<Class<? extends PDSection>, PDSection> MAP_OF_PDSECTIONS = new HashMap();
 
     public Map<Class<? extends PDSection>, PDSection> getMapOfPDSections() {
-        return mapOfPDSections;
+        return MAP_OF_PDSECTIONS;
     }
 
     @Override
     public <T extends PDSection> T getPDSection(Class<T> pdSectionClass){
-        PDSection pdSection = mapOfPDSections.get(pdSectionClass);
+        PDSection pdSection = MAP_OF_PDSECTIONS.get(pdSectionClass);
         if (pdSection == null){
             pdSection = createPDSection(pdSectionClass);
         }
@@ -42,7 +42,7 @@ public class PlayerData implements IPlayerData{
         try {
             Constructor<?> constructor = pdSectionClass.getConstructor(PlayerData.class);
             PDSection pdSection = (PDSection) constructor.newInstance(this);
-            mapOfPDSections.put(pdSectionClass, pdSection);
+            MAP_OF_PDSECTIONS.put(pdSectionClass, pdSection);
             return (T)pdSection;
         }catch (Exception e){
             EverNifeCore.warning("Failed to instantiate PDSection [" + pdSectionClass.getName() + "]!");
@@ -95,7 +95,7 @@ public class PlayerData implements IPlayerData{
         config.setValue("PlayerData.lastSeen",this.lastSeen);
 
         // Loop all PDSections and save them if needed
-        for (PDSection pDSection : new ArrayList<>(mapOfPDSections.values())){
+        for (PDSection pDSection : new ArrayList<>(MAP_OF_PDSECTIONS.values())){
             try {
                 if (pDSection.recentChanged){
                     pDSection.savePDSection();
@@ -115,6 +115,10 @@ public class PlayerData implements IPlayerData{
         this.player = player;
         this.lastSeen = System.currentTimeMillis();
         this.setRecentChanged();
+    }
+
+    public Map<String, PlayerCooldown> getCooldownHashMap() {
+        return cooldownHashMap;
     }
 
     @Override
@@ -150,10 +154,6 @@ public class PlayerData implements IPlayerData{
     @Override
     public PlayerCooldown getCooldown(String identifier){
         return cooldownHashMap.computeIfAbsent(identifier, s -> new PlayerCooldown(identifier, this.getUniqueId()));
-    }
-
-    public Map<String, PlayerCooldown> getCooldownHashMap() {
-        return cooldownHashMap;
     }
 
     @Override

@@ -1,87 +1,98 @@
 package br.com.finalcraft.evernifecore.config.uuids;
 
-import br.com.finalcraft.evernifecore.config.ConfigManager;
-
 import java.util.*;
 
 public class UUIDsController {
 
-    private static final UUIDHashMap uuidHashMap = new UUIDHashMap();
-
-    public static void loadUUIDs(){
-        if (ConfigManager.getPlayerUUIDs().contains("StoredUUIDs")){
-            for (String stringUUID : ConfigManager.getPlayerUUIDs().getKeys("StoredUUIDs")){
-                UUID playerUUID = UUID.fromString(stringUUID);
-                String playerName = ConfigManager.getPlayerUUIDs().getString("StoredUUIDs." + stringUUID);
-                uuidHashMap.put(playerUUID,playerName);
-            }
-        }
-    }
+    private static final UUIDHashMap UUID_HASH_MAP = new UUIDHashMap();
 
     public static void addOrUpdateUUIDName(UUID playerUUID, String playerName){
-        String existingPlayerName = uuidHashMap.get(playerUUID);
-        if (existingPlayerName != null && existingPlayerName.equals(playerName)){
+        if (isUUIDLinkedToName(playerUUID, playerName)) {
             return;
         }
-        ConfigManager.getPlayerUUIDs().setValue("StoredUUIDs." + playerUUID.toString(), playerName);
-        ConfigManager.getPlayerUUIDs().saveAsync();
-        uuidHashMap.put(playerUUID, playerName);
+        UUID_HASH_MAP.put(playerUUID, playerName);
+    }
+
+    public static boolean isUUIDLinkedToName(UUID playerUUID, String playerName){
+        String existingPlayerName = UUID_HASH_MAP.get(playerUUID);
+        UUID existingUUID = UUID_HASH_MAP.get(playerName);
+
+        if (existingPlayerName == null || existingUUID == null){
+            return false;
+        }
+
+        if (!existingPlayerName.equals(playerName)){
+            return false;
+        }
+
+        if (!existingUUID.equals(playerUUID)){
+            return false;
+        }
+
+        return true;
     }
 
     public static String getNameFromUUID(UUID playerUUID){
-        return uuidHashMap.get(playerUUID);
+        return UUID_HASH_MAP.get(playerUUID);
     }
 
     public static String getNameFromUUID(String playerUUID){
-        return uuidHashMap.get(UUID.fromString(playerUUID));
+        return UUID_HASH_MAP.get(UUID.fromString(playerUUID));
     }
 
     public static UUID getUUIDFromName(String playerName){
-        return uuidHashMap.get(playerName);
+        return UUID_HASH_MAP.get(playerName);
     }
 
     public static String normalizeName(String unformattedPlayerName){
-        return uuidHashMap.get(uuidHashMap.get(unformattedPlayerName));
+        return UUID_HASH_MAP.get(UUID_HASH_MAP.get(unformattedPlayerName));
     }
 
     public static Collection<UUID> getAllUUIDs(){
-        return uuidHashMap.getAllUUIDs();
+        return UUID_HASH_MAP.getAllUUIDs();
     }
 
     public static Collection<String> getAllNames(){
-        return uuidHashMap.getAllNames();
+        return UUID_HASH_MAP.getAllNames();
     }
 
     public static Set<Map.Entry<UUID, String>> getEntrySet(){
-        return uuidHashMap.entrySet();
+        return UUID_HASH_MAP.entrySet();
     }
 
     public static UUIDHashMap getUuidHashMap() {
-        return uuidHashMap;
+        return UUID_HASH_MAP;
     }
 
     public static final class UUIDHashMap{
-        private final Map<UUID,String> storedUUIDtoName = new HashMap<UUID, String>();
-        private final Map<String,UUID> storedNameToUUID = new HashMap<String, UUID>();
+        private final Map<UUID,String> storedUUIDtoName = new HashMap<>();
+        private final Map<String,UUID> storedNameToUUID = new HashMap<>();
 
-        private void put(UUID uuid, String name){
-            storedUUIDtoName.put(uuid,name);
-            storedNameToUUID.put(name.toLowerCase(),uuid);
+        public void put(UUID uuid, String name){
+            //First, lets keep consistency between name and uuid
+            String previousWrongName = storedUUIDtoName.remove(uuid);
+            UUID previousWrongUUID = storedNameToUUID.remove(name.toLowerCase());
+            if (previousWrongName != null) storedNameToUUID.remove(previousWrongName.toLowerCase());
+            if (previousWrongUUID != null) storedUUIDtoName.remove(previousWrongUUID);
+
+            //Add new data normally
+            storedUUIDtoName.put(uuid,name.intern());
+            storedNameToUUID.put(name.toLowerCase().intern(),uuid);
         }
 
-        private UUID get(String name){
+        public UUID get(String name){
             return storedNameToUUID.get(name.toLowerCase());
         }
 
-        private String get(UUID uuid){
+        public String get(UUID uuid){
             return storedUUIDtoName.get(uuid);
         }
 
-        private boolean contains(String name){
+        public boolean contains(String name){
             return storedNameToUUID.containsKey(name.toLowerCase());
         }
 
-        private boolean contains(UUID uuid){
+        public boolean contains(UUID uuid){
             return storedUUIDtoName.containsKey(uuid);
         }
 
@@ -91,6 +102,11 @@ public class UUIDsController {
 
         public Collection<String> getAllNames(){
             return storedUUIDtoName.values();
+        }
+
+        public void clear(){
+            storedUUIDtoName.clear();
+            storedNameToUUID.clear();
         }
 
         public Set<Map.Entry<UUID, String>> entrySet(){
