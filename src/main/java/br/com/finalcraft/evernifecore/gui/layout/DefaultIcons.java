@@ -62,7 +62,7 @@ public class DefaultIcons {
     @FCLocale(lang = LocaleType.PT_BR, text = "§a§lConfirmar", hover = "" +
             "§2§m------------------------------------§r" +
             "\n" +
-            "\n§a ✎ Clique aqui para CONFIRMAR essa operação!" +
+            "\n§a ✎ Clique aqui para CONFIRMAR operação!" +
             "\n" +
             "\n§2§m------------------------------------§r")
     private static LocaleMessage CONFIRM_BUTTON;
@@ -85,7 +85,7 @@ public class DefaultIcons {
     @FCLocale(lang = LocaleType.PT_BR, text = "§c§lCancelar", hover = "" +
             "§2§m------------------------------------§r" +
             "\n" +
-            "\n§c ✎ Clique aqui para CANCELAR essa operação!" +
+            "\n§c ✎ Clique aqui para CANCELAR operação!" +
             "\n" +
             "\n§2§m------------------------------------§r")
     private static LocaleMessage DENY_BUTTON;
@@ -102,19 +102,20 @@ public class DefaultIcons {
     @FCLocale(lang = LocaleType.EN_US, text = "§a§lInfo", hover = "" +
             "§2§m------------------------------------§r" +
             "\n" +
-            "\n" +
+            "\n%information%" +
             "\n" +
             "\n§2§m------------------------------------§r")
     @FCLocale(lang = LocaleType.PT_BR, text = "§a§lInfo", hover = "" +
             "§2§m------------------------------------§r" +
             "\n" +
-            "\n" +
+            "\n%information%" +
             "\n" +
             "\n§2§m------------------------------------§r")
     private static LocaleMessage INFORMATION_BUTTON;
 
     public static LayoutIcon getInformationButton() {
         return FCItemFactory.from(Material.PAPER)
+                .applyIf(() -> FCInputReader.parseMaterial("EVERPOKEUTILS_CARTAZ") != null, fcItemBuilder -> fcItemBuilder.material("EVERPOKEUTILS_CARTAZ"))
                 .displayName(INFORMATION_BUTTON.getDefaultFancyText().getText())
                 .lore(INFORMATION_BUTTON.getDefaultFancyText().getHoverText())
                 .asLayout();
