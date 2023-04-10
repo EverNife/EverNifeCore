@@ -6,27 +6,28 @@ import br.com.finalcraft.evernifecore.inventory.extrainvs.factory.imp.ArmourersI
 import br.com.finalcraft.evernifecore.inventory.extrainvs.factory.imp.BaublesInvFactory;
 import br.com.finalcraft.evernifecore.inventory.extrainvs.factory.imp.TinkersInvFactory;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 
 public class ExtraInvManager {
 
-    public static List<IExtraInvFactory> INVENTORY_FACTORIES = new ArrayList<>();
+    private static LinkedHashMap<String, IExtraInvFactory<?>> INVENTORY_FACTORIES = new LinkedHashMap<>();
+
+    public static void registerFactory(IExtraInvFactory<?> factory){
+        INVENTORY_FACTORIES.put(factory.getId().toLowerCase(), factory);
+    }
 
     static {
-        if (EverForgeLibIntegration.baublesLoaded) getAllFactories().add(new BaublesInvFactory());
-        if (EverForgeLibIntegration.tinkersLoaded) getAllFactories().add(new TinkersInvFactory());
-        if (EverForgeLibIntegration.armourersWorkShopLoaded) getAllFactories().add(new ArmourersInvFactory());
+        if (EverForgeLibIntegration.baublesLoaded) registerFactory(new BaublesInvFactory());
+        if (EverForgeLibIntegration.tinkersLoaded) registerFactory(new TinkersInvFactory());
+        if (EverForgeLibIntegration.armourersWorkShopLoaded) registerFactory(new ArmourersInvFactory());
     }
 
-    public static List<IExtraInvFactory> getAllFactories() {
-        return INVENTORY_FACTORIES;
+    public static Collection<IExtraInvFactory<?>> getAllFactories() {
+        return INVENTORY_FACTORIES.values();
     }
 
-    public static IExtraInvFactory getFactory(String factoryId){
-        return INVENTORY_FACTORIES.stream()
-                .filter(factory -> factory.getId().equals(factoryId))
-                .findFirst()
-                .orElse(null);
+    public static IExtraInvFactory<?> getFactory(String factoryId){
+        return INVENTORY_FACTORIES.get(factoryId.toLowerCase());
     }
 }

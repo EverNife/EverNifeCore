@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.inventory.extrainvs.factory.IExtraInvFacto
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,6 +49,10 @@ public class FCPlayerInventory implements Salvable {
     }
 
     public FCPlayerInventory(Player player) {
+        this(player, ExtraInvManager.getAllFactories());
+    }
+
+    public FCPlayerInventory(Player player, @Nullable Collection<IExtraInvFactory<?>> inventoryFactories) {
         PlayerInventory playerInventory = player.getInventory();
         for (int index = 0; index < 36; index++){
             ItemStack itemStack = playerInventory.getItem(index);
@@ -61,10 +66,13 @@ public class FCPlayerInventory implements Salvable {
         this.leggings = playerInventory.getLeggings() != null ? playerInventory.getLeggings() : null;
         this.boots = playerInventory.getBoots() != null ? playerInventory.getBoots() : null;
 
-        for (IExtraInvFactory iventoryFactory : ExtraInvManager.getAllFactories()) {
-            ExtraInv extraInv = iventoryFactory.getPlayerExtraInv(player);
-            extraInvs.add(extraInv);
+        if (inventoryFactories != null){
+            for (IExtraInvFactory<?> iventoryFactory : inventoryFactories) {
+                ExtraInv extraInv = iventoryFactory.extractFromPlayer(player);
+                extraInvs.add(extraInv);
+            }
         }
+
     }
 
     @Override
@@ -104,7 +112,7 @@ public class FCPlayerInventory implements Salvable {
                     continue;
                 }
 
-                ExtraInv extraInv = factory.loadExtraInv(extraInvSection);
+                ExtraInv extraInv = factory.onConfigLoad(extraInvSection);
                 extraInvList.add(extraInv);
             }catch (Exception e){
                 EverNifeCore.info("Failed to load ExtraInv(" + extraInvKey + ") at " + extraInvSection.toString());
@@ -164,7 +172,7 @@ public class FCPlayerInventory implements Salvable {
             if (extraInv == null){
                 extraInv = factory.createEmptyExtraInv();
             }
-            factory.setPlayerExtraInv(player, extraInv);
+            factory.applyToPlayer(player, extraInv);
         }
 
         playerInventory.setHelmet(this.getHelmet() == null ?  null : this.getHelmet().clone());

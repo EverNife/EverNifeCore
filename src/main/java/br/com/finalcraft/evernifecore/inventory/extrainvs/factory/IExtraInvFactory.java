@@ -7,26 +7,26 @@ import org.bukkit.entity.Player;
 
 import java.util.Collections;
 
-public interface IExtraInvFactory {
+public interface IExtraInvFactory<E extends ExtraInv> {
 
     public String getId();
 
     public int getInvMaxSize();
 
-    public ExtraInv getPlayerExtraInv(Player player);
+    public E extractFromPlayer(Player player);
 
-    public void setPlayerExtraInv(Player player, ExtraInv e);
+    public void applyToPlayer(Player player, E e);
 
-    public default ExtraInv loadExtraInv(ConfigSection section) {
+    public default E onConfigLoad(ConfigSection section) {
         GenericInventory genericInventory = section.getLoadable("", GenericInventory.class); //This will load the GenericInventory under the 'path.items'
-        return new ExtraInv(
+        return (E) new ExtraInv(
                 this,
                 genericInventory.getItems()
         );
     }
 
-    public default ExtraInv createEmptyExtraInv(){
-        return new ExtraInv(this, Collections.EMPTY_LIST);
+    public default E createEmptyExtraInv(){
+        return (E) new ExtraInv(this, Collections.EMPTY_LIST);
     }
 
 }

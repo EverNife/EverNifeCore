@@ -25,12 +25,12 @@ public class BaublesInvFactory implements IExtraInvFactory {
     }
 
     @Override
-    public ExtraInv getPlayerExtraInv(Player player) {
+    public ExtraInv extractFromPlayer(Player player) {
         return new ExtraInv(this, ItemInSlot.fromStacks(EverForgeLibIntegration.getBaublesInventory(player)));
     }
 
     @Override
-    public void setPlayerExtraInv(Player player, ExtraInv extraInv) {
+    public void applyToPlayer(Player player, ExtraInv extraInv) {
         ItemStack[] inventoryContent = Arrays.copyOf(ItemInSlot.toArray(extraInv.getItems()),this.getInvMaxSize());
         EverForgeLibIntegration.setBaublesInventory(player, inventoryContent);
     }

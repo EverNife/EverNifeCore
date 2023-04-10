@@ -29,7 +29,7 @@ public class ArmourersInvFactory implements IExtraInvFactory {
     }
 
     @Override
-    public ExtraInv getPlayerExtraInv(Player player) {
+    public ExtraInv extractFromPlayer(Player player) {
         Map<String, GenericInventory> map = new HashMap<>();
         for (Map.Entry<String, ItemStack[]> entry : EverForgeLibIntegration.getArmourersWorkshopInventory(player)) {
             map.put(entry.getKey(), new GenericInventory(ItemInSlot.fromStacks(entry.getValue())));
@@ -39,7 +39,7 @@ public class ArmourersInvFactory implements IExtraInvFactory {
     }
 
     @Override
-    public void setPlayerExtraInv(Player player, ExtraInv extraInv) {
+    public void applyToPlayer(Player player, ExtraInv extraInv) {
         List<Map.Entry<String, ItemStack[]>> inventoryContent = ((ArmourersExtraInv) extraInv).getSubInventories()
                 .entrySet()
                 .stream()
@@ -60,7 +60,7 @@ public class ArmourersInvFactory implements IExtraInvFactory {
     }
 
     @Override
-    public ExtraInv loadExtraInv(ConfigSection section) {
+    public ExtraInv onConfigLoad(ConfigSection section) {
         HashMap<String, GenericInventory> subInventories = new HashMap<>();
 
         for (String key : section.getKeys()) {
