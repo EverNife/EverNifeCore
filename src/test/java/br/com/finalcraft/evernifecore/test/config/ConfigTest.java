@@ -18,6 +18,49 @@ public class ConfigTest {
 
         if (true) return;
 
+        // Create a YAML object
+        // Create a DumperOptions object and set the defaultFlowStyle to FLOW
+        org.yaml.snakeyaml.DumperOptions options = new org.yaml.snakeyaml.DumperOptions();
+        options.setDefaultFlowStyle(org.yaml.snakeyaml.DumperOptions.FlowStyle.FLOW);
+        options.setWidth(Integer.MAX_VALUE);
+        Yaml yaml = new Yaml(options);
+
+        // Dump the YAML data into a single line
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("name", "Jo\n\nhn");
+        data.put("age", 30);
+        data.put("city", "New York");
+
+        String yamlStr = yaml.dump(data);
+
+        System.out.println(yamlStr);
+
+        Config newConfig = new Config("");
+        newConfig.getConfiguration().loadFromString(yamlStr);
+        System.out.println(newConfig.getInt("age"));
+
+        if (true) return;
+
+        YamlFile config = new YamlFile();
+        SnakeYamlImplementation implementation = (SnakeYamlImplementation) config.options().configuration().getImplementation();
+        implementation.getDumperOptions().setWidth(999999);
+        implementation.getDumperOptions().setDefaultFlowStyle(DumperOptions.FlowStyle.FLOW);
+
+        config.set("name","Abra");
+        config.set("level",23);
+        config.set("species", "Human");
+        config.set("species", "Os");
+
+        String serialized = config.dump();//.replace("\n", "|");
+
+        System.out.println(serialized);
+
+        YamlFile config2 = new YamlFile();
+        config2.loadFromString(serialized.replace("|", "\n"));
+        System.out.println(config2.get("name"));
+
+        if (true) return;
+
         File testFile = new File("test-file.yml");
         YamlFile yamlFile = new YamlFile(testFile);
 
