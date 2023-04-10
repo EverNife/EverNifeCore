@@ -8,6 +8,8 @@ public abstract class SimpleThread {
     protected transient Thread thread;
     protected final String threadName;
 
+    private transient boolean executeOnShutdown = true;
+
     protected Thread getOrCreateThread(){
         if (thread == null || !thread.isAlive()){
             thread = new Thread(){
@@ -18,7 +20,9 @@ public abstract class SimpleThread {
                         SimpleThread.this.onStart();
                         SimpleThread.this.run();
                     } catch (InterruptedException exception) {
-                        SimpleThread.this.onShutdown();
+                        if (executeOnShutdown){
+                            SimpleThread.this.onShutdown();
+                        }
                         SimpleThread.this.javaPlugin.getLogger().info("Thread Shutdown: " + this.getName());
                     }
                 }
@@ -51,6 +55,11 @@ public abstract class SimpleThread {
     }
 
     public void shutdown(){
+        shutdown(true);
+    }
+
+    public void shutdown(boolean executeOnShutdown){
+        this.executeOnShutdown = executeOnShutdown;
         if (getOrCreateThread().isAlive()){
             getOrCreateThread().interrupt();
         }
