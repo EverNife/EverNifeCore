@@ -248,8 +248,11 @@ public class CMDMethodInterpreter {
                     return;
                 }
                 try {
+                    parser.setArgContext(new ArgParser.ArgContext(argumentos));
                     theArgs[index] = parser.parserArgument(sender, argumento);
+                    parser.setArgContext(null);
                 }catch (ArgParseException argParseException){
+                    parser.setArgContext(null);
                     //If we fail to parse this arg, for example, "ArgParserPlayer" 'the player is not online', we can leave now
                     return;
                 }
