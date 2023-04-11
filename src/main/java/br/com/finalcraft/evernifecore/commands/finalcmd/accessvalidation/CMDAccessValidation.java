@@ -87,7 +87,7 @@ public abstract class CMDAccessValidation {
         }
 
         public boolean hasProperPermission(){
-            return sender.hasPermission(this.interpreter.getCmdData().permission());
+            return sender.hasPermission(this.interpreter.getCmdData().getPermission());
         }
     }
 

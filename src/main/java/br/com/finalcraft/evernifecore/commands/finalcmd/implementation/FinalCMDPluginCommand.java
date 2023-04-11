@@ -46,18 +46,18 @@ public class FinalCMDPluginCommand extends Command implements PluginIdentifiable
     public static final String DEFAULT_USAGE = "§3§l ▶ §a/§e%label% ";
 
     public FinalCMDPluginCommand(@NotNull JavaPlugin owningPlugin, @NotNull FinalCMDData finalCMD, @Nullable CMDMethodInterpreter mainInterpreter) {
-        super(finalCMD.labels()[0]);
+        super(finalCMD.getLabels()[0]);
 
         Validate.notNull(owningPlugin, "OwningPlugin is null!");
         Validate.notNull(finalCMD, "FinalCMD is null!");
-        Validate.isTrue(!finalCMD.labels()[0].isEmpty(), "Name is empty!");
+        Validate.isTrue(!finalCMD.getLabels()[0].isEmpty(), "Name is empty!");
 
         this.owningPlugin = owningPlugin;
         this.finalCMD = finalCMD;
         this.executor = new FCDefaultExecutor(this);
         this.mainInterpreter = mainInterpreter;
 
-        setAliases(Arrays.asList(finalCMD.labels()));
+        setAliases(Arrays.asList(finalCMD.getLabels()));
         setLabel(getName());
     }
 
@@ -81,17 +81,17 @@ public class FinalCMDPluginCommand extends Command implements PluginIdentifiable
         //Sort all Methods based on the First Label's Name
         Collections.sort(subCommands, Comparator.comparing(cmdMethodInterpreter -> cmdMethodInterpreter.getLabels()[0]));
 
-        this.helpContext = new HelpContext(finalCMD.helpHeader(), this);
+        this.helpContext = new HelpContext(finalCMD.getHelpHeader(), this);
 
-        String calculatedPermission = finalCMD.permission();
-        if (mainInterpreter != null && mainInterpreter.getCmdData().permission() != null && !mainInterpreter.getCmdData().permission().isEmpty()){
-            calculatedPermission = mainInterpreter.getCmdData().permission();
+        String calculatedPermission = finalCMD.getPermission();
+        if (mainInterpreter != null && mainInterpreter.getCmdData().getPermission() != null && !mainInterpreter.getCmdData().getPermission().isEmpty()){
+            calculatedPermission = mainInterpreter.getCmdData().getPermission();
         }else if (subCommands.size() > 0){
-            if (subCommands.stream().map(subCommand -> subCommand.getCmdData().permission()).filter(String::isEmpty).findFirst().isPresent()){
+            if (subCommands.stream().map(subCommand -> subCommand.getCmdData().getPermission()).filter(String::isEmpty).findFirst().isPresent()){
                 calculatedPermission = null; //If there is at least one subcommand that has no permission, then the main command will have no permission
             }else {
                 calculatedPermission = subCommands.stream()
-                        .map(subCommand -> subCommand.getCmdData().permission())
+                        .map(subCommand -> subCommand.getCmdData().getPermission())
                         .filter(Objects::nonNull)
                         .filter(permission -> !permission.isEmpty())
                         .collect(Collectors.joining(";"));
@@ -186,15 +186,15 @@ public class FinalCMDPluginCommand extends Command implements PluginIdentifiable
 
         if (interpreter == null && subCommands.size() > 0){
             return subCommands.stream()
-                    .filter(subCommand -> subCommand.getCmdData().permission().isEmpty() || sender.hasPermission(subCommand.getCmdData().permission())) //For the first arg of all sub commands we need ot check each permission
+                    .filter(subCommand -> subCommand.getCmdData().getPermission().isEmpty() || sender.hasPermission(subCommand.getCmdData().getPermission())) //For the first arg of all sub commands we need ot check each permission
                     .filter(subCommand -> !subCommand.isPlayerOnly() ? true : isPlayer) //If is the console calling this tab completion, ignore the subCommand if it's a 'playerOnly' subCMD
-                    .filter(subCommand -> subCommand.getCmdData().cmdAccessValidation().onPreTabValidation(new CMDAccessValidation.Context(subCommand, sender))) //Apply a final custom filtering, in case this cmd has a custom cmdAccessValidation
+                    .filter(subCommand -> subCommand.getCmdData().getCmdAccessValidation().onPreTabValidation(new CMDAccessValidation.Context(subCommand, sender))) //Apply a final custom filtering, in case this cmd has a custom cmdAccessValidation
                     .map(subCommand -> subCommand.getLabels()[0])
                     .filter(s -> StringUtils.startsWithIgnoreCase(s, args[index]))
                     .collect(Collectors.toList());
         }
 
-        if (interpreter == null || !interpreter.hasTabComplete() || (!interpreter.getCmdData().permission().isEmpty() && !sender.hasPermission(interpreter.getCmdData().permission()))){
+        if (interpreter == null || !interpreter.hasTabComplete() || (!interpreter.getCmdData().getPermission().isEmpty() && !sender.hasPermission(interpreter.getCmdData().getPermission()))){
             return super.tabComplete(sender, alias, args); //No SubCommand NOR mainCommand found
         }
 

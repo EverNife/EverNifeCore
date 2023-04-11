@@ -25,7 +25,7 @@ public class ArgParserIPlayerData extends ArgParser<IPlayerData> {
     public ArgParserIPlayerData(ArgInfo argInfo) {
         super(argInfo);
 
-        this.online = argInfo.getArgData().context().toLowerCase().contains("online");
+        this.online = argInfo.getArgData().getContext().toLowerCase().contains("online");
     }
 
     @Override

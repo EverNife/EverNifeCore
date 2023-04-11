@@ -47,7 +47,7 @@ public class SettingsScanner {
                 if (!settings.context().isEmpty()){
 
                     if (newValue instanceof Number){
-                        ArgParserNumber argParserNumber = new ArgParserNumber(new ArgInfo(defValue.getClass(), new ArgData().context(settings.context()), -1, ArgRequirementType.REQUIRED));
+                        ArgParserNumber argParserNumber = new ArgParserNumber(new ArgInfo(defValue.getClass(), new ArgData().setContext(settings.context()), -1, ArgRequirementType.REQUIRED));
                         try {
                             newValue = argParserNumber.parserArgument(Bukkit.getConsoleSender(), new Argumento(newValue.toString()));
                         }catch (ArgParseException ignored){

@@ -40,15 +40,15 @@ public class FCDefaultExecutor implements IFinalCMDExecutor {
             return true;
         }
 
-        if (!finalCMD.permission().isEmpty() && !FCBukkitUtil.hasThePermission(sender, finalCMD.permission())){
+        if (!finalCMD.getPermission().isEmpty() && !FCBukkitUtil.hasThePermission(sender, finalCMD.getPermission())){
             return true;
         }
 
-        if (finalCMD.useDefaultHelp() != CMDHelpType.NONE && finalCommand.subCommands.size() > 0){
+        if (finalCMD.getHelpType() != CMDHelpType.NONE && finalCommand.subCommands.size() > 0){
             String firstArg = args.length >= 1 ? args[0].toLowerCase() : "";
             switch (firstArg){
                 case "":
-                    if (finalCMD.useDefaultHelp() == CMDHelpType.EXCEPT_EMPTY) break;
+                    if (finalCMD.getHelpType() == CMDHelpType.EXCEPT_EMPTY) break;
                 case "?":
                 case "help":
                 case "ajuda":
@@ -68,12 +68,12 @@ public class FCDefaultExecutor implements IFinalCMDExecutor {
                     return true;
                 }
 
-                if (!subCommand.getCmdData().permission().isEmpty() && !FCBukkitUtil.hasThePermission(sender, subCommand.getCmdData().permission())){
+                if (!subCommand.getCmdData().getPermission().isEmpty() && !FCBukkitUtil.hasThePermission(sender, subCommand.getCmdData().getPermission())){
                     return true;
                 }
 
                 prepareClassLocales(sender, label);
-                if (subCommand.getCmdData().cmdAccessValidation().onPreCommandValidation(new CMDAccessValidation.Context(subCommand, sender)) != true){
+                if (subCommand.getCmdData().getCmdAccessValidation().onPreCommandValidation(new CMDAccessValidation.Context(subCommand, sender)) != true){
                     //We do not notify it here, as the player is intended to be notified inside the cmdAccessValidation
                     return true;
                 }
@@ -84,7 +84,7 @@ public class FCDefaultExecutor implements IFinalCMDExecutor {
                 if (finalCommand.mainInterpreter == null){
                     PARAMETER_ERROR.addPlaceholder("%label%", label).send(sender);
                 }else {
-                    if (finalCommand.mainInterpreter.getCmdData().cmdAccessValidation().onPreCommandValidation(new CMDAccessValidation.Context(finalCommand.mainInterpreter, sender)) != true){
+                    if (finalCommand.mainInterpreter.getCmdData().getCmdAccessValidation().onPreCommandValidation(new CMDAccessValidation.Context(finalCommand.mainInterpreter, sender)) != true){
                         //We do not notify it here, as the player is intended to be notified inside the cmdAccessValidation
                         return true;
                     }

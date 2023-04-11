@@ -24,7 +24,7 @@ public class ArgParserUUID extends ArgParser<UUID> {
     public ArgParserUUID(ArgInfo argInfo) {
         super(argInfo);
 
-        this.online = argInfo.getArgData().context().toLowerCase().contains("online");
+        this.online = argInfo.getArgData().getContext().toLowerCase().contains("online");
     }
 
     @Override

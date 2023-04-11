@@ -62,7 +62,7 @@ public class CMDMethodInterpreter {
         this.method = methodData.getMethod();
         this.executor = executor;
         this.cmdData = methodData.getData();
-        this.labels = cmdData.labels();
+        this.labels = cmdData.getLabels();
         this.isSubCommand = cmdData instanceof SubCMDData;
 
         if (!method.isAccessible()) method.setAccessible(true);
@@ -84,34 +84,34 @@ public class CMDMethodInterpreter {
                 //If @Arg is present, we take the ArgData from our MethodData as it may have been customized over the command creation
                 ArgData argData = ((List<Tuple<ArgData, Class>>)methodData.getArgDataList()).remove(0).getLeft();
 
-                if (ArgParser.class == argData.parser()){
+                if (ArgParser.class == argData.getParser()){
                     //This means the DEFAULT parser, so, we look over the ArgParserManager
                     Class<? extends ArgParser> parserClass = ArgParserManager.getParser(owningPlugin, parameterClazz);
                     if (parserClass == null){
-                        throw new IllegalStateException("Failed to found the proper ArgParser on the FinalCMD (" + executor.getClass().getName() +")[" + method.getName() +"] parameter {index='" + index + "', name='" + argData.name() + "'}. The dev should set it manually or register it on the ArgParserManager!");
+                        throw new IllegalStateException("Failed to found the proper ArgParser on the FinalCMD (" + executor.getClass().getName() +")[" + method.getName() +"] parameter {index='" + index + "', name='" + argData.getName() + "'}. The dev should set it manually or register it on the ArgParserManager!");
                     }
-                    argData.parser(parserClass);
+                    argData.setParser(parserClass);
                 }
 
-                ArgRequirementType argRequirementType = ArgRequirementType.getArgumentType(argData.name());
+                ArgRequirementType argRequirementType = ArgRequirementType.getArgumentType(argData.getName());
                 if (argRequirementType == null){
                     String possibleReqTyes = Arrays.stream(ArgRequirementType.values())
                             .map(reqType -> reqType.getStart() + "" + reqType.getEnd())
                             .collect(Collectors.joining(" or "));
 
-                    throw new ArgMountException ("Failed to load ArgRequirementType from ArgData [" + argData.name() + "], usually this means the " +
+                    throw new ArgMountException ("Failed to load ArgRequirementType from ArgData [" + argData.getName() + "], usually this means the " +
                             "ArgData.name() is not Quoted within \'" + possibleReqTyes + "\'");
                 }
 
                 ArgInfo argInfo = new ArgInfo(parameterClazz, argData, flagArgIndex, argRequirementType); //If subcommand, move arg to the RIGHT 1 slot
                 ArgParser parserInstance;
                 try {
-                    Constructor<? extends ArgParser> constructor = argData.parser().getDeclaredConstructor(ArgInfo.class);
+                    Constructor<? extends ArgParser> constructor = argData.getParser().getDeclaredConstructor(ArgInfo.class);
                     constructor.setAccessible(true);
                     parserInstance = constructor.newInstance(argInfo);
                 }catch (Exception e){
                     e.printStackTrace();
-                    throw new IllegalStateException("Failed to instantiate the ArgParser on the FinalCMD (" + executor.getClass().getName() +")[" + method.getName() +"] parameter [index=" + index + ", name=" + argData.name() + "]");
+                    throw new IllegalStateException("Failed to instantiate the ArgParser on the FinalCMD (" + executor.getClass().getName() +")[" + method.getName() +"] parameter [index=" + index + ", name=" + argData.getName() + "]");
                 }
 
                 customArguments.put(index, parserInstance); //Index of the methodOrder eco_give(Player, arg1, PlayerData, arg3, etc...)
@@ -150,7 +150,7 @@ public class CMDMethodInterpreter {
 
     private HelpLine buildHelpLine(){
         String localeMessageKey = method.getDeclaringClass().getSimpleName() + "." + method.getName().toUpperCase();
-        FCLocaleData[] locales = cmdData.locales();
+        FCLocaleData[] locales = cmdData.getLocales();
         LocaleMessageImp localeMessage;
 
         if (locales.length > 0){
@@ -159,7 +159,7 @@ public class CMDMethodInterpreter {
             //If no FCLocale is present, use the cmdData desc() to build it, it will be a static locale, will not be reloaded
             ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(owningPlugin);
             localeMessage = new LocaleMessageImp(owningPlugin, localeMessageKey, false);
-            FancyText fancyText = new FancyText(null, cmdData.desc());
+            FancyText fancyText = new FancyText(null, cmdData.getDesc());
             //Add to the default locale only
             localeMessage.addLocale(ecPluginData.getPluginLanguage(), fancyText);
         }
@@ -178,7 +178,7 @@ public class CMDMethodInterpreter {
             String commandPrefix = "§3§l ▶ §a/§e%label% " + (isSubCommand ? "%subcmd% " : "");
             if (customArguments.size() == 0){
                 //For legacy support we need to remove the placeholders '%name%' and '%label%', on modern ECPLugins we do not use it, maybe one day i might remove this
-                usage = commandPrefix + cmdData.usage().replace("%name%", "").replace("%label%", "").trim();
+                usage = commandPrefix + cmdData.getUsage().replace("%name%", "").replace("%label%", "").trim();
             }else {
 
                 //So, if we have customArgs we need to build the proper usage using these args.
@@ -188,7 +188,7 @@ public class CMDMethodInterpreter {
                 customArguments.entrySet().stream()
                         .sorted(Comparator.comparingInt(Map.Entry::getKey))
                         .map(Map.Entry::getValue)
-                        .forEach(argParser -> stringBuilder.append(" " + argParser.getArgInfo().getArgData().name()));
+                        .forEach(argParser -> stringBuilder.append(" " + argParser.getArgInfo().getArgData().getName()));
 
                 usage = commandPrefix + stringBuilder.toString().trim();
             }
@@ -198,7 +198,7 @@ public class CMDMethodInterpreter {
             fancyText.setHoverText(description != null && !FCColorUtil.stripColor(description).trim().isEmpty() ? "§b" + description : null); //set HoverText with a 'LIGHT_BLUE' prefix
         }
 
-        return new HelpLine(localeMessage, cmdData.permission());
+        return new HelpLine(localeMessage, cmdData.getPermission());
     }
 
     public Method getMethod() {

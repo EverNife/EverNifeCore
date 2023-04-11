@@ -5,21 +5,15 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.FCTextUtil;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
 
-@Getter
-@Setter
-@Accessors(fluent = true, chain = true)
 public class FinalCMDData extends CMDData<FinalCMDData> {
 
     private String helpHeader;
-    private CMDHelpType useDefaultHelp;
+    private CMDHelpType helpType;
 
     public FinalCMDData(FinalCMD finalCMD) {
         super(finalCMD.aliases(),
@@ -34,7 +28,7 @@ public class FinalCMDData extends CMDData<FinalCMDData> {
                         .toArray(new FCLocaleData[0])
         );
         this.helpHeader = finalCMD.helpHeader();
-        this.useDefaultHelp = finalCMD.useDefaultHelp();
+        this.helpType = finalCMD.useDefaultHelp();
 
         if (!this.helpHeader.isEmpty()){
             this.helpHeader = FCTextUtil.alignCenter(this.helpHeader, "§2§m-§r");
@@ -44,13 +38,21 @@ public class FinalCMDData extends CMDData<FinalCMDData> {
     public FinalCMDData() {
         super();
         this.helpHeader = "";
-        this.useDefaultHelp = CMDHelpType.FULL;
+        this.helpType = CMDHelpType.FULL;
+    }
+
+    public String getHelpHeader() {
+        return helpHeader;
+    }
+
+    public CMDHelpType getHelpType() {
+        return helpType;
     }
 
     @Override
     public FinalCMDData override(FinalCMDData override) {
-        if (!override.helpHeader().isEmpty()) this.helpHeader = override.helpHeader();
-        if (override.useDefaultHelp() != CMDHelpType.FULL) this.useDefaultHelp = override.useDefaultHelp();
+        if (!override.getHelpHeader().isEmpty()) this.helpHeader = override.getHelpHeader();
+        if (override.getHelpType() != CMDHelpType.FULL) this.helpType = override.getHelpType();
         return super.override(override);
     }
 }

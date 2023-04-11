@@ -29,7 +29,7 @@ public class ArgParserNumber extends ArgParser<Number> {
 
         isInteger = argInfo.getArgumentType().equals(Integer.class);
 
-        String context = argInfo.getArgData().context();
+        String context = argInfo.getArgData().getContext();
 
         if (!context.isEmpty()){
             if (context.contains(":")){

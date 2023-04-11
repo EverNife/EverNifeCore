@@ -9,7 +9,7 @@ import lombok.experimental.Accessors;
 
 @Getter
 @Setter
-@Accessors(fluent = true, chain = true)
+@Accessors(chain = true)
 @AllArgsConstructor
 public class ArgData {
 

@@ -35,7 +35,7 @@ public class CMDAlias implements ICustomFinalCMD {
 
     @Override
     public void customize(@NotNull CustomizeContext context) {
-        context.getFinalCMDData().labels(this.aliases);
+        context.getFinalCMDData().setLabels(this.aliases);
         context.replace("%the_command%", theCommand);
     }
 

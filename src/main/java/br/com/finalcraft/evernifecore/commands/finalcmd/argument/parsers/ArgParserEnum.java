@@ -27,7 +27,7 @@ public class ArgParserEnum extends ArgParser<Enum> {
     public ArgParserEnum(ArgInfo argInfo) {
         super(argInfo);
 
-        String context = argInfo.getArgData().context();
+        String context = argInfo.getArgData().getContext();
 
         if (context.isEmpty()){ //If context is empty, take the entire enum as possibility
             Object[] enumValues = argInfo.getArgumentType().getEnumConstants();
@@ -46,11 +46,11 @@ public class ArgParserEnum extends ArgParser<Enum> {
                     .collect(Collectors.joining("|"));
         }
 
-        if (argInfo.getArgData().name().equals("<>")){
-            argInfo.getArgData().name("<" + context + ">");
+        if (argInfo.getArgData().getName().equals("<>")){
+            argInfo.getArgData().setName("<" + context + ">");
         }
-        if (argInfo.getArgData().name().equals("[]")){
-            argInfo.getArgData().name("[" + context + "]");
+        if (argInfo.getArgData().getName().equals("[]")){
+            argInfo.getArgData().setName("[" + context + "]");
         }
 
         possibilities = ImmutableList.copyOf(ArgsParserUtil.parseStringContextSelectional("<" + context + ">"));

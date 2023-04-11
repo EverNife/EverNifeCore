@@ -65,7 +65,7 @@ public class HelpContext {
         boolean isPlayer = sender instanceof Player;
 
         for (CMDMethodInterpreter subCommand : finalCMDPluginCommand.subCommands) {
-            if (!subCommand.getCmdData().permission().isEmpty() && !sender.hasPermission(subCommand.getCmdData().permission())){
+            if (!subCommand.getCmdData().getPermission().isEmpty() && !sender.hasPermission(subCommand.getCmdData().getPermission())){
                 continue;
             }
 
@@ -73,12 +73,12 @@ public class HelpContext {
                 continue;
             }
 
-            if (subCommand.getCmdData().cmdAccessValidation().onPreTabValidation(new CMDAccessValidation.Context(subCommand, sender)) != true){
+            if (subCommand.getCmdData().getCmdAccessValidation().onPreTabValidation(new CMDAccessValidation.Context(subCommand, sender)) != true){
                 continue;
             }
 
             helpLinesToSend.add(() -> {
-                subCommand.getHelpLine().setLabelsUsed(label, subCommand.getCmdData().labels()[0]).sendTo(sender);
+                subCommand.getHelpLine().setLabelsUsed(label, subCommand.getCmdData().getLabels()[0]).sendTo(sender);
             });
         }
 

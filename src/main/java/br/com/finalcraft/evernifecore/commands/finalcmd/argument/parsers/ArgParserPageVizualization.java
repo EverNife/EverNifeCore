@@ -18,8 +18,8 @@ public class ArgParserPageVizualization extends ArgParser<PageVizualization> {
 
     public ArgParserPageVizualization(ArgInfo argInfo) {
         super(argInfo);
-        if (argInfo.getArgData().context().isEmpty()){
-            argInfo.getArgData().context("[1:*]");//By default, the context start at 1 and goes to infinity
+        if (argInfo.getArgData().getContext().isEmpty()){
+            argInfo.getArgData().setContext("[1:*]");//By default, the context start at 1 and goes to infinity
         }
         this.argParserNumber = new ArgParserNumber(new ArgInfo(
                 Integer.class,
