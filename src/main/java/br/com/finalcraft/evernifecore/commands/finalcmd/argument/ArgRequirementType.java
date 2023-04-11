@@ -4,30 +4,37 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public enum ArgRequirementType {
-    OPTIONAL('[', ']'),
-    REQUIRED('<', '>');
+    REQUIRED_OR_PROVIDED_BY_CONTEXT("<[", "]>", true),
+    OPTIONAL("[", "]", false),
+    REQUIRED("<", ">", true);
 
-    ArgRequirementType(char start, char end) {
+    private final String start;
+    private final String end;
+    private final boolean required;
+
+    ArgRequirementType(String start, String end, boolean required) {
         this.start = start;
         this.end = end;
+        this.required = required;
     }
 
-    private final char start;
-    private final char end;
-
-    public char getStart() {
+    public String getStart() {
         return start;
     }
 
-    public char getEnd() {
+    public String getEnd() {
         return end;
+    }
+
+    public boolean isRequired() {
+        return required;
     }
 
     public static @Nullable ArgRequirementType getArgumentType(@NotNull String argument){
 
         if (argument.length() >= 2) {
             for (ArgRequirementType requirementType : values()) {
-                if (argument.charAt(0) == requirementType.start && argument.charAt(argument.length() - 1) == requirementType.end){
+                if (argument.startsWith(requirementType.getStart()) && argument.endsWith(requirementType.getEnd())) {
                     return requirementType;
                 }
             }
