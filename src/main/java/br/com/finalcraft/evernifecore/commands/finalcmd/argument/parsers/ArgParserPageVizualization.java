@@ -25,7 +25,7 @@ public class ArgParserPageVizualization extends ArgParser<PageVizualization> {
                 Integer.class,
                 argInfo.getArgData(),
                 argInfo.getIndex(),
-                argInfo.isRequired()
+                argInfo.getRequirementType()
         ));
     }
 

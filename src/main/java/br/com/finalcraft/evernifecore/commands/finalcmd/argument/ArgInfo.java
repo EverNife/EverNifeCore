@@ -9,13 +9,20 @@ public class ArgInfo {
     private final Class argumentType;
     private final ArgData argData;
     private final int index;
-    private final boolean required;
+    private final ArgRequirementType requirementType;
 
-    public ArgInfo(Class argumentType, ArgData argData, int index, boolean required) {
+    public ArgInfo(Class argumentType, ArgData argData, int index, ArgRequirementType requirementType) {
         this.argumentType = argumentType;
         this.argData = argData;
         this.index = index;
-        this.required = required;
+        this.requirementType = requirementType;
     }
 
+    public boolean isRequired(){
+        return requirementType.isRequired();
+    }
+
+    public boolean isProvidedByContext(){
+        return requirementType == ArgRequirementType.REQUIRED_OR_PROVIDED_BY_CONTEXT;
+    }
 }

@@ -40,6 +40,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class CMDMethodInterpreter {
 
@@ -92,12 +93,17 @@ public class CMDMethodInterpreter {
                     argData.parser(parserClass);
                 }
 
-                ArgRequirementType type = ArgRequirementType.getArgumentType(argData.name());
-                if (type == null){
-                    throw new ArgMountException("Failed to load ArgRequirementType from ArgData [" + argData.name() + "], usually this means the ArgData.name() is not Quoted with <> or []");
+                ArgRequirementType argRequirementType = ArgRequirementType.getArgumentType(argData.name());
+                if (argRequirementType == null){
+                    String possibleReqTyes = Arrays.stream(ArgRequirementType.values())
+                            .map(reqType -> reqType.getStart() + "" + reqType.getEnd())
+                            .collect(Collectors.joining(" or "));
+
+                    throw new ArgMountException ("Failed to load ArgRequirementType from ArgData [" + argData.name() + "], usually this means the " +
+                            "ArgData.name() is not Quoted within \'" + possibleReqTyes + "\'");
                 }
 
-                ArgInfo argInfo = new ArgInfo(parameterClazz, argData, flagArgIndex, type == ArgRequirementType.REQUIRED); //If subcommand, move arg to the RIGHT 1 slot
+                ArgInfo argInfo = new ArgInfo(parameterClazz, argData, flagArgIndex, argRequirementType); //If subcommand, move arg to the RIGHT 1 slot
                 ArgParser parserInstance;
                 try {
                     Constructor<? extends ArgParser> constructor = argData.parser().getDeclaredConstructor(ArgInfo.class);
@@ -117,7 +123,7 @@ public class CMDMethodInterpreter {
                         Tuple<CMDParameterType, Class> nonArgParameter = Tuple.of(parameterType, parameterClazz);
                         if (parameterType.isPlayerOnly()){
                             playerOnly = true;
-                        }
+                        } 
                         simpleArguments.put(index, nonArgParameter);
                     }
                 }
@@ -237,7 +243,7 @@ public class CMDMethodInterpreter {
 
             if (parser != null){
                 Argumento argumento = argumentos.get(parser.getArgInfo().getIndex());
-                if (parser.getArgInfo().isRequired() && argumento.isEmpty()){
+                if (parser.getArgInfo().isRequired() && argumento.isEmpty() && parser.getArgInfo().isProvidedByContext() == false){
                     helpLine.sendTo(sender);
                     return;
                 }

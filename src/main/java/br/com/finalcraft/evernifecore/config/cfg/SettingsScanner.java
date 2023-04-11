@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.config.cfg;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgRequirementType;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserNumber;
 import br.com.finalcraft.evernifecore.config.Config;
@@ -46,7 +47,7 @@ public class SettingsScanner {
                 if (!settings.context().isEmpty()){
 
                     if (newValue instanceof Number){
-                        ArgParserNumber argParserNumber = new ArgParserNumber(new ArgInfo(defValue.getClass(), new ArgData().context(settings.context()), -1, true));
+                        ArgParserNumber argParserNumber = new ArgParserNumber(new ArgInfo(defValue.getClass(), new ArgData().context(settings.context()), -1, ArgRequirementType.REQUIRED));
                         try {
                             newValue = argParserNumber.parserArgument(Bukkit.getConsoleSender(), new Argumento(newValue.toString()));
                         }catch (ArgParseException ignored){
