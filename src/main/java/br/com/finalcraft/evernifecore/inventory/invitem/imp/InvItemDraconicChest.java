@@ -1,8 +1,8 @@
-package br.com.finalcraft.evernifecore.itemstack.invitem.imp;
+package br.com.finalcraft.evernifecore.inventory.invitem.imp;
 
 import br.com.finalcraft.evernifecore.integration.everforgelib.EverForgeLibIntegration;
 import br.com.finalcraft.evernifecore.inventory.data.ItemInSlot;
-import br.com.finalcraft.evernifecore.itemstack.invitem.InvItem;
+import br.com.finalcraft.evernifecore.inventory.invitem.InvItem;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import org.bukkit.Material;

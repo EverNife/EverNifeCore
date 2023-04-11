@@ -1,7 +1,7 @@
-package br.com.finalcraft.evernifecore.itemstack.invitem;
+package br.com.finalcraft.evernifecore.inventory.invitem;
 
 import br.com.finalcraft.evernifecore.integration.everforgelib.EverForgeLibIntegration;
-import br.com.finalcraft.evernifecore.itemstack.invitem.imp.InvItemDraconicChest;
+import br.com.finalcraft.evernifecore.inventory.invitem.imp.InvItemDraconicChest;
 import org.bukkit.Material;
 import org.jetbrains.annotations.Nullable;
 

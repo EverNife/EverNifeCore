@@ -12,8 +12,8 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.inventory.data.ItemInSlot;
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
-import br.com.finalcraft.evernifecore.itemstack.invitem.InvItem;
-import br.com.finalcraft.evernifecore.itemstack.invitem.InvItemManager;
+import br.com.finalcraft.evernifecore.inventory.invitem.InvItem;
+import br.com.finalcraft.evernifecore.inventory.invitem.InvItemManager;
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
@@ -315,41 +315,28 @@ public class CfgLoadableSalvable {
 
                     InvItem invItem = InvItemManager.of(itemStack.getType());
                     if (invItem != null){
-                        configSection.setValue("minecraftIdentifier", FCItemUtils.getMinecraftIdentifier(itemStack, false));
                         configSection.setValue("invItem.name", invItem.getId());
-                        //TODO save IvnItens with their custom nbt as well like displayName and Lore, alongside their internal items!
-                        //TODO Do this wehn create the new separated integration for EverForgeLib!
-                        for (ItemInSlot itemInSlot : invItem.getItemsFrom(itemStack)) {
-                            configSection.setValue("invItem.content." + itemInSlot.getSlot(), itemInSlot.getItemStack());
-                        }
+                        invItem.onConfigSave(itemStack, configSection);
                     }else {
-
                         configSection.setValue("", ItemDataPart.readItem(itemStack));
-
                     }
                 })
                 .setOnConfigLoad(
                         configSection -> {
-                            if (configSection.contains("minecraftIdentifier")){ //This IF here is for legacy support! To keep compatibility with EverNifeCore 2.0.2 or Prior
+                            if (configSection.contains("invItem.name")){
+                                String invItemName = configSection.getString("invItem.name");
+                                InvItem invItem = InvItemManager.of(invItemName);
+                                if (invItem == null){
+                                    EverNifeCore.getLog().warning("Found an InvItem [%s] on the section [%s] that doesn't exists! The content will be ignored!", invItemName, configSection.getPath());
+                                    return null;
+                                }
+                                return invItem.onConfigLoad(configSection);
+                            }else if (configSection.contains("minecraftIdentifier")){ //This IF here is for legacy support! To keep compatibility with EverNifeCore 2.0.2 or Prior
 
                                 String minecraftIdentifier = configSection.getString("minecraftIdentifier");
-                                if (configSection.contains("nbt")){ //Load the nbt if its separated from the identifier!
+                                if (configSection.contains("nbt")){ //Load the nbt if it is separated from the identifier!
                                     String nbt = " " + String.join("", configSection.getStringList("nbt"));
                                     return FCItemFactory.from(minecraftIdentifier + nbt).build();
-                                }else if (configSection.contains("invItem.name")){
-                                    ItemStack customChest = FCItemFactory.from(minecraftIdentifier).build();
-                                    String invItemName = configSection.getString("invItem.name");
-                                    InvItem invItem = InvItemManager.of(invItemName);
-                                    if (invItem == null){
-                                        EverNifeCore.getLog().warning("Found an InvItem [%s] on the section [%s] that doesn't exists! The content will be ignored!", invItemName, configSection.getPath());
-                                        return customChest;
-                                    }
-                                    List<ItemInSlot> itemInSlots = new ArrayList<>();
-                                    for (String slot : configSection.getKeys("invItem.content")) {
-                                        ItemStack slotItem = configSection.getLoadable("invItem.content." + slot, ItemStack.class);
-                                        itemInSlots.add(new ItemInSlot(Integer.parseInt(slot), slotItem));
-                                    }
-                                    return invItem.setItemsTo(customChest, itemInSlots);
                                 }else {
                                     return FCItemUtils.fromMinecraftIdentifier(minecraftIdentifier);
                                 }
