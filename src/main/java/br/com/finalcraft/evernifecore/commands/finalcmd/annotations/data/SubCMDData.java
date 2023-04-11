@@ -1,15 +1,12 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data;
 
+import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAccessValidation;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
-
 
 public class SubCMDData extends CMDData<SubCMDData> {
 
@@ -19,7 +16,10 @@ public class SubCMDData extends CMDData<SubCMDData> {
                 subCMD.desc(),
                 subCMD.permission(),
                 subCMD.context(),
-                FCReflectionUtil.getConstructor(subCMD.validation()).invoke(),
+                Arrays.stream(subCMD.validation())
+                        .map(aClass -> FCReflectionUtil.getConstructor(aClass).invoke())
+                        .collect(Collectors.toList())
+                        .toArray(new CMDAccessValidation[0]),
                 Arrays.stream(subCMD.locales())
                         .map(FCLocaleData::new)
                         .collect(Collectors.toList())

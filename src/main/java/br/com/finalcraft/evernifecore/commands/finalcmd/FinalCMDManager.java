@@ -145,8 +145,8 @@ public class FinalCMDManager {
                 //After customization, lets load the Validators locales
                 for (CMDData<?> cmdData : customizeContext.getAllCMDData()) {
                     //If it's not the default validator, lets load its locale
-                    Class validationClass = cmdData.getCmdAccessValidation().getClass();
-                    if (validationClass != CMDAccessValidation.Allowed.class){
+                    for (CMDAccessValidation cmdAccessValidation : cmdData.getCmdAccessValidations()) {
+                        Class validationClass = cmdAccessValidation.getClass();
                         //Maybe the Validation class is not from this ECPlugin, so lets make sure its loaded on its proper owner
                         Plugin plugin = JavaPlugin.getProvidingPlugin(validationClass);
                         FCLocaleManager.loadLocale(plugin, validationClass);
@@ -186,12 +186,10 @@ public class FinalCMDManager {
                     //After customization, lets load the Validators locales
                     for (CMDData<?> cmdData : customizeContext.getAllCMDData()) {
                         //If its not the default validator, lets load its locale
-                        Class validationClass = cmdData.getCmdAccessValidation().getClass();
-                        if (validationClass != CMDAccessValidation.Allowed.class){
-                            //Maybe the Validation class is not from this ECPlugin, so lets make sure its loaded on its proper owner
-                            Plugin plugin = JavaPlugin.getProvidingPlugin(validationClass);
-                            FCLocaleManager.loadLocale(plugin, validationClass);
-                        }
+                        Class validationClass = cmdData.getCmdAccessValidations().getClass();
+                        //Maybe the Validation class is not from this ECPlugin, so lets make sure its loaded on its proper owner
+                        Plugin plugin = JavaPlugin.getProvidingPlugin(validationClass);
+                        FCLocaleManager.loadLocale(plugin, validationClass);
                     }
 
                     CMDMethodInterpreter mainMethodInterpreter = mainCommandMethod == null ? null : new CMDMethodInterpreter(pluginInstance, customizeContext.getMainMethod(), executor);

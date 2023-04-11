@@ -22,7 +22,7 @@ public @interface FinalCMD {
 
     String context() default "";
 
-    Class<? extends CMDAccessValidation> validation() default CMDAccessValidation.Allowed.class;
+    Class<? extends CMDAccessValidation>[] validation() default {};
 
     String helpHeader() default "";
 
@@ -43,7 +43,7 @@ public @interface FinalCMD {
 
         String context() default "";
 
-        Class<? extends CMDAccessValidation> validation() default CMDAccessValidation.Allowed.class;
+        Class<? extends CMDAccessValidation>[] validation() default {};
 
         FCLocale[] locales() default {};
     }

@@ -73,9 +73,15 @@ public class FCDefaultExecutor implements IFinalCMDExecutor {
                 }
 
                 prepareClassLocales(sender, label);
-                if (subCommand.getCmdData().getCmdAccessValidation().onPreCommandValidation(new CMDAccessValidation.AccessContext(subCommand, sender)) != true){
-                    //We do not notify it here, as the player is intended to be notified inside the cmdAccessValidation
-                    return true;
+
+                if (subCommand.getCmdData().getCmdAccessValidations().length > 0){
+                    CMDAccessValidation.AccessContext accessContext = new CMDAccessValidation.AccessContext(subCommand, sender);
+                    for (CMDAccessValidation cmdAccessValidation : subCommand.getCmdData().getCmdAccessValidations()) {
+                        if (cmdAccessValidation.onPreCommandValidation(accessContext) == false){
+                            //We do not notify it here, as the player is intended to be notified inside the cmdAccessValidation
+                            return true;
+                        }
+                    }
                 }
                 subCommand.invoke(sender, label, argumentos, finalCommand.helpContext, subCommand.getHelpLine().setLabelsUsed(label, subCommandName));
             }else {
@@ -84,9 +90,15 @@ public class FCDefaultExecutor implements IFinalCMDExecutor {
                 if (finalCommand.mainInterpreter == null){
                     PARAMETER_ERROR.addPlaceholder("%label%", label).send(sender);
                 }else {
-                    if (finalCommand.mainInterpreter.getCmdData().getCmdAccessValidation().onPreCommandValidation(new CMDAccessValidation.AccessContext(finalCommand.mainInterpreter, sender)) != true){
-                        //We do not notify it here, as the player is intended to be notified inside the cmdAccessValidation
-                        return true;
+
+                    if (finalCommand.mainInterpreter.getCmdData().getCmdAccessValidations().length > 0){
+                        CMDAccessValidation.AccessContext accessContext = new CMDAccessValidation.AccessContext(finalCommand.mainInterpreter, sender);
+                        for (CMDAccessValidation cmdAccessValidation : finalCommand.mainInterpreter.getCmdData().getCmdAccessValidations()) {
+                            if (cmdAccessValidation.onPreCommandValidation(accessContext) == false){
+                                //We do not notify it here, as the player is intended to be notified inside the cmdAccessValidation
+                                return true;
+                            }
+                        }
                     }
                     finalCommand.mainInterpreter.invoke(sender, label, argumentos, finalCommand.helpContext, finalCommand.mainInterpreter.getHelpLine().setLabelsUsed(label, subCommandName));
                 }

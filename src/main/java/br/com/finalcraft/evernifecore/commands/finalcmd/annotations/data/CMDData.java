@@ -16,21 +16,21 @@ public class CMDData<T extends CMDData<T>> {
     private String desc = "";
     private String permission;
     private String context = "";
-    private CMDAccessValidation cmdAccessValidation = new CMDAccessValidation.Allowed();
+    private CMDAccessValidation[] cmdAccessValidations = new CMDAccessValidation[0];
     private FCLocaleData[] locales = new FCLocaleData[0];
 
     public CMDData() {
 
     }
 
-    public CMDData(String[] labels, String usage, String desc, String permission, String context, CMDAccessValidation cmdAccessValidation, FCLocaleData[] locales) {
+    public CMDData(String[] labels, String usage, String desc, String permission, String context, CMDAccessValidation[] cmdAccessValidations, FCLocaleData[] locales) {
         this();
         this.labels = labels;
         this.usage = usage;
         this.desc = desc;
         this.permission = permission;
         this.context = context;
-        this.cmdAccessValidation = cmdAccessValidation;
+        this.cmdAccessValidations = cmdAccessValidations;
         this.locales = locales;
     }
 
@@ -69,8 +69,8 @@ public class CMDData<T extends CMDData<T>> {
         return this;
     }
 
-    public CMDData<T> setCmdAccessValidation(CMDAccessValidation cmdAccessValidation) {
-        this.cmdAccessValidation = cmdAccessValidation;
+    public CMDData<T> setCmdAccessValidations(CMDAccessValidation... cmdAccessValidation) {
+        this.cmdAccessValidations = cmdAccessValidation;
         return this;
     }
 

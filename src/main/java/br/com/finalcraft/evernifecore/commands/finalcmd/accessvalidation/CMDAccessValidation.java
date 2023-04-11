@@ -20,20 +20,6 @@ import org.bukkit.entity.Player;
  */
 public abstract class CMDAccessValidation {
 
-    public static class Allowed extends CMDAccessValidation{
-
-        @Override
-        public boolean onPreCommandValidation(AccessContext accessContext) {
-            return true;
-        }
-
-        @Override
-        public boolean onPreTabValidation(AccessContext accessContext) {
-            return true;
-        }
-
-    }
-
     /**
      * Called before invoking and parsing all the arguments of the FinalCMD
      *

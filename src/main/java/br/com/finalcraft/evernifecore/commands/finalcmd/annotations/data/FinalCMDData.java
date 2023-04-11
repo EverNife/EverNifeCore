@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data;
 
+import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAccessValidation;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.CMDHelpType;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
@@ -8,7 +9,6 @@ import br.com.finalcraft.evernifecore.util.FCTextUtil;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
-
 
 public class FinalCMDData extends CMDData<FinalCMDData> {
 
@@ -21,7 +21,10 @@ public class FinalCMDData extends CMDData<FinalCMDData> {
                 finalCMD.desc(),
                 finalCMD.permission(),
                 finalCMD.context(),
-                FCReflectionUtil.getConstructor(finalCMD.validation()).invoke(),
+                Arrays.stream(finalCMD.validation())
+                        .map(aClass -> FCReflectionUtil.getConstructor(aClass).invoke())
+                        .collect(Collectors.toList())
+                        .toArray(new CMDAccessValidation[0]),
                 Arrays.stream(finalCMD.locales())
                         .map(FCLocaleData::new)
                         .collect(Collectors.toList())
