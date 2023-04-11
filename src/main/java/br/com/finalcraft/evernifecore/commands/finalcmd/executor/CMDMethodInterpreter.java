@@ -21,7 +21,9 @@ import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
+import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.locale.scanner.FCLocaleScanner;
@@ -40,6 +42,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class CMDMethodInterpreter {
@@ -51,9 +55,9 @@ public class CMDMethodInterpreter {
     private final String[] labels; //Alias of the command or name of the subCMD
     private final boolean isSubCommand;
     private final boolean playerOnly;
-    private final Map<Integer, Tuple<CMDParameterType,Class>> simpleArguments = new HashMap();
-    private final Map<Integer, ArgParser> customArguments = new HashMap();
-    private final Map<Integer, ITabParser> tabParsers = new HashMap<>();
+    private final Map<Integer, Tuple<CMDParameterType,Class>> simpleArguments = new LinkedHashMap();
+    private final Map<Integer, ArgParser> customArguments = new LinkedHashMap<>();
+    private final Map<Integer, ITabParser> tabParsers = new LinkedHashMap<>();
 
     private transient HelpLine helpLine;
 
@@ -164,38 +168,86 @@ public class CMDMethodInterpreter {
             localeMessage.addLocale(ecPluginData.getPluginLanguage(), fancyText);
         }
 
-        for (FancyText fancyText : localeMessage.getFancyTextMap().values()) {
+        HashMap<ArgParser<?>, LocaleMessageImp> argParserToLocale = new HashMap<>(); //This will hold every single @Arg locale message
+        for (ArgParser argParser : customArguments.values()) {
+            if (argParser.getArgInfo().getArgData().getLocales().length > 0){
+                LocaleMessageImp localesForThisArg = FCLocaleScanner.scanForLocale(owningPlugin, localeMessageKey + "_Argumento." + argParser.getArgInfo().getArgData().getName(), false, argParser.getArgInfo().getArgData().getLocales());
+                argParserToLocale.put(argParser, localesForThisArg);
+            }
+        }
+
+        for (Map.Entry<String, FancyText> entry : new ArrayList<>(localeMessage.getFancyTextMap().entrySet())) {
+            String locale = entry.getKey();
+            FancyText fancyText = entry.getValue();
+
             //By Default, any Method FCLocale for both FinalCMD and SubCMD should be in the 'hover' not on the 'text'
             //So, we will check boths in here and priorize the hover and remove the text, as the 'text' of these
             //help lines are the USAGE and the hover is the DESCRIPTION
-            final String description = fancyText.getHoverText() != null && !fancyText.getHoverText().isEmpty() ? fancyText.getHoverText() : fancyText.getText();
+            String textOrHover = fancyText.getHoverText() != null && !fancyText.getHoverText().isEmpty() ? fancyText.getHoverText() : fancyText.getText();
+            String description = textOrHover != null && !FCColorUtil.stripColor(textOrHover).trim().isEmpty() ? "§b" + textOrHover : null;
 
             //For the USAGE we have two scenarios
             // Or we have a declared usage over here, like a full text like '%name% <give|take> <Player>'
             // or we have annotated @Args, in this case, we have a priority on the construction of the usage using these args
 
-            final String usage;
-            String commandPrefix = "§3§l ▶ §a/§e%label% " + (isSubCommand ? "%subcmd% " : "");
+            Consumer<FancyText> applyDefaultFormatting = fancyTextOrFormatter -> {
+                fancyTextOrFormatter.setHoverText(description);
+                fancyTextOrFormatter.setSuggestCommandAction("/%label% %subcmd%");
+            };
+
+            FancyFormatter fancyFormatter = FancyFormatter.of("§3§l ▶ §a/§e%label%" + (isSubCommand ? " %subcmd%" : ""));
+            applyDefaultFormatting.accept(fancyFormatter);
+
+            AtomicBoolean anyLocalizedArg = new AtomicBoolean(false);
             if (customArguments.size() == 0){
-                //For legacy support we need to remove the placeholders '%name%' and '%label%', on modern ECPLugins we do not use it, maybe one day i might remove this
-                usage = commandPrefix + cmdData.getUsage().replace("%name%", "").replace("%label%", "").trim();
+                //TODO Remove Legacy Support on Next Major Release, tecnically this is not needed anymore
+                //For legacy support we need to remove the placeholders '%name%' and '%label%', on modern ECPLugins we do not use it, maybe one day I might remove this
+                fancyFormatter.append(
+                        " " + cmdData.getUsage().replace("%name%", "").replace("%label%", "").trim()
+                );
+                applyDefaultFormatting.accept(fancyFormatter);
             }else {
-
                 //So, if we have customArgs we need to build the proper usage using these args.
-                StringBuilder stringBuilder = new StringBuilder();
-
                 //Put all args one after the other
                 customArguments.entrySet().stream()
                         .sorted(Comparator.comparingInt(Map.Entry::getKey))
                         .map(Map.Entry::getValue)
-                        .forEach(argParser -> stringBuilder.append(" " + argParser.getArgInfo().getArgData().getName()));
+                        .forEach(argParser -> {
 
-                usage = commandPrefix + stringBuilder.toString().trim();
+                            LocaleMessage localesForThisArg = argParserToLocale.getOrDefault(argParser, null);
+
+                            String extraDescription = null;
+                            if (localesForThisArg != null){
+                                //This means there is a description for this arg.
+                                //For example, lets say this arg is "<Player>", there is a FCLocale for this arg saying for exaple "The player to give the money"
+                                //This extra info should come at the bottom of the base description!
+                                FancyText argFancyText = localesForThisArg.getFancyText(locale);
+                                if (argFancyText == null){
+                                    argFancyText = localesForThisArg.getDefaultFancyText();
+                                }
+                                if (argFancyText != null){//I think this will never be null, but whatever
+                                    extraDescription = argFancyText.getHoverText() != null && !argFancyText.getHoverText().isEmpty() ? argFancyText.getHoverText() : argFancyText.getText();
+                                }
+                            }
+
+                            fancyFormatter.append(" " + argParser.getArgInfo().getArgData().getName());
+                            applyDefaultFormatting.accept(fancyFormatter);
+                            if (extraDescription != null){
+                                anyLocalizedArg.set(true);
+                                fancyFormatter.setHoverText(description + "" +
+                                        "\n" +
+                                        "\n §d ✯ §7§l[§e" + argParser.getArgInfo().getArgData().getName() + "§7§l]§r" +
+                                        "\n §7● §6" + extraDescription);
+                            }
+                        });
             }
 
-            fancyText.setText(usage);
-            fancyText.setSuggestCommandAction("/%label% %subcmd%");
-            fancyText.setHoverText(description != null && !FCColorUtil.stripColor(description).trim().isEmpty() ? "§b" + description : null); //set HoverText with a 'LIGHT_BLUE' prefix
+            if (anyLocalizedArg.get()){
+                localeMessage.getFancyTextMap().put(locale, fancyFormatter);
+            }else {
+                fancyText.setText(fancyFormatter.getFancyTextList().stream().map(FancyText::getText).collect(Collectors.joining()));
+                applyDefaultFormatting.accept(fancyText);
+            }
         }
 
         return new HelpLine(localeMessage, cmdData.getPermission());
