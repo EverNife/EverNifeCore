@@ -16,14 +16,14 @@ public interface InvItem {
 
     public String getId();
 
-    public List<ItemInSlot> getItemsFrom(ItemStack itemStack);
+    public List<ItemInSlot> extractFromItemStack(ItemStack itemStack);
 
-    public ItemStack setItemsTo(ItemStack customChest, List<ItemInSlot> itemInSlots);
+    public ItemStack applyToItemStack(ItemStack customChest, List<ItemInSlot> itemInSlots);
 
     public default void onConfigSave(ItemStack itemStack, ConfigSection configSection){
         configSection.setValue("minecraftIdentifier", FCItemUtils.getMinecraftIdentifier(itemStack, false));
 
-        for (ItemInSlot itemInSlot : this.getItemsFrom(itemStack)) {
+        for (ItemInSlot itemInSlot : this.extractFromItemStack(itemStack)) {
             configSection.setValue("invItem.content." + itemInSlot.getSlot(), itemInSlot.getItemStack());
         }
     }
@@ -38,7 +38,7 @@ public interface InvItem {
             itemInSlots.add(new ItemInSlot(Integer.parseInt(slot), slotItem));
         }
 
-        return this.setItemsTo(customChest, itemInSlots);
+        return this.applyToItemStack(customChest, itemInSlots);
     }
 
 }
