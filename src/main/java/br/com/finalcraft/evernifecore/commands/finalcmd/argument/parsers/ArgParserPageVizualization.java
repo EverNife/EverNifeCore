@@ -61,7 +61,7 @@ public class ArgParserPageVizualization extends ArgParser<PageVizualization> {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(Context context) {
+    public @NotNull List<String> tabComplete(TabContext tabContext) {
 
         return ImmutableList.of();
 

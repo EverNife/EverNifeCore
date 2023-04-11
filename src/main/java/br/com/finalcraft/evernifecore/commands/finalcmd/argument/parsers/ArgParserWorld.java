@@ -34,11 +34,11 @@ public class ArgParserWorld extends ArgParser<World> {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(Context context) {
+    public @NotNull List<String> tabComplete(TabContext tabContext) {
 
         return Bukkit.getWorlds().stream()
                 .map(world -> world.getName())
-                .filter(s -> StringUtil.startsWithIgnoreCase(s, context.getLastWord()))
+                .filter(s -> StringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .collect(Collectors.toList());
 

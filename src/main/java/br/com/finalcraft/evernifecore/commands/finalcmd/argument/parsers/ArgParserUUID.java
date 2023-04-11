@@ -50,7 +50,7 @@ public class ArgParserUUID extends ArgParser<UUID> {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(Context context) {
+    public @NotNull List<String> tabComplete(TabContext tabContext) {
         Collection<PlayerData> playerDataList = online
                 ? Bukkit.getOnlinePlayers().stream().map(PlayerController::getPlayerData).collect(Collectors.toList())
                 : PlayerController.getAllPlayerData();
@@ -58,7 +58,7 @@ public class ArgParserUUID extends ArgParser<UUID> {
 
         return playerDataList.stream()
                 .map(playerData -> playerData.getUniqueId().toString())
-                .filter(s -> StringUtil.startsWithIgnoreCase(s, context.getLastWord()))
+                .filter(s -> StringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .collect(Collectors.toList());
 

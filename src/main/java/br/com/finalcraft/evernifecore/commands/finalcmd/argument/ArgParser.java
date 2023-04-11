@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.argument;
 
 import br.com.finalcraft.evernifecore.argumento.Argumento;
+import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser;
 import com.google.common.collect.ImmutableList;
@@ -24,7 +25,7 @@ public abstract class ArgParser<T extends Object> implements ITabParser {
     public abstract T parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException;
 
     @Override
-    public @NotNull List<String> tabComplete(Context context) {
+    public @NotNull List<String> tabComplete(TabContext tabContext) {
         return ImmutableList.of();
     }
 }

@@ -105,12 +105,12 @@ public class ArgParserNumber extends ArgParser<Number> {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(Context context) {
+    public @NotNull List<String> tabComplete(TabContext tabContext) {
         if (possibilities != null){
 
             return possibilities.stream()
                     .map(aDouble -> FCMathUtil.toString(aDouble))
-                    .filter(s -> StringUtil.startsWithIgnoreCase(s, context.getLastWord()))
+                    .filter(s -> StringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))
                     .sorted(String.CASE_INSENSITIVE_ORDER)
                     .collect(Collectors.toList());
 

@@ -53,7 +53,7 @@ public class ArgParserIPlayerData extends ArgParser<IPlayerData> {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(Context context) {
+    public @NotNull List<String> tabComplete(TabContext tabContext) {
 
         Collection<PlayerData> playerDataList = online
                 ? Bukkit.getOnlinePlayers().stream().map(PlayerController::getPlayerData).collect(Collectors.toList())
@@ -61,7 +61,7 @@ public class ArgParserIPlayerData extends ArgParser<IPlayerData> {
 
         return playerDataList.stream()
                 .map(playerData -> playerData.getPlayerName())
-                .filter(s -> StringUtil.startsWithIgnoreCase(s, context.getLastWord()))
+                .filter(s -> StringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .collect(Collectors.toList());
 

@@ -9,15 +9,15 @@ import java.util.List;
 
 public interface ITabParser {
 
-    public abstract @NotNull List<String> tabComplete(Context context);
+    public abstract @NotNull List<String> tabComplete(TabContext tabContext);
 
-    public static class Context{
+    public static class TabContext {
         private final CommandSender sender;
         private final String alias;
         private final String[] args;
         private final int index;
 
-        public Context(CommandSender sender, String alias, String[] args, int index) {
+        public TabContext(CommandSender sender, String alias, String[] args, int index) {
             this.sender = sender;
             this.alias = alias;
             this.args = args;

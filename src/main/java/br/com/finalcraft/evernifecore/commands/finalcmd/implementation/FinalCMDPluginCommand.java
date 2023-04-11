@@ -204,7 +204,7 @@ public class FinalCMDPluginCommand extends Command implements PluginIdentifiable
             return ImmutableList.of();
         }
 
-        ITabParser.Context tabContext = new ITabParser.Context(sender, alias, args, index);
+        ITabParser.TabContext tabContext = new ITabParser.TabContext(sender, alias, args, index);
 
         return tabParser.tabComplete(tabContext);
     }

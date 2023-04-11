@@ -24,7 +24,7 @@ public abstract class FlagParser<T extends Object> implements ITabParser {
     public abstract T parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException;
 
     @Override
-    public @NotNull List<String> tabComplete(Context context) {
+    public @NotNull List<String> tabComplete(TabContext tabContext) {
         return ImmutableList.of();
     }
 }

@@ -34,14 +34,14 @@ public class ArgParserPlayer extends ArgParser<Player> {
 
 
     @Override
-    public @NotNull List<String> tabComplete(Context context) {
+    public @NotNull List<String> tabComplete(TabContext tabContext) {
 
-        Player sender = context.getPlayer();
+        Player sender = tabContext.getPlayer();
 
         return Bukkit.getServer().getOnlinePlayers().stream()
                 .filter(player -> sender == null || sender.canSee(player))
                 .map(player -> player.getName())
-                .filter(s -> StringUtil.startsWithIgnoreCase(s, context.getLastWord()))
+                .filter(s -> StringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .collect(Collectors.toList());
 

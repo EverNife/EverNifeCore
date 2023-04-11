@@ -54,10 +54,10 @@ public class ArgParserString extends ArgParser<String> {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(Context context) {
+    public @NotNull List<String> tabComplete(TabContext tabContext) {
 
         return possibilities.stream()
-                .filter(s -> StringUtil.startsWithIgnoreCase(s, context.getLastWord()))
+                .filter(s -> StringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .collect(Collectors.toList());
 
