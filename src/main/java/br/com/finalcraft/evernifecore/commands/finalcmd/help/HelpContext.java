@@ -73,7 +73,7 @@ public class HelpContext {
                 continue;
             }
 
-            if (subCommand.getCmdData().getCmdAccessValidation().onPreTabValidation(new CMDAccessValidation.Context(subCommand, sender)) != true){
+            if (subCommand.getCmdData().getCmdAccessValidation().onPreTabValidation(new CMDAccessValidation.AccessContext(subCommand, sender)) != true){
                 continue;
             }
 

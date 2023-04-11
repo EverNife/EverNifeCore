@@ -144,7 +144,7 @@ public class FinalCMDManager {
 
                 //After customization, lets load the Validators locales
                 for (CMDData<?> cmdData : customizeContext.getAllCMDData()) {
-                    //If its not the default validator, lets load its locale
+                    //If it's not the default validator, lets load its locale
                     Class validationClass = cmdData.getCmdAccessValidation().getClass();
                     if (validationClass != CMDAccessValidation.Allowed.class){
                         //Maybe the Validation class is not from this ECPlugin, so lets make sure its loaded on its proper owner

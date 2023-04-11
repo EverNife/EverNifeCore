@@ -73,7 +73,7 @@ public class FCDefaultExecutor implements IFinalCMDExecutor {
                 }
 
                 prepareClassLocales(sender, label);
-                if (subCommand.getCmdData().getCmdAccessValidation().onPreCommandValidation(new CMDAccessValidation.Context(subCommand, sender)) != true){
+                if (subCommand.getCmdData().getCmdAccessValidation().onPreCommandValidation(new CMDAccessValidation.AccessContext(subCommand, sender)) != true){
                     //We do not notify it here, as the player is intended to be notified inside the cmdAccessValidation
                     return true;
                 }
@@ -84,7 +84,7 @@ public class FCDefaultExecutor implements IFinalCMDExecutor {
                 if (finalCommand.mainInterpreter == null){
                     PARAMETER_ERROR.addPlaceholder("%label%", label).send(sender);
                 }else {
-                    if (finalCommand.mainInterpreter.getCmdData().getCmdAccessValidation().onPreCommandValidation(new CMDAccessValidation.Context(finalCommand.mainInterpreter, sender)) != true){
+                    if (finalCommand.mainInterpreter.getCmdData().getCmdAccessValidation().onPreCommandValidation(new CMDAccessValidation.AccessContext(finalCommand.mainInterpreter, sender)) != true){
                         //We do not notify it here, as the player is intended to be notified inside the cmdAccessValidation
                         return true;
                     }

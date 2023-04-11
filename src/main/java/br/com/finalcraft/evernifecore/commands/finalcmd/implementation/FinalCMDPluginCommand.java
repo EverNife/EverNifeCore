@@ -188,7 +188,7 @@ public class FinalCMDPluginCommand extends Command implements PluginIdentifiable
             return subCommands.stream()
                     .filter(subCommand -> subCommand.getCmdData().getPermission().isEmpty() || sender.hasPermission(subCommand.getCmdData().getPermission())) //For the first arg of all sub commands we need ot check each permission
                     .filter(subCommand -> !subCommand.isPlayerOnly() ? true : isPlayer) //If is the console calling this tab completion, ignore the subCommand if it's a 'playerOnly' subCMD
-                    .filter(subCommand -> subCommand.getCmdData().getCmdAccessValidation().onPreTabValidation(new CMDAccessValidation.Context(subCommand, sender))) //Apply a final custom filtering, in case this cmd has a custom cmdAccessValidation
+                    .filter(subCommand -> subCommand.getCmdData().getCmdAccessValidation().onPreTabValidation(new CMDAccessValidation.AccessContext(subCommand, sender))) //Apply a final custom filtering, in case this cmd has a custom cmdAccessValidation
                     .map(subCommand -> subCommand.getLabels()[0])
                     .filter(s -> StringUtils.startsWithIgnoreCase(s, args[index]))
                     .collect(Collectors.toList());

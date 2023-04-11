@@ -23,12 +23,12 @@ public abstract class CMDAccessValidation {
     public static class Allowed extends CMDAccessValidation{
 
         @Override
-        public boolean onPreCommandValidation(Context context) {
+        public boolean onPreCommandValidation(AccessContext accessContext) {
             return true;
         }
 
         @Override
-        public boolean onPreTabValidation(Context context) {
+        public boolean onPreTabValidation(AccessContext accessContext) {
             return true;
         }
 
@@ -41,7 +41,7 @@ public abstract class CMDAccessValidation {
      *
      * Returning false will prevent the player from invoking this command!
      */
-    public abstract boolean onPreCommandValidation(Context context);
+    public abstract boolean onPreCommandValidation(AccessContext accessContext);
 
     /**
      * Called before adding a cmdData to a tab completion
@@ -50,14 +50,14 @@ public abstract class CMDAccessValidation {
      *
      * Returning false will hide this cmdData from table completion
      */
-    public abstract boolean onPreTabValidation(Context context);
+    public abstract boolean onPreTabValidation(AccessContext accessContext);
 
-    public static class Context {
+    public static class AccessContext {
 
         private final CMDMethodInterpreter interpreter;
         private final CommandSender sender;
 
-        public Context(CMDMethodInterpreter interpreter, CommandSender sender) {
+        public AccessContext(CMDMethodInterpreter interpreter, CommandSender sender) {
             this.interpreter = interpreter;
             this.sender = sender;
         }
