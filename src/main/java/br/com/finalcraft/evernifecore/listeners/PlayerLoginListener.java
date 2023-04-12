@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import fr.xephi.authme.events.LoginEvent;
+import org.apache.commons.io.Charsets;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -50,19 +51,48 @@ public class PlayerLoginListener implements ECListener {
         //We have an inconsistency in the playerData, two scenarios:
         // 1- The server is in OnlineMode=true and a player changed his name in the mojang site (so, name is different and uuid is the same)
         // 2- The server changed from OnlineMode=false to OnlineMode=true or vice-versa (so, name is the same and uuid is different)
+        // C- It's a special case, described bellow
 
         /*
-         * TODO Fix a specific case:
-         *   [1] Server is in OnlineMode=true
-         *   [2] An old player stops playing and change his mojang name to something else
-         *   [3] A new player or an existing one change his name to the same name from that old player
-         *   [4] In this case we must, at the eminence of the new player,
+         * There special case only matters if the server is in onlineMode=true
+         *
+         *   [C1] Server is in OnlineMode=true or BungeeCord's is enabled
+         *   [C2] An old player stops playing and change his mojang name to something else
+         *   [C3] A new player or an existing one change his name to the same name from that old player
+         *   [C4] In this case we must, at the eminence of the new player,
          *       delete the old player data (or move to dormant) and create a new one for the new player
          */
+        UUID offlineCalculatedUUID = UUID.nameUUIDFromBytes(("OfflinePlayer:" + currentName).getBytes(Charsets.UTF_8));
+        if (!currentUUID.equals(offlineCalculatedUUID) // Scenario [C1], we are online
+                && existingUUID != null // This means that C2 and C3 is possible, as there is a player (maybe myself) with the same name
+                && !existingUUID.equals(currentUUID) // This is probably different player
+                && !existingUUID.equals(offlineCalculatedUUID)){ // Confirm it's a different player, this checks for "this player is not myself in offline-mode"
 
+            //The CURRENT_NAME is vinculated to another UUID
+            PlayerData playerData = PlayerController.getPlayerData(existingUUID);
+            PlayerController.getMapOfPlayerData().remove(playerData.getUniqueId());//Unload this PlayerData
+
+            playerData.getConfig().getTheFile().delete(); //Delete previous file
+            playerData.getConfig().save(new File(EverNifeCore.instance.getDataFolder(), "PlayerDataDormant/" + existingUUID + ".yml"));//Move to dormant folder
+            EverNifeCore.getLog().info("[UUIDsController] [%s:%s] was moved to dormant files because his name is not valid anymore!", existingUUID, currentName);
+
+            //Now we can create a new PlayerData for this player
+            //Or maybe change, if this is not a complete new player, change his username
+            if (existingName == null){
+                //This is a complete new Player!
+                //We just need to add the new Pair of UUID and Name
+                //And create a new PlayerData for this player
+                UUIDsController.addOrUpdateUUIDName(currentUUID, currentName);
+                PlayerController.getOrCreateOne(currentUUID);
+                return;
+            }
+        }
+
+        // Treating case [1] and [2]
         if (existingName == null){
             //If no existingName, then we have a new name for an existing UUID
             PlayerData playerData = PlayerController.getPlayerData(existingUUID);
+            PlayerController.getMapOfPlayerData().remove(playerData.getUniqueId());//Unload this PlayerData
             playerData.getConfig().setValue("PlayerData.UUID", currentUUID);
 
             playerData.getConfig().getTheFile().delete(); //Delete previous file, in case we have changed its name
@@ -70,12 +100,12 @@ public class PlayerLoginListener implements ECListener {
             playerData.getConfig().save(new File(EverNifeCore.instance.getDataFolder(), "PlayerData/" + newFileName));
 
             EverNifeCore.getLog().info("[UUIDsController] [%s] changed his UUID from %s to %s", currentName, playerData.getUniqueId(), currentUUID);
-            PlayerController.getMapOfPlayerData().remove(playerData.getUniqueId());//Unload this PlayerData
             UUIDsController.addOrUpdateUUIDName(currentUUID, currentName);
             PlayerController.getOrCreateOne(currentUUID);
         }else {
             //If no existingUUID, then we have a new UUID for an existing Name
             PlayerData playerData = PlayerController.getPlayerData(existingName);
+            PlayerController.getMapOfPlayerData().remove(playerData.getUniqueId());//Unload this PlayerData
             playerData.getConfig().setValue("PlayerData.Username", currentName);
 
             playerData.getConfig().getTheFile().delete(); //Delete previous file, in case we have changed its name
@@ -83,7 +113,6 @@ public class PlayerLoginListener implements ECListener {
             playerData.getConfig().save(new File(EverNifeCore.instance.getDataFolder(), "PlayerData/" + newFileName));
 
             EverNifeCore.getLog().info("[UUIDsController] [%s] changed his name from %s to %s", currentUUID, playerData.getPlayerName(), currentName);
-            PlayerController.getMapOfPlayerData().remove(playerData.getUniqueId());//Unload this PlayerData
             UUIDsController.addOrUpdateUUIDName(currentUUID, currentName);
             PlayerController.getOrCreateOne(currentUUID);
         }
