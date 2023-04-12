@@ -186,7 +186,7 @@ public class PlayerController {
 
         String playerName   = UUIDsController.getNameFromUUID(playerUUID);
         String theFileName  = ECSettings.useNamesInsteadOfUUIDToStorePlayerData ? playerName : playerUUID.toString();
-        File dormantFile  = new File(EverNifeCore.instance.getDataFolder(), "PlayerDataDormant/" + theFileName + ".yml");
+        File dormantFile  = new File(EverNifeCore.instance.getDataFolder(), "PlayerDataDormant/" + playerUUID + ".yml");
         File theConfigFile  = new File(EverNifeCore.instance.getDataFolder(), "PlayerData/" + theFileName + ".yml");
 
         if (dormantFile.exists()){
