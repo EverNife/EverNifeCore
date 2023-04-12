@@ -1,14 +1,19 @@
 package br.com.finalcraft.evernifecore.test.config;
 
+import br.com.finalcraft.evernifecore.config.Config;
 import org.junit.jupiter.api.Test;
 import org.simpleyaml.configuration.file.YamlFile;
 import org.simpleyaml.configuration.implementation.api.QuoteStyle;
+import org.simpleyaml.configuration.implementation.snakeyaml.SnakeYamlImplementation;
+import org.simpleyaml.configuration.implementation.snakeyaml.lib.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ConfigTest {
