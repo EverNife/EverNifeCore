@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.util;
 
-import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import org.bukkit.Material;
 
