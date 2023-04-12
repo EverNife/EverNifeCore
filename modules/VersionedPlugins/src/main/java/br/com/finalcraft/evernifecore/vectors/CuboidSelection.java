@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.vectors;
 
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
+import br.com.finalcraft.evernifecore.minecraft.vector.LocPos;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,6 +69,10 @@ public class CuboidSelection {
 
     public BlockPos getMaximum() {
         return maximum;
+    }
+
+    public LocPos getCenter(){
+        return new LocPos((minium.getX() + maximum.getX()) / 2D, (minium.getY() + maximum.getY()) / 2D, (minium.getZ() + maximum.getZ()) / 2D);
     }
 
     public int getVolume(){
