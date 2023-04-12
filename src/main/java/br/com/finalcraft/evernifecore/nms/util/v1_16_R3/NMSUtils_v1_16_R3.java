@@ -61,7 +61,7 @@ public class NMSUtils_v1_16_R3 implements INMSUtils {
 	}
 
 	@Override
-	public org.bukkit.inventory.ItemStack asItemStack(Object mcItemStack){
+	public org.bukkit.inventory.ItemStack asBukkitItemStack(Object mcItemStack){
 		return CraftItemStack.asBukkitCopy((ItemStack) mcItemStack);
 	}
 

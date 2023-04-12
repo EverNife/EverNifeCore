@@ -18,7 +18,7 @@ public interface INMSUtils {
 
 	public String getLocalizedName(ItemStack itemStack);
 
-	public org.bukkit.inventory.ItemStack asItemStack(Object mcItemStack);
+	public org.bukkit.inventory.ItemStack asBukkitItemStack(Object mcItemStack);
 
 	public Object asMinecraftItemStack(org.bukkit.inventory.ItemStack itemStack);
 

@@ -81,7 +81,7 @@ public class NMSUtils_v1_12_R1 implements INMSUtils {
 	}
 
 	@Override
-	public org.bukkit.inventory.ItemStack asItemStack(Object mcItemStack){
+	public org.bukkit.inventory.ItemStack asBukkitItemStack(Object mcItemStack){
 		return org.bukkit.craftbukkit.v1_12_R1.inventory.CraftItemStack.asBukkitCopy((net.minecraft.server.v1_12_R1.ItemStack) mcItemStack);
 	}
 
