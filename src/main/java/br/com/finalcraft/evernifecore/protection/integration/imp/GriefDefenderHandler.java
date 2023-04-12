@@ -91,6 +91,7 @@ public class GriefDefenderHandler implements ProtectionHandler {
 
     @Override
     public boolean canUseAoE(Player player, Location location, int range) {
+
         return canBuildOnRegion(
                 player,
                 location.getWorld(),

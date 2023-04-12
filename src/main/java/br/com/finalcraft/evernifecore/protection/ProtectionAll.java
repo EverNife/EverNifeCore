@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.protection;
 
 import br.com.finalcraft.evernifecore.protection.integration.ProtectionHandler;
 import br.com.finalcraft.evernifecore.protection.integration.imp.GriefDefenderHandler;
+import br.com.finalcraft.evernifecore.protection.integration.imp.GriefPreventionPlusHandler;
 import br.com.finalcraft.evernifecore.protection.integration.imp.WorldGuardHandler;
 import br.com.finalcraft.evernifecore.vectors.CuboidSelection;
 import org.bukkit.Bukkit;
@@ -21,7 +22,8 @@ public class ProtectionAll implements ProtectionHandler{
     private static final ProtectionAll INSTANCE = new ProtectionAll(
             Arrays.asList(
                     Bukkit.getPluginManager().isPluginEnabled("WorldGuard") ? new WorldGuardHandler() : null,
-                    Bukkit.getPluginManager().isPluginEnabled("GriefDefender") ? new GriefDefenderHandler() : null
+                    Bukkit.getPluginManager().isPluginEnabled("GriefDefender") ? new GriefDefenderHandler() : null,
+                    Bukkit.getPluginManager().isPluginEnabled("GriefPreventionPlus") ? new GriefPreventionPlusHandler() : null
             ).stream().filter(Objects::nonNull).collect(Collectors.toList())
     );
 
