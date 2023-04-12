@@ -193,7 +193,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
         FancyFormatter nextAndPreviousPage = null;
         if (nextAndPreviousPageButton){
-            int lastPage = (pageLinesCache.get().size() / pageSize);
+            int lastPage = (int) Math.ceil(pageLinesCache.get().size() / (double) pageSize);
             int currentPage = NumberWrapper.of(page).boundUpper(lastPage).boundLower(1).intValue();
 
             String previousButton = "§a§l<§2<§a§l<";
