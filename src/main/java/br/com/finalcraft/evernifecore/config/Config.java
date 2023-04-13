@@ -35,8 +35,8 @@ public class Config {
 
     private static final Logger logger = Logger.getLogger("FCConfig");
 
-    protected final YamlFile yamlFile;
-    protected final ReentrantLock lock = new ReentrantLock(true);
+    protected YamlFile yamlFile;
+    protected ReentrantLock lock = new ReentrantLock(true);
 
     protected transient long lastModified;
     protected transient boolean newDefaultValueToSave = false;
@@ -74,6 +74,10 @@ public class Config {
     //      Constructors
     // ------------------------------------------------------------------------------------------------------------------
 
+    public Config() {
+        //Empty Constructor, allowing for full customization of the YamlFile and the load process
+    }
+
     public Config(YamlFile yamlFile) {
         this.yamlFile = yamlFile;
         this.lastModified = getTheFile() == null ? 0 : getTheFile().lastModified();
@@ -85,6 +89,7 @@ public class Config {
         this(new YamlFile(theFile));
     }
 
+    @Deprecated
     public Config(String path) {
         this(new File(path));
     }
