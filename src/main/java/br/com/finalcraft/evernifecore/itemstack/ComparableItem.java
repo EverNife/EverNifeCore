@@ -42,7 +42,7 @@ public class ComparableItem {
     }
 
     public boolean match(ComparableItem comparableItem) {
-        return this.material == comparableItem.material && (this.damageValue == null || this.damageValue == comparableItem.damageValue);
+        return this.material == comparableItem.material && (this.damageValue == null ||  comparableItem.damageValue == null|| this.damageValue == comparableItem.damageValue);
     }
 
     public ItemStack getItemStack() {
