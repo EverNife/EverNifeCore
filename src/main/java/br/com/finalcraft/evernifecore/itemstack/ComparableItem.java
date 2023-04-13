@@ -28,9 +28,7 @@ public class ComparableItem {
     }
 
     public ComparableItem(Material material, Short damageValue) {
-        this.itemStack = FCItemFactory.from(material)
-                .applyIf(() -> damageValue != null, itemStack -> itemStack.durability(damageValue))
-                .build();
+        this.itemStack = new ItemStack(material, 1, damageValue != null ? damageValue : 0);
         this.material = material;
         this.damageValue = damageValue;
     }
