@@ -76,7 +76,9 @@ public class ComparableItem {
         if (material == null){
             throw new IllegalArgumentException("Invalid bukkit material: " + split[0]);
         }
-        Short damageValue = split[1].equals("-1") || split[1].equals("*") ? null : FCInputReader.parseInt(split[1]).shortValue();
+        Short damageValue = split.length == 1
+                ? null
+                : split[1].equals("-1") || split[1].equals("*") ? null : FCInputReader.parseInt(split[1]).shortValue();
         return new ComparableItem(
                 material,
                 damageValue
