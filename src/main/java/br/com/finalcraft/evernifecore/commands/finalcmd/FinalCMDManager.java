@@ -189,7 +189,7 @@ public class FinalCMDManager {
                         Class validationClass = cmdData.getCmdAccessValidations().getClass();
                         //Maybe the Validation class is not from this ECPlugin, so lets make sure its loaded on its proper owner
                         Plugin plugin = JavaPlugin.getProvidingPlugin(validationClass);
-                        FCLocaleManager.loadLocale(plugin, validationClass);
+                        FCLocaleManager.loadLocale(plugin, true, validationClass);
                     }
 
                     CMDMethodInterpreter mainMethodInterpreter = mainCommandMethod == null ? null : new CMDMethodInterpreter(pluginInstance, customizeContext.getMainMethod(), executor);
