@@ -21,7 +21,7 @@ public class ComparableItem {
         this.damageValue = itemStack.getDurability();
     }
 
-    protected ComparableItem(ItemStack itemStack, Material material, Short damageValue) {
+    public ComparableItem(ItemStack itemStack, Material material, Short damageValue) {
         this.itemStack = itemStack;
         this.material = material;
         this.damageValue = damageValue;
@@ -34,15 +34,15 @@ public class ComparableItem {
     }
 
     public boolean match(ItemStack itemStack) {
-        return itemStack.getType() == this.material && (this.damageValue == null || this.damageValue == itemStack.getDurability());
+        return itemStack.getType() == this.getMaterial() && (this.getDamageValue() == null || this.getDamageValue() == itemStack.getDurability());
     }
 
     public boolean match(Block block) {
-        return block.getType() == this.material && (this.damageValue == null || this.damageValue == block.getData());
+        return block.getType() == this.getMaterial() && (this.getDamageValue() == null || this.getDamageValue() == block.getData());
     }
 
     public boolean match(ComparableItem comparableItem) {
-        return this.material == comparableItem.material && (this.damageValue == null ||  comparableItem.damageValue == null|| this.damageValue == comparableItem.damageValue);
+        return this.getMaterial() == comparableItem.getMaterial() && (this.getDamageValue() == null ||  comparableItem.getDamageValue() == null|| this.getDamageValue() == comparableItem.getDamageValue());
     }
 
     public ItemStack getItemStack() {
@@ -59,7 +59,7 @@ public class ComparableItem {
 
     public String getLocalizedName() {
         if (localized_name == null){
-            localized_name = FCItemUtils.getLocalizedName(itemStack);
+            localized_name = getItemStack() == null ? "null" : FCItemUtils.getLocalizedName(getItemStack());
         }
         return localized_name;
     }
