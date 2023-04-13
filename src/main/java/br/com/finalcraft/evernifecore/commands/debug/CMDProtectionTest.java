@@ -126,25 +126,7 @@ public class CMDProtectionTest implements ICustomFinalCMD {
         if (MCVersion.isHigherEquals(MCVersion.v1_13)){
             cuboidSelection.setPos1(cuboidSelection.getPos1().setY(player.getLocation().getBlockY()));
             cuboidSelection.setPos2(cuboidSelection.getPos2().setY(player.getLocation().getBlockY()));
-
-            FCScheduler.runAssync(() -> {
-                Particle.DustOptions GREEN_PARTICLE = new Particle.DustOptions(Color.fromRGB(0, 255, 0), 1.0F);
-                Particle.DustOptions RED_PARTICLE = new Particle.DustOptions(Color.fromRGB(255, 0, 0), 1.0F);
-
-                Particle.DustOptions SELECTED_COLOR = canBreakOnRegion && canBuildOnRegion ? GREEN_PARTICLE : RED_PARTICLE;
-
-                List<BlockPos> selectionWalls = getSelectionWalls(cuboidSelection.getMinium(), cuboidSelection.getMaximum());
-
-                for (int i = 0; i < 4; i++) {
-                    FCScheduler.scheduleAssync(() -> {
-                        selectionWalls.forEach(pos -> {
-                            player.spawnParticle(Particle.REDSTONE, pos.getLocation(player.getWorld()), 1, SELECTED_COLOR);
-                        });
-                    }, i * 5);
-                }
-            });
-        }else {
-
+            ParticleCompat.sendParticles(canBreakOnRegion, canBuildOnRegion, player, cuboidSelection);
         }
     }
 
@@ -179,6 +161,28 @@ public class CMDProtectionTest implements ICustomFinalCMD {
         }
 
         return walls;
+    }
+
+    private static class ParticleCompat{
+        //This is necessary to keep this class compatible with older versions without wasting too much time
+        private static void sendParticles(boolean canBreakOnRegion, boolean canBuildOnRegion, Player player, CuboidSelection cuboidSelection) {
+            FCScheduler.runAssync(() -> {
+                Particle.DustOptions GREEN_PARTICLE = new Particle.DustOptions(Color.fromRGB(0, 255, 0), 1.0F);
+                Particle.DustOptions RED_PARTICLE = new Particle.DustOptions(Color.fromRGB(255, 0, 0), 1.0F);
+
+                Particle.DustOptions SELECTED_COLOR = canBreakOnRegion && canBuildOnRegion ? GREEN_PARTICLE : RED_PARTICLE;
+
+                List<BlockPos> selectionWalls = getSelectionWalls(cuboidSelection.getMinium(), cuboidSelection.getMaximum());
+
+                for (int i = 0; i < 4; i++) {
+                    FCScheduler.scheduleAssync(() -> {
+                        selectionWalls.forEach(pos -> {
+                            player.spawnParticle(Particle.REDSTONE, pos.getLocation(player.getWorld()), 1, SELECTED_COLOR);
+                        });
+                    }, i * 5);
+                }
+            });
+        }
     }
 
 }
