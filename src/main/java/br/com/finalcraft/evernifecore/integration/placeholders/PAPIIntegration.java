@@ -24,7 +24,7 @@ public class PAPIIntegration {
         PAPIRegexReplacer papiRegexReplacer = new PAPIRegexReplacer(playerDataType);
         SimplePAPIHook simplePAPIHook = new SimplePAPIHook(plugin, papiRegexReplacer);
 
-        if (MCVersion.isLowerEquals(MCVersion.v1_7_10)){
+        if (MCVersion.isEqual(MCVersion.v1_7_10)){
             PlaceholderAPI.registerPlaceholderHook(pluginBaseID, simplePAPIHook);
         }else {
             PlaceholderAPIPlugin.getInstance().getLocalExpansionManager().register(new PlaceholderExpansion() {
@@ -52,6 +52,11 @@ public class PAPIIntegration {
                 @Override
                 public @Nullable String onRequest(OfflinePlayer player, @NotNull String params) {
                     return simplePAPIHook.onRequest(player, params);
+                }
+
+                @Override
+                public boolean persist() {
+                    return true;
                 }
             });
         }
