@@ -67,9 +67,14 @@ public class FCPlayerInventory implements Salvable {
         this.boots = playerInventory.getBoots() != null ? playerInventory.getBoots() : null;
 
         if (inventoryFactories != null){
-            for (IExtraInvFactory<?> iventoryFactory : inventoryFactories) {
-                ExtraInv extraInv = iventoryFactory.extractFromPlayer(player);
-                extraInvs.add(extraInv);
+            for (IExtraInvFactory<?> factory : inventoryFactories) {
+                try {
+                    ExtraInv extraInv = factory.extractFromPlayer(player);
+                    extraInvs.add(extraInv);
+                }catch (Exception e){
+                    EverNifeCore.info("Failed to extract ExtraInv(" + factory.getId() + ") from " + player.getName());
+                    e.printStackTrace();
+                }
             }
         }
 
@@ -114,7 +119,7 @@ public class FCPlayerInventory implements Salvable {
 
                 ExtraInv extraInv = factory.onConfigLoad(extraInvSection);
                 extraInvList.add(extraInv);
-            }catch (Exception e){
+            }catch (Throwable e){
                 EverNifeCore.info("Failed to load ExtraInv(" + extraInvKey + ") at " + extraInvSection.toString());
                 e.printStackTrace();
             }
@@ -155,6 +160,10 @@ public class FCPlayerInventory implements Salvable {
     }
 
     public void restoreTo(Player player){
+        restoreTo(player, ExtraInvManager.getAllFactories());
+    }
+
+    public void restoreTo(Player player, @Nullable Collection<IExtraInvFactory<?>> inventoryFactories) {
         PlayerInventory playerInventory = player.getInventory();
 
         ItemStack[] inventoryContent = new ItemStack[36];
@@ -163,16 +172,20 @@ public class FCPlayerInventory implements Salvable {
         }
         playerInventory.setContents(inventoryContent);
 
-        for (IExtraInvFactory factory : ExtraInvManager.getAllFactories()) {
+        for (IExtraInvFactory factory : inventoryFactories) {
             // We need to ge all factories, rather than use 'this.getExtraInvs()'
             // because if there is a factory that is not present on 'this.extraInvs()',
             // it means that we need to erase that extraInv on the player
-
-            ExtraInv extraInv = this.getExtraInv(factory.getId());
-            if (extraInv == null){
-                extraInv = factory.createEmptyExtraInv();
+            try {
+                ExtraInv extraInv = this.getExtraInv(factory.getId());
+                if (extraInv == null){
+                    extraInv = factory.createEmptyExtraInv();
+                }
+                factory.applyToPlayer(player, extraInv);
+            }catch (Throwable e){
+                EverNifeCore.info("Failed to restore ExtraInv(" + factory.getId() + ") into " + player.getName());
+                e.printStackTrace();
             }
-            factory.applyToPlayer(player, extraInv);
         }
 
         playerInventory.setHelmet(this.getHelmet() == null ?  null : this.getHelmet().clone());
