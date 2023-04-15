@@ -33,7 +33,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class EverNifeCore extends JavaPlugin {
 
     private static final DependencyManager dependencyManager;
-
+    public static EverNifeCore instance; { instance = this; } //Attribute Instance at the exact moment that this class is instantiated
     static {
         dependencyManager = new DependencyManager();//This is the DefaultConstrutor for EverNifeCore DependencyManager
         dependencyManager.addJitPack();
@@ -49,8 +49,6 @@ public class EverNifeCore extends JavaPlugin {
         MinecraftVersion.disableUpdateCheck();
     }
 
-    public static EverNifeCore instance;
-
     private ECLogger<ECDebugModule> ecLogger = new ECLogger<>(this);
 
     public static ECLogger<ECDebugModule> getLog(){
@@ -59,10 +57,6 @@ public class EverNifeCore extends JavaPlugin {
 
     public static void info(String msg) {
         instance.getLogger().info("[Info] " + msg);
-    }
-
-    public static void debug(String msg) {
-        instance.getLogger().info("[Debug] " + msg);
     }
 
     public static void warning(String msg) {
@@ -75,7 +69,6 @@ public class EverNifeCore extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        instance = this;
         MinecraftVersion.replaceLogger(this.getLogger());//Replace [NBT-API] logger
 
         info("§aStarting EverNifeCore");
