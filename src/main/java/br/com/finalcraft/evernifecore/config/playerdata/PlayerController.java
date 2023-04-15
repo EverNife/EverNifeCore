@@ -24,15 +24,18 @@ public class PlayerController {
 
     private static Map<UUID,PlayerData> MAP_OF_PLAYER_DATA = new HashMap<UUID, PlayerData>();
 
+    private static final File PLAYER_DATA_FOLDER = new File(EverNifeCore.instance.getDataFolder(), "PlayerData");
+    private static final File CORRUPTED_PLAYER_DATA_FOLDER = new File(EverNifeCore.instance.getDataFolder(), "PlayerData-Corrupted");
+    private static final File DORMANT_PLAYER_DATA_FOLDER = new File(EverNifeCore.instance.getDataFolder(), "PlayerData-Dormant");
+
     private static void moveToCorrutedFolder(File playerDataFile){
         try {
             EverNifeCore.getLog().warning("Moving PlayerData File [%s] to the CorruptedPlayerData folder.", playerDataFile.getName());
-            File corruptFolder = new File(EverNifeCore.instance.getDataFolder(), "CorruptedPlayerData");
-            corruptFolder.mkdirs();
+            CORRUPTED_PLAYER_DATA_FOLDER.mkdirs();
 
-            File newCorruptedFile = new File(corruptFolder, playerDataFile.getName());
+            File newCorruptedFile = new File(CORRUPTED_PLAYER_DATA_FOLDER, playerDataFile.getName());
             while (newCorruptedFile.exists()){
-                newCorruptedFile = new File(corruptFolder, StringUtils.substring(playerDataFile.getName(),0,-4) + "_" + System.currentTimeMillis() + ".yml");
+                newCorruptedFile = new File(CORRUPTED_PLAYER_DATA_FOLDER, StringUtils.substring(playerDataFile.getName(),0,-4) + "_" + System.currentTimeMillis() + ".yml");
             }
 
             FileUtils.moveFile(
@@ -49,7 +52,8 @@ public class PlayerController {
         long start = System.currentTimeMillis();
         List<Supplier<PlayerData>> playerdataLoader = new ArrayList<>();
 
-        Iterator<File> fileIterator = FileUtils.iterateFiles(new File(EverNifeCore.instance.getDataFolder(), "PlayerData/"),
+        PLAYER_DATA_FOLDER.mkdirs();
+        Iterator<File> fileIterator = FileUtils.iterateFiles(PLAYER_DATA_FOLDER,
                 new String[]{"yml"},
                 false
         );
@@ -193,15 +197,16 @@ public class PlayerController {
 
         String playerName   = UUIDsController.getNameFromUUID(playerUUID);
         String theFileName  = ECSettings.useNamesInsteadOfUUIDToStorePlayerData ? playerName : playerUUID.toString();
-        File dormantFile  = new File(EverNifeCore.instance.getDataFolder(), "PlayerDataDormant/" + playerUUID + ".yml");
-        File theConfigFile  = new File(EverNifeCore.instance.getDataFolder(), "PlayerData/" + theFileName + ".yml");
+        File dormantFile  = new File(DORMANT_PLAYER_DATA_FOLDER, playerUUID + ".yml");
+        File theConfigFile  = new File(PLAYER_DATA_FOLDER, theFileName + ".yml");
 
         if (dormantFile.exists()){
             try {
-                FileUtils.moveFile(
-                        dormantFile,
-                        theConfigFile
-                );
+                Config dormantConfig = new Config(dormantFile);
+                dormantConfig.setValue("PlayerData.Username",playerName); //Update playerName, as maybe it changed since last login
+                //dormantConfig.setValue("PlayerData.UUID",playerUUID); //No need to update UUID, at least for now!
+                dormantConfig.save(theConfigFile);
+                dormantFile.delete();
             }catch (Exception e){
                 EverNifeCore.warning("Failed to move dormant PlayerData " + dormantFile.getName() + " to the PlayerData folder... this is a terrible (sad) problem!");
                 e.printStackTrace();
@@ -303,7 +308,7 @@ public class PlayerController {
 
         final String playerDataFileName = ECSettings.useNamesInsteadOfUUIDToStorePlayerData ? playerName : playerUUID.toString();
 
-        File theConfigFile = new File(EverNifeCore.instance.getDataFolder(), "PlayerData/" + playerDataFileName + ".yml");
+        File theConfigFile = new File(PLAYER_DATA_FOLDER, playerDataFileName + ".yml");
         if (theConfigFile.exists()){
             try {
                 Config config = new Config(theConfigFile);
@@ -311,19 +316,9 @@ public class PlayerController {
                 MAP_OF_PLAYER_DATA.put(playerUUID, playerData);
                 return playerData;
             }catch (Exception e){
-                EverNifeCore.warning("Failed to load PlayerData [" + theConfigFile.getName() + "] moving it to the corrupt folder. \nTheFile: " + theConfigFile.getAbsolutePath() + " .");
+                EverNifeCore.getLog().severe("Failed to load PlayerData [%s] at %s", theConfigFile.getName(), theConfigFile.getAbsolutePath());
                 e.printStackTrace();
-                try {
-                    File corruptFolder = new File(theConfigFile.getParentFile().getParent(), "CorruptedPlayerData");
-                    corruptFolder.mkdirs();
-                    FileUtils.moveFile(
-                            theConfigFile,
-                            new File(corruptFolder, playerDataFileName + "_" + System.currentTimeMillis() + ".yml")
-                    );
-                }catch (IOException e2){
-                    EverNifeCore.warning("Failed to move the Corrupted PlayerData of " + theConfigFile.getAbsolutePath() + " to the corrupt folder.");
-                    e2.printStackTrace();
-                }
+                moveToCorrutedFolder(theConfigFile);
             }
         }
 

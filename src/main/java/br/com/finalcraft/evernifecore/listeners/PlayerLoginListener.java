@@ -73,7 +73,7 @@ public class PlayerLoginListener implements ECListener {
             PlayerController.getMapOfPlayerData().remove(playerData.getUniqueId());//Unload this PlayerData
 
             playerData.getConfig().getTheFile().delete(); //Delete previous file
-            playerData.getConfig().save(new File(EverNifeCore.instance.getDataFolder(), "PlayerDataDormant/" + existingUUID + ".yml"));//Move to dormant folder
+            playerData.getConfig().save(new File(EverNifeCore.instance.getDataFolder(), "PlayerData-Dormant/" + existingUUID + ".yml"));//Move to dormant folder
             EverNifeCore.getLog().info("[UUIDsController] [%s:%s] was moved to dormant files because his name is not valid anymore!", existingUUID, currentName);
 
             //Now we can create a new PlayerData for this player
