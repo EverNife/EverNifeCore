@@ -203,8 +203,15 @@ public class PlayerController {
         if (dormantFile.exists()){
             try {
                 Config dormantConfig = new Config(dormantFile);
-                dormantConfig.setValue("PlayerData.Username",playerName); //Update playerName, as maybe it changed since last login
-                //dormantConfig.setValue("PlayerData.UUID",playerUUID); //No need to update UUID, at least for now!
+                String previosName = dormantConfig.getString("PlayerData.Username","");
+
+                if (!previosName.equals(playerName)){
+                    dormantConfig.setValue("PlayerData.Username",playerName); //Update playerName
+                    EverNifeCore.getLog().info("Moving dormant PlayerData [%s - %s] to the PlayerData folder... The player has a new name, its called: %s", playerUUID, previosName, playerName);
+                }else {
+                    EverNifeCore.getLog().info("Moving dormant PlayerData [%s - %s] to the PlayerData folder...", playerUUID, playerName);
+                }
+
                 dormantConfig.save(theConfigFile);
                 dormantFile.delete();
             }catch (Exception e){
