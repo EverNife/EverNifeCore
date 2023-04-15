@@ -50,6 +50,7 @@ public class PlayerController {
 
     public static void initialize(){
         long start = System.currentTimeMillis();
+        UUIDsController.getUuidHashMap().clear();
         List<Supplier<PlayerData>> playerdataLoader = new ArrayList<>();
 
         PLAYER_DATA_FOLDER.mkdirs();
