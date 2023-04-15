@@ -289,18 +289,20 @@ public class CMDMethodInterpreter {
         Object[] possibleArgs = new Object[]{label, argumentos, helpContext, helpLine};
         Object[] theArgs = new Object[simpleArguments.size() + customArguments.size()];
 
+        int backwardNiddle = 0;//This is used to go backwards on the possibleArgs array when necessary
         for (int index = 0; index < theArgs.length; index++) {
 
             ArgParser parser = customArguments.get(index);
 
             if (parser != null){
-                Argumento argumento = argumentos.get(parser.getArgInfo().getIndex());
-                if (parser.getArgInfo().isRequired() && argumento.isEmpty() && parser.getArgInfo().isProvidedByContext() == false){
+                Argumento argumento = argumentos.get(parser.getArgInfo().getIndex() - backwardNiddle);
+                if (argumento.isEmpty() && parser.getArgInfo().isRequired() == true && parser.getArgInfo().isProvidedByContext() == false){
                     helpLine.sendTo(sender);
                     return;
                 }
                 try {
-                    parser.setArgContext(new ArgParser.ArgContext(argumentos));
+                    ArgParser.ArgContext argContext = new ArgParser.ArgContext(argumentos);
+                    parser.setArgContext(argContext);
                     theArgs[index] = parser.parserArgument(sender, argumento);
                     parser.setArgContext(null);
                 }catch (ArgParseException argParseException){

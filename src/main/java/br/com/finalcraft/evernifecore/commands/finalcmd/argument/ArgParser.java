@@ -41,6 +41,7 @@ public abstract class ArgParser<T extends Object> implements ITabParser {
 
     public static class ArgContext {
         private final MultiArgumentos argumentos;
+        private boolean shouldMoveArgIndex = true;
 
         public ArgContext(MultiArgumentos argumentos) {
             this.argumentos = argumentos;
@@ -49,6 +50,15 @@ public abstract class ArgParser<T extends Object> implements ITabParser {
         public MultiArgumentos getArgumentos() {
             return argumentos;
         }
+
+        public boolean shouldMoveArgIndex() {
+            return shouldMoveArgIndex;
+        }
+
+        public void setShouldMoveArgIndex(boolean shouldMoveArgIndex) {
+            this.shouldMoveArgIndex = shouldMoveArgIndex;
+        }
+
     }
 
 }
