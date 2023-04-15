@@ -24,18 +24,23 @@ public class PlayerController {
 
     private static Map<UUID,PlayerData> MAP_OF_PLAYER_DATA = new HashMap<UUID, PlayerData>();
 
-    private static void moveToCorrutedFolder(File playerData){
+    private static void moveToCorrutedFolder(File playerDataFile){
         try {
-            EverNifeCore.getLog().warning("Moving PlayerData File [%s] to the CorruptedPlayerData folder.", playerData.getName());
-            File corruptFolder = new File(playerData.getParentFile().getParent(), "CorruptedPlayerData");
+            EverNifeCore.getLog().warning("Moving PlayerData File [%s] to the CorruptedPlayerData folder.", playerDataFile.getName());
+            File corruptFolder = new File(EverNifeCore.instance.getDataFolder(), "CorruptedPlayerData");
             corruptFolder.mkdirs();
-            String newName = StringUtils.substring(playerData.getName(),0,-4) + "_" + System.currentTimeMillis() + ".yml";
+
+            File newCorruptedFile = new File(corruptFolder, playerDataFile.getName());
+            while (newCorruptedFile.exists()){
+                newCorruptedFile = new File(corruptFolder, StringUtils.substring(playerDataFile.getName(),0,-4) + "_" + System.currentTimeMillis() + ".yml");
+            }
+
             FileUtils.moveFile(
-                    playerData,
-                    new File(EverNifeCore.instance.getDataFolder(), "PlayerData/CorruptedPlayerData/" + newName)
+                    playerDataFile,
+                    newCorruptedFile
             );
         }catch (IOException e2){
-            EverNifeCore.warning("Failed to move the Corrupted PlayerData of " + playerData.getAbsolutePath() + " to the corrupt folder.");
+            EverNifeCore.warning("Failed to move the Corrupted PlayerData of " + playerDataFile.getAbsolutePath() + " to the corrupt folder.");
             e2.printStackTrace();
         }
     }
@@ -106,6 +111,7 @@ public class PlayerController {
 
                 uuidHashMap.remove(playerToRemove.getUniqueId());
                 nameHashMap.remove(playerToRemove.getPlayerName());
+                moveToCorrutedFolder(playerToRemove.getConfig().getTheFile());
 
                 playerData = playerToKeep;
             }
@@ -133,6 +139,7 @@ public class PlayerController {
                         "\nI will try to fix this, the PlayerData that is more recent will be kept and the older one will be moved to the Corrupted Folder!" + nameEqualMessage);
 
                 nameHashMap.remove(playerToRemove.getPlayerName());
+                moveToCorrutedFolder(playerToRemove.getConfig().getTheFile());
             }
 
             //NAME is ok, we can add again or add new
