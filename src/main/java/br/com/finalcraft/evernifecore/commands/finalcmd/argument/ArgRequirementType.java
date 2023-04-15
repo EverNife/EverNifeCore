@@ -4,18 +4,22 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public enum ArgRequirementType {
-    REQUIRED_OR_PROVIDED_BY_CONTEXT("<[", "]>", true),
-    OPTIONAL("[", "]", false),
-    REQUIRED("<", ">", true);
+    REQUIRED_OR_PROVIDED_BY_CONTEXT("<(", ")>", true, true),
+    OPTIONAL_OR_PROVIDED_BY_CONTEXT("[(", "]]", false, true),
+    REQUIRED("<", ">", true, false),
+    OPTIONAL("[", "]", false, false),
+    ;
 
     private final String start;
     private final String end;
     private final boolean required;
+    private final boolean providedByContext;
 
-    ArgRequirementType(String start, String end, boolean required) {
+    ArgRequirementType(String start, String end, boolean required, boolean providedByContext) {
         this.start = start;
         this.end = end;
         this.required = required;
+        this.providedByContext = providedByContext;
     }
 
     public String getStart() {
@@ -28,6 +32,10 @@ public enum ArgRequirementType {
 
     public boolean isRequired() {
         return required;
+    }
+
+    public boolean isProvidedByContext() {
+        return providedByContext;
     }
 
     public static @Nullable ArgRequirementType getArgumentType(@NotNull String argument){

@@ -23,6 +23,6 @@ public class ArgInfo {
     }
 
     public boolean isProvidedByContext(){
-        return requirementType == ArgRequirementType.REQUIRED_OR_PROVIDED_BY_CONTEXT;
+        return requirementType.isProvidedByContext();
     }
 }
