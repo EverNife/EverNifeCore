@@ -19,6 +19,7 @@ import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.FCMultiLocales;
 import br.com.finalcraft.evernifecore.pageviwer.PageVizualization;
+import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import org.bukkit.Bukkit;
@@ -53,6 +54,11 @@ public class FinalCMDManager {
         ArgParserManager.addGlobalParser(UUID.class, ArgParserUUID.class);
         ArgParserManager.addGlobalParser(World.class, ArgParserWorld.class);
         ArgParserManager.addGlobalParser(PageVizualization.class, ArgParserPageVizualization.class);
+
+        //External Plugins
+        if (Bukkit.getPluginManager().isPluginEnabled("WorldGuard")){
+            ArgParserManager.addGlobalParser(FCWorldGuardRegion.class, ArgParserFCWorldGuardRegion.class);
+        }
     }
 
     public static boolean registerCommand(@NotNull JavaPlugin pluginInstance, @NotNull Class cmdClass) {
