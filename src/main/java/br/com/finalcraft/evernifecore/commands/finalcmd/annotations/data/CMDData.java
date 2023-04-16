@@ -14,7 +14,7 @@ public class CMDData<T extends CMDData<T>> {
     private String[] labels = new String[0]; //This means both command ALIASES or SubCommands names
     private String usage = "";
     private String desc = "";
-    private String permission;
+    private String permission = "";
     private String context = "";
     private CMDAccessValidation[] cmdAccessValidations = new CMDAccessValidation[0];
     private FCLocaleData[] locales = new FCLocaleData[0];
