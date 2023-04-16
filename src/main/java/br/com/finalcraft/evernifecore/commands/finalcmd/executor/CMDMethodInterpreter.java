@@ -304,6 +304,9 @@ public class CMDMethodInterpreter {
                     ArgParser.ArgContext argContext = new ArgParser.ArgContext(argumentos);
                     parser.setArgContext(argContext);
                     theArgs[index] = parser.parserArgument(sender, argumento);
+                    if (argContext.shouldMoveArgIndex()){
+                        backwardNiddle++;
+                    }
                     parser.setArgContext(null);
                 }catch (ArgParseException argParseException){
                     parser.setArgContext(null);
