@@ -41,6 +41,8 @@ public class CMDData<T extends CMDData<T>> {
         if (!override.getDesc().isEmpty()) this.desc = override.getDesc();
         if (!override.getPermission().isEmpty()) this.permission = override.getPermission();
         if (override.getLocales().length > 0) this.locales = override.getLocales();
+        if (override.getCmdAccessValidations().length > 0) this.cmdAccessValidations = override.getCmdAccessValidations();
+        if (override.getLocales().length > 0) this.locales = override.getLocales();
         return (T) this;
     }
 
