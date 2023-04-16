@@ -12,6 +12,7 @@ import org.bukkit.World;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class FCRegionResultSet {
 
@@ -84,7 +85,7 @@ public class FCRegionResultSet {
         if (fcWorldGuardRegions == null){
             fcWorldGuardRegions = regionResultSet.getRegions().stream()
                     .map(region -> WGPlatform.getInstance().wrapRegion(world, region))
-                    .collect(ImmutableList.toImmutableList());
+                    .collect(Collectors.toList());
         }
         return fcWorldGuardRegions;
     }
