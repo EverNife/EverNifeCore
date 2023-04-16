@@ -84,7 +84,7 @@ public class ArgParserFCWorldGuardRegion extends ArgParser<FCWorldGuardRegion> {
         return Bukkit.getWorlds().stream()
                 .flatMap(world -> WGPlatform.getInstance().getRegionManager(world).getRegions().values().stream())
                 .map(FCWorldGuardRegion::getId)
-                .filter(s -> StringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))
+                .filter(s -> !s.equals("__global__") && StringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .collect(Collectors.toList());
 
