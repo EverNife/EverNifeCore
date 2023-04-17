@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -115,10 +116,26 @@ public class LayoutIcon {
 
     @Loadable
     public static LayoutIcon onConfigLoad(ConfigSection section){
-        int[] slot = section.getStringList("Slot")
-                .stream()
-                .mapToInt(value -> Integer.valueOf(value))
-                .toArray();
+
+        int[] slot = {};
+
+        Object slotObject = section.getValue("Slot");
+        if (slotObject instanceof String){
+            String slotString = (String) slotObject;
+            if (!slotString.isEmpty()){
+                slot = Arrays.stream(slotString.replace("[", "")
+                                .replace("]", "")
+                                .split(","))
+                        .mapToInt(value -> Integer.valueOf(value.trim()))
+                        .toArray()
+                ;
+            }
+        }else {
+            slot = section.getStringList("Slot")
+                    .stream()
+                    .mapToInt(value -> Integer.valueOf(value))
+                    .toArray();
+        }
 
         String permission = section.getString("Permission","");
 
