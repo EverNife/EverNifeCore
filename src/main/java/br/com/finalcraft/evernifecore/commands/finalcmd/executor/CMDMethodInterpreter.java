@@ -288,6 +288,7 @@ public class CMDMethodInterpreter {
 
         Object[] possibleArgs = new Object[]{label, argumentos, helpContext, helpLine};
         Object[] theArgs = new Object[simpleArguments.size() + customArguments.size()];
+        LinkedHashMap<Class, Object> parsedArgs = new LinkedHashMap<>();
 
         int backwardNiddle = 0;//This is used to go backwards on the possibleArgs array when necessary
         for (int index = 0; index < theArgs.length; index++) {
@@ -301,9 +302,13 @@ public class CMDMethodInterpreter {
                     return;
                 }
                 try {
-                    ArgParser.ArgContext argContext = new ArgParser.ArgContext(argumentos);
+                    ArgParser.ArgContext argContext = new ArgParser.ArgContext(argumentos, parsedArgs);
                     parser.setArgContext(argContext);
-                    theArgs[index] = parser.parserArgument(sender, argumento);
+                    Object parsedArgument = parser.parserArgument(sender, argumento);
+                    theArgs[index] = parsedArgument;
+                    if (parsedArgument != null){
+                        parsedArgs.put(parsedArgument.getClass(), parsedArgument);
+                    }
                     if (!argContext.shouldMoveArgIndex()){
                         backwardNiddle++;//If we can't move to next argumento, lets look backward on next iteration
                     }

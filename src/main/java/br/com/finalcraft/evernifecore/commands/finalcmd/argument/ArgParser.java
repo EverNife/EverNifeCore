@@ -7,7 +7,9 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser;
 import com.google.common.collect.ImmutableList;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 
 public abstract class ArgParser<T extends Object> implements ITabParser {
@@ -41,10 +43,20 @@ public abstract class ArgParser<T extends Object> implements ITabParser {
 
     public static class ArgContext {
         private final MultiArgumentos argumentos;
+        private final LinkedHashMap<Class, Object> parsedArgs;
         private boolean shouldMoveArgIndex = true;
 
-        public ArgContext(MultiArgumentos argumentos) {
+        public ArgContext(MultiArgumentos argumentos, LinkedHashMap<Class, Object> parsedArgs) {
             this.argumentos = argumentos;
+            this.parsedArgs = parsedArgs;
+        }
+
+        public <T> @Nullable T getPreviouslyParsedArg(Class<T> clazz){
+            return (T) parsedArgs.get(clazz);
+        }
+
+        public LinkedHashMap<Class, Object> getParsedArgs() {
+            return parsedArgs;
         }
 
         public MultiArgumentos getArgumentos() {
