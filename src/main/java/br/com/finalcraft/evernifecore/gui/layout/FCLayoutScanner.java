@@ -119,14 +119,16 @@ public class FCLayoutScanner {
                 if (background == false || !hasAnyBackgroundAtStart){
                     //When a background, it will only save Defaults if there is already no existing Background LayoutIcon on the config
 
+                    if (!permission.isEmpty()){
+                        itemSection.setDefaultValue("Permission", permission);
+                    }
+
                     List<String> slotsAsString = new ArrayList<>();
                     for (int i : slot) {
                         slotsAsString.add(String.valueOf(i));
                     }
-                    itemSection.setDefaultValue("Slot", slotsAsString);
-
-                    if (!permission.isEmpty()){
-                        itemSection.setDefaultValue("Permission", permission);
+                    if (!itemSection.contains("Slot")){
+                        itemSection.setDefaultValue("Slot", slotsAsString.stream().collect(Collectors.joining(",","[","]"))); //Store slots like "[1,2,3,4,5]"
                     }
 
                     FCItemBuilder itemBuilder = FCItemFactory.from(layoutIcon.getItemStack());
@@ -161,10 +163,20 @@ public class FCLayoutScanner {
 
                 try {
                     if (itemSection.contains("Slot")){
-                        slot = itemSection.getStringList("Slot")
-                                .stream()
-                                .mapToInt(value -> Integer.valueOf(value))
-                                .toArray();
+                        if (itemSection.getValue("Slot") instanceof String){
+                            slot = Arrays.stream(itemSection.getString("Slot")
+                                    .replace("[", "")
+                                    .replace("]", "")
+                                    .split(","))
+                                    .mapToInt(value -> Integer.valueOf(value.trim()))
+                                    .toArray()
+                            ;
+                        }else {
+                            slot = itemSection.getStringList("Slot")
+                                    .stream()
+                                    .mapToInt(value -> Integer.valueOf(value.trim()))
+                                    .toArray();
+                        }
                     }
 
                     permission = itemSection.getString("Permission", permission);
