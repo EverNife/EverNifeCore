@@ -24,6 +24,10 @@ public interface ITabParser {
             this.index = index;
         }
 
+        public @Nullable String getPreviousArg(){
+            return index > 0 ? args[index - 1] : null;
+        }
+
         public @Nullable Player getPlayer(){
             return sender instanceof Player ? (Player) sender : null;
         }
