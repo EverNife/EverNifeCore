@@ -32,7 +32,7 @@ public class ECSettings {
 
         ZONE_ID_OF_DAY_OF_TODAY = ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.Time.ZONE_ID_OF_DAY_OF_TODAY",
                 ZoneId.systemDefault().getId(),
-                "The timezone used for the some of ECPlugins!" +
+                "The timezone used for EverNifeCore and it's sub-plugins!" +
                         "\nThis is useful when your HomeZone is not the same as the server zone!" +
                         "\n" +
                         "\nYou can use GMT zones, for example:" +
