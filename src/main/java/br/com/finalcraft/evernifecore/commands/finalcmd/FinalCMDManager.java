@@ -88,6 +88,10 @@ public class FinalCMDManager {
 
             //Checking for all methods that have a @FinalCMD
             for (Method declaredMethod : methods) {
+                if (declaredMethod.isAnnotationPresent(FinalCMD.Ignore.class)){
+                    continue;
+                }
+
                 FinalCMD finalCMD = FCReflectionUtil.getAnnotationDeeply(declaredMethod, FinalCMD.class);
                 if (finalCMD != null){
                     finalCMDMainMethods.add(Tuple.of(finalCMD, declaredMethod));
@@ -159,7 +163,9 @@ public class FinalCMDManager {
                     }
                 }
 
-                CMDMethodInterpreter mainMethodInterpreter = (mainCommandMethod == null ? null : new CMDMethodInterpreter(pluginInstance, customizeContext.getMainMethod(), executor));
+                CMDMethodInterpreter mainMethodInterpreter = mainCommandMethod == null
+                        ? null :
+                        new CMDMethodInterpreter(pluginInstance, customizeContext.getMainMethod(), executor);
 
                 FinalCMDPluginCommand newCommand = new FinalCMDPluginCommand(pluginInstance, finalCMDData, mainMethodInterpreter);
                 for (MethodData<SubCMDData> subCMDDataMethodData : customizeContext.getSubMethods()) {

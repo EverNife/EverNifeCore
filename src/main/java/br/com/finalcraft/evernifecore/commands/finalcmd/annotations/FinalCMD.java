@@ -48,6 +48,11 @@ public @interface FinalCMD {
         FCLocale[] locales() default {};
     }
 
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public static @interface Ignore {
+        //Used in cases where you want to ignore a method that is annotated on the father's class
+    }
 
 
 }
