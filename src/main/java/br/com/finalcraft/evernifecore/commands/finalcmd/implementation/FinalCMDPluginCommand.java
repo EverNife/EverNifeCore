@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.commands.finalcmd.implementation;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.IFinalCMDExecutor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAccessValidation;
+import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.CMDHelpType;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.FinalCMDData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDMethodInterpreter;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.FCDefaultExecutor;
@@ -180,7 +181,7 @@ public class FinalCMDPluginCommand extends Command implements PluginIdentifiable
 
         //The TabComplete is based on the FirstArg.
         CMDMethodInterpreter interpreter = (args.length == 0 || args[0].isEmpty()) ? null : getSubCommand(args[0]);
-        if (interpreter == null){
+        if (interpreter == null && mainInterpreter != null && ((FinalCMDData)mainInterpreter.getCmdData()).getHelpType() == CMDHelpType.FULL){
             interpreter = mainInterpreter;
         }
 
