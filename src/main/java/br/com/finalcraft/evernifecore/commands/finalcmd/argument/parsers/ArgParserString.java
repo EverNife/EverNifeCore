@@ -36,7 +36,7 @@ public class ArgParserString extends ArgParser<String> {
     public String parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException {
 
         if (possibilities.size() == 1){
-            return argumento.toString();
+            return argumento.isEmpty() ? null : argumento.toString();
         }
 
         for (String option : possibilities) {
