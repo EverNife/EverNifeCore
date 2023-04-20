@@ -71,18 +71,56 @@ public class ComparableItem {
     }
 
     public static ComparableItem deserialize(String serializedLine) {
+        //This will accept the following formats:
+        // 1. Material
+        // 2. Material:<DamageValue|*|-1>
+
+        // 3. minecraft:identifier
+        // 4. minecraft:identifier <DamageValue|*|-1>
+        // 5. minecraft:identifier:<DamageValue|*|-1>
+
         String[] split = serializedLine.split(":");
-        Material material = FCInputReader.parseMaterial(split[0]);
-        if (material == null){
-            throw new IllegalArgumentException("Invalid bukkit material: " + split[0]);
+
+        //Case 1
+        if (split.length == 1){
+            Material material = FCInputReader.parseMaterial(split[0]);
+            if (material == null){
+                throw new IllegalArgumentException("Invalid bukkit material: " + split[0]);
+            }
+            return new ComparableItem(material, (short) 0);
         }
-        Short damageValue = split.length == 1
-                ? null
-                : split[1].equals("-1") || split[1].equals("*") ? null : FCInputReader.parseInt(split[1]).shortValue();
-        return new ComparableItem(
-                material,
-                damageValue
-        );
+
+        //Case 2 (if the second part is a damage value)
+        String damagePartString = split[1].trim();
+        Short damageValue = damagePartString.equals("*") ? -1 : FCInputReader.parseInt(damagePartString).shortValue();
+        if (damageValue != null){
+            Material material = FCInputReader.parseMaterial(split[0]);
+            if (material == null){
+                throw new IllegalArgumentException("Invalid bukkit material: " + split[0]);
+            }
+            return new ComparableItem(material, damageValue < 0 ? null : damageValue);
+        }
+
+        String[] splitSecondPart = split[1].split(" ");
+        String mcIdentifier = split[0] + ":" + splitSecondPart[0];
+        ItemStack itemStack = FCItemUtils.fromMinecraftIdentifier(mcIdentifier);
+        if (itemStack == null){
+            throw new IllegalArgumentException("Invalid Minecraft Identifier: " + mcIdentifier);
+        }
+
+        if (splitSecondPart.length > 1){ //Case 4: Pattern is minecraft:identifier <DamageValue|*|-1>
+            damagePartString = splitSecondPart[1].trim();
+            damageValue = damagePartString.equals("*") ? -1 : FCInputReader.parseInt(damagePartString).shortValue();
+            return new ComparableItem(itemStack.getType(), damageValue < 0 ? null : damageValue);
+        }
+
+        if (split.length > 2){ //Case 5: Pattern is minecraft:identifier:<DamageValue|*|-1>
+            damagePartString = split[2].trim();
+            damageValue = damagePartString.equals("*") ? -1 : FCInputReader.parseInt(damagePartString).shortValue();
+            return new ComparableItem(itemStack.getType(), damageValue < 0 ? null : damageValue);
+        }
+
+        return new ComparableItem(itemStack);
     }
 
     @Override
