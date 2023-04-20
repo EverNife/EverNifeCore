@@ -47,6 +47,10 @@ public class ComparableItem {
         return this.getMaterial() == comparableItem.getMaterial() && (this.getDamageValue() == null ||  comparableItem.getDamageValue() == null|| this.getDamageValue() == comparableItem.getDamageValue());
     }
 
+    public boolean match(Material material, @Nullable Short damageValue) {
+        return this.getMaterial() == material && (this.getDamageValue() == null ||  damageValue == null || this.getDamageValue() == damageValue);
+    }
+
     public ItemStack getItemStack() {
         return itemStack;
     }
