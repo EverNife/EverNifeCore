@@ -7,6 +7,8 @@ import org.bukkit.block.Block;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Objects;
+
 public class ComparableItem {
 
     protected final ItemStack itemStack;
@@ -81,5 +83,18 @@ public class ComparableItem {
                 material,
                 damageValue
         );
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ComparableItem that = (ComparableItem) o;
+        return material == that.material && Objects.equals(damageValue, that.damageValue);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(material, damageValue);
     }
 }
