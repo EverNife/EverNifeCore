@@ -225,7 +225,7 @@ public class CuboidSelection {
     }
 
     public CuboidSelection expandHoriz(int amount){
-        expand(new BlockPos(amount, 0, amount), new BlockPos(-amount, 0, amount));
+        expand(new BlockPos(amount, 0, amount), new BlockPos(-amount, 0, -amount));
         this.recalculate();
         return this;
     }
