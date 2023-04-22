@@ -47,6 +47,9 @@ repositories {
     }
     maven { url = "https://jitpack.io" }
     maven { url = "https://maven.petrus.dev/public" }
+    maven {
+        url = 'https://repo.alessiodp.com/releases/'//For the custom libby-core
+    }
 }
 
 dependencies {
@@ -58,7 +61,7 @@ dependencies {
     implementation project(':modules:v1_16_5')
 
     implementation 'com.github.evernife:ChatMenuAPI:v1.1.3c'
-    implementation 'com.github.alessiodp.libby:libby-core:43d25ade72'
+    implementation 'net.byteflux:libby-core:1.2.0'
     implementation 'dev.triumphteam:triumph-gui:3.0.4-e2'
     implementation 'com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8.3'
 
@@ -126,7 +129,7 @@ shadowJar {
     archiveName = "${baseName}-${version}.${extension}"
     dependencies {
         include(dependency('com.github.evernife:ChatMenuAPI:v1.1.3c'))
-        include(dependency('com.github.alessiodp.libby:libby-core:43d25ade72'))
+        include(dependency('net.byteflux:libby-core:1.2.0'))
         include(dependency('dev.triumphteam:triumph-gui:3.0.4-e2'))
         include(dependency('com.github.EverNife.Item-NBT-API:item-nbt-api:7d30eda0c5'))
         include(dependency('com.github.EverNife.Item-NBT-API:nbt-data-api:7d30eda0c5'))
