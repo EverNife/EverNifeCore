@@ -78,13 +78,15 @@ public class ComparableItem implements Salvable {
     }
 
     public static ComparableItem deserialize(String serializedLine) {
-        //This will accept the following formats:
+        //This will accept the following patterns:
         // 1. Material
         // 2. Material:<DamageValue|*|-1>
 
         // 3. minecraft:identifier
         // 4. minecraft:identifier <DamageValue|*|-1>
         // 5. minecraft:identifier:<DamageValue|*|-1>
+
+        // 6. minecraft:identifier <Quantity > <DamageValue|*|-1>
 
         String[] split = serializedLine.split(":");
 
@@ -115,13 +117,17 @@ public class ComparableItem implements Salvable {
             throw new IllegalArgumentException("Invalid Minecraft Identifier: " + mcIdentifier);
         }
 
-        if (splitSecondPart.length > 1){ //Case 4: Pattern is minecraft:identifier <DamageValue|*|-1>
+        if (splitSecondPart.length >= 2){ //Case 4: Pattern is minecraft:identifier <DamageValue|*|-1>
+            if (splitSecondPart.length >= 3){
+                splitSecondPart[1] = splitSecondPart[2]; //Case 6:  minecraft:identifier <Quantity> <DamageValue|*|-1>
+            }
+
             damagePartString = splitSecondPart[1].trim();
             damageValue = damagePartString.equals("*") ? -1 : FCInputReader.parseInt(damagePartString).shortValue();
             return new ComparableItem(itemStack.getType(), damageValue < 0 ? null : damageValue);
         }
 
-        if (split.length > 2){ //Case 5: Pattern is minecraft:identifier:<DamageValue|*|-1>
+        if (split.length >= 3){ //Case 5: Pattern is minecraft:identifier:<DamageValue|*|-1>
             damagePartString = split[2].trim();
             damageValue = damagePartString.equals("*") ? -1 : FCInputReader.parseInt(damagePartString).shortValue();
             return new ComparableItem(itemStack.getType(), damageValue < 0 ? null : damageValue);
