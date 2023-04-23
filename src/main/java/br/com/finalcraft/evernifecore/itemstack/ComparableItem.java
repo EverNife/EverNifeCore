@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.itemstack;
 
+import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
+import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
+import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
 import org.bukkit.Material;
@@ -9,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 
-public class ComparableItem {
+public class ComparableItem implements Salvable {
 
     protected final ItemStack itemStack;
     protected final Material material;
@@ -138,5 +141,15 @@ public class ComparableItem {
     @Override
     public int hashCode() {
         return Objects.hash(material, damageValue);
+    }
+
+    @Override
+    public void onConfigSave(ConfigSection section) {
+        section.setValue("", serialize());
+    }
+
+    @Loadable
+    public static ComparableItem onConfigLoad(ConfigSection section){
+        return deserialize(section.getString(""));
     }
 }
