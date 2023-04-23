@@ -23,7 +23,7 @@ public class ArgParserBoolean extends ArgParser<Boolean> {
         super(argInfo);
 
         //If context is empty, take the name for it
-        String context = !argInfo.getArgData().getName().isEmpty() ? argInfo.getArgData().getName() : argInfo.getArgData().getContext();
+        String context = !argInfo.getArgData().getContext().isEmpty() ? argInfo.getArgData().getContext() : argInfo.getArgData().getName();
 
         possibilities = ImmutableList.copyOf(ArgsParserUtil.parseStringContextSelectional(context));
 
