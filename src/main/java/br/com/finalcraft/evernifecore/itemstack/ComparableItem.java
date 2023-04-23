@@ -139,9 +139,9 @@ public class ComparableItem implements Salvable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (o instanceof ComparableItem == false) return false;
         ComparableItem that = (ComparableItem) o;
-        return material == that.material && Objects.equals(damageValue, that.damageValue);
+        return this.getMaterial() == that.getMaterial() && Objects.equals(that.getDamageValue(), that.getDamageValue());
     }
 
     @Override
