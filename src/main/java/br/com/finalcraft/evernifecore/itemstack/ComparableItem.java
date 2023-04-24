@@ -74,7 +74,16 @@ public class ComparableItem implements Salvable {
     }
 
     public String serialize(){
-        return material + (damageValue != null ? (":" + damageValue) : "");
+        String suffix;
+        Short damage = getDamageValue();
+        if (damage == null){
+            suffix = ":*";              //MATERIAL:*
+        }else if (damage == 0){
+            suffix = "";                //MATERIAL
+        }else {
+            suffix = ":" + damage;      //MAERIAL:1
+        }
+        return material + suffix;
     }
 
     public static ComparableItem deserialize(String serializedLine) {
