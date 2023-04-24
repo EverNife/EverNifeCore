@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data;
 
 import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAccessValidation;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
+import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.util.FCArrayUtil;
 import lombok.Getter;
 
@@ -98,6 +99,17 @@ public class CMDData<T extends CMDData<T>> {
         this.permission = this.permission.replace(placeholder, value);
         for (FCLocaleData locale : this.locales) {
             locale.replace(placeholder, value);
+        }
+        return (T) this;
+    }
+
+    public T replace(CompoundReplacer replacer){
+        this.labels = Arrays.stream(this.labels).map(s -> replacer.apply(s)).collect(Collectors.toList()).toArray(new String[0]);
+        this.usage = replacer.apply(this.usage);
+        this.desc = replacer.apply(this.desc);
+        this.permission = replacer.apply(this.permission);
+        for (FCLocaleData locale : this.locales) {
+            locale.replace(replacer);
         }
         return (T) this;
     }

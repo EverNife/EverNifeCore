@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FlagArg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
+import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -55,6 +56,15 @@ public class ArgData {
         this.context = this.context.replace(placeholder, value);
         for (FCLocaleData locale : this.locales) {
             locale.replace(placeholder, value);
+        }
+        return this;
+    }
+
+    public ArgData replace(CompoundReplacer replacer){
+        this.name = replacer.apply(this.name);
+        this.context = replacer.apply(this.context);
+        for (FCLocaleData locale : this.locales) {
+            locale.replace(replacer);
         }
         return this;
     }
