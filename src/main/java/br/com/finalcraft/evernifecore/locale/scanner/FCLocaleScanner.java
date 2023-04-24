@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.locale.scanner;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
+import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.FCMultiLocales;
@@ -108,12 +109,14 @@ public class FCLocaleScanner {
         for (FCLocaleData fcLocale : locales) {
             String text = fcLocale.text();
             String hover = fcLocale.hover().isEmpty() ? null : fcLocale.hover();
-            String runCommand = fcLocale.runCommand().isEmpty() ? null : fcLocale.runCommand();
+            String clickActionText = fcLocale.runCommand().isEmpty() ? null : fcLocale.runCommand();
+            ClickActionType clickActionType = fcLocale.clickActionType();
             String lang = fcLocale.lang();
             FancyText fancyText = new FancyText(
                     FCColorUtil.colorfy(text),
                     FCColorUtil.colorfy(hover),
-                    runCommand
+                    clickActionText,
+                    clickActionType
             );
 
             if (newLocale.getFancyText(lang) != null){
@@ -126,13 +129,15 @@ public class FCLocaleScanner {
                 for (FCLocaleData.Child child : fcLocale.children()) {
                     text = child.text();
                     hover = child.hover().isEmpty() ? null : child.hover();
-                    runCommand = child.runCommand().isEmpty() ? null : child.runCommand();
+                    clickActionText = child.runCommand().isEmpty() ? null : child.runCommand();
+                    clickActionType = child.clickActionType();
 
                     fancyText = fancyText.append(
                             FCColorUtil.colorfy(text),
                             FCColorUtil.colorfy(hover),
-                            runCommand
+                            clickActionText
                     );
+                    fancyText.setClickAction(clickActionType);
                 }
             }
 
