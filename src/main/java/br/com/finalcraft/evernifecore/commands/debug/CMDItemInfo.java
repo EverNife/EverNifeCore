@@ -3,8 +3,11 @@ package br.com.finalcraft.evernifecore.commands.debug;
 
 import br.com.finalcraft.evernifecore.PermissionNodes;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
-import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.*;
 import org.bukkit.entity.Player;
@@ -13,6 +16,42 @@ import org.bukkit.inventory.ItemStack;
 import java.util.stream.Collectors;
 
 public class CMDItemInfo {
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§d ● §eLocalizedName: §a%localized_name%",
+            hover = "§7Click to copy: \n\n§7 ✯ §a%uncolorfied_localized_name%§r",
+            runCommand = "%uncolorfied_localized_name%",
+            clickActionType = ClickActionType.SUGGEST_COMMAND
+    )
+    private static LocaleMessage LOCALIZED_NAME;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§d ● §eDisplayName: §r%display_name%",
+            hover = "§7Click to copy: \n\n§7 ✯ §a%uncolorfied_display_name%§r",
+            runCommand = "%uncolorfied_display_name%",
+            clickActionType = ClickActionType.SUGGEST_COMMAND
+    )
+    private static LocaleMessage DISPLAY_NAME;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "\n§d ● §eMCIdentifier: §a%mc_identifier%",
+            hover = "§7Click to copy: \n\n§7 ✯ §a%mc_identifier%§r",
+            runCommand = "%mc_identifier%",
+            clickActionType = ClickActionType.SUGGEST_COMMAND
+    )
+    private static LocaleMessage MC_IDENTIFIER;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "\n§7§l(§b▼§7§l)",
+            hover = "§7Click to copy: \n§7 ✯ §a%bukkit_identifier%§r",
+            runCommand = "%bukkit_identifier%",
+            clickActionType = ClickActionType.SUGGEST_COMMAND,
+            children = {
+                    @FCLocale.Child(
+                            text = "§b%item_data_part%",
+                            hover = "§7Click to copy: \n§b%item_data_part%",
+                            runCommand = "%item_data_part%",
+                            clickActionType = ClickActionType.SUGGEST_COMMAND
+                    )
+            }
+    )
+    private static LocaleMessage BUKKIT_IDENTIFIER;
 
     @FinalCMD(
             aliases = {"iteminfo"},
@@ -27,41 +66,37 @@ public class CMDItemInfo {
             return;
         }
 
-        player.sendMessage("§m§7" + FCTextUtil.straightLineOf("-"));
+        player.sendMessage("§7§m" + FCColorUtil.stripColor(FCTextUtil.straightLineOf("-")));
         if (NMSUtils.get() != null){
             String localizedName = FCItemUtils.getLocalizedName(heldItem);
             String uncolorfiedLocalizedName = FCColorUtil.decolorfy(localizedName);
-            FancyText.of("§d ● §eLocalizedName: §a" + localizedName)
-                    .setHoverText("§7Click to copy! [§a" + uncolorfiedLocalizedName + "§7]")
-                    .setSuggestCommandAction(uncolorfiedLocalizedName)
+            LOCALIZED_NAME
+                    .addPlaceholder("%localized_name%", localizedName)
+                    .addPlaceholder("%uncolorfied_localized_name%", uncolorfiedLocalizedName)
                     .send(player);
         }
 
         String displayName = FCItemUtils.getDisplayName(heldItem);
         if (displayName != null){
             String uncolorfiedDisplayName = FCColorUtil.decolorfy(displayName);
-            FancyText.of("§d ● §eDisplayName: §r" + displayName)
-                    .setHoverText("§7Click to copy! [§a" + uncolorfiedDisplayName + "§7]")
-                    .setSuggestCommandAction(uncolorfiedDisplayName)
+            DISPLAY_NAME
+                    .addPlaceholder("%display_name%", displayName)
+                    .addPlaceholder("%uncolorfied_display_name%", uncolorfiedDisplayName)
                     .send(player);
         }
 
         if (NMSUtils.get() != null){
-            FancyText.of("\n§d ● §eMCIdentifier: §a" + FCItemUtils.getMinecraftIdentifier(heldItem))
-                    .setHoverText("§7Click to copy! [§a" + FCItemUtils.getMinecraftIdentifier(heldItem) + "§7]")
-                    .setSuggestCommandAction(FCItemUtils.getMinecraftIdentifier(heldItem))
+            MC_IDENTIFIER
+                    .addPlaceholder("%mc_identifier%", FCItemUtils.getMinecraftIdentifier(heldItem))
                     .send(player);
         }
 
-        String readLines = ItemDataPart.readItem(heldItem).stream().collect(Collectors.joining("\n - "));
+        String itemDataPart = ItemDataPart.readItem(heldItem).stream()
+                .collect(Collectors.joining("\n - ","\n - ",""));
 
-        FancyText.of("§b ▼ ")
-                .setHoverText("§7Click to copy! [§a" + FCItemUtils.getBukkitIdentifier(heldItem) + "§7]")
-                .setSuggestCommandAction(FCItemUtils.getBukkitIdentifier(heldItem))
-
-                .append("\n - " + readLines)
-                .setHoverText("§b - " + readLines)
-                .setSuggestCommandAction(readLines)
+        BUKKIT_IDENTIFIER
+                .addPlaceholder("%bukkit_identifier%", FCItemUtils.getBukkitIdentifier(heldItem))
+                .addPlaceholder("%item_data_part%", itemDataPart)
                 .send(player);
 
     }
