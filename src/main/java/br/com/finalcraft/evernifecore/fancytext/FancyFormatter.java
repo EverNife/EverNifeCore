@@ -142,6 +142,18 @@ public class FancyFormatter extends FancyText {
     }
 
     @Override
+    public FancyText setClickAction(ClickActionType actionType) {
+        this.fancyTextList.get(fancyTextList.size() - 1).setClickAction(actionType);
+        return this;
+    }
+
+    @Override
+    public FancyText setClickAction(String actionText, ClickActionType actionType) {
+        this.fancyTextList.get(fancyTextList.size() - 1).setClickAction(actionText, actionType);
+        return this;
+    }
+
+    @Override
     public FancyFormatter setRunCommandAction(String runCommandAction) {
         this.fancyTextList.get(fancyTextList.size() - 1).setRunCommandAction(runCommandAction);
         return this;

@@ -153,9 +153,8 @@ public class FancyText {
      * Seta o a RunCommand dessa FancyMessage;
      * (Comando executado quando o jogador clica na mensagem)
      */
-    public FancyText setClickAction(String actionText, ClickActionType actionType) {
-        setRecentChanged();
-        this.clickActionText = actionText;
+    public FancyText setClickAction(ClickActionType actionType) {
+        this.setRecentChanged();
         this.clickActionType = actionType;
         return this;
     }
@@ -164,10 +163,18 @@ public class FancyText {
      * Seta o a RunCommand dessa FancyMessage;
      * (Comando executado quando o jogador clica na mensagem)
      */
+    public FancyText setClickAction(String clickActionText, ClickActionType actionType) {
+        this.clickActionText = clickActionText;
+        this.setClickAction(actionType);
+        return this;
+    }
+
+    /**
+     * Seta o a RunCommand dessa FancyMessage;
+     * (Comando executado quando o jogador clica na mensagem)
+     */
     public FancyText setRunCommandAction(String runCommandAction) {
-        setRecentChanged();
-        this.clickActionText = runCommandAction;
-        this.clickActionType = ClickActionType.RUN_COMMAND;
+        this.setClickAction(runCommandAction, ClickActionType.RUN_COMMAND);
         return this;
     }
 
@@ -176,9 +183,7 @@ public class FancyText {
      * (Comando sugerido quando o jogador clica na mensagem)
      */
     public FancyText setSuggestCommandAction(String suggestCommandAction) {
-        setRecentChanged();
-        this.clickActionText = suggestCommandAction;
-        this.clickActionType = ClickActionType.SUGGEST_COMMAND;
+        this.setClickAction(suggestCommandAction, ClickActionType.SUGGEST_COMMAND);
         return this;
     }
 
@@ -187,9 +192,7 @@ public class FancyText {
      * (Link aberto quando o jogador clica na mensagem)
      */
     public FancyText setOpenLinkAction(String linkToOpen) {
-        setRecentChanged();
-        this.clickActionText = linkToOpen;
-        this.clickActionType = ClickActionType.OPEN_URL;
+        this.setClickAction(linkToOpen, ClickActionType.OPEN_URL);
         return this;
     }
 
