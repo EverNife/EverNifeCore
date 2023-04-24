@@ -11,6 +11,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
+import java.util.Optional;
 
 public class ComparableItem implements Salvable {
 
@@ -110,7 +111,10 @@ public class ComparableItem implements Salvable {
 
         //Case 2 (if the second part is a damage value)
         String damagePartString = split[1].trim();
-        Short damageValue = damagePartString.equals("*") ? -1 : FCInputReader.parseInt(damagePartString).shortValue();
+        Short damageValue = damagePartString.equals("*")
+                ? -1
+                : Optional.ofNullable(FCInputReader.parseInt(damagePartString))
+                        .map(integer -> integer.shortValue()).orElse(null);
         if (damageValue != null){
             Material material = FCInputReader.parseMaterial(split[0]);
             if (material == null){
