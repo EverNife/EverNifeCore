@@ -67,6 +67,13 @@ public class ConfigSection{
                 : this.path + "." + customKeyIndex;
     }
 
+    public ConfigSection getParentSection(){
+        if (this.path.isEmpty()){
+            return this;
+        }
+        return new ConfigSection(config, path.substring(0, Math.max(0, path.lastIndexOf("."))));
+    }
+
     // ------------------------------------------------------------------------------------------------------------------
     //      Comment System Functions
     // ------------------------------------------------------------------------------------------------------------------
