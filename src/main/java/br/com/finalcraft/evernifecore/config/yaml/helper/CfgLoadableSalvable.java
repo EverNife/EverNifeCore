@@ -18,6 +18,7 @@ import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -356,5 +357,16 @@ public class CfgLoadableSalvable {
                         }
                 )
         ;
+
+        addLoadableSalvable(FCReflectionUtil.getClass("java.util.LinkedHashMap$LinkedValues"))
+                .setOnConfigSave((section, linkedHashMap) -> {
+                    section.setValue("", new ArrayList<>((Collection) linkedHashMap));
+                });
+
+        addLoadableSalvable(Set.class)
+                .setOnConfigSave((section, set) -> {
+                    section.setValue("", new ArrayList<>(set));
+                })
+                .setAllowExtends(true);
     }
 }
