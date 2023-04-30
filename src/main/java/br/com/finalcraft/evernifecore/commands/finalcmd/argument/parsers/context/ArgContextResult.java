@@ -42,7 +42,7 @@ public class ArgContextResult {
 
     public <O> Optional<O> get(ArgContextExtractor<O> extractor) {
         String contextKey = contextKeyMap.get(extractor.getId());
-        if (contextKey == null) return null;
+        if (contextKey == null) return Optional.empty();
         return Optional.ofNullable(extractor.getExtractor().apply(contextKey));
     }
 
