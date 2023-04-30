@@ -38,6 +38,15 @@ public enum ArgRequirementType {
         return providedByContext;
     }
 
+    public static String stripBrackets(@NotNull String argument){
+        for (ArgRequirementType requirementType : values()) {
+            if (argument.startsWith(requirementType.getStart()) && argument.endsWith(requirementType.getEnd())) {
+                return argument.substring(requirementType.getStart().length(), argument.length() - requirementType.getEnd().length());
+            }
+        }
+        return argument;
+    }
+
     public static @Nullable ArgRequirementType getArgumentType(@NotNull String argument){
 
         if (argument.length() >= 2) {
