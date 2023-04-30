@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.gui.layout;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.cfg.SettingsScanner;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;

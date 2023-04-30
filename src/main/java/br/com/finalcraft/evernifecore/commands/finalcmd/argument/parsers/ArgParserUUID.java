@@ -4,6 +4,8 @@ import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.context.ArgContextExtractor;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.context.ArgContextResult;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
@@ -19,12 +21,17 @@ import java.util.stream.Collectors;
 
 public class ArgParserUUID extends ArgParser<UUID> {
 
+    //Context Field Extractors
+    private static final ArgContextExtractor<Boolean> CTX_ONLINE = ArgContextExtractor.of("online");
+
     private final boolean online;
 
     public ArgParserUUID(ArgInfo argInfo) {
         super(argInfo);
 
-        this.online = argInfo.getArgData().getContext().toLowerCase().contains("online");
+        ArgContextResult contextResult = ArgContextResult.parseFrom(argInfo.getArgData().getContext());
+
+        this.online = contextResult.get(CTX_ONLINE).orElse(false);
     }
 
     @Override
