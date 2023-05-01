@@ -21,6 +21,12 @@ public class ComparableItem implements Salvable {
 
     protected transient String localized_name;
 
+    public ComparableItem(Block block) {
+        this.itemStack = new ItemStack(block.getType(), 1, block.getData());
+        this.material = block.getType();
+        this.damageValue = (short) block.getData();
+    }
+
     public ComparableItem(ItemStack itemStack) {
         this.itemStack = itemStack;
         this.material = itemStack.getType();
