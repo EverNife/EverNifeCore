@@ -211,7 +211,16 @@ public class BlockPos implements Comparable<BlockPos> {
 
     @Override
     public String toString() {
+        return serialize();
+    }
+
+    public String serialize(){
         return this.x + "|" + this.y + "|" + this.z;
+    }
+
+    public static BlockPos deserialize(String string){
+        String[] split = string.split("\\|");
+        return at(Integer.parseInt(split[0]), Integer.parseInt(split[1]), Integer.parseInt(split[2]));
     }
 
 }

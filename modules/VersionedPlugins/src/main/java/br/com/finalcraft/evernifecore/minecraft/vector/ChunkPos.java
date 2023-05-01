@@ -83,7 +83,16 @@ public class ChunkPos {
 
     @Override
     public String toString() {
+        return serialize();
+    }
+
+    public String serialize(){
         return this.x + "|" + this.z;
+    }
+
+    public static ChunkPos deserialize(String serialized){
+        String[] split = serialized.split("\\|");
+        return new ChunkPos(Integer.parseInt(split[0]), Integer.parseInt(split[1]));
     }
 
 }

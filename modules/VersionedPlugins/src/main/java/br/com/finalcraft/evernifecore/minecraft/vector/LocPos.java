@@ -101,7 +101,16 @@ public class LocPos implements Comparable<LocPos> {
 
     @Override
     public String toString() {
+        return serialize();
+    }
+
+    public String serialize(){
         return this.x + "|" + this.y + "|" + this.z;
+    }
+
+    public static LocPos deserialize(String string){
+        String[] split = string.split("\\|");
+        return new LocPos(Double.parseDouble(split[0]), Double.parseDouble(split[1]), Double.parseDouble(split[2]));
     }
 
 }
