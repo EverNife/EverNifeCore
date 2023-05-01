@@ -156,6 +156,11 @@ public class ComparableItem implements Salvable {
     }
 
     @Override
+    public String toString() {
+        return serialize();
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o instanceof ComparableItem == false) return false;
