@@ -5,7 +5,6 @@ import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.listeners.PlayerLoginListener;
-import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -18,6 +17,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 public class PlayerController {
@@ -75,9 +76,10 @@ public class PlayerController {
 
         Queue<PlayerData> loadedPlayerData = new ConcurrentLinkedQueue<>();
 
+        ExecutorService executor = Executors.newFixedThreadPool(Math.min(10, Math.max(playerdataLoader.size(), 1)));
         CountDownLatch latch = new CountDownLatch(playerdataLoader.size());
         for (Supplier<PlayerData> supplier : playerdataLoader) {
-            FCScheduler.runAssync(() -> {
+            executor.submit(() -> {
                 PlayerData playerData = supplier.get();
                 if (playerData != null){ //Can be null when there is an error loading the PlayerData
                     loadedPlayerData.add(playerData);
@@ -91,6 +93,7 @@ public class PlayerController {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+        executor.shutdown();
 
         HashMap<UUID,PlayerData> uuidHashMap = new HashMap();
         HashMap<String, PlayerData> nameHashMap = new HashMap<>();
