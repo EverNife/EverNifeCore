@@ -17,6 +17,11 @@ public class ECLogger<DL extends IDebugModule> {
         this.plugin = plugin;
     }
 
+    public ECLogger(JavaPlugin plugin, DL[] debugModules) {
+        this.plugin = plugin;
+        getEcPluginData().defineDebugModules(debugModules);
+    }
+
     public ECPluginData getEcPluginData() {
         if (ecPluginData == null){
             ecPluginData = ECPluginManager.getOrCreateECorePluginData(plugin);

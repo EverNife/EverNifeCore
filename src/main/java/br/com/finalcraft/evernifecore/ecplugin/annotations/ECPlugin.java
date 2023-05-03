@@ -15,6 +15,7 @@ public @interface ECPlugin {
 
     String bstatsID() default "";
 
+    @Deprecated//TODO Remove on next Major Update, not necessary anymore
     Class<? extends IDebugModule> debugModuleEnum() default IDebugModule.class;
 
     //Method for the RELOAD method under an ECPlugin

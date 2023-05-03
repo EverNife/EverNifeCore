@@ -47,7 +47,7 @@ public class ECPluginData {
             if (!ecPlugin.debugModuleEnum().isEnum()){
                 plugin.getLogger().warning("Failed to read debugModuleEnum from @ECPlugin, " + ecPlugin.debugModuleEnum().getName() + "  is not an enum!");
             }else {
-                debugModules = ecPlugin.debugModuleEnum().getEnumConstants();
+                defineDebugModules(ecPlugin.debugModuleEnum().getEnumConstants());
             }
         }
 
@@ -76,6 +76,10 @@ public class ECPluginData {
 
         reloadAllCustomLocales();
         //this.plugin.getLogger().info("[FCLocale] Setting locale to [" + pluginLanguage +"]!");
+    }
+
+    public void defineDebugModules(IDebugModule[] debugModules) {
+        this.debugModules = debugModules;
     }
 
     public boolean isDebugEnabled(){
