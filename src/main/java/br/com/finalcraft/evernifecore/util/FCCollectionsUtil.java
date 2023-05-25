@@ -21,10 +21,10 @@ public class FCCollectionsUtil {
      * @example:
      *    // Input: ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"], 4
      *    // Output: [["a", "b", "c"], ["d", "e"], ["f", "g", "h"], ["i", "j"]]
-     *
+     * <p>
      *    // Input: ["a", "b"], 7
      *    // Output: [["a"], [], [], ["b"], [], [], []]
-     *
+     * <p>
      *    // Input: ["a", "b"], 8
      *    // Output: [["a"], [], [], [], ["b"], [], [], []]
      */
