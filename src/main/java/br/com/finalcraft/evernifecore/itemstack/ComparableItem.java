@@ -165,7 +165,7 @@ public class ComparableItem implements Salvable {
         if (this == o) return true;
         if (o instanceof ComparableItem == false) return false;
         ComparableItem that = (ComparableItem) o;
-        return this.getMaterial() == that.getMaterial() && Objects.equals(that.getDamageValue(), that.getDamageValue());
+        return this.getMaterial() == that.getMaterial() && Objects.equals(this.getDamageValue(), that.getDamageValue());
     }
 
     @Override
