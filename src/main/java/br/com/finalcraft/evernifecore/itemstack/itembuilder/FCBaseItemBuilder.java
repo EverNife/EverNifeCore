@@ -429,9 +429,20 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
             clone.setItemMeta(meta.clone());
             return clone;
         }else {
+//            System.out.println("FCItemBuilder Compound: " + nbtCompound.toString());
+//            System.out.println("FCItemBuilder Lore: " + Arrays.toString(this.meta.getLore() != null ? this.meta.getLore().toArray() : new String[0]));
+
             NBTItem cloneNBT = new NBTItem(this.itemStack);//NBTItem creates an internal clone
+//            System.out.println("NBTItem Identifier: " + FCItemUtils.getMinecraftIdentifier(cloneNBT.getItem()));
+
+//            cloneNBT.removeKey("display"); //Enforce the removal of the display key, so the 'this.meta' takes priority
+
             cloneNBT.getItem().setItemMeta(this.meta.clone());
             cloneNBT.mergeCompound(this.nbtCompound);
+//            System.out.println("NBTItem [AfterMerge] MetaLore: " + Arrays.toString(cloneNBT.getItem().getItemMeta().getLore() != null ? cloneNBT.getItem().getItemMeta().getLore().toArray() : new String[0]));
+//            System.out.println("NBTItem [AfterMerge] cloneNBT.toString(): " + cloneNBT.toString());
+//            System.out.println("NBTItem [AfterMerge] cloneNBT.getItem().getLore(): " + ("CloneNBT Meta Lore AFter Merge: " + Arrays.toString(cloneNBT.getItem().getItemMeta().getLore() != null ? cloneNBT.getItem().getItemMeta().getLore().toArray() : new String[0])));
+
             return cloneNBT.getItem();
         }
     }
