@@ -42,6 +42,10 @@ public interface INMSUtils {
 
 	public boolean isFakePlayer(Player player);
 
+	public default Entity asBukkitEntity(Object minecraftEntity){
+		throw new RuntimeException("Not implemented");
+	}
+
 	public Object asMinecraftEntity(Entity entity);
 
 	public ItemStack validateItemStackHandle(ItemStack itemStack); //This method makes sure the item has a valid handle
