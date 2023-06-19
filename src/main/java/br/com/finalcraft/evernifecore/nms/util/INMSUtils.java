@@ -42,9 +42,7 @@ public interface INMSUtils {
 
 	public boolean isFakePlayer(Player player);
 
-	public default Entity asBukkitEntity(Object minecraftEntity){
-		throw new RuntimeException("Not implemented");
-	}
+	public Entity asBukkitEntity(Object minecraftEntity);
 
 	public Object asMinecraftEntity(Entity entity);
 

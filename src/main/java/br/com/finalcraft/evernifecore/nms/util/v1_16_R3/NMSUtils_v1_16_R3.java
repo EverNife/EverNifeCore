@@ -154,6 +154,11 @@ public class NMSUtils_v1_16_R3 implements INMSUtils {
 	}
 
 	@Override
+	public Entity asBukkitEntity(Object minecraftEntity) {
+		return ((net.minecraft.server.v1_16_R3.Entity) minecraftEntity).getBukkitEntity();
+	}
+
+	@Override
 	public Object asMinecraftEntity(Entity entity) {
 		return ((CraftEntity) entity).getHandle();
 	}

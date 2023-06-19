@@ -173,6 +173,11 @@ public class NMSUtils_v1_12_R1 implements INMSUtils {
 	}
 
 	@Override
+	public Entity asBukkitEntity(Object minecraftEntity) {
+		return ((net.minecraft.server.v1_12_R1.Entity) minecraftEntity).getBukkitEntity();
+	}
+
+	@Override
 	public Object asMinecraftEntity(Entity entity) {
 		try {
 			CraftEntity craftEntity = (CraftEntity) entity;
