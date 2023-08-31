@@ -27,8 +27,15 @@ public class FCCollectionsUtil {
      * <p>
      *    // Input: ["a", "b"], 8
      *    // Output: [["a"], [], [], [], ["b"], [], [], []]
+     * <p>
+     *    // Input: ["a", "b"], 0
+     *    // Output: []
      */
     public static <T> List<List<T>> partitionEvenly(List<T> elements, int parts){
+        if (parts <= 0){
+            return new ArrayList<>();
+        }
+
         List<List<T>> result = new ArrayList<>(parts);
 
         if (parts == 1){
@@ -39,7 +46,7 @@ public class FCCollectionsUtil {
         int chunkSize = (int) Math.floor(elements.size() / (double) parts);
         int leftOver = (int) Math.floor(elements.size() % (double) parts);
 
-        int gap = parts / leftOver;
+        int gap = leftOver <= 0 ? 0 : parts / leftOver;
         int gapCount = gap;
         int gapNiddle = 0;
 
