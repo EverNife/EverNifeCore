@@ -6,6 +6,8 @@ import br.com.finalcraft.evernifecore.worldedit.clipboard.format.IFCClipboardFor
 import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
 import com.sk89q.worldedit.extent.clipboard.Clipboard;
 import com.sk89q.worldedit.extent.clipboard.io.BuiltInClipboardFormat;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardWriter;
+import com.sk89q.worldedit.util.io.Closer;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,8 +28,9 @@ public class IFCClipboardFormat_Schematic extends IFCClipboardFormat {
     }
 
     @Override
-    public void getWriterAndWrite(OutputStream outputStream, Clipboard clipboard) throws IOException {
-        BuiltInClipboardFormat.MCEDIT_SCHEMATIC.getWriter(outputStream).write(clipboard);
+    public void getWriterAndWrite(OutputStream outputStream, Clipboard clipboard, Closer closer) throws IOException {
+        ClipboardWriter writer = closer.register(BuiltInClipboardFormat.MCEDIT_SCHEMATIC.getWriter(outputStream));
+        writer.write(clipboard);
     }
 
     @Override

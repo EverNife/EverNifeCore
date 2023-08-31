@@ -8,7 +8,7 @@ import java.io.IOException;
 public class IFCClipboardManager {
 
     public final IFCClipboardFormat SCHEMATIC;
-    public @Nullable final IFCClipboardFormat SCHEM; //Only present on 1.13 and above
+    public final IFCClipboardFormat SCHEM; //Only present on 1.13 and above
 
     public IFCClipboardManager(IFCClipboardFormat SCHEMATIC, @Nullable IFCClipboardFormat SCHEM) {
         this.SCHEMATIC = SCHEMATIC;
@@ -16,6 +16,7 @@ public class IFCClipboardManager {
     }
 
     public @Nullable IFCClipboardFormat getFormat(File file) throws IOException {
+        if (file.getName().endsWith(".schematic")) return SCHEMATIC;//On 1.7.10 if the file does not exist, it returns null
         if (SCHEM != null && SCHEM.isFormat(file)) return SCHEM;
         if (SCHEMATIC.isFormat(file)) return SCHEMATIC;
         return null;

@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.compat.v1_7_R4.worldedit;
 
 import br.com.finalcraft.evernifecore.compat.v1_7_R4.worldedit.wrappers.clipboard.ImpFCBlockArrayClipboard;
 import br.com.finalcraft.evernifecore.compat.v1_7_R4.worldedit.wrappers.clipboard.format.IFCClipboardFormat_Schematic;
+import br.com.finalcraft.evernifecore.compat.v1_7_R4.worldedit.wrappers.operation.ImpIFCOperationManager;
 import br.com.finalcraft.evernifecore.compat.v1_7_R4.worldedit.wrappers.region.ImpIFCCuboidRegion;
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import br.com.finalcraft.evernifecore.worldedit.WEPlatform;
@@ -20,10 +21,11 @@ public class ImpWEPlatform extends WEPlatform {
 
     public ImpWEPlatform() {
         super(new IFCClipboardManager(
-                new IFCClipboardFormat_Schematic(),
-                null),
-                null);
-
+                        new IFCClipboardFormat_Schematic(),
+                        null
+                ),
+                new ImpIFCOperationManager()
+        );
     }
 
     @Override
