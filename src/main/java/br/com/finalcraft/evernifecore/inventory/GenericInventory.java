@@ -64,8 +64,16 @@ public class GenericInventory implements Salvable {
         return itemInSlot != null ? itemInSlot.getItemStack() : null;
     }
 
+    public void removeItem(int index){
+        items.remove(index);
+    }
+
     public void setItem(int index, ItemStack itemStack){
-        items.put(index, new ItemInSlot(index, itemStack));
+        if (itemStack == null){
+            removeItem(index);
+        }else {
+            items.put(index, new ItemInSlot(index, itemStack));
+        }
     }
 
     public void restoreTo(Inventory inventory){
