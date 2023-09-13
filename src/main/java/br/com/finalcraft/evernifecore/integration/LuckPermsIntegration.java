@@ -26,11 +26,7 @@ public class LuckPermsIntegration {
             return user;
         }
 
-        try {
-            return getApi().getUserManager().loadUser(uuid).get();
-        }catch (Exception e){
-            throw new RuntimeException(e);
-        }
+        return getApi().getUserManager().loadUser(uuid).join();
     }
 
     public static String getMetaValue(Player player, String name){
