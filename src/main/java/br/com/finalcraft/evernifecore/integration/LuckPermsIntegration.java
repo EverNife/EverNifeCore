@@ -8,6 +8,8 @@ import net.luckperms.api.node.types.MetaNode;
 import net.luckperms.api.query.QueryOptions;
 import org.bukkit.entity.Player;
 
+import java.util.UUID;
+
 public class LuckPermsIntegration {
 
     public static LuckPerms getApi() {
@@ -16,6 +18,19 @@ public class LuckPermsIntegration {
 
     public static User getUser(Player player){
         return LuckPermsProvider.get().getUserManager().getUser(player.getUniqueId());
+    }
+
+    public static User getOrLoadUser(UUID uuid){
+        User user = getApi().getUserManager().getUser(uuid);
+        if (user != null){
+            return user;
+        }
+
+        try {
+            return getApi().getUserManager().loadUser(uuid).get();
+        }catch (Exception e){
+            throw new RuntimeException(e);
+        }
     }
 
     public static String getMetaValue(Player player, String name){
