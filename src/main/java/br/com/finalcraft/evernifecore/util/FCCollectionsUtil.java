@@ -6,7 +6,7 @@ import java.util.List;
 
 public class FCCollectionsUtil {
 
-    private static <T> List<T> reversed(List<T> list){
+    public static <T> List<T> reversed(List<T> list){
         Collections.reverse(list);
         return list;
     }
