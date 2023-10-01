@@ -53,7 +53,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'org.spigotmc:spigot-api:1.19.2-R0.1-SNAPSHOT'
+    compileOnly 'org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT'
 
     implementation project(':modules:VersionedPlugins')
     implementation project(':modules:v1_7_10')
@@ -100,6 +100,7 @@ dependencies {
     compileOnly name: "craftbukkit1710" //Thats on you to find out
     compileOnly name: "craftbukkit1122" //Thats on you to find out
     compileOnly name: "craftbukkit1165" //Thats on you to find out
+    compileOnly name: "craftbukkit1201" //Thats on you to find out
     compileOnly group: 'commons-io', name: 'commons-io', version: '2.6' //Necessary for ReflectionUtils
 
 
@@ -120,6 +121,10 @@ dependencies {
     //Jabel (allows to use Java 17 features)
     annotationProcessor 'com.github.bsideup.jabel:jabel-javac-plugin:0.4.2'
     compileOnly 'com.github.bsideup.jabel:jabel-javac-plugin:0.4.2'
+
+    //Logging
+    implementation 'org.apache.logging.log4j:log4j-api:2.20.0'
+    implementation 'org.apache.logging.log4j:log4j-core:2.20.0'
 }
 
 configure([tasks.compileJava]) {

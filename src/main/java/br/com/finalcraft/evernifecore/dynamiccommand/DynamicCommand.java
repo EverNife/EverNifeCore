@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.dynamiccommand;
 
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 import org.bukkit.command.CommandSender;
 
 import java.util.UUID;
