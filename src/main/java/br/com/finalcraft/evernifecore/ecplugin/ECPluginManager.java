@@ -7,7 +7,6 @@ import br.com.finalcraft.evernifecore.api.events.reload.ECPluginReloadEvent;
 import br.com.finalcraft.evernifecore.sound.FCSound;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
-import net.minecraft.util.org.apache.commons.lang3.NotImplementedException;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
