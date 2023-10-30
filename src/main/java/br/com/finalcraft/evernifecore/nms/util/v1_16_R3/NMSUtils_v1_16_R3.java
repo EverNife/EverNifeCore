@@ -47,7 +47,7 @@ public class NMSUtils_v1_16_R3 implements INMSUtils {
 				tag_field.setAccessible(true);
 			}
 		}catch (Exception e){
-			throw new RuntimeException("Failed to check HandleField from CraftItemStack");
+			throw new RuntimeException("Failed to check NBTTagCompoundField from MCItemStack");
 		}
 	}
 
