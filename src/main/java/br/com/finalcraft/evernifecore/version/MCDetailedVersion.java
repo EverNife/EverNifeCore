@@ -36,6 +36,7 @@ public enum MCDetailedVersion {
     v1_19_R2(1192, "v1_19"),
     v1_19_R3(1193, "v1_19"),
     v1_20_R1(1201, "v1_20"),
+    v1_20_R2(1202, "v1_20"),
     ;
 
     private static final MCDetailedVersion currentVersion;
@@ -43,10 +44,22 @@ public enum MCDetailedVersion {
     static {
         String[] svPackage = Bukkit.getServer().getClass().getPackage().getName().split("\\.");
         String svPackageVersionName = svPackage[svPackage.length - 1];
-        currentVersion = Arrays.stream(MCDetailedVersion.values())
-                .filter(mcDetailedVersion -> mcDetailedVersion.name().equalsIgnoreCase(svPackageVersionName))
+
+        MCDetailedVersion mcDetailedVersion = Arrays.stream(MCDetailedVersion.values())
+                .filter(version -> version.name().equalsIgnoreCase(svPackageVersionName))
                 .findFirst()
-                .orElse(MCDetailedVersion.v1_19_R3); //Assume it's a newer version!
+                .orElse(null);
+
+        if (mcDetailedVersion == null){
+            mcDetailedVersion = Arrays.asList(MCDetailedVersion.values()).get(MCDetailedVersion.values().length - 1); //Assume it's a newer version!
+            System.out.println(String.format(
+                    "[EverNifeCore] Failed to find out what is the MCVersion of this server when looking for the package name '%s'. Defaulting it to latest known MCVersion: (%s)",
+                    svPackageVersionName,
+                    mcDetailedVersion
+            ));
+        }
+
+        currentVersion = mcDetailedVersion;
     }
 
     // Operations
