@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.nms.util.v1_20_R1;
+package br.com.finalcraft.evernifecore.nms.util.v1_20_R2;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.nms.util.INMSUtils;
@@ -12,24 +12,24 @@ import net.minecraft.server.level.EntityPlayer;
 import net.minecraft.world.entity.EnumItemSlot;
 import net.minecraft.world.item.*;
 import org.apache.commons.lang3.Validate;
-import org.bukkit.craftbukkit.v1_20_R1.entity.CraftEntity;
-import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer;
-import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
-import org.bukkit.craftbukkit.v1_20_R1.util.CraftMagicNumbers;
+import org.bukkit.craftbukkit.v1_20_R2.entity.CraftEntity;
+import org.bukkit.craftbukkit.v1_20_R2.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_20_R2.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_20_R2.util.CraftMagicNumbers;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.Field;
 
-public class NMSUtils_v1_20_R1 implements INMSUtils {
+public class NMSUtils_v1_20_R2 implements INMSUtils {
 
-	public static NMSUtils_v1_20_R1 instance;
+	public static NMSUtils_v1_20_R2 instance;
 
 	private Class fakePlayerClass = null; 	// net.minecraftforge.common.util.FakePlayer
 	private Field handle_field = null; 		// CraftItemStack.handle
 	private Field tag_field = null; 		// ItemStack.tag
 
-	public NMSUtils_v1_20_R1() {
+	public NMSUtils_v1_20_R2() {
 		instance = this;
 		try {
 			if (ServerType.isModdedServer()){
@@ -50,11 +50,11 @@ public class NMSUtils_v1_20_R1 implements INMSUtils {
 
 		try {
 			if (tag_field == null){
-				tag_field = ItemStack.class.getDeclaredField("tag");
+				tag_field = ItemStack.class.getDeclaredField("v");
 				tag_field.setAccessible(true);
 			}
 		}catch (Exception e){
-			throw new RuntimeException("Failed to check HandleField from CraftItemStack");
+			throw new RuntimeException("Failed to check NBTTagCompoundField from MCItemStack");
 		}
 	}
 
