@@ -79,7 +79,7 @@ public class MultiArgumentos {
                                 flagIndexes.add(j);
                                 String arg = stringArgs.get(j);
                                 stringBuilder.append(" ");
-                                if (arg.charAt(arg.length() - 1) == QUOTE_AT_START){
+                                if (arg.length() > 0 && arg.charAt(arg.length() - 1) == QUOTE_AT_START){
                                     //Remove suffix   '   from the flag value
                                     stringBuilder.append(StringUtils.substring(arg, 0, -1));
                                     foundLastQuote = true;
