@@ -22,6 +22,7 @@ import br.com.finalcraft.evernifecore.pageviwer.PageVizualization;
 import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
+import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -47,6 +48,7 @@ public class FinalCMDManager {
         ArgParserManager.addGlobalParser(Integer.class, ArgParserNumber.class);
         ArgParserManager.addGlobalParser(Float.class, ArgParserNumber.class);
         ArgParserManager.addGlobalParser(Double.class, ArgParserNumber.class);
+        ArgParserManager.addGlobalParser(NumberWrapper.class, ArgParserNumberWrapper.class);
         ArgParserManager.addGlobalParser(Player.class, ArgParserPlayer.class);
         ArgParserManager.addGlobalParser(IPlayerData.class, ArgParserIPlayerData.class);
         ArgParserManager.addGlobalParser(Boolean.class, ArgParserBoolean.class);
