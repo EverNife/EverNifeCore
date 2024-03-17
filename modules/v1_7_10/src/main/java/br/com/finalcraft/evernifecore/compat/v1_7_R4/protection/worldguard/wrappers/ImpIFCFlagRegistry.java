@@ -15,35 +15,47 @@ import java.util.List;
 
 public class ImpIFCFlagRegistry implements IFCFlagRegistry {
 
+    private static boolean modifiedWorldguard = false;
     private static Field flagsListField = null;
 
     public ImpIFCFlagRegistry() {
         try {
-            flagsListField = DefaultFlag.class.getDeclaredField("flagsList");
-            flagsListField.setAccessible(true);
-
-            Field modifiersField = Field.class.getDeclaredField("modifiers");
-            modifiersField.setAccessible(true);
-            modifiersField.setInt(flagsListField, flagsListField.getModifiers() & ~Modifier.FINAL);
+           DefaultFlag.class.getDeclaredMethod("addFlag", Flag.class);
+            modifiedWorldguard = true;
         }catch (Exception e){
-            e.printStackTrace();
-        }
 
+        }
+        if (modifiedWorldguard == false){
+            try {
+                flagsListField = DefaultFlag.class.getDeclaredField("flagsList");
+                flagsListField.setAccessible(true);
+
+                Field modifiersField = Field.class.getDeclaredField("modifiers");
+                modifiersField.setAccessible(true);
+                modifiersField.setInt(flagsListField, flagsListField.getModifiers() & ~Modifier.FINAL);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override
     public void register(Flag<?> flag) {
-        try {
-            //Create a copy of old array and increase its size by one
-            Flag<?>[] oldFlagsArray = (Flag<?>[]) flagsListField.get(null);
-            Flag<?>[] theNewFlagsArray = Arrays.copyOf(oldFlagsArray, oldFlagsArray.length + 1);
-            //Add the new flag at the end of the new array
-            theNewFlagsArray[theNewFlagsArray.length - 1] = flag;
+        if (modifiedWorldguard){
+            DefaultFlag.addFlag(flag);
+        }else {
+            try {
+                //Create a copy of old array and increase its size by one
+                Flag<?>[] oldFlagsArray = (Flag<?>[]) flagsListField.get(null);
+                Flag<?>[] theNewFlagsArray = Arrays.copyOf(oldFlagsArray, oldFlagsArray.length + 1);
+                //Add the new flag at the end of the new array
+                theNewFlagsArray[theNewFlagsArray.length - 1] = flag;
 
-            //Reset the final field of DefautlFlags.flags
-            flagsListField.set(null,theNewFlagsArray);
-        }catch (Exception e){
-            throw new RuntimeException(e);
+                //Reset the final field of DefautlFlags.flags
+                flagsListField.set(null,theNewFlagsArray);
+            }catch (Exception e){
+                throw new RuntimeException(e);
+            }
         }
     }
 
