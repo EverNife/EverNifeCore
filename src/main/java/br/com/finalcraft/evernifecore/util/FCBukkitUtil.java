@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.util;
 
-import br.com.finalcraft.everforgelib.util.StatisticUtil;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
@@ -280,21 +279,6 @@ public class FCBukkitUtil {
             }
         }
         return false;
-    }
-
-    /**
-     * @param player      O nome do jogador a ser verificado
-     * @param statisticID O id da estatistica a ser verificada
-     */
-    public static int forgeGetStat(Player player, String statisticID) {
-        return StatisticUtil.getStatistic(player.getName(), statisticID);
-    }
-
-    /**
-     * @param player O nome do jogador a ser verificado
-     */
-    public static Map<String, Integer> forgeGetAllStats(Player player) {
-        return StatisticUtil.getAllStatistics(player.getName());
     }
 
     public static boolean removePlayersHeldItem(Player player, int amountToRemove) {
