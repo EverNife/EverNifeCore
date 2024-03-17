@@ -175,8 +175,10 @@ public class PlayerLoginListener implements ECListener {
             public void run() {
                 if (player.isOnline()){
                     PlayerData playerData = PlayerController.getPlayerData(player);
-                    ECFullyLoggedInEvent event = new ECFullyLoggedInEvent(playerData, authMeLogin);
-                    Bukkit.getPluginManager().callEvent(event);
+                    if (playerData != null){
+                        ECFullyLoggedInEvent event = new ECFullyLoggedInEvent(playerData, authMeLogin);
+                        Bukkit.getPluginManager().callEvent(event);
+                    }
                 }
             }
         }.runTaskLater(EverNifeCore.instance, 1);
