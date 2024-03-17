@@ -22,7 +22,7 @@ public class ImpWGPlatform extends WGPlatform {
     private final ImpIFCFlagRegistry ifcFlagRegistry = new ImpIFCFlagRegistry();
 
     @Override
-    protected FCWorldGuardRegion createFCWorldGuardRegion(String id, BlockPos pt1, BlockPos pt2) {
+    public FCWorldGuardRegion createFCWorldGuardRegion(String id, BlockPos pt1, BlockPos pt2) {
         return new ImpWorldGuardRegion(null,
                 new ProtectedCuboidRegion(
                         id,
@@ -33,7 +33,7 @@ public class ImpWGPlatform extends WGPlatform {
     }
 
     @Override
-    protected FCWorldGuardRegion createFCWorldGuardRegion(String id, boolean isTransient, BlockPos pt1, BlockPos pt2) {
+    public FCWorldGuardRegion createFCWorldGuardRegion(String id, boolean isTransient, BlockPos pt1, BlockPos pt2) {
         return new ImpWorldGuardRegion(null,
                 new ProtectedCuboidRegion(
                         id,
