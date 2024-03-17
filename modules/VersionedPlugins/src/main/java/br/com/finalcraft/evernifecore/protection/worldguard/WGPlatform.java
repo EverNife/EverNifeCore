@@ -56,9 +56,9 @@ public abstract class WGPlatform {
 
     public abstract FCWorldGuardRegion wrapRegion(@NotNull World world, ProtectedRegion protectedRegion);
 
-    public abstract FCWorldGuardRegion createFCWorldGuardRegion(String id, BlockPos pt1, BlockPos pt2);
+    protected abstract FCWorldGuardRegion createFCWorldGuardRegion(String id, BlockPos pt1, BlockPos pt2);
 
-    public abstract FCWorldGuardRegion createFCWorldGuardRegion(String id, boolean isTransient, BlockPos pt1, BlockPos pt2);
+    protected abstract FCWorldGuardRegion createFCWorldGuardRegion(String id, boolean isTransient, BlockPos pt1, BlockPos pt2);
 
     public LocalPlayer wrapPlayer(@NotNull OfflinePlayer player){
         if (player.isOnline()){

@@ -22,7 +22,7 @@ public class ImpWGPlatform extends WGPlatform {
     private final ImpIFCFlagRegistry ifcFlagRegistry = new ImpIFCFlagRegistry();
 
     @Override
-    public FCWorldGuardRegion createFCWorldGuardRegion(String id, BlockPos pt1, BlockPos pt2) {
+    protected FCWorldGuardRegion createFCWorldGuardRegion(String id, BlockPos pt1, BlockPos pt2) {
         return new ImpWorldGuardRegion(null,
                 new ProtectedCuboidRegion(
                         id,
@@ -33,11 +33,11 @@ public class ImpWGPlatform extends WGPlatform {
     }
 
     @Override
-    public FCWorldGuardRegion createFCWorldGuardRegion(String id, boolean isTransient, BlockPos pt1, BlockPos pt2) {
+    protected FCWorldGuardRegion createFCWorldGuardRegion(String id, boolean isTransient, BlockPos pt1, BlockPos pt2) {
         return new ImpWorldGuardRegion(null,
                 new ProtectedCuboidRegion(
                         id,
-                        //isTransient, //There is no such thing of 'transient' on 1.7.10
+                        //isTransient, //There is no such thing as transiant on 1.7.10
                         new BlockVector(pt1.getX(), pt1.getY(), pt1.getZ()),
                         new BlockVector(pt2.getX(), pt2.getY(), pt2.getZ()
                         )
