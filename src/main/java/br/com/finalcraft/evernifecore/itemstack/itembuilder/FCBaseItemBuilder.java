@@ -1,8 +1,10 @@
 package br.com.finalcraft.evernifecore.itemstack.itembuilder;
 
 import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
+import br.com.finalcraft.evernifecore.itemstack.nbtutil.TrackedNBTContainer;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
+import br.com.finalcraft.evernifecore.util.FCItemUtils;
 import br.com.finalcraft.evernifecore.util.FCNBTUtil;
 import br.com.finalcraft.evernifecore.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.version.MCVersion;
@@ -436,6 +438,13 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
 //            System.out.println("NBTItem Identifier: " + FCItemUtils.getMinecraftIdentifier(cloneNBT.getItem()));
 
 //            cloneNBT.removeKey("display"); //Enforce the removal of the display key, so the 'this.meta' takes priority
+
+            if (this.nbtCompound instanceof TrackedNBTContainer){
+                //Before Merging, remove all the keys that were removed from the original NBT manully
+                ((TrackedNBTContainer) this.nbtCompound).getRemovedTags().forEach(removedKey -> {
+                    cloneNBT.removeKey(removedKey);
+                });
+            }
 
             cloneNBT.getItem().setItemMeta(this.meta.clone());
             cloneNBT.mergeCompound(this.nbtCompound);

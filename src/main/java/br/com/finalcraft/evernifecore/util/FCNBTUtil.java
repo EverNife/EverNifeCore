@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.util;
 
+import br.com.finalcraft.evernifecore.itemstack.nbtutil.TrackedNBTContainer;
 import br.com.finalcraft.evernifecore.nbt.NBTPlayer;
 import de.tr7zw.changeme.nbtapi.*;
 import org.bukkit.Chunk;
@@ -20,7 +21,7 @@ public class FCNBTUtil {
     }
 
     public static @NotNull NBTContainer getFrom(String nbt){
-        return new NBTContainer(nbt);
+        return new TrackedNBTContainer(nbt);
     }
 
     public static @NotNull NBTPlayer getFrom(Player player){
