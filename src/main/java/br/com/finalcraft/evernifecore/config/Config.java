@@ -46,6 +46,8 @@ public class Config {
     // ------------------------------------------------------------------------------------------------------------------
 
     private void loadWithComments(){
+        yamlFile.setCommentFormat(YamlCommentFormat.PRETTY);
+
         yamlFile.options().quoteStyleDefaults().setDefaultQuoteStyle(QuoteStyle.PLAIN);
         yamlFile.options().quoteStyleDefaults().setQuoteStyle(List.class, QuoteStyle.DOUBLE);
         yamlFile.options().quoteStyleDefaults().setQuoteStyle(String.class, QuoteStyle.DOUBLE);
@@ -112,8 +114,6 @@ public class Config {
 
         this.yamlFile = new YamlFile(targetFile);
         this.lastModified = targetFile.lastModified();
-
-        yamlFile.setCommentFormat(YamlCommentFormat.PRETTY);
 
         this.loadWithComments(); //Do file Loading if exists
 
