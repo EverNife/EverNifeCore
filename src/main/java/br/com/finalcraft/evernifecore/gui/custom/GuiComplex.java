@@ -59,11 +59,11 @@ public class GuiComplex extends Gui {
 
     protected void onGuiUpdate(Player player){
         if (onGuiUpdate != null){
-            counter = counter + ECSettings.DEFAULT_GUI_UPDATE_TIME;
-            if (counter >= updateInterval){
-                counter = 0;
+//            counter = counter + ECSettings.DEFAULT_GUI_UPDATE_TIME;
+//            if (counter >= updateInterval){
+//                counter = 0;
                 onGuiUpdate.accept(player, this); //Update this Gui
-            }
+//            }
         }
 
         HashSet<GuiItemComplex> checked = new HashSet<>();
