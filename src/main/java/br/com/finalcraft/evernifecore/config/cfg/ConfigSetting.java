@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.config.cfg;
 
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -11,8 +14,10 @@ public @interface ConfigSetting {
 
     String key(); //YML key for the object
 
-    String comment() default ""; //Simple comment for this key
+    FCLocale[] comment() default {}; //Locale comment for this key
 
-    String context() default "";
+    String context() default ""; //Context used for the argParser, like ArgParser limts:  Ex  Number '[0-100]'
+
+    Class<? extends ArgParser> parser() default ArgParser.class;
 
 }
