@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.gui;
 
 import br.com.finalcraft.evernifecore.gui.builders.ComplexGuiBuilder;
+import br.com.finalcraft.evernifecore.gui.builders.PaginatedComplexGuiBuilder;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import dev.triumphteam.gui.builder.gui.BaseGuiBuilder;
 import dev.triumphteam.gui.builder.gui.PaginatedBuilder;
@@ -27,11 +28,16 @@ public class FCGuiFactory {
         return new PaginatedBuilder();
     }
 
+    public static PaginatedBuilder paginatedComplex(){
+        return new PaginatedBuilder();
+    }
+
     public static <B extends BaseGuiBuilder> B from(Class<B> classBuilder){
         if (classBuilder == SimpleBuilder.class) return (B) simple();
         if (classBuilder == ComplexGuiBuilder.class) return (B) complex();
         if (classBuilder == StorageBuilder.class) return (B) storage();
         if (classBuilder == PaginatedBuilder.class) return (B) paginated();
+        if (classBuilder == PaginatedComplexGuiBuilder.class) return (B) paginatedComplex();
 
         return FCReflectionUtil.getConstructor(classBuilder).invoke();
     }
