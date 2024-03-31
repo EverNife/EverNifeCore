@@ -120,6 +120,22 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
     }
 
     /**
+     * Sets the material of the item. It acually
+     * creates a new ItemStack with that material, then
+     * copy every single entry of the previous MetaData
+     * to the new MetaData. There is no change to the
+     * builders NBTTagCompound!
+     *
+     * @param itemStack The itemStack.
+     *
+     * @return The FCItemBuilder object
+     */
+    @NotNull
+    public B material(@NotNull ItemStack itemStack) {
+        return this.changeItemStack(FCItemFactory.from(itemStack).build());
+    }
+
+    /**
      * Sets the durability of the item.
      *
      * @param durability The durability of the item.
