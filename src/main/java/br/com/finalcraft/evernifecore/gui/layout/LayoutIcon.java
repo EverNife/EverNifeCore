@@ -19,6 +19,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
+/**
+ * You can edit the LayoutIcon when inside {@link LayoutBase}
+ * with the usafe of {@link LayoutIconData}
+ */
 @Data
 public class LayoutIcon {
 
