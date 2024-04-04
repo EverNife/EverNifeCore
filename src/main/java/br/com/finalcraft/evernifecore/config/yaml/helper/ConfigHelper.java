@@ -2,6 +2,10 @@ package br.com.finalcraft.evernifecore.config.yaml.helper;
 
 import br.com.finalcraft.evernifecore.config.Config;
 import org.bukkit.plugin.Plugin;
+import org.simpleyaml.configuration.comments.format.YamlCommentFormat;
+import org.simpleyaml.configuration.file.YamlFile;
+import org.simpleyaml.configuration.implementation.SimpleYamlImplementation;
+import org.simpleyaml.configuration.implementation.api.QuoteStyle;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,6 +17,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ConfigHelper {
+
+    private static final SimpleYamlImplementation simpleYamlImplementation = new SimpleYamlImplementation();
+    public static YamlFile createYamlFile(File file){
+        YamlFile yamlFile = new YamlFile(simpleYamlImplementation);
+        yamlFile.setConfigurationFile(file);
+
+        yamlFile.setCommentFormat(YamlCommentFormat.PRETTY);
+
+        yamlFile.options().quoteStyleDefaults().setDefaultQuoteStyle(QuoteStyle.PLAIN);
+        yamlFile.options().quoteStyleDefaults().setQuoteStyle(List.class, QuoteStyle.DOUBLE);
+        yamlFile.options().quoteStyleDefaults().setQuoteStyle(String.class, QuoteStyle.DOUBLE);
+
+        simpleYamlImplementation.getDumperOptions().setSplitLines(false);
+
+        return yamlFile;
+    }
 
     /**
      * It returns a list of all the configs in a directory

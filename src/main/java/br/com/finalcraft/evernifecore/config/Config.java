@@ -16,10 +16,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simpleyaml.configuration.ConfigurationSection;
 import org.simpleyaml.configuration.comments.CommentType;
-import org.simpleyaml.configuration.comments.format.YamlCommentFormat;
 import org.simpleyaml.configuration.file.YamlConfigurationOptions;
 import org.simpleyaml.configuration.file.YamlFile;
-import org.simpleyaml.configuration.implementation.api.QuoteStyle;
 import org.simpleyaml.configuration.implementation.snakeyaml.SnakeYamlImplementation;
 import org.simpleyaml.exceptions.InvalidConfigurationException;
 
@@ -46,12 +44,6 @@ public class Config {
     // ------------------------------------------------------------------------------------------------------------------
 
     private void loadWithComments(){
-        yamlFile.setCommentFormat(YamlCommentFormat.PRETTY);
-
-        yamlFile.options().quoteStyleDefaults().setDefaultQuoteStyle(QuoteStyle.PLAIN);
-        yamlFile.options().quoteStyleDefaults().setQuoteStyle(List.class, QuoteStyle.DOUBLE);
-        yamlFile.options().quoteStyleDefaults().setQuoteStyle(String.class, QuoteStyle.DOUBLE);
-
         final SnakeYamlImplementation implementation = (SnakeYamlImplementation) yamlFile.getImplementation();
         implementation.getDumperOptions().setSplitLines(false);
 
@@ -88,7 +80,7 @@ public class Config {
     }
 
     public Config(File theFile) {
-        this(new YamlFile(theFile));
+        this(ConfigHelper.createYamlFile(theFile));
     }
 
     @Deprecated
