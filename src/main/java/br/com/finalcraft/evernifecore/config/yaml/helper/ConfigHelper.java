@@ -18,8 +18,10 @@ import java.util.List;
 
 public class ConfigHelper {
 
-    private static final SimpleYamlImplementation simpleYamlImplementation = new SimpleYamlImplementation();
+//    private static final SimpleYamlImplementation simpleYamlImplementation = new SimpleYamlImplementation();
     public static YamlFile createYamlFile(File file){
+        SimpleYamlImplementation simpleYamlImplementation = new SimpleYamlImplementation();
+
         YamlFile yamlFile = new YamlFile(simpleYamlImplementation);
         yamlFile.setConfigurationFile(file);
 
@@ -30,6 +32,8 @@ public class ConfigHelper {
         yamlFile.options().quoteStyleDefaults().setQuoteStyle(String.class, QuoteStyle.DOUBLE);
 
         simpleYamlImplementation.getDumperOptions().setSplitLines(false);
+        simpleYamlImplementation.getDumperOptions().setProcessComments(true);
+        simpleYamlImplementation.getLoaderOptions().setProcessComments(true);
 
         return yamlFile;
     }

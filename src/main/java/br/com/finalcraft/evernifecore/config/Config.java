@@ -44,9 +44,6 @@ public class Config {
     // ------------------------------------------------------------------------------------------------------------------
 
     private void loadWithComments(){
-        final SnakeYamlImplementation implementation = (SnakeYamlImplementation) yamlFile.getImplementation();
-        implementation.getDumperOptions().setSplitLines(false);
-
         if (getTheFile().exists()){
             try {
                 this.yamlFile.loadWithComments();
@@ -104,7 +101,7 @@ public class Config {
             }
         }
 
-        this.yamlFile = new YamlFile(targetFile);
+        this.yamlFile = ConfigHelper.createYamlFile(targetFile);
         this.lastModified = targetFile.lastModified();
 
         this.loadWithComments(); //Do file Loading if exists
