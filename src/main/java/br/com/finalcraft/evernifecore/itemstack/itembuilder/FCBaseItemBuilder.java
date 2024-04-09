@@ -426,12 +426,16 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
     /**
      * Set the {@link NBTCompound} of the item
      *
+     * It will not actually change the nbt, it will
+     * clear the current and merge the new one!
+     *
      * @param nbtCompound The {@link NBTCompound}
      * @return {@link ItemBuilder}
      */
     @NotNull
     public B setNbt(@NotNull final NBTCompound nbtCompound) {
-        this.nbtCompound = nbtCompound;
+        this.nbtCompound.clearNBT();
+        this.nbtCompound.mergeCompound(nbtCompound);
         return (B) this;
     }
 
