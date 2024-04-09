@@ -20,6 +20,7 @@ public class DefaultIcons {
                 .from(Material.REDSTONE)
                 .applyIf(() -> MCVersion.isHigherEquals(MCVersion.v1_12), builder -> builder.material(Material.SPECTRAL_ARROW))
                 .applyIf(() -> FCInputReader.parseMaterial("EVERPOKEUTILS_BACK") != null, fcItemBuilder -> fcItemBuilder.material("EVERPOKEUTILS_BACK"))
+                .applyIf(() -> FCInputReader.parseMaterial("EVERNIFEWORLDRPG_CUSTOMICON") != null, fcItemBuilder -> fcItemBuilder.material("EVERNIFEWORLDRPG_CUSTOMICON").durability(1))
                 .displayName(PREVIOUS_PAGE.getDefaultFancyText().getText())
                 .lore(PREVIOUS_PAGE.getDefaultFancyText().getHoverText())
                 .asLayout();
@@ -34,6 +35,7 @@ public class DefaultIcons {
                 .from(Material.REDSTONE)
                 .applyIf(() -> MCVersion.isHigherEquals(MCVersion.v1_16), builder -> builder.material(Material.SPECTRAL_ARROW))
                 .applyIf(() -> FCInputReader.parseMaterial("EVERPOKEUTILS_FORWARD") != null, fcItemBuilder -> fcItemBuilder.material("EVERPOKEUTILS_FORWARD"))
+                .applyIf(() -> FCInputReader.parseMaterial("EVERNIFEWORLDRPG_CUSTOMICON") != null, fcItemBuilder -> fcItemBuilder.material("EVERNIFEWORLDRPG_CUSTOMICON").durability(2))
                 .displayName(NEXT_PAGE.getDefaultFancyText().getText())
                 .lore(NEXT_PAGE.getDefaultFancyText().getHoverText())
                 .asLayout();
@@ -48,6 +50,7 @@ public class DefaultIcons {
                 .from(Material.REDSTONE)
                 .applyIf(() -> MCVersion.isHigherEquals(MCVersion.v1_16), builder -> builder.material(Material.SPECTRAL_ARROW))
                 .applyIf(() -> FCInputReader.parseMaterial("EVERPOKEUTILS_BACK") != null, fcItemBuilder -> fcItemBuilder.material("EVERPOKEUTILS_BACK"))
+                .applyIf(() -> FCInputReader.parseMaterial("EVERNIFEWORLDRPG_CUSTOMICON") != null, fcItemBuilder -> fcItemBuilder.material("EVERNIFEWORLDRPG_CUSTOMICON").durability(1))
                 .displayName(BACK_BUTTON.getDefaultFancyText().getText())
                 .lore(BACK_BUTTON.getDefaultFancyText().getHoverText())
                 .asLayout();
@@ -71,6 +74,8 @@ public class DefaultIcons {
         return EnumWool.LIME
                 .asFactory()
                 .applyIf(() -> FCInputReader.parseMaterial("EVERPOKEUTILS_POSITIVO") != null, fcItemBuilder -> fcItemBuilder.material("EVERPOKEUTILS_POSITIVO"))
+                .applyIf(() -> FCInputReader.parseMaterial("EVERNIFEWORLDRPG_CUSTOMICON") != null, fcItemBuilder -> fcItemBuilder.material("EVERNIFEWORLDRPG_CUSTOMICON:13"))
+                .applyIf(() -> FCInputReader.parseMaterial("EVERNIFEWORLDRPG_CUSTOMICON") != null, fcItemBuilder -> fcItemBuilder.material("EVERNIFEWORLDRPG_CUSTOMICON").durability(13))
                 .displayName(CONFIRM_BUTTON.getDefaultFancyText().getText())
                 .lore(CONFIRM_BUTTON.getDefaultFancyText().getHoverText())
                 .asLayout();
@@ -94,6 +99,7 @@ public class DefaultIcons {
         return EnumWool.RED
                 .asFactory()
                 .applyIf(() -> FCInputReader.parseMaterial("EVERPOKEUTILS_NEGATIVO") != null, fcItemBuilder -> fcItemBuilder.material("EVERPOKEUTILS_NEGATIVO"))
+                .applyIf(() -> FCInputReader.parseMaterial("EVERNIFEWORLDRPG_CUSTOMICON") != null, fcItemBuilder -> fcItemBuilder.material("EVERNIFEWORLDRPG_CUSTOMICON").durability(12))
                 .displayName(DENY_BUTTON.getDefaultFancyText().getText())
                 .lore(DENY_BUTTON.getDefaultFancyText().getHoverText())
                 .asLayout();
@@ -116,6 +122,7 @@ public class DefaultIcons {
     public static LayoutIcon getInformationButton() {
         return FCItemFactory.from(Material.PAPER)
                 .applyIf(() -> FCInputReader.parseMaterial("EVERPOKEUTILS_CARTAZ") != null, fcItemBuilder -> fcItemBuilder.material("EVERPOKEUTILS_CARTAZ"))
+                .applyIf(() -> FCInputReader.parseMaterial("EVERNIFEWORLDRPG_CUSTOMICON") != null, fcItemBuilder -> fcItemBuilder.material("EVERNIFEWORLDRPG_CUSTOMICON").durability(20))
                 .displayName(INFORMATION_BUTTON.getDefaultFancyText().getText())
                 .lore(INFORMATION_BUTTON.getDefaultFancyText().getHoverText())
                 .asLayout();
