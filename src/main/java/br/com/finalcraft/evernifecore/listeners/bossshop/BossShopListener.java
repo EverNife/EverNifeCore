@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.listeners.bossshop;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.integration.BossShopIntegration;
 import br.com.finalcraft.evernifecore.integration.bossshop.customizer.ECItemStackTranslator;
-import br.com.finalcraft.evernifecore.integration.bossshop.datapart.ItemDataPartNBT;
+import br.com.finalcraft.evernifecore.integration.bossshop.datapart.BSItemDataPartNBT;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.reflection.FieldAccessor;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 
 public class BossShopListener implements ECListener {
 
-    private final ItemDataPartNBT DATAPART_NBT = new ItemDataPartNBT();
+    private final BSItemDataPartNBT DATAPART_NBT = new BSItemDataPartNBT();
     private ECItemStackTranslator EC_ITEM_STACK_TRANSLATOR = new ECItemStackTranslator();
 
     @EventHandler

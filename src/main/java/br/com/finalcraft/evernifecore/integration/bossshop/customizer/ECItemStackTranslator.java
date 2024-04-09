@@ -1,9 +1,15 @@
 package br.com.finalcraft.evernifecore.integration.bossshop.customizer;
 
+import br.com.finalcraft.evernifecore.integration.bossshop.datapart.BSItemDataPartNBT;
 import br.com.finalcraft.evernifecore.integration.bossshop.shops.IECShop;
+import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
+import br.com.finalcraft.evernifecore.util.FCNBTUtil;
+import de.tr7zw.changeme.nbtapi.NBTContainer;
+import de.tr7zw.changeme.nbtapi.NBTItem;
 import org.black_ixx.bossshop.core.BSBuy;
 import org.black_ixx.bossshop.core.BSShop;
 import org.black_ixx.bossshop.core.BSShopHolder;
+import org.black_ixx.bossshop.managers.ClassManager;
 import org.black_ixx.bossshop.managers.item.ItemStackTranslator;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -13,6 +19,20 @@ public class ECItemStackTranslator extends ItemStackTranslator {
     @Override
     public ItemStack translateItemStack(BSBuy buy, BSShop shop, BSShopHolder holder, ItemStack item, Player target, boolean final_version) {
         ItemStack itemStack = super.translateItemStack(buy, shop, holder, item, target, final_version); //Do Default Tranlation
+
+        NBTItem itemNBT = FCNBTUtil.getFrom(itemStack);
+
+        if (!itemNBT.isEmpty() && itemNBT.hasTag(BSItemDataPartNBT.NBT_TAG)){
+            String nbtString = itemNBT.getString(BSItemDataPartNBT.NBT_TAG);
+            String parsedNbtString = ClassManager.manager.getStringManager().transform(nbtString, buy, shop, holder, target);
+            NBTContainer nbtContent = FCNBTUtil.getFrom(parsedNbtString);
+
+            itemStack = FCItemFactory.from(itemStack)
+                    .setNbt(nbtCompound -> {
+                        nbtCompound.removeKey(BSItemDataPartNBT.NBT_TAG);
+                        nbtCompound.mergeCompound(nbtContent);
+                    }).build();
+        }
 
         if (shop instanceof IECShop){ //IF ECshop, fire last customization!
             itemStack = ((IECShop) shop).finalizeTranslateItemStack(buy, shop, holder, item, target, final_version);
