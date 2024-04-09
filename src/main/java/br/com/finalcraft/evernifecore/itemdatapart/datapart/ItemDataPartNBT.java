@@ -31,7 +31,7 @@ public class ItemDataPartNBT extends ItemDataPart {
             }
 
             throw new RuntimeException(String.format(
-                    "[EverNifeCore] Failed to transform NBT data for the item: %s" +
+                    "[EverNifeCore] Failed to transform NBT data for the item" +
                             "\n  - itemIdentifier: %s" +
                             "\n  - itemNBT: %s" +
                             "\n  - used_name: %s",
