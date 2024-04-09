@@ -15,10 +15,7 @@ import org.bukkit.entity.Player;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.function.Supplier;
 
 public class PlayerController {
@@ -64,6 +61,16 @@ public class PlayerController {
             playerdataLoader.add(() -> {
                 try {
                     Config config = new Config(theConfigFile);
+
+                    if (ECSettings.daysSinceLastLoginToLoadPlayerDataInMemory > 0){
+                        Long lastSeen = config.getLong("PlayerData.lastSeen");
+
+                        if (lastSeen == null || (System.currentTimeMillis() - lastSeen) > TimeUnit.DAYS.toMillis(ECSettings.daysSinceLastLoginToLoadPlayerDataInMemory)){
+                            //moveToDormantFolder(theConfigFile); TODO finish the dormant system
+                            return null;
+                        }
+                    }
+
                     return new PlayerData(config);
                 }catch (Exception e){
                     EverNifeCore.getLog().severe("Failed to load PlayerData [%s] at %s", theConfigFile.getName(), theConfigFile.getAbsolutePath());
@@ -81,7 +88,7 @@ public class PlayerController {
         for (Supplier<PlayerData> supplier : playerdataLoader) {
             executor.submit(() -> {
                 PlayerData playerData = supplier.get();
-                if (playerData != null){ //Can be null when there is an error loading the PlayerData
+                if (playerData != null){ //Can be null when there is an error loading the PlayerData of the loading was ignored
                     loadedPlayerData.add(playerData);
                 }
                 latch.countDown();

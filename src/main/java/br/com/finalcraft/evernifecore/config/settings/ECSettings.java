@@ -10,6 +10,7 @@ import java.time.format.DateTimeFormatter;
 public class ECSettings {
 
     public static boolean useNamesInsteadOfUUIDToStorePlayerData = false;
+    public static int daysSinceLastLoginToLoadPlayerDataInMemory = -1;
 
     //Time Related
     public static String ZONE_ID_OF_DAY_OF_TODAY;
@@ -28,6 +29,19 @@ public class ECSettings {
                 "Should EverNifeCore store the PlayerData using the UUID of the player as the filename" +
                         "\nor should it use the PLAYERNAME as file name! If you are not using your server on" +
                         "\nOFFLINE_MODE do not change this configuration."
+        );
+
+        daysSinceLastLoginToLoadPlayerDataInMemory = ConfigManager.getMainConfig().getOrSetDefaultValue(
+                "Settings.daysSinceLastLoginToLoadPlayerDataInMemory",
+                -1,
+                "The amount of days since the last login of a player that the PlayerData should be loaded." +
+                        "\nIf the player has not logged in for this amount of days, his PlayerData will NOT be loaded." +
+                        "\n" +
+                        "\n-1 to load all PlayerData. (recommended)" +
+                        "\n" +
+                        "\nOnly change this value to a reasonable amount (like +30 days) and only if you have a lot of unique players!" +
+                        "\nReally, if you don't know what you are doing, don't change this value!" +
+                        "\nIf you have many of EverNife's plugins this will screw everything up!"
         );
 
         ZONE_ID_OF_DAY_OF_TODAY = ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.Time.ZONE_ID_OF_DAY_OF_TODAY",
