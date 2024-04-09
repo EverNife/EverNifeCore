@@ -52,7 +52,7 @@ public class PlayerData implements IPlayerData{
 
     public PlayerData(Config config) {
         this.config = Objects.requireNonNull(config,"PlayConfig cannot be null!");
-        this.playerName = Objects.requireNonNull(config.getString("PlayerData.Username"),"PlayName cannot be null!");
+        this.playerName = Objects.requireNonNull(config.getString("PlayerData.Username"),"PlayerName cannot be null!");
         this.uuid = Objects.requireNonNull(config.getUUID("PlayerData.UUID"),"PlayerUUID cannot be null!");
         this.lastSeen = config.getLong("PlayerData.lastSeen",0L);
 
