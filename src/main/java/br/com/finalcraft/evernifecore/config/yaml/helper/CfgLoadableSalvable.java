@@ -33,6 +33,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class CfgLoadableSalvable {
 
@@ -230,22 +231,27 @@ public class CfgLoadableSalvable {
                                 return fancyFormatter;
                             }else { //Normal FancyText
 
-                                //Create a helper function to convert List<String> into a single String
-                                Function<Object, String> getStringFromStringOrStringList = obj -> {
-                                    if (obj instanceof String){
-                                        return (String) obj;
-                                    }else if (obj instanceof List){
-                                        return String.join("\n", (List<String>) obj);
+                                //Create a helper function to convert [String|List<String>] into a single String
+                                Function<String, String> getStringFromStringOrStringList = path -> {
+                                    if (!configSection.contains(path)){
+                                        return null;
                                     }
-                                    return null;
+
+                                    List<String> stringList = configSection.getStringList(path);
+
+                                    if (stringList != null){
+                                        return stringList.stream().collect(Collectors.joining("\n"));
+                                    }else {
+                                        return configSection.getString(path);
+                                    }
                                 };
 
                                 if (configSection.contains(("text"))){
                                     //This means this fancyText has more than just the text
-                                    String text = getStringFromStringOrStringList.apply(configSection.getValue("text"));
-                                    String hoverText = getStringFromStringOrStringList.apply(configSection.getValue("hoverText"));
-                                    String actionText = getStringFromStringOrStringList.apply(configSection.getValue("clickActionText"));
-                                    String actionTypeName = getStringFromStringOrStringList.apply(configSection.getValue("clickActionType"));
+                                    String text = getStringFromStringOrStringList.apply("text");
+                                    String hoverText = getStringFromStringOrStringList.apply("hoverText");
+                                    String actionText = getStringFromStringOrStringList.apply("clickActionText");
+                                    String actionTypeName = getStringFromStringOrStringList.apply("clickActionType");
                                     ClickActionType actionType = actionTypeName != null && !actionTypeName.isEmpty() ? ClickActionType.valueOf(actionTypeName) : ClickActionType.NONE;
                                     return new FancyText(
                                             FCColorUtil.colorfy(text),
@@ -254,7 +260,7 @@ public class CfgLoadableSalvable {
                                             actionType
                                     );
                                 }else {
-                                    return new FancyText(FCColorUtil.colorfy(getStringFromStringOrStringList.apply(configSection.getString(null))));
+                                    return new FancyText(FCColorUtil.colorfy(getStringFromStringOrStringList.apply(null)));
                                 }
                             }
                         }
