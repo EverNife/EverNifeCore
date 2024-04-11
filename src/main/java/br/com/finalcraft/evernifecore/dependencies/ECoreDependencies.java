@@ -9,7 +9,7 @@ public class ECoreDependencies {
                 Library.builder()
                         .groupId("com.github.Carleslc.Simple-YAML")
                         .artifactId("Simple-Yaml")
-                        .version("1.8.3")
+                        .version("1.8.4")
                         .relocate("org.yaml","br.com.finalcraft.libs.yaml")
                         .build()
         ); //SnakeYAML + Simple-YAML

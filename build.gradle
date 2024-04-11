@@ -63,7 +63,7 @@ dependencies {
     implementation 'com.github.evernife:ChatMenuAPI:v1.1.3c'
     implementation 'net.byteflux:libby-core:1.2.0'
     implementation 'dev.triumphteam:triumph-gui:3.1.4-evernife-02'
-    implementation 'com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8.3'
+    implementation 'com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8.4'
 
     //The Item-NBT-API required the maven repo 'https://repo.codemc.org/repository/maven-public/'
     //because of the internal dependency 'de.tr7zw:functional-annotations'! As of 20/01/2023 the repo is down, lets use it direct from JitPack
@@ -160,7 +160,7 @@ shadowJar {
     if (getCallingTask().equals("publish")){
         println "[Shadowing ExtraJars for Maven Publish]"
         dependencies {
-            include(dependency('com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8.3'))
+            include(dependency('com.github.Carleslc.Simple-YAML:Simple-Yaml:'))
         }
         relocate 'org.yaml.snakeyaml', 'br.com.finalcraft.libs.snakeyaml'
     }

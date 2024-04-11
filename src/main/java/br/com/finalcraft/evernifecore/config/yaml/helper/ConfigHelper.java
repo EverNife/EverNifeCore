@@ -18,7 +18,6 @@ import java.util.List;
 
 public class ConfigHelper {
 
-//    private static final SimpleYamlImplementation simpleYamlImplementation = new SimpleYamlImplementation();
     public static YamlFile createYamlFile(File file){
         SimpleYamlImplementation simpleYamlImplementation = new SimpleYamlImplementation();
 
