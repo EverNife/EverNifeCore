@@ -1,9 +1,6 @@
 package br.com.finalcraft.evernifecore.commands;
 
-import br.com.finalcraft.evernifecore.commands.debug.CMDBiomeInfo;
-import br.com.finalcraft.evernifecore.commands.debug.CMDBlockInfo;
-import br.com.finalcraft.evernifecore.commands.debug.CMDItemInfo;
-import br.com.finalcraft.evernifecore.commands.debug.CMDProtectionTest;
+import br.com.finalcraft.evernifecore.commands.debug.*;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.commands.misc.*;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -19,6 +16,7 @@ public class CommandRegisterer {
         FinalCMDManager.registerCommand(pluginInstance, CMDGetUUID.class);
         FinalCMDManager.registerCommand(pluginInstance, CMDBiomeInfo.class);
         FinalCMDManager.registerCommand(pluginInstance, CMDBlockInfo.class);
+        FinalCMDManager.registerCommand(pluginInstance, CMDEntityInfo.class);
         FinalCMDManager.registerCommand(pluginInstance, CMDItemInfo.class);
         FinalCMDManager.registerCommand(pluginInstance, CMDECLocale.class);
         FinalCMDManager.registerCommand(pluginInstance, CMDProtectionTest.class);
