@@ -22,7 +22,13 @@ public class SimplePAPIHook extends PlaceholderHook {
         this.isPDSection = PDSection.class.isAssignableFrom(PAPI_REGEX_REPLACER.getReferClass());
     }
 
+    @Override
     public @Nullable String onPlaceholderRequest(@Nullable Player player, @NotNull String placeholder) {
+        return this.onPlaceholderRequest(player, placeholder);
+    }
+
+    @Override
+    public @Nullable String onRequest(OfflinePlayer player, @NotNull String placeholder) {
         IPlayerData playerData = player == null ? null : PlayerController.getPlayerData(player);
 
         if (playerData != null && isPDSection){
@@ -36,19 +42,15 @@ public class SimplePAPIHook extends PlaceholderHook {
                     .apply(startingPlaceholder, playerData);
 
             if (startingPlaceholder.equals(parsedPlaceholder)){
-                return null; //The placeholder has not been parsed, this is not an error, it simply did not exist
+                return null; //The placeholder has not been parsed, this is not an error, it simply does not exist
             }
 
             return parsedPlaceholder;
         }catch (Exception e){
             this.plugin.getLogger().warning("Failed to parse the Placeholder [" + placeholder + "]");
             e.printStackTrace();
-            return "[ErrorOnPlaceholder]";
+            return "[ErrorOnPlaceholder=='%" + placeholder + "%']";
         }
-    }
 
-    @Override
-    public @Nullable String onRequest(OfflinePlayer player, @NotNull String params) {
-        return player != null && player.isOnline() ? this.onPlaceholderRequest((Player)player, params) : this.onPlaceholderRequest((Player)null, params);
     }
 }
