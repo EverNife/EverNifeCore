@@ -24,7 +24,7 @@ public class SimplePAPIHook extends PlaceholderHook {
 
     @Override
     public @Nullable String onPlaceholderRequest(@Nullable Player player, @NotNull String placeholder) {
-        return this.onPlaceholderRequest(player, placeholder);
+        return this.onRequest(player, placeholder);
     }
 
     @Override
