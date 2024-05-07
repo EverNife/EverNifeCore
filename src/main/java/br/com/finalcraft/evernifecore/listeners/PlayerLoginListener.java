@@ -173,13 +173,19 @@ public class PlayerLoginListener implements ECListener {
         new BukkitRunnable(){
             @Override
             public void run() {
-                if (player.isOnline()){
-                    PlayerData playerData = PlayerController.getPlayerData(player);
-                    if (playerData != null){
-                        ECFullyLoggedInEvent event = new ECFullyLoggedInEvent(playerData, authMeLogin);
-                        Bukkit.getPluginManager().callEvent(event);
-                    }
+
+                if (!player.isOnline()){
+                    return;
                 }
+
+                PlayerData playerData = PlayerController.getPlayerData(player);
+
+                if (playerData == null || playerData.getPlayer() == null){
+                    return;
+                }
+
+                ECFullyLoggedInEvent event = new ECFullyLoggedInEvent(playerData, authMeLogin);
+                Bukkit.getPluginManager().callEvent(event);
             }
         }.runTaskLater(EverNifeCore.instance, 1);
     }
