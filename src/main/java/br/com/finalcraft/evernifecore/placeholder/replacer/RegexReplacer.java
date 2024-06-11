@@ -44,7 +44,11 @@ public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O
                 )
         );
         //Sort manipulators based on the prefix lengh, it might help performance, bigger prefixes first
-        Collections.sort(this.manipulators, Comparator.comparing(manipulatorParser -> manipulatorParser.getManipulator().getPrefix().length()));
+        Collections.sort(this.manipulators, Comparator.comparing(manipulatorParser -> {
+            int prefixSize = manipulatorParser.getManipulator().getPrefix().length();
+            long underlines = manipulatorParser.getId().chars().filter(c -> c == '_').count(); //More complex manipulators first
+            return  (prefixSize * 1000) + underlines;
+        }));
         Collections.reverse(this.manipulators);
         return this;
     }
