@@ -101,18 +101,18 @@ public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O
 
             String requested = null; //Store the result of this placeholder, or null in case there is no match
 
-            //First check the Manipulators, for overly complex placeholders
-            if (this.manipulators.size() > 0){
+            requested = this.provider.parse(object, full_placeholder); //Default Provider will ignore identifier
+
+            //Check the Manipulators, for overly complex placeholders
+            if (requested == null && this.manipulators.size() > 0){
                 for (ManipulatedParser<O> manipulatedParser : this.manipulators) {
                     if (manipulatedParser.getManipulator().match(full_placeholder)){
                         requested = manipulatedParser.parse(object, full_placeholder);
-                        break;
+                        if (requested != null){
+                            break;//can breka here as manipulators already return proper result
+                        }
                     }
                 }
-            }
-
-            if (requested == null){
-                requested = this.provider.parse(object, full_placeholder); //Default Provider will ignore identifier
             }
 
             if (requested != null){
