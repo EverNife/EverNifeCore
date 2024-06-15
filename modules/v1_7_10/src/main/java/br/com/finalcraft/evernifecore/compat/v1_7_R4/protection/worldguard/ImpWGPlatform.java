@@ -61,6 +61,10 @@ public class ImpWGPlatform extends WGPlatform {
 
     @Override
     public void registerFlag(@NotNull Flag<?> flag, @NotNull Plugin plugin) {
+        if (ImpIFCFlagRegistry.errorOnFlagRegistering){
+            plugin.getLogger().info("[EverNifeCore -> WorldGuard] There was an error on EverNifeCore's WorldGuard Flag's Integration at the Startup, read the message over there! Skipping flag registration of name: " + flag.getName());
+            return;
+        }
         getFlagRegistry().register(flag);
         plugin.getLogger().info("[EverNifeCore -> WorldGuard] Custom Flag registered: " + flag.getName());
         schedulWorldGuardReload();
