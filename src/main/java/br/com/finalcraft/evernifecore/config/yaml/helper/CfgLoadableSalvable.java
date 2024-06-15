@@ -73,7 +73,7 @@ public class CfgLoadableSalvable {
                 shouldRegister = true;
             }
 
-            //Lets attempt to extract LoadableData from it as well
+            //Let's attempt to extract LoadableData from it as well
             Optional<Function<ConfigSection, O>> onConfigLoadOptional = extractLoadableMethod(aClass);
             if (onConfigLoadOptional.isPresent()){
                 smartLoadSave.setOnConfigLoad(onConfigLoadOptional.get());
@@ -239,7 +239,7 @@ public class CfgLoadableSalvable {
 
                                     List<String> stringList = configSection.getStringList(path);
 
-                                    if (stringList != null){
+                                    if (stringList != null && stringList.size() > 0){
                                         return stringList.stream().collect(Collectors.joining("\n"));
                                     }else {
                                         return configSection.getString(path);
