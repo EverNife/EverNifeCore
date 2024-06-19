@@ -12,6 +12,9 @@ public class ECSettings {
     public static boolean useNamesInsteadOfUUIDToStorePlayerData = false;
     public static int daysSinceLastLoginToLoadPlayerDataInMemory = -1;
 
+    //FCBukkitUtil
+    public static boolean WARN_PLAYERS_WHEN_RECEIVED_ITEMS_WERE_SEND_TO_THE_GROUND;
+
     //Time Related
     public static String ZONE_ID_OF_DAY_OF_TODAY;
     public static DateTimeFormatter SIMPLE_DATE_FORMAT;
@@ -69,6 +72,14 @@ public class ECSettings {
                         "\nFor example, when using FinalEconomy, the '/baltop' may be cached to prevent lag for X amount of seconds." +
                         "\nIncrease this value if you find lag related to this feature! (very unlikely)" +
                         "\nIf going to decrease, I suggest to at least keep to 1 second");
+
+        WARN_PLAYERS_WHEN_RECEIVED_ITEMS_WERE_SEND_TO_THE_GROUND = ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.FCBukkitUtil.warnWhenPlayersCannotReceiveItensOnItsInventory",
+                true,
+                "Plugins that use EverNifeCore as dependency, and use the method 'FCBukkitUtil.giveItemsTo'" +
+                        "\nto give items to player might want to disable the warn that is send to him " +
+                        "\nwhen there is no inventory space available on its inventory. Here you can disable" +
+                        "\nthat message."
+        );
 
         ConfigManager.getMainConfig().saveIfNewDefaults();
     }

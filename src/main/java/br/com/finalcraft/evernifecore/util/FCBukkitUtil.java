@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.util;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
@@ -90,8 +91,10 @@ public class FCBukkitUtil {
     public static void giveItemsTo(Player player, boolean dropIfExceeded, ItemStack... itemStacks) {
         HashMap<Integer, ItemStack> exceededItems = player.getInventory().addItem(itemStacks);
         if (exceededItems.size() > 0 && dropIfExceeded) {
-            YOU_RECEIVED_EXTRA_ITEMS_THAT_WERE_DROPED
-                    .send(player);
+            if (ECSettings.WARN_PLAYERS_WHEN_RECEIVED_ITEMS_WERE_SEND_TO_THE_GROUND){
+                YOU_RECEIVED_EXTRA_ITEMS_THAT_WERE_DROPED
+                        .send(player);
+            }
 
             final World world = player.getWorld();
             final Location location = player.getLocation();
