@@ -18,6 +18,7 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
 import br.com.finalcraft.evernifecore.thread.SaveConfigThread;
+import br.com.finalcraft.evernifecore.util.FCTickUtil;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
 import me.tom.sparse.spigot.chat.menu.ChatMenuAPI;
@@ -106,6 +107,7 @@ public class EverNifeCore extends JavaPlugin {
             ChatMenuAPI.init(instance, false);
         }
 
+        FCTickUtil.getTickCount();//This will start tickCounting
         info("§aEverNifeCore successfully started!");
     }
 
