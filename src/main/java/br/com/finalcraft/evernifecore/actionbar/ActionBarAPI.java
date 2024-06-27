@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.actionbar;
 
+import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -11,6 +12,9 @@ import java.util.UUID;
 
 public class ActionBarAPI {
 
+    private static final boolean THIS_SERVER_SUPPORTS_ACTIONBAR;static {
+        THIS_SERVER_SUPPORTS_ACTIONBAR = MCVersion.isLowerEquals(MCVersion.v1_7_10) || FCBukkitUtil.isModLoaded("necrotempus");
+    }
     private static Map<UUID, PlayerActionBarManager> PLAYER_ACTION_BAR_MAP = new HashMap<>();
 
     public static void send(Player player, String message){
@@ -18,7 +22,7 @@ public class ActionBarAPI {
     }
 
     public static void send(Player player, ActionBarMessage actionBarMessage){
-        if (MCVersion.isLowerEquals(MCVersion.v1_7_10)) return;//ActionBar is not present on 1_7_10
+        if (!THIS_SERVER_SUPPORTS_ACTIONBAR) return;//ActionBar is not present on 1_7_10, and we don't have NecroTempus
 
         PlayerActionBarManager playerActionBarManager = PLAYER_ACTION_BAR_MAP.get(player.getUniqueId());
 
@@ -31,7 +35,7 @@ public class ActionBarAPI {
     }
 
     public static void clear(Player player){
-        if (MCVersion.isLowerEquals(MCVersion.v1_7_10)) return;//ActionBar is not present on 1_7_10
+        if (!THIS_SERVER_SUPPORTS_ACTIONBAR) return;//ActionBar is not present on 1_7_10, and we don't have NecroTempus
 
         PlayerActionBarManager playerActionBarManager = PLAYER_ACTION_BAR_MAP.get(player.getUniqueId());
 
