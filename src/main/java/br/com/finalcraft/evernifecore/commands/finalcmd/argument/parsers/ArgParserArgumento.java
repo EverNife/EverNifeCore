@@ -7,7 +7,6 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgPa
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.util.ArgsParserUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import com.google.common.collect.ImmutableList;
-import org.apache.commons.lang3.Validate;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -28,29 +27,17 @@ public class ArgParserArgumento extends ArgParser<Argumento> {
                 : argInfo.getArgData().getContext();
 
         possibilities = ImmutableList.copyOf(ArgsParserUtil.parseStringContextSelectional(context));
-
-        Validate.isTrue(possibilities.size() > 0, "Can't create a ArgParserString without at least one option! [context=='" + context + "']");
     }
 
     @Override
     public Argumento parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException {
 
-        if (possibilities.size() == 1){
-            return argumento.isEmpty() ? null : argumento;
-        }
-
-        for (String option : possibilities) {
-            if (option.equalsIgnoreCase(argumento.toString())){
-                return new Argumento(option);
-            }
-        }
-
-        if (argInfo.isRequired()){
+        if (argInfo.isRequired() && argumento.isEmpty()){
             FCMessageUtil.notWithinPossibilities(sender, argumento.toString(), possibilities);
             throw new ArgParseException();
         }
 
-        return Argumento.EMPTY_ARG;
+        return argumento;
     }
 
     @Override
