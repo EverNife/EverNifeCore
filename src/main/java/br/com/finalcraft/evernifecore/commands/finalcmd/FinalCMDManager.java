@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAccessValidation;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.CMDData;
@@ -44,6 +45,7 @@ public class FinalCMDManager {
     static {
         //The ArgParsers bellow will be available to all ECPlugins
         //Needs to be registered here because we need them for plugins that load before EverNifeCore
+        ArgParserManager.addGlobalParser(Argumento.class, ArgParserArgumento.class);
         ArgParserManager.addGlobalParser(String.class, ArgParserString.class);
         ArgParserManager.addGlobalParser(Integer.class, ArgParserNumber.class);
         ArgParserManager.addGlobalParser(Float.class, ArgParserNumber.class);
