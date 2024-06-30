@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public class SendCustom {
+public class SendCustom implements ILocaleMessageBase{
 
     protected final LocaleMessage localeMessage;
     protected CompoundReplacer compoundReplacer = new CompoundReplacer();
@@ -31,49 +31,59 @@ public class SendCustom {
         this.localeMessage = localeMessage;
     }
 
+    @Override
     public SendCustom addReplacer(CompoundReplacer compoundReplacer) {
         this.compoundReplacer.appendReplacer(compoundReplacer);
         return this;
     }
 
+    @Override
     public SendCustom addPlaceholder(String placeHolder, Object value) {
         mapOfPlaceholders.put(placeHolder, value);
         return this;
     }
 
+    @Override
     public SendCustom addPlaceholder(String placeHolder, Function<PlayerData, Object> function) {
         mapOfPlaceholders.put(placeHolder, function);
         return this;
     }
 
+    @Override
     public SendCustom addHover(String hover) {
         this.hover = hover;
         return this;
     }
 
+    @Override
     public SendCustom addAction(String action) {
         this.action = action;
         return this;
     }
 
+    @Override
     public SendCustom addSuggest(String suggest) {
         this.suggest = suggest;
         return this;
     }
 
+    @Override
     public SendCustom addLink(String link) {
         this.link = link;
         return this;
     }
 
+    @Override
     public SendCustom concat(LocaleMessage localeMessage) {
         return new SendCustomComplex(localeMessage, this);
     }
 
+    @Override
     public SendCustom concat(SendCustom sendCustom) {
         return new SendCustomComplex(sendCustom, this);
     }
 
+    @Override
     public void send(CommandSender... commandSenders) {
         for (CommandSender sender : commandSenders) {
             FancyText fancyText = getFancyText(sender);
@@ -81,6 +91,7 @@ public class SendCustom {
         }
     }
 
+    @Override
     public void broadcast(){
         CommandSender[] senders = ArrayUtils.addAll(
                 new CommandSender[]{Bukkit.getConsoleSender()},
@@ -89,6 +100,7 @@ public class SendCustom {
         send(senders);
     }
 
+    @Override
     public FancyText getFancyText(@Nullable CommandSender sender){
         FancyText fancyText = sender == null ? localeMessage.getDefaultFancyText().clone() : localeMessage.getFancyText(sender).clone();
         if (hover != null) fancyText.setHoverText(hover);
