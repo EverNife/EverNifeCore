@@ -35,13 +35,13 @@ public class PlaceholderTest {
                 .addParser("kills", SimplePlayer::getKills)
                 .addParser("deaths", SimplePlayer::getDeaths)
                 .addParser("kdr", simplePlayer -> simplePlayer.getKills() / Math.max(1D, simplePlayer.getDeaths()))
-                .addParser("math_kills_doubled", simplePlayer -> "Wrong")
-                .addParser("math_kills_doubled_but_with_more_underlines", simplePlayer -> "Wrong Again");
+                .addParser("math_kills_doubled", simplePlayer -> "HigherPriorityPlaceholder1")
+                .addParser("math_kills_doubled_but_with_more_underlines", simplePlayer -> "HigherPriorityPlaceholder2");
 
         RegexReplacer<SimplePlayer> MATH_REPLACER = new RegexReplacer<SimplePlayer>()
                 .addParser("kills_doubled", simplePlayer -> simplePlayer.getKills() * 2)
-                .addParser("deaths_doubled", simplePlayer -> simplePlayer.getKills() * 2)
-                .addParser("teste", simplePlayer -> simplePlayer.getKills() * 2);
+                .addParser("kills_doubled_alternative", simplePlayer -> simplePlayer.getKills() * 2)
+                .addParser("deaths_doubled", simplePlayer -> simplePlayer.getDeaths() * 2);
 
         REGEX_REPLACER.addManipulator("math_{placeHolder}", MATH_REPLACER, (simplePlayer, manipulationContext) -> {
 
@@ -78,8 +78,15 @@ public class PlaceholderTest {
         assert REGEX_REPLACER.apply("%kills%", simplePlayer).equals(String.valueOf(simplePlayer.kills));
         assert REGEX_REPLACER.apply("%deaths%", simplePlayer).equals(String.valueOf(simplePlayer.deaths));
 
-        assert REGEX_REPLACER.apply("%math_kills_doubled%", simplePlayer).equals("Wrong") == false;
-        assert REGEX_REPLACER.apply("%math_kills_doubled_but_with_more_underlines%", simplePlayer).equals("Wrong Again") == true;
+        //Using manipulator with the prefix %math_ we should end on the custom placeholder handling
+        assert REGEX_REPLACER.apply("%math_kills_doubled_alternative%"  , simplePlayer).equals(String.valueOf(simplePlayer.kills * 2));
+        assert REGEX_REPLACER.apply("%math_deaths_doubled%"             , simplePlayer).equals(String.valueOf(simplePlayer.deaths * 2));
+
+        //Even though math_kills_doubled should be a duplicated amount of kills, based on the custom manipulator,
+        // as we have a HIGHER_PRIORITY 'exact match' parser, it should return a different result
+        assert REGEX_REPLACER.apply("%math_kills_doubled%", simplePlayer).equals("HigherPriorityPlaceholder1") == true;
+        assert REGEX_REPLACER.apply("%math_kills_doubled_but_with_more_underlines%", simplePlayer).equals("HigherPriorityPlaceholder2") == true;
+
     }
 
     @Test
