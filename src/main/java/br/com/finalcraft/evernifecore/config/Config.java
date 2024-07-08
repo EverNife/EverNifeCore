@@ -44,7 +44,7 @@ public class Config {
     // ------------------------------------------------------------------------------------------------------------------
 
     private void loadWithComments(){
-        if (getTheFile().exists()){
+        if (getTheFile() != null && getTheFile().exists()){
             try {
                 this.yamlFile.loadWithComments();
             } catch (IOException e) {
@@ -179,7 +179,7 @@ public class Config {
         try {
             yamlFile.save();
         } catch (IOException e) {
-            logger.warning("Failed to save file [" + getTheFile().getAbsolutePath() + "]");
+            logger.warning("Failed to save file [" + (getTheFile() == null ? "null-file" : getTheFile().getAbsolutePath()) + "]");
             e.printStackTrace();
         }finally {
             lock.unlock();
@@ -223,7 +223,7 @@ public class Config {
      */
     public void reload() {
         try {
-            if (getTheFile().exists()){ //Reoad from the file
+            if (getTheFile() != null && getTheFile().exists()){ //Reload from the file
                 loadWithComments();
                 this.lastModified = getTheFile().lastModified();
             }else { //Otherwise, read from an EmptyString
