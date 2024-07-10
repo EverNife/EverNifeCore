@@ -2,7 +2,6 @@ package br.com.finalcraft.evernifecore.protection.worldguard.adapter;
 
 import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
 import br.com.finalcraft.evernifecore.protection.worldguard.WGPlatform;
-import com.google.common.collect.ImmutableList;
 import com.sk89q.worldguard.protection.RegionResultSet;
 import com.sk89q.worldguard.protection.association.RegionAssociable;
 import com.sk89q.worldguard.protection.flags.Flag;
