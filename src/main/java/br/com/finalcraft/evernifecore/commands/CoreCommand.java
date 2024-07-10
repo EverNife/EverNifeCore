@@ -46,6 +46,7 @@ public class CoreCommand {
                     stringBuilder.append("\n");
                     return stringBuilder.toString();
                 })
+                .setIncludeTotalCount(true)
                 .build()
                 .send(page, sender);
     }

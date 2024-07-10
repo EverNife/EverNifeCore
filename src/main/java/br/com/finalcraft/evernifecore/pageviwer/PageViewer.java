@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.util.FCTextUtil;
 import br.com.finalcraft.evernifecore.util.FCTimeUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -33,18 +34,23 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
     @FCLocale(lang = LocaleType.EN_US, text = "§7From a total of %total_players% players...")
     private static LocaleMessage OF_A_TOTAL_OF_X_PLAYERS;
 
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7De um total de %total_entries%...")
+    @FCLocale(lang = LocaleType.EN_US, text = "§7From a total of %total_entries%...")
+    private static LocaleMessage OF_A_TOTAL_OF_X_ENTRIES;
+
+    protected final @Nullable Class<OBJ> target; //Compared Class, can be null
     protected final Supplier<List<OBJ>> supplier;
     protected final @Nullable Function<OBJ, COMPARED_VALUE> valueExtrator;
     protected final @Nullable Comparator<SortedItem<OBJ, COMPARED_VALUE>> comparator;
     protected final List<FancyText> formatHeader;
-    protected final FancyText formatLine;
+    protected final Function<OBJ, FancyText> formatLine;
     protected final List<FancyText> formatFooter;
     protected final long cooldown;
     protected final int lineStart;
     protected final int lineEnd;
     protected final int pageSize;
     protected final boolean includeDate;
-    protected final boolean includeTotalPlayers;
+    protected final boolean includeTotalCount;
     protected final boolean nextAndPreviousPageButton;
     protected final HashMap<String, Function<OBJ,Object>> placeholders;
 
@@ -53,7 +59,8 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
     protected transient List<FancyText> pageFooterCache = null;
     protected transient long lastBuild = 0L;
 
-    public PageViewer(Supplier<List<OBJ>> supplier, @Nullable Function<OBJ, COMPARED_VALUE> valueExtrator, @Nullable Comparator<SortedItem<OBJ, COMPARED_VALUE>> comparator, List<FancyText> formatHeader, FancyText formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, int pageSize, boolean includeDate, boolean includeTotalPlayers, boolean nextAndPreviousPageButton) {
+    public PageViewer(Class<OBJ> target, Supplier<List<OBJ>> supplier, @Nullable Function<OBJ, COMPARED_VALUE> valueExtrator, @Nullable Comparator<SortedItem<OBJ, COMPARED_VALUE>> comparator, List<FancyText> formatHeader, Function<OBJ, FancyText> formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, int pageSize, boolean includeDate, boolean includeTotalCount, boolean nextAndPreviousPageButton) {
+        this.target = target;
         this.supplier = supplier;
         this.valueExtrator = valueExtrator;
         this.comparator = comparator;
@@ -65,7 +72,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         this.lineEnd = lineEnd;
         this.pageSize = pageSize;
         this.includeDate = includeDate;
-        this.includeTotalPlayers = includeTotalPlayers;
+        this.includeTotalCount = includeTotalCount;
         this.nextAndPreviousPageButton = nextAndPreviousPageButton;
         this.placeholders = new HashMap<>();
     }
@@ -121,10 +128,17 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
             }
 
             for (int number = lineStart; number < sortedList.size() && number < lineEnd; number++) {
-                final FancyText fancyText = formatLine.clone();
                 final SortedItem<OBJ, COMPARED_VALUE> sortedItem = sortedList.get(number);
+                OBJ comparedObject = sortedItem.getObject();
 
-                placeholders.entrySet().forEach(entry -> fancyText.replace(entry.getKey(), String.valueOf(entry.getValue().apply(sortedItem.getObject()))));
+                final FancyText fancyText = formatLine.apply(comparedObject);
+
+                if (placeholders.size() > 0){
+                    //Replace each placeholder on the FancyText
+                    //Usually at least one, the %value%
+                    placeholders.entrySet().forEach(entry -> fancyText.replace(entry.getKey(), String.valueOf(entry.getValue().apply(sortedItem.getObject()))));
+                }
+
                 fancyText.replace("%number%", String.valueOf(number + 1));
 
                 pageLinesCache.get().add(fancyText);
@@ -135,11 +149,19 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
                 pageFooterCache.add(fancyText);
             }
 
-            if (includeTotalPlayers){
-                pageHeaderCache.add(OF_A_TOTAL_OF_X_PLAYERS
-                        .addPlaceholder("%total_players%", sortedList.size())
-                        .getFancyText(null)
-                );
+            if (includeTotalCount){
+                if (target != null && (OfflinePlayer.class.isAssignableFrom(target) || IPlayerData.class.isAssignableFrom(target))){
+                    pageHeaderCache.add(OF_A_TOTAL_OF_X_PLAYERS
+                            .addPlaceholder("%total_players%", sortedList.size())
+                            .getFancyText(null)
+                    );
+                }else {
+                    pageHeaderCache.add(OF_A_TOTAL_OF_X_ENTRIES
+                            .addPlaceholder("%total_players%", sortedList.size())
+                            .getFancyText(null)
+                    );
+                }
+
             }
 
             lastBuild = System.currentTimeMillis();
@@ -248,7 +270,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
     }
 
     public static <O> IStepWithSuplier<O> targeting(Class<O> comparedClass){
-        return new BuilderImp<>(null, null);
+        return new BuilderImp<>(comparedClass, null, null);
     }
 
     public static interface IStepWithSuplier<O>{
@@ -279,6 +301,8 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
         public IBuilder<O, C> setFormatLine(FancyText formatLine);
 
+        public IBuilder<O, C> setFormatLine(Function<O, FancyText> formatLineFunction);
+
         public IBuilder<O, C> setFormatFooter(List<FancyText> formatFooter);
 
         public IBuilder<O, C> setFormatFooter(FancyText... formatFooter);
@@ -293,7 +317,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
         public IBuilder<O, C> setIncludeDate(boolean includeDate);
 
-        public IBuilder<O, C> setIncludeTotalPlayers(boolean includeTotalPlayers);
+        public IBuilder<O, C> setIncludeTotalCount(boolean includeTotalEntries);
 
         public IBuilder<O, C> setPageSize(int pageSize);
 
@@ -305,6 +329,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
     }
 
     public static class BuilderImp<O, C> implements IBuilder<O, C>, IStepWithSuplier<O>, IStepExtracting<O>{
+        protected final Class<O> target;
         protected Supplier<List<O>> supplier;
         protected Function<O, C> valueExtractor;
 
@@ -318,19 +343,20 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         };
 
         protected List<FancyText> formatHeader = Arrays.asList(new FancyText("§a§m" + FCTextUtil.straightLineOf("-")));
-        protected FancyText formatLine = new FancyText("§7#  %number%:   §e%player%§f - §a%value%");
+        protected Function<O, FancyText> formatLine = o -> new FancyText("§7#  %number%:   §e%player%§f - §a%value%");
         protected List<FancyText> formatFooter = Collections.emptyList();
         protected long cooldown = ECSettings.PAGEVIEWERS_REFRESH_TIME * 1000; //def 5 seconds
         protected int lineStart = 0;
         protected int lineEnd = 50;
         protected int pageSize = 10;
         protected boolean includeDate = false;
-        protected boolean includeTotalPlayers = false;
+        protected boolean includeTotalCount = false;
         protected boolean nextAndPreviousPageButton = true;
 
         protected final HashMap<String, Function<O,Object>> placeholders = new HashMap<>();
 
-        protected BuilderImp(Supplier<List<O>> supplier, Function<O, C> valueExtractor) {
+        protected BuilderImp(Class<O> target, Supplier<List<O>> supplier, Function<O, C> valueExtractor) {
+            this.target = target;
             this.supplier = supplier;
             this.valueExtractor = valueExtractor;
         }
@@ -374,12 +400,16 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
         @Override
         public BuilderImp<O, C> setFormatLine(String formatLine) {
-            this.formatLine = new FancyText(formatLine);
-            return this;
+            return setFormatLine((o -> new FancyText(formatLine)));//new instance for every call
         }
 
         @Override
         public BuilderImp<O, C> setFormatLine(FancyText formatLine) {
+            return setFormatLine((o -> formatLine.clone()));//new instance for every call
+        }
+
+        @Override
+        public BuilderImp<O, C> setFormatLine(Function<O, FancyText> formatLine) {
             this.formatLine = formatLine;
             return this;
         }
@@ -427,8 +457,8 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         }
 
         @Override
-        public BuilderImp<O, C> setIncludeTotalPlayers(boolean includeTotalPlayers) {
-            this.includeTotalPlayers = includeTotalPlayers;
+        public BuilderImp<O, C> setIncludeTotalCount(boolean includeTotalCount) {
+            this.includeTotalCount = includeTotalCount;
             return this;
         }
 
@@ -458,6 +488,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
             }
 
             PageViewer<O, C> pageViewer = new PageViewer<>(
+                    target,
                     supplier,
                     valueExtractor,
                     comparator,
@@ -469,7 +500,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
                     lineEnd,
                     pageSize,
                     includeDate,
-                    includeTotalPlayers,
+                    includeTotalCount,
                     nextAndPreviousPageButton
             );
 
