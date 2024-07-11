@@ -85,9 +85,14 @@ public class Config {
         this(ConfigHelper.createYamlFile(theFile));
     }
 
-    @Deprecated
-    public Config(String path) {
-        this(new File(path));
+    public Config(String contents) {
+        this(ConfigHelper.createYamlFile(null));
+        this.yamlFile.options().useComments(true);
+        try {
+            this.yamlFile.loadFromString(contents);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     // ------------------------------------------------------------------------------------------------------------------
@@ -180,11 +185,14 @@ public class Config {
      * This is a synchronized action using a {@link ReentrantLock}
      */
     public void save() {
+        if (getTheFile() == null){
+            throw new IllegalStateException("Trying to save a Config that has no File, this is not possible!");
+        }
         lock.lock();
         try {
             yamlFile.save();
         } catch (IOException e) {
-            logger.warning("Failed to save file [" + (getTheFile() == null ? "null-file" : getTheFile().getAbsolutePath()) + "]");
+            logger.warning("Failed to save file [" + getTheFile().getAbsolutePath() + "]");
             e.printStackTrace();
         }finally {
             lock.unlock();
