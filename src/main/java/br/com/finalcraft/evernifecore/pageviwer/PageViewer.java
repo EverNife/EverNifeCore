@@ -157,7 +157,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
                     );
                 }else {
                     pageHeaderCache.add(OF_A_TOTAL_OF_X_ENTRIES
-                            .addPlaceholder("%total_players%", sortedList.size())
+                            .addPlaceholder("%total_entries%", sortedList.size())
                             .getFancyText(null)
                     );
                 }
