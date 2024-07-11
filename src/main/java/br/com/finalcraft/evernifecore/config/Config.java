@@ -52,7 +52,12 @@ public class Config {
                 EverNifeCore.warning(String.format("Failed to load YML file at [%s]", this.getAbsolutePath()));
                 e.printStackTrace();
                 try {
-                    FileUtils.copyFile(this.getTheFile(), new File(this.getTheFile().getParentFile(), this.getTheFile().getName() + ".corrupted"));
+                    int corruptVersion = 2;
+                    File newCorruptedFile = new File(this.getTheFile().getParentFile(), this.getTheFile().getName() + ".corrupted");
+                    while (newCorruptedFile == null || newCorruptedFile.exists()){
+                        newCorruptedFile = new File(this.getTheFile().getParentFile(), this.getTheFile().getName() + ".corrupted_" + corruptVersion);
+                    }
+                    FileUtils.copyFile(this.getTheFile(), newCorruptedFile);
                 }catch (Exception e2){
                     EverNifeCore.instance.getLogger().log(Level.SEVERE, String.format("[SEVERE_ERROR] Failed to create a COPY of the corrupted file at [%s]!", this.getAbsolutePath()));
                     e2.printStackTrace();
