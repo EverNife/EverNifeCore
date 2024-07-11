@@ -22,7 +22,7 @@ public class CfgExecutor {
                 1000L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue(),
                 new ThreadFactoryBuilder()
-                        .setNameFormat("evernifecore-assyncsave-pool-%d")
+                        .setNameFormat("evernifecore-asyncsave-pool-%d")
                         .setDaemon(true)
                         .build()
         );

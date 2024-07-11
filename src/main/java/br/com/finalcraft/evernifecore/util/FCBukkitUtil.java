@@ -200,7 +200,7 @@ public class FCBukkitUtil {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), theCommand);
         } else {
             EverNifeCore.warning("Calling [makeConsoleExecuteCommand(\"" + theCommand + "\")] out of Main Thread... i am fixing it for you, but... you may do your job!");
-            makeConsoleExecuteCommandFromAssyncThread(theCommand);
+            makeConsoleExecuteCommandFromAsyncThread(theCommand);
         }
     }
 
@@ -214,14 +214,14 @@ public class FCBukkitUtil {
             }
         } else {
             EverNifeCore.warning("Calling [makeConsoleExecuteCommand(\"" + String.join("|", theCommands) + "\")] out of Main Thread... i am fixing it for you, but... you may do your job!");
-            makeConsoleExecuteCommandFromAssyncThread(theCommands);
+            makeConsoleExecuteCommandFromAsyncThread(theCommands);
         }
     }
 
     /**
      * Força o console a executar um comando!
      */
-    public static void makeConsoleExecuteCommandFromAssyncThread(String theCommand) {
+    public static void makeConsoleExecuteCommandFromAsyncThread(String theCommand) {
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -233,7 +233,7 @@ public class FCBukkitUtil {
     /**
      * Força o console a executar um comando!
      */
-    public static void makeConsoleExecuteCommandFromAssyncThread(String... theCommands) {
+    public static void makeConsoleExecuteCommandFromAsyncThread(String... theCommands) {
         new BukkitRunnable() {
             @Override
             public void run() {

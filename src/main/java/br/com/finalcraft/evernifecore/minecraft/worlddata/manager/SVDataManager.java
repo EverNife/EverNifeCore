@@ -133,7 +133,7 @@ public class SVDataManager<O> extends ServerData<O>{
         FileUtils.iterateFiles(mainFolder, new String[]{"yml"}, true)
                 .forEachRemaining(file -> {
                     phaser.register(); //Increase the phaser count
-                    FCScheduler.runAssync(() -> {
+                    FCScheduler.runAsync(() -> {
                         try {
                             Config config = new Config(file);
                             configs.add(config);
@@ -151,7 +151,7 @@ public class SVDataManager<O> extends ServerData<O>{
         start = System.currentTimeMillis();
         for (Config config : configs) {
             phaser.register();
-            FCScheduler.runAssync(() -> {
+            FCScheduler.runAsync(() -> {
                 try {
                     //FileName is   'r.Xcoord.zCoord.yml'
                     String[] split = config.getTheFile().getName().split(Pattern.quote("."));

@@ -48,7 +48,7 @@ public class PlayerActionBarManager extends BukkitRunnable {
         ACTION_BARS_PRIORITY_QUEUE.offer(message);//Add this new message to the priority queue
 
         if (!isRunning){
-            start();//Start assync runnable
+            start();//Start async runnable
         }else {
             run();//Enforce send of ActionBarMessage now
         }

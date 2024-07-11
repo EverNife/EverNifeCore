@@ -43,7 +43,7 @@ public class PlayerTitleManager extends BukkitRunnable {
         PRIORITY_QUEUE.offer(new TitleMessage.SentTitleMessage(message, intenalTickCount));//Add this new message to the priority queue
 
         if (!isRunning){
-            start();//Start assync runnable
+            start();//Start async runnable
         }else {
             run();//Enforce send of TitleMessage now, but uncount the 'intenalTickCount'
             intenalTickCount-=10;

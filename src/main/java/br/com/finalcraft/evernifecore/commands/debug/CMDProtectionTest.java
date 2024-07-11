@@ -166,7 +166,7 @@ public class CMDProtectionTest implements ICustomFinalCMD {
     private static class ParticleCompat{
         //This is necessary to keep this class compatible with older versions without wasting too much time
         private static void sendParticles(boolean canBreakOnRegion, boolean canBuildOnRegion, Player player, CuboidSelection cuboidSelection) {
-            FCScheduler.runAssync(() -> {
+            FCScheduler.runAsync(() -> {
                 Particle.DustOptions GREEN_PARTICLE = new Particle.DustOptions(Color.fromRGB(0, 255, 0), 1.0F);
                 Particle.DustOptions RED_PARTICLE = new Particle.DustOptions(Color.fromRGB(255, 0, 0), 1.0F);
 
@@ -175,7 +175,7 @@ public class CMDProtectionTest implements ICustomFinalCMD {
                 List<BlockPos> selectionWalls = getSelectionWalls(cuboidSelection.getMinium(), cuboidSelection.getMaximum());
 
                 for (int i = 0; i < 4; i++) {
-                    FCScheduler.scheduleAssync(() -> {
+                    FCScheduler.scheduleAsync(() -> {
                         selectionWalls.forEach(pos -> {
                             player.spawnParticle(Particle.REDSTONE, pos.getLocation(player.getWorld()), 1, SELECTED_COLOR);
                         });

@@ -34,7 +34,7 @@ public class IsolatedCLUtil {
         CountDownLatch latch = new CountDownLatch(set.size());
 
         for (Library library : set) {
-            FCScheduler.runAssync(() -> {
+            FCScheduler.runAsync(() -> {
                 try {
                     Path path = dependencyManager.downloadLibrary(library);
                     classLoader.addPath(path);

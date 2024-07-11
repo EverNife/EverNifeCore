@@ -49,7 +49,7 @@ public class FCScheduler {
     //  Actions to be Executed on a Parallel Thread
     // -----------------------------------------------------------------------------------------------------------------
 
-    public static void runAssync(Runnable runnable){
+    public static void runAsync(Runnable runnable){
         scheduler.submit(() -> {
             try {
                 runnable.run();
@@ -59,7 +59,7 @@ public class FCScheduler {
         });
     }
 
-    public static void scheduleAssync(Runnable runnable, long delayMillis){
+    public static void scheduleAsync(Runnable runnable, long delayMillis){
         scheduler.schedule(() -> {
             try {
                 runnable.run();
@@ -69,7 +69,7 @@ public class FCScheduler {
         }, delayMillis, TimeUnit.MILLISECONDS);
     }
 
-    public static void scheduleAssyncInTicks(Runnable runnable, long delayTicks){
+    public static void scheduleAsyncInTicks(Runnable runnable, long delayTicks){
         wrapRunnable(runnable).runTaskLaterAsynchronously(EverNifeCore.instance, delayTicks);
     }
 

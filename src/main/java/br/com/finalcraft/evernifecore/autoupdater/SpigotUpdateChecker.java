@@ -52,7 +52,7 @@ public class SpigotUpdateChecker {
         }
 
         ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(plugin);
-        FCScheduler.runAssync(() -> {
+        FCScheduler.runAsync(() -> {
             spigotUpdateChecker.execute(ecPluginData);
         });
     }
