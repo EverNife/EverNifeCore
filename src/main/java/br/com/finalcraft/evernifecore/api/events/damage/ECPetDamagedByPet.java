@@ -6,7 +6,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
 /**
  * This event is fired when a pet causes damage to another pet
- * The damage can come from thid-part sources like a Projectile.
+ * The damage can come from third-part sources like a Projectile.
  *
  * @author EverNife
  */

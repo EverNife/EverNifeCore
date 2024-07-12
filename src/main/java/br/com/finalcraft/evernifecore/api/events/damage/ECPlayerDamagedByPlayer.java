@@ -6,7 +6,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
 /**
  * This event is fired when a player causes damage to another player!
- * The damage can come from thid-part sources like a Projectile.
+ * The damage can come from third-part sources like a Projectile.
  *
  * @author EverNife
  */

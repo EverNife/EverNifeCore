@@ -68,7 +68,7 @@ public class ECPlayerCraftItemEvent extends Event implements Cancellable {
 
     /**
      * Get the amount of times this {@link Recipe} has
-     * ben crafter. On usage of SHIFT_CLICK it can be
+     * been crafted. On usage of SHIFT_CLICK it can be
      * more than one.
      *
      * @return the amount of times this recipes was crafted
@@ -79,8 +79,8 @@ public class ECPlayerCraftItemEvent extends Event implements Cancellable {
     }
 
     /**
-     * Get the total amount of all ItemStacks produced,
-     * on this craft. In case, the sum of all ItemStack.getAmount()
+     * Get the total amount of all ItemStacks produced
+     * on this craft. It's the sum of all ItemStack.getAmount()
      * produced on this CraftEvent.
      *
      * @return the amount of items produced by this craft operation
