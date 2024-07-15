@@ -884,6 +884,10 @@ public class Config {
 
         List<L> result = (List<L>) getLoadableList(path, firstValue.getClass());
         return result.size() > 0 ? result : loadableListDefault;
+    }
 
+    @Override
+    public String toString() {
+        return getConfiguration().toString();
     }
 }
