@@ -102,7 +102,9 @@ public class Config {
         this(ConfigHelper.createYamlFile(null));
         this.getConfiguration().options().useComments(true);
         try {
-            this.getConfiguration().loadFromString(contents);
+            if (contents != null && !contents.isEmpty()){
+                this.getConfiguration().loadFromString(contents);
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
