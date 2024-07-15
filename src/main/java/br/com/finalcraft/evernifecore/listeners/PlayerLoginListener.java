@@ -31,7 +31,7 @@ public class PlayerLoginListener implements ECListener {
             return; //We already have this player in our database, and the name and the uuid are still the same
         }
 
-        //Now three Scnearios:
+        //Now three Scenarios:
         // 1- It's a complete new Player
         // 2- The UUID is different
         // 3- The Name is different
@@ -44,7 +44,7 @@ public class PlayerLoginListener implements ECListener {
             //We just need to add the new Pair of UUID and Name
             //And create a new PlayerData for this player
             UUIDsController.addOrUpdateUUIDName(currentUUID, currentName);
-            PlayerController.getOrCreateOne(currentUUID);
+            PlayerController.getOrCreateOne(currentUUID).hotLoadPDSections();
             return;
         }
 
@@ -54,7 +54,7 @@ public class PlayerLoginListener implements ECListener {
         // C- It's a special case, described bellow
 
         /*
-         * There special case only matters if the server is in onlineMode=true
+         * The special case only matters if the server is in onlineMode=true
          *
          *   [C1] Server is in OnlineMode=true or BungeeCord's is enabled
          *   [C2] An old player stops playing and change his mojang name to something else
@@ -64,7 +64,7 @@ public class PlayerLoginListener implements ECListener {
          */
         UUID offlineCalculatedUUID = UUID.nameUUIDFromBytes(("OfflinePlayer:" + currentName).getBytes(Charsets.UTF_8));
         if (!currentUUID.equals(offlineCalculatedUUID) // Scenario [C1], we are online
-                && existingUUID != null // This means that C2 and C3 is possible, as there is a player (maybe myself) with the same name
+                && existingUUID != null // This means that C2 and C3 is possible, as there is a player (maybe itself in offline mode) with the same name
                 && !existingUUID.equals(currentUUID) // This is probably different player
                 && !existingUUID.equals(offlineCalculatedUUID)){ // Confirm it's a different player, this checks for "this player is not myself in offline-mode"
 
@@ -83,7 +83,7 @@ public class PlayerLoginListener implements ECListener {
                 //We just need to add the new Pair of UUID and Name
                 //And create a new PlayerData for this player
                 UUIDsController.addOrUpdateUUIDName(currentUUID, currentName);
-                PlayerController.getOrCreateOne(currentUUID);
+                PlayerController.getOrCreateOne(currentUUID).hotLoadPDSections();;
                 return;
             }
         }
@@ -101,7 +101,7 @@ public class PlayerLoginListener implements ECListener {
 
             EverNifeCore.getLog().info("[UUIDsController] [%s] changed his UUID from %s to %s", currentName, playerData.getUniqueId(), currentUUID);
             UUIDsController.addOrUpdateUUIDName(currentUUID, currentName);
-            PlayerController.getOrCreateOne(currentUUID);
+            PlayerController.getOrCreateOne(currentUUID).hotLoadPDSections();;
         }else {
             //If no existingUUID, then we have a new UUID for an existing Name
             PlayerData playerData = PlayerController.getPlayerData(existingName);
@@ -114,7 +114,7 @@ public class PlayerLoginListener implements ECListener {
 
             EverNifeCore.getLog().info("[UUIDsController] [%s] changed his name from %s to %s", currentUUID, playerData.getPlayerName(), currentName);
             UUIDsController.addOrUpdateUUIDName(currentUUID, currentName);
-            PlayerController.getOrCreateOne(currentUUID);
+            PlayerController.getOrCreateOne(currentUUID).hotLoadPDSections();;
         }
     }
 

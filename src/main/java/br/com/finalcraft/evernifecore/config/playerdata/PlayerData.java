@@ -2,12 +2,14 @@ package br.com.finalcraft.evernifecore.config.playerdata;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.evernifecore.config.yaml.caching.SmartCachedYamlFileHolder;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.cooldown.PlayerCooldown;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.Constructor;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class PlayerData implements IPlayerData{
 
@@ -17,6 +19,7 @@ public class PlayerData implements IPlayerData{
     protected final UUID uuid;
     protected final Map<String, PlayerCooldown> cooldownHashMap = new HashMap<>();
     protected long lastSeen;
+    protected long lastSaved;
 
     //Transient Data
     protected transient Player player = null;
@@ -55,11 +58,19 @@ public class PlayerData implements IPlayerData{
         this.playerName = Objects.requireNonNull(config.getString("PlayerData.Username"),"PlayerName cannot be null!");
         this.uuid = Objects.requireNonNull(config.getUUID("PlayerData.UUID"),"PlayerUUID cannot be null!");
         this.lastSeen = config.getLong("PlayerData.lastSeen",0L);
+        this.lastSaved = config.getLong("PlayerData.lastSaved", this.lastSeen);
 
         for (String cooldownID : config.getKeys("Cooldown")) {
             Cooldown cooldown = config.getLoadable("Cooldown." + cooldownID, Cooldown.class);
             PlayerCooldown playerCooldown = new PlayerCooldown(cooldown, this.uuid);
             cooldownHashMap.put(playerCooldown.getIdentifier(), playerCooldown);
+        }
+
+        this.getConfig().enableSmartCache(); //Cache config for only 3 minutes between uses
+        if (System.currentTimeMillis() > this.getLastSaved() + TimeUnit.DAYS.toMillis(3)){
+            //If the last edition this file has is from 3 days ago, cache its config right now, as it will probably not be changed soon
+            SmartCachedYamlFileHolder smartCachedYamlFileHolder = (SmartCachedYamlFileHolder) this.getConfig().getIHasYamlFile();
+            smartCachedYamlFileHolder.cacheToString(); //Cache it right now
         }
     }
 
@@ -68,6 +79,19 @@ public class PlayerData implements IPlayerData{
         this.playerName = playerName;
         this.uuid = uuid;
         this.lastSeen = System.currentTimeMillis();
+        this.lastSaved = 0L;
+
+        this.getConfig().enableSmartCache(); //Cache config for only 3 minutes between uses
+    }
+
+    public PlayerData hotLoadPDSections(){
+        for (PDSectionConfiguration configuration : PlayerController.getConfiguredPDSections().values()) {
+            if (configuration.shouldHotLoad()){
+                this.getPDSection(configuration.getPdSectionClass());//This will hot-load a PDSection
+                //TODO in the future would be nice to have more configurations for these hot-loaded PDSections;
+            }
+        }
+        return this;
     }
 
     public void setRecentChanged(){
@@ -88,11 +112,13 @@ public class PlayerData implements IPlayerData{
             return false;
         }
         this.recentChanged = false;
+        this.lastSaved = System.currentTimeMillis();
 
         //Player Data
         config.setValue("PlayerData.Username",this.playerName);
         config.setValue("PlayerData.UUID",this.uuid);
         config.setValue("PlayerData.lastSeen",this.lastSeen);
+        config.setValue("PlayerData.lastSaved",this.lastSaved);
 
         // Loop all PDSections and save them if needed
         for (PDSection pDSection : new ArrayList<>(MAP_OF_PDSECTIONS.values())){
@@ -134,6 +160,11 @@ public class PlayerData implements IPlayerData{
     @Override
     public long getLastSeen(){
         return player != null ? System.currentTimeMillis() : lastSeen;
+    }
+
+    @Override
+    public long getLastSaved() {
+        return lastSaved;
     }
 
     @Override

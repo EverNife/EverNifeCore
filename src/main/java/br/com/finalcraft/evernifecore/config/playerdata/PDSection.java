@@ -65,6 +65,11 @@ public abstract class PDSection implements IPlayerData{
     }
 
     @Override
+    public long getLastSaved() {
+        return playerData.getLastSaved();
+    }
+
+    @Override
     public PlayerCooldown getCooldown(String identifier){
         return playerData.getCooldown(identifier);
     }

@@ -22,6 +22,8 @@ public interface IPlayerData {
 
     public long getLastSeen();
 
+    public long getLastSaved();
+
     public PlayerCooldown getCooldown(String identifier);
 
     public <T extends PDSection> T getPDSection(Class<T> pdSectionClass);

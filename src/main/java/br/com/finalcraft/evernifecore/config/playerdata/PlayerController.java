@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import org.apache.commons.io.FileUtils;
@@ -11,6 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,13 +22,15 @@ import java.util.function.Supplier;
 
 public class PlayerController {
 
-    private static Map<UUID,PlayerData> MAP_OF_PLAYER_DATA = new HashMap<UUID, PlayerData>();
+    private static Map<UUID,PlayerData> MAP_OF_PLAYER_DATA = new HashMap<>();
 
     private static final File PLAYER_DATA_FOLDER = new File(EverNifeCore.instance.getDataFolder(), "PlayerData");
     private static final File CORRUPTED_PLAYER_DATA_FOLDER = new File(EverNifeCore.instance.getDataFolder(), "PlayerData-Corrupted");
     private static final File DORMANT_PLAYER_DATA_FOLDER = new File(EverNifeCore.instance.getDataFolder(), "PlayerData-Dormant");
 
-    private static void moveToCorrutedFolder(File playerDataFile){
+    private static final Map<Class<? extends PDSection>, PDSectionConfiguration> CONFIGURED_PDSECTIONS = new HashMap();
+
+    private static void moveToCorruptedFolder(File playerDataFile){
         try {
             EverNifeCore.getLog().warning("Moving PlayerData File [%s] to the CorruptedPlayerData folder.", playerDataFile.getName());
             CORRUPTED_PLAYER_DATA_FOLDER.mkdirs();
@@ -75,7 +79,7 @@ public class PlayerController {
                 }catch (Exception e){
                     EverNifeCore.getLog().severe("Failed to load PlayerData [%s] at %s", theConfigFile.getName(), theConfigFile.getAbsolutePath());
                     e.printStackTrace();
-                    moveToCorrutedFolder(theConfigFile);
+                    moveToCorruptedFolder(theConfigFile);
                 }
                 return null;
             });
@@ -102,7 +106,7 @@ public class PlayerController {
         }
         executor.shutdown();
 
-        HashMap<UUID,PlayerData> uuidHashMap = new HashMap();
+        HashMap<UUID,PlayerData> uuidHashMap = new HashMap<>();
         HashMap<String, PlayerData> nameHashMap = new HashMap<>();
 
         for (PlayerData playerData : loadedPlayerData) {
@@ -126,7 +130,7 @@ public class PlayerController {
 
                 uuidHashMap.remove(playerToRemove.getUniqueId());
                 nameHashMap.remove(playerToRemove.getPlayerName());
-                moveToCorrutedFolder(playerToRemove.getConfig().getTheFile());
+                moveToCorruptedFolder(playerToRemove.getConfig().getTheFile());
 
                 playerData = playerToKeep;
             }
@@ -154,7 +158,7 @@ public class PlayerController {
                         "\nI will try to fix this, the PlayerData that is more recent will be kept and the older one will be moved to the Corrupted Folder!" + nameEqualMessage);
 
                 nameHashMap.remove(playerToRemove.getPlayerName());
-                moveToCorrutedFolder(playerToRemove.getConfig().getTheFile());
+                moveToCorruptedFolder(playerToRemove.getConfig().getTheFile());
             }
 
             //NAME is ok, we can add again or add new
@@ -178,7 +182,28 @@ public class PlayerController {
                     onlinePlayer.getUniqueId(),
                     onlinePlayer.getName()
             );
-            getOrCreateOne(onlinePlayer.getUniqueId()).setPlayer(onlinePlayer);
+            getOrCreateOne(onlinePlayer.getUniqueId());
+        }
+
+        //Different from the havavior of calling PlayerData::hotLoadPDSections
+        //on reload, as we want to track performance individually, we load them one by one!
+        if (CONFIGURED_PDSECTIONS.size() > 0){
+            List<PDSectionConfiguration> pdSectionConfigurations;
+            synchronized (CONFIGURED_PDSECTIONS){
+                pdSectionConfigurations = new ArrayList<>(CONFIGURED_PDSECTIONS.values());
+            }
+            for (PDSectionConfiguration pdSectionConfiguration : pdSectionConfigurations) {
+                start = System.currentTimeMillis();
+                for (PlayerData playerData : getAllPlayerData()) {
+                    playerData.getPDSection(pdSectionConfiguration.getPdSectionClass());
+                }
+                end = System.currentTimeMillis();
+                EverNifeCore.getLog().info("Finished Loading PDSection {%s} of %s players! (%s)",
+                        pdSectionConfiguration.getPdSectionClass().getSimpleName(),
+                        uuidHashMap.size(),
+                        FCTimeFrame.of(end - start).getFormattedDiscursive()
+                );
+            }
         }
     }
 
@@ -203,7 +228,7 @@ public class PlayerController {
         }
     }
 
-    public static PlayerData addNewPlayerData(UUID playerUUID){
+    private static PlayerData addNewPlayerData(UUID playerUUID){
         Objects.requireNonNull(playerUUID, "PlayerUUID can't be null");
 
         String playerName   = UUIDsController.getNameFromUUID(playerUUID);
@@ -291,6 +316,7 @@ public class PlayerController {
         PlayerData playerData = getPlayerData(uuid);
         if (playerData == null){
             playerData = addNewPlayerData(uuid);
+            playerData.setPlayer(Bukkit.getPlayer(uuid));
         }
         return playerData;
     }
@@ -336,12 +362,12 @@ public class PlayerController {
             }catch (Exception e){
                 EverNifeCore.getLog().severe("Failed to load PlayerData [%s] at %s", theConfigFile.getName(), theConfigFile.getAbsolutePath());
                 e.printStackTrace();
-                moveToCorrutedFolder(theConfigFile);
+                moveToCorruptedFolder(theConfigFile);
             }
         }
 
         //In case we were not able to actually reload this player data, we create a new one!
-        return getOrCreateOne(playerUUID);
+        return getOrCreateOne(playerUUID).hotLoadPDSections();
     }
 
     //Erase all PDSections reference from all PlayerData
@@ -349,5 +375,25 @@ public class PlayerController {
         for (PlayerData playerData : getAllPlayerData()) {
             playerData.getMapOfPDSections().remove(pdSectionClass);
         }
+    }
+
+    public static void registerAutoLoadPDSection(Plugin plugin, Class<? extends PDSection> pdSectionClass){
+        PDSectionConfiguration pdSectionConfiguration = new PDSectionConfiguration(
+                ECPluginManager.getOrCreateECorePluginData(plugin),
+                pdSectionClass,
+                true
+        );
+
+        CONFIGURED_PDSECTIONS.put(pdSectionClass, pdSectionConfiguration);
+
+        if (pdSectionConfiguration.shouldHotLoad()){
+            getAllPlayerData().forEach(playerData -> {
+                playerData.getPDSection(pdSectionClass);
+            });
+        }
+    }
+
+    public static Map<Class<? extends PDSection>, PDSectionConfiguration> getConfiguredPDSections() {
+        return CONFIGURED_PDSECTIONS;
     }
 }
