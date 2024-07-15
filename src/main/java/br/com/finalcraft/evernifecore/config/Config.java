@@ -2,6 +2,9 @@ package br.com.finalcraft.evernifecore.config;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
+import br.com.finalcraft.evernifecore.config.yaml.caching.IHasYamlFile;
+import br.com.finalcraft.evernifecore.config.yaml.caching.SimpleYamlFileHolder;
+import br.com.finalcraft.evernifecore.config.yaml.caching.SmartCachedYamlFileHolder;
 import br.com.finalcraft.evernifecore.config.yaml.exeption.LoadableMethodException;
 import br.com.finalcraft.evernifecore.config.yaml.helper.CfgExecutor;
 import br.com.finalcraft.evernifecore.config.yaml.helper.CfgLoadableSalvable;
@@ -18,7 +21,6 @@ import org.simpleyaml.configuration.ConfigurationSection;
 import org.simpleyaml.configuration.comments.CommentType;
 import org.simpleyaml.configuration.file.YamlConfigurationOptions;
 import org.simpleyaml.configuration.file.YamlFile;
-import org.simpleyaml.configuration.implementation.snakeyaml.SnakeYamlImplementation;
 import org.simpleyaml.exceptions.InvalidConfigurationException;
 
 import java.io.File;
@@ -33,7 +35,17 @@ public class Config {
 
     private static final Logger logger = Logger.getLogger("FCConfig");
 
-    protected YamlFile yamlFile;
+    /**
+     * Default is a {@link SimpleYamlFileHolder}
+     *
+     * But can be a {@link SmartCachedYamlFileHolder}, this means
+     * this Config's YamlFile will be held on memory only within
+     * an interval of 3 minutes of each usage.
+     *
+     * @see     #enableSmartCache() uses {@link SmartCachedYamlFileHolder}
+     * @see     #disableSmartCache() uses {@link SimpleYamlFileHolder}
+     */
+    protected IHasYamlFile iHasYamlFile;
     protected ReentrantLock lock = new ReentrantLock(true);
 
     protected transient long lastModified;
@@ -43,10 +55,10 @@ public class Config {
     //      Load Function
     // ------------------------------------------------------------------------------------------------------------------
 
-    private void loadWithComments(){
+    protected void loadWithComments(){
         if (getTheFile() != null && getTheFile().exists()){
             try {
-                this.yamlFile.loadWithComments();
+                this.getConfiguration().loadWithComments();
             } catch (IOException e) {
                 //In case of an error, usually by a MalFormed YML File, it's better to create a new file and just notify the console
                 EverNifeCore.warning(String.format("Failed to load YML file at [%s]", this.getAbsolutePath()));
@@ -72,10 +84,11 @@ public class Config {
 
     public Config() {
         //Empty Constructor, allowing for full customization of the YamlFile and the load process
+        //A good idea is to call loadWithComments(); after
     }
 
     public Config(YamlFile yamlFile) {
-        this.yamlFile = yamlFile;
+        this.iHasYamlFile = new SimpleYamlFileHolder(yamlFile);
         this.lastModified = getTheFile() == null ? 0 : getTheFile().lastModified();
 
         loadWithComments(); //Do file Loading if exists
@@ -87,12 +100,40 @@ public class Config {
 
     public Config(String contents) {
         this(ConfigHelper.createYamlFile(null));
-        this.yamlFile.options().useComments(true);
+        this.getConfiguration().options().useComments(true);
         try {
-            this.yamlFile.loadFromString(contents);
+            this.getConfiguration().loadFromString(contents);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    // ------------------------------------------------------------------------------------------------------------------
+    //      Cache Related
+    // ------------------------------------------------------------------------------------------------------------------
+
+    public Config disableSmartCache(){
+        if (this.iHasYamlFile instanceof SimpleYamlFileHolder == false){
+            this.iHasYamlFile = new SimpleYamlFileHolder(this.getConfiguration());
+        }
+        return this;
+    }
+
+    /**
+     * Enables a smart Cache for the YamlFile instance.
+     * The idea is to transform the YamlFile to a String and store only the string
+     * and read from the String when necessary. It chaces the YamlFile for 3 minutes
+     * after its been used.
+     */
+    public Config enableSmartCache(){
+        if (this.iHasYamlFile instanceof SmartCachedYamlFileHolder == false){
+            this.iHasYamlFile = new SmartCachedYamlFileHolder(this.getConfiguration());
+        }
+        return this;
+    }
+
+    public IHasYamlFile getIHasYamlFile() {
+        return iHasYamlFile;
     }
 
     // ------------------------------------------------------------------------------------------------------------------
@@ -111,16 +152,16 @@ public class Config {
             }
         }
 
-        this.yamlFile = ConfigHelper.createYamlFile(targetFile);
+        this.iHasYamlFile = new SimpleYamlFileHolder(ConfigHelper.createYamlFile(targetFile));
         this.lastModified = targetFile.lastModified();
 
         this.loadWithComments(); //Do file Loading if exists
 
-        this.yamlFile.options().headerFormatter()
+        this.getConfiguration().options().headerFormatter()
                 .prefixFirst("# -----------------------------------------------------")
                 .suffixLast("\n# ----------------------------------------------------");
 
-        this.yamlFile.options().header(
+        this.getConfiguration().options().header(
                 // Site that i used to make this http://patorjk.com/software/taag/#p=display&f=Doom&t=FinalCraft
                 "" +
                         "\n        _____ _____              __ _       " +
@@ -158,7 +199,7 @@ public class Config {
      * @return  The File this Config is handling
      */
     public @Nullable File getTheFile() {
-        return this.yamlFile.getConfigurationFile();
+        return this.getConfiguration().getConfigurationFile();
     }
 
     /**
@@ -167,7 +208,7 @@ public class Config {
      * @return The absolute path of the file.
      */
     public @Nullable String getAbsolutePath(){
-        return this.yamlFile.getConfigurationFile() != null ? this.yamlFile.getConfigurationFile().getAbsolutePath() : null;
+        return this.getConfiguration().getConfigurationFile() != null ? this.getConfiguration().getConfigurationFile().getAbsolutePath() : null;
     }
 
     /**
@@ -176,7 +217,7 @@ public class Config {
      * @return  The FileConfiguration Object
      */
     public YamlFile getConfiguration() {
-        return this.yamlFile;
+        return this.iHasYamlFile.getYamlFile();
     }
 
     /**
@@ -190,7 +231,7 @@ public class Config {
         }
         lock.lock();
         try {
-            yamlFile.save();
+            getConfiguration().save();
         } catch (IOException e) {
             logger.warning("Failed to save file [" + getTheFile().getAbsolutePath() + "]");
             e.printStackTrace();
@@ -206,7 +247,7 @@ public class Config {
      */
     public void save(File file) {
         try {
-            yamlFile.save(file);
+            getConfiguration().save(file);
         } catch (IOException e) {
             logger.warning("Failed to save file [" + file.getAbsolutePath() + "]");
             e.printStackTrace();
@@ -240,7 +281,7 @@ public class Config {
                 loadWithComments();
                 this.lastModified = getTheFile().lastModified();
             }else { //Otherwise, read from an EmptyString
-                this.yamlFile.loadFromString("");
+                this.getConfiguration().loadFromString("");
                 this.lastModified = 0;
             }
         } catch (InvalidConfigurationException e) {
@@ -289,7 +330,7 @@ public class Config {
      * @param type    either above (BLOCK) or SIDE
      */
     public void setComment(@NotNull String path, @NotNull String comment, @NotNull CommentType type) {
-        this.yamlFile.setComment(path, comment, type);
+        this.getConfiguration().setComment(path, comment, type);
     }
 
     /**
@@ -303,7 +344,7 @@ public class Config {
      * @param comment the block comment to add, # character is not needed
      */
     public void setComment(@NotNull String path, @Nullable String comment) {
-        this.yamlFile.setComment(path, comment);
+        this.getConfiguration().setComment(path, comment);
     }
 
     /**
@@ -317,7 +358,7 @@ public class Config {
      * or null if that path does not have any comment of this type
      */
     public String getComment(@NotNull String path, @NotNull CommentType type) {
-        return this.yamlFile.getComment(path, type);
+        return this.getConfiguration().getComment(path, type);
     }
 
     /**
@@ -330,7 +371,7 @@ public class Config {
      * or null if that path does not have any comment of type block
      */
     public String getComment(@NotNull String path) {
-        return this.yamlFile.getComment(path);
+        return this.getConfiguration().getComment(path);
     }
 
     // ------------------------------------------------------------------------------------------------------------------
@@ -344,7 +385,7 @@ public class Config {
      * @param  value The Value for that Path
      */
     protected void store(String path, Object value) {
-        this.yamlFile.set(path, value);
+        this.getConfiguration().set(path, value);
     }
 
     public ConfigSection getConfigSection(String path){
@@ -361,7 +402,7 @@ public class Config {
      * @return All Paths in this Config
      */
     public Set<String> getKeys() {
-        return yamlFile.getKeys(false);
+        return getConfiguration().getKeys(false);
     }
 
     /**
@@ -372,7 +413,7 @@ public class Config {
      */
     public Set<String> getKeys(String path) {
         if (contains(path)){
-            ConfigurationSection configurationSection = yamlFile.getConfigurationSection(path);
+            ConfigurationSection configurationSection = getConfiguration().getConfigurationSection(path);
             if (configurationSection != null){ //Even containing this path, this path might not be a ConfigurationSection
                 return configurationSection.getKeys(false);
             }
@@ -389,7 +430,7 @@ public class Config {
      */
     public Set<String> getKeys(String path, boolean deep) {
         if (contains(path)){
-            return yamlFile.getConfigurationSection(path).getKeys(deep);
+            return getConfiguration().getConfigurationSection(path).getKeys(deep);
         }
         return Collections.emptySet();
     }
@@ -419,7 +460,7 @@ public class Config {
      * @return      True/false
      */
     public boolean contains(String path) {
-        return yamlFile.contains(path);
+        return getConfiguration().contains(path);
     }
 
     /**
@@ -429,7 +470,7 @@ public class Config {
      * @return      The Value at that Path
      */
     public Object getValue(String path) {
-        return yamlFile.get(path);
+        return getConfiguration().get(path);
     }
 
     /**
@@ -507,7 +548,7 @@ public class Config {
                     Set<String> keys = this.getKeys(path + ".0");
                     if (keys.size() == 1){
                         String theOnlyKey = keys.iterator().next();
-                        useCustomIndex = this.yamlFile.isConfigurationSection(path + ".0." + theOnlyKey);
+                        useCustomIndex = this.getConfiguration().isConfigurationSection(path + ".0." + theOnlyKey);
                         if (useCustomIndex){
                             this.setValue(path + ".0", null); //Erase the written value
                         }
@@ -578,11 +619,11 @@ public class Config {
      * @return The String at that Path
      */
     public String getString(String path) {
-        return yamlFile.getString(path);
+        return getConfiguration().getString(path);
     }
 
     public String getString(String path, String def) {
-        return yamlFile.getString(path,def);
+        return getConfiguration().getString(path,def);
     }
 
     /**
@@ -592,10 +633,10 @@ public class Config {
      * @return The Boolean at that Path
      */
     public boolean getBoolean(String path) {
-        return yamlFile.getBoolean(path);
+        return getConfiguration().getBoolean(path);
     }
     public boolean getBoolean(String path, boolean def) {
-        return yamlFile.getBoolean(path,def);
+        return getConfiguration().getBoolean(path,def);
     }
 
     /**
@@ -605,10 +646,10 @@ public class Config {
      * @return The Integer at that Path
      */
     public int getInt(String path) {
-        return yamlFile.getInt(path);
+        return getConfiguration().getInt(path);
     }
     public int getInt(String path, int def) {
-        return yamlFile.getInt(path,def);
+        return getConfiguration().getInt(path,def);
     }
 
     /**
@@ -625,10 +666,10 @@ public class Config {
             return def;
         }
         //Fix for old behavior of this config, we previously stringify 'long' values, why? who knows :/
-        if (yamlFile.isString(path)){
-            return Long.valueOf(yamlFile.getString(path));
+        if (getConfiguration().isString(path)){
+            return Long.valueOf(getConfiguration().getString(path));
         }else {
-            return yamlFile.getLong(path);
+            return getConfiguration().getLong(path);
         }
     }
 
@@ -639,10 +680,10 @@ public class Config {
      * @return      The Double at that Path
      */
     public double getDouble(String path) {
-        return yamlFile.getDouble(path);
+        return getConfiguration().getDouble(path);
     }
     public double getDouble(String path, double def) {
-        return yamlFile.getDouble(path,def);
+        return getConfiguration().getDouble(path,def);
     }
 
     /**
@@ -670,10 +711,10 @@ public class Config {
 
 
     public List getList(String path) {
-        return yamlFile.getList(path);
+        return getConfiguration().getList(path);
     }
     public List getList(String path, List<String> def) {
-        return yamlFile.getList(path, def);
+        return getConfiguration().getList(path, def);
     }
 
     /**
@@ -683,10 +724,10 @@ public class Config {
      * @return      The StringList at that Path
      */
     public List<String> getStringList(String path) {
-        return yamlFile.getStringList(path);
+        return getConfiguration().getStringList(path);
     }
     public List<String> getStringList(String path, List<String> def) {
-        if (contains(path)) return yamlFile.getStringList(path);
+        if (contains(path)) return getConfiguration().getStringList(path);
         return def;
     }
 
