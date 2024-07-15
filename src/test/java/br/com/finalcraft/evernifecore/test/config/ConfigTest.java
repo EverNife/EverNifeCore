@@ -40,7 +40,7 @@ public class ConfigTest {
 
         System.out.println(yamlStr);
 
-        Config newConfig = new Config("");
+        Config newConfig = new Config(new File(""));
         newConfig.getConfiguration().loadFromString(yamlStr);
         System.out.println(newConfig.getInt("age"));
 
@@ -100,6 +100,5 @@ public class ConfigTest {
 
         System.out.println(yamlFile.getString("text"));
     }
-
 
 }
