@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.config.playerdata;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import lombok.Data;
 
 public class PDSectionConfiguration {
 

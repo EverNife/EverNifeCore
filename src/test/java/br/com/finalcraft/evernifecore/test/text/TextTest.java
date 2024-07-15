@@ -1,11 +1,7 @@
 package br.com.finalcraft.evernifecore.test.text;
 
-import br.com.finalcraft.evernifecore.util.FCTextUtil;
 import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-
-import java.util.Arrays;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TextTest {
