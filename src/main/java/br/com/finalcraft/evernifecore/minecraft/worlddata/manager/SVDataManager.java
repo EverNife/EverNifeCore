@@ -136,6 +136,7 @@ public class SVDataManager<O> extends ServerData<O>{
                     FCScheduler.runAsync(() -> {
                         try {
                             Config config = new Config(file);
+                            config.enableSmartCache();
                             configs.add(config);
                         }catch (Exception e){
                             e.printStackTrace();
