@@ -53,11 +53,10 @@ public class ServerConfigData {
     public Config getOrCreateConfigData(String worldName, RegionPos regionPos){
         Map<RegionPos, Config> regionMap = CONFIG_MAP.computeIfAbsent(worldName, s -> new LinkedHashMap<>());
 
-        Config config = regionMap.computeIfAbsent(regionPos, r -> {
-            Config regionConfig = new Config(new File(mainFolder, worldName + File.separator + "r." + regionPos.getX() + "." + regionPos.getZ() + ".yml"));
-            regionConfig.enableSmartCache();
-            return regionConfig;
-        });
+        Config config = regionMap.computeIfAbsent(regionPos, r ->
+                new Config(new File(mainFolder, worldName + File.separator + "r." + regionPos.getX() + "." + regionPos.getZ() + ".yml"))
+                        .enableSmartCache()
+        );
         return config;
     }
 

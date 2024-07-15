@@ -135,9 +135,7 @@ public class SVDataManager<O> extends ServerData<O>{
                     phaser.register(); //Increase the phaser count
                     FCScheduler.runAsync(() -> {
                         try {
-                            Config config = new Config(file);
-                            config.enableSmartCache();
-                            configs.add(config);
+                            configs.add(new Config(file).enableSmartCache());
                         }catch (Exception e){
                             e.printStackTrace();
                         }finally {
