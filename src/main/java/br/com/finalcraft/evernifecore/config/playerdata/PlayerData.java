@@ -70,7 +70,7 @@ public class PlayerData implements IPlayerData{
         if (System.currentTimeMillis() > this.getLastSaved() + TimeUnit.DAYS.toMillis(3)){
             //If the last edition this file has is from 3 days ago, cache its config right now, as it will probably not be changed soon
             SmartCachedYamlFileHolder smartCachedYamlFileHolder = (SmartCachedYamlFileHolder) this.getConfig().getIHasYamlFile();
-            smartCachedYamlFileHolder.cacheToString(); //Cache it right now
+            smartCachedYamlFileHolder.scheduleExpirationRunnable(30); //Cache it sooner
         }
     }
 

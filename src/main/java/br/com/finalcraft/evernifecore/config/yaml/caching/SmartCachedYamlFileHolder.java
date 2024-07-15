@@ -61,7 +61,7 @@ public class SmartCachedYamlFileHolder implements IHasYamlFile {
         this.yamlFile = null;//free for GC to collect
     }
 
-    private void scheduleExpirationRunnable(long secondsToWait){
+    public void scheduleExpirationRunnable(long secondsToWait){
         FCScheduler.getScheduler().schedule(() -> {
             if (this.innerGetYamlFile() == null){
                 return;//It means was cached to string manually
