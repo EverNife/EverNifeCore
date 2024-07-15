@@ -22,7 +22,9 @@ public class ConfigHelper {
         SimpleYamlImplementation simpleYamlImplementation = new SimpleYamlImplementation();
 
         YamlFile yamlFile = new YamlFile(simpleYamlImplementation);
-        yamlFile.setConfigurationFile(file);
+        if (file != null){
+            yamlFile.setConfigurationFile(file);
+        }
 
         yamlFile.setCommentFormat(YamlCommentFormat.PRETTY);
 
@@ -36,6 +38,7 @@ public class ConfigHelper {
 
         return yamlFile;
     }
+
 
     /**
      * It returns a list of all the configs in a directory
