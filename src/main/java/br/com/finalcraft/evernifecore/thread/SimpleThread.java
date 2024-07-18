@@ -8,7 +8,10 @@ public abstract class SimpleThread {
     protected transient Thread thread;
     protected final String threadName;
 
+    protected boolean silent = false;
+
     private transient boolean executeOnShutdown = true;
+    private transient boolean executeOnStart = true;
 
     protected Thread getOrCreateThread(){
         if (thread == null || !thread.isAlive()){
@@ -16,14 +19,20 @@ public abstract class SimpleThread {
                 @Override
                 public void run() {
                     try {
-                        SimpleThread.this.javaPlugin.getLogger().info("Starting Thread: " + this.getName());
-                        SimpleThread.this.onStart();
+                        if (!isSilent()){
+                            SimpleThread.this.javaPlugin.getLogger().info("Starting Thread: " + this.getName());
+                        }
+                        if (executeOnStart){
+                            SimpleThread.this.onStart();
+                        }
                         SimpleThread.this.run();
                     } catch (InterruptedException exception) {
                         if (executeOnShutdown){
                             SimpleThread.this.onShutdown();
                         }
-                        SimpleThread.this.javaPlugin.getLogger().info("Thread Shutdown: " + this.getName());
+                        if (!silent){
+                            SimpleThread.this.javaPlugin.getLogger().info("Thread Shutdown: " + this.getName());
+                        }
                     }
                 }
             };
@@ -45,13 +54,18 @@ public abstract class SimpleThread {
         return threadName;
     }
 
-    public void start(){
+    public void start(boolean executeOnStart){
+        this.executeOnStart = executeOnStart;
         if (!getOrCreateThread().isAlive()){
             getOrCreateThread().start();
         } else if (allowRestart()){
             shutdown();
-            start();
+            start(executeOnStart);
         }
+    }
+
+    public void start(){
+        start(true);
     }
 
     public void shutdown(){
@@ -63,6 +77,14 @@ public abstract class SimpleThread {
         if (getOrCreateThread().isAlive()){
             getOrCreateThread().interrupt();
         }
+    }
+
+    public void setSilent(boolean silent) {
+        this.silent = silent;
+    }
+
+    public boolean isSilent() {
+        return silent;
     }
 
     protected abstract void run() throws InterruptedException;
