@@ -122,8 +122,12 @@ public class EverNifeCore extends JavaPlugin {
 
     @ECPlugin.Reload
     public void onReload(){
+        SaveConfigThread.INSTANCE.setSilent(true);
+        SaveConfigThread.INSTANCE.shutdown();
         ConfigManager.initialize(this);
         ConfigManager.reloadCooldownConfig();
+        SaveConfigThread.INSTANCE.start();
+        SaveConfigThread.INSTANCE.setSilent(false);
     }
 
 }
