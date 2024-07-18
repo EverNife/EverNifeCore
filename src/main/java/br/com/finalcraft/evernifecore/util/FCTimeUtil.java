@@ -122,6 +122,8 @@ public class FCTimeUtil {
         }
     }
 
+    public static final DateTimeFormatter FORMATTER_DEFAULT = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+
     public static final DateTimeFormatter FORMATTER_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
     public static final DateTimeFormatter FORMATTER_DATETIME_ALT = DateTimeFormatter.ofPattern("yyyy/MM/dd'T'HH:mm");
     public static final DateTimeFormatter FORMATTER_DATETIME_REVERSE = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
@@ -166,9 +168,12 @@ public class FCTimeUtil {
                 return Timestamp.valueOf(dateString).toLocalDateTime();
             }
 
-            //Testar formato convencional yyyy-MM-dd'T'HH:mm
             if (dateString.charAt(4) == '/'){
-                return LocalDateTime.parse(dateString, FORMATTER_DATETIME_ALT);
+                if (dateString.length() == 19){
+                    return LocalDateTime.parse(dateString, FORMATTER_DEFAULT);
+                }else {
+                    return LocalDateTime.parse(dateString, FORMATTER_DATETIME_ALT);
+                }
             }else if (dateString.charAt(2) == '/'){
                 if (dateString.length() <= 16){
                     return LocalDateTime.parse(dateString, FORMATTER_DATETIME_REVERSE);
