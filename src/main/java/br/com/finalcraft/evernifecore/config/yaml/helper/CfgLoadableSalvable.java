@@ -15,10 +15,8 @@ import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
-import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import br.com.finalcraft.evernifecore.util.FCInputReader;
-import br.com.finalcraft.evernifecore.util.FCItemUtils;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.evernifecore.time.DayOfToday;
+import br.com.finalcraft.evernifecore.util.*;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -29,6 +27,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -374,5 +374,23 @@ public class CfgLoadableSalvable {
                     section.setValue("", new ArrayList<>(set));
                 })
                 .setAllowExtends(true);
+
+        addLoadableSalvable(ZonedDateTime.class)
+                .setOnConfigSave((section, set) -> {
+                    section.setValue("", FCTimeUtil.FORMATTER_DATE);
+                })
+                .setOnConfigLoad(configSection -> {
+                    String formmatedTime = configSection.getString("");
+                    return FCTimeUtil.universalDateConverter(formmatedTime).atZone(DayOfToday.getInstance().getZoneId());
+                });
+
+        addLoadableSalvable(LocalDateTime.class)
+                .setOnConfigSave((section, localDateTime) -> {
+                    section.setValue("", FCTimeUtil.FORMATTER_DATE.format(localDateTime));
+                })
+                .setOnConfigLoad(configSection -> {
+                    String formmatedTime = configSection.getString("");
+                    return FCTimeUtil.universalDateConverter(formmatedTime);
+                });
     }
 }
