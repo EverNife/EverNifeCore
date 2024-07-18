@@ -3,7 +3,12 @@ package br.com.finalcraft.evernifecore.util;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.time.DayOfToday;
 
+import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -114,6 +119,68 @@ public class FCTimeUtil {
                 return TimeUnit.DAYS.toMillis(value * 30);
             default:
                 return null;
+        }
+    }
+
+    public static final DateTimeFormatter FORMATTER_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+    public static final DateTimeFormatter FORMATTER_DATETIME_ALT = DateTimeFormatter.ofPattern("yyyy/MM/dd'T'HH:mm");
+    public static final DateTimeFormatter FORMATTER_DATETIME_REVERSE = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    public static final DateTimeFormatter FORMATTER_DATETIME_REVERSE_COMPLETE = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+    public static final DateTimeFormatter FORMATTER_DATE = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+    public static final DateTimeFormatter FORMATTER_DATE_ALT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    public static final DateTimeFormatter FORMATTER_DATE_REVERSE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    public static final DateTimeFormatter FORMATTER_DATE_REVERSE_ALT = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
+    /**
+     * Given a date string, converts to LocalDateTime.
+     *
+     * The idea if to convert the most usual timeframes
+     *
+     * Accepted TimeFrames patterns are:
+     *   - yyyy-MM-dd'T'HH:mm
+     *   - yyyy/MM/dd'T'HH:mm
+     *   - dd/MM/yyyy HH:mm
+     *   - dd/MM/yyyy HH:mm:ss
+     *   - yyyy/MM/dd
+     *   - yyyy-MM-dd
+     *   - dd/MM/yyyy
+     *   - dd-MM-yyyy
+     *
+     * @param dateString
+     * @return LocalDateTime
+     */
+    public static LocalDateTime universalDateConverter(String dateString) {
+        if (dateString == null || dateString.isEmpty()){
+            return null;
+        }
+
+        try {
+            if (dateString.length() <= 10){//Quando em formato menor, não temos as horas inclusas
+                if (dateString.charAt(4) == '/') return LocalDate.parse(dateString, FORMATTER_DATE).atTime(LocalTime.MIN);
+                if (dateString.charAt(4) == '-') return LocalDate.parse(dateString, FORMATTER_DATE_ALT).atTime(LocalTime.MIN);
+                if (dateString.charAt(2) == '/') return LocalDate.parse(dateString, FORMATTER_DATE_REVERSE).atTime(LocalTime.MIN);
+                if (dateString.charAt(2) == '-') return LocalDate.parse(dateString, FORMATTER_DATE_REVERSE_ALT).atTime(LocalTime.MIN);
+            }
+
+            if (dateString.length() == 27){
+                return Timestamp.valueOf(dateString).toLocalDateTime();
+            }
+
+            //Testar formato convencional yyyy-MM-dd'T'HH:mm
+            if (dateString.charAt(4) == '/'){
+                return LocalDateTime.parse(dateString, FORMATTER_DATETIME_ALT);
+            }else if (dateString.charAt(2) == '/'){
+                if (dateString.length() <= 16){
+                    return LocalDateTime.parse(dateString, FORMATTER_DATETIME_REVERSE);
+                }else {
+                    return LocalDateTime.parse(dateString, FORMATTER_DATETIME_REVERSE_COMPLETE);
+                }
+            }else {
+                return LocalDateTime.parse(dateString, FORMATTER_DATETIME);
+            }
+
+        }catch (Exception ignored){
+            return null;
         }
     }
 
