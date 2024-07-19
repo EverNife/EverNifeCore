@@ -376,21 +376,21 @@ public class CfgLoadableSalvable {
                 .setAllowExtends(true);
 
         addLoadableSalvable(ZonedDateTime.class)
-                .setOnConfigSave((section, set) -> {
-                    section.setValue("", FCTimeUtil.FORMATTER_DATE);
+                .setOnConfigSave((section, zonedDateTime) -> {
+                    section.setValue("", FCTimeUtil.FORMATTER_DEFAULT.format(zonedDateTime));
                 })
                 .setOnConfigLoad(configSection -> {
-                    String formmatedTime = configSection.getString("");
-                    return FCTimeUtil.universalDateConverter(formmatedTime).atZone(DayOfToday.getInstance().getZoneId());
+                    String formatedTime = configSection.getString("");
+                    return FCTimeUtil.universalDateConverter(formatedTime).atZone(DayOfToday.getInstance().getZoneId());
                 });
 
         addLoadableSalvable(LocalDateTime.class)
                 .setOnConfigSave((section, localDateTime) -> {
-                    section.setValue("", FCTimeUtil.FORMATTER_DATE.format(localDateTime));
+                    section.setValue("", FCTimeUtil.FORMATTER_DEFAULT.format(localDateTime));
                 })
                 .setOnConfigLoad(configSection -> {
-                    String formmatedTime = configSection.getString("");
-                    return FCTimeUtil.universalDateConverter(formmatedTime);
+                    String formatedTime = configSection.getString("");
+                    return FCTimeUtil.universalDateConverter(formatedTime);
                 });
     }
 }
