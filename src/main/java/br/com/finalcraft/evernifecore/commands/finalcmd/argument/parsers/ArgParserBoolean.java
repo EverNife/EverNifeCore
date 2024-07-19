@@ -12,12 +12,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class ArgParserBoolean extends ArgParser<Boolean> {
 
-    private final List<String> possibilities;
+    private List<String> possibilities;
 
     public ArgParserBoolean(ArgInfo argInfo) {
         super(argInfo);
@@ -27,9 +28,11 @@ public class ArgParserBoolean extends ArgParser<Boolean> {
                 ? argInfo.getArgData().getName()
                 : argInfo.getArgData().getContext();
 
-        possibilities = ImmutableList.copyOf(ArgsParserUtil.parseStringContextSelectional(context));
+        possibilities = ArgsParserUtil.parseStringContextSelectional(context);
 
-        Validate.isTrue(possibilities.size() == 2, "Can't create a ArgParserBoolean without exactly two options! [context=='" + context + "']");
+        if (possibilities.size() != 2 && argInfo.getArgData().getContext().isEmpty()){
+            possibilities = Arrays.asList("true","false");
+        }
     }
 
     @Override
