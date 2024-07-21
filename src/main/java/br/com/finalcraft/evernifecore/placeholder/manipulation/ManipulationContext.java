@@ -53,7 +53,7 @@ public abstract class ManipulationContext {
 
     public @NotNull String getString(String closure){
         if (!manipulationResult.containsKey(closure)) {
-            throw new IllegalArgumentException(String.format("Tried to retrieve a closure from the ManipulationContext that does not belong to this context.\nTried to retrieve '%s' from [%s]", closure, closure));
+            throw new IllegalArgumentException(String.format("Tried to retrieve a closure from the ManipulationContext that does not belong to this context.\nTried to retrieve '%s' from [%s]", closure, manipulationResult.keySet().stream().collect(Collectors.joining(", "))));
         }
 
         return manipulationResult.get(closure);
@@ -61,7 +61,7 @@ public abstract class ManipulationContext {
 
     public @NotNull Argumento getArgumento(String closure){
         if (!manipulationResult.containsKey(closure)) {
-            throw new IllegalArgumentException(String.format("Tried to retrieve a closure from the ManipulationContext that does not belong to this context.\nTried to retrieve '%s' from [%s]", closure, closure));
+            throw new IllegalArgumentException(String.format("Tried to retrieve a closure from the ManipulationContext that does not belong to this context.\nTried to retrieve '%s' from [%s]", closure, manipulationResult.keySet().stream().collect(Collectors.joining(", "))));
         }
 
         return new Argumento(manipulationResult.get(closure));
