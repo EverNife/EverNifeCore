@@ -5,7 +5,7 @@ import org.jetbrains.annotations.Nullable;
 
 public enum ArgRequirementType {
     REQUIRED_OR_PROVIDED_BY_CONTEXT("<(", ")>", true, true),
-    OPTIONAL_OR_PROVIDED_BY_CONTEXT("[(", "]]", false, true),
+    OPTIONAL_OR_PROVIDED_BY_CONTEXT("[(", ")]", false, true),
     REQUIRED("<", ">", true, false),
     OPTIONAL("[", "]", false, false),
     ;
