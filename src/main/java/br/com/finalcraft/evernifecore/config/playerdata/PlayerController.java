@@ -185,7 +185,7 @@ public class PlayerController {
             getOrCreateOne(onlinePlayer.getUniqueId());
         }
 
-        //Different from the havavior of calling PlayerData::hotLoadPDSections
+        //Different from the behavavior of calling PlayerData::hotLoadPDSections
         //on reload, as we want to track performance individually, we load them one by one!
         if (CONFIGURED_PDSECTIONS.size() > 0){
             List<PDSectionConfiguration> pdSectionConfigurations;
@@ -377,18 +377,21 @@ public class PlayerController {
         }
     }
 
-    public static void registerAutoLoadPDSection(Plugin plugin, Class<? extends PDSection> pdSectionClass){
+    public static void registerPDSection(Plugin plugin, Class<? extends PDSection> pdSectionClass){
         PDSectionConfiguration pdSectionConfiguration = new PDSectionConfiguration(
                 ECPluginManager.getOrCreateECorePluginData(plugin),
                 pdSectionClass,
                 true
         );
 
-        CONFIGURED_PDSECTIONS.put(pdSectionClass, pdSectionConfiguration);
+        registerPDSection(pdSectionConfiguration);
+    }
 
+    public static void registerPDSection(PDSectionConfiguration pdSectionConfiguration){
+        CONFIGURED_PDSECTIONS.put(pdSectionConfiguration.getPdSectionClass(), pdSectionConfiguration);
         if (pdSectionConfiguration.shouldHotLoad()){
             getAllPlayerData().forEach(playerData -> {
-                playerData.getPDSection(pdSectionClass);
+                playerData.getPDSection(pdSectionConfiguration.getPdSectionClass());
             });
         }
     }
