@@ -33,13 +33,13 @@ public class WGFlags {
     public static @DefaultState(state = false) StateFlag RESPAWN_ANCHORS;
     public static @DefaultState(state = false) StateFlag TNT;
     public static @DefaultState(state = false) StateFlag CHEST_ACCESS;
-    public static @DefaultState(state = false) StateFlag PLACE_VEHICLE = (StateFlag) getFlagFromWorldGuard("vehicle-place");
-    public static @DefaultState(state = false) StateFlag DESTROY_VEHICLE = (StateFlag) getFlagFromWorldGuard("vehicle-destroy");
+    public static @DefaultState(state = false) StateFlag PLACE_VEHICLE = (StateFlag) getFlag("vehicle-place");
+    public static @DefaultState(state = false) StateFlag DESTROY_VEHICLE = (StateFlag) getFlag("vehicle-destroy");
     public static @DefaultState(state = false) StateFlag LIGHTER;
     public static @DefaultState(state = false) StateFlag RIDE;
     public static @DefaultState(state = false) StateFlag POTION_SPLASH;
-    public static @DefaultState(state = false) StateFlag ITEM_FRAME_ROTATE = (StateFlag) getFlagFromWorldGuard("item-frame-rotation");
-    public static @DefaultState(state = false) StateFlag TRAMPLE_BLOCKS = (StateFlag) getFlagFromWorldGuard("block-trampling");
+    public static @DefaultState(state = false) StateFlag ITEM_FRAME_ROTATE = (StateFlag) getFlag("item-frame-rotation");
+    public static @DefaultState(state = false) StateFlag TRAMPLE_BLOCKS = (StateFlag) getFlag("block-trampling");
     public static @DefaultState(state = false) StateFlag FIREWORK_DAMAGE;
     public static @DefaultState(state = false) StateFlag USE_ANVIL;
     public static @DefaultState(state = false) StateFlag USE_DRIPLEAF;
@@ -63,7 +63,7 @@ public class WGFlags {
     public static @DefaultState(state = true) StateFlag GHAST_FIREBALL;
     public static @DefaultState(state = true) StateFlag OTHER_EXPLOSION;
     public static @DefaultState(state = true) StateFlag WITHER_DAMAGE;
-    public static @DefaultState(state = true) StateFlag ENDER_BUILD = (StateFlag) getFlagFromWorldGuard("enderman-grief");
+    public static @DefaultState(state = true) StateFlag ENDER_BUILD = (StateFlag) getFlag("enderman-grief");
     public static @DefaultState(state = true) StateFlag SNOWMAN_TRAILS;
     public static @DefaultState(state = true) StateFlag RAVAGER_RAVAGE;
     public static @DefaultState(state = true) StateFlag ENTITY_PAINTING_DESTROY;
@@ -84,9 +84,9 @@ public class WGFlags {
     public static @DefaultState(state = true) StateFlag ICE_MELT;
     public static @DefaultState(state = true) StateFlag FROSTED_ICE_MELT;
     public static @DefaultState(state = false) StateFlag FROSTED_ICE_FORM; // this belongs in the first category of "checked with build"
-    public static @DefaultState(state = true) StateFlag MUSHROOMS = (StateFlag) getFlagFromWorldGuard("mushroom-growth");
+    public static @DefaultState(state = true) StateFlag MUSHROOMS = (StateFlag) getFlag("mushroom-growth");
     public static @DefaultState(state = true) StateFlag LEAF_DECAY;
-    public static @DefaultState(state = true) StateFlag GRASS_SPREAD = (StateFlag) getFlagFromWorldGuard("grass-growth");
+    public static @DefaultState(state = true) StateFlag GRASS_SPREAD = (StateFlag) getFlag("grass-growth");
     public static @DefaultState(state = true) StateFlag MYCELIUM_SPREAD;
     public static @DefaultState(state = true) StateFlag VINE_GROWTH;
     public static @DefaultState(state = true) StateFlag ROCK_GROWTH;
@@ -107,15 +107,15 @@ public class WGFlags {
     public static SetFlag<String> ALLOWED_CMDS;
 
     // locations
-    public static LocationFlag TELE_LOC = (LocationFlag) getFlagFromWorldGuard("teleport");
-    public static LocationFlag SPAWN_LOC = (LocationFlag) getFlagFromWorldGuard("spawn");
+    public static LocationFlag TELE_LOC = (LocationFlag) getFlag("teleport");
+    public static LocationFlag SPAWN_LOC = (LocationFlag) getFlag("spawn");
 
 
     // idk?
-    public static @DefaultState(state = false) StateFlag INVINCIBILITY = (StateFlag) getFlagFromWorldGuard("invincible");
+    public static @DefaultState(state = false) StateFlag INVINCIBILITY = (StateFlag) getFlag("invincible");
     public static @DefaultState(state = true) StateFlag FALL_DAMAGE;
-    public static @DefaultState(state = true) StateFlag HEALTH_REGEN = (StateFlag) getFlagFromWorldGuard("natural-health-regen");
-    public static @DefaultState(state = true) StateFlag HUNGER_DRAIN = (StateFlag) getFlagFromWorldGuard("natural-hunger-drain");
+    public static @DefaultState(state = true) StateFlag HEALTH_REGEN = (StateFlag) getFlag("natural-health-regen");
+    public static @DefaultState(state = true) StateFlag HUNGER_DRAIN = (StateFlag) getFlag("natural-hunger-drain");
 
     // session and movement based flags
     public static @DefaultState(state = true) StateFlag ENTRY;
@@ -172,21 +172,21 @@ public class WGFlags {
      *              in a future release. If you depend on the type of this flag, take proper precaution for future breakage.
      */
     //@Deprecated
-    public static StringFlag DENY_MESSAGE = (StringFlag) getFlagFromWorldGuard("deny-message");
+    public static StringFlag DENY_MESSAGE = (StringFlag) getFlag("deny-message");
     /**
      * @deprecated The type of this flag will change from a StringFlag to a ComponentFlag to support JSON text
      *              in a future release. If you depend on the type of this flag, take proper precaution for future breakage.
      */
     //@Deprecated
-    public static StringFlag ENTRY_DENY_MESSAGE = (StringFlag) getFlagFromWorldGuard("entry-deny-message");
+    public static StringFlag ENTRY_DENY_MESSAGE = (StringFlag) getFlag("entry-deny-message");
     /**
      * @deprecated The type of this flag will change from a StringFlag to a ComponentFlag to support JSON text
      *              in a future release. If you depend on the type of this flag, take proper precaution for future breakage.
      */
     //@Deprecated
-    public static StringFlag EXIT_DENY_MESSAGE = (StringFlag) getFlagFromWorldGuard("exit-deny-message");
+    public static StringFlag EXIT_DENY_MESSAGE = (StringFlag) getFlag("exit-deny-message");
 
-    private static Flag<?> getFlagFromWorldGuard(final String flagName) {
+    public static Flag<?> getFlag(final String flagName) {
         return WGPlatform.getInstance().getFlag(flagName);
     }
 
@@ -195,7 +195,7 @@ public class WGFlags {
             try {
                 if (declaredField.get(null) == null){
                     String flagName = declaredField.getName().replace("_","-").toLowerCase();
-                    Flag flag = getFlagFromWorldGuard(flagName);
+                    Flag flag = getFlag(flagName);
                     declaredField.set(null, flag);
                 }
             } catch (Exception ignored) {
