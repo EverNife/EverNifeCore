@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.protection.worldguard.IFCFlagRegistry;
 import br.com.finalcraft.evernifecore.unsafereflecton.UnsafeUtil;
 import com.sk89q.worldguard.protection.flags.DefaultFlag;
 import com.sk89q.worldguard.protection.flags.Flag;
+import lombok.SneakyThrows;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -85,9 +86,17 @@ public class ImpIFCFlagRegistry implements IFCFlagRegistry {
         }
     }
 
+    @SneakyThrows
+    private Flag<?>[] getFlagList(){
+        return modifiedWorldguard
+                ? DefaultFlag.getFlags()
+                : (Flag<?>[]) flagsListField.get(null);
+    }
+
+
     @Override
     public @Nullable Flag<?> get(String name) {
-        for (Flag<?> flag : DefaultFlag.getFlags()) {
+        for (Flag<?> flag : this.getFlagList()) {
             if (flag.getName().equalsIgnoreCase(name)){
                 return flag;
             }
@@ -104,13 +113,13 @@ public class ImpIFCFlagRegistry implements IFCFlagRegistry {
 
     @Override
     public int size() {
-        return DefaultFlag.getFlags().length;
+        return this.getFlagList().length;
     }
 
     @NotNull
     @Override
     public Iterator<Flag<?>> iterator() {
-        return Arrays.asList(DefaultFlag.getFlags()).iterator();
+        return Arrays.asList(this.getFlagList()).iterator();
     }
 
     @Override
