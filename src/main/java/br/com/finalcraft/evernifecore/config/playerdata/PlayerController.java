@@ -377,17 +377,17 @@ public class PlayerController {
         }
     }
 
-    public static void registerPDSection(Plugin plugin, Class<? extends PDSection> pdSectionClass){
+    public static void registerPDSectionCfg(Plugin plugin, Class<? extends PDSection> pdSectionClass){
         PDSectionConfiguration pdSectionConfiguration = new PDSectionConfiguration(
                 ECPluginManager.getOrCreateECorePluginData(plugin),
                 pdSectionClass,
                 true
         );
 
-        registerPDSection(pdSectionConfiguration);
+        registerPDSectionCfg(pdSectionConfiguration);
     }
 
-    public static void registerPDSection(PDSectionConfiguration pdSectionConfiguration){
+    public static void registerPDSectionCfg(PDSectionConfiguration pdSectionConfiguration){
         CONFIGURED_PDSECTIONS.put(pdSectionConfiguration.getPdSectionClass(), pdSectionConfiguration);
         if (pdSectionConfiguration.shouldHotLoad()){
             getAllPlayerData().forEach(playerData -> {
