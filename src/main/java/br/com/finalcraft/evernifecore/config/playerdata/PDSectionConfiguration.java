@@ -14,8 +14,8 @@ public class PDSectionConfiguration {
         this.shouldHotLoad = shouldHotLoad;
 
         /**
-         * The idea of this class is hold several information on how this
-         * PDSection should behave.
+         * The idea of this class is to hold various pieces of information
+         * on how this PDSection should behave.
          *
          * There will be information like:
          *  shouldHotLoad:  will be loaded as soon as PlayerData instance is created;
