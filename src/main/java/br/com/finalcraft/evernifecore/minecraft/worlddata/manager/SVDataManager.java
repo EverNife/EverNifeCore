@@ -111,7 +111,11 @@ public class SVDataManager<O> extends ServerData<O>{
 
         //Finally, delete all empty Configs, no need to remove them from the map though
         for (Config config : this.configData.getAllConfigs()) {
-            if (config.getKeys().isEmpty()){
+            boolean isEmpty = config.getKeys().isEmpty()
+                    ? true
+                    : config.getKeys().stream().filter(s -> !config.getKeys(s).isEmpty()).findFirst().isPresent() == false;
+
+            if (isEmpty){
                 if (config.getTheFile().exists()){
                     FileUtils.deleteQuietly(config.getTheFile());
                 }
