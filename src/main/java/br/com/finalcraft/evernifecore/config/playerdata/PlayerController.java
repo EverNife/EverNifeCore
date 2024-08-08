@@ -76,7 +76,7 @@ public class PlayerController {
                     }
 
                     return new PlayerData(config);
-                }catch (Exception e){
+                }catch (Throwable e){
                     EverNifeCore.getLog().severe("Failed to load PlayerData [%s] at %s", theConfigFile.getName(), theConfigFile.getAbsolutePath());
                     e.printStackTrace();
                     moveToCorruptedFolder(theConfigFile);
