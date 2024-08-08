@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.worlddata.manager;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
+import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.minecraft.region.RegionPos;
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
@@ -27,27 +28,30 @@ import java.util.regex.Pattern;
 public class SVDataManager<O> extends ServerData<O>{
 
     private final File mainFolder; //Main folder to store this data
-    private final Class<O> watchedClass;
+    private final Class<O> targetClass;
 
     private final BiFunction<ConfigSection, WorldBlockPos, O> onConfigLoad; //How to load the object from file
     private final BiConsumer<ConfigSection, BlockMetaData<O>> onConfigSave; //How to save the object to the file
     private final BiConsumer<ConfigSection, BlockMetaData<O>> onConfigRemove; //How to remove the object from the file
     private final ServerConfigData configData;
 
+    private final transient String targetClassName;
+
     private transient LinkedHashSet<BlockMetaDataOperation<O>> blocksToSaveOrRemove;
 
-    public SVDataManager(File mainFolder, Class<O> watchedClass, BiFunction<ConfigSection, WorldBlockPos, O> onConfigLoad, BiConsumer<ConfigSection, BlockMetaData<O>> onConfigSave, BiConsumer<ConfigSection, BlockMetaData<O>> onConfigRemove) {
+    public SVDataManager(File mainFolder, Class<O> targetClass, BiFunction<ConfigSection, WorldBlockPos, O> onConfigLoad, BiConsumer<ConfigSection, BlockMetaData<O>> onConfigSave, BiConsumer<ConfigSection, BlockMetaData<O>> onConfigRemove) {
         this.mainFolder = mainFolder;
-        this.watchedClass = watchedClass;
+        this.targetClass = targetClass;
         this.onConfigLoad = onConfigLoad;
         this.onConfigSave = onConfigSave;
         this.onConfigRemove = onConfigRemove;
         this.configData = new ServerConfigData(mainFolder);
         this.blocksToSaveOrRemove = new LinkedHashSet<>();
+        this.targetClassName = (targetClass == null ? "null" : targetClass.getSimpleName());
     }
 
-    public Class<O> getWatchedClass() {
-        return watchedClass;
+    public Class<O> getTargetClass() {
+        return targetClass;
     }
 
     @Override
@@ -105,7 +109,7 @@ public class SVDataManager<O> extends ServerData<O>{
             config.save();
         }
 
-        //Finally, delete all empty Configs, no need to remove than from the map though
+        //Finally, delete all empty Configs, no need to remove them from the map though
         for (Config config : this.configData.getAllConfigs()) {
             if (config.getKeys().isEmpty()){
                 if (config.getTheFile().exists()){
@@ -145,7 +149,14 @@ public class SVDataManager<O> extends ServerData<O>{
                 });
 
         phaser.arriveAndAwaitAdvance(); // await any async tasks to complete
-        EverNifeCore.getLog().debug("SVDataManager.load()[PHASE-CONFIG-LOAD] - Took %s ms to load [%s] configs", System.currentTimeMillis() - start, configs.size());
+
+        EverNifeCore.getLog().debugModule(
+                ECDebugModule.SVDATA_MANAGER,
+                "SVDataManager<%s>.load() [LOADING-PHASE] - Loaded  %s yaml-configs.     (took %s ms)",
+                this.targetClassName,
+                loadedObjects.get(),
+                System.currentTimeMillis() - start
+        );
 
         start = System.currentTimeMillis();
         for (Config config : configs) {
@@ -156,7 +167,7 @@ public class SVDataManager<O> extends ServerData<O>{
                     String[] split = config.getTheFile().getName().split(Pattern.quote("."));
 
                     if (!split[0].equals("r")){
-                        EverNifeCore.getLog().warning("Failed to load config file [%s] - Invalid file name", config.getTheFile().getName());
+                        EverNifeCore.getLog().severe("Failed to load config file [%s] - Invalid file name", config.getTheFile().getName());
                         return;
                     }
 
@@ -173,12 +184,7 @@ public class SVDataManager<O> extends ServerData<O>{
 
                     for (String chunkPosSerialized : config.getKeys("")) {
                         for (String blockPosSerialized : config.getKeys(chunkPosSerialized)) {
-                            String splitBlockPos[] = blockPosSerialized.split("\\|");
-                            BlockPos blockPos = new BlockPos(
-                                    FCInputReader.parseInt(splitBlockPos[0]),
-                                    FCInputReader.parseInt(splitBlockPos[1]),
-                                    FCInputReader.parseInt(splitBlockPos[2])
-                            );
+                            BlockPos blockPos = BlockPos.deserialize(blockPosSerialized);
 
                             ConfigSection section = config.getConfigSection(chunkPosSerialized + "." + blockPosSerialized);
                             try {
@@ -207,7 +213,14 @@ public class SVDataManager<O> extends ServerData<O>{
         }
 
         phaser.arriveAndAwaitAdvance(); // await any async tasks to complete
-        EverNifeCore.getLog().debug("SVDataManager.load()[PHASE-CONFIG-EXTRACT] - Took %s ms to load [%s] objects", System.currentTimeMillis() - start, loadedObjects.get());
+        EverNifeCore.getLog().debugModule(
+                ECDebugModule.SVDATA_MANAGER,
+                "SVDataManager<%s>.load() [EXTRACT-PHASE] - Extract %s object instances. (took %s ms)",
+                this.targetClassName,
+                loadedObjects.get(),
+                System.currentTimeMillis() - start
+        );
+        EverNifeCore.getLog().debug("SVDataManager.load() [PHASE-CONFIG-EXTRACT] - Took %s ms to load [%s] objects", System.currentTimeMillis() - start, loadedObjects.get());
 
         this.blocksToSaveOrRemove.clear();//We need to clear again because several items may have been set!
         return loadedObjects.get();
