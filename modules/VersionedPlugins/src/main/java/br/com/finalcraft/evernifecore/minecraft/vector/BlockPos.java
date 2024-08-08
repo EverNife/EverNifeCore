@@ -8,6 +8,8 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 
+import java.util.StringTokenizer;
+
 @Getter
 @EqualsAndHashCode
 public class BlockPos implements Comparable<BlockPos> {
@@ -219,8 +221,12 @@ public class BlockPos implements Comparable<BlockPos> {
     }
 
     public static BlockPos deserialize(String string){
-        String[] split = string.split("\\|");
-        return at(Integer.parseInt(split[0]), Integer.parseInt(split[1]), Integer.parseInt(split[2]));
+        StringTokenizer tokenizer = new StringTokenizer(string, "|");
+        return new BlockPos(
+                Integer.parseInt(tokenizer.nextToken()),
+                Integer.parseInt(tokenizer.nextToken()),
+                Integer.parseInt(tokenizer.nextToken())
+        );
     }
 
 }
