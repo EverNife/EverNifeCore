@@ -1,14 +1,22 @@
 package br.com.finalcraft.evernifecore.test.thread;
 
 import lombok.SneakyThrows;
-import lombok.extern.java.Log;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.*;
 
-@Log
 public class WhyScheduledThreadPoolExecutorSucksTest {
 
+    /**
+     * Spoiler, it sucks because it creates the Threads at the moment you schedule the task.
+     *
+     * Lets say you want to execute a task in 2 hours from now.
+     *
+     * At the moment you shedule the task the new Thread is created, and this new thread
+     * will only die in 2 hours from now.
+     *
+     * @throws InterruptedException
+     */
     @Test
     @SneakyThrows
     public void masin() throws InterruptedException {
