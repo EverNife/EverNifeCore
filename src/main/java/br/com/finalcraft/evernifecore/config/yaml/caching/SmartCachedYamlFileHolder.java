@@ -1,17 +1,17 @@
 package br.com.finalcraft.evernifecore.config.yaml.caching;
 
+import br.com.finalcraft.evernifecore.config.yaml.helper.CfgExecutor;
 import br.com.finalcraft.evernifecore.config.yaml.helper.ConfigHelper;
-import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import org.simpleyaml.configuration.file.YamlFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class SmartCachedYamlFileHolder implements IHasYamlFile {
 
-    private static final long SECONDS_OF_CACHE = TimeUnit.MINUTES.toSeconds(5);
+    private static final long MINUTES_OF_CACHE = 5;
 
     private YamlFile yamlFile;
     private long lastUsed = 0;
@@ -21,12 +21,12 @@ public class SmartCachedYamlFileHolder implements IHasYamlFile {
     private String contentAsString;
     private boolean hasComments;
 
-    private final ReentrantLock lock = new ReentrantLock();
+    private transient ScheduledFuture<?> scheduledFuture;
 
     public SmartCachedYamlFileHolder(YamlFile yamlFile) {
         this.yamlFile = yamlFile;
         this.hasComments = yamlFile.options().useComments();
-        scheduleExpirationRunnable(TimeUnit.MINUTES.toSeconds(3));//Do a Faster first lookup
+        scheduleExpirationRunnable((int) Math.ceil(MINUTES_OF_CACHE / 2d), TimeUnit.MINUTES); //Do a Faster first lookup
     }
 
     @Override
@@ -42,7 +42,7 @@ public class SmartCachedYamlFileHolder implements IHasYamlFile {
             } catch (IOException e) {
                 throw new RuntimeException("Failed to Re-Read a SmartCached YamlFile, this should never happen!!!! ?!?!?!", e);
             }
-            scheduleExpirationRunnable(SECONDS_OF_CACHE);
+            scheduleExpirationRunnable(MINUTES_OF_CACHE, TimeUnit.MINUTES);
         }
         return yamlFile;
     }
@@ -61,20 +61,32 @@ public class SmartCachedYamlFileHolder implements IHasYamlFile {
         this.yamlFile = null;//free for GC to collect
     }
 
-    public void scheduleExpirationRunnable(long secondsToWait){
-        FCScheduler.getScheduler().schedule(() -> {
-            if (this.innerGetYamlFile() == null){
-                return;//It means was cached to string manually
-            }
+    public void scheduleExpirationRunnable(long delay, TimeUnit timeUnit){
+        if (scheduledFuture != null && !scheduledFuture.isCancelled() && !scheduledFuture.isDone()){
+            scheduledFuture.cancel(false);
+            scheduledFuture = null;
+        }
 
-            boolean usedAtLeastOnceOnTheLastThreeMinutes = System.currentTimeMillis() < getLastUsed() + TimeUnit.SECONDS.toMillis(SECONDS_OF_CACHE);
-
-            if (usedAtLeastOnceOnTheLastThreeMinutes) {
-                //Lets do nothing, just check again in 3 minutes
-                scheduleExpirationRunnable(SECONDS_OF_CACHE);
-            } else {
+        if (delay < 0){
+            if (this.innerGetYamlFile() != null) {
                 cacheToString();
             }
-        }, secondsToWait, TimeUnit.SECONDS);
+            return;
+        }
+
+        this.scheduledFuture = CfgExecutor.getScheduler().schedule(() -> {
+            if (this.innerGetYamlFile() != null) {
+
+                boolean usedAtLeastOnceOnTheLastThreeMinutes = System.currentTimeMillis() < getLastUsed() + TimeUnit.MINUTES.toMillis(MINUTES_OF_CACHE);
+
+                if (usedAtLeastOnceOnTheLastThreeMinutes) {
+                    //Lets do nothing, just check again in MINUTES_OF_CACHE minutes
+                    scheduleExpirationRunnable(MINUTES_OF_CACHE, TimeUnit.MINUTES);
+                } else {
+                    cacheToString();
+                }
+
+            }
+        }, delay, timeUnit);
     }
 }
