@@ -65,13 +65,6 @@ public class PlayerData implements IPlayerData{
             PlayerCooldown playerCooldown = new PlayerCooldown(cooldown, this.uuid);
             cooldownHashMap.put(playerCooldown.getIdentifier(), playerCooldown);
         }
-
-        this.getConfig().enableSmartCache(); //Cache config for only 3 minutes between uses
-        if (System.currentTimeMillis() > this.getLastSaved() + TimeUnit.DAYS.toMillis(3)){
-            //If the last edition this file has is from 3 days ago, cache its config right now, as it will probably not be changed soon
-            SmartCachedYamlFileHolder smartCachedYamlFileHolder = (SmartCachedYamlFileHolder) this.getConfig().getIHasYamlFile();
-            smartCachedYamlFileHolder.scheduleExpirationRunnable(30); //Cache it sooner
-        }
     }
 
     public PlayerData(Config config, String playerName, UUID uuid) {

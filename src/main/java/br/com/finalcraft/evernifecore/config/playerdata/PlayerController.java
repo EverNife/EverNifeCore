@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
+import br.com.finalcraft.evernifecore.config.yaml.caching.SmartCachedYamlFileHolder;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
@@ -18,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 public class PlayerController {
@@ -61,6 +63,8 @@ public class PlayerController {
                 false
         );
 
+        AtomicLong cacheTimeSpread = new AtomicLong(0);
+
         fileIterator.forEachRemaining(theConfigFile -> {
             playerdataLoader.add(() -> {
                 try {
@@ -75,7 +79,20 @@ public class PlayerController {
                         }
                     }
 
-                    return new PlayerData(config);
+                    PlayerData playerData = new PlayerData(config);
+
+                    config.enableSmartCache(); //Cache config for only 5 minutes between uses
+
+                    //If the last edition this file has is from 3 days ago, cache its config right now, as it will probably not change
+                    if (System.currentTimeMillis() > playerData.getLastSaved() + TimeUnit.DAYS.toMillis(3)){
+                        SmartCachedYamlFileHolder smartCachedYamlFileHolder = (SmartCachedYamlFileHolder) config.getIHasYamlFile();
+                        long extraDelayMillis = cacheTimeSpread.getAndAdd(5);
+
+                        //Cache it in a separated time, making caching as spread as possible
+                        smartCachedYamlFileHolder.scheduleExpirationRunnable(15_000 + extraDelayMillis, TimeUnit.MILLISECONDS);
+                    }
+
+                    return playerData;
                 }catch (Throwable e){
                     EverNifeCore.getLog().severe("Failed to load PlayerData [%s] at %s", theConfigFile.getName(), theConfigFile.getAbsolutePath());
                     e.printStackTrace();
