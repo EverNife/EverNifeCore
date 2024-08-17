@@ -37,6 +37,8 @@ public enum MCDetailedVersion {
     v1_19_R3(1193, "v1_19"),
     v1_20_R1(1201, "v1_20"),
     v1_20_R2(1202, "v1_20"),
+    v1_20_R3(1203, "v1_20"),
+    v1_21_R1(1211, "v1_21"),
     ;
 
     private static final MCDetailedVersion currentVersion;
