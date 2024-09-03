@@ -199,7 +199,7 @@ public class PlayerController {
                     onlinePlayer.getUniqueId(),
                     onlinePlayer.getName()
             );
-            getOrCreateOne(onlinePlayer.getUniqueId());
+            getOrCreateOne(onlinePlayer.getUniqueId()).setPlayer(onlinePlayer);
         }
 
         //Different from the behavavior of calling PlayerData::hotLoadPDSections
