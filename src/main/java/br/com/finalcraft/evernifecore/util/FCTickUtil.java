@@ -15,7 +15,7 @@ public class FCTickUtil {
             public void run() {
                 tickCount.incrementAndGet();
             }
-        }.runTaskLaterAsynchronously(EverNifeCore.instance, 1);
+        }.runTaskTimerAsynchronously(EverNifeCore.instance, 1, 1);
     }
 
     public static long getTickCount(){
