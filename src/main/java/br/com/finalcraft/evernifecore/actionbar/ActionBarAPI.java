@@ -12,8 +12,8 @@ import java.util.UUID;
 
 public class ActionBarAPI {
 
-    private static final boolean THIS_SERVER_SUPPORTS_ACTIONBAR;static {
-        THIS_SERVER_SUPPORTS_ACTIONBAR = MCVersion.isLowerEquals(MCVersion.v1_7_10) || FCBukkitUtil.isModLoaded("necrotempus");
+    private static final boolean THIS_SERVER_SUPPORTS_ACTIONBAR; static {
+        THIS_SERVER_SUPPORTS_ACTIONBAR = MCVersion.isHigher(MCVersion.v1_7_10) || FCBukkitUtil.isModLoaded("necrotempus");
     }
     private static Map<UUID, PlayerActionBarManager> PLAYER_ACTION_BAR_MAP = new HashMap<>();
 
@@ -22,7 +22,10 @@ public class ActionBarAPI {
     }
 
     public static void send(Player player, ActionBarMessage actionBarMessage){
-        if (!THIS_SERVER_SUPPORTS_ACTIONBAR) return;//ActionBar is not present on 1_7_10, and we don't have NecroTempus
+        if (!THIS_SERVER_SUPPORTS_ACTIONBAR){
+            //This server is on 1.7.10, and we don't have NecroTempus
+            return;
+        }
 
         PlayerActionBarManager playerActionBarManager = PLAYER_ACTION_BAR_MAP.get(player.getUniqueId());
 
@@ -35,7 +38,10 @@ public class ActionBarAPI {
     }
 
     public static void clear(Player player){
-        if (!THIS_SERVER_SUPPORTS_ACTIONBAR) return;//ActionBar is not present on 1_7_10, and we don't have NecroTempus
+        if (!THIS_SERVER_SUPPORTS_ACTIONBAR){
+            //This server is on 1.7.10, and we don't have NecroTempus
+            return;
+        }
 
         PlayerActionBarManager playerActionBarManager = PLAYER_ACTION_BAR_MAP.get(player.getUniqueId());
 
