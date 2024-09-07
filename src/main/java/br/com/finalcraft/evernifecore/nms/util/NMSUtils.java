@@ -40,7 +40,7 @@ public class NMSUtils {
 				instance = new NMSUtils_v1_20_R2();
 			}
 			if (instance != null){
-				EverNifeCore.info("Sucessfully loaded " + instance.getClass().getSimpleName() +"!");
+				EverNifeCore.info("Successfully loaded " + instance.getClass().getSimpleName() +"!");
 				return;
 			}
 		}catch (Throwable e){
