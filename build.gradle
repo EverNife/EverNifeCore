@@ -101,6 +101,7 @@ dependencies {
     compileOnly name: "craftbukkit1710" //Thats on you to find out
     compileOnly name: "craftbukkit1122" //Thats on you to find out
     compileOnly name: "craftbukkit1165" //Thats on you to find out
+    compileOnly name: "craftbukkit1201" //Thats on you to find out
     compileOnly name: "craftbukkit1202" //Thats on you to find out
     compileOnly group: 'commons-io', name: 'commons-io', version: '2.6' //Necessary for ReflectionUtils
 
