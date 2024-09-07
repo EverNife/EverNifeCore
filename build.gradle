@@ -50,6 +50,10 @@ repositories {
     maven {
         url = 'https://repo.alessiodp.com/releases/'//For the custom libby-core
     }
+    maven {
+        name = "CodeMC"
+        url = uri("https://repo.codemc.io/repository/maven-public/")
+    }
 }
 
 dependencies {
@@ -66,12 +70,8 @@ dependencies {
     implementation 'com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8.4'
     implementation "br.com.finalcraft:ECForgeListener:1.0.2"
 
-    //The Item-NBT-API required the maven repo 'https://repo.codemc.org/repository/maven-public/'
-    //because of the internal dependency 'de.tr7zw:functional-annotations'! As of 20/01/2023 the repo is down, lets use it direct from JitPack
-    //and refactor the name under the 'resolutionStrategy' down there
-    implementation 'com.github.EverNife.Item-NBT-API:item-nbt-api:1d70990dab' //Oct 26, 2023
-    implementation 'com.github.EverNife.Item-NBT-API:nbt-data-api:1d70990dab' //Oct 26, 2023
-    implementation 'com.github.EverNife:functional-annotations:d26a567'
+    //NBT-API
+    implementation("de.tr7zw:item-nbt-api:2.13.2")
     //END of NBT-API
 
     implementation 'net.md-5:bungeecord-chat:1.16-R0.1' //This works from 1.7.10 onwards, is the same API
@@ -151,8 +151,7 @@ shadowJar {
         include(dependency('com.github.evernife:ChatMenuAPI:'))
         include(dependency('net.byteflux:libby-core:'))
         include(dependency('dev.triumphteam:triumph-gui:'))
-        include(dependency('com.github.EverNife.Item-NBT-API:item-nbt-api:')) //Oct 26, 2023
-        include(dependency('com.github.EverNife.Item-NBT-API:nbt-data-api:')) //Oct 26, 2023
+        include(dependency('de.tr7zw:item-nbt-api:')) //Oct 26, 2023
         include(dependency('br.com.finalcraft:ECForgeListener:'))
 
         include(project(':modules:VersionedPlugins'))

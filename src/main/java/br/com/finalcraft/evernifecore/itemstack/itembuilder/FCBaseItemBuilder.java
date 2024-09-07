@@ -445,7 +445,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      */
     @NotNull
     public ItemStack build() {
-        if (nbtCompound.isEmpty()){
+        if (FCNBTUtil.isEmpty(nbtCompound)){
             ItemStack clone = this.itemStack.clone();
             clone.setItemMeta(meta.clone());
             return clone;

@@ -51,12 +51,12 @@ public class ItemDataPartNBT extends ItemDataPart {
                 FCNBTUtil.getFrom(i).toString()
         );
 
-        if (!compound.isEmpty()){
+        if (!FCNBTUtil.isEmpty(compound)){
             compound.removeKey("display");//Remove LORE and DisplayName
             if (MCVersion.isHigherEquals(MCVersion.v1_13)){
                 compound.removeKey("Damage");//Remove Damage key
             }
-            if (!compound.isEmpty()){
+            if (!FCNBTUtil.isEmpty(compound)){
                 output.add("nbt: " + compound.toString());
             }
         }

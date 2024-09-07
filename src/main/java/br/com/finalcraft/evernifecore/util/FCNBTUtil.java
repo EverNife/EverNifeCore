@@ -55,4 +55,8 @@ public class FCNBTUtil {
             throw new RuntimeException(e);
         }
     }
+
+    public static boolean isEmpty(NBTCompound nbtCompound){
+        return nbtCompound == null || nbtCompound.getCompound() == null || nbtCompound.getKeys().isEmpty();
+    }
 }

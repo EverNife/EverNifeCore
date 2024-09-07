@@ -24,7 +24,7 @@ public class ECItemStackTranslator extends ItemStackTranslator {
         if (target != null){
             NBTItem itemNBT = FCNBTUtil.getFrom(itemStack);
 
-            if (!itemNBT.isEmpty() && itemNBT.hasTag(BSItemDataPartNBT.NBT_TAG)){
+            if (!FCNBTUtil.isEmpty(itemNBT) && itemNBT.hasTag(BSItemDataPartNBT.NBT_TAG)){
                 String nbtString = itemNBT.getString(BSItemDataPartNBT.NBT_TAG);
                 String parsedNbtString = ClassManager.manager.getStringManager().transform(nbtString, buy, shop, holder, target);
 
