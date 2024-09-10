@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.material.interpreters;
 
-import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -23,8 +22,8 @@ public class MaterialVanillaInterpreter {
         }
 
         try {
-            ItemStack itemStack = FCItemFactory.from(material).build();
-            String identifier = FCItemUtils.getMinecraftIdentifier(itemStack);
+            ItemStack itemStack = new ItemStack(material);
+            String identifier = FCItemUtils.getMinecraftIdentifier(itemStack, false);
             if (identifier.startsWith("minecraft:")){
                 vanilla = true;
             }else {
