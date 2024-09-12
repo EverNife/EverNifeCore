@@ -171,6 +171,12 @@ public class NMSUtils_v1_16_R3 implements INMSUtils {
 	}
 
 	@Override
+	public String getEntityRegistryName(Entity entity) {
+		CraftEntity craftEntity = (CraftEntity) entity;
+		return craftEntity.getHandle().getSaveID();
+	}
+
+	@Override
 	public org.bukkit.inventory.ItemStack validateItemStackHandle(org.bukkit.inventory.ItemStack itemStack) {
 		if ( !(itemStack instanceof CraftItemStack) ){ //A fix for Dummy ItemStacks
 			itemStack = CraftItemStack.asCraftMirror(CraftItemStack.asNMSCopy(itemStack));

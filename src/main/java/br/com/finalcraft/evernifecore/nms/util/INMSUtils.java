@@ -14,6 +14,8 @@ public interface INMSUtils {
 
 	public String getItemRegistryName(ItemStack item);
 
+	public String getEntityRegistryName(Entity entity);
+
 	public ItemStack getItemFromMinecraftIdentifier(String minecraftIdentifier);
 
 	public String getLocalizedName(ItemStack itemStack);

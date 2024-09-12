@@ -78,7 +78,8 @@ public class PlayerInteractListener implements ECListener {
 
     @FCLocale(lang = LocaleType.EN_US,
             text = "§7§o[INFO] (%x%, %y%, %z%) §b%entity_type% &7&o(%entity_name%)" +
-                    "\n - §7§oEntity ToString: §b%entity_tostring%",
+                    "\n - §7§oEntity ToString: §b%entity_tostring%" +
+                    "\n - §7§oEntity Registry: §b%entity_registry_name%",
             hover = "§7Disable with /entityinfo" +
                     "\nClick to copy the Entity Type",
             runCommand = "%entity_type%",
@@ -113,7 +114,9 @@ public class PlayerInteractListener implements ECListener {
 
         String entityName = rightClicked.getName();
         try {
-            if (rightClicked.getCustomName() != null) entityName = rightClicked.getCustomName();
+            if (rightClicked.getCustomName() != null){
+                entityName = rightClicked.getCustomName();
+            }
         }catch (NoSuchMethodError ignored){
 
         }
@@ -124,6 +127,7 @@ public class PlayerInteractListener implements ECListener {
                 .addPlaceholder("%z%", location.getBlockZ())
                 .addPlaceholder("%entity_type%", rightClicked.getType().name())
                 .addPlaceholder("%entity_name%", entityName)
+                .addPlaceholder("%entity_registry_name%", NMSUtils.get().getEntityRegistryName(rightClicked))
                 .addPlaceholder("%entity_tostring%", NMSUtils.get().asMinecraftEntity(rightClicked).toString())
                 .addPlaceholder("%entity_nbt%", includeNBT ? FCNBTUtil.getFrom(rightClicked).toString() : "(Hold Shift to Scan)")
                 .send(player);

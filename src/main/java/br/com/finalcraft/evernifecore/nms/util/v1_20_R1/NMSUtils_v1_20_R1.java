@@ -9,6 +9,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.protocol.game.PacketPlayInClientCommand;
 import net.minecraft.resources.MinecraftKey;
 import net.minecraft.server.level.EntityPlayer;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EnumItemSlot;
 import net.minecraft.world.item.*;
 import org.apache.commons.lang3.Validate;
@@ -176,6 +177,12 @@ public class NMSUtils_v1_20_R1 implements INMSUtils {
 		Item item = mcItemStack.d();
 		MinecraftKey minecraftKey = BuiltInRegistries.i.b(item);
 		return minecraftKey.toString();
+	}
+
+	@Override
+	public String getEntityRegistryName(Entity entity) {
+		CraftEntity craftEntity = (CraftEntity) entity;
+		return craftEntity.getHandle().br();
 	}
 
 	@Override
