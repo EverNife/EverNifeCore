@@ -9,7 +9,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.protocol.game.PacketPlayInClientCommand;
 import net.minecraft.resources.MinecraftKey;
 import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EnumItemSlot;
 import net.minecraft.world.item.*;
 import org.apache.commons.lang3.Validate;
@@ -163,7 +162,7 @@ public class NMSUtils_v1_20_R1 implements INMSUtils {
 
 	@Override
 	public Entity asBukkitEntity(Object minecraftEntity) {
-		return ((net.minecraft.server.v1_16_R3.Entity) minecraftEntity).getBukkitEntity();
+		return ((net.minecraft.world.entity.Entity) minecraftEntity).getBukkitEntity();
 	}
 
 	@Override
