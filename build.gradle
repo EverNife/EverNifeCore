@@ -68,7 +68,7 @@ dependencies {
     implementation 'net.byteflux:libby-core:1.2.0'
     implementation 'dev.triumphteam:triumph-gui:3.1.4-evernife-02'
     implementation 'com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8.4'
-    implementation "br.com.finalcraft:ECForgeListener:1.0.2"
+    implementation "br.com.finalcraft:ECForgeListener:1.0.3"
 
     //NBT-API
     implementation("de.tr7zw:item-nbt-api:2.13.2")
