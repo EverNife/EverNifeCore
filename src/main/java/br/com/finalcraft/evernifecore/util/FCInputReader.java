@@ -61,7 +61,7 @@ public class FCInputReader {
     }
 
     public static UUID parseUUID(String uuid){
-        if (uuid.isEmpty() || uuid.length() != 36) return null;
+        if (uuid == null || uuid.isEmpty() || uuid.length() != 36) return null;
         try {
             return UUID.fromString(uuid);
         }catch (Exception ignored){
