@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 
 public class ArgParserArgumento extends ArgParser<Argumento> {
 
-    private final List<String> possibilities;
+    protected final List<String> possibilities;
 
     public ArgParserArgumento(ArgInfo argInfo) {
         super(argInfo);

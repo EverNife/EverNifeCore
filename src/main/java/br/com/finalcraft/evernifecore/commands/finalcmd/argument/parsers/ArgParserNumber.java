@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
 
 public class ArgParserNumber extends ArgParser<Number> {
 
-    private @Nullable Tuple<Double, Double> boundaries = null; //NotNull if the argument is bounded to two values
-    private @Nullable List<Double> possibilities = null; //NotNull if the argument must be one of the list
-    private final boolean isInteger;
+    protected @Nullable Tuple<Double, Double> boundaries = null; //NotNull if the argument is bounded to two values
+    protected @Nullable List<Double> possibilities = null; //NotNull if the argument must be one of the list
+    protected final boolean isInteger;
 
     public ArgParserNumber(ArgInfo argInfo) {
         super(argInfo);

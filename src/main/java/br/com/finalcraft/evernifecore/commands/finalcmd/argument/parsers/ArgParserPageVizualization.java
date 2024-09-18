@@ -14,7 +14,7 @@ import java.util.List;
 
 public class ArgParserPageVizualization extends ArgParser<PageVizualization> {
 
-    private final ArgParserNumber argParserNumber;
+    protected final ArgParserNumber argParserNumber;
 
     public ArgParserPageVizualization(ArgInfo argInfo) {
         super(argInfo);

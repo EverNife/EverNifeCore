@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 
 public class ArgParserWorld extends ArgParser<World> {
 
-    public ArgParserWorld(ArgInfo argInfo) {
+    protected ArgParserWorld(ArgInfo argInfo) {
         super(argInfo);
     }
 

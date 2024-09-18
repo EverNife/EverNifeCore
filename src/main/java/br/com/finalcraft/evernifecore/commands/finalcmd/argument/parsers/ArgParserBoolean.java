@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 public class ArgParserBoolean extends ArgParser<Boolean> {
 
-    private List<String> possibilities;
+    protected List<String> possibilities;
 
     public ArgParserBoolean(ArgInfo argInfo) {
         super(argInfo);

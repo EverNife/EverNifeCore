@@ -22,9 +22,9 @@ import java.util.stream.Collectors;
 public class ArgParserUUID extends ArgParser<UUID> {
 
     //Context Field Extractors
-    private static final ArgContextExtractor<Boolean> CTX_ONLINE = ArgContextExtractor.of("online");
+    protected static final ArgContextExtractor<Boolean> CTX_ONLINE = ArgContextExtractor.of("online");
 
-    private final boolean online;
+    protected final boolean online;
 
     public ArgParserUUID(ArgInfo argInfo) {
         super(argInfo);

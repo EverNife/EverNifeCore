@@ -12,7 +12,7 @@ import java.util.List;
 
 public class ArgParserNumberWrapper extends ArgParser<NumberWrapper> {
 
-    private final ArgParserNumber ARG_PARSER_NUMBER;
+    protected final ArgParserNumber ARG_PARSER_NUMBER;
 
     public ArgParserNumberWrapper(ArgInfo argInfo) {
         super(argInfo);

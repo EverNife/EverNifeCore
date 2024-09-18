@@ -21,8 +21,8 @@ import java.util.stream.Collectors;
 
 public class ArgParserEnum extends ArgParser<Enum> {
 
-    private final List<String> possibilities;
-    private final HashMap<String, Enum<?>> enumMap = new HashMap<>();
+    protected final List<String> possibilities;
+    protected final HashMap<String, Enum<?>> enumMap = new HashMap<>();
 
     public ArgParserEnum(ArgInfo argInfo) {
         super(argInfo);

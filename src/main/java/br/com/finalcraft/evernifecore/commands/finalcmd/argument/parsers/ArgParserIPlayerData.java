@@ -23,9 +23,9 @@ import java.util.stream.Collectors;
 public class ArgParserIPlayerData extends ArgParser<IPlayerData> {
 
     //Context Field Extractors
-    private static final ArgContextExtractor<Boolean> CTX_ONLINE = ArgContextExtractor.of("online");
+    protected static final ArgContextExtractor<Boolean> CTX_ONLINE = ArgContextExtractor.of("online");
 
-    private final boolean online;
+    protected final boolean online;
 
     public ArgParserIPlayerData(ArgInfo argInfo) {
         super(argInfo);
