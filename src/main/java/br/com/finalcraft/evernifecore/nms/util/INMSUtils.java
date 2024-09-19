@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.nms.util;
 
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -25,6 +26,10 @@ public interface INMSUtils {
 	public Object asMinecraftItemStack(org.bukkit.inventory.ItemStack itemStack);
 
 	public String serializeItemStack(org.bukkit.inventory.ItemStack itemStack);
+
+	public World asBukkitWorld(Object minecraftWorld);
+
+	public Object asMinecraftWorld(World bukkitWorld);
 
 	public void autoRespawnOnDeath(Player player);
 

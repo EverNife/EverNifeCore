@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import net.minecraft.server.v1_7_R4.*;
 import org.apache.commons.lang3.Validate;
+import org.bukkit.craftbukkit.v1_7_R4.CraftWorld;
 import org.bukkit.craftbukkit.v1_7_R4.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_7_R4.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_7_R4.inventory.CraftItemStack;
@@ -74,6 +75,18 @@ public class NMSUtils_v1_7_R4 implements INMSUtils {
 		NBTTagCompound compound = new NBTTagCompound();
 		nmsItem.save(compound);
 		return compound.toString();
+	}
+
+	@Override
+	public org.bukkit.World asBukkitWorld(Object minecraftWorld) {
+		WorldServer world = (WorldServer) minecraftWorld;
+		return world.getWorld();
+	}
+
+	@Override
+	public Object asMinecraftWorld(org.bukkit.World bukkitWorld) {
+		WorldServer world = ((CraftWorld) bukkitWorld).getHandle();
+		return world;
 	}
 
 	@Override

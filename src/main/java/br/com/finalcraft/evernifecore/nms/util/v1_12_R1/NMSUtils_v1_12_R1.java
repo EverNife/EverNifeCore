@@ -9,6 +9,7 @@ import org.bukkit.craftbukkit.v1_12_R1.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_12_R1.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_12_R1.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.v1_12_R1.util.CraftMagicNumbers;
+import org.bukkit.craftbukkit.v1_12_R1.CraftWorld;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
@@ -91,6 +92,18 @@ public class NMSUtils_v1_12_R1 implements INMSUtils {
 		NBTTagCompound compound = new NBTTagCompound();
 		nmsItem.save(compound);
 		return compound.toString();
+	}
+
+	@Override
+	public org.bukkit.World asBukkitWorld(Object minecraftWorld) {
+		WorldServer world = (WorldServer) minecraftWorld;
+		return world.getWorld();
+	}
+
+	@Override
+	public Object asMinecraftWorld(org.bukkit.World bukkitWorld) {
+		WorldServer world = ((CraftWorld) bukkitWorld).getHandle();
+		return world;
 	}
 
 	@Override

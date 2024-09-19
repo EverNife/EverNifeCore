@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.nms.util.INMSUtils;
 import br.com.finalcraft.evernifecore.version.ServerType;
 import net.minecraft.server.v1_16_R3.*;
 import org.apache.commons.lang3.Validate;
+import org.bukkit.craftbukkit.v1_16_R3.CraftWorld;
 import org.bukkit.craftbukkit.v1_16_R3.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_16_R3.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_16_R3.inventory.CraftItemStack;
@@ -76,6 +77,18 @@ public class NMSUtils_v1_16_R3 implements INMSUtils {
 		NBTTagCompound nbtTagCompound = new NBTTagCompound();
 		nmsItem.save(nbtTagCompound);
 		return nbtTagCompound.toString();
+	}
+
+	@Override
+	public org.bukkit.World asBukkitWorld(Object minecraftWorld) {
+		WorldServer world = (WorldServer) minecraftWorld;
+		return world.getWorld();
+	}
+
+	@Override
+	public Object asMinecraftWorld(org.bukkit.World bukkitWorld) {
+		WorldServer world = ((CraftWorld) bukkitWorld).getHandle();
+		return world;
 	}
 
 	@Override

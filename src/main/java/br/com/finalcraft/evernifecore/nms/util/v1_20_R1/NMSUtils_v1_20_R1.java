@@ -9,9 +9,12 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.protocol.game.PacketPlayInClientCommand;
 import net.minecraft.resources.MinecraftKey;
 import net.minecraft.server.level.EntityPlayer;
+import net.minecraft.server.level.WorldServer;
 import net.minecraft.world.entity.EnumItemSlot;
 import net.minecraft.world.item.*;
 import org.apache.commons.lang3.Validate;
+import org.bukkit.World;
+import org.bukkit.craftbukkit.v1_20_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_20_R1.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
@@ -83,6 +86,18 @@ public class NMSUtils_v1_20_R1 implements INMSUtils {
 		NBTTagCompound nbtTagCompound = new NBTTagCompound();
 		nmsItem.b(nbtTagCompound);
 		return nbtTagCompound.toString();
+	}
+
+	@Override
+	public World asBukkitWorld(Object minecraftWorld) {
+		WorldServer world = (WorldServer) minecraftWorld;
+		return world.getWorld();
+	}
+
+	@Override
+	public Object asMinecraftWorld(World bukkitWorld) {
+		WorldServer world = ((CraftWorld) bukkitWorld).getHandle();
+		return world;
 	}
 
 	@Override
