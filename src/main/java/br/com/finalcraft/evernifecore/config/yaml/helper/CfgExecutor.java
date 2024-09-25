@@ -9,7 +9,13 @@ public class CfgExecutor {
 
     private static final Logger logger = Logger.getLogger("CfgExecutor");
 
-    private static final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(10);
+    private static final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(
+            10,
+            new ThreadFactoryBuilder()
+                    .setNameFormat("evernifecore-cfgexecutor-caching-%d")
+                    .setDaemon(true)
+                    .build()
+    );
 
     public static ScheduledThreadPoolExecutor getScheduler() {
         return scheduler;

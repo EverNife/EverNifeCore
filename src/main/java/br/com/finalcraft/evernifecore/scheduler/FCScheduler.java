@@ -2,13 +2,20 @@ package br.com.finalcraft.evernifecore.scheduler;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.concurrent.*;
 
 public class FCScheduler {
 
-    private static final ScheduledThreadPoolExecutor scheduler = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(9999);
+    private static final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(
+            9999, //If this goes UP too high, it means the Programmer is faulty here!
+            new ThreadFactoryBuilder()
+                    .setNameFormat("evernifecore-fcscheduler-%d")
+                    .setDaemon(true)
+                    .build()
+    );
 
     public static ScheduledThreadPoolExecutor getScheduler() {
         return scheduler;
