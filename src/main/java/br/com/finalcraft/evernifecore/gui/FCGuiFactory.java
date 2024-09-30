@@ -28,8 +28,8 @@ public class FCGuiFactory {
         return new PaginatedBuilder();
     }
 
-    public static PaginatedBuilder paginatedComplex(){
-        return new PaginatedBuilder();
+    public static PaginatedComplexGuiBuilder paginatedComplex(){
+        return new PaginatedComplexGuiBuilder(GuiType.CHEST);
     }
 
     public static <B extends BaseGuiBuilder> B from(Class<B> classBuilder){
