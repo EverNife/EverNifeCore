@@ -781,7 +781,7 @@ public class Config {
                     if (def instanceof Integer) return (D) Integer.valueOf(NumberWrapper.of((Number)value).intValue());
                     if (def instanceof Long) return (D) Long.valueOf(NumberWrapper.of((Number)value).longValue());
                 }
-                return (D) getValue(path);
+                return (D) value;
             }
         }
     }
