@@ -175,6 +175,43 @@ public class CfgLoadableSalvable {
                 })
                 .setOnConfigLoad(configSection -> new ChunkPos(configSection.getInt("x"),configSection.getInt("z")));
 
+        addLoadableSalvable(FCReflectionUtil.getClass("java.util.LinkedHashMap$LinkedValues"))
+                .setOnConfigSave((section, linkedHashMap) -> {
+                    section.setValue("", new ArrayList<>((Collection) linkedHashMap));
+                });
+
+        addLoadableSalvable(Set.class)
+                .setOnConfigSave((section, set) -> {
+                    section.setValue("", new ArrayList<>(set));
+                })
+                .setAllowExtends(true);
+
+        addLoadableSalvable(ZonedDateTime.class)
+                .setOnConfigSave((section, zonedDateTime) -> {
+                    section.setValue("", FCTimeUtil.FORMATTER_DEFAULT.format(zonedDateTime));
+                })
+                .setOnConfigLoad(configSection -> {
+                    String formatedTime = configSection.getString("");
+                    return FCTimeUtil.universalDateConverter(formatedTime).atZone(DayOfToday.getInstance().getZoneId());
+                });
+
+        addLoadableSalvable(LocalDateTime.class)
+                .setOnConfigSave((section, localDateTime) -> {
+                    section.setValue("", FCTimeUtil.FORMATTER_DEFAULT.format(localDateTime));
+                })
+                .setOnConfigLoad(configSection -> {
+                    String formatedTime = configSection.getString("");
+                    return FCTimeUtil.universalDateConverter(formatedTime);
+                });
+
+        boolean isBukkitEnvironment = FCReflectionUtil.isClassLoaded("org.bukkit.Bukkit");
+
+        if (isBukkitEnvironment){
+            createBukkitOnlyLoadableSalvables();
+        }
+    }
+
+    private static void createBukkitOnlyLoadableSalvables(){
         addLoadableSalvable(FancyText.class)
                 .setAllowExtends(true)//FancyFormatter should come in this as well
                 .setOnConfigSave((configSection, fancyText) -> {
@@ -363,34 +400,5 @@ public class CfgLoadableSalvable {
                         }
                 )
         ;
-
-        addLoadableSalvable(FCReflectionUtil.getClass("java.util.LinkedHashMap$LinkedValues"))
-                .setOnConfigSave((section, linkedHashMap) -> {
-                    section.setValue("", new ArrayList<>((Collection) linkedHashMap));
-                });
-
-        addLoadableSalvable(Set.class)
-                .setOnConfigSave((section, set) -> {
-                    section.setValue("", new ArrayList<>(set));
-                })
-                .setAllowExtends(true);
-
-        addLoadableSalvable(ZonedDateTime.class)
-                .setOnConfigSave((section, zonedDateTime) -> {
-                    section.setValue("", FCTimeUtil.FORMATTER_DEFAULT.format(zonedDateTime));
-                })
-                .setOnConfigLoad(configSection -> {
-                    String formatedTime = configSection.getString("");
-                    return FCTimeUtil.universalDateConverter(formatedTime).atZone(DayOfToday.getInstance().getZoneId());
-                });
-
-        addLoadableSalvable(LocalDateTime.class)
-                .setOnConfigSave((section, localDateTime) -> {
-                    section.setValue("", FCTimeUtil.FORMATTER_DEFAULT.format(localDateTime));
-                })
-                .setOnConfigLoad(configSection -> {
-                    String formatedTime = configSection.getString("");
-                    return FCTimeUtil.universalDateConverter(formatedTime);
-                });
     }
 }
