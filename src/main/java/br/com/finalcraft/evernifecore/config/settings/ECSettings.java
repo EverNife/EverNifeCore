@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.config.settings;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.time.DayOfToday;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.evernifecore.util.FCTimeUtil;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -17,8 +18,8 @@ public class ECSettings {
 
     //Time Related
     public static String ZONE_ID_OF_DAY_OF_TODAY;
-    public static DateTimeFormatter SIMPLE_DATE_FORMAT;
-    public static DateTimeFormatter DATE_FORMAT_WITH_HOURS;
+    public static DateTimeFormatter SIMPLE_DATE_FORMAT = FCTimeUtil.FORMATTER_DATE_REVERSE;
+    public static DateTimeFormatter DATE_FORMAT_WITH_HOURS = FCTimeUtil.FORMATTER_DATETIME_REVERSE;
     public static int PAGEVIEWERS_REFRESH_TIME;
 
     //Guis
