@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.config.yaml.helper;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.config.fcconfiguration.FCConfigurationManager;
+import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfig;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
 import br.com.finalcraft.evernifecore.config.yaml.exeption.LoadableMethodException;
@@ -66,19 +68,26 @@ public class CfgLoadableSalvable {
 
             boolean shouldRegister = false;
 
-            if (Salvable.class.isAssignableFrom(clazz)){ //This class is a Salvable, STORE it!
-                smartLoadSave.setOnConfigSave(
-                        (configSection, o) -> ((Salvable) o).onConfigSave(configSection)
-                );
+            FConfig configuration = clazz.getAnnotation(FConfig.class);
+            if (configuration != null){
+                FCConfigurationManager.attatchLoadableSalvableFunctions(clazz, smartLoadSave);
                 shouldRegister = true;
+            }else {
+                if (Salvable.class.isAssignableFrom(clazz)){ //This class is a Salvable, STORE it!
+                    smartLoadSave.setOnConfigSave(
+                            (configSection, o) -> ((Salvable) o).onConfigSave(configSection)
+                    );
+                    shouldRegister = true;
+                }
+
+                //Let's attempt to extract LoadableData from it as well
+                Optional<Function<ConfigSection, O>> onConfigLoadOptional = extractLoadableMethod(aClass);
+                if (onConfigLoadOptional.isPresent()){
+                    smartLoadSave.setOnConfigLoad(onConfigLoadOptional.get());
+                    shouldRegister = true;
+                }
             }
 
-            //Let's attempt to extract LoadableData from it as well
-            Optional<Function<ConfigSection, O>> onConfigLoadOptional = extractLoadableMethod(aClass);
-            if (onConfigLoadOptional.isPresent()){
-                smartLoadSave.setOnConfigLoad(onConfigLoadOptional.get());
-                shouldRegister = true;
-            }
 
             if (shouldRegister){
                 smartLoadSave.setHasAlreadyBeenScanned(true);
