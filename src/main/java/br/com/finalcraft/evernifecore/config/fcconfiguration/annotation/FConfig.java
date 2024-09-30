@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.config.fcconfiguration.annotation;
 
 
+import br.com.finalcraft.evernifecore.config.fcconfiguration.FCConfigurationManager;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
 
 import java.lang.annotation.ElementType;
@@ -19,17 +20,6 @@ public @interface FConfig {
      *     [0:*]  = Number between 0 and MAX_NUMBER
      */
     String context() default "";
-
-    /**
-     * Should this method/field be used as the ID
-     * when saving this Object as a List?.
-     *
-     * If more than one field/method is marked as ID,
-     * an error will be thrown.
-     *
-     * See {@link br.com.finalcraft.evernifecore.config.fcconfiguration.FCConfigurationManager#VALID_PRIMARY_KEYS}
-     */
-    boolean useAsID() default false;
 
     /**
      * The keyName to save/load this element.
@@ -64,7 +54,7 @@ public @interface FConfig {
      * If more than one field is marked as ID,
      * an error will be thrown.
      *
-     * See {@link br.com.finalcraft.evernifecore.config.fcconfiguration.FCConfigurationManager#VALID_PRIMARY_KEYS}
+     * See {@link FCConfigurationManager#VALID_PRIMARY_KEYS}
      */
     @Retention(RetentionPolicy.RUNTIME)
     @Target({ElementType.FIELD})
