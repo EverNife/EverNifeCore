@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.gui.custom;
 
+import br.com.finalcraft.evernifecore.gui.item.GuiItemComplex;
+import br.com.finalcraft.evernifecore.util.commons.SimpleEntry;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import dev.triumphteam.gui.components.GuiType;
 import dev.triumphteam.gui.components.InteractionModifier;
@@ -136,6 +138,7 @@ public class PaginatedGuiComplex extends GuiComplex {
         int count = 0;
 
         for (Integer slot : pageSlots) {
+            // If the slot is not in the current page and the slot is not empty, then it is not a slot that can be used
             if (currentPage.containsKey(slot) == false && (getGuiItem(slot) != null || getInventory().getItem(slot) != null)) {
                 continue;
             }
@@ -184,21 +187,32 @@ public class PaginatedGuiComplex extends GuiComplex {
     }
 
     protected void populatePaginatedItemsOnGui() {
+        currentPage.clear();
+
         // Adds the paginated items to the page's empty slots and non-blank slots
-        for (final GuiItem guiItem : getPaginatedItemsAtPageNumber(pageNum)) {
-            for (int slot = 0; slot < getRows() * 9; slot++) {
-                if (getGuiItem(slot) != null || getInventory().getItem(slot) != null){
-                    continue;
-                }
-                currentPage.put(slot, guiItem);
-                this.getInventory().setItem(slot, guiItem.getItemStack());
-                break;
+        List<GuiItem> itemsToBePopulated = getPaginatedItemsAtPageNumber(pageNum);
+
+        if (itemsToBePopulated.isEmpty()){
+            return;
+        }
+
+        for (Integer slot : pageSlots) {
+            if (getGuiItem(slot) != null || getInventory().getItem(slot) != null){
+                continue;//There is a fixed item in this slot
             }
+
+            if (itemsToBePopulated.isEmpty()){
+                break; //all items have been added
+            }
+
+            GuiItem nextItem = itemsToBePopulated.remove(0);
+            currentPage.put(slot, nextItem);
+            this.getInventory().setItem(slot, nextItem.getItemStack());
         }
     }
 
     public List<GuiItem> getPaginatedItemsAtPageNumber(final int givenPage) {
-        if (givenPage == getPageNum()){
+        if (givenPage == getPageNum() && currentPage.size() > 0){
             return new ArrayList<>(currentPage.values());
         }
 
@@ -216,4 +230,22 @@ public class PaginatedGuiComplex extends GuiComplex {
         return guiPage;
     }
 
+    //------------------------------------------------------------------------------------------------------------------
+    // Override GuiUpdate
+    //------------------------------------------------------------------------------------------------------------------
+
+    @Override
+    protected List<Map.Entry<Integer, GuiItemComplex>> getAllGuiItemsComplexThatCanBeUpdated() {
+        List<Map.Entry<Integer, GuiItemComplex>> allComplexGuiItemsOfThisPage = new ArrayList<>();
+
+        this.getGuiItems().entrySet().stream()
+                .filter(entry -> entry.getValue() instanceof GuiItemComplex)
+                .forEach(entry -> allComplexGuiItemsOfThisPage.add(SimpleEntry.of(entry.getKey(), (GuiItemComplex) entry.getValue())));
+
+        this.currentPage.entrySet().stream()
+                .filter(entry -> entry.getValue() instanceof GuiItemComplex)
+                .forEach(entry -> allComplexGuiItemsOfThisPage.add(SimpleEntry.of(entry.getKey(), (GuiItemComplex) entry.getValue())));
+
+        return allComplexGuiItemsOfThisPage;
+    }
 }

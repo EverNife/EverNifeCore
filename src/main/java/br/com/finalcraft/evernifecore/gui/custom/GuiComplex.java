@@ -3,10 +3,10 @@ package br.com.finalcraft.evernifecore.gui.custom;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.gui.item.GuiItemComplex;
+import br.com.finalcraft.evernifecore.util.commons.SimpleEntry;
 import dev.triumphteam.gui.components.GuiType;
 import dev.triumphteam.gui.components.InteractionModifier;
 import dev.triumphteam.gui.guis.Gui;
-import dev.triumphteam.gui.guis.GuiItem;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -15,11 +15,12 @@ import org.bukkit.inventory.InventoryView;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 public class GuiComplex extends Gui {
 
@@ -45,9 +46,9 @@ public class GuiComplex extends Gui {
         runnable.runTaskTimer(EverNifeCore.instance, 1, ECSettings.DEFAULT_GUI_UPDATE_TIME); //2 Ticks might be enought for almost any case
     }
 
-    private int updateInterval = ECSettings.DEFAULT_GUI_UPDATE_TIME;
-    private int counter = 0;
-    private BiConsumer<Player, GuiComplex> onGuiUpdate;
+    protected int updateInterval = ECSettings.DEFAULT_GUI_UPDATE_TIME;
+    protected int counter = 0;
+    protected BiConsumer<Player, GuiComplex> onGuiUpdate;
 
     public GuiComplex(int rows, @NotNull String title, @NotNull Set<InteractionModifier> interactionModifiers) {
         super(rows, title, interactionModifiers);
@@ -55,6 +56,18 @@ public class GuiComplex extends Gui {
 
     public GuiComplex(@NotNull GuiType guiType, @NotNull String title, @NotNull Set<InteractionModifier> interactionModifiers) {
         super(guiType, title, interactionModifiers);
+    }
+
+    /**
+     * This method is used to get all GuiItems that are GuiItemComplex and are inside a slot.
+     *
+     * @return A list of Map.Entry with the slot and it's given GuiItemComplex
+     */
+    protected List<Map.Entry<Integer, GuiItemComplex>> getAllGuiItemsComplexThatCanBeUpdated(){
+        return getGuiItems().entrySet().stream()
+                .filter(integerGuiItemEntry -> integerGuiItemEntry.getValue() instanceof GuiItemComplex)
+                .map(entry -> SimpleEntry.of(entry.getKey(), (GuiItemComplex) entry.getValue()))
+                .collect(Collectors.toList());
     }
 
     protected void onGuiUpdate(Player player){
@@ -71,22 +84,19 @@ public class GuiComplex extends Gui {
 
         //Now update each GuiItem attached to this GUI.
         //If an GuiItem is the same for more than one slot, the GuiItem will be updated only once!
-        for (Map.Entry<Integer, GuiItem> entry : getGuiItems().entrySet()) {
-            if (entry.getValue() instanceof GuiItemComplex){
+        for (Map.Entry<Integer, GuiItemComplex> entry : getAllGuiItemsComplexThatCanBeUpdated()) {
+            Integer slot = entry.getKey();
+            GuiItemComplex guiItem = entry.getValue();
 
-                Integer slot = entry.getKey();
-                GuiItemComplex guiItem = (GuiItemComplex) entry.getValue();
-
-                if (!checked.contains(guiItem)){
-                    if (guiItem.onItemUpdate(this, player)){
-                        updated.add(guiItem);
-                    }
-                    checked.add(guiItem);
+            if (!checked.contains(guiItem)){
+                if (guiItem.onItemUpdate(this, player)){
+                    updated.add(guiItem);
                 }
+                checked.add(guiItem);
+            }
 
-                if (updated.contains(guiItem)){
-                    getInventory().setItem(slot, guiItem.getItemStack());
-                }
+            if (updated.contains(guiItem)){
+                getInventory().setItem(slot, guiItem.getItemStack());
             }
         }
 
@@ -107,12 +117,10 @@ public class GuiComplex extends Gui {
         if (this.getInventory().getViewers().size() == 0) return;
         Player player = (Player) this.getInventory().getViewers().get(0);
 
-        for (Map.Entry<Integer, GuiItem> entry : new ArrayList<>(getGuiItems().entrySet())) {
-            if (entry.getValue() instanceof GuiItemComplex){
-                GuiItemComplex complex = (GuiItemComplex) entry.getValue();
-                complex.forceUpdate(this, player);
-                updateItem(entry.getKey(), complex);
-            }
+        for (Map.Entry<Integer, GuiItemComplex> entry : getAllGuiItemsComplexThatCanBeUpdated()) {
+            GuiItemComplex complex = entry.getValue();
+            complex.forceUpdate(this, player);
+            updateItem(entry.getKey(), complex);
         }
     }
 
