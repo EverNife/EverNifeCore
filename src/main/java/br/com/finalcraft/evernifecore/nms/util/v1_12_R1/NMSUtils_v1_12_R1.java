@@ -5,11 +5,11 @@ import br.com.finalcraft.evernifecore.nms.util.INMSUtils;
 import br.com.finalcraft.evernifecore.version.ServerType;
 import net.minecraft.server.v1_12_R1.*;
 import org.apache.commons.lang3.Validate;
+import org.bukkit.craftbukkit.v1_12_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_12_R1.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_12_R1.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_12_R1.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.v1_12_R1.util.CraftMagicNumbers;
-import org.bukkit.craftbukkit.v1_12_R1.CraftWorld;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
