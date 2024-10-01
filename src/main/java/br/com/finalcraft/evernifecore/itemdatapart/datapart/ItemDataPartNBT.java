@@ -55,6 +55,7 @@ public class ItemDataPartNBT extends ItemDataPart {
             compound.removeKey("display");//Remove LORE and DisplayName
             if (MCVersion.isHigherEquals(MCVersion.v1_13)){
                 compound.removeKey("Damage");//Remove Damage key
+                compound.removeKey("HideFlags");//Remove Flags key
             }
             if (!FCNBTUtil.isEmpty(compound)){
                 output.add("nbt: " + compound.toString());
