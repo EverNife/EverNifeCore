@@ -8,6 +8,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.List;
+import java.util.Set;
 
 public class ItemDataPartItemflags extends ItemDataPart {
 
@@ -47,11 +48,19 @@ public class ItemDataPartItemflags extends ItemDataPart {
     @Override
     public List<String> read(ItemStack i, List<String> output) {
         ItemMeta meta = i.getItemMeta();
-        if (meta.getItemFlags() != null) {
-            for (ItemFlag flag : meta.getItemFlags()) {
-                output.add("itemflag:" + flag.name());
+
+        Set<ItemFlag> itemFlags = meta.getItemFlags();
+
+        if (itemFlags != null){
+            if (itemFlags.size() == ItemFlag.values().length){
+                output.add("hideflags:all");
+            }else {
+                for (ItemFlag flag : itemFlags) {
+                    output.add("hideflags:" + flag.name());
+                }
             }
         }
+
         return output;
     }
 
