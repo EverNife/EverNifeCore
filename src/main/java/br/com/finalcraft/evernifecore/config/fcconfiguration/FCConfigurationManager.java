@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.config.fcconfiguration;
 
-import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FCConfigurationComplex;
-import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FCConfigurationException;
+import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfigComplex;
+import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfigException;
 import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfig;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
 import br.com.finalcraft.evernifecore.config.yaml.helper.smartloadable.SmartLoadSave;
@@ -138,7 +138,7 @@ public class FCConfigurationManager {
 
         smartLoadSave.setOnConfigSave((configSection, object) -> {
             //Do the Actual object Saving
-            if (object instanceof FCConfigurationComplex) ((FCConfigurationComplex) object).onConfigSavePre(configSection);
+            if (object instanceof FConfigComplex) ((FConfigComplex) object).onConfigSavePre(configSection);
             if (finalPrimaryId != null){
                 String primaryIdString = Optional.ofNullable(finalPrimaryId.get(object)).map(Object::toString)
                         .orElseThrow(() -> errorOnPrimaryKey("PrimaryID Field is null or Empty!", clazz, nonExcludedFields));
@@ -147,14 +147,14 @@ public class FCConfigurationManager {
             for (Tuple<FieldAccessor, BiConsumer<O, ConfigSection>> tuple : fieldSaveActions) {
                 tuple.getRight().accept(object, configSection);
             }
-            if (object instanceof FCConfigurationComplex) ((FCConfigurationComplex) object).onConfigSavePost(configSection);
+            if (object instanceof FConfigComplex) ((FConfigComplex) object).onConfigSavePost(configSection);
         });
 
         smartLoadSave.setOnConfigLoad((Function<ConfigSection, O>) (configSection) -> {
             O object = EMPTY_CONSTRUCTOR.invoke();
 
             //Do the Actual object Loading
-            if (object instanceof FCConfigurationComplex) ((FCConfigurationComplex) object).onConfigSavePre(configSection);
+            if (object instanceof FConfigComplex) ((FConfigComplex) object).onConfigSavePre(configSection);
             if (finalPrimaryId != null){
                 String primaryIdString = configSection.getSectionKey();
                 Object primaryIdCasted = castPrimaryKeyIndex(primaryIdString, finalPrimaryId.getTheField().getType());
@@ -163,7 +163,7 @@ public class FCConfigurationManager {
             for (Tuple<FieldAccessor, BiConsumer<O, ConfigSection>> tuple : fieldLoadActions) {
                 tuple.getRight().accept(object, configSection);
             }
-            if (object instanceof FCConfigurationComplex) ((FCConfigurationComplex) object).onConfigLoadPost(configSection);
+            if (object instanceof FConfigComplex) ((FConfigComplex) object).onConfigLoadPost(configSection);
 
             return object;
         });
@@ -189,7 +189,7 @@ public class FCConfigurationManager {
         }else if (type == UUID.class){
             return UUID.fromString(content);
         }else {
-            throw new FCConfigurationException("Unsupported Primary Key Type: " + type.getName());
+            throw new FConfigException("Unsupported Primary Key Type: " + type.getName());
         }
     }
 
@@ -252,7 +252,7 @@ public class FCConfigurationManager {
         return (configSection, key) -> configSection.getLoadable(key, clazz);
     }
 
-    private static FCConfigurationException errorOnPrimaryKey(String errorMessage, Class clazz, List<FieldAccessor> nonExcludedFields){
+    private static FConfigException errorOnPrimaryKey(String errorMessage, Class clazz, List<FieldAccessor> nonExcludedFields){
         String allFieldsData = nonExcludedFields.stream().filter(fieldAccessor1 -> {
                     FConfig.Id annotation = fieldAccessor1.getTheField().getAnnotation(FConfig.Id.class);
                     return annotation != null;
@@ -260,7 +260,7 @@ public class FCConfigurationManager {
                 .map(fieldAccessor1 -> fieldAccessor1.getTheField().toString())
                 .collect(Collectors.joining("\n  - "));
 
-        return new FCConfigurationException(
+        return new FConfigException(
                 String.format(errorMessage +
                                 "\n Class: %s" +
                                 "\n PrimaryFields: " +

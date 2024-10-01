@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.config.fcconfiguration.annotation;
 
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 
-public interface FCConfigurationComplex {
+public interface FConfigComplex {
 
     public default void onConfigSavePre(ConfigSection section){
 
@@ -19,4 +19,5 @@ public interface FCConfigurationComplex {
     public default void onConfigLoadPost(ConfigSection section){
 
     }
+
 }

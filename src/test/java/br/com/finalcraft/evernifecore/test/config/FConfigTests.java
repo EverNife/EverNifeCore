@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.test.config;
 
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfig;
-import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FCConfigurationComplex;
+import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfigComplex;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.util.FCTimeUtil;
 import lombok.AllArgsConstructor;
@@ -85,7 +85,7 @@ public class FConfigTests {
 
     @Data
     @FConfig
-    public static class ComplexTeste implements FCConfigurationComplex {
+    public static class ComplexTeste implements FConfigComplex {
         UUID uuid = UUID.randomUUID();
         @FConfig(comment = "lastTimeSaved")
         String lastTimeSaved;
