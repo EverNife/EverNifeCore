@@ -19,6 +19,7 @@ public class DefaultIcons {
         return FCItemFactory
                 .from(Material.REDSTONE)
                 .applyIf(() -> MCVersion.isHigherEquals(MCVersion.v1_12), builder -> builder.material(Material.SPECTRAL_ARROW))
+                .applyIf(() -> FCInputReader.parseMaterial("PIXELMON_TRADE_HOLDER_LEFT") != null, fcItemBuilder -> fcItemBuilder.material("PIXELMON_TRADE_HOLDER_LEFT").durability(1))
                 .applyIf(() -> FCInputReader.parseMaterial("EVERPOKEUTILS_BACK") != null, fcItemBuilder -> fcItemBuilder.material("EVERPOKEUTILS_BACK"))
                 .applyIf(() -> FCInputReader.parseMaterial("EVERNIFEWORLDRPG_CUSTOMICON") != null, fcItemBuilder -> fcItemBuilder.material("EVERNIFEWORLDRPG_CUSTOMICON").durability(1))
                 .displayName(PREVIOUS_PAGE.getDefaultFancyText().getText())
@@ -34,6 +35,7 @@ public class DefaultIcons {
         return FCItemFactory
                 .from(Material.REDSTONE)
                 .applyIf(() -> MCVersion.isHigherEquals(MCVersion.v1_16), builder -> builder.material(Material.SPECTRAL_ARROW))
+                .applyIf(() -> FCInputReader.parseMaterial("PIXELMON_TRADE_HOLDER_RIGHT") != null, fcItemBuilder -> fcItemBuilder.material("PIXELMON_TRADE_HOLDER_RIGHT").durability(1))
                 .applyIf(() -> FCInputReader.parseMaterial("EVERPOKEUTILS_FORWARD") != null, fcItemBuilder -> fcItemBuilder.material("EVERPOKEUTILS_FORWARD"))
                 .applyIf(() -> FCInputReader.parseMaterial("EVERNIFEWORLDRPG_CUSTOMICON") != null, fcItemBuilder -> fcItemBuilder.material("EVERNIFEWORLDRPG_CUSTOMICON").durability(2))
                 .displayName(NEXT_PAGE.getDefaultFancyText().getText())
