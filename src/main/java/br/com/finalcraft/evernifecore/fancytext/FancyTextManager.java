@@ -151,7 +151,7 @@ public class FancyTextManager {
 
     }
 
-    private static List<List<TextComponent>> get2DListOfTextComponents(FancyText... fancyTexts){
+    public static List<List<TextComponent>> get2DListOfTextComponents(FancyText... fancyTexts){
         List<List<TextComponent>> textComponent2DList = new ArrayList<>();
         int id = 0;
         String previousColor = "§r";

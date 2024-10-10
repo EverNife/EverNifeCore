@@ -207,7 +207,7 @@ public class FancyText {
      *
      *   Use as funções do FancyText.class ao invés dessa!
      */
-    protected List<TextComponent> getTextComponents(String startingColor){
+    public List<TextComponent> getTextComponents(String startingColor){
 
         if (!startingColor.equals(lastStartingColor)){
             setRecentChanged();
