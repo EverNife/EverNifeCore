@@ -8,6 +8,7 @@ import dev.triumphteam.gui.components.InteractionModifier;
 import dev.triumphteam.gui.guis.GuiItem;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -233,6 +234,15 @@ public class PaginatedGuiComplex extends GuiComplex {
     //------------------------------------------------------------------------------------------------------------------
     // Override GuiUpdate
     //------------------------------------------------------------------------------------------------------------------
+
+    @Override
+    public @Nullable GuiItem getGuiItem(int slot) {
+        GuiItem guiItem = super.getGuiItem(slot);
+        if (guiItem == null){
+            guiItem = currentPage.get(slot);
+        }
+        return guiItem;
+    }
 
     @Override
     protected List<Map.Entry<Integer, GuiItemComplex>> getAllGuiItemsComplexThatCanBeUpdated() {
