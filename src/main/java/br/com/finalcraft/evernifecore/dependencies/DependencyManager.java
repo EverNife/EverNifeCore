@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.dependencies;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import net.byteflux.libby.Library;
 import net.byteflux.libby.LibraryManager;
 import net.byteflux.libby.classloader.URLClassLoaderHelper;
@@ -12,8 +13,9 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 public class DependencyManager extends LibraryManager {
@@ -56,9 +58,21 @@ public class DependencyManager extends LibraryManager {
      * @see #downloadLibrary(Library)
      */
     public void loadLibrary(Collection<Library> libraries) {
+
+        if (libraries.size() == 0){
+            return;
+        }
+
         CountDownLatch latch = new CountDownLatch(libraries.size());
 
-        final ThreadPoolExecutor scheduler = (ThreadPoolExecutor) Executors.newFixedThreadPool(libraries.size() >= 4 ? 4 : libraries.size());
+        final ThreadPoolExecutor scheduler = new ThreadPoolExecutor(libraries.size() >= 4 ? 4 : libraries.size(), Integer.MAX_VALUE,
+                0L, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue(),
+                new ThreadFactoryBuilder()
+                        .setNameFormat("evernifecore-dependencymanager-pool-%d")
+                        .setDaemon(true)
+                        .build()
+        );
 
         for (Library library : libraries) {
             scheduler.submit(() -> {
@@ -77,6 +91,8 @@ public class DependencyManager extends LibraryManager {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+
+        scheduler.shutdown();
     }
 
 }
