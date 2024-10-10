@@ -21,7 +21,6 @@ import br.com.finalcraft.evernifecore.thread.SaveConfigThread;
 import br.com.finalcraft.evernifecore.util.FCTickUtil;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
-import me.tom.sparse.spigot.chat.menu.ChatMenuAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -103,10 +102,6 @@ public class EverNifeCore extends JavaPlugin {
 
         SaveConfigThread.INSTANCE.start();
 
-        if (Bukkit.getPluginManager().isPluginEnabled("ProtocolLib")){
-            ChatMenuAPI.init(instance, false);
-        }
-
         FCTickUtil.getTickCount();//This will start tickCounting
         info("§aEverNifeCore successfully started!");
     }
@@ -117,7 +112,6 @@ public class EverNifeCore extends JavaPlugin {
         SaveConfigThread.INSTANCE.shutdown();
         PlayerController.savePlayerDataOnConfig();
         CfgExecutor.shutdownExecutor();
-        ChatMenuAPI.disable();
     }
 
     @ECPlugin.Reload

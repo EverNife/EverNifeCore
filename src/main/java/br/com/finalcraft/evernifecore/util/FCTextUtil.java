@@ -1,7 +1,8 @@
 package br.com.finalcraft.evernifecore.util;
 
-import me.tom.sparse.spigot.chat.menu.ChatMenuAPI;
-import me.tom.sparse.spigot.chat.util.TextUtil;
+
+import br.com.finalcraft.evernifecore.chatmenuapi.menu.ChatMenuAPI;
+import br.com.finalcraft.evernifecore.chatmenuapi.util.TextUtil;
 
 public class FCTextUtil {
 

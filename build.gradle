@@ -64,7 +64,8 @@ dependencies {
     implementation project(':modules:v1_12_2')
     implementation project(':modules:v1_16_5')
 
-    implementation 'com.github.evernife:ChatMenuAPI:v1.1.3c'
+    implementation "br.com.finalcraft:ChatMenuAPI:2.0.1"
+
     implementation 'net.byteflux:libby-core:1.2.0'
     implementation 'dev.triumphteam:triumph-gui:3.1.4-evernife-02'
     implementation 'com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8.4'
@@ -148,7 +149,7 @@ ext.getCallingTask = { ->
 shadowJar {
     archiveName = "${baseName}-${version}.${extension}"
     dependencies {
-        include(dependency('com.github.evernife:ChatMenuAPI:'))
+        include(dependency('br.com.finalcraft:ChatMenuAPI:'))
         include(dependency('net.byteflux:libby-core:'))
         include(dependency('dev.triumphteam:triumph-gui:'))
         include(dependency('de.tr7zw:item-nbt-api:')) //Oct 26, 2023
