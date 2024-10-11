@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.config;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.autoupdater.SpigotUpdateChecker;
+import br.com.finalcraft.evernifecore.chatmenuapi.menu.element.InputElement;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.FCDefaultExecutor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
@@ -43,7 +44,8 @@ public class ConfigManager {
                 HelpContext.class,
                 FCDefaultExecutor.class,
                 PageViewer.class,
-                DefaultIcons.class
+                DefaultIcons.class,
+                InputElement.class
         );
         FCLocaleManager.updateEverNifeCoreLocale();
 
