@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.config.fcconfiguration;
 
+import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfig;
 import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfigComplex;
 import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfigException;
-import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfig;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
 import br.com.finalcraft.evernifecore.config.yaml.helper.smartloadable.SmartLoadSave;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
@@ -34,7 +34,7 @@ public class FCConfigurationManager {
             UUID.class
     ));
 
-    public static <O> void attatchLoadableSalvableFunctions(Class<O> clazz, SmartLoadSave<O> smartLoadSave){
+    public static <O> void attachLoadableSalvableFunctions(Class<O> clazz, SmartLoadSave<O> smartLoadSave){
         ConstructorInvoker<O> EMPTY_CONSTRUCTOR = FCReflectionUtil.getConstructor(clazz);
 
         List<FieldAccessor> nonExcludedFields = FCReflectionUtil.getDeclaredFields(clazz).stream()
