@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O>  {
 
     private final Pattern pattern;
-    private final PlaceholderProvider<O> provider = new PlaceholderProvider<>();
+    private final PlaceholderProvider<O> provider;
     private final List<ManipulatedParser<O>> manipulators = new ArrayList<>();
 
     public RegexReplacer() {
@@ -25,7 +25,12 @@ public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O
     }
 
     public RegexReplacer(final Pattern pattern) {
+        this(pattern, new PlaceholderProvider<>());
+    }
+
+    public RegexReplacer(Pattern pattern, PlaceholderProvider<O> provider) {
         this.pattern = pattern;
+        this.provider = provider;
     }
 
     public Pattern getPattern() {
@@ -34,6 +39,10 @@ public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O
 
     public PlaceholderProvider<O> getProvider() {
         return provider;
+    }
+
+    public List<ManipulatedParser<O>> getManipulators() {
+        return manipulators;
     }
 
     public RegexReplacer<O> addManipulator(String manipulableString, BiFunction<O, ManipulationContext.SimpleContext, Object> parser){
