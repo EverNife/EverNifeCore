@@ -45,7 +45,7 @@ public class ECPluginData {
 
         if (ecPlugin != null && ecPlugin.debugModuleEnum() != IDebugModule.class){
             if (!ecPlugin.debugModuleEnum().isEnum()){
-                plugin.getLogger().warning("Failed to read debugModuleEnum from @ECPlugin, " + ecPlugin.debugModuleEnum().getName() + "  is not an enum!");
+                plugin.getLogger().warning("Failed to read debugModuleEnum from @ECPlugin, " + ecPlugin.debugModuleEnum().getName() + " is not an enum!");
             }else {
                 defineDebugModules(ecPlugin.debugModuleEnum().getEnumConstants());
             }
