@@ -110,7 +110,7 @@ public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O
 
             String requested = null; //Store the result of this placeholder, or null in case there is no match
 
-            requested = this.provider.parse(object, full_placeholder); //Default Provider will ignore identifier
+            requested = this.getProvider().parse(object, full_placeholder); //Default Provider will ignore identifier
 
             //Check the Manipulators, for overly complex placeholders
             if (requested == null && this.manipulators.size() > 0){
