@@ -169,7 +169,7 @@ public class ECPluginData {
             FancyText defaultFancyText = null;
             Set<String> ALL_POSSIBLE_LOCALES = new LinkedHashSet<>();
 
-            ALL_POSSIBLE_LOCALES.addAll(Arrays.stream(LocaleType.values()).collect(Collectors.toList())); //Add 'EN_US' and 'PT_BR' First
+            ALL_POSSIBLE_LOCALES.addAll(LocaleType.values().stream().collect(Collectors.toList())); //Add 'EN_US' and 'PT_BR' First
             ALL_POSSIBLE_LOCALES.addAll(hardcodedLocalizations.keySet()); //Add other hardcoded locales after, like "PT_BR_CUSTOM"
 
             for (String possibleLocale : ALL_POSSIBLE_LOCALES) {

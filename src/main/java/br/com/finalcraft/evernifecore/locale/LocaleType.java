@@ -1,17 +1,26 @@
 package br.com.finalcraft.evernifecore.locale;
 
-public class LocaleType {
-    public static final String EN_US = "EN_US";
-    public static final String PT_BR = "PT_BR";
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-    public static String[] values() {
-        return new String[] { LocaleType.EN_US, LocaleType.PT_BR };
+public class LocaleType {
+    public static final String EN_US = createLocale("EN_US");
+    public static final String PT_BR = createLocale("PT_BR");
+
+    private static Map<String,String> NORMALIZED_LOCALES = new LinkedHashMap<>();
+
+    public static Collection<String> values() {
+        return NORMALIZED_LOCALES.values();
     }
 
     public static String normalize(String name){
-        return EN_US.equalsIgnoreCase(name)  ? EN_US
-             : PT_BR.equalsIgnoreCase(name)  ? PT_BR
-             : name;
+        return NORMALIZED_LOCALES.getOrDefault(name.toUpperCase(), name);
+    }
+
+    public static String createLocale(String name) {
+        NORMALIZED_LOCALES.put(name, name);
+        return name;
     }
 
 }
