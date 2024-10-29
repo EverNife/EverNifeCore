@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.locale;
 
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -10,8 +12,10 @@ public class LocaleType {
 
     private static Map<String,String> NORMALIZED_LOCALES = new LinkedHashMap<>();
     static {
-        NORMALIZED_LOCALES.put("en_us", EN_US);
-        NORMALIZED_LOCALES.put("pt_br", PT_BR);
+        FCReflectionUtil.getDeclaredFields(LocaleType.class).stream()
+                .filter(fieldAccessor -> fieldAccessor.getTheField().getType() == String.class)
+                .map(fieldAccessor -> fieldAccessor.get(null))
+                .forEach(locale -> NORMALIZED_LOCALES.put(locale.toString(), locale.toString()));
     }
 
     public static Collection<String> values() {
@@ -22,4 +26,7 @@ public class LocaleType {
         return NORMALIZED_LOCALES.getOrDefault(name.toUpperCase(), name);
     }
 
+    public static Map<String, String> getNormalizedLocalesMap() {
+        return NORMALIZED_LOCALES;
+    }
 }
