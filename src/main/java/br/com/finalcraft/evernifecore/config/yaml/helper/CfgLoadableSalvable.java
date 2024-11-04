@@ -70,7 +70,7 @@ public class CfgLoadableSalvable {
 
             FConfig configuration = clazz.getAnnotation(FConfig.class);
             if (configuration != null){
-                FCConfigurationManager.attachLoadableSalvableFunctions(clazz, smartLoadSave);
+                FCConfigurationManager.attachLoadableSalvableFunctions(configuration, clazz, smartLoadSave);
                 shouldRegister = true;
             }else {
                 if (Salvable.class.isAssignableFrom(clazz)){ //This class is a Salvable, STORE it!

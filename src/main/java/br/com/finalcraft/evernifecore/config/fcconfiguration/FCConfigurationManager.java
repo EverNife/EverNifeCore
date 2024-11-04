@@ -34,10 +34,29 @@ public class FCConfigurationManager {
             UUID.class
     ));
 
-    public static <O> void attachLoadableSalvableFunctions(Class<O> clazz, SmartLoadSave<O> smartLoadSave){
+    public static <O> void attachLoadableSalvableFunctions(FConfig baseFConfig, Class<O> clazz, SmartLoadSave<O> smartLoadSave){
         ConstructorInvoker<O> EMPTY_CONSTRUCTOR = FCReflectionUtil.getConstructor(clazz);
 
-        List<FieldAccessor> nonExcludedFields = FCReflectionUtil.getDeclaredFields(clazz).stream()
+        List<FieldAccessor> declaredFields = FCReflectionUtil.getDeclaredFields(clazz);
+
+        if (baseFConfig.enforceSuperClassSerialization() != FConfig.SuperClassSerialization.DISABLED){
+            boolean forceSuperClassSerialization = baseFConfig.enforceSuperClassSerialization() == FConfig.SuperClassSerialization.FORCED;
+
+            Class<O> superClass = clazz;
+            while (superClass.getSuperclass() != null && superClass.getSuperclass() != Object.class){
+                superClass = (Class<O>) superClass.getSuperclass();
+                if (forceSuperClassSerialization || superClass.getAnnotation(FConfig.class) != null){
+                    List<FieldAccessor> superClassDeclaredFields = FCReflectionUtil.getDeclaredFields(superClass);
+                    for (int i = superClassDeclaredFields.size() - 1; i >= 0; i--) {
+                        //ADd at the beginning, so the fields are saved in the correct order
+                        // (SuperClass fields first, then the class fields)
+                        declaredFields.add(0, superClassDeclaredFields.get(i));
+                    }
+                }
+            }
+        }
+
+        List<FieldAccessor> nonExcludedFields = declaredFields.stream()
                 .filter(fieldAccessor -> {
                     int modifiers = fieldAccessor.getTheField().getModifiers();
 

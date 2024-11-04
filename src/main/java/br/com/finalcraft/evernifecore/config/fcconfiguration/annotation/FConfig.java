@@ -48,6 +48,24 @@ public @interface FConfig {
     Class loadableClass() default Loadable.class;
 
     /**
+     * By default we don't serialize the super
+     * class because it can lead to some
+     * unexpected behavior.
+     *
+     * If you want to enforce the serialization
+     * of the super class, set this to true.
+     *
+     * This is useful when you have a class
+     * that extends another class that is
+     * not a FConfig.
+     *
+     * If you want to serialize the super class,
+     * set this to true, or use the annotation
+     * {@link FConfig} on the super class.
+     */
+    SuperClassSerialization enforceSuperClassSerialization() default SuperClassSerialization.DEFAULT;
+
+    /**
      * Should this field be used as the ID
      * when saving this Object?.
      *
@@ -73,4 +91,9 @@ public @interface FConfig {
 
     }
 
+    public static enum SuperClassSerialization {
+        FORCED, // Serialize the super class even if it's not a FConfig
+        DISABLED, // Don't serialize the super class, even if it's a FConfig
+        DEFAULT // Serialize the super class only if it's a FConfig
+    }
 }

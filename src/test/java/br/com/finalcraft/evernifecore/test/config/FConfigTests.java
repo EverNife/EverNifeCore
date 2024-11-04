@@ -8,11 +8,13 @@ import br.com.finalcraft.evernifecore.util.FCTimeUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class FConfigTests {
 
@@ -50,13 +52,17 @@ public class FConfigTests {
                         )
                 ));
 
-        config.setValue("ComplexTest", new ComplexTeste());
+//        config.setValue("ComplexTest", new ComplexTeste());
+
+        config.setValue("ComplexTestThatExtendsSomethingElse", new ComplexTesteThatExtendsSomethingElse());
 
         config.save();
 
         config = new Config(new File("teste.yml"));
         config.getLoadableList("Testes", Teste.class).forEach(System.out::println);
         config.getLoadableList("DoubleTest", DoubleTeste.class).forEach(System.out::println);
+//        Optional.of(config.getLoadable("ComplexTest", ComplexTeste.class)).ifPresent(System.out::println);
+        Optional.of(config.getLoadable("ComplexTestThatExtendsSomethingElse", ComplexTesteThatExtendsSomethingElse.class)).ifPresent(System.out::println);
     }
 
     @Data
@@ -84,7 +90,7 @@ public class FConfigTests {
     }
 
     @Data
-    @FConfig
+    @NoArgsConstructor
     public static class ComplexTeste implements FConfigComplex {
         UUID uuid = UUID.randomUUID();
         @FConfig(comment = "lastTimeSaved")
@@ -94,6 +100,21 @@ public class FConfigTests {
         public void onConfigSavePre(ConfigSection section) {
             //Do something before saving
             lastTimeSaved = FCTimeUtil.getFormatted(System.currentTimeMillis());
+        }
+    }
+
+    @Data
+    @FConfig(enforceSuperClassSerialization = FConfig.SuperClassSerialization.FORCED)
+    @NoArgsConstructor
+    @ToString(callSuper = true)
+    public static class ComplexTesteThatExtendsSomethingElse extends ComplexTeste {
+        long daysOfToday;
+
+        @Override
+        public void onConfigSavePre(ConfigSection section) {
+            super.onConfigSavePre(section);
+            //Do something before saving
+            daysOfToday = TimeUnit.MILLISECONDS.toDays(System.currentTimeMillis());
         }
     }
 
