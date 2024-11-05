@@ -25,12 +25,19 @@ public class FCConfigurationManager {
     public static Set<Class> VALID_PRIMARY_KEYS = new HashSet<>(Arrays.asList(
             String.class,
             Integer.class,
+            Integer.TYPE,
             Long.class,
+            Long.TYPE,
             Double.class,
+            Double.TYPE,
             Float.class,
+            Float.TYPE,
             Short.class,
+            Short.TYPE,
             Byte.class,
+            Byte.TYPE,
             Boolean.class,
+            Boolean.TYPE,
             UUID.class
     ));
 
@@ -191,19 +198,19 @@ public class FCConfigurationManager {
     public static Object castPrimaryKeyIndex(String content, Class type){
         if (type == String.class){
             return content;
-        }else if (type == Integer.class){
+        }else if (type == Integer.class || type == Integer.TYPE){
             return Integer.valueOf(content);
-        }else if (type == Long.class){
+        }else if (type == Long.class || type == Long.TYPE){
             return Long.valueOf(content);
-        }else if (type == Double.class){
+        }else if (type == Double.class || type == Double.TYPE){
             return Double.valueOf(content);
-        }else if (type == Float.class){
+        }else if (type == Float.class || type == Float.TYPE){
             return Float.valueOf(content);
-        }else if (type == Short.class){
+        }else if (type == Short.class || type == Short.TYPE){
             return Short.valueOf(content);
-        }else if (type == Byte.class){
+        }else if (type == Byte.class || type == Byte.TYPE){
             return Byte.valueOf(content);
-        }else if (type == Boolean.class){
+        }else if (type == Boolean.class || type == Boolean.TYPE){
             return Boolean.valueOf(content);
         }else if (type == UUID.class){
             return UUID.fromString(content);
