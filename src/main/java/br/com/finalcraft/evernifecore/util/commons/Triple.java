@@ -17,8 +17,8 @@ public class Triple<LEFT, MIDDLE, RIGHT> {
         this.right = right;
     }
 
-    public static <ALFA,BETA,GAMA> Triple<ALFA,BETA,GAMA> of(ALFA alfa, BETA beta, GAMA gama) {
-        return new Triple<>(alfa, beta, gama);
+    public static <LEFT, MIDDLE, RIGHT> Triple<LEFT, MIDDLE, RIGHT> of(LEFT left, MIDDLE middle, RIGHT right) {
+        return new Triple<>(left, middle, right);
     }
 
 }

@@ -16,6 +16,10 @@ public enum TriState {
                 : value ? TRUE : FALSE;
     }
 
+    public boolean isSet() {
+        return this != UNKNOWN;
+    }
+
     public boolean isTrue() {
         return this == TRUE;
     }
