@@ -87,6 +87,11 @@ public @interface FConfig {
          *      %field_name_lowercase%
          */
         String value() default "%field_name%";
+
+        /**
+         * The prefix used on this field/method.
+         */
+        String prefix() default "";
     }
 
     /**

@@ -117,11 +117,19 @@ public class FCConfigurationManager {
 
             //Action for Saving
             FConfig.Key fieldKey = fieldAccessor.getTheField().getAnnotation(FConfig.Key.class);
-            String key = fieldKey != null && !fieldKey.value().isEmpty()
-                    ? fieldKey.value()
-                    .replace("%field_name%", fieldAccessor.getTheField().getName())
-                    .replace("%field_name_lowercase%", fieldAccessor.getTheField().getName().toLowerCase())
-                    : fieldAccessor.getTheField().getName();
+            String key = fieldAccessor.getTheField().getName();
+
+            if (fieldKey != null){
+                if (!fieldKey.value().isEmpty()){
+                    key = fieldKey.value()
+                            .replace("%field_name%", fieldAccessor.getTheField().getName())
+                            .replace("%field_name_lowercase%", fieldAccessor.getTheField().getName().toLowerCase());
+                }
+                if (fieldKey.prefix().isEmpty()){
+                    key = fieldKey.prefix() + "." + key;
+                }
+            }
+            String finalKey = key;
 
             FConfig.Comment fieldComment = fieldAccessor.getTheField().getAnnotation(FConfig.Comment.class);
             String comment = fieldComment != null && !fieldComment.value().isEmpty()
@@ -132,9 +140,9 @@ public class FCConfigurationManager {
             fieldSaveActions.add(Tuple.of(fieldAccessor, (object, configSection) -> {
                 Object objectFieldContent = fieldAccessor.get(object);
                 if (comment != null){
-                    configSection.setValue(key, objectFieldContent, comment);
+                    configSection.setValue(finalKey, objectFieldContent, comment);
                 }else {
-                    configSection.setValue(key, objectFieldContent);
+                    configSection.setValue(finalKey, objectFieldContent);
                 }
             }));
 
@@ -147,9 +155,9 @@ public class FCConfigurationManager {
                 Object value;
 
                 try {
-                    value = extractorBasedOnType.apply(configSection, key);
+                    value = extractorBasedOnType.apply(configSection, finalKey);
                 }catch (Exception e){
-                    System.out.println("Failed to load field: " + key + " from " + clazz.getName());
+                    System.out.println("Failed to load field: " + finalKey + " from " + clazz.getName());
                     e.printStackTrace();
                     value = null;
                 }
