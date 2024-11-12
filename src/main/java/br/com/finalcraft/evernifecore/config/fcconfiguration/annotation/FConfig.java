@@ -14,41 +14,7 @@ import java.lang.annotation.Target;
 public @interface FConfig {
 
     /**
-     * Used to pass context to the ArgParser.
-     *
-     * Usually things like intervals, for example:
-     *     [0:*]  = Number between 0 and MAX_NUMBER
-     */
-    String context() default "";
-
-    /**
-     * The keyName to save/load this element.
-     *
-     * By default, is the field/method's name.
-     *
-     * This is ignored when the field has the
-     * annotation {@link FConfig.Id}
-     */
-    String key() default "";
-
-    /**
-     * Comment used on this field/method.
-     */
-    String comment() default "";
-
-    /**
-     * Used to enforce a Specific type
-     * of Loadable.
-     *
-     * This has 3 main uses:
-     *  - When the field is a List or Set, to enforce the type of the elements
-     *     (In these cases, by default we use the Generic type of these collections)
-     *  - When the field is an Interface or a non_final class, to enforce the type of the implementation
-     */
-    Class loadableClass() default Loadable.class;
-
-    /**
-     * By default we don't serialize the super
+     * By default, we don't serialize the super
      * class because it can lead to some
      * unexpected behavior.
      *
@@ -89,6 +55,39 @@ public @interface FConfig {
     @Target({ElementType.FIELD})
     public @interface Exclude {
 
+    }
+
+    /**
+     * Used to enforce a Specific type
+     * of Loadable.
+     *
+     * This has 3 main uses:
+     *  - When the field is a List or Set, to enforce the type of the elements
+     *     (In these cases, by default we use the Generic type of these collections)
+     *  - When the field is an Interface or a non_final class, to enforce the type of the implementation
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ElementType.FIELD})
+    public @interface LoadableClass {
+        Class value();
+    }
+
+    /**
+     * Key used on this field/method.
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ElementType.FIELD})
+    public @interface Key {
+        String value();
+    }
+
+    /**
+     * Comment used on this field/method.
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ElementType.FIELD})
+    public @interface Comment {
+        String value();
     }
 
     public static enum SuperClassSerialization {

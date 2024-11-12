@@ -115,15 +115,15 @@ public class FCConfigurationManager {
                 continue;
             }
 
-            FConfig fieldConfiguration = fieldAccessor.getTheField().getAnnotation(FConfig.class);
-
             //Action for Saving
-            String key = fieldConfiguration != null && !fieldConfiguration.key().isEmpty()
-                    ? fieldConfiguration.key()
+            FConfig.Key fieldKey = fieldAccessor.getTheField().getAnnotation(FConfig.Key.class);
+            String key = fieldKey != null && !fieldKey.value().isEmpty()
+                    ? fieldKey.value()
                     : fieldAccessor.getTheField().getName();
 
-            String comment = fieldConfiguration != null && !fieldConfiguration.comment().isEmpty()
-                    ? fieldConfiguration.comment()
+            FConfig.Comment fieldComment = fieldAccessor.getTheField().getAnnotation(FConfig.Comment.class);
+            String comment = fieldComment != null && !fieldComment.value().isEmpty()
+                    ? fieldComment.value()
                     : null;
 
             //Action for Saving on YML
@@ -248,9 +248,9 @@ public class FCConfigurationManager {
                 genericClazzType = null;
             }
 
-            FConfig annotation = fieldAccessor.getTheField().getAnnotation(FConfig.class);
-            if (annotation != null && annotation.loadableClass() != null && annotation.loadableClass() != Loadable.class){
-                genericClazzType = annotation.loadableClass();
+            FConfig.LoadableClass fieldLoadableClass = fieldAccessor.getTheField().getAnnotation(FConfig.LoadableClass.class);
+            if (fieldLoadableClass != null && fieldLoadableClass.value() != null && fieldLoadableClass.value() != Loadable.class){
+                genericClazzType = fieldLoadableClass.value();
             }
 
             if (genericClazzType != null){

@@ -5,10 +5,9 @@ import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfig;
 import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfigComplex;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.util.FCTimeUtil;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -18,14 +17,25 @@ import java.util.concurrent.TimeUnit;
 
 public class FConfigTests {
 
+    private static Config config;
+
+//    @BeforeAll
+//    public static void setUp() {
+//        config = new Config(new File("teste.yml"));
+//    }
+//
+//    @AfterAll
+//    public static void tearDown() {
+//        config.getTheFile().delete();
+//    }
+
+
     @Test
     public void testeFCConfigurations() throws IOException {
 
         if (true){
             return;
         }
-
-        Config config = new Config(new File("teste.yml"));
 
         config.setValue("Teste", new Teste(UUID.randomUUID(), "John", 30, 100.0f));
 
@@ -85,7 +95,7 @@ public class FConfigTests {
         UUID uuid;
         Teste a;
         Teste b;
-        @FConfig(comment = "Inner Double Tests")
+        @FConfig.Comment("Inner Double Tests")
         LinkedHashSet<DoubleTeste> inners;
     }
 
@@ -93,7 +103,7 @@ public class FConfigTests {
     @NoArgsConstructor
     public static class ComplexTeste implements FConfigComplex {
         UUID uuid = UUID.randomUUID();
-        @FConfig(comment = "lastTimeSaved")
+        @FConfig.Comment("lastTimeSaved")
         String lastTimeSaved;
 
         @Override
@@ -107,6 +117,7 @@ public class FConfigTests {
     @FConfig(enforceSuperClassSerialization = FConfig.SuperClassSerialization.FORCED)
     @NoArgsConstructor
     @ToString(callSuper = true)
+    @EqualsAndHashCode(callSuper=false)
     public static class ComplexTesteThatExtendsSomethingElse extends ComplexTeste {
         long daysOfToday;
 
