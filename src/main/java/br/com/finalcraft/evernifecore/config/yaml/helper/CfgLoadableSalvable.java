@@ -86,6 +86,14 @@ public class CfgLoadableSalvable {
                     smartLoadSave.setOnConfigLoad(onConfigLoadOptional.get());
                     shouldRegister = true;
                 }
+
+                if (shouldRegister == false){
+                    if (clazz.isEnum()){
+                        smartLoadSave.setOnConfigSave((configSection, o) -> configSection.setValue(o.toString()));
+                        smartLoadSave.setOnConfigLoad(configSection -> (O) Enum.valueOf((Class<Enum>) clazz, configSection.getString("")));
+                        shouldRegister = true;
+                    }
+                }
             }
 
 
