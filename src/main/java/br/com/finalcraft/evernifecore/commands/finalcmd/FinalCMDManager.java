@@ -21,6 +21,7 @@ import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.FCMultiLocales;
 import br.com.finalcraft.evernifecore.pageviwer.PageVizualization;
 import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
+import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
@@ -58,6 +59,7 @@ public class FinalCMDManager {
         ArgParserManager.addGlobalParser(UUID.class, ArgParserUUID.class);
         ArgParserManager.addGlobalParser(World.class, ArgParserWorld.class);
         ArgParserManager.addGlobalParser(PageVizualization.class, ArgParserPageVizualization.class);
+        ArgParserManager.addGlobalParser(FCTimeFrame.class, ArgParserFCTimeFrame.class);
 
         //External Plugins
         if (Bukkit.getPluginManager().isPluginEnabled("WorldGuard")){
