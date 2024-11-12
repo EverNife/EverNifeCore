@@ -78,7 +78,15 @@ public @interface FConfig {
     @Retention(RetentionPolicy.RUNTIME)
     @Target({ElementType.FIELD})
     public @interface Key {
-        String value();
+        /**
+         * The key used on this field/method.
+         * If not set, the field name will be used.
+         *
+         * You can use the placeholder
+         *      %field_name%
+         *      %field_name_lowercase%
+         */
+        String value() default "%field_name%";
     }
 
     /**

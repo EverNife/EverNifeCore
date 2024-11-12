@@ -119,6 +119,8 @@ public class FCConfigurationManager {
             FConfig.Key fieldKey = fieldAccessor.getTheField().getAnnotation(FConfig.Key.class);
             String key = fieldKey != null && !fieldKey.value().isEmpty()
                     ? fieldKey.value()
+                    .replace("%field_name%", fieldAccessor.getTheField().getName())
+                    .replace("%field_name_lowercase%", fieldAccessor.getTheField().getName().toLowerCase())
                     : fieldAccessor.getTheField().getName();
 
             FConfig.Comment fieldComment = fieldAccessor.getTheField().getAnnotation(FConfig.Comment.class);
