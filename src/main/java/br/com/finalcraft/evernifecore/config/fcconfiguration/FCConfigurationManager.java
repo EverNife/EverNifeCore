@@ -67,6 +67,10 @@ public class FCConfigurationManager {
                 .filter(fieldAccessor -> {
                     int modifiers = fieldAccessor.getTheField().getModifiers();
 
+                    if (Modifier.isStatic(modifiers)){
+                        return false;
+                    }
+
                     if (Modifier.isTransient(modifiers)){
                         return false;
                     }
