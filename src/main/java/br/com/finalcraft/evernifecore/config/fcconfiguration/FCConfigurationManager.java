@@ -129,7 +129,7 @@ public class FCConfigurationManager {
                             .replace("%field_name%", fieldAccessor.getTheField().getName())
                             .replace("%field_name_lowercase%", fieldAccessor.getTheField().getName().toLowerCase());
                 }
-                if (fieldKey.prefix().isEmpty()){
+                if (!fieldKey.prefix().isEmpty()){
                     key = fieldKey.prefix() + "." + key;
                 }
             }
