@@ -243,7 +243,7 @@ public class FCConfigurationManager {
         if (clazz == Float.class || clazz == float.class) return (configSection, key) -> (float) configSection.getInt(key);
         if (clazz == Short.class || clazz == short.class) return (configSection, key) -> (short) configSection.getInt(key);
         if (clazz == Byte.class || clazz == byte.class) return (configSection, key) -> (byte) configSection.getInt(key);
-        if (clazz == Boolean.class) return (configSection, key) -> configSection.getBoolean(key);
+        if (clazz == Boolean.class || clazz == boolean.class) return (configSection, key) -> configSection.getBoolean(key);
         if (clazz == UUID.class) return (configSection, key) -> configSection.getUUID(key);
         if (Collection.class.isAssignableFrom(clazz)){
             //Get the collection type
