@@ -92,6 +92,22 @@ public @interface FConfig {
          * The prefix used on this field/method.
          */
         String prefix() default "";
+
+        /**
+         * If the key should be transformed to some specific case.
+         *
+         *  For example, if the field name is "myField",
+         *  and this is set to #KEBAB_CASE, the key will
+         *  be "my-field".
+         *
+         *  Cases:
+         *  - NONE: No transformation
+         *  - KEBAB_CASE: myField -> my-field
+         *  - SNAKE_CASE: myField -> my_field
+         *  - CAMEL_CASE: myField -> myField
+         *  - UPPER_CAMEL_CASE: myField -> MyField
+         */
+        KeyTransformCase transformCase() default KeyTransformCase.NONE;
     }
 
     /**
@@ -107,5 +123,13 @@ public @interface FConfig {
         FORCED, // Serialize the super class even if it's not a FConfig
         DISABLED, // Don't serialize the super class, even if it's a FConfig
         DEFAULT // Serialize the super class only if it's a FConfig
+    }
+
+    public static enum KeyTransformCase {
+        NONE,
+        KEBAB_CASE,
+//        SNAKE_CASE,
+//        CAMEL_CASE,
+//        UPPER_CAMEL_CASE
     }
 }

@@ -132,6 +132,14 @@ public class FCConfigurationManager {
                 if (!fieldKey.prefix().isEmpty()){
                     key = fieldKey.prefix() + "." + key;
                 }
+
+                switch (fieldKey.transformCase()){
+                    case NONE:
+                        break;
+                    case KEBAB_CASE:
+                        key = toKebabCase(key);
+                        break;
+                }
             }
             String finalKey = key;
 
@@ -309,6 +317,13 @@ public class FCConfigurationManager {
                         allFieldsData
                 )
         );
+    }
+
+    public static String toKebabCase(String input) {
+        return input.replaceAll("([a-z])([A-Z])", "$1-$2") // Handle camelCase to kebab-case
+                .replaceAll("[^a-zA-Z0-9]+", "-") // Replace non-alphanumerics with hyphen
+                .toLowerCase() // Convert to lowercase
+                .replaceAll("^-|-$", ""); // Trim leading or trailing hyphens
     }
 
 }
