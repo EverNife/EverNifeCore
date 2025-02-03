@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.config.fcconfiguration;
 
 import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfig;
-import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfigComplex;
-import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfigException;
+import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.IFConfigComplex;
+import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.exeption.FConfigException;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
 import br.com.finalcraft.evernifecore.config.yaml.helper.smartloadable.SmartLoadSave;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
@@ -178,7 +178,7 @@ public class FCConfigurationManager {
 
         smartLoadSave.setOnConfigSave((configSection, object) -> {
             //Do the Actual object Saving
-            if (object instanceof FConfigComplex) ((FConfigComplex) object).onConfigSavePre(configSection);
+            if (object instanceof IFConfigComplex) ((IFConfigComplex) object).onConfigSavePre(configSection);
             if (finalPrimaryId != null){
                 String primaryIdString = Optional.ofNullable(finalPrimaryId.get(object)).map(Object::toString)
                         .orElseThrow(() -> errorOnPrimaryKey("PrimaryID Field is null or Empty!", clazz, nonExcludedFields));
@@ -187,14 +187,14 @@ public class FCConfigurationManager {
             for (Tuple<FieldAccessor, BiConsumer<O, ConfigSection>> tuple : fieldSaveActions) {
                 tuple.getRight().accept(object, configSection);
             }
-            if (object instanceof FConfigComplex) ((FConfigComplex) object).onConfigSavePost(configSection);
+            if (object instanceof IFConfigComplex) ((IFConfigComplex) object).onConfigSavePost(configSection);
         });
 
         smartLoadSave.setOnConfigLoad((Function<ConfigSection, O>) (configSection) -> {
             O object = EMPTY_CONSTRUCTOR.invoke();
 
             //Do the Actual object Loading
-            if (object instanceof FConfigComplex) ((FConfigComplex) object).onConfigSavePre(configSection);
+            if (object instanceof IFConfigComplex) ((IFConfigComplex) object).onConfigSavePre(configSection);
             if (finalPrimaryId != null){
                 String primaryIdString = configSection.getSectionKey();
                 Object primaryIdCasted = castPrimaryKeyIndex(primaryIdString, finalPrimaryId.getTheField().getType());
@@ -203,7 +203,7 @@ public class FCConfigurationManager {
             for (Tuple<FieldAccessor, BiConsumer<O, ConfigSection>> tuple : fieldLoadActions) {
                 tuple.getRight().accept(object, configSection);
             }
-            if (object instanceof FConfigComplex) ((FConfigComplex) object).onConfigLoadPost(configSection);
+            if (object instanceof IFConfigComplex) ((IFConfigComplex) object).onConfigLoadPost(configSection);
 
             return object;
         });

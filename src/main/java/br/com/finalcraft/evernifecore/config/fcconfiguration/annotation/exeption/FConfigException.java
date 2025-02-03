@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.config.fcconfiguration.annotation;
+package br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.exeption;
 
 public class FConfigException extends RuntimeException{
 

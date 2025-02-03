@@ -2,12 +2,10 @@ package br.com.finalcraft.evernifecore.test.config;
 
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfig;
-import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfigComplex;
+import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.IFConfigComplex;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.util.FCTimeUtil;
 import lombok.*;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -101,7 +99,7 @@ public class FConfigTests {
 
     @Data
     @NoArgsConstructor
-    public static class ComplexTeste implements FConfigComplex {
+    public static class ComplexTeste implements IFConfigComplex {
         UUID uuid = UUID.randomUUID();
         @FConfig.Comment("lastTimeSaved")
         String lastTimeSaved;
