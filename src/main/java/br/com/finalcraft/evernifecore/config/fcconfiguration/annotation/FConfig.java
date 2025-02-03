@@ -96,10 +96,6 @@ public @interface FConfig {
         /**
          * If the key should be transformed to some specific case.
          *
-         *  For example, if the field name is "myField",
-         *  and this is set to #KEBAB_CASE, the key will
-         *  be "my-field".
-         *
          *  Cases:
          *  - NONE: No transformation
          *  - KEBAB_CASE: myField -> my-field
@@ -128,8 +124,8 @@ public @interface FConfig {
     public static enum KeyTransformCase {
         NONE,
         KEBAB_CASE,
-//        SNAKE_CASE,
-//        CAMEL_CASE,
-//        UPPER_CAMEL_CASE
+        SNAKE_CASE,
+        CAMEL_CASE,
+        UPPER_CAMEL_CASE
     }
 }
