@@ -295,10 +295,10 @@ public class FCConfigurationManager {
                     if (clazzType == String.class) return (configSection, key) -> new HashSet<>(configSection.getStringList(key));
                     return (configSection, key) -> new HashSet<>(configSection.getLoadableList(key, clazzType));
                 }
-
             }
 
-            return (configSection, key) -> configSection.getList(key);
+            throw new FConfigException("Unsupported Collection Type when there is no GenericType defined!" +
+                    String.format("\n The Collection %s<?> must have a Generic Defined!", clazz.getName()));
         };
         return (configSection, key) -> configSection.getLoadable(key, clazz);
     }
