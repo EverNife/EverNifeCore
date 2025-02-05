@@ -72,7 +72,6 @@ public class PlayerLoginListener implements ECListener {
             PlayerData playerData = PlayerController.getPlayerData(existingUUID);
             PlayerController.getMapOfPlayerData().remove(playerData.getUniqueId());//Unload this PlayerData
 
-            playerData.getConfig().getTheFile().delete(); //Delete previous file
             playerData.getConfig().save(new File(EverNifeCore.instance.getDataFolder(), "PlayerData-Dormant/" + existingUUID + ".yml"));//Move to dormant folder
             EverNifeCore.getLog().info("[UUIDsController] [%s:%s] was moved to dormant files because his name is not valid anymore!", existingUUID, currentName);
 
@@ -134,7 +133,16 @@ public class PlayerLoginListener implements ECListener {
         }
 
         PlayerData playerData = PlayerController.getPlayerData(event.getPlayer());
-        playerData.setPlayer(event.getPlayer()); //[Store an instance of Player] is a bad practice, but in minecraft, what is not :D
+
+        if (playerData != null){
+            //In some cases a Player may not have a PlayerData, this usually
+            // happens when another plugin creates a FakePlayer without
+            // calling the AsyncPlayerPreLoginEvent
+
+
+            //[Store an instance of a Player.class] it is a bad practice, but in minecraft, what is not :D
+            playerData.setPlayer(event.getPlayer());
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -142,10 +150,12 @@ public class PlayerLoginListener implements ECListener {
         PlayerData playerData = PlayerController.getPlayerData(event.getPlayer());
         if (playerData != null){
             //In some cases a Player may not have a PlayerData, this usually
-            //happens when the player has not been able to fully join the server,
-            //like when the Whitelist is turned on
+            // happens when the player has not been able to fully join the server,
+            // like when the Whitelist is turned on (AsyncPlayerPreLoginEvent is not called properly)
 
-            playerData.setPlayer(null); //[Store an instance of Player] is a bad practice, but in minecraft, what is not :D
+
+            //[Store an instance of a Player.class] it is a bad practice, but in minecraft, what is not :D
+            playerData.setPlayer(null);
         }
     }
 
