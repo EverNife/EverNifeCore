@@ -51,7 +51,7 @@ public class ActionBarMessage {
         private String actionBarID = "";
         private final String actionBarText;
         private int priority = 0;
-        private int seconds = 3;
+        private int ticks = 3 * 20; //def 3 seconds
 
         private Builder(String actionBarText) {
             this.actionBarText = actionBarText;
@@ -63,7 +63,12 @@ public class ActionBarMessage {
         }
 
         public Builder setSeconds(int seconds) {
-            this.seconds = seconds;
+            this.ticks = seconds * 20;
+            return this;
+        }
+
+        public Builder setTicks(int ticks) {
+            this.ticks = ticks;
             return this;
         }
 
@@ -73,7 +78,12 @@ public class ActionBarMessage {
         }
 
         public ActionBarMessage build(){
-            return new ActionBarMessage(this.actionBarID, this.actionBarText, System.currentTimeMillis() + 1000 * this.seconds, this.priority);
+            return new ActionBarMessage(
+                    this.actionBarID,
+                    this.actionBarText,
+                    System.currentTimeMillis() + (0050 * this.ticks),
+                    this.priority
+            );
         }
 
         public ActionBarMessage send(Player... players){
