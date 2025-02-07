@@ -44,64 +44,74 @@ public class MultiArgumentos {
 
                 String theArg = stringArgs.get(i);
 
-                if (theArg.charAt(0) == '-' && !(theArg.length() > 1 && Character.isDigit(theArg.charAt(1)))){
+                //FlagedArg:   """    -sub_title:'Hello World'    """
 
-                    List<Integer> flagIndexes = new ArrayList<>(Arrays.asList(i)); //All flags this FlagArgument takes, like 'args 3, 4 and 5'
-                    FlagedArgumento flagedArgumento = new FlagedArgumento(theArg);
-
-                    Character QUOTE_AT_START = null;
-                    String flagValue = flagedArgumento.getFlagValue();
-                    if (flagValue.length() > 0){
-                        char firstChar = flagedArgumento.getFlagValue().charAt(0);
-                        if (firstChar == '\'' || firstChar == '"'){
-                            QUOTE_AT_START = firstChar;
-                        }
-                    }
-
-                    //If the first char is ' then we need to get the next args until we find the last '
-                    boolean foundLastQuote = false;
-                    if (QUOTE_AT_START != null){
-
-                        if (flagValue.charAt(flagValue.length() - 1) == QUOTE_AT_START){
-                            //In this case, is probably something like  /command blabla -player:'EverNife'
-                            //So we only need to remove the quote from the flag value
-                            flagedArgumento = new FlagedArgumento(StringUtils.substring(theArg, 1, -1));
-                        }else {
-                            //This case is something like               /command blabla -message:'The night is Dark!'
-                            //Or a similar case like                    /command blabla -message:'The night is Dark     without the ending quote
-
-                            //Remove prefix   '   from the flag value
-                            StringBuilder stringBuilder = new StringBuilder(flagedArgumento.getFlagName() + ":" + StringUtils.substring(flagedArgumento.getFlagValue(), 1));
-
-                            //Then search for the existance of an ending quote
-                            int j = i + 1;
-                            for (; j < stringArgs.size(); j++) {
-                                flagIndexes.add(j);
-                                String arg = stringArgs.get(j);
-                                stringBuilder.append(" ");
-                                if (arg.length() > 0 && arg.charAt(arg.length() - 1) == QUOTE_AT_START){
-                                    //Remove suffix   '   from the flag value
-                                    stringBuilder.append(StringUtils.substring(arg, 0, -1));
-                                    foundLastQuote = true;
-                                    break;
-                                }else {
-                                    stringBuilder.append(arg);
-                                }
-                            }
-                            if (foundLastQuote){
-                                flagedArgumento = new FlagedArgumento(stringBuilder.toString());
-                                i = j;
-                            }
-                        }
-                    }
-
-                    if (!foundLastQuote){
-                        allArgsToBeRemoved.add(i);
-                    }else {
-                        allArgsToBeRemoved.addAll(flagIndexes);
-                    }
-                    flags.add(flagedArgumento);
+                //FlagArgs always start with a dash
+                if (theArg.isEmpty() || theArg.charAt(0) != '-'){
+                    continue;
                 }
+
+                //The next char after the dash cannot be a digit, because negative numbers are not flags '-'
+                if (theArg.length() >= 2 && Character.isDigit(theArg.charAt(1))){
+                    continue;
+                }
+
+                List<Integer> flagIndexes = new ArrayList<>(Arrays.asList(i)); //All flags this FlagArgument takes, like 'args 3, 4 and 5'
+
+                FlagedArgumento flagedArgumento = new FlagedArgumento(theArg);
+
+                Character QUOTE_AT_START = null;
+                String flagValue = flagedArgumento.getFlagValue();
+                if (flagValue.length() > 0){
+                    char firstChar = flagedArgumento.getFlagValue().charAt(0);
+                    if (firstChar == '\'' || firstChar == '"'){
+                        QUOTE_AT_START = firstChar;
+                    }
+                }
+
+                //If the first char is ' then we need to get the next args until we find the last '
+                boolean foundLastQuote = false;
+                if (QUOTE_AT_START != null){
+
+                    if (flagValue.charAt(flagValue.length() - 1) == QUOTE_AT_START){
+                        //In this case, is probably something like  /command blabla -player:'EverNife'
+                        //So we only need to remove the quote from the flag value
+                        flagedArgumento = new FlagedArgumento(StringUtils.substring(theArg, 1, -1));
+                    }else {
+                        //This case is something like               /command blabla -message:'The night is Dark!'
+                        //Or a similar case like                    /command blabla -message:'The night is Dark     without the ending quote
+
+                        //Remove prefix   '   from the flag value
+                        StringBuilder stringBuilder = new StringBuilder(flagedArgumento.getFlagName() + ":" + StringUtils.substring(flagedArgumento.getFlagValue(), 1));
+
+                        //Then search for the existence of an ending quote
+                        int j = i + 1;
+                        for (; j < stringArgs.size(); j++) {
+                            flagIndexes.add(j);
+                            String arg = stringArgs.get(j);
+                            stringBuilder.append(" ");
+                            if (arg.length() > 0 && arg.charAt(arg.length() - 1) == QUOTE_AT_START){
+                                //Remove suffix   '   from the flag value
+                                stringBuilder.append(StringUtils.substring(arg, 0, -1));
+                                foundLastQuote = true;
+                                break;
+                            }else {
+                                stringBuilder.append(arg);
+                            }
+                        }
+                        if (foundLastQuote){
+                            flagedArgumento = new FlagedArgumento(stringBuilder.toString());
+                            i = j;
+                        }
+                    }
+                }
+
+                if (!foundLastQuote){
+                    allArgsToBeRemoved.add(i);
+                }else {
+                    allArgsToBeRemoved.addAll(flagIndexes);
+                }
+                flags.add(flagedArgumento);
             }
             Collections.reverse(allArgsToBeRemoved);//Remove from back to front
             for (Integer flagIndex : allArgsToBeRemoved) {
