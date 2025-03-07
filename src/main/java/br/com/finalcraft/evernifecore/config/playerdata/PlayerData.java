@@ -112,14 +112,17 @@ public class PlayerData implements IPlayerData{
         config.setValue("PlayerData.lastSaved",this.lastSaved);
 
         // Loop all PDSections and save them if needed
-        for (PDSection pDSection : new ArrayList<>(MAP_OF_PDSECTIONS.values())){
+        ArrayList<Map.Entry<Class<? extends PDSection>, PDSection>> entries = new ArrayList<>(MAP_OF_PDSECTIONS.entrySet());
+        for (Map.Entry<Class<? extends PDSection>, PDSection> entry : entries) {
+            Class<? extends PDSection> key = entry.getKey();
+            PDSection pDSection = entry.getValue();
             try {
                 if (pDSection.recentChanged){
                     pDSection.savePDSection();
                     pDSection.recentChanged = false;
                 }
             }catch (Throwable e){
-                EverNifeCore.warning("Failed to save PDSection {" + pDSection.getClass().getName() + "} at [" + this.getConfig().getTheFile().getAbsolutePath() + "]");
+                EverNifeCore.warning("Failed to save PDSection {" + key.getName() + "} at [" + this.getConfig().getTheFile().getAbsolutePath() + "]");
                 e.printStackTrace();
             }
         }
