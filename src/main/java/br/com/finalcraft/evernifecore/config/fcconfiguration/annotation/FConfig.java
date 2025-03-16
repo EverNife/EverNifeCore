@@ -2,7 +2,6 @@ package br.com.finalcraft.evernifecore.config.fcconfiguration.annotation;
 
 
 import br.com.finalcraft.evernifecore.config.fcconfiguration.FCConfigurationManager;
-import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

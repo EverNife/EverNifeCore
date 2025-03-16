@@ -7,7 +7,6 @@ import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import dev.triumphteam.gui.guis.GuiItem;
-import jakarta.annotation.Nonnull;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -141,8 +140,8 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
      * @param materialOrMinecraftIdentifier The Minecraft identifier of the material.
      * @return The FCItemBuilder object.
      */
-    @Nonnull
-    public FCItemBuilder applyMaterialIfExists(@Nonnull String materialOrMinecraftIdentifier){
+    @NotNull
+    public FCItemBuilder applyMaterialIfExists(@NotNull String materialOrMinecraftIdentifier){
         try {
             return this.changeItemStack(FCItemFactory.from(materialOrMinecraftIdentifier).build());
         }catch (Exception ignored){
