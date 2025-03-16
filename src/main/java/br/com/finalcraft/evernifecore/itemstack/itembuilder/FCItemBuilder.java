@@ -144,8 +144,7 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
     @Nonnull
     public FCItemBuilder applyMaterialIfExists(@Nonnull String materialOrMinecraftIdentifier){
         try {
-            ItemStack build = FCItemFactory.from(materialOrMinecraftIdentifier).build();
-            this.material(build.getType());
+            return this.changeItemStack(FCItemFactory.from(materialOrMinecraftIdentifier).build());
         }catch (Exception ignored){
 
         }

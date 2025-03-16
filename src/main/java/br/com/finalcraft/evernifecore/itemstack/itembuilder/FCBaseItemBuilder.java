@@ -17,6 +17,7 @@ import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -74,6 +75,14 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
         this.itemStack = newStack;
         this.meta = newMeta;
         //this.nbtCompound = ????; //There is no need to update the nbt! At least for now
+
+        if (MCVersion.isLowerEquals(MCVersion.v1_12)){
+            this.itemStack.setDurability(newStack.getDurability());
+        }else {
+            if (meta instanceof Damageable){
+                this.itemStack.setDurability(newStack.getDurability());
+            }
+        }
 
         return (B) this;
     }
