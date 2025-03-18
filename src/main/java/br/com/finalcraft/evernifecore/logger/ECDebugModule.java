@@ -7,6 +7,7 @@ public enum ECDebugModule implements IDebugModule {
     PLAYER_DATA,
     ARG_PARSER,
     SVDATA_MANAGER(null, true),
+    NMS,
     ;
 
     private final String comment;

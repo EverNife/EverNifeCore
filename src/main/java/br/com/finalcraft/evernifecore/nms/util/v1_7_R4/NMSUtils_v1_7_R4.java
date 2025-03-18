@@ -1,12 +1,19 @@
 package br.com.finalcraft.evernifecore.nms.util.v1_7_R4;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.logger.ECDebugModule;
+import br.com.finalcraft.evernifecore.nms.data.IMCMaterialRegistry;
+import br.com.finalcraft.evernifecore.nms.data.IMcBlockWrapper;
+import br.com.finalcraft.evernifecore.nms.data.IMcItemWrapper;
 import br.com.finalcraft.evernifecore.nms.util.INMSUtils;
 import br.com.finalcraft.evernifecore.reflection.FieldAccessor;
 import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import net.minecraft.server.v1_7_R4.*;
 import org.apache.commons.lang3.Validate;
+import org.bukkit.Material;
 import org.bukkit.craftbukkit.v1_7_R4.CraftWorld;
 import org.bukkit.craftbukkit.v1_7_R4.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_7_R4.entity.CraftPlayer;
@@ -14,6 +21,8 @@ import org.bukkit.craftbukkit.v1_7_R4.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.v1_7_R4.util.CraftMagicNumbers;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+
+import java.util.Map;
 
 public class NMSUtils_v1_7_R4 implements INMSUtils {
 
@@ -261,5 +270,129 @@ public class NMSUtils_v1_7_R4 implements INMSUtils {
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
+	}
+
+	private static FieldAccessor<Map> getRegistry = FCReflectionUtil.getField(RegistrySimple.class, "field_82596_a");
+
+	private static IMCMaterialRegistry<IMcBlockWrapper> blockRegistry = null;
+	@Override
+	public IMCMaterialRegistry<IMcBlockWrapper> getBlockRegistry() {
+		if (blockRegistry == null) {
+			Map<String, ?> originalRegistry = getRegistry.get(Block.REGISTRY);
+
+			//New BiMaps
+			BiMap<String, IMcBlockWrapper> stringRegistry = HashBiMap.create();
+			BiMap<Material, IMcBlockWrapper> materialRegistry = HashBiMap.create();
+
+			for (Map.Entry<String, ?> entry : originalRegistry.entrySet()) {
+				String resourceLocation = entry.getKey();
+				Block mcBlock = (Block) entry.getValue();
+
+				try {
+					Material material = CraftMagicNumbers.getMaterial(mcBlock);
+					if (material == null){
+						EverNifeCore.getLog().debugModule(ECDebugModule.NMS, "Material is null for: " + resourceLocation);
+						continue;
+					}
+					IMcBlockWrapper blockWrapper = createBlockWrapper(resourceLocation, material, mcBlock);
+					stringRegistry.put(resourceLocation, blockWrapper);
+					materialRegistry.put(blockWrapper.getMaterial(), blockWrapper);
+				} catch (Exception e) {
+					EverNifeCore.getLog().warningModule(ECDebugModule.NMS, "Failed to create BlockWrapper for: " + resourceLocation);
+					e.printStackTrace();
+				}
+			}
+
+			blockRegistry = new IMCMaterialRegistry<IMcBlockWrapper>(stringRegistry, materialRegistry) {
+				@Override
+				public IMcBlockWrapper wrap(Object handle) {
+					if (handle == null || handle instanceof Block == false){
+						throw new IllegalArgumentException("handle must be a Block!");
+					}
+					String resourceLocation = Block.REGISTRY.c(handle);
+					Material material = CraftMagicNumbers.getMaterial((Block) handle);
+					return createBlockWrapper(resourceLocation, material, (Block)handle);
+				}
+			};
+		}
+		return blockRegistry;
+	}
+
+	public IMcBlockWrapper createBlockWrapper(String resourceLocation, Material material, Block mcBlock) {
+		return new IMcBlockWrapper() {
+			@Override
+			public Object getMCBlock() {
+				return mcBlock;
+			}
+
+			@Override
+			public Material getMaterial() {
+				return material;
+			}
+
+			@Override
+			public String getMCIdentifier() {
+				return resourceLocation;
+			}
+		};
+	}
+
+	private static IMCMaterialRegistry<IMcItemWrapper> itemRegistry = null;
+	@Override
+	public IMCMaterialRegistry<IMcItemWrapper> getItemRegistry() {
+		if (itemRegistry == null) {
+			Map<String, ?> originalRegistry = getRegistry.get(Item.REGISTRY);
+
+			//New BiMaps
+			BiMap<String, IMcItemWrapper> stringRegistry = HashBiMap.create();
+			BiMap<Material, IMcItemWrapper> materialRegistry = HashBiMap.create();
+
+			for (Map.Entry<String, ?> entry : originalRegistry.entrySet()) {
+				String resourceLocation = entry.getKey();
+				Item mcItem = (Item) entry.getValue();
+
+				try {
+					Material material = CraftMagicNumbers.getMaterial(mcItem);
+					IMcItemWrapper itemWrapper = createItemWrapper(resourceLocation, material, mcItem);
+					stringRegistry.put(resourceLocation, itemWrapper);
+					materialRegistry.put(itemWrapper.getMaterial(), itemWrapper);
+				} catch (Exception e) {
+					EverNifeCore.getLog().warningModule(ECDebugModule.NMS, "Failed to create BlockWrapper for: " + resourceLocation);
+					e.printStackTrace();
+				}
+			}
+
+			itemRegistry = new IMCMaterialRegistry<IMcItemWrapper>(stringRegistry, materialRegistry) {
+				@Override
+				public IMcItemWrapper wrap(Object handle) {
+					if (handle == null || handle instanceof Block == false){
+						throw new IllegalArgumentException("handle must be a Block!");
+					}
+					String resourceLocation = Item.REGISTRY.c(handle);
+					Material material = CraftMagicNumbers.getMaterial((Item) handle);
+					return createItemWrapper(resourceLocation, material,(Item)handle);
+				}
+			};
+		}
+		return itemRegistry;
+	}
+
+	public IMcItemWrapper createItemWrapper(String resourceLocation, Material material, Item mcItem) {
+		return new IMcItemWrapper() {
+			@Override
+			public Object getMCItem() {
+				return mcItem;
+			}
+
+			@Override
+			public Material getMaterial() {
+				return material;
+			}
+
+			@Override
+			public String getMCIdentifier() {
+				return resourceLocation;
+			}
+		};
 	}
 }
