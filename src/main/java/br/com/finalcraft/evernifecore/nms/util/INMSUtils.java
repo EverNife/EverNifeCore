@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.nms.util;
 
+import br.com.finalcraft.evernifecore.nms.data.IMCMaterialRegistry;
+import br.com.finalcraft.evernifecore.nms.data.IMcBlockWrapper;
+import br.com.finalcraft.evernifecore.nms.data.IMcItemWrapper;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -54,4 +57,12 @@ public interface INMSUtils {
 	public Object asMinecraftEntity(Entity entity);
 
 	public ItemStack validateItemStackHandle(ItemStack itemStack); //This method makes sure the item has a valid handle
+
+	public default IMCMaterialRegistry<IMcBlockWrapper> getBlockRegistry(){
+		throw new UnsupportedOperationException("Not implemented");
+	}
+
+	public default IMCMaterialRegistry<IMcItemWrapper> getItemRegistry(){
+		throw new UnsupportedOperationException("Not implemented");
+	}
 }
