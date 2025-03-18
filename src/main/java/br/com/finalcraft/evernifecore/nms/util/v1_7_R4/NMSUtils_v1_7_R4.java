@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.nms.util.v1_7_R4;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.nms.data.IMCMaterialRegistry;
+import br.com.finalcraft.evernifecore.nms.data.IMCOreRegistry;
 import br.com.finalcraft.evernifecore.nms.data.IMcBlockWrapper;
 import br.com.finalcraft.evernifecore.nms.data.IMcItemWrapper;
 import br.com.finalcraft.evernifecore.nms.util.INMSUtils;
@@ -22,6 +23,8 @@ import org.bukkit.craftbukkit.v1_7_R4.util.CraftMagicNumbers;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class NMSUtils_v1_7_R4 implements INMSUtils {
@@ -394,5 +397,54 @@ public class NMSUtils_v1_7_R4 implements INMSUtils {
 				return resourceLocation;
 			}
 		};
+	}
+
+	private static IMCOreRegistry oreRegistry;
+
+	@Override
+	public IMCOreRegistry getOreRegistry() {
+		if (oreRegistry == null){
+			Class<?> OreDictionary = FCReflectionUtil.getClass("net.minecraftforge.oredict.OreDictionary");
+
+			FieldAccessor<Map<String, Integer>>  nameToId = FCReflectionUtil.getField(OreDictionary, "nameToId");
+			MethodInvoker<List<ItemStack>> getOres = FCReflectionUtil.getMethod(OreDictionary, "getOres", String.class, boolean.class);
+			MethodInvoker<int[]> getOreIDs = FCReflectionUtil.getMethod(OreDictionary, "getOreIDs", ItemStack.class);
+			MethodInvoker<String> getOreName = FCReflectionUtil.getMethod(OreDictionary, "getOreName", int.class);
+
+			oreRegistry = new IMCOreRegistry() {
+				@Override
+				public boolean hasOreName(String oreName) {
+					return nameToId.get(null).containsKey(oreName);
+				}
+
+				@Override
+				public List<String> getAllOreNames() {
+					return new ArrayList<>(nameToId.get(null).keySet());
+				}
+
+				@Override
+				public List<org.bukkit.inventory.ItemStack> getOreItemStacks(String oreName) {
+					List<org.bukkit.inventory.ItemStack> parsedItemStacks = new ArrayList<>();
+
+					for (ItemStack itemStack : getOres.invoke(null, oreName, false)) {
+						parsedItemStacks.add(asBukkitItemStack(itemStack.cloneItemStack()));
+					}
+
+					return parsedItemStacks;
+				}
+
+				@Override
+				public List<String> getOreNamesFrom(org.bukkit.inventory.ItemStack itemStack) {
+					ItemStack mcItemStack = (ItemStack) asMinecraftItemStack(itemStack);
+					int[] oreIsd = getOreIDs.invoke(null, mcItemStack);
+					List<String> oreNames = new ArrayList<>();
+					for (int oreIdNumber : oreIsd) {
+						oreNames.add(getOreName.invoke(null, oreIdNumber));
+					}
+					return oreNames;
+				}
+			};
+		}
+		return oreRegistry;
 	}
 }

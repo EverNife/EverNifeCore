@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.nms.util;
 
 import br.com.finalcraft.evernifecore.nms.data.IMCMaterialRegistry;
+import br.com.finalcraft.evernifecore.nms.data.IMCOreRegistry;
 import br.com.finalcraft.evernifecore.nms.data.IMcBlockWrapper;
 import br.com.finalcraft.evernifecore.nms.data.IMcItemWrapper;
 import org.bukkit.World;
@@ -63,6 +64,10 @@ public interface INMSUtils {
 	}
 
 	public default IMCMaterialRegistry<IMcItemWrapper> getItemRegistry(){
+		throw new UnsupportedOperationException("Not implemented");
+	}
+
+	public default IMCOreRegistry getOreRegistry(){
 		throw new UnsupportedOperationException("Not implemented");
 	}
 }
