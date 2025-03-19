@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.nms.data;
 
-import org.bukkit.Material;
+import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.Objects;
 
@@ -8,7 +9,9 @@ public abstract class IMcItemWrapper implements IHasMinecraftIdentifier {
 
     abstract public Object getMCItem();
 
-    abstract public Material getMaterial();
+    public ItemStack getItemStack(){
+        return NMSUtils.get().asBukkitItemStack(getMCItem()).clone();
+    }
 
     @Override
     public int hashCode() {
