@@ -45,7 +45,7 @@ public class ConfigSection{
     public String toString() {
         return "ConfigSection{" +
                 "configFile=" + (config.getTheFile() == null ? null : config.getTheFile().getAbsolutePath()) +
-                ", path='" + path + "'}'";
+                ", path='" + path + "'}";
     }
 
     private String concatSubPath(@Nullable String subPath){
