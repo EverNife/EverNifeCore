@@ -4,6 +4,7 @@ package br.com.finalcraft.evernifecore.commands.debug;
 import br.com.finalcraft.evernifecore.PermissionNodes;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserOreDict;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.guis.gui.OredictViewerGui;
@@ -57,14 +58,14 @@ public class CMDOreDictInfo {
     }
 
     @FinalCMD.SubCMD(
-            subcmd = {"listItems"},
+            subcmd = {"listItemsFrom"},
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "List all itemIdentifiers from this OreDict!"),
                     @FCLocale(lang = LocaleType.PT_BR, text = "Lista todos os itemIdentifiers deste OreDict!")
             },
             permission = PermissionNodes.EVERNIFECORE_COMMAND_OREINFO
     )
-    public void listItems(CommandSender sender, @Arg(name = "<oreDict>") OreDictEntry oreDictEntry, @Arg(name = "[page]") PageVizualization pageVizualization) {
+    public void listItemsFrom(CommandSender sender, @Arg(name = "<oreDict>") OreDictEntry oreDictEntry, @Arg(name = "[page]") PageVizualization pageVizualization) {
 
         List<ItemStack> itemStacks = oreDictEntry.getItemStacks();
 
@@ -74,6 +75,30 @@ public class CMDOreDictInfo {
                 .setFormatLine(itemStack -> {
                     return new FancyText("§7#  %number%:   §a%value%").setSuggestCommandAction("%value%");
                 })
+                .build()
+                .send(pageVizualization, sender);
+    }
+
+    @FinalCMD.SubCMD(
+            subcmd = {"list"},
+            locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "List all oredicts!"),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Lista todos os itemIdentifiers deste OreDict!")
+            },
+            permission = PermissionNodes.EVERNIFECORE_COMMAND_OREINFO
+    )
+    public void list(CommandSender sender, String label, @Arg(name = "[page]") PageVizualization pageVizualization) {
+        PageViewer.targeting(OreDictEntry.class)
+                .withSuplier(() -> ArgParserOreDict.CACHED_OREDICT_ENTRIES.getValue())
+                .extracting(oreDict -> oreDict.getOreName())
+                .setFormatLine(new FancyText("§7#  %number%: (%itens_count%)  §a%value%")
+                        .setRunCommandAction(OREDICT_INFO.getFancyText(sender).getClickActionText())
+                        .setHoverText(OREDICT_INFO.getFancyText(sender).getHoverText())
+                )
+                .addPlaceholder("%itens_count%", oreDictEntry1 -> oreDictEntry1.getItemStacks().size())
+                .addPlaceholder("%label%", oreDictEntry -> label)
+                .setIncludeTotalCount(true)
+                .setLineEnd(-1)
                 .build()
                 .send(pageVizualization, sender);
     }

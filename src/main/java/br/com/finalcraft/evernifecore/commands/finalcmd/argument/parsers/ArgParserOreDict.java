@@ -14,6 +14,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -51,17 +52,19 @@ public class ArgParserOreDict extends ArgParser<OreDictEntry> {
 
     /**
      * Hold only the names of the OreDicts that have at least one ItemStack
+     * Its sorted by the OreDict name
      */
-    private final CacheableSupplier<List<String>> CACHED_OREDICT_NAMES = CacheableSupplier.of(
+    public static final CacheableSupplier<List<OreDictEntry>> CACHED_OREDICT_ENTRIES = CacheableSupplier.of(
             () -> NMSUtils.get().getOreRegistry().getAllOreEntries().stream()
                     .filter(oreDictEntry -> oreDictEntry.getItemStacks().size() > 0)
-                    .map(OreDictEntry::getOreName)
-                    .sorted().collect(Collectors.toList())
+                    .sorted(Comparator.comparing(oreDictEntry -> oreDictEntry.getOreName()))
+                    .collect(Collectors.toList())
     ).withInterval(TimeUnit.SECONDS, 10);
 
     @Override
     public @NotNull List<String> tabComplete(TabContext tabContext) {
-        return CACHED_OREDICT_NAMES.getValue().stream()
+        return CACHED_OREDICT_ENTRIES.getValue().stream()
+                .map(OreDictEntry::getOreName)
                 .filter(s -> StringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))
                 .limit(100)
                 .sorted(String.CASE_INSENSITIVE_ORDER)
