@@ -32,6 +32,12 @@ public class PlaceholderProvider<O extends Object> implements IProvider<O>{
     }
 
     @Override
+    public IProvider<O> addParser(String name, Object parsedValue) {
+        parser_map.put(name, new SimpleParser(name, object -> parsedValue));
+        return this;
+    }
+
+    @Override
     public PlaceholderProvider<O> addParser(String name, Function<O, Object> parser) {
         parser_map.put(name, new SimpleParser(name, parser));
         return this;

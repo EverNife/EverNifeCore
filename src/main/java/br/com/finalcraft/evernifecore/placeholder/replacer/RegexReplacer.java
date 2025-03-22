@@ -77,6 +77,12 @@ public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O
     }
 
     @Override
+    public IProvider<O> addParser(String name, Object parsedValue) {
+        getProvider().addParser(name, parsedValue);
+        return this;
+    }
+
+    @Override
     public RegexReplacer<O> addParser(String name, Function<O, Object> parser) {
         getProvider().addParser(name, parser);
         return this;
