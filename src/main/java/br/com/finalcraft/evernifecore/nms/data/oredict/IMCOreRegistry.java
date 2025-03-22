@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.nms.data;
+package br.com.finalcraft.evernifecore.nms.data.oredict;
 
 import org.bukkit.inventory.ItemStack;
 
@@ -13,5 +13,7 @@ public interface IMCOreRegistry {
     public List<String> getOreNamesFrom(ItemStack itemStack);
 
     public List<ItemStack> getOreItemStacks(String oreName);
+
+    public List<OreDictEntry> getAllOreEntries();
 
 }

@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.nms.util;
 
 import br.com.finalcraft.evernifecore.nms.data.IMCMaterialRegistry;
-import br.com.finalcraft.evernifecore.nms.data.IMCOreRegistry;
 import br.com.finalcraft.evernifecore.nms.data.IMcBlockWrapper;
 import br.com.finalcraft.evernifecore.nms.data.IMcItemWrapper;
+import br.com.finalcraft.evernifecore.nms.data.oredict.IMCOreRegistry;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;

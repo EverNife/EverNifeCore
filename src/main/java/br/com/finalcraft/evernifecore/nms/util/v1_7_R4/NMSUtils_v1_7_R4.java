@@ -3,9 +3,10 @@ package br.com.finalcraft.evernifecore.nms.util.v1_7_R4;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.nms.data.IMCMaterialRegistry;
-import br.com.finalcraft.evernifecore.nms.data.IMCOreRegistry;
 import br.com.finalcraft.evernifecore.nms.data.IMcBlockWrapper;
 import br.com.finalcraft.evernifecore.nms.data.IMcItemWrapper;
+import br.com.finalcraft.evernifecore.nms.data.oredict.IMCOreRegistry;
+import br.com.finalcraft.evernifecore.nms.data.oredict.OreDictEntry;
 import br.com.finalcraft.evernifecore.nms.util.INMSUtils;
 import br.com.finalcraft.evernifecore.reflection.FieldAccessor;
 import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
@@ -442,6 +443,15 @@ public class NMSUtils_v1_7_R4 implements INMSUtils {
 						oreNames.add(getOreName.invoke(null, oreIdNumber));
 					}
 					return oreNames;
+				}
+
+				@Override
+				public List<OreDictEntry> getAllOreEntries() {
+					List<OreDictEntry> oreDictEntries = new ArrayList<>();
+					for (String allOreName : getAllOreNames()) {
+						oreDictEntries.add(new OreDictEntry(allOreName));
+					}
+					return oreDictEntries;
 				}
 			};
 		}
