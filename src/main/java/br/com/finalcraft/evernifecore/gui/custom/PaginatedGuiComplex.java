@@ -54,6 +54,12 @@ public class PaginatedGuiComplex extends GuiComplex {
         }
     }
 
+    public void addPageSlotAll(){
+        for (int i = 0; i < this.getInventory().getSize(); i++) {
+            pageSlots.add(i);
+        }
+    }
+
     public void removePageSlot(int... slot) {
         for (int i : slot) {
             this.validateSlot(i);
