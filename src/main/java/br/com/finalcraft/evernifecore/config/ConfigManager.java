@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.gui.layout.DefaultIcons;
+import br.com.finalcraft.evernifecore.guis.LayoutManager;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.pageviwer.PageViewer;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
@@ -48,6 +49,8 @@ public class ConfigManager {
                 InputElement.class
         );
         FCLocaleManager.updateEverNifeCoreLocale();
+
+        LayoutManager.initialize();//This uses some locales. Must be called after FCLocaleManager;
 
         PlayerController.initialize();
     }
