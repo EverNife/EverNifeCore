@@ -19,6 +19,7 @@ import br.com.finalcraft.evernifecore.util.FCItemUtils;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.StringUtil;
 
 import java.util.List;
 
@@ -30,11 +31,10 @@ public class CMDOreDictInfo {
 
     @FCLocale(lang = LocaleType.EN_US,
             text = "§2§l ▶ §b[OredictINFO]§e - %oredict_name%   §7§o(has %oredict_amount% items)",
-            hover = "\n" +
-                    "\n§2OredictName: §e%oredict_name%" +
+            hover = "\n§2OredictName: §e%oredict_name%" +
                     "\n§2OredictItems: §e%oredict_amount%" +
-                    "\n§bClick to open a menu with all items from this OreDict!" +
-                    "\n",
+                    "\n" +
+                    "\n§bClick to open a menu with all items from this OreDict!",
             runCommand = "/%label% menu %oredict_name%"
     )
     private static LocaleMessage OREDICT_INFO;
@@ -83,24 +83,32 @@ public class CMDOreDictInfo {
             subcmd = {"list"},
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "List all oredicts!"),
-                    @FCLocale(lang = LocaleType.PT_BR, text = "Lista todos os itemIdentifiers deste OreDict!")
             },
             permission = PermissionNodes.EVERNIFECORE_COMMAND_OREINFO
     )
-    public void list(CommandSender sender, String label, @Arg(name = "[page]") PageVizualization pageVizualization) {
+    public void list(CommandSender sender, String label, @Arg(name = "[startsWith]") String startsWith) {
+
+        final List<OreDictEntry> filteredEntries = ArgParserOreDict.CACHED_OREDICT_ENTRIES.getValue();
+
+        if (startsWith != null){
+            filteredEntries.removeIf(oreDictEntry -> !StringUtil.startsWithIgnoreCase(oreDictEntry.getOreName(), startsWith));
+        }
+
         PageViewer.targeting(OreDictEntry.class)
-                .withSuplier(() -> ArgParserOreDict.CACHED_OREDICT_ENTRIES.getValue())
+                .withSuplier(() -> filteredEntries)
                 .extracting(oreDict -> oreDict.getOreName())
-                .setFormatLine(new FancyText("§7#  %number%: (%itens_count%)  §a%value%")
+                .setFormatLine(
+                        new FancyText("§7#  %number%: (%oredict_amount%)  §a%value%")
                         .setRunCommandAction(OREDICT_INFO.getFancyText(sender).getClickActionText())
                         .setHoverText(OREDICT_INFO.getFancyText(sender).getHoverText())
                 )
-                .addPlaceholder("%itens_count%", oreDictEntry1 -> oreDictEntry1.getItemStacks().size())
+                .addPlaceholder("%oredict_amount%", entry -> entry.getItemStacks().size())
+                .addPlaceholder("%oredict_name%", entry -> entry.getOreName())
                 .addPlaceholder("%label%", oreDictEntry -> label)
                 .setIncludeTotalCount(true)
                 .setLineEnd(-1)
                 .build()
-                .send(pageVizualization, sender);
+                .send(sender);
     }
 
     @FinalCMD.SubCMD(
