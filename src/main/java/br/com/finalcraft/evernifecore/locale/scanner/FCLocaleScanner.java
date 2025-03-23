@@ -125,7 +125,7 @@ public class FCLocaleScanner {
             }
 
             if (fcLocale.children().length > 0){
-                //Append chidren making this FancyText a FancyFormamtter
+                //Append children making this FancyText a FancyFormamtter
                 for (FCLocaleData.Child child : fcLocale.children()) {
                     text = child.text();
                     hover = child.hover().isEmpty() ? null : child.hover();

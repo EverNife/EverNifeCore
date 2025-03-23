@@ -248,7 +248,7 @@ public class CfgLoadableSalvable {
                     boolean hasAction = fancyText.getClickActionText() != null && !fancyText.getClickActionText().isEmpty();
 
                     String text = fancyText.getText().replace("§","&");
-                    Object saveText = text.contains("\n") ? Arrays.asList(text.split("\n")) : text;
+                    Object saveText = text.contains("\n") ? Arrays.asList(text.split("\n",1)) : text;
 
                     if (hasHover == false && hasAction == false) {
                         //If there is no hover or action, just save the text
@@ -260,12 +260,12 @@ public class CfgLoadableSalvable {
 
                     if (hasHover) {
                         String hoverText = fancyText.getHoverText().replace("§","&");
-                        Object saveHover = hoverText.contains("\n") ? Arrays.asList(hoverText.split("\n")) : hoverText;
+                        Object saveHover = hoverText.contains("\n") ? Arrays.asList(hoverText.split("\n",1)) : hoverText;
                         configSection.setValue("hoverText", saveHover);
                     }
                     if (hasAction) {
                         String clickActionText = fancyText.getClickActionText().replace("§","&");
-                        Object saveAction = clickActionText.contains("\n") ? Arrays.asList(clickActionText.split("\n")) : clickActionText;
+                        Object saveAction = clickActionText.contains("\n") ? Arrays.asList(clickActionText.split("\n",1)) : clickActionText;
                         configSection.setValue("clickActionText", saveAction);
                         configSection.setValue("clickActionType", fancyText.getClickActionType().name());
                     }
