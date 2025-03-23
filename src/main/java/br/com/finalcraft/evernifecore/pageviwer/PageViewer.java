@@ -510,22 +510,10 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         }
     }
 
+    @Data
     public static class SortedItem<OBJ, VALUE>{
         final OBJ object;
         final VALUE value;
-
-        public SortedItem(OBJ object, VALUE value) {
-            this.object = object;
-            this.value = value;
-        }
-
-        public OBJ getObject() {
-            return object;
-        }
-
-        public VALUE getValue() {
-            return value;
-        }
     }
 
 }
