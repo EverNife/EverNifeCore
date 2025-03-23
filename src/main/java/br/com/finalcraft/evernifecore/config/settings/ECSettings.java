@@ -25,6 +25,9 @@ public class ECSettings {
     //Guis
     public static int DEFAULT_GUI_UPDATE_TIME = 2;
 
+    //PageViewer
+    public static boolean PAGEVIEWERS_FULL_LOCALIZATION = false;
+
     public static void initialize(){
 
         useNamesInsteadOfUUIDToStorePlayerData = ConfigManager.getMainConfig().getOrSetDefaultValue(
@@ -73,6 +76,17 @@ public class ECSettings {
                         "\nFor example, when using FinalEconomy, the '/baltop' may be cached to prevent lag for X amount of seconds." +
                         "\nIncrease this value if you find lag related to this feature! (very unlikely)" +
                         "\nIf going to decrease, I suggest to at least keep to 1 second");
+
+        PAGEVIEWERS_FULL_LOCALIZATION = ConfigManager.getMainConfig().getOrSetDefaultValue(
+                "Settings.PageViewers.FULL_LOCALIZATION",
+                false,
+                "If you want to enable the localization of the PageViewer's messages, set this to true." +
+                        "\nThis will allow you to change the messages that are displayed on the PageViewer." +
+                        "\n" +
+                        "\nBy default the PageViewers will try to adjust to the content-size, but on non latin" +
+                        "\nlanguages this may not work as expected. If you are having issues with the PageViewer" +
+                        "\nmessages, enable this and customize the messages to fit your needs."
+        );
 
         WARN_PLAYERS_WHEN_RECEIVED_ITEMS_WERE_SEND_TO_THE_GROUND = ConfigManager.getMainConfig().getOrSetDefaultValue("Settings.FCBukkitUtil.warnWhenPlayersCannotReceiveItensOnItsInventory",
                 true,

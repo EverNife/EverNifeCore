@@ -17,6 +17,9 @@ import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 public class ConfigManager {
 
     private static Config mainConfig;
@@ -37,16 +40,19 @@ public class ConfigManager {
         ECSettings.initialize();
 
         FCLocaleManager.loadLocale(EverNifeCore.instance,
-                FCMessageUtil.class,
-                FCTimeFrame.class,
-                Cooldown.class,
-                FCBukkitUtil.class,
-                SpigotUpdateChecker.class,
-                HelpContext.class,
-                FCDefaultExecutor.class,
-                PageViewer.class,
-                DefaultIcons.class,
-                InputElement.class
+                Arrays.asList(
+                        FCMessageUtil.class,
+                        FCTimeFrame.class,
+                        Cooldown.class,
+                        FCBukkitUtil.class,
+                        SpigotUpdateChecker.class,
+                        HelpContext.class,
+                        FCDefaultExecutor.class,
+                        PageViewer.class,
+                        DefaultIcons.class,
+                        InputElement.class,
+                        ECSettings.PAGEVIEWERS_FULL_LOCALIZATION ? PageViewer.PVExtraMessages.class : null
+                ).stream().filter(Objects::nonNull).toArray(Class[]::new)
         );
         FCLocaleManager.updateEverNifeCoreLocale();
 

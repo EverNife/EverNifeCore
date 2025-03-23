@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.util.FCTextUtil;
 import br.com.finalcraft.evernifecore.util.FCTimeUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
+import lombok.Data;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -161,7 +162,6 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
                             .getFancyText(null)
                     );
                 }
-
             }
 
             lastBuild = System.currentTimeMillis();
@@ -218,22 +218,9 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
             int lastPage = (int) Math.ceil(pageLinesCache.get().size() / (double) pageSize);
             int currentPage = NumberWrapper.of(page).boundUpper(lastPage).boundLower(1).intValue();
 
-            String previousButton = "§a§l<§2<§a§l<";
-            String centerSpace = "          ";
-            String center = "§ePage [" + currentPage + "/" + lastPage + "]";
-            String nextButton = "§a§l>§2>§a§l>";
-
-            //Gerenete the SpaceBorders, by generenating it arround the center and spliting it afterwards
-            String holeLine = previousButton + centerSpace + center + centerSpace + nextButton;
-            String[] borders = FCTextUtil.alignCenter(holeLine).split(Pattern.quote(holeLine), -1);
-
-            //Replace colors on buttons based on possibility of next or previous page
-            if (page <= 1) previousButton = previousButton.replace("§a","§7").replace("§2","§7");
-            if (page >= lastPage) nextButton = nextButton.replace("§a","§7").replace("§2","§7");
-
             Function<Integer, String> moveToPage = integer -> {
-                if (integer == 0) return null;//No Previous page
-                if (integer > lastPage) return null;//No Next page
+                if (integer == 0) return "";//No Previous page
+                if (integer > lastPage) return "";//No Next page
                 return DynamicCommand.builder()
                         .setRunOnlyOnce(false)
                         .setAction(context -> {
@@ -243,14 +230,38 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
                         .scheduleAndReturnCommandString();
             };
 
-            nextAndPreviousPage =
-                    FancyFormatter.of("\n" + borders[0]) //First Border
-                            .append(previousButton).setHoverText("\n" + previousButton + "\n").setRunCommandAction(moveToPage.apply(currentPage - 1)) //First Arrow
-                            .append(centerSpace)
-                            .append(center).setHoverText("\n§a Refresh Page [" + currentPage + "] \n").setRunCommandAction(moveToPage.apply(currentPage))
-                            .append(centerSpace)
-                            .append(nextButton).setHoverText("\n" + nextButton + "\n").setRunCommandAction(moveToPage.apply(currentPage + 1)) //Second Arrow
-                            .append(borders[1]); //Second Border
+            if (ECSettings.PAGEVIEWERS_FULL_LOCALIZATION){
+                //This will load the messages from the localization
+                nextAndPreviousPage = PVExtraMessages.generatePreviousAndNextPage(
+                        currentPage,
+                        lastPage,
+                        moveToPage
+                );
+            }else {
+                //This will attempt to generate the messages from the code with automatic spacing
+                String previousButton = "§a§l<§2<§a§l<";
+                String centerSpace = "          ";
+                String center = "§ePage [" + currentPage + "/" + lastPage + "]";
+                String nextButton = "§a§l>§2>§a§l>";
+
+                //Gerenete the SpaceBorders, by generenating it arround the center and spliting it afterwards
+                String holeLine = previousButton + centerSpace + center + centerSpace + nextButton;
+                String[] borders = FCTextUtil.alignCenter(holeLine).split(Pattern.quote(holeLine), -1);
+
+                //Replace colors on buttons based on possibility of next or previous page
+                if (page <= 1) previousButton = previousButton.replace("§a","§7").replace("§2","§7");
+                if (page >= lastPage) nextButton = nextButton.replace("§a","§7").replace("§2","§7");
+
+
+                nextAndPreviousPage =
+                        FancyFormatter.of("\n" + borders[0]) //First Border
+                                .append(previousButton).setHoverText("\n" + previousButton + "\n").setRunCommandAction(moveToPage.apply(currentPage - 1)) //First Arrow
+                                .append(centerSpace)
+                                .append(center).setHoverText("\n§a Refresh Page [" + currentPage + "] \n").setRunCommandAction(moveToPage.apply(currentPage))
+                                .append(centerSpace)
+                                .append(nextButton).setHoverText("\n" + nextButton + "\n").setRunCommandAction(moveToPage.apply(currentPage + 1)) //Second Arrow
+                                .append(borders[1]); //Second Border
+            }
         }
 
         for (CommandSender commandSender : sender) {
@@ -514,6 +525,61 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
     public static class SortedItem<OBJ, VALUE>{
         final OBJ object;
         final VALUE value;
+    }
+
+    public static class PVExtraMessages {
+
+        @FCLocale(lang = LocaleType.EN_US, children = {
+                @FCLocale.Child(text = "                 &r"),
+                @FCLocale.Child(text = "§a§l<§2<§a§l<&r", hover = "\n§a§l<§2<§a§l<\n", runCommand = "%on_previous_page_click%"),
+                @FCLocale.Child(text = "           &r")
+        })
+        protected static LocaleMessage PREVIOUS_PAGE_WHEN_AVAILABLE;
+
+        @FCLocale(lang = LocaleType.EN_US, children = {
+                @FCLocale.Child(text = "                 &r"),
+                @FCLocale.Child(text = "§7§l<§7<§7§l<&r", hover = "\n§7§l<§7<§7§l<\n"),
+                @FCLocale.Child(text = "           &r")
+        })
+        protected static LocaleMessage PREVIOUS_PAGE_WHEN_UNAVAILABLE;
+
+        @FCLocale(lang = LocaleType.EN_US, text = "§ePage [%current_page%/%last_page%]§r", hover = "\n§a Refresh Page [%current_page%] \n", runCommand = "%on_refresh_page_click%")
+        protected static LocaleMessage CENTER_PAGE_BUTTON;
+
+        @FCLocale(lang = LocaleType.EN_US, children = {
+                @FCLocale.Child(text = "            &r"),
+                @FCLocale.Child(text = "§a§l>§2>§a§l>", hover = "\n§a§l>§2>§a§l>\n", runCommand = "%on_next_page_click%"),
+        })
+        protected static LocaleMessage NEXT_PAGE_WHEN_AVAILABLE;
+
+        @FCLocale(lang = LocaleType.EN_US, children = {
+                @FCLocale.Child(text = "            &r"),
+                @FCLocale.Child(text = "§7§l>§7>§7§l>&r", hover = "\n§7§l>§7>§7§l>\n"),
+        })
+        protected static LocaleMessage NEXT_PAGE_WHEN_UNAVAILABLE;
+
+        public static FancyFormatter generatePreviousAndNextPage(int currentPage, int lastPage, Function<Integer, String> moveToPage){
+
+            FancyText previousPageButton = currentPage > 1
+                    ? PVExtraMessages.PREVIOUS_PAGE_WHEN_AVAILABLE.getDefaultFancyText()
+                    : PVExtraMessages.PREVIOUS_PAGE_WHEN_UNAVAILABLE.getDefaultFancyText();
+
+            FancyText centerPageButton = PVExtraMessages.CENTER_PAGE_BUTTON.getDefaultFancyText().clone()
+                    .replace("%current_page%", String.valueOf(currentPage))
+                    .replace("%last_page%", String.valueOf(lastPage));
+
+            FancyText nextPageButton = lastPage > currentPage
+                    ? PVExtraMessages.NEXT_PAGE_WHEN_AVAILABLE.getDefaultFancyText()
+                    : PVExtraMessages.NEXT_PAGE_WHEN_UNAVAILABLE.getDefaultFancyText();
+
+            return FancyFormatter.of() //First Border
+                            .append(previousPageButton.clone()) //First Arrow
+                            .append(centerPageButton.clone()) //First Arrow
+                            .append(nextPageButton.clone()) //First Arrow
+                            .replace("%on_previous_page_click%", moveToPage.apply(currentPage - 1))
+                            .replace("%on_next_page_click%", moveToPage.apply(currentPage + 1))
+                            .replace("%on_refresh_page_click%", moveToPage.apply(currentPage));
+        }
     }
 
 }
