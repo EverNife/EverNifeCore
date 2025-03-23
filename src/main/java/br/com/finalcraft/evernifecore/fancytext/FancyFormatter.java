@@ -38,12 +38,14 @@ public class FancyFormatter extends FancyText {
 
     @Override
     public FancyFormatter append(FancyText fancyText){
-        if (fancyText instanceof FancyFormatter){
-            this.fancyTextList.addAll(fancyFormatter.getFancyTextList());
+        if (fancyText instanceof FancyFormatter other){
+            for (FancyText fancyTextInner : other.fancyTextList) {
+                append(fancyTextInner.clone());
+            }
         }else {
             this.fancyTextList.add(fancyText);
+            fancyText.fancyFormatter = this;
         }
-        fancyText.fancyFormatter = this;
         return this;
     }
 
