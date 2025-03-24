@@ -17,7 +17,9 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
     private Player player = null;
     private P playerData = null;
     private G gui = null;
+
     private transient PlayerGui previousGui = null;
+    private transient Player viewer = null;
 
     public PlayerGui() {
 
@@ -102,12 +104,20 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
         return player;
     }
 
+    public Player getViewer(){
+        return viewer != null ? viewer : player;
+    }
+
+    public void setViewer(Player viewer) {
+        this.viewer = viewer;
+    }
+
     public G getGui() {
         return gui;
     }
 
     public void open(){
-        this.getGui().open(getPlayer());
+        this.getGui().open(getViewer());
     }
 
     public void open(PlayerGui previousGui){
@@ -116,7 +126,7 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
     }
 
     public void close(){
-        this.getGui().close(getPlayer());
+        this.getGui().close(getViewer());
     }
 
     public PlayerGui getPreviousGui() {
