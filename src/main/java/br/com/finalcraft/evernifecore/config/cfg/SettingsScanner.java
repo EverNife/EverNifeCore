@@ -15,8 +15,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class SettingsScanner {
 
@@ -53,10 +58,41 @@ public class SettingsScanner {
                             .text()
                         : null;
 
-                Object newValue;
+                Object newValue = null;
                 if (defValue instanceof List){
-                    newValue = config.getOrSetDefaultValue(settings.key(), (List<? extends Object>) defValue, comment);
-                }else {
+                    List<Class<?>> fieldType = getFieldType(declaredField);
+
+                    if (fieldType.size() == 1 && fieldType.get(0) == Integer.class){
+
+                        Object slotObject = config.getValue(settings.key());
+
+                        if (slotObject == null){
+                            List<String> slotsAsString = new ArrayList<>();
+                            for (int i : (List<Integer>) defValue) {
+                                slotsAsString.add(String.valueOf(i));
+                            }
+                            config.setDefaultValue(settings.key(), slotsAsString.stream().collect(Collectors.joining(",","[","]"))); //Store slots like "[1,2,3,4,5]"
+                            newValue = defValue;
+                        } else if (slotObject instanceof String){
+                            String slotString = (String) slotObject;
+                            if (!slotString.isEmpty()){
+                                newValue = Arrays.stream(slotString.replace("[", "")
+                                                .replace("]", "")
+                                                .split(","))
+                                        .map(value -> Integer.valueOf(value.trim()))
+                                        .collect(Collectors.toList());
+                                ;
+                            }
+                        }else {
+                            newValue = config.getStringList(settings.key())
+                                    .stream()
+                                    .mapToInt(value -> Integer.valueOf(value.trim()))
+                                    .toArray();
+                        }
+                    }else {
+                        newValue = config.getOrSetDefaultValue(settings.key(), (List<? extends Object>) defValue, comment);
+                    }
+                } else {
                     newValue = config.getOrSetDefaultValue(settings.key(), defValue, comment);
                 }
 
@@ -74,7 +110,7 @@ public class SettingsScanner {
 
                     try {
                         ArgParser argParser = parserClass.getConstructor(ArgInfo.class).newInstance(argInfo);
-                        newValue = argParser.parserArgument(Bukkit.getConsoleSender(), new Argumento(newValue.toString()));
+                        newValue = argParser.parserArgument(Bukkit.getConsoleSender(), new Argumento(String.valueOf(newValue)));
                     } catch (ArgParseException ignored) {
                         plugin.getLogger().warning("Using default value for " + new ConfigSection(config, settings.key()).toString() + " Fix your Config!");
                         newValue = defValue;
@@ -97,6 +133,28 @@ public class SettingsScanner {
                 }
             }
         }
+    }
+
+    private static List<Class<?>> getFieldType(Field field) {
+        try {
+            Type genericType = field.getGenericType();
+
+            if (genericType instanceof ParameterizedType) {
+                ParameterizedType parameterizedType = (ParameterizedType) genericType;
+                Type[] typeArguments = parameterizedType.getActualTypeArguments();
+
+                List<Class<?>> result = new ArrayList<>();
+                for (Type type : typeArguments) {
+                    if (type instanceof Class<?>) {
+                        result.add((Class<?>) type);
+                    }
+                }
+                return result;
+            }
+        } catch (Exception ignored) {
+
+        }
+        return Collections.emptyList();
     }
 
 }
