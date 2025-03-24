@@ -144,6 +144,7 @@ public class SVDataManager<O> extends ServerData<O>{
                     FCScheduler.runAsync(() -> {
                         try {
                             configs.add(new Config(file).enableSmartCache());
+                            loadedObjects.incrementAndGet();
                         }catch (Exception e){
                             e.printStackTrace();
                         }finally {
@@ -161,6 +162,8 @@ public class SVDataManager<O> extends ServerData<O>{
                 loadedObjects.get(),
                 System.currentTimeMillis() - start
         );
+
+        loadedObjects.set(0);
 
         start = System.currentTimeMillis();
         for (Config config : configs) {
