@@ -45,7 +45,7 @@ public class ActionBarAPI {
 
         PlayerActionBarManager playerActionBarManager = PLAYER_ACTION_BAR_MAP.get(player.getUniqueId());
 
-        if (playerActionBarManager != null && playerActionBarManager.isRunning() && !playerActionBarManager.isTerminated()){
+        if (playerActionBarManager != null && playerActionBarManager.hasStarted() && !playerActionBarManager.isTerminated()){
             playerActionBarManager.terminate();
             PLAYER_ACTION_BAR_MAP.remove(player.getUniqueId());
         }
@@ -55,5 +55,9 @@ public class ActionBarAPI {
 
     public static ActionBarMessage.Builder message(String message){
         return ActionBarMessage.of(message);
+    }
+
+    public static void clearReferences(UUID playerUuid){
+        PLAYER_ACTION_BAR_MAP.remove(playerUuid);
     }
 }

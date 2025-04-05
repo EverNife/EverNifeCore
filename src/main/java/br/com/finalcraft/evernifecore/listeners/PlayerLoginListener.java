@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.listeners;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.actionbar.ActionBarAPI;
 import br.com.finalcraft.evernifecore.api.events.ECFullyLoggedInEvent;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
@@ -156,6 +157,8 @@ public class PlayerLoginListener implements ECListener {
 
             //[Store an instance of a Player.class] it is a bad practice, but in minecraft, what is not :D
             playerData.setPlayer(null);
+
+            ActionBarAPI.clearReferences(playerData.getUniqueId());
         }
     }
 

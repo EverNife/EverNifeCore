@@ -18,7 +18,7 @@ public class PlayerActionBarManager extends BukkitRunnable {
 
     private final Player player;
     private final PriorityQueue<ActionBarMessage> ACTION_BARS_PRIORITY_QUEUE = new PriorityQueue<>(3, Comparator.comparingInt(ActionBarMessage::getPriority).reversed());
-    private transient boolean isRunning;
+    private transient boolean hasStarted;
     private transient boolean terminated = false;
 
     public PlayerActionBarManager(Player player) {
@@ -34,12 +34,12 @@ public class PlayerActionBarManager extends BukkitRunnable {
         this.cancel();
     }
 
-    public boolean isRunning() {
-        return isRunning;
+    public boolean hasStarted() {
+        return hasStarted;
     }
 
     private void start(){
-        isRunning = true;
+        hasStarted = true;
         this.runTaskTimerAsynchronously(EverNifeCore.instance, 0, 10);
     }
 
@@ -47,7 +47,7 @@ public class PlayerActionBarManager extends BukkitRunnable {
         ACTION_BARS_PRIORITY_QUEUE.removeIf(innerMessage -> innerMessage.getActionBarID().equals(message.getActionBarID()));//Remove existing ActionBarMessages with the same ID
         ACTION_BARS_PRIORITY_QUEUE.offer(message);//Add this new message to the priority queue
 
-        if (!isRunning){
+        if (hasStarted() == false){
             start();//Start async runnable
         }else {
             run();//Enforce send of ActionBarMessage now
