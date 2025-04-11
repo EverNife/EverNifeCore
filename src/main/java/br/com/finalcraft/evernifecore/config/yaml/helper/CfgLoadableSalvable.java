@@ -260,12 +260,12 @@ public class CfgLoadableSalvable {
 
                     if (hasHover) {
                         String hoverText = fancyText.getHoverText().replace("§","&");
-                        Object saveHover = hoverText.contains("\n") ? Arrays.asList(hoverText.split("\n",1)) : hoverText;
+                        Object saveHover = hoverText.contains("\n") ? Arrays.asList(hoverText.split("\n",-1)) : hoverText;
                         configSection.setValue("hoverText", saveHover);
                     }
                     if (hasAction) {
                         String clickActionText = fancyText.getClickActionText().replace("§","&");
-                        Object saveAction = clickActionText.contains("\n") ? Arrays.asList(clickActionText.split("\n",1)) : clickActionText;
+                        Object saveAction = clickActionText.contains("\n") ? Arrays.asList(clickActionText.split("\n",-1)) : clickActionText;
                         configSection.setValue("clickActionText", saveAction);
                         configSection.setValue("clickActionType", fancyText.getClickActionType().name());
                     }

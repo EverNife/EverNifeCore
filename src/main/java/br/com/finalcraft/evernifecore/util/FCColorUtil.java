@@ -55,7 +55,7 @@ public class FCColorUtil {
         if (text == null) return null;
         return new ArrayList<>(
                 Arrays.asList(
-                        FCColorUtil.colorfy(String.join("\n",text)).split("\n",1)
+                        FCColorUtil.colorfy(String.join("\n",text)).split("\n",-1)
                 )
         );
     }
