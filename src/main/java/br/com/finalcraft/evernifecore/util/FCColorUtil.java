@@ -29,7 +29,7 @@ public class FCColorUtil {
         if (text == null) return null;
         String colored = ChatColor.translateAlternateColorCodes('&',text);
 
-        String[] split = colored.split("\n",1);
+        String[] split = colored.split("\n",-1);
         if (split.length > 1){ //In case of '\n' lets repeat colors on each new '\n'
             List<String> result = new ArrayList<>();
             result.add(split[0]);

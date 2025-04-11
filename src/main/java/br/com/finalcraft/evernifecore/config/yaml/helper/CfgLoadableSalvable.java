@@ -248,7 +248,7 @@ public class CfgLoadableSalvable {
                     boolean hasAction = fancyText.getClickActionText() != null && !fancyText.getClickActionText().isEmpty();
 
                     String text = fancyText.getText().replace("§","&");
-                    Object saveText = text.contains("\n") ? Arrays.asList(text.split("\n",1)) : text;
+                    Object saveText = text.contains("\n") ? Arrays.asList(text.split("\n",-1)) : text;
 
                     if (hasHover == false && hasAction == false) {
                         //If there is no hover or action, just save the text
