@@ -67,7 +67,7 @@ dependencies {
     implementation "br.com.finalcraft:ChatMenuAPI:2.0.1"
 
     implementation 'net.byteflux:libby-core:1.2.0'
-    implementation 'dev.triumphteam:triumph-gui:3.1.4-evernife-02'
+    implementation 'dev.triumphteam:triumph-gui:3.1.11-evernife-03'
     implementation 'com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8.4'
     implementation "br.com.finalcraft:ECForgeListener:1.0.5"
 
