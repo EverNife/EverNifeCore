@@ -126,6 +126,8 @@ public class FCTimeUtil {
 
     public static final DateTimeFormatter FORMATTER_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
     public static final DateTimeFormatter FORMATTER_DATETIME_ALT = DateTimeFormatter.ofPattern("yyyy/MM/dd'T'HH:mm");
+    public static final DateTimeFormatter FORMATTER_DATETIME_WITH_SECONDS = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+    public static final DateTimeFormatter FORMATTER_DATETIME_ALT_WITH_SECONDS = DateTimeFormatter.ofPattern("yyyy/MM/dd'T'HH:mm:ss");
     public static final DateTimeFormatter FORMATTER_DATETIME_REVERSE = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     public static final DateTimeFormatter FORMATTER_DATETIME_REVERSE_COMPLETE = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
     public static final DateTimeFormatter FORMATTER_DATE = DateTimeFormatter.ofPattern("yyyy/MM/dd");
@@ -152,41 +154,53 @@ public class FCTimeUtil {
      * @return LocalDateTime
      */
     public static LocalDateTime universalDateConverter(String dateString) {
-        if (dateString == null || dateString.isEmpty()){
+        if (dateString == null || dateString.isEmpty()) {
             return null;
         }
 
         try {
-            if (dateString.length() <= 10){//Quando em formato menor, não temos as horas inclusas
+            if (dateString.length() <= 10) { //Quando em formato menor, não temos as horas inclusas
                 if (dateString.charAt(4) == '/') return LocalDate.parse(dateString, FORMATTER_DATE).atTime(LocalTime.MIN);
                 if (dateString.charAt(4) == '-') return LocalDate.parse(dateString, FORMATTER_DATE_ALT).atTime(LocalTime.MIN);
                 if (dateString.charAt(2) == '/') return LocalDate.parse(dateString, FORMATTER_DATE_REVERSE).atTime(LocalTime.MIN);
                 if (dateString.charAt(2) == '-') return LocalDate.parse(dateString, FORMATTER_DATE_REVERSE_ALT).atTime(LocalTime.MIN);
             }
 
-            if (dateString.length() == 27){
-                return Timestamp.valueOf(dateString).toLocalDateTime();
+            if (dateString.length() >= 27 && dateString.length() <= 29) { // yyyy-MM-dd HH:mm:ss.SSSSSSSSS
+                return Timestamp.valueOf(dateString).toLocalDateTime(); // e.g., with nanoseconds
             }
 
-            if (dateString.charAt(4) == '/'){
-                if (dateString.length() == 19){
+            if (dateString.charAt(4) == '/') {
+                if (dateString.contains("T")) {
+                    if (dateString.length() <= 16) {
+                        return LocalDateTime.parse(dateString, FORMATTER_DATETIME_ALT);
+                    } else {
+                        return LocalDateTime.parse(dateString, FORMATTER_DATETIME_ALT_WITH_SECONDS);
+                    }
+                } else {
                     return LocalDateTime.parse(dateString, FORMATTER_DEFAULT);
-                }else {
-                    return LocalDateTime.parse(dateString, FORMATTER_DATETIME_ALT);
                 }
-            }else if (dateString.charAt(2) == '/'){
-                if (dateString.length() <= 16){
+            } else if (dateString.charAt(2) == '/') {
+                if (dateString.length() <= 16) {
                     return LocalDateTime.parse(dateString, FORMATTER_DATETIME_REVERSE);
-                }else {
+                } else {
                     return LocalDateTime.parse(dateString, FORMATTER_DATETIME_REVERSE_COMPLETE);
                 }
-            }else {
-                return LocalDateTime.parse(dateString, FORMATTER_DATETIME);
+            } else {
+                if (dateString.contains("T")) {
+                    if (dateString.length() <= 16) {
+                        return LocalDateTime.parse(dateString, FORMATTER_DATETIME);
+                    } else {
+                        return LocalDateTime.parse(dateString, FORMATTER_DATETIME_WITH_SECONDS);
+                    }
+                }
             }
 
-        }catch (Exception ignored){
+        } catch (Exception ignored) {
             return null;
         }
+
+        return null;
     }
 
 }
