@@ -104,15 +104,18 @@ public class PlayerController {
 
         Queue<PlayerData> loadedPlayerData = new ConcurrentLinkedQueue<>();
 
-        ExecutorService executor = Executors.newFixedThreadPool(Math.min(10, Math.max(playerdataLoader.size(), 1)));
+        ExecutorService executor = Executors.newFixedThreadPool(Math.min(playerdataLoader.size(), Math.max(4, Runtime.getRuntime().availableProcessors())));
         CountDownLatch latch = new CountDownLatch(playerdataLoader.size());
         for (Supplier<PlayerData> supplier : playerdataLoader) {
-            executor.submit(() -> {
-                PlayerData playerData = supplier.get();
-                if (playerData != null){ //Can be null when there is an error loading the PlayerData of the loading was ignored
-                    loadedPlayerData.add(playerData);
+            executor.execute(() -> {
+                try {
+                    PlayerData playerData = supplier.get();
+                    if (playerData != null){ //Can be null when there is an error loading the PlayerData of the loading was ignored
+                        loadedPlayerData.add(playerData);
+                    }
+                } finally {
+                    latch.countDown();
                 }
-                latch.countDown();
             });
         }
 

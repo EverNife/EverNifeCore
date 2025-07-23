@@ -9,27 +9,22 @@ public class CfgExecutor {
 
     private static final Logger logger = Logger.getLogger("CfgExecutor");
 
-    private static final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(
-            10,
-            new ThreadFactoryBuilder()
-                    .setNameFormat("evernifecore-cfgexecutor-caching-%d")
-                    .setDaemon(true)
-                    .build()
-    );
+    private static final ThreadPoolExecutor scheduler;
+    public static final ExecutorService EXECUTOR_SERVICE;
 
-    public static ScheduledThreadPoolExecutor getScheduler() {
-        return scheduler;
-    }
-
-    public static ExecutorService EXECUTOR_SERVICE;
     static {
-        createExecutorService();
-    }
-
-    public static void createExecutorService(){
-        EXECUTOR_SERVICE = new ThreadPoolExecutor(5, Integer.MAX_VALUE,
+        scheduler = new ThreadPoolExecutor(5, Math.min(5, Runtime.getRuntime().availableProcessors()),
                 1000L, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue(),
+                new LinkedBlockingQueue<>(),
+                new ThreadFactoryBuilder()
+                        .setNameFormat("evernifecore-cfgexecutor-caching-%d")
+                        .setDaemon(true)
+                        .build()
+        );
+
+        EXECUTOR_SERVICE = new ThreadPoolExecutor(5, Math.min(5, Runtime.getRuntime().availableProcessors()),
+                1000L, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(),
                 new ThreadFactoryBuilder()
                         .setNameFormat("evernifecore-asyncsave-pool-%d")
                         .setDaemon(true)
@@ -37,12 +32,18 @@ public class CfgExecutor {
         );
     }
 
+    public static ThreadPoolExecutor getScheduler() {
+        return scheduler;
+    }
+
     public static ExecutorService getExecutorService() {
         return EXECUTOR_SERVICE;
     }
 
     public static synchronized void shutdownExecutor(){
-        if (EXECUTOR_SERVICE != null && !EXECUTOR_SERVICE.isShutdown() && !EXECUTOR_SERVICE.isTerminated()){
+        scheduler.shutdown();
+
+        if (!EXECUTOR_SERVICE.isShutdown() && !EXECUTOR_SERVICE.isTerminated()){
             try {
                 EXECUTOR_SERVICE.shutdown();
                 boolean success = EXECUTOR_SERVICE.awaitTermination(30, TimeUnit.SECONDS);

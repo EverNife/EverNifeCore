@@ -9,15 +9,18 @@ import java.util.concurrent.*;
 
 public class FCScheduler {
 
-    private static final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(
-            9999, //If this goes UP too high, it means the Programmer is faulty here!
+    private static final ThreadPoolExecutor scheduler = new ThreadPoolExecutor(
+            5,
+            Math.min(5, Runtime.getRuntime().availableProcessors()),
+            1000L, TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<>(),
             new ThreadFactoryBuilder()
                     .setNameFormat("evernifecore-fcscheduler-%d")
                     .setDaemon(true)
                     .build()
     );
 
-    public static ScheduledThreadPoolExecutor getScheduler() {
+    public static ThreadPoolExecutor getScheduler() {
         return scheduler;
     }
 
@@ -57,7 +60,7 @@ public class FCScheduler {
     // -----------------------------------------------------------------------------------------------------------------
 
     public static void runAsync(Runnable runnable){
-        scheduler.submit(() -> {
+        scheduler.execute(() -> {
             try {
                 runnable.run();
             }catch (Throwable throwable){

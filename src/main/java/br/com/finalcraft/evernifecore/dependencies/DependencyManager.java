@@ -12,10 +12,7 @@ import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Objects;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.logging.Logger;
 
 public class DependencyManager extends LibraryManager {
@@ -65,9 +62,7 @@ public class DependencyManager extends LibraryManager {
 
         CountDownLatch latch = new CountDownLatch(libraries.size());
 
-        final ThreadPoolExecutor scheduler = new ThreadPoolExecutor(libraries.size() >= 4 ? 4 : libraries.size(), Integer.MAX_VALUE,
-                0L, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue(),
+        final ExecutorService scheduler = Executors.newFixedThreadPool(Math.min(libraries.size(), Runtime.getRuntime().availableProcessors()),
                 new ThreadFactoryBuilder()
                         .setNameFormat("evernifecore-dependencymanager-pool-%d")
                         .setDaemon(true)
@@ -75,7 +70,7 @@ public class DependencyManager extends LibraryManager {
         );
 
         for (Library library : libraries) {
-            scheduler.submit(() -> {
+            scheduler.execute(() -> {
                 try {
                     this.loadLibrary(library);
                 } catch (Throwable e) {
