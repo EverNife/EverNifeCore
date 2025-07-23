@@ -9,13 +9,11 @@ public class CfgExecutor {
 
     private static final Logger logger = Logger.getLogger("CfgExecutor");
 
-    private static final ThreadPoolExecutor scheduler;
+    private static final ScheduledThreadPoolExecutor scheduler;
     public static final ExecutorService EXECUTOR_SERVICE;
 
     static {
-        scheduler = new ThreadPoolExecutor(5, Math.min(5, Runtime.getRuntime().availableProcessors()),
-                1000L, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>(),
+        scheduler = new ScheduledThreadPoolExecutor(Math.max(5, Runtime.getRuntime().availableProcessors()),
                 new ThreadFactoryBuilder()
                         .setNameFormat("evernifecore-cfgexecutor-caching-%d")
                         .setDaemon(true)
@@ -32,7 +30,7 @@ public class CfgExecutor {
         );
     }
 
-    public static ThreadPoolExecutor getScheduler() {
+    public static ScheduledThreadPoolExecutor getScheduler() {
         return scheduler;
     }
 

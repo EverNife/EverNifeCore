@@ -9,18 +9,15 @@ import java.util.concurrent.*;
 
 public class FCScheduler {
 
-    private static final ThreadPoolExecutor scheduler = new ThreadPoolExecutor(
-            5,
-            Math.min(5, Runtime.getRuntime().availableProcessors()),
-            1000L, TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<>(),
+    private static final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(
+            Math.max(5, Runtime.getRuntime().availableProcessors()),
             new ThreadFactoryBuilder()
                     .setNameFormat("evernifecore-fcscheduler-%d")
                     .setDaemon(true)
                     .build()
     );
 
-    public static ThreadPoolExecutor getScheduler() {
+    public static ScheduledThreadPoolExecutor getScheduler() {
         return scheduler;
     }
 
