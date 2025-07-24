@@ -20,7 +20,7 @@ public class CfgExecutor {
                         .build()
         );
 
-        EXECUTOR_SERVICE = new ThreadPoolExecutor(5, Math.min(5, Runtime.getRuntime().availableProcessors()),
+        EXECUTOR_SERVICE = new ThreadPoolExecutor(5, Math.max(5, Runtime.getRuntime().availableProcessors()),
                 1000L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(),
                 new ThreadFactoryBuilder()
