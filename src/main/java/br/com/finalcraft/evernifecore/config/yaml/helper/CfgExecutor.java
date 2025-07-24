@@ -9,37 +9,45 @@ public class CfgExecutor {
 
     private static final Logger logger = Logger.getLogger("CfgExecutor");
 
-    private static final ScheduledThreadPoolExecutor scheduler;
-    public static final ExecutorService EXECUTOR_SERVICE;
+    private static final ScheduledThreadPoolExecutor SCHEDULER =
+            new ScheduledThreadPoolExecutor(Math.max(5, Runtime.getRuntime().availableProcessors()),
+                    new ThreadFactoryBuilder()
+                            .setNameFormat("evernifecore-cfgexecutor-caching-%d")
+                            .setDaemon(true)
+                            .build()
+            );
 
-    static {
-        scheduler = new ScheduledThreadPoolExecutor(Math.max(5, Runtime.getRuntime().availableProcessors()),
-                new ThreadFactoryBuilder()
-                        .setNameFormat("evernifecore-cfgexecutor-caching-%d")
-                        .setDaemon(true)
-                        .build()
-        );
-
-        EXECUTOR_SERVICE = new ThreadPoolExecutor(5, Math.max(5, Runtime.getRuntime().availableProcessors()),
-                1000L, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>(),
-                new ThreadFactoryBuilder()
-                        .setNameFormat("evernifecore-asyncsave-pool-%d")
-                        .setDaemon(true)
-                        .build()
-        );
-    }
+    private static final ExecutorService EXECUTOR_SERVICE =
+            new ThreadPoolExecutor(5, Math.max(5, Runtime.getRuntime().availableProcessors()),
+                    1000L, TimeUnit.MILLISECONDS,
+                    new LinkedBlockingQueue<>(),
+                    new ThreadFactoryBuilder()
+                            .setNameFormat("evernifecore-asyncsave-pool-%d")
+                            .setDaemon(true)
+                            .build()
+            );
 
     public static ScheduledThreadPoolExecutor getScheduler() {
-        return scheduler;
+        return SCHEDULER;
     }
 
     public static ExecutorService getExecutorService() {
         return EXECUTOR_SERVICE;
     }
 
-    public static synchronized void shutdownExecutor(){
-        scheduler.shutdown();
+    public static synchronized void shutdownExecutorAndScheduler(){
+
+        if (!SCHEDULER.isShutdown() && !SCHEDULER.isTerminated()){
+            try {
+                SCHEDULER.shutdown();
+                boolean success = SCHEDULER.awaitTermination(5, TimeUnit.SECONDS); //Give some time for the scheduler to finish
+                if (!success){
+                    // No need ot care about the scheduler shutdown, it will be closed by the JVM
+                }
+            } catch (InterruptedException e){
+                e.printStackTrace();
+            }
+        }
 
         if (!EXECUTOR_SERVICE.isShutdown() && !EXECUTOR_SERVICE.isTerminated()){
             try {

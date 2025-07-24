@@ -171,7 +171,7 @@ public class EverNifeCore extends JavaPlugin {
         HandlerList.unregisterAll(this);
         SaveConfigThread.INSTANCE.shutdown();
         PlayerController.savePlayerDataOnConfig();
-        CfgExecutor.shutdownExecutor();
+        CfgExecutor.shutdownExecutorAndScheduler();
     }
 
     @ECPlugin.Reload

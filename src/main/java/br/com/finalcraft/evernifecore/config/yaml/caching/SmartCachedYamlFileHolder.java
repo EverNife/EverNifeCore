@@ -80,7 +80,7 @@ public class SmartCachedYamlFileHolder implements IHasYamlFile {
                 boolean usedAtLeastOnceOnTheLastThreeMinutes = System.currentTimeMillis() < getLastUsed() + TimeUnit.MINUTES.toMillis(MINUTES_OF_CACHE);
 
                 if (usedAtLeastOnceOnTheLastThreeMinutes) {
-                    //Lets do nothing, just check again in MINUTES_OF_CACHE minutes
+                    //Let's do nothing, just check again in MINUTES_OF_CACHE minutes
                     scheduleExpirationRunnable(MINUTES_OF_CACHE, TimeUnit.MINUTES);
                 } else {
                     cacheToString();
