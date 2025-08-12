@@ -17,7 +17,7 @@ import java.util.function.Supplier;
 public class PaginatedGuiComplex extends GuiComplex {
 
     private final List<PaginatedGuiItem<?>> paginatedItems = new ArrayList<>();
-    private final Set<Integer> pageSlots = new HashSet<>();
+    private final Set<Integer> pageSlots = new LinkedHashSet<>();
     private final Map<Integer, PaginatedGuiItem<?>> currentPage = new HashMap<>();
     private int pageNum = 0;
 
