@@ -16,20 +16,28 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 public class ECPluginManager {
 
-    private static final HashMap<String, ECPluginData> ECPLUGINS_MAP = new HashMap<>();
+    /**
+     * Map that holds all EverNifeCore Plugins that are using its features like localization or logging.
+     */
+    private static final HashMap<String, ECPluginData> EVERNIFECORE_PLUGINS_MAP = new LinkedHashMap<>();
 
     @NotNull
     public static ECPluginData getOrCreateECorePluginData(Plugin plugin){
-        return ECPLUGINS_MAP.computeIfAbsent(plugin.getName(), pluginName -> new ECPluginData(plugin));
+        return EVERNIFECORE_PLUGINS_MAP.computeIfAbsent(plugin.getName(), pluginName -> new ECPluginData(plugin));
     }
 
     public static void reloadPlugin(@Nullable CommandSender sender, @NotNull Plugin instance) {
         ECPluginData ecPluginData = getOrCreateECorePluginData(instance);
         if (!ecPluginData.canReload()){
-            throw new IllegalStateException("This plugin does not implement a reload system on it! Tell the author!");
+            throw new IllegalStateException(String.format(
+                    "The plugin [%s] does not implement a '@ECPlugin.Reload' System on it! Tell the author (%s) !",
+                    instance.getName(),
+                    instance.getDescription().getAuthors().isEmpty() ? "Unknown" : instance.getDescription().getAuthors().get(0)
+            ));
         }
         reloadPlugin(sender, instance, ecPluginData, () -> ecPluginData.reloadPlugin());
     }
@@ -66,7 +74,7 @@ public class ECPluginManager {
         Bukkit.getPluginManager().callEvent(new ECPluginReloadEvent(ecPluginData));
 
         //Some ECPlugins might have subModules or Addons, reload them if necessary
-        for (ECPluginData ecPlugin : new ArrayList<>(ECPLUGINS_MAP.values())) {
+        for (ECPluginData ecPlugin : new ArrayList<>(EVERNIFECORE_PLUGINS_MAP.values())) {
             if (ecPlugin.canReload()){
                 for (String pluginName : ecPlugin.getReloadAfter()) {
                     if (instance.getName().equalsIgnoreCase(pluginName)){
@@ -84,11 +92,11 @@ public class ECPluginManager {
     }
 
     public static void removePluginData(String pluginName){
-        ECPLUGINS_MAP.remove(pluginName);
+        EVERNIFECORE_PLUGINS_MAP.remove(pluginName);
     }
 
     public static HashMap<String, ECPluginData> getECPluginsMap() {
-        return ECPLUGINS_MAP;
+        return EVERNIFECORE_PLUGINS_MAP;
     }
 }
 

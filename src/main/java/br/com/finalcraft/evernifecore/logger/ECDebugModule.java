@@ -1,11 +1,12 @@
 package br.com.finalcraft.evernifecore.logger;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.logger.debug.IDebugModule;
 
-public enum ECDebugModule implements IDebugModule {
+public enum ECDebugModule implements IDebugModule<EverNifeCore, ECDebugModule> {
     LOCALIZATION,
     PLAYER_DATA,
-    ARG_PARSER,
+    ARG_PARSER("Logs related to the CommandSystem '@Arg' Context checks.", true),
     SVDATA_MANAGER(null, true),
     NMS,
     ;
@@ -27,6 +28,16 @@ public enum ECDebugModule implements IDebugModule {
     ECDebugModule(String comment, boolean enabledByDefault) {
         this.comment = comment;
         this.enabledByDefault = enabledByDefault;
+    }
+
+    @Override
+    public EverNifeCore getPlugin() {
+        return EverNifeCore.instance;
+    }
+
+    @Override
+    public ECLogger<ECDebugModule> getLog() {
+        return EverNifeCore.getLog();
     }
 
     @Override

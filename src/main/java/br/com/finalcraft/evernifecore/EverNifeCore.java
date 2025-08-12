@@ -49,7 +49,7 @@ public class EverNifeCore extends JavaPlugin {
         MinecraftVersion.disableUpdateCheck();
     }
 
-    private ECLogger<ECDebugModule> ecLogger = new ECLogger<>(this);
+    private ECLogger<ECDebugModule> ecLogger = new ECLogger<>(this, ECDebugModule.values());
 
     public static ECLogger<ECDebugModule> getLog(){
         return instance.ecLogger;
