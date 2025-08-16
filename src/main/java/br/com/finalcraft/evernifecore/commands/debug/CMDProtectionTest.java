@@ -28,6 +28,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -140,9 +141,14 @@ public class CMDProtectionTest implements ICustomFinalCMD {
                 StringBuilder regionInfos = new StringBuilder();
 
                 for (FCWorldGuardRegion region : applicableRegions.getRegions()) {
+
+                    List<Map.Entry<Flag<?>, Object>> sortedFlags = region.getFlags().entrySet().stream()
+                            .sorted(Map.Entry.comparingByKey(Comparator.comparing(Flag::getName)))
+                            .collect(Collectors.toList());
+
                     regionInfos.append("\n§d◆ RegionID: §b").append(region.getId());
-                    regionInfos.append("\n§d◆ RegionFlags: §b").append(region.getFlags().size());
-                    for (Map.Entry<Flag<?>, Object> flagObjectEntry : region.getFlags().entrySet()) {
+                    regionInfos.append("\n§d◆ RegionFlags: §b").append(sortedFlags.size());
+                    for (Map.Entry<Flag<?>, Object> flagObjectEntry : sortedFlags) {
                         Flag<?> flag = flagObjectEntry.getKey();
                         Object value = flagObjectEntry.getValue();
                         String flagName = flag.getName();
