@@ -13,10 +13,15 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import br.com.finalcraft.evernifecore.protection.ProtectionAll;
 import br.com.finalcraft.evernifecore.protection.integration.ProtectionHandler;
+import br.com.finalcraft.evernifecore.protection.integration.imp.WorldGuardHandler;
+import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
+import br.com.finalcraft.evernifecore.protection.worldguard.WGPlatform;
+import br.com.finalcraft.evernifecore.protection.worldguard.adapter.FCRegionResultSet;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import br.com.finalcraft.evernifecore.util.FCTextUtil;
 import br.com.finalcraft.evernifecore.vectors.CuboidSelection;
 import br.com.finalcraft.evernifecore.version.MCVersion;
+import com.sk89q.worldguard.protection.flags.Flag;
 import org.bukkit.Color;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
@@ -24,6 +29,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class CMDProtectionTest implements ICustomFinalCMD {
@@ -62,7 +68,10 @@ public class CMDProtectionTest implements ICustomFinalCMD {
         if (procteionHandlerName == null || procteionHandlerName.equals("all")){
             protectionHandler = ProtectionAll.getInstance();
         }else {
-            protectionHandler = ProtectionAll.getInstance().getProtectionHandlers().stream().filter(handler -> handler.getName().equalsIgnoreCase(procteionHandlerName)).findFirst().orElse(null);
+            protectionHandler = ProtectionAll.getInstance().getProtectionHandlers().stream()
+                    .filter(handler -> handler.getName().equalsIgnoreCase(procteionHandlerName))
+                    .findFirst()
+                    .orElse(null);
             if (protectionHandler == null){
                 PROTECTION_PLUGIN_NOT_FOUND
                         .addPlaceholder("%protection_plugin%", procteionHandlerName)
@@ -120,6 +129,39 @@ public class CMDProtectionTest implements ICustomFinalCMD {
         result = canBuildOnRegion ? "§eYes" : "§cNo";
         formatter.append(String.format("\n§2§l ▶ §aCan CuboidSelection Build §7§o(radius 10)§a: %s", result))
                 .setHoverText(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bBreak AROUND Here: %s\n\n§7 - With §6Radius=10\n§7 - CuboidSelection: §7[§6%s§7]", result, cuboidSelection));
+
+        boolean worldGuardDetected = ProtectionAll.getInstance().getProtectionHandlers()
+                .stream()
+                .anyMatch(handler -> handler instanceof WorldGuardHandler);
+        if (worldGuardDetected){
+            try {
+                FCRegionResultSet applicableRegions = WGPlatform.getInstance().getApplicableRegions(player.getLocation());
+
+                StringBuilder regionInfos = new StringBuilder();
+
+                for (FCWorldGuardRegion region : applicableRegions.getRegions()) {
+                    regionInfos.append("\n§d◆ RegionID: §b").append(region.getId());
+                    regionInfos.append("\n§d◆ RegionFlags: §b").append(region.getFlags().size());
+                    for (Map.Entry<Flag<?>, Object> flagObjectEntry : region.getFlags().entrySet()) {
+                        Flag<?> flag = flagObjectEntry.getKey();
+                        Object value = flagObjectEntry.getValue();
+                        String flagName = flag.getName();
+                        String flagValue = value != null ? value.toString() : "§c§lNULL";
+                        regionInfos.append(String.format("\n§7  ● §6%s: §e%s", flagName, flagValue));
+                    }
+                    regionInfos.append("\n\n");
+                }
+
+                formatter.append(String.format("\n§d§l ▶ §b§l[WG] §6Regions at Your Location:§e %s §7§o(Hover for Flags)", applicableRegions.size()))
+                        .setHoverText(String.format("§7§l [§e   Check Result §dWG Flag   §7§l]" +
+                                "\n" +
+                                "\n" + regionInfos
+                        ));
+            }catch (Exception e){
+                formatter.append("\n§c§l ▶ §eThere was an error while trying to get the WorldGuard Regions at your location!")
+                        .setHoverText("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bError: " + e.getMessage());
+            }
+        }
 
         formatter.send(player);
 
