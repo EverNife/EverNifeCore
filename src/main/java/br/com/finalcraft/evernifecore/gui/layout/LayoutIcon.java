@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.gui.PlayerGui;
 import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
+import br.com.finalcraft.evernifecore.util.FCItemUtils;
 import com.google.common.collect.ImmutableList;
 import dev.triumphteam.gui.guis.GuiItem;
 import lombok.Data;
@@ -151,6 +152,14 @@ public class LayoutIcon {
         }
 
         return new LayoutIcon(itemStack, slot, false, permission, null);
+    }
+
+    public List<String> getLore(){
+        return FCItemUtils.getLore(this.getItemStack());
+    }
+
+    public String getDisplayName(){
+        return FCItemUtils.getDisplayName(this.getItemStack());
     }
 
 }
