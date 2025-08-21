@@ -12,8 +12,7 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import org.bukkit.command.CommandSender;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.concurrent.TimeUnit;
 
 public abstract class Cooldown implements Salvable {
@@ -176,7 +175,7 @@ public abstract class Cooldown implements Salvable {
     // Static Methods
     // -----------------------------------------------------------------------------------------------------------------------------//
 
-    private static Map<String, Cooldown> MAP_OF_COOLDOWNS = new HashMap<String, Cooldown>();
+    private static LinkedHashMap<String, Cooldown> MAP_OF_COOLDOWNS = new LinkedHashMap<>();
 
     public static void initialize(){
         MAP_OF_COOLDOWNS.clear();
@@ -192,6 +191,10 @@ public abstract class Cooldown implements Salvable {
                 e.printStackTrace();
             }
         }
+    }
+
+    public static LinkedHashMap<String, Cooldown> getMapOfCooldowns() {
+        return MAP_OF_COOLDOWNS;
     }
 
     public static Cooldown of(String identifier){

@@ -160,7 +160,6 @@ public class CMDProtectionTest implements ICustomFinalCMD {
 
                 formatter.append(String.format("\n§d§l ▶ §b§l[WG] §6Regions at Your Location:§e %s §7§o(Hover for Flags)", applicableRegions.size()))
                         .setHoverText(String.format("§7§l [§e   Check Result §dWG Flag   §7§l]" +
-                                "\n" +
                                 "\n" + regionInfos
                         ));
             }catch (Exception e){
