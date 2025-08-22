@@ -81,12 +81,6 @@ dependencies {
 
     compileOnly name: "AuthMe-5.4.0"
     compileOnly 'net.luckperms:api:5.4'
-    // @ DISCLAIMER @ //
-    // @ DISCLAIMER @ //
-    compileOnly name: "EverForgeLib-[1.7.10]"
-    // This is a private jar, if you want to compile EverNifeCore you need to remove the folders that use this jar
-    // @ DISCLAIMER @ //
-    // @ DISCLAIMER @ //
     compileOnly name: "griefdefender-bukkit-2.2.1"
     compileOnly name: "GriefPreventionPlus-13.3"
     compileOnly name: "PlaceholderAPI-2.11.2"
