@@ -51,7 +51,7 @@ public class PlayerDamageByEntityListener implements ECListener {
                 attackerData = PlayerController.getPlayerData((Player) attackerEntity);
             }
 
-            //Maybe the projectile shooter is an Pet itself
+            //Maybe the projectile shooter is a Pet itself
             if (projectile.getShooter() instanceof Tameable){
                 tamableAttacker = (Tameable) projectile.getShooter();
                 if (tamableAttacker.isTamed()){

@@ -90,7 +90,7 @@ public class PlayerCraftListener implements ECListener {
                 // EverNife clarification:
                 // For example, if you craft a log into wood you get 4 woods! If in your
                 // inventory there is (only) a slot with 63 woods, the crafting will create 4 woods
-                // and 3 of them will be droped on the ground
+                // and 3 of them will be dropped on the ground
                 if (capacity < maxCraftable){
                     maxCraftable = ((capacity + recipeAmount - 1) / recipeAmount) * recipeAmount;
                 }

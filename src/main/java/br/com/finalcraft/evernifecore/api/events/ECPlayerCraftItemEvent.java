@@ -16,7 +16,7 @@ import org.bukkit.scheduler.BukkitRunnable;
  * A default CraftItemEvent that will tell not only what recipe was used
  * but will prevent a lot of common mistakes when hearing to craft events.
  *
- * This event has two main infos like the Amount of times a Recipe has been
+ * This event has two main infos: the Amount of times a Recipe has been
  * executed as well as the total amount of items produced.
  *
  * For example, if you SHIFT_CLICK a craft recipe with 64 logs on a Crafting
