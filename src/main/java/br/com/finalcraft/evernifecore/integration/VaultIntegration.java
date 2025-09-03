@@ -12,22 +12,30 @@ public class VaultIntegration {
 
     public static void initialize() {
         if (!Bukkit.getPluginManager().isPluginEnabled("Vault")){
-            EverNifeCore.warning("Vault plugin was not found! EverNifeCore need vault to manage economy transactions!");
+            EverNifeCore.warning("Vault plugin was not found! EverNifeCore need Vault to manage economy transactions!");
             return;
         }
         try {
             setupEconomy();
         }catch (Throwable e){
             EverNifeCore.warning("Vault seems to be present but there is no Economic plugin present!");
+
+            if (Bukkit.getPluginManager().isPluginEnabled("CMI")){
+                EverNifeCore.warning("CMI was found, but it's economy module is not enabled i think, you might want to take a look at: https://www.spigotmc.org/resources/cmi.3742/");
+                EverNifeCore.warning("Read their description to learn how to enable CMI Economy module.");
+            }
+
             EverNifeCore.warning("You might want to take a look at: https://www.spigotmc.org/resources/finaleconomy.97740/");
             e.printStackTrace();
         }
     }
 
-    private static boolean setupEconomy() {
+    private static void setupEconomy() {
         RegisteredServiceProvider<Economy> rsp = EverNifeCore.instance.getServer().getServicesManager().getRegistration(Economy.class);
         econ = rsp.getProvider();
-        return econ != null;
+        if (econ == null){
+            throw new IllegalStateException("No Economy plugin found!");
+        }
     }
 
     public static void ecoGive(OfflinePlayer player, double amount){
@@ -52,7 +60,7 @@ public class VaultIntegration {
         if (!ecoHasEnough(player,amount)){
             return false;
         }
-        econ.withdrawPlayer(player,amount);
+        getEcon().withdrawPlayer(player,amount);
         return true;
     }
 
@@ -60,10 +68,18 @@ public class VaultIntegration {
         if (amount <= 0){
             return true;
         }
-        return econ.has(player,amount);
+        return getEcon().has(player,amount);
     }
 
     public static double ecoGet(OfflinePlayer player){
-        return econ.getBalance(player);
+        return getEcon().getBalance(player);
+    }
+
+    public static Economy getEcon() {
+        if (econ == null) {
+            initialize();
+        }
+
+        return econ;
     }
 }
