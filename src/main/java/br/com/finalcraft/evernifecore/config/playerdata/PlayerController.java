@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.config.yaml.caching.SmartCachedYamlFileHol
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
+import br.com.finalcraft.evernifecore.util.FCThreadUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
@@ -104,7 +105,12 @@ public class PlayerController {
 
         Queue<PlayerData> loadedPlayerData = new ConcurrentLinkedQueue<>();
 
-        ExecutorService executor = Executors.newFixedThreadPool(Math.min(playerdataLoader.size(), Math.max(4, Runtime.getRuntime().availableProcessors())));
+        Integer minCoresRequired = FCThreadUtil.getMinMaxThreadCountBoundedToSystemCoreCount(
+                playerdataLoader.size(),
+                4
+        ).getMin();
+
+        ExecutorService executor = Executors.newFixedThreadPool(minCoresRequired);
         CountDownLatch latch = new CountDownLatch(playerdataLoader.size());
         for (Supplier<PlayerData> supplier : playerdataLoader) {
             executor.execute(() -> {
