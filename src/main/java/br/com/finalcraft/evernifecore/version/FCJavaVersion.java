@@ -1,9 +1,15 @@
 package br.com.finalcraft.evernifecore.version;
 
 public enum FCJavaVersion {
-
-    JAVA_1_7(1.7f, "7"),
-    JAVA_1_8(1.8f, "8"),
+    JAVA_0(1.5f, "0.9"),
+    JAVA_1(1.1f, "1"),
+    JAVA_2(1.2f, "2"),
+    JAVA_3(1.3f, "3"),
+    JAVA_4(1.4f, "4"),
+    JAVA_5(1.5f, "5"),
+    JAVA_6(1.6f, "6"),
+    JAVA_7(1.7f, "7"),
+    JAVA_8(1.8f, "8"),
     JAVA_9(9.0f, "9"),
     JAVA_10(10.0f, "10"),
     JAVA_11(11.0f, "11"),
@@ -22,7 +28,7 @@ public enum FCJavaVersion {
     JAVA_24(24, "24"),
     JAVA_25(25, "25"),
 
-    JAVA_RECENT(999999, "999999");
+    UNKNOWN_JAVA_VERSION(999999, System.getProperty("java.version"));
 
     private static FCJavaVersion CURRENT_VERSION = null;
 
@@ -69,16 +75,16 @@ public enum FCJavaVersion {
                 numeric = Float.parseFloat(parts[0]); // -> 17, 21, etc.
             }
         } catch (NumberFormatException e) {
-            return JAVA_RECENT;
+            return UNKNOWN_JAVA_VERSION;
         }
 
-        for (FCJavaVersion v : values()) {
-            if (v.floatValue == numeric) {
-                return v;
+        for (FCJavaVersion javaVersion : values()) {
+            if (javaVersion.floatValue == numeric) {
+                return javaVersion; // Found exact match
             }
         }
 
-        return numeric > JAVA_25.floatValue ? JAVA_RECENT : JAVA_1_7;
+        return UNKNOWN_JAVA_VERSION;
     }
 
     public static boolean isLower(FCJavaVersion otherVersion) {
