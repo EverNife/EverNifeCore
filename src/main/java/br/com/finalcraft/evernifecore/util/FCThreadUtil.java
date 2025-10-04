@@ -12,6 +12,10 @@ public class FCThreadUtil {
         return Runtime.getRuntime().availableProcessors();
     }
 
+    public static MinMax<Integer> getMinMaxThreadCountBoundedToSystemCoreCount(int max) {
+        return getMinMaxThreadCountBoundedToSystemCoreCount(1, max);
+    }
+
     public static MinMax<Integer> getMinMaxThreadCountBoundedToSystemCoreCount(int min, int max) {
         int coreCount = getSystemCoreCount();
         min = Math.max(min, 1); // Ensure min is at least 1

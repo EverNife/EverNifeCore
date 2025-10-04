@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.dependencies;
 
+import br.com.finalcraft.evernifecore.util.FCThreadUtil;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import net.byteflux.libby.Library;
 import net.byteflux.libby.LibraryManager;
@@ -62,7 +63,8 @@ public class DependencyManager extends LibraryManager {
 
         CountDownLatch latch = new CountDownLatch(libraries.size());
 
-        final ExecutorService scheduler = Executors.newFixedThreadPool(Math.min(libraries.size(), Runtime.getRuntime().availableProcessors()),
+        final ExecutorService scheduler = Executors.newFixedThreadPool(
+                FCThreadUtil.getMinMaxThreadCountBoundedToSystemCoreCount(libraries.size()).getMax(),
                 new ThreadFactoryBuilder()
                         .setNameFormat("evernifecore-dependencymanager-pool-%d")
                         .setDaemon(true)

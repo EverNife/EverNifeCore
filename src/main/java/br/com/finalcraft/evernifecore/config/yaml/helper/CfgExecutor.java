@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.config.yaml.helper;
 
+import br.com.finalcraft.evernifecore.util.FCThreadUtil;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import java.util.concurrent.*;
@@ -10,7 +11,7 @@ public class CfgExecutor {
     private static final Logger logger = Logger.getLogger("CfgExecutor");
 
     private static final ScheduledThreadPoolExecutor SCHEDULER =
-            new ScheduledThreadPoolExecutor(Math.max(5, Runtime.getRuntime().availableProcessors()),
+            new ScheduledThreadPoolExecutor(FCThreadUtil.getMinMaxThreadCountBoundedToSystemCoreCount(5).getMax(),
                     new ThreadFactoryBuilder()
                             .setNameFormat("evernifecore-cfgexecutor-caching-%d")
                             .setDaemon(true)
@@ -18,7 +19,9 @@ public class CfgExecutor {
             );
 
     private static final ExecutorService EXECUTOR_SERVICE =
-            new ThreadPoolExecutor(5, Math.max(5, Runtime.getRuntime().availableProcessors()),
+            new ThreadPoolExecutor(
+                    FCThreadUtil.getMinMaxThreadCountBoundedToSystemCoreCount(3).getMax(),
+                    FCThreadUtil.getMinMaxThreadCountBoundedToSystemCoreCount(10).getMax(),
                     1000L, TimeUnit.MILLISECONDS,
                     new LinkedBlockingQueue<>(),
                     new ThreadFactoryBuilder()
