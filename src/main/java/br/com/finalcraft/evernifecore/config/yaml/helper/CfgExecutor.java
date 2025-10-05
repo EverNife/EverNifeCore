@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.config.yaml.helper;
 
-import br.com.finalcraft.evernifecore.util.FCThreadUtil;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import br.com.finalcraft.evernifecore.scheduler.VirtualThreadedScheduledExecutor;
 
 import java.util.concurrent.*;
 import java.util.logging.Logger;
@@ -10,60 +9,25 @@ public class CfgExecutor {
 
     private static final Logger logger = Logger.getLogger("CfgExecutor");
 
-    private static final ScheduledThreadPoolExecutor SCHEDULER =
-            new ScheduledThreadPoolExecutor(FCThreadUtil.getMinMaxThreadCountBoundedToSystemCoreCount(5).getMax(),
-                    new ThreadFactoryBuilder()
-                            .setNameFormat("evernifecore-cfgexecutor-caching-%d")
-                            .setDaemon(true)
-                            .build()
-            );
+    private static VirtualThreadedScheduledExecutor SCHEDULER = new VirtualThreadedScheduledExecutor("config-caching");
 
-    private static final ExecutorService EXECUTOR_SERVICE =
-            new ThreadPoolExecutor(
-                    FCThreadUtil.getMinMaxThreadCountBoundedToSystemCoreCount(3).getMax(),
-                    FCThreadUtil.getMinMaxThreadCountBoundedToSystemCoreCount(10).getMax(),
-                    1000L, TimeUnit.MILLISECONDS,
-                    new LinkedBlockingQueue<>(),
-                    new ThreadFactoryBuilder()
-                            .setNameFormat("evernifecore-asyncsave-pool-%d")
-                            .setDaemon(true)
-                            .build()
-            );
-
-    public static ScheduledThreadPoolExecutor getScheduler() {
+    public static VirtualThreadedScheduledExecutor getScheduler() {
         return SCHEDULER;
     }
 
-    public static ExecutorService getExecutorService() {
-        return EXECUTOR_SERVICE;
-    }
-
     public static synchronized void shutdownExecutorAndScheduler(){
-
         if (!SCHEDULER.isShutdown() && !SCHEDULER.isTerminated()){
             try {
                 SCHEDULER.shutdown();
-                boolean success = SCHEDULER.awaitTermination(5, TimeUnit.SECONDS); //Give some time for the scheduler to finish
-                if (!success){
-                    // No need ot care about the scheduler shutdown, it will be closed by the JVM
-                }
-            } catch (InterruptedException e){
-                e.printStackTrace();
-            }
-        }
-
-        if (!EXECUTOR_SERVICE.isShutdown() && !EXECUTOR_SERVICE.isTerminated()){
-            try {
-                EXECUTOR_SERVICE.shutdown();
-                boolean success = EXECUTOR_SERVICE.awaitTermination(30, TimeUnit.SECONDS);
+                boolean success = SCHEDULER.awaitTermination(30, TimeUnit.SECONDS); //Give some time for the scheduler to finish
                 if (!success){
                     logger.warning("Failed to close ConfigHelper Scheduler, TimeOut of 30 seconds Reached, this is really bad! Terminating all of them now!");
-                    EXECUTOR_SERVICE.shutdownNow();
+                    SCHEDULER.shutdownNow();
                 }
             } catch (InterruptedException e){
                 e.printStackTrace();
             }
-        }else {
+        } else {
             throw new IllegalStateException("Tried to stop the ConfigHelper Scheduler while it was not running at all!");
         }
     }

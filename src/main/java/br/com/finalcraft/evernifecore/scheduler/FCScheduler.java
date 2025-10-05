@@ -2,22 +2,28 @@ package br.com.finalcraft.evernifecore.scheduler;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.concurrent.*;
 
 public class FCScheduler {
 
-    private static final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(
-            Math.max(5, Runtime.getRuntime().availableProcessors()),
-            new ThreadFactoryBuilder()
-                    .setNameFormat("evernifecore-fcscheduler-%d")
-                    .setDaemon(true)
-                    .build()
-    );
+    /**
+     * A Scheduler that uses Virtual Threads to execute the tasks.
+     * This allows for non-blocking scheduling of tasks that may perform blocking operations.
+     * Ideal for workloads where tasks may call Thread.sleep(), wait on I/O, or perform blocking operations.
+     * <p>
+     * This class requires Java 21 or higher to utilize virtual threads.
+     * On lower Java versions, it falls back to a fixed thread pool of System Core Count.
+     *
+     * If you are on a Java version lower than 21, this will use a normal Thread Pool instead of Virtual Threads,
+     * bounded to the number of CPU cores available on the system.
+     *
+     * See: {@link VirtualThreadedScheduledExecutor}
+     */
+    private static final VirtualThreadedScheduledExecutor scheduler = new VirtualThreadedScheduledExecutor("fcscheduler");
 
-    public static ScheduledThreadPoolExecutor getScheduler() {
+    public static VirtualThreadedScheduledExecutor getScheduler() {
         return scheduler;
     }
 

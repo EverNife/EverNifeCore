@@ -271,7 +271,7 @@ public class Config {
      * and ensure it's called async
      */
     public void saveAsync() {
-        CfgExecutor.getExecutorService().execute(() -> this.save());
+        CfgExecutor.getScheduler().execute(() -> this.save());
     }
 
     /**

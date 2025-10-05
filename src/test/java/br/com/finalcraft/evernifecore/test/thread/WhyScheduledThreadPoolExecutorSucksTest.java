@@ -3,7 +3,9 @@ package br.com.finalcraft.evernifecore.test.thread;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class WhyScheduledThreadPoolExecutorSucksTest {
 
@@ -19,7 +21,7 @@ public class WhyScheduledThreadPoolExecutorSucksTest {
      */
     @Test
     @SneakyThrows
-    public void masin() throws InterruptedException {
+    public void whyScheduledThreadPoolExecutor() throws InterruptedException {
 
         ScheduledThreadPoolExecutor scheduler = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(200);
 
