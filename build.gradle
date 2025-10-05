@@ -72,7 +72,7 @@ dependencies {
     implementation "br.com.finalcraft:ECForgeListener:1.0.6"
 
     //NBT-API
-    implementation("de.tr7zw:item-nbt-api:2.13.2")
+    implementation("de.tr7zw:item-nbt-api:2.15.2")
     //END of NBT-API
 
     implementation 'net.md-5:bungeecord-chat:1.16-R0.1' //This works from 1.7.10 onwards, is the same API
@@ -98,7 +98,7 @@ dependencies {
     compileOnly name: "craftbukkit1165" //Thats on you to find out
     compileOnly name: "craftbukkit1201" //Thats on you to find out
     compileOnly name: "craftbukkit1202" //Thats on you to find out
-    compileOnly name: "CraftBukkit1211" //Thats on you to find out
+    compileOnly name: "craftbukkit1211-javadowngraded" //Thats on you to find out | Downgraded to Java 8 with https://github.com/unimined/JvmDowngrader
     compileOnly group: 'commons-io', name: 'commons-io', version: '2.6' //Necessary for ReflectionUtils
 
 

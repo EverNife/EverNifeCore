@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.nms.util.v1_12_R1.NMSUtils_v1_12_R1;
 import br.com.finalcraft.evernifecore.nms.util.v1_16_R3.NMSUtils_v1_16_R3;
 import br.com.finalcraft.evernifecore.nms.util.v1_20_R1.NMSUtils_v1_20_R1;
 import br.com.finalcraft.evernifecore.nms.util.v1_20_R2.NMSUtils_v1_20_R2;
+import br.com.finalcraft.evernifecore.nms.util.v1_21_R1.NMSUtils_v1_21_R1;
 import br.com.finalcraft.evernifecore.nms.util.v1_7_R4.NMSUtils_v1_7_R4;
 import br.com.finalcraft.evernifecore.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.version.MCVersion;
@@ -38,6 +39,9 @@ public class NMSUtils {
 			}
 			else if (MCVersion.isEqual(MCDetailedVersion.v1_20_R2)){
 				instance = new NMSUtils_v1_20_R2();
+			}
+			else if (MCVersion.isEqual(MCVersion.v1_21)){
+				instance = new NMSUtils_v1_21_R1();
 			}
 			if (instance != null){
 				EverNifeCore.info("Successfully loaded " + instance.getClass().getSimpleName() +"!");
