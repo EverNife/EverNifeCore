@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.integration.placeholders;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.integration.placeholders.papi.PAPIRegexReplacer;
 import br.com.finalcraft.evernifecore.integration.placeholders.papi.SimplePAPIHook;
@@ -24,12 +25,14 @@ public class PAPIIntegration {
         PAPIRegexReplacer papiRegexReplacer = new PAPIRegexReplacer(playerDataType);
         SimplePAPIHook simplePAPIHook = new SimplePAPIHook(plugin, papiRegexReplacer);
 
-        boolean weAreOnModernPAPI = !FCReflectionUtil.isClassLoaded("me.clip.placeholderapi.expansion.manager.LocalExpansionManager");
+        boolean weAreOnModernPAPI = FCReflectionUtil.isClassLoaded("me.clip.placeholderapi.expansion.manager.LocalExpansionManager");
 
         if (weAreOnModernPAPI == false){
             // Legacy PAPI Support
+            EverNifeCore.getLog().info("Registering PAPI Hook for the plugin " + plugin.getDescription().getName() + " with prefix '"  + pluginBaseID + "' using Legacy PAPI method.");
             PlaceholderAPI.registerPlaceholderHook(pluginBaseID, simplePAPIHook);
         }else {
+            EverNifeCore.getLog().info("Registering PAPI Hook for the plugin " + plugin.getDescription().getName() + " with prefix '"  + pluginBaseID + "' using Modern PAPI method.");
             PlaceholderAPIPlugin.getInstance().getLocalExpansionManager().register(new PlaceholderExpansion() {
 
                 @Override
