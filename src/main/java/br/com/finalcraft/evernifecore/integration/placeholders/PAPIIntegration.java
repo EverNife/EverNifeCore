@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.integration.placeholders.papi.PAPIRegexRep
 import br.com.finalcraft.evernifecore.integration.placeholders.papi.SimplePAPIHook;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import br.com.finalcraft.evernifecore.version.MCVersion;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.clip.placeholderapi.PlaceholderAPIPlugin;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
@@ -24,7 +24,10 @@ public class PAPIIntegration {
         PAPIRegexReplacer papiRegexReplacer = new PAPIRegexReplacer(playerDataType);
         SimplePAPIHook simplePAPIHook = new SimplePAPIHook(plugin, papiRegexReplacer);
 
-        if (MCVersion.isEqual(MCVersion.v1_7_10)){
+        boolean weAreOnModernPAPI = !FCReflectionUtil.isClassLoaded("me.clip.placeholderapi.expansion.manager.LocalExpansionManager");
+
+        if (weAreOnModernPAPI == false){
+            // Legacy PAPI Support
             PlaceholderAPI.registerPlaceholderHook(pluginBaseID, simplePAPIHook);
         }else {
             PlaceholderAPIPlugin.getInstance().getLocalExpansionManager().register(new PlaceholderExpansion() {
