@@ -123,9 +123,11 @@ public class Config {
 
     /**
      * Enables a smart Cache for the YamlFile instance.
-     * The idea is to transform the YamlFile to a String and store only the string
-     * and read from the String when necessary. It chaces the YamlFile for 3 minutes
-     * after its been used.
+     * The idea is to transform the YamlFile into a String and store only this string
+     * and read from the String when necessary.
+     *
+     * It caches the YamlFile for 3 minutes after it's been used, after that
+     * it will be transformed into a String again, saving memory.
      */
     public Config enableSmartCache(){
         if (this.iHasYamlFile instanceof SmartCachedYamlFileHolder == false){

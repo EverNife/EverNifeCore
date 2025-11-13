@@ -105,14 +105,13 @@ public class PlayerController {
 
         Queue<PlayerData> loadedPlayerData = new ConcurrentLinkedQueue<>();
 
-
         ExecutorService executor = FCExecutorsUtil.createVirtualExecutorIfPossible("playerdata-loader");
         CountDownLatch latch = new CountDownLatch(playerdataLoader.size());
         for (Supplier<PlayerData> supplier : playerdataLoader) {
             executor.execute(() -> {
                 try {
                     PlayerData playerData = supplier.get();
-                    if (playerData != null){ //Can be null when there is an error loading the PlayerData of the loading was ignored
+                    if (playerData != null){ //Can be null when there is an error loading the PlayerData or the loading was ignored (daysSinceLastLoginToLoadPlayerDataInMemory)
                         loadedPlayerData.add(playerData);
                     }
                 } finally {
@@ -133,14 +132,14 @@ public class PlayerController {
 
         for (PlayerData playerData : loadedPlayerData) {
 
-            PlayerData existinUUID = uuidHashMap.get(playerData.getUniqueId());
-            if (existinUUID != null){
-                PlayerData playerToKeep = existinUUID;
+            PlayerData existingUUID = uuidHashMap.get(playerData.getUniqueId());
+            if (existingUUID != null){
+                PlayerData playerToKeep = existingUUID;
                 PlayerData playerToRemove = playerData;
 
-                if (playerData.getLastSeen() > existinUUID.getLastSeen()){
+                if (playerData.getLastSeen() > existingUUID.getLastSeen()){
                     playerToKeep = playerData;
-                    playerToRemove = existinUUID;
+                    playerToRemove = existingUUID;
                 }
 
                 boolean namesAreEqual = playerToKeep.getPlayerName().equalsIgnoreCase(playerToRemove.getPlayerName());
