@@ -19,7 +19,7 @@ public class CfgExecutor {
         if (!SCHEDULER.isShutdown() && !SCHEDULER.isTerminated()){
             try {
                 SCHEDULER.shutdown();
-                boolean success = SCHEDULER.awaitTermination(30, TimeUnit.SECONDS); //Give some time for the scheduler to finish
+                boolean success = SCHEDULER.awaitTermination(15, TimeUnit.SECONDS); //Give some time for the executor to finish
                 if (!success){
                     logger.warning("Failed to close ConfigHelper Scheduler, TimeOut of 30 seconds Reached, this is really bad! Terminating all of them now!");
                     SCHEDULER.shutdownNow();

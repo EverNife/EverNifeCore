@@ -95,18 +95,28 @@ public class VirtualThreadedScheduledExecutor implements AutoCloseable {
      * thrown while shutting one does not prevent the other from being attempted. All errors
      * are thrown and logged with the identifier.
      */
-    public void shutdown() {
+    public List<Runnable> shutdown() {
         List<Exception> errors = new ArrayList<>();
+        List<Runnable> pending = new ArrayList<>();
 
         try {
-            scheduler.shutdown();
+            if (!scheduler.isShutdown() && !scheduler.isTerminated() && !scheduler.isTerminating()){
+                // Fscheduuler.shutdown() will not cancel pending tasks, it just stops accepting new ones
+                // So we call shutdownNow() to also retrieve pending tasks
+                List<Runnable> tasks = scheduler.shutdownNow();
+                if (tasks != null){
+                    pending.addAll(tasks);
+                }
+            }
         } catch (Exception e) {
             errors.add(e);
             log.error("[EverNifeCore-VirtualThreadedScheduledExecutorService] {} - error while shutting down scheduler", identifier, e);
         }
 
         try {
-            executor.shutdown();
+            if (!executor.isShutdown() && !executor.isTerminated()){
+                executor.shutdown();
+            }
         } catch (Exception e) {
             errors.add(e);
             log.error("[EverNifeCore-VirtualThreadedScheduledExecutorService] {} - error while shutting down executor", identifier, e);
@@ -116,6 +126,7 @@ public class VirtualThreadedScheduledExecutor implements AutoCloseable {
             throw new VTSShutdownException("Errors occurred while shutting down VirtualThreadedScheduledExecutorService '" + identifier + "'. See logs for details.", errors);
         }
 
+        return pending;
     }
 
     /**
@@ -125,13 +136,8 @@ public class VirtualThreadedScheduledExecutor implements AutoCloseable {
     public List<Runnable> shutdownNow() {
         List<Runnable> pending = new ArrayList<>();
 
-        try {
-            List<Runnable> tasks = scheduler.shutdownNow();
-            if (tasks != null){
-                pending.addAll(tasks);
-            }
-        } catch (Exception e) {
-            log.error("[EverNifeCore-VirtualThreadedScheduledExecutorService] {} - error while calling scheduler.shutdownNow()", identifier, e);
+        if (!scheduler.isShutdown() && !scheduler.isTerminated() && !scheduler.isTerminating()){
+            scheduler.shutdownNow();
         }
 
         try {
@@ -147,55 +153,13 @@ public class VirtualThreadedScheduledExecutor implements AutoCloseable {
     }
 
     /**
-     * Waits for both scheduler and executor to terminate within the given timeout. This method attempts
-     * to wait for both executors "in parallel" by alternating small await slices for each.
+     * Waits for the executor to terminate within the given timeout.
+     * (the scheduler was already shutdownNow, so no need to wait for it)
      */
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         Objects.requireNonNull(unit, "unit must not be null");
 
-        final long deadline = System.nanoTime() + unit.toNanos(timeout);
-        boolean interrupted = false;
-
-        try {
-            while (true) {
-                boolean schedulerTerminated = scheduler.isTerminated();
-                boolean executorTerminated = executor.isTerminated();
-
-                if (schedulerTerminated && executorTerminated) {
-                    return true; // both terminated
-                }
-
-                long remaining = deadline - System.nanoTime();
-                if (remaining <= 0) {
-                    return false; // timeout reached
-                }
-
-                long waitMillis = Math.min(100, TimeUnit.NANOSECONDS.toMillis(remaining));
-
-                // Await each one in turn, swallowing interruption to ensure both get awaited
-                if (!schedulerTerminated) {
-                    try {
-                        scheduler.awaitTermination(waitMillis, TimeUnit.MILLISECONDS);
-                    } catch (InterruptedException ie) {
-                        interrupted = true; // record the interruption but continue
-                    }
-                }
-
-                if (!executorTerminated) {
-                    try {
-                        executor.awaitTermination(waitMillis, TimeUnit.MILLISECONDS);
-                    } catch (InterruptedException ie) {
-                        interrupted = true;
-                    }
-                }
-            }
-        } finally {
-            if (interrupted) {
-                // Restore interrupt flag so caller is aware
-                Thread.currentThread().interrupt();
-                throw new InterruptedException("Await termination interrupted");
-            }
-        }
+        return executor.awaitTermination(timeout, TimeUnit.MILLISECONDS);
     }
 
 
