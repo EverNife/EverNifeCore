@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.dependencies.DependencyManager;
 import br.com.finalcraft.evernifecore.dependencies.ECoreDependencies;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.featherboard.FeatherBoardUtils;
+import br.com.finalcraft.evernifecore.integration.ECCorePAPIPlaceholders;
 import br.com.finalcraft.evernifecore.integration.VaultIntegration;
 import br.com.finalcraft.evernifecore.integration.WorldEditIntegration;
 import br.com.finalcraft.evernifecore.listeners.PlayerInteractListener;
@@ -104,66 +105,10 @@ public class EverNifeCore extends JavaPlugin {
 
         FCTickUtil.getTickCount();//This will start tickCounting
         info("§aEverNifeCore successfully started!");
-//
-//
-//        getLog().info("NMSUtils.get().getVersion() = " + NMSUtils.get().getClass().getSimpleName());
-//        getLog().info("\n\n\n[NMS-1]\n\n\n");
-//
-//        NMSUtils.get().getItemRegistry().getRegistryResourceLocation().entrySet()
-//                .stream()
-//                .map(entry -> {
-//                    IHasMinecraftIdentifier object = NMSUtils.get().getBlockRegistry().getObject(entry.getKey());
-//                    Boolean itemMaterialIsEqual = object == null ? null : object.getMaterial().equals(entry.getValue().getMaterial());
-//                    return String.format(
-//                            "(ITEM) [%s] --> %s  | hasBlock: %s blockMateriaIsEqual: %s %s",
-//                            entry.getKey(),
-//                            entry.getValue().getMaterial().name(),
-//                            object != null,
-//                            itemMaterialIsEqual,
-//                            itemMaterialIsEqual != null && itemMaterialIsEqual == false ? object.getMaterial().name() : ""
-//                    );
-//                }).sorted()
-//                .forEach(s -> {
-//                    getLog().info(s);
-//                });
-//
-//        getLog().info("\n\n\n[NMS-2]\n\n\n");
-//
-//        NMSUtils.get().getBlockRegistry().getRegistryResourceLocation().entrySet()
-//                .stream()
-//                .map(entry -> {
-//
-//                    IHasMinecraftIdentifier object = NMSUtils.get().getItemRegistry().getObject(entry.getKey());
-//                    Boolean itemMaterialIsEqual = object == null ? null : object.getMaterial().equals(entry.getValue().getMaterial());
-//                    return String.format(
-//                            "(BLOCK) [%s] --> %s  | hasItem: %s itemMateriaIsEqual: %s %s",
-//                            entry.getKey(),
-//                            entry.getValue().getMaterial().name(),
-//                            object != null,
-//                            itemMaterialIsEqual,
-//                            itemMaterialIsEqual != null && itemMaterialIsEqual == false ? object.getMaterial().name() : ""
-//                    );
-//
-//                }).sorted()
-//                .forEach(s -> {
-//                    getLog().info(s);
-//                });
-//
-//        getLog().info("\n\n\n[NMS-5]\n\n\n");
-//
-//        NMSUtils.get().getOreRegistry().getAllOreNames().stream()
-//                .sorted()
-//                .forEach(oreName -> {
-//                    getLog().info("[%s] --> %s",
-//                            oreName,
-//                            NMSUtils.get().getOreRegistry()
-//                                    .getOreItemStacks(oreName)
-//                                    .stream()
-//                                    .map(itemStack -> FCItemUtils.getMinecraftIdentifier(itemStack))
-//                                    .collect(Collectors.joining(","))
-//                    );
-//                });
 
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")){
+            ECCorePAPIPlaceholders.initialize(this);
+        }
     }
 
     @Override
