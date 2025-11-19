@@ -23,9 +23,14 @@ public class FancyTextManager {
 
     static {
         String CRAFT_PLAYER_CLASS = "org.bukkit.craftbukkit." + MCVersion.getCurrent().name() + ".entity.CraftPlayer";
+        String CRAFT_PLAYER_CLASS_PAPER_POST_1_21 = "org.bukkit.craftbukkit.entity.CraftPlayer";
+
+        String PLAYER_SPIGOT_METHOD_CONTRACT_1 = "public org.bukkit.entity.Player$Spigot " + CRAFT_PLAYER_CLASS + ".spigot()";
+        String PLAYER_SPIGOT_METHOD_CONTRACT_2 = "public org.bukkit.entity.Player$Spigot " + CRAFT_PLAYER_CLASS_PAPER_POST_1_21 + ".spigot()";
+
         method_spigot = FCReflectionUtil.getMethods(FCReflectionUtil.getClass(CRAFT_PLAYER_CLASS),
                 method -> {
-                    return method.toString().equals("public org.bukkit.entity.Player$Spigot " + CRAFT_PLAYER_CLASS + ".spigot()");
+                    return method.toString().equals(PLAYER_SPIGOT_METHOD_CONTRACT_1) || method.toString().equals(PLAYER_SPIGOT_METHOD_CONTRACT_2);
                 }).findFirst().get();
         method_sendmessage = FCReflectionUtil.getMethods(method_spigot.get().getReturnType(),
                 method -> {
@@ -34,6 +39,7 @@ public class FancyTextManager {
     }
 
     private static void spigot_sendMessage(Player player, BaseComponent[] textComponenArray){
+        player.spigot();
         Object spigot = method_spigot.invoke(player);
         try {
             //I need to execute the method by hand!
