@@ -18,6 +18,7 @@ import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
 import br.com.finalcraft.evernifecore.time.DayOfToday;
+import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.*;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import org.bukkit.Bukkit;
@@ -219,6 +220,15 @@ public class CfgLoadableSalvable {
                 .setOnConfigLoad(configSection -> {
                     String formatedTime = configSection.getString("");
                     return FCTimeUtil.universalDateConverter(formatedTime);
+                });
+
+        addLoadableSalvable(FCTimeFrame.class)
+                .setOnConfigSave((section, fcTimeFrame) -> {
+                    section.setValue("", FCTimeUtil.fromMillis(fcTimeFrame.getMillis()));
+                })
+                .setOnConfigLoad(configSection -> {
+                    String timeFrame = configSection.getString("");
+                    return FCTimeFrame.of(FCTimeUtil.toMillis(timeFrame));
                 });
 
         boolean isBukkitEnvironment = FCReflectionUtil.isClassLoaded("org.bukkit.Bukkit");
