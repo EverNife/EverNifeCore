@@ -1,6 +1,5 @@
-package br.com.finalcraft.evernifecore.test.config;
+package br.com.finalcraft.evernifecore.config;
 
-import br.com.finalcraft.evernifecore.config.Config;
 import org.junit.jupiter.api.Test;
 import org.simpleyaml.configuration.file.YamlFile;
 import org.simpleyaml.configuration.implementation.api.QuoteStyle;

@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.test.thread;
+package br.com.finalcraft.evernifecore._misc.thread;
 
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
@@ -21,7 +21,11 @@ public class WhyScheduledThreadPoolExecutorSucksTest {
      */
     @Test
     @SneakyThrows
-    public void whyScheduledThreadPoolExecutor() throws InterruptedException {
+    public void whyScheduledThreadPoolExecutor() {
+
+        if (true) {
+            return; // Disabled test to avoid execution during normal test runs
+        }
 
         ScheduledThreadPoolExecutor scheduler = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(200);
 

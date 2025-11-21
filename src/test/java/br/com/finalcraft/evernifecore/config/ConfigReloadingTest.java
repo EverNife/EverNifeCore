@@ -1,6 +1,5 @@
-package br.com.finalcraft.evernifecore.test.config;
+package br.com.finalcraft.evernifecore.config;
 
-import br.com.finalcraft.evernifecore.config.Config;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.Yaml;

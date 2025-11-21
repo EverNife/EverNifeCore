@@ -1,6 +1,5 @@
-package br.com.finalcraft.evernifecore.test.config;
+package br.com.finalcraft.evernifecore.config;
 
-import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfig;
 import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.IFConfigComplex;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
@@ -10,7 +9,10 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class FConfigTests {

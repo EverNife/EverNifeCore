@@ -1,7 +1,5 @@
-package br.com.finalcraft.evernifecore.test.placeholder;
+package br.com.finalcraft.evernifecore.placeholder.replacer;
 
-import br.com.finalcraft.evernifecore.placeholder.replacer.Closures;
-import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.junit.jupiter.api.MethodOrderer;
@@ -15,7 +13,7 @@ import java.util.Random;
 import java.util.UUID;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class PlaceholderTest {
+public class RegexReplacerTest {
 
     @Data
     @AllArgsConstructor

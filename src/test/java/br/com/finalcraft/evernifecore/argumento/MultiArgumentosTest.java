@@ -1,11 +1,8 @@
-package br.com.finalcraft.evernifecore.test.argumento;
+package br.com.finalcraft.evernifecore.argumento;
 
-import br.com.finalcraft.evernifecore.argumento.Argumento;
-import br.com.finalcraft.evernifecore.argumento.FlagedArgumento;
-import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import org.junit.jupiter.api.Test;
 
-public class ArgumentoTest {
+public class MultiArgumentosTest {
 
     @Test
     public void testeMultiArgumentos() {

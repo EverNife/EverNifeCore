@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.test.spliting;
+package br.com.finalcraft.evernifecore._misc.spliting;
 
 import br.com.finalcraft.evernifecore.util.FCMathUtil;
 import lombok.SneakyThrows;
@@ -26,7 +26,11 @@ public class TextSplittingTests {
      */
     @Test
     @SneakyThrows
-    public void comparaStringSplit_PatternSplit_TokenSplit() throws InterruptedException {
+    public void comparaStringSplit_PatternSplit_TokenSplit() {
+
+        if (true) {
+            return; // Disabled test to avoid execution during normal test runs
+        }
 
         String inputPattern = "%s|%s|%s";
 

@@ -1,14 +1,19 @@
-package br.com.finalcraft.evernifecore.test.reflection;
+package br.com.finalcraft.evernifecore.util;
 
 import br.com.finalcraft.evernifecore.reflection.ConstructorInvoker;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.SimpleTimeZone;
+
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class ReflectionTest {
+public class FCReflectionUtilTest {
 
     private static class TestClass { //Class With Primitives Classes in Construtor
         int int_value;
@@ -53,5 +58,26 @@ public class ReflectionTest {
         System.out.println(test);
     }
 
+    public Tuple<SimpleTimeZone,SimpleTimeZone> integers;
+
+    @Test
+    public void testeGenericTypeInstanceofParameterizedType() throws NoSuchFieldException {
+        if (true) {
+            return; // Disabled test to avoid execution during normal test runs
+        }
+
+        Field field = this.getClass().getDeclaredField("integers");
+        Type genericType = field.getGenericType();
+
+        if (genericType instanceof ParameterizedType) {
+            ParameterizedType pt = (ParameterizedType) genericType;
+            Type[] fieldArgTypes = pt.getActualTypeArguments();
+            for (Type type : fieldArgTypes) {
+                System.out.println("Field type: " + type);
+            }
+        } else {
+            System.out.println("Field is not parameterized");
+        }
+    }
 
 }
