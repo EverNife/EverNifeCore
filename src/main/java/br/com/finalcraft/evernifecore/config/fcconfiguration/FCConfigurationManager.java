@@ -291,6 +291,21 @@ public class FCConfigurationManager {
                     return (configSection, key) -> new LinkedHashSet<>(configSection.getLoadableList(key, clazzType));
                 }
 
+                if (Map.class.isAssignableFrom(clazz)){
+                    return (configSection, key) -> {
+                        Map<Object, Object> map = LinkedHashMap.class.isAssignableFrom(clazz)
+                                ? new LinkedHashMap<>()
+                                : new HashMap<>();
+
+                        ConfigSection mapSection = configSection.getConfigSection(key);
+                        for (String mapKey : mapSection.getKeys()) {
+                            Object mapValue = mapSection.getLoadable(mapKey, clazzType);
+                            map.put(mapKey, mapValue);
+                        }
+                        return map;
+                    };
+                }
+
                 if (Set.class.isAssignableFrom(clazz)){
                     if (clazzType == String.class) return (configSection, key) -> new HashSet<>(configSection.getStringList(key));
                     return (configSection, key) -> new HashSet<>(configSection.getLoadableList(key, clazzType));

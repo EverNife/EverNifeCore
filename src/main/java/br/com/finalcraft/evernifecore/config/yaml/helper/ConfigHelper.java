@@ -47,7 +47,7 @@ public class ConfigHelper {
      * @param recursive If true, it will search all sub-folders for config files.
      * @return A list of all the configs in the directory.
      */
-    public static List<Config> getAllConfings(File directory, boolean recursive){
+    public static List<Config> getAllConfings(File directory, boolean recursive){ //TODO [ON_NEXT_RELEASE] fix typo
         if (directory == null) throw new IllegalArgumentException("Directory to search can't be null!");
         if (directory.isFile()) throw new IllegalArgumentException("Directory to search must be a FOLDER not a FILE!");
 
