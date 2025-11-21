@@ -27,6 +27,36 @@ public class FCTimeUtil {
     }
 
     /**
+     * Convert milliseconds to a readable time string.
+     *
+     * @param millis the amount of milliseconds
+     * @return a readable time string (e.g., "1h 30m 45s")
+     */
+    public static String fromMillis(long millis) {
+        if (millis <= 0) return "0s";
+        
+        StringBuilder result = new StringBuilder();
+        
+        long days = TimeUnit.MILLISECONDS.toDays(millis);
+        millis -= TimeUnit.DAYS.toMillis(days);
+        
+        long hours = TimeUnit.MILLISECONDS.toHours(millis);
+        millis -= TimeUnit.HOURS.toMillis(hours);
+        
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(millis);
+        millis -= TimeUnit.MINUTES.toMillis(minutes);
+        
+        long seconds = TimeUnit.MILLISECONDS.toSeconds(millis);
+        
+        if (days > 0) result.append(days).append("d ");
+        if (hours > 0) result.append(hours).append("h ");
+        if (minutes > 0) result.append(minutes).append("m ");
+        if (seconds > 0) result.append(seconds).append("s");
+        
+        return result.toString().trim();
+    }
+
+    /**
      * Convert a Time String to the amount of milliseconds.
      *
      * The text input can be in two formats:
