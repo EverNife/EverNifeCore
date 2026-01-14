@@ -63,7 +63,7 @@ dependencies {
 ### ⚡ **Developer Experience**
 - **Virtual Thread Scheduler** (Java 21+) with fallback thread pools
 - **Smart Configuration Caching** with memory optimization
-- **Annotation-driven** command system
+- **Annotation-driven** Command System
 
 ## 📚 Core Systems
 
@@ -144,7 +144,6 @@ List<TeleportLocation> warps = config.getLoadableList("warps", TeleportLocation.
 **Features:**
 - Smart memory caching with automatic cleanup
 - Comment preservation and generation
-- Hot-reload support
 - Type-safe access methods
 - Custom object serialization
 - Async saving
@@ -244,19 +243,24 @@ WELCOME_MESSAGE.send(player, "{player}", player.getName());
 
 ### ItemStack Builder
 ```java
-ItemStack sword = FCItemBuilder.of(Material.DIAMOND_SWORD)
-    .setName("§6Legendary Blade")
-    .setLore("§7A powerful weapon", "§7forged by ancient smiths")
-    .addEnchantment(Enchantment.SHARPNESS, 5)
-    .setCustomModelData(12345)
+ItemStack sword = FCItemFactory.from(Material.DIAMOND_SWORD)
+    .displayName("§6Legendary Blade")
+    .lore("§7A powerful weapon", "§7forged by ancient smiths")
+    .addEnchant(Enchantment.FIRE_ASPECT, 5)
     .build();
 ```
 
-### NBT Manipulation
+### NBT Manipulation with Item-NBT-API
+Read more at https://github.com/tr7zw/Item-NBT-API Item-NBT-API
 ```java
-ItemStack item = player.getItemInHand();
-NBTPlayer nbtPlayer = new NBTPlayer(player);
-nbtPlayer.setString("custom_data", "my_value");
+FCItemFactory.from(itemStack)
+    .setNbt(nbtCompound -> {
+        nbtCompound.setBoolean("Unbreakable", true);
+        nbtCompound.setInteger("HideFlags", 1);
+        nbtCompound.setString("teste", "teste");
+    })
+   .build();
+
 ```
 
 ### Reflection Utilities
@@ -277,33 +281,6 @@ Object nmsPlayer = method.invoke(player);
 
 ## 📖 Examples
 
-### Complete Plugin Example
-
-```java
-@ECPlugin(
-    spigotID = "12345",
-    bstatsID = "67890"
-)
-public class MyPlugin extends JavaPlugin {
-    
-    @Override
-    public void onEnable() {
-        // EverNifeCore handles most initialization
-        getLogger().info("Plugin enabled!");
-    }
-    
-    @FinalCMD(aliases = {"balance", "bal"})
-    public void balanceCommand(Player player) {
-        MyPlayerData data = PlayerController.getPlayerData(player, MyPlayerData.class);
-        
-        FancyText.of("§6Your balance: §e$" + data.getCoins())
-            .setHoverText("§7Click to open shop")
-            .setRunCommandAction("/shop")
-            .send(player);
-    }
-}
-```
-
 ## 🤝 Contributing
 
 Contributions are welcome! Please note that this project requires several private dependencies for full compilation:
@@ -312,23 +289,16 @@ Contributions are welcome! Please note that this project requires several privat
 - Some paid plugins for integration features
 - Private repository access for certain dependencies
 
-For development:
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
 ## 📞 Support
 
 - **Discord**: [Join our community](https://discord.petrus.dev/)
 - **SpigotMC**: [Plugin page](https://www.spigotmc.org/resources/97739/)
 - **Issues**: [GitHub Issues](https://github.com/EverNife/EverNifeCore/issues)
-- **Documentation**: [Wiki](https://github.com/EverNife/EverNifeCore/wiki)
 
 ---
 
 <p align="center">
   <strong>Developed with ❤️ by <a href="https://github.com/EverNife">EverNife</a></strong>
   <br>
-  <em>Empowering Minecraft plugin development since 2021</em>
+  <em>Empowering Minecraft plugin development since 2016</em>
 </p>
