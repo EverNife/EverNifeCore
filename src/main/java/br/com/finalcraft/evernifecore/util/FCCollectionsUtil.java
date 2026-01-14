@@ -105,7 +105,7 @@ public class FCCollectionsUtil {
      * List&lt;User&gt; users = getUsersFromDatabase();
      * List&lt;UserDTO&gt; userDTOs = getUpdatedUserData();
      *
-     * JpaMergeListResult&lt;User&gt; result = mergeOrUpdateJPAListWithDTO(
+     * MergeListResult&lt;User&gt; result = mergeListWithDTO(
      *     users,
      *     userDTOs,
      *     User::getId,           // Get ID from entity
@@ -114,11 +114,16 @@ public class FCCollectionsUtil {
      *         entity.setName(dto.getName());
      *         entity.setEmail(dto.getEmail());
      *     },
-     *     dto -> new User()     // Create new entity
+     *     dto ->              {  // Create new entity
+     *         User entity = new User()
+     *         entity.setName(dto.getName());
+     *         entity.setEmail(dto.getEmail());
+     *         entity.setSomethingSpecialThatOnlyHappensOnCreate(dto.special());
+     *     }
      * );
      * </pre>
      */
-    public static <ENTITY, DTO, ID> MergeListResult<ENTITY> updateListWithDTO(
+    public static <ENTITY, DTO, ID> MergeListResult<ENTITY> mergeListWithDTO(
             List<ENTITY> existingEntities,
             List<DTO> incomingDtos,
             Function<ENTITY, ID> entityIdGetter,
@@ -140,7 +145,7 @@ public class FCCollectionsUtil {
 
             // Prevenir IDs duplicados nos DTOs de entrada
             if (dtoId != null && !incomingIds.add(dtoId)) {
-                throw new IllegalArgumentException(String.format("There is a duplicated ID (%s) in the incoming DTOs List<%s>", dtoId, dto.getClass().getSimpleName()));
+                throw new IllegalArgumentException("There is a duplicated ID (%s) in the incoming DTOs List<%s>".formatted(dtoId, dto.getClass().getSimpleName()));
             }
         }
 
@@ -158,8 +163,11 @@ public class FCCollectionsUtil {
 
         // 3 - Mapeia entidades existentes restantes por ID para acesso rápido
         Map<ID, ENTITY> entitiesById = existingEntities.stream()
-                .map(e -> new AbstractMap.SimpleEntry<>(entityIdGetter.apply(e), e))
-                .filter(entry -> entry.getKey() != null)
+                .map(e -> {
+                    ID id = entityIdGetter.apply(e);
+                    return id != null ? Map.entry(id, e) : null;
+                })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         Map.Entry::getValue
@@ -172,7 +180,6 @@ public class FCCollectionsUtil {
             if (dtoId == null) {
                 // Adiciona nova entidade para DTOs sem ID
                 ENTITY newEntity = newEntityFactory.apply(dto);
-                applyUpdates.accept(dto, newEntity);
 
                 existingEntities.add(newEntity);
                 added.add(newEntity);
