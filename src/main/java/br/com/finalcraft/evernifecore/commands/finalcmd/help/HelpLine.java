@@ -3,8 +3,9 @@ package br.com.finalcraft.evernifecore.commands.finalcmd.help;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import org.bukkit.command.CommandSender;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public class HelpLine {
 
@@ -33,7 +34,7 @@ public class HelpLine {
                 .send(sender);
     }
 
-    public HelpLine setLabelsUsed(@NotNull String label, @Nullable String subCMDLabel){
+    public HelpLine setLabelsUsed(@Nonnull String label, @Nullable String subCMDLabel){
         this.label = label;
         this.subCMDLabel = subCMDLabel;
         return this;

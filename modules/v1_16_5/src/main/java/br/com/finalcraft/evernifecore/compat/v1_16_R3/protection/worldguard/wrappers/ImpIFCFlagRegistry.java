@@ -3,9 +3,9 @@ package br.com.finalcraft.evernifecore.compat.v1_16_R3.protection.worldguard.wra
 import br.com.finalcraft.evernifecore.protection.worldguard.IFCFlagRegistry;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.protection.flags.Flag;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
 
@@ -31,7 +31,7 @@ public class ImpIFCFlagRegistry implements IFCFlagRegistry {
         return WorldGuard.getInstance().getFlagRegistry().size();
     }
 
-    @NotNull
+    @Nonnull
     @Override
     public Iterator<Flag<?>> iterator() {
         return WorldGuard.getInstance().getFlagRegistry().iterator();

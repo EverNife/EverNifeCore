@@ -8,8 +8,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.util.Ar
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,7 +34,7 @@ public class ArgParserBoolean extends ArgParser<Boolean> {
     }
 
     @Override
-    public Boolean parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException {
+    public Boolean parserArgument(@Nonnull CommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
 
         Boolean bool = argumento.getBoolean();
 
@@ -56,7 +56,7 @@ public class ArgParserBoolean extends ArgParser<Boolean> {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(TabContext tabContext) {
+    public @Nonnull List<String> tabComplete(TabContext tabContext) {
 
         return possibilities.stream()
                 .filter(s -> StringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))

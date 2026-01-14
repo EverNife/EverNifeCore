@@ -15,8 +15,8 @@ import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import org.bukkit.GameMode;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -70,7 +70,7 @@ public class OredictViewerGui extends PlayerGui<PlayerData, PaginatedGuiComplex>
     }
 
     @Override
-    public @NotNull CompoundReplacer getReplacer() {
+    public @Nonnull CompoundReplacer getReplacer() {
         return super.getReplacer().appendReplacer(REPLACER.compound(this));
     }
 

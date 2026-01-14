@@ -5,8 +5,8 @@ import dev.triumphteam.gui.builder.gui.BaseGuiBuilder;
 import dev.triumphteam.gui.components.GuiType;
 import dev.triumphteam.gui.guis.Gui;
 import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.function.Consumer;
 
 public class ComplexGuiBuilder extends BaseGuiBuilder<GuiComplex, ComplexGuiBuilder> {
@@ -18,7 +18,7 @@ public class ComplexGuiBuilder extends BaseGuiBuilder<GuiComplex, ComplexGuiBuil
      *
      * @param guiType The {@link GuiType} to default to
      */
-    public ComplexGuiBuilder(@NotNull final GuiType guiType) {
+    public ComplexGuiBuilder(@Nonnull final GuiType guiType) {
         this.guiType = guiType;
     }
 
@@ -29,9 +29,9 @@ public class ComplexGuiBuilder extends BaseGuiBuilder<GuiComplex, ComplexGuiBuil
      * @param guiType The {@link GuiType}
      * @return The current builder
      */
-    @NotNull
+    @Nonnull
     @Contract("_ -> this")
-    public ComplexGuiBuilder type(@NotNull final GuiType guiType) {
+    public ComplexGuiBuilder type(@Nonnull final GuiType guiType) {
         this.guiType = guiType;
         return this;
     }
@@ -41,7 +41,7 @@ public class ComplexGuiBuilder extends BaseGuiBuilder<GuiComplex, ComplexGuiBuil
      *
      * @return A new {@link Gui}
      */
-    @NotNull
+    @Nonnull
     @Override
     @Contract(" -> new")
     public GuiComplex create() {

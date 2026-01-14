@@ -5,7 +5,8 @@ import br.com.finalcraft.evernifecore.util.FCArrayUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
-import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nonnull;
 
 public interface ECListener extends Listener {
 
@@ -25,7 +26,7 @@ public interface ECListener extends Listener {
         //Do Nothing
     }
 
-    public static boolean register(@NotNull Plugin pluginInstance, ECListener listener){
+    public static boolean register(@Nonnull Plugin pluginInstance, ECListener listener){
         try {
             String[] requiredPlugins = listener.requiredPlugins();
 
@@ -72,7 +73,7 @@ public interface ECListener extends Listener {
         return false;
     }
 
-    public static boolean register(@NotNull Plugin pluginInstance, Class<? extends ECListener> clazz) {
+    public static boolean register(@Nonnull Plugin pluginInstance, Class<? extends ECListener> clazz) {
         try {
             ECListener listener = clazz.getDeclaredConstructor().newInstance();
             return register(pluginInstance, listener);

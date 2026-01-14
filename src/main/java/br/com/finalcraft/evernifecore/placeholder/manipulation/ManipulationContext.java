@@ -3,9 +3,9 @@ package br.com.finalcraft.evernifecore.placeholder.manipulation;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.placeholder.replacer.Closures;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -51,7 +51,7 @@ public abstract class ManipulationContext {
         return manipulationResult;
     }
 
-    public @NotNull String getString(String closure){
+    public @Nonnull String getString(String closure){
         if (!manipulationResult.containsKey(closure)) {
             throw new IllegalArgumentException(String.format("Tried to retrieve a closure from the ManipulationContext that does not belong to this context.\nTried to retrieve '%s' from [%s]", closure, manipulationResult.keySet().stream().collect(Collectors.joining(", "))));
         }
@@ -59,7 +59,7 @@ public abstract class ManipulationContext {
         return manipulationResult.get(closure);
     }
 
-    public @NotNull Argumento getArgumento(String closure){
+    public @Nonnull Argumento getArgumento(String closure){
         if (!manipulationResult.containsKey(closure)) {
             throw new IllegalArgumentException(String.format("Tried to retrieve a closure from the ManipulationContext that does not belong to this context.\nTried to retrieve '%s' from [%s]", closure, manipulationResult.keySet().stream().collect(Collectors.joining(", "))));
         }

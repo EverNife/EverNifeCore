@@ -19,9 +19,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginIdentifiableCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -46,7 +46,7 @@ public class FinalCMDPluginCommand extends Command implements PluginIdentifiable
 
     public static final String DEFAULT_USAGE = "§3§l ▶ §a/§e%label% ";
 
-    public FinalCMDPluginCommand(@NotNull JavaPlugin owningPlugin, @NotNull FinalCMDData finalCMD, @Nullable CMDMethodInterpreter mainInterpreter) {
+    public FinalCMDPluginCommand(@Nonnull JavaPlugin owningPlugin, @Nonnull FinalCMDData finalCMD, @Nullable CMDMethodInterpreter mainInterpreter) {
         super(finalCMD.getLabels()[0]);
 
         Validate.notNull(owningPlugin, "OwningPlugin is null!");
@@ -108,7 +108,7 @@ public class FinalCMDPluginCommand extends Command implements PluginIdentifiable
     }
 
     @Override
-    public boolean testPermission(@NotNull CommandSender target) {
+    public boolean testPermission(@Nonnull CommandSender target) {
         if (testPermissionSilent(target)) {
             return true;
         }

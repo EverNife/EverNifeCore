@@ -13,8 +13,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -50,11 +50,11 @@ public class GuiComplex extends Gui {
     protected int counter = 0;
     protected BiConsumer<Player, GuiComplex> onGuiUpdate;
 
-    public GuiComplex(int rows, @NotNull String title, @NotNull Set<InteractionModifier> interactionModifiers) {
+    public GuiComplex(int rows, @Nonnull String title, @Nonnull Set<InteractionModifier> interactionModifiers) {
         super(rows, title, interactionModifiers);
     }
 
-    public GuiComplex(@NotNull GuiType guiType, @NotNull String title, @NotNull Set<InteractionModifier> interactionModifiers) {
+    public GuiComplex(@Nonnull GuiType guiType, @Nonnull String title, @Nonnull Set<InteractionModifier> interactionModifiers) {
         super(guiType, title, interactionModifiers);
     }
 
@@ -108,7 +108,7 @@ public class GuiComplex extends Gui {
         return this;
     }
 
-    public GuiComplex setOnGuiUpdate(BiConsumer<@NotNull Player, @NotNull GuiComplex> onGuiUpdate){
+    public GuiComplex setOnGuiUpdate(BiConsumer<@Nonnull Player, @Nonnull GuiComplex> onGuiUpdate){
         this.onGuiUpdate = onGuiUpdate;
         return this;
     }

@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.util.numberwrapper;
 
 import br.com.finalcraft.evernifecore.util.FCMathUtil;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.Objects;
 
 public class NumberWrapper<N extends Number> implements Comparable<NumberWrapper> {
@@ -170,7 +170,7 @@ public class NumberWrapper<N extends Number> implements Comparable<NumberWrapper
     }
 
     @Override
-    public int compareTo(@NotNull NumberWrapper o) {
+    public int compareTo(@Nonnull NumberWrapper o) {
         return Double.compare(this.value.doubleValue(), o.value.doubleValue());
     }
 

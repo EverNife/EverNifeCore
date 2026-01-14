@@ -102,7 +102,6 @@ dependencies {
     compileOnly group: 'commons-io', name: 'commons-io', version: '2.6' //Necessary for ReflectionUtils
 
 
-    api 'org.jetbrains:annotations:23.0.0'
     api group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
 
     //JUnit

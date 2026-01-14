@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.inventory.invitem;
 
 import org.bukkit.Material;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
 
 public class InvItemManager {

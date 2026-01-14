@@ -37,9 +37,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.SimplePluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -73,7 +73,7 @@ public class FinalCMDManager {
         }
     }
 
-    public static boolean registerCommand(@NotNull JavaPlugin pluginInstance, @NotNull Class cmdClass) {
+    public static boolean registerCommand(@Nonnull JavaPlugin pluginInstance, @Nonnull Class cmdClass) {
         try {
             Constructor constructor = cmdClass.getDeclaredConstructor();
             Object customExecutor = constructor.newInstance();
@@ -86,7 +86,7 @@ public class FinalCMDManager {
         return false;
     }
 
-    public static boolean registerCommand(@NotNull JavaPlugin pluginInstance, @NotNull Object executor) {
+    public static boolean registerCommand(@Nonnull JavaPlugin pluginInstance, @Nonnull Object executor) {
         try {
             List<Tuple<FinalCMD, Method>> finalCMDMainMethods = new ArrayList<>();
 

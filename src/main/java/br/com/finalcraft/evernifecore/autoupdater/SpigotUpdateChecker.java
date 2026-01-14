@@ -16,9 +16,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
 import java.net.URL;
@@ -44,7 +44,7 @@ public class SpigotUpdateChecker {
         UPDATE_AVAILABLE
     }
 
-    public static void checkForUpdates(@NotNull JavaPlugin plugin, @NotNull String resourceId, @Nullable Config config){
+    public static void checkForUpdates(@Nonnull JavaPlugin plugin, @Nonnull String resourceId, @Nullable Config config){
         SpigotUpdateChecker spigotUpdateChecker = new SpigotUpdateChecker(plugin, resourceId, config);
         if (spigotUpdateChecker.checkForUpdates == false){
             plugin.getLogger().info("[UpdateChecker] Update Check is disabled!");
@@ -57,7 +57,7 @@ public class SpigotUpdateChecker {
         });
     }
 
-    public static void checkForUpdates(@NotNull JavaPlugin plugin, @NotNull String resourceId){
+    public static void checkForUpdates(@Nonnull JavaPlugin plugin, @Nonnull String resourceId){
         checkForUpdates(plugin, resourceId, null);
     }
 
@@ -69,7 +69,7 @@ public class SpigotUpdateChecker {
     private final String currentVersion;
     private transient String newVersion = null;
 
-    public SpigotUpdateChecker(@NotNull JavaPlugin plugin, @NotNull String resourceId, @Nullable Config config) {
+    public SpigotUpdateChecker(@Nonnull JavaPlugin plugin, @Nonnull String resourceId, @Nullable Config config) {
         this.resourceId = resourceId;
         this.currentVersion = plugin.getDescription().getVersion();
 
@@ -93,7 +93,7 @@ public class SpigotUpdateChecker {
 
     }
 
-    public void execute(@NotNull ECPluginData ecPlugin){
+    public void execute(@Nonnull ECPluginData ecPlugin){
         JavaPlugin plugin = (JavaPlugin) ecPlugin.getPlugin();
         UpdateResult updateResult = checkForUpdates(plugin);
 

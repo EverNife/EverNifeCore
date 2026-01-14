@@ -1,10 +1,11 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.custom;
 
 import br.com.finalcraft.evernifecore.commands.finalcmd.custom.contexts.CustomizeContext;
-import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nonnull;
 
 public interface ICustomFinalCMD {
 
-    void customize(@NotNull CustomizeContext context);
+    void customize(@Nonnull CustomizeContext context);
 
 }

@@ -6,9 +6,9 @@ import br.com.finalcraft.evernifecore.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -35,7 +35,7 @@ public abstract class ItemDataPart {
     public static ItemDataPart LORE             = registerType(new ItemDataPartLore());
     public static ItemDataPart NBT              = registerType(new ItemDataPartNBT());
 
-    public static @Nullable <DP extends ItemDataPart> DP registerType(@NotNull DP type) {
+    public static @Nullable <DP extends ItemDataPart> DP registerType(@Nonnull DP type) {
         if (MCVersion.isHigherEquals(type.getMinimumVersion())){
             ALL_REGISTERED_TYPES.add(type);
             return type;

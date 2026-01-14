@@ -12,8 +12,8 @@ import br.com.finalcraft.evernifecore.inventory.extrainvs.factory.IExtraInvFacto
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

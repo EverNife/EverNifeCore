@@ -14,8 +14,8 @@ import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
@@ -26,10 +26,10 @@ public class FCDefaultExecutor implements IFinalCMDExecutor {
     @FCLocale(lang = LocaleType.PT_BR, text = "§cErro de parâmetros, por favor use /%label% help")
     public static LocaleMessage PARAMETER_ERROR;
 
-    private final @NotNull FinalCMDPluginCommand finalCommand;
+    private final @Nonnull FinalCMDPluginCommand finalCommand;
     private final FinalCMDData finalCMD;
 
-    public FCDefaultExecutor(@NotNull FinalCMDPluginCommand finalCommand) {
+    public FCDefaultExecutor(@Nonnull FinalCMDPluginCommand finalCommand) {
         this.finalCommand = finalCommand;
         this.finalCMD = finalCommand.finalCMD;
     }

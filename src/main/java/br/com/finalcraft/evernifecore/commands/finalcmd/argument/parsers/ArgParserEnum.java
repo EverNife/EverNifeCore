@@ -12,8 +12,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -59,7 +59,7 @@ public class ArgParserEnum extends ArgParser<Enum> {
     }
 
     @Override
-    public Enum parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException {
+    public Enum parserArgument(@Nonnull CommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
 
         Enum result = enumMap.get(argumento.toLowerCase());
 
@@ -72,7 +72,7 @@ public class ArgParserEnum extends ArgParser<Enum> {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(TabContext tabContext) {
+    public @Nonnull List<String> tabComplete(TabContext tabContext) {
 
         return possibilities.stream()
                 .filter(s -> StringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))

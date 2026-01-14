@@ -5,9 +5,9 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgData
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.CMDData;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -20,7 +20,7 @@ public class MethodData<T extends CMDData> {
     private final Method method;
     private final List<Tuple<ArgData, Class>> argDataList = new ArrayList<>();
 
-    public MethodData(@NotNull T data, @Nullable Method method) {
+    public MethodData(@Nonnull T data, @Nullable Method method) {
         this.data = data;
         this.method = method;
 

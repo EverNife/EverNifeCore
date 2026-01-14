@@ -16,9 +16,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -54,13 +54,13 @@ public abstract class WGPlatform {
 
     public abstract FCRegionManager getRegionManager(World world);
 
-    public abstract FCWorldGuardRegion wrapRegion(@NotNull World world, ProtectedRegion protectedRegion);
+    public abstract FCWorldGuardRegion wrapRegion(@Nonnull World world, ProtectedRegion protectedRegion);
 
     protected abstract FCWorldGuardRegion createFCWorldGuardRegion(String id, BlockPos pt1, BlockPos pt2);
 
     protected abstract FCWorldGuardRegion createFCWorldGuardRegion(String id, boolean isTransient, BlockPos pt1, BlockPos pt2);
 
-    public LocalPlayer wrapPlayer(@NotNull OfflinePlayer player){
+    public LocalPlayer wrapPlayer(@Nonnull OfflinePlayer player){
         if (player.isOnline()){
             return WorldGuardPlugin.inst().wrapPlayer((Player) player);
         }else {
@@ -68,11 +68,11 @@ public abstract class WGPlatform {
         }
     }
 
-    public FCRegionResultSet getApplicableRegions(@NotNull Location location){
+    public FCRegionResultSet getApplicableRegions(@Nonnull Location location){
         return getRegionManager(location.getWorld()).getApplicableRegions(location);
     }
 
-    public FCWorldGuardRegion getRegionByID(@Nullable World world, @NotNull String regionID) {
+    public FCWorldGuardRegion getRegionByID(@Nullable World world, @Nonnull String regionID) {
         regionID = regionID.toLowerCase();
         if (world != null) {
             return this.getRegionManager(world).getRegion(regionID);
@@ -88,7 +88,7 @@ public abstract class WGPlatform {
         return null;
     }
 
-    public void registerFlag(@NotNull Flag<?> flag, @NotNull Plugin plugin) {
+    public void registerFlag(@Nonnull Flag<?> flag, @Nonnull Plugin plugin) {
         try {
             //This is the default way of registering a flag on WorldGuard for all MC versions, expect for 1.7.10
             // SO i override it only there!
@@ -107,7 +107,7 @@ public abstract class WGPlatform {
         }
     }
 
-    public Flag getFlag(@NotNull String flagName){
+    public Flag getFlag(@Nonnull String flagName){
         return getFlagRegistry().get(flagName);
     }
 

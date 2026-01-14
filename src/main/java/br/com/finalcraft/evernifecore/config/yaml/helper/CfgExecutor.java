@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.config.yaml.helper;
 
 import br.com.finalcraft.evernifecore.scheduler.VirtualThreadedScheduledExecutor;
 
-import java.util.concurrent.*;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 public class CfgExecutor {

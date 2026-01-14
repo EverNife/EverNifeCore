@@ -14,8 +14,8 @@ import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -36,7 +36,7 @@ public class ArgParserIPlayerData extends ArgParser<IPlayerData> {
     }
 
     @Override
-    public IPlayerData parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException {
+    public IPlayerData parserArgument(@Nonnull CommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
         PlayerData playerData = argumento.getPlayerData();
 
         if (playerData == null){
@@ -60,7 +60,7 @@ public class ArgParserIPlayerData extends ArgParser<IPlayerData> {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(TabContext tabContext) {
+    public @Nonnull List<String> tabComplete(TabContext tabContext) {
 
         Collection<PlayerData> playerDataList = online
                 ? Bukkit.getOnlinePlayers().stream().map(PlayerController::getPlayerData).collect(Collectors.toList())

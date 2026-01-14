@@ -21,8 +21,8 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.persistence.PersistentDataContainer;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -44,11 +44,11 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
             Material.LEATHER_HELMET, Material.LEATHER_CHESTPLATE, Material.LEATHER_LEGGINGS, Material.LEATHER_BOOTS
     );
 
-    protected @NotNull ItemStack itemStack;
-    protected @NotNull ItemMeta meta;
-    protected @NotNull transient NBTCompound nbtCompound; //Only populated when needed
+    protected @Nonnull ItemStack itemStack;
+    protected @Nonnull ItemMeta meta;
+    protected @Nonnull transient NBTCompound nbtCompound; //Only populated when needed
 
-    protected FCBaseItemBuilder(@NotNull final ItemStack itemStack) {
+    protected FCBaseItemBuilder(@Nonnull final ItemStack itemStack) {
         Validate.notNull(itemStack, "Item can't be null!");
         Validate.isTrue(itemStack.getType() != Material.AIR, "Item can't be AIR!");
 
@@ -58,7 +58,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
         this.nbtCompound.removeKey("display");//Remove LORE and DisplayName, its redundant as they are saved on the meta
     }
 
-    protected B changeItemStack(@NotNull ItemStack newStack) {
+    protected B changeItemStack(@Nonnull ItemStack newStack) {
         //So let's create a new meta
         ItemMeta newMeta = newStack.getItemMeta();
 
@@ -97,8 +97,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param material The material of the item.
      * @return The FCItemBuilder class
      */
-    @NotNull
-    public B material(@NotNull Material material) {
+    @Nonnull
+    public B material(@Nonnull Material material) {
         Validate.notNull(material, "Material can't be null!");
         Validate.isTrue(itemStack.getType() != Material.AIR, "Material can't be AIR!");
 
@@ -121,8 +121,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      *                       or a Minecraft Identifier
      * @return The FCItemBuilder object
      */
-    @NotNull
-    public B material(@NotNull String itemIdentifier) {
+    @Nonnull
+    public B material(@Nonnull String itemIdentifier) {
         ItemStack newStack = FCItemFactory.from(itemIdentifier).build();
         return this.changeItemStack(newStack);
     }
@@ -138,8 +138,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      *
      * @return The FCItemBuilder object
      */
-    @NotNull
-    public B material(@NotNull ItemStack itemStack) {
+    @Nonnull
+    public B material(@Nonnull ItemStack itemStack) {
         return this.changeItemStack(FCItemFactory.from(itemStack).build());
     }
 
@@ -149,7 +149,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param durability The durability of the item.
      * @return The FCItemBuilder object.
      */
-    @NotNull
+    @Nonnull
     public B durability(final int durability) {
         itemStack.setDurability((short) durability); //its deprecated since always, but works '-'
         return (B) this;
@@ -161,8 +161,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param name The {@link String} name
      * @return {@link ItemBuilder}
      */
-    @NotNull
-    public B displayName(@NotNull final String name) {
+    @Nonnull
+    public B displayName(@Nonnull final String name) {
         meta.setDisplayName(FCColorUtil.colorfy(name));
         return (B) this;
     }
@@ -173,7 +173,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param amount the amount of items
      * @return {@link ItemBuilder}
      */
-    @NotNull
+    @Nonnull
     public B amount(final int amount) {
         itemStack.setAmount(amount);
         return (B) this;
@@ -187,8 +187,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param lore A {@link List} with the lore lines
      * @return {@link FCItemBuilder}
      */
-    @NotNull
-    public B lore(@NotNull final String... lore) {
+    @Nonnull
+    public B lore(@Nonnull final String... lore) {
         return lore(Arrays.asList(lore));
     }
 
@@ -200,8 +200,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param lore A {@link List} with the lore lines
      * @return {@link FCItemBuilder}
      */
-    @NotNull
-    public B lore(@NotNull final List<String> lore) {
+    @Nonnull
+    public B lore(@Nonnull final List<String> lore) {
         meta.setLore(FCColorUtil.colorfy(lore));
         return (B) this;
     }
@@ -212,8 +212,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param lore A {@link Consumer} with the {@link List} of lore {@link String}
      * @return {@link ItemBuilder}
      */
-    @NotNull
-    public B lore(@NotNull final Consumer<List<String>> lore) {
+    @Nonnull
+    public B lore(@Nonnull final Consumer<List<String>> lore) {
         final List<String> newLore = meta.hasLore() ? meta.getLore() : new ArrayList<>();
         lore.accept(newLore);
         return lore(newLore.isEmpty() ? null : newLore);
@@ -225,8 +225,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param lore A {@link Function} with the {@link List} of lore {@link String}
      * @return {@link ItemBuilder}
      */
-    @NotNull
-    public B lore(@NotNull final Function<List<String>, List<String>> lore) {
+    @Nonnull
+    public B lore(@Nonnull final Function<List<String>, List<String>> lore) {
         List<String> newLore = meta.hasLore() ? meta.getLore() : new ArrayList<>();
         newLore = lore.apply(newLore);
         return lore(newLore.isEmpty() ? null : newLore);
@@ -240,8 +240,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param ignoreLevelRestriction If should or not ignore it
      * @return {@link ItemBuilder}
      */
-    @NotNull
-    public B addEnchant(@NotNull final Enchantment enchantment, final int level, final boolean ignoreLevelRestriction) {
+    @Nonnull
+    public B addEnchant(@Nonnull final Enchantment enchantment, final int level, final boolean ignoreLevelRestriction) {
         meta.addEnchant(enchantment, level, ignoreLevelRestriction);
         return (B) this;
     }
@@ -253,8 +253,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param level       The level of the {@link Enchantment}
      * @return {@link ItemBuilder}
      */
-    @NotNull
-    public B addEnchant(@NotNull final Enchantment enchantment, final int level) {
+    @Nonnull
+    public B addEnchant(@Nonnull final Enchantment enchantment, final int level) {
         return addEnchant(enchantment, level, true);
     }
 
@@ -264,8 +264,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param enchantment The {@link Enchantment} to add
      * @return {@link ItemBuilder}
      */
-    @NotNull
-    public B addEnchant(@NotNull final Enchantment enchantment) {
+    @Nonnull
+    public B addEnchant(@Nonnull final Enchantment enchantment) {
         return addEnchant(enchantment, 1, true);
     }
 
@@ -275,8 +275,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param enchantment The {@link Enchantment} to remove
      * @return {@link ItemBuilder}
      */
-    @NotNull
-    public B removeEnchantment(@NotNull final Enchantment enchantment) {
+    @Nonnull
+    public B removeEnchantment(@Nonnull final Enchantment enchantment) {
         itemStack.removeEnchantment(enchantment);
         return (B) this;
     }
@@ -287,8 +287,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param flags The {@link ItemFlag} to add
      * @return {@link ItemBuilder}
      */
-    @NotNull
-    public B addItemFlags(@NotNull final ItemFlag... flags) {
+    @Nonnull
+    public B addItemFlags(@Nonnull final ItemFlag... flags) {
         meta.addItemFlags(flags);
         return (B) this;
     }
@@ -298,7 +298,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      *
      * @return {@link ItemBuilder}
      */
-    @NotNull
+    @Nonnull
     public B setUnbreakable() {
         return setUnbreakable(true);
     }
@@ -309,7 +309,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param unbreakable If should or not be unbreakable
      * @return {@link ItemBuilder}
      */
-    @NotNull
+    @Nonnull
     public B setUnbreakable(boolean unbreakable) {
         if (VersionHelper.IS_UNBREAKABLE_LEGACY) {
             return setNbt(nbtCompound -> {
@@ -330,7 +330,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      *
      * @return {@link ItemBuilder}
      */
-    @NotNull
+    @Nonnull
     public B setGlow() {
         return setGlow(true);
     }
@@ -341,7 +341,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param glow Should the item glow
      * @return {@link ItemBuilder}
      */
-    @NotNull
+    @Nonnull
     public B setGlow(boolean glow) {
         if (MCVersion.isEqual(MCVersion.v1_7_10)) { //On 1.7.10 we tread glow as Durability enchantment.
             if (glow) return addEnchant(Enchantment.DURABILITY);
@@ -368,8 +368,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param consumer The {@link Consumer} with the PDC
      * @return {@link ItemBuilder}
      */
-    @NotNull
-    public B setPDC(@NotNull final Consumer<PersistentDataContainer> consumer) {
+    @Nonnull
+    public B setPDC(@Nonnull final Consumer<PersistentDataContainer> consumer) {
         consumer.accept(meta.getPersistentDataContainer());
         return (B) this;
     }
@@ -381,7 +381,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param modelData The custom model data from the resource pack
      * @return {@link ItemBuilder}
      */
-    @NotNull
+    @Nonnull
     public B setCustomModelData(final int modelData) {
         if (VersionHelper.IS_CUSTOM_MODEL_DATA) {
             meta.setCustomModelData(modelData);
@@ -395,8 +395,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param color color
      * @return {@link ItemBuilder}
      */
-    @NotNull
-    public B setColor(@NotNull final Color color) {
+    @Nonnull
+    public B setColor(@Nonnull final Color color) {
         if (LEATHER_ARMOR.contains(itemStack.getType())) {
             final LeatherArmorMeta lam = (LeatherArmorMeta) getMeta();
 
@@ -414,7 +414,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      *
      * @return The NBTItem object.
      */
-    @NotNull
+    @Nonnull
     public NBTCompound getNBTCompound(){
         return this.nbtCompound;
     }
@@ -425,8 +425,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param consumer The {@link Consumer} with the NBTCompound
      * @return {@link ItemBuilder}
      */
-    @NotNull
-    public B setNbt(@NotNull final Consumer<NBTCompound> consumer) {
+    @Nonnull
+    public B setNbt(@Nonnull final Consumer<NBTCompound> consumer) {
         consumer.accept(this.nbtCompound);
         return (B) this;
     }
@@ -440,8 +440,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param nbtCompound The {@link NBTCompound}
      * @return {@link ItemBuilder}
      */
-    @NotNull
-    public B setNbt(@NotNull final NBTCompound nbtCompound) {
+    @Nonnull
+    public B setNbt(@Nonnull final NBTCompound nbtCompound) {
         this.nbtCompound.clearNBT();
         this.nbtCompound.mergeCompound(nbtCompound);
         return (B) this;
@@ -452,7 +452,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      *
      * @return The fully built {@link ItemStack}
      */
-    @NotNull
+    @Nonnull
     public ItemStack build() {
         if (FCNBTUtil.isEmpty(nbtCompound)){
             ItemStack clone = this.itemStack.clone();
@@ -493,7 +493,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      *
      * @return The ItemStack
      */
-    @NotNull
+    @Nonnull
     protected ItemStack getItemStack() {
         return itemStack;
     }
@@ -503,7 +503,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      *
      * @param itemStack The ItemStack
      */
-    protected void setItemStack(@NotNull final ItemStack itemStack) {
+    protected void setItemStack(@Nonnull final ItemStack itemStack) {
         this.itemStack = itemStack;
     }
 
@@ -512,7 +512,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      *
      * @return The ItemMeta
      */
-    @NotNull
+    @Nonnull
     protected ItemMeta getMeta() {
         return meta;
     }
@@ -522,7 +522,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      *
      * @param meta The ItemMeta
      */
-    protected void setMeta(@NotNull final ItemMeta meta) {
+    protected void setMeta(@Nonnull final ItemMeta meta) {
         this.meta = meta;
     }
 

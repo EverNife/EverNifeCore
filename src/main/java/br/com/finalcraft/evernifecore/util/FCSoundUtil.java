@@ -4,7 +4,8 @@ import br.com.finalcraft.evernifecore.version.MCVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nonnull;
 
 public class FCSoundUtil {
 
@@ -26,11 +27,11 @@ public class FCSoundUtil {
     //   Play Sound at Specific Location for suround players
     // -----------------------------------------------------------------------------------------------------------------
 
-    public static void playSoundAt(@NotNull String sound, @NotNull Location location){
+    public static void playSoundAt(@Nonnull String sound, @Nonnull Location location){
         playSoundAt(sound, location, 1.0F, 1.0F);
     }
 
-    public static void playSoundAt(@NotNull String sound, @NotNull Location location, float volume, float pitch){
+    public static void playSoundAt(@Nonnull String sound, @Nonnull Location location, float volume, float pitch){
         if (MCVersion.isEqual(MCVersion.v1_7_10)){
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (player.getWorld().equals(location.getWorld())){
@@ -46,15 +47,15 @@ public class FCSoundUtil {
     //   Play Sound to Specific Player
     // -----------------------------------------------------------------------------------------------------------------
 
-    public static void playSoundFor(@NotNull String sound, @NotNull Player player){
+    public static void playSoundFor(@Nonnull String sound, @Nonnull Player player){
         playSoundFor(sound, player, player.getLocation(), 1.0F, 1.0F);
     }
 
-    public static void playSoundFor(@NotNull String sound, @NotNull Player player, @NotNull Location location){
+    public static void playSoundFor(@Nonnull String sound, @Nonnull Player player, @Nonnull Location location){
         playSoundFor(sound, player, location, 1.0F, 1.0F);
     }
 
-    public static void playSoundFor(@NotNull String sound, @NotNull Player player, @NotNull Location location, float volume, float pitch){
+    public static void playSoundFor(@Nonnull String sound, @Nonnull Player player, @Nonnull Location location, float volume, float pitch){
         player.playSound(location, sound, volume, pitch);
     }
 

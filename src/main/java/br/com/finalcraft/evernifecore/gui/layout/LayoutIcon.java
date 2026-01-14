@@ -12,9 +12,9 @@ import com.google.common.collect.ImmutableList;
 import dev.triumphteam.gui.guis.GuiItem;
 import lombok.Data;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -42,18 +42,18 @@ public class LayoutIcon {
         this.dataPart = dataPart;
     }
 
-    @NotNull
+    @Nonnull
     public FCItemBuilder asFactory(){ //Even though it's return a FCItemBuilder, for better naming, lets keep 'asFactory'
         return new FCItemBuilder(this.getItemStack().clone(), this);
     }
 
-    @NotNull
+    @Nonnull
     public GuiItem applyTo(PlayerGui playerGui){
         return applyTo(playerGui, GuiItem.class);
     }
 
-    @NotNull
-    public <GI extends GuiItem> GI applyTo(PlayerGui playerGui, @NotNull Class<GI> customGuiItem) {
+    @Nonnull
+    public <GI extends GuiItem> GI applyTo(PlayerGui playerGui, @Nonnull Class<GI> customGuiItem) {
 
         ItemStack finalStack = this.itemStack;
         if (this.dataPart == null){ //If this LayoutIcon was never parsed before!
@@ -83,7 +83,7 @@ public class LayoutIcon {
         return guiItem;
     }
 
-    @NotNull
+    @Nonnull
     public LayoutIcon parse(Function<List<String>, List<String>> placeholderParser){
         List<String> newDataPart = placeholderParser.apply(new ArrayList<>(getDataPart()));
 
@@ -98,12 +98,12 @@ public class LayoutIcon {
         return layoutIcon;
     }
 
-    @NotNull
+    @Nonnull
     public LayoutIcon parse(CompoundReplacer replacer){
         return parse(stringList -> replacer.apply(stringList));
     }
 
-    @NotNull
+    @Nonnull
     public List<String> getDataPart() {
         if (this.dataPart == null){
             this.dataPart = ImmutableList.copyOf(FCItemFactory.from(this.getItemStack()).toDataPart());

@@ -15,9 +15,9 @@ import lombok.Data;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.function.Function;
@@ -168,18 +168,18 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         }
     }
 
-    public void send(@NotNull CommandSender... sender){
+    public void send(@Nonnull CommandSender... sender){
         send(1, sender);
     }
 
-    public void send(@Nullable Integer page, @NotNull CommandSender... sender){
+    public void send(@Nullable Integer page, @Nonnull CommandSender... sender){
         page = NumberWrapper.of(page == null ? 1 : page).boundLower(1).intValue();
         int start = NumberWrapper.of((page - 1) * pageSize).boundUpper(lineEnd - pageSize).intValue();
         int end = NumberWrapper.of(page * pageSize).boundUpper(lineEnd).intValue();
         send(page, start, end, sender);
     }
 
-    public void send(@Nullable PageVizualization pageVizualization, @NotNull CommandSender... sender){
+    public void send(@Nullable PageVizualization pageVizualization, @Nonnull CommandSender... sender){
         if (pageVizualization == null){
             send(1, sender);
             return;

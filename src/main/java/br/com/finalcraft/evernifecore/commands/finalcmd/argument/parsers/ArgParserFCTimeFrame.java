@@ -11,8 +11,8 @@ import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCTimeUtil;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,7 +33,7 @@ public class ArgParserFCTimeFrame extends ArgParser<FCTimeFrame> {
     public static LocaleMessage THIS_IS_NOT_A_VALID_TIME_FRAME;
 
     @Override
-    public FCTimeFrame parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException {
+    public FCTimeFrame parserArgument(@Nonnull CommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
 
         Long millisConverted = FCTimeUtil.toMillis(argumento.toString());
 
@@ -54,7 +54,7 @@ public class ArgParserFCTimeFrame extends ArgParser<FCTimeFrame> {
     );
 
     @Override
-    public @NotNull List<String> tabComplete(TabContext tabContext) {
+    public @Nonnull List<String> tabComplete(TabContext tabContext) {
 
         return TIMEFRAME_EXAMPLES.stream()
                 .filter(s -> StringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))

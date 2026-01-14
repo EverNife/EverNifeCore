@@ -2,14 +2,14 @@ package br.com.finalcraft.evernifecore.commands.finalcmd.tab;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
 
 public interface ITabParser {
 
-    public abstract @NotNull List<String> tabComplete(TabContext tabContext);
+    public abstract @Nonnull List<String> tabComplete(TabContext tabContext);
 
     public static class TabContext {
         private final CommandSender sender;
@@ -32,19 +32,19 @@ public interface ITabParser {
             return sender instanceof Player ? (Player) sender : null;
         }
 
-        public @NotNull CommandSender getSender() {
+        public @Nonnull CommandSender getSender() {
             return sender;
         }
 
-        public @NotNull String getAlias() {
+        public @Nonnull String getAlias() {
             return alias;
         }
 
-        public @NotNull String[] getArgs() {
+        public @Nonnull String[] getArgs() {
             return args;
         }
 
-        public @NotNull String getLastWord(){
+        public @Nonnull String getLastWord(){
             return args[index];
         }
 

@@ -9,8 +9,8 @@ import dev.triumphteam.gui.guis.GuiItem;
 import lombok.Data;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Supplier;
 

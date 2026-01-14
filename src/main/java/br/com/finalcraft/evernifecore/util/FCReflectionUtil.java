@@ -4,9 +4,9 @@ import br.com.finalcraft.evernifecore.reflection.ConstructorInvoker;
 import br.com.finalcraft.evernifecore.reflection.FieldAccessor;
 import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -117,7 +117,7 @@ public class FCReflectionUtil {
      *
      * @return The annotation found or null
      */
-    public static @Nullable <T extends Annotation> T getAnnotationDeeply(@NotNull Method method, @NotNull Class<T> annotationType) {
+    public static @Nullable <T extends Annotation> T getAnnotationDeeply(@Nonnull Method method, @Nonnull Class<T> annotationType) {
 
         T annotation = method.getAnnotation(annotationType);
 
@@ -153,7 +153,7 @@ public class FCReflectionUtil {
      *
      * @return The annotation found or null
      */
-    public static @Nullable <T extends Annotation> T getAnnotationDeeply(@NotNull Class clazz, @NotNull Class<T> annotationType) {
+    public static @Nullable <T extends Annotation> T getAnnotationDeeply(@Nonnull Class clazz, @Nonnull Class<T> annotationType) {
 
         T annotation = (T) clazz.getAnnotation(annotationType);
 

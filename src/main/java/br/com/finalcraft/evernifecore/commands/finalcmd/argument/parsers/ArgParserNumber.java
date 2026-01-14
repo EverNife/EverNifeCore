@@ -12,9 +12,9 @@ import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import com.google.common.collect.ImmutableList;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,7 +41,7 @@ public class ArgParserNumber extends ArgParser<Number> {
     }
 
     @Override
-    public Number parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException {
+    public Number parserArgument(@Nonnull CommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
         Number number;
         //We cannot use a ternary operator here because of NPE caused by boxingAndUnboxing of values.
         if (isInteger) {
@@ -105,7 +105,7 @@ public class ArgParserNumber extends ArgParser<Number> {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(TabContext tabContext) {
+    public @Nonnull List<String> tabComplete(TabContext tabContext) {
         if (possibilities != null){
 
             return possibilities.stream()

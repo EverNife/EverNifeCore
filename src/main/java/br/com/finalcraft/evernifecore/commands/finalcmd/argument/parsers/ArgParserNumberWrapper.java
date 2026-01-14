@@ -6,8 +6,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import org.bukkit.command.CommandSender;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 
 public class ArgParserNumberWrapper extends ArgParser<NumberWrapper> {
@@ -21,7 +21,7 @@ public class ArgParserNumberWrapper extends ArgParser<NumberWrapper> {
     }
 
     @Override
-    public NumberWrapper parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException {
+    public NumberWrapper parserArgument(@Nonnull CommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
 
         Number number = ARG_PARSER_NUMBER.parserArgument(sender, argumento);
 
@@ -29,7 +29,7 @@ public class ArgParserNumberWrapper extends ArgParser<NumberWrapper> {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(TabContext tabContext) {
+    public @Nonnull List<String> tabComplete(TabContext tabContext) {
         return ARG_PARSER_NUMBER.tabComplete(tabContext);
     }
 

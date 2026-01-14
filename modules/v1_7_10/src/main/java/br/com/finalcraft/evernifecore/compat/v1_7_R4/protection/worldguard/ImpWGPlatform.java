@@ -15,7 +15,8 @@ import com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
-import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nonnull;
 
 public class ImpWGPlatform extends WGPlatform {
 
@@ -60,7 +61,7 @@ public class ImpWGPlatform extends WGPlatform {
     }
 
     @Override
-    public void registerFlag(@NotNull Flag<?> flag, @NotNull Plugin plugin) {
+    public void registerFlag(@Nonnull Flag<?> flag, @Nonnull Plugin plugin) {
         if (ImpIFCFlagRegistry.errorOnFlagRegistering){
             plugin.getLogger().info("[EverNifeCore -> WorldGuard] There was an error on EverNifeCore's WorldGuard Flag's Integration at the Startup, read the message over there! Skipping flag registration of name: " + flag.getName());
             return;

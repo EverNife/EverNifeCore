@@ -6,9 +6,9 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgPa
 import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser;
 import com.google.common.collect.ImmutableList;
 import org.bukkit.command.CommandSender;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -34,10 +34,10 @@ public abstract class ArgParser<T extends Object> implements ITabParser {
         return argContext;
     }
 
-    public abstract T parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException;
+    public abstract T parserArgument(@Nonnull CommandSender sender, @Nonnull Argumento argumento) throws ArgParseException;
 
     @Override
-    public @NotNull List<String> tabComplete(TabContext tabContext) {
+    public @Nonnull List<String> tabComplete(TabContext tabContext) {
         return ImmutableList.of();
     }
 

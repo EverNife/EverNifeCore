@@ -9,8 +9,8 @@ import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import dev.triumphteam.gui.builder.gui.BaseGuiBuilder;
 import dev.triumphteam.gui.guis.BaseGui;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.function.Supplier;
 
 public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
@@ -41,12 +41,12 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
         this.gui = gui;
     }
 
-    protected void setupLayout(@NotNull IHasLayout iHasLayout){
+    protected void setupLayout(@Nonnull IHasLayout iHasLayout){
         if (iHasLayout.layout() == null) throw new NullPointerException(String.format("The layout() method for the class [%s] returned a null value!", this.getClass().getSimpleName()));
         this.setupLayout(iHasLayout.layout(), FCGuiFactory.from(iHasLayout.layout().getGuiBuilder()));
     }
 
-    protected <B extends BaseGuiBuilder<G,?>, LB extends LayoutBase> void setupLayout(@NotNull LB layoutBase, @NotNull B baseBuilder){
+    protected <B extends BaseGuiBuilder<G,?>, LB extends LayoutBase> void setupLayout(@Nonnull LB layoutBase, @Nonnull B baseBuilder){
         if (layoutBase == null) throw new NullPointerException(String.format("The layoutBase cannot be null!", this.getClass().getSimpleName()));
 
         CompoundReplacer compoundReplacer = this.getReplacer();
@@ -60,7 +60,7 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
         });
     }
 
-    protected <LB extends LayoutBase> void setupLayout(@NotNull LB layoutBase, @NotNull CompoundReplacer compoundReplacer, @NotNull Supplier<G> guiBuilder){
+    protected <LB extends LayoutBase> void setupLayout(@Nonnull LB layoutBase, @Nonnull CompoundReplacer compoundReplacer, @Nonnull Supplier<G> guiBuilder){
         if (layoutBase == null) throw new NullPointerException(String.format("The layoutBase cannot be null!", this.getClass().getSimpleName()));
         if (compoundReplacer == null) throw new NullPointerException(String.format("The compoundReplacer cannot be null!", this.getClass().getSimpleName()));
 
@@ -88,7 +88,7 @@ public class PlayerGui<P extends IPlayerData, G extends BaseGui> {
         return this;
     }
 
-    @NotNull
+    @Nonnull
     public CompoundReplacer getReplacer() {
 
         CompoundReplacer compoundReplacer = new CompoundReplacer();

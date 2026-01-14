@@ -6,9 +6,9 @@ import de.tr7zw.changeme.nbtapi.NBTContainer;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,7 +22,7 @@ public class FCItemUtils {
         return itemMeta.getDisplayName();
     }
 
-    public static @NotNull String getLocalizedName(ItemStack itemStack){
+    public static @Nonnull String getLocalizedName(ItemStack itemStack){
         return NMSUtils.get().getLocalizedName(itemStack);
     }
 
@@ -32,7 +32,7 @@ public class FCItemUtils {
         itemStack.setItemMeta(itemMeta);
     }
 
-    public static @NotNull List<String> getLore(ItemStack itemStack){
+    public static @Nonnull List<String> getLore(ItemStack itemStack){
         ItemMeta itemMeta = itemStack.hasItemMeta() ? itemStack.getItemMeta() : null;
         if (itemMeta == null || !itemMeta.hasLore()){
             return new ArrayList<>();

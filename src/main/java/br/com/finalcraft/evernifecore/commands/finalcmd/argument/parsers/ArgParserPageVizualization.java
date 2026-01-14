@@ -8,8 +8,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgPa
 import br.com.finalcraft.evernifecore.pageviwer.PageVizualization;
 import com.google.common.collect.ImmutableList;
 import org.bukkit.command.CommandSender;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 
 public class ArgParserPageVizualization extends ArgParser<PageVizualization> {
@@ -30,7 +30,7 @@ public class ArgParserPageVizualization extends ArgParser<PageVizualization> {
     }
 
     @Override
-    public PageVizualization parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException {
+    public PageVizualization parserArgument(@Nonnull CommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
 
         if (argumento.equalsIgnoreCase("all") && sender.hasPermission(PermissionNodes.EVERNIFECORE_PAGEVIEWER_ALL)){
             return new PageVizualization(0, 0, true);
@@ -61,7 +61,7 @@ public class ArgParserPageVizualization extends ArgParser<PageVizualization> {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(TabContext tabContext) {
+    public @Nonnull List<String> tabComplete(TabContext tabContext) {
 
         return ImmutableList.of();
 

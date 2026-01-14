@@ -9,8 +9,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,7 +21,7 @@ public class ArgParserPlayer extends ArgParser<Player> {
     }
 
     @Override
-    public Player parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException {
+    public Player parserArgument(@Nonnull CommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
         Player player = argumento.getPlayer();
 
         if (argInfo.isRequired() && player == null){
@@ -34,7 +34,7 @@ public class ArgParserPlayer extends ArgParser<Player> {
 
 
     @Override
-    public @NotNull List<String> tabComplete(TabContext tabContext) {
+    public @Nonnull List<String> tabComplete(TabContext tabContext) {
 
         Player sender = tabContext.getPlayer();
 

@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.dependencies;
 
 import br.com.finalcraft.evernifecore.util.FCExecutorsUtil;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import net.byteflux.libby.Library;
 import net.byteflux.libby.LibraryManager;
 import net.byteflux.libby.classloader.URLClassLoaderHelper;
@@ -13,7 +12,8 @@ import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Objects;
-import java.util.concurrent.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
 
 public class DependencyManager extends LibraryManager {

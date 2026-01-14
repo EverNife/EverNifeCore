@@ -8,9 +8,9 @@ import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import dev.triumphteam.gui.guis.GuiItem;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -19,12 +19,12 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
 
     private transient @Nullable LayoutIcon layout; //This will be present when the FCItemBuilder comes from an LayoutIcon
 
-    public FCItemBuilder(@NotNull ItemStack itemStack, LayoutIcon layoutIcon) {
+    public FCItemBuilder(@Nonnull ItemStack itemStack, LayoutIcon layoutIcon) {
         super(itemStack);
         this.layout = layoutIcon;
     }
 
-    public FCItemBuilder(@NotNull ItemStack itemStack) {
+    public FCItemBuilder(@Nonnull ItemStack itemStack) {
         this(itemStack, null);
     }
 
@@ -33,7 +33,7 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
      *
      * @return A GuiItemComplex object.
      */
-    @NotNull
+    @Nonnull
     public GuiItemComplex asGuiItemComplex() {
         return new GuiItemComplex(build());
     }
@@ -43,7 +43,7 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
      *
      * @return A GuiItem object.
      */
-    @NotNull
+    @Nonnull
     public GuiItem asGuiItem() {
         return new GuiItem(build());
     }
@@ -53,7 +53,7 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
      *
      * @return A GuiItem object.
      */
-    @NotNull
+    @Nonnull
     public <GI extends GuiItem> GI asGuiItem(Class<GI> customGuiItem) {
         return as(customGuiItem);
     }
@@ -63,7 +63,7 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
      *
      * @return A LayoutIcon object
      */
-    @NotNull
+    @Nonnull
     public LayoutIcon asLayout() {
         if (layout != null){
             ItemStack finalStack = this.build();
@@ -96,7 +96,7 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
      *
      * @return A LayoutIcon object
      */
-    @NotNull
+    @Nonnull
     public <ItemStackHolder> ItemStackHolder as(Class<ItemStackHolder> itemStackHolderClass) {
         return FCReflectionUtil.getConstructor(itemStackHolderClass, ItemStack.class)
                 .invoke(this.build());
@@ -110,8 +110,8 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
      * @param apply The function that will be applied to the builder.
      * @return The FCItemBuilder object.
      */
-    @NotNull
-    public FCItemBuilder apply(@NotNull Consumer<FCItemBuilder> apply){
+    @Nonnull
+    public FCItemBuilder apply(@Nonnull Consumer<FCItemBuilder> apply){
         apply.accept(this);
         return this;
     }
@@ -126,8 +126,8 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
      * @param apply The consumer that will be applied to the builder if the condition is true.
      * @return The FCItemBuilder object.
      */
-    @NotNull
-    public FCItemBuilder applyIf(@NotNull Supplier<Boolean> condition, @NotNull Consumer<FCItemBuilder> apply){
+    @Nonnull
+    public FCItemBuilder applyIf(@Nonnull Supplier<Boolean> condition, @Nonnull Consumer<FCItemBuilder> apply){
         if (condition.get() == true){
             apply.accept(this);
         }
@@ -140,8 +140,8 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
      * @param materialOrMinecraftIdentifier The Minecraft identifier of the material.
      * @return The FCItemBuilder object.
      */
-    @NotNull
-    public FCItemBuilder applyMaterialIfExists(@NotNull String materialOrMinecraftIdentifier){
+    @Nonnull
+    public FCItemBuilder applyMaterialIfExists(@Nonnull String materialOrMinecraftIdentifier){
         try {
             return this.changeItemStack(FCItemFactory.from(materialOrMinecraftIdentifier).build());
         }catch (Exception ignored){
@@ -156,7 +156,7 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
      *
      * @return A list of strings.
      */
-    @NotNull
+    @Nonnull
     public List<String> toDataPart(){
         return ItemDataPart.readItem(this.build());
     }

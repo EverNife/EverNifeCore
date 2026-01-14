@@ -4,8 +4,8 @@ import br.com.finalcraft.evernifecore.gui.PlayerGui;
 import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
 import dev.triumphteam.gui.guis.GuiItem;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.List;
 
@@ -84,13 +84,13 @@ public class LayoutIconBuilder {
         return new LayoutIcon(itemStack, slot, background, permission, dataPart);
     }
 
-    @NotNull
+    @Nonnull
     public GuiItem applyTo(PlayerGui playerGui){
         return build().applyTo(playerGui);
     }
 
-    @NotNull
-    public <GI extends GuiItem> GI applyTo(PlayerGui playerGui, @NotNull Class<GI> customGuiItem) {
+    @Nonnull
+    public <GI extends GuiItem> GI applyTo(PlayerGui playerGui, @Nonnull Class<GI> customGuiItem) {
         return build().applyTo(playerGui, customGuiItem);
     }
 

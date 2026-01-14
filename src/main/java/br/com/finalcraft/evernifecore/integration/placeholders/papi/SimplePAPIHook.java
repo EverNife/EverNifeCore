@@ -7,8 +7,9 @@ import me.clip.placeholderapi.PlaceholderHook;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public class SimplePAPIHook extends PlaceholderHook {
 
@@ -23,12 +24,12 @@ public class SimplePAPIHook extends PlaceholderHook {
     }
 
     @Override
-    public @Nullable String onPlaceholderRequest(@Nullable Player player, @NotNull String placeholder) {
+    public @Nullable String onPlaceholderRequest(@Nullable Player player, @Nonnull String placeholder) {
         return this.onRequest(player, placeholder);
     }
 
     @Override
-    public @Nullable String onRequest(OfflinePlayer player, @NotNull String placeholder) {
+    public @Nullable String onRequest(OfflinePlayer player, @Nonnull String placeholder) {
         IPlayerData playerData = player == null ? null : PlayerController.getPlayerData(player);
 
         if (playerData != null && isPDSection){

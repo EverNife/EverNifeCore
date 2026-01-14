@@ -11,9 +11,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -25,12 +25,12 @@ public class ECPluginManager {
      */
     private static final HashMap<String, ECPluginData> EVERNIFECORE_PLUGINS_MAP = new LinkedHashMap<>();
 
-    @NotNull
+    @Nonnull
     public static ECPluginData getOrCreateECorePluginData(Plugin plugin){
         return EVERNIFECORE_PLUGINS_MAP.computeIfAbsent(plugin.getName(), pluginName -> new ECPluginData(plugin));
     }
 
-    public static void reloadPlugin(@Nullable CommandSender sender, @NotNull Plugin instance) {
+    public static void reloadPlugin(@Nullable CommandSender sender, @Nonnull Plugin instance) {
         ECPluginData ecPluginData = getOrCreateECorePluginData(instance);
         if (!ecPluginData.canReload()){
             throw new IllegalStateException(String.format(
@@ -42,11 +42,11 @@ public class ECPluginManager {
         reloadPlugin(sender, instance, ecPluginData, () -> ecPluginData.reloadPlugin());
     }
 
-    public static void reloadPlugin(@Nullable CommandSender sender, @NotNull Plugin instance, @NotNull Runnable runnable){
+    public static void reloadPlugin(@Nullable CommandSender sender, @Nonnull Plugin instance, @Nonnull Runnable runnable){
         reloadPlugin(sender, instance, getOrCreateECorePluginData(instance), runnable);
     }
 
-    public static void reloadPlugin(@Nullable CommandSender sender, @NotNull Plugin instance, ECPluginData ecPluginData, @NotNull Runnable runnable){
+    public static void reloadPlugin(@Nullable CommandSender sender, @Nonnull Plugin instance, ECPluginData ecPluginData, @Nonnull Runnable runnable){
         //Fire Pre-Reload
         //Mainly used for Plugins that has other addons or modules
         Bukkit.getPluginManager().callEvent(new ECPluginPreReloadEvent(ecPluginData));

@@ -1,10 +1,10 @@
 package br.com.finalcraft.evernifecore.config.yaml.section;
 
 import br.com.finalcraft.evernifecore.config.Config;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.simpleyaml.configuration.comments.CommentType;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -78,15 +78,15 @@ public class ConfigSection{
     //      Comment System Functions
     // ------------------------------------------------------------------------------------------------------------------
 
-    public void setComment(@Nullable String subPath, @NotNull String comment, @NotNull CommentType type) {
+    public void setComment(@Nullable String subPath, @Nonnull String comment, @Nonnull CommentType type) {
         config.setComment(concatSubPath(subPath), comment, type);
     }
 
-    public void setComment(@Nullable String subPath, @NotNull String comment) {
+    public void setComment(@Nullable String subPath, @Nonnull String comment) {
         config.setComment(concatSubPath(subPath), comment);
     }
 
-    public String getComment(@Nullable String subPath, @NotNull CommentType type) {
+    public String getComment(@Nullable String subPath, @Nonnull CommentType type) {
         return config.getComment(concatSubPath(subPath), type);
     }
 
@@ -226,19 +226,19 @@ public class ConfigSection{
     //      Basic Java Elements GetOrDefault
     // ------------------------------------------------------------------------------------------------------------------
 
-    public <D> @NotNull List<D> getOrSetDefaultValue(@Nullable String subPath, @NotNull List<D> def) {
+    public <D> @Nonnull List<D> getOrSetDefaultValue(@Nullable String subPath, @Nonnull List<D> def) {
         return config.getOrSetDefaultValue(concatSubPath(subPath), def);
     }
 
-    public <D> @NotNull List<D> getOrSetDefaultValue(@Nullable String subPath, @NotNull List<D> def, @Nullable String comment) {
+    public <D> @Nonnull List<D> getOrSetDefaultValue(@Nullable String subPath, @Nonnull List<D> def, @Nullable String comment) {
         return config.getOrSetDefaultValue(concatSubPath(subPath), def, comment);
     }
 
-    public <D> @NotNull D getOrSetDefaultValue(@Nullable String subPath, @NotNull D def) {
+    public <D> @Nonnull D getOrSetDefaultValue(@Nullable String subPath, @Nonnull D def) {
         return config.getOrSetDefaultValue(concatSubPath(subPath), def);
     }
 
-    public <D> @NotNull D getOrSetDefaultValue(@Nullable String subPath, @NotNull D def, @Nullable String comment) {
+    public <D> @Nonnull D getOrSetDefaultValue(@Nullable String subPath, @Nonnull D def, @Nullable String comment) {
         return config.getOrSetDefaultValue(concatSubPath(subPath), def, comment);
     }
 
@@ -246,19 +246,19 @@ public class ConfigSection{
     //      Loadable System
     // ------------------------------------------------------------------------------------------------------------------
 
-    public <L> @Nullable L getLoadable(@Nullable String subPath, @NotNull Class<L> loadableClass) {
+    public <L> @Nullable L getLoadable(@Nullable String subPath, @Nonnull Class<L> loadableClass) {
         return config.getLoadable(concatSubPath(subPath), loadableClass);
     }
 
-    public <L> @Nullable L getLoadable(@Nullable String subPath, @NotNull L loadableDefault) {
+    public <L> @Nullable L getLoadable(@Nullable String subPath, @Nonnull L loadableDefault) {
         return config.getLoadable(concatSubPath(subPath), loadableDefault);
     }
 
-    public <L> @NotNull List<L> getLoadableList(@Nullable String subPath, @NotNull Class<? extends L> loadableClass) {
+    public <L> @Nonnull List<L> getLoadableList(@Nullable String subPath, @Nonnull Class<? extends L> loadableClass) {
         return config.getLoadableList(concatSubPath(subPath), loadableClass);
     }
 
-    public <L> @NotNull List<L> getLoadableList(@Nullable String subPath, @NotNull List<L> loadableListDefault) {
+    public <L> @Nonnull List<L> getLoadableList(@Nullable String subPath, @Nonnull List<L> loadableListDefault) {
         return config.getLoadableList(concatSubPath(subPath), loadableListDefault);
     }
 }

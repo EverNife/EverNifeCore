@@ -9,9 +9,9 @@ import org.apache.commons.lang3.Validate;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -86,7 +86,7 @@ public interface FCWorldGuardRegion {
         return contains(blockPos.getLocation(null));
     }
 
-    public default <T extends Flag<V>, V> void setFlag(@NotNull T flag, @Nullable V val) {
+    public default <T extends Flag<V>, V> void setFlag(@Nonnull T flag, @Nullable V val) {
         Validate.notNull(flag);
         this.setDirty(true);
         if (val == null) {

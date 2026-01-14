@@ -4,8 +4,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgRequirementT
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgMountException;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -15,7 +15,7 @@ public class ArgsParserUtil {
     //Parse Contexts and return values -->
     //     [-2.5:10.75] --> return Tuple of -2.5 and 10.75
     //     [1.5:*] --> return Tuple of 1 and Double.MAX_VALUE
-    public static @NotNull Tuple<Double, Double> parseNumericContextInterval(@NotNull String context){
+    public static @Nonnull Tuple<Double, Double> parseNumericContextInterval(@Nonnull String context){
         context = ArgRequirementType.stripBrackets(context); //Remove Requirement Type
 
         final String[] numbers = context.split(":", 2);
@@ -33,7 +33,7 @@ public class ArgsParserUtil {
 
     //Parse Contexts and return values -->
     //     [2.5|10|20] --> return HashSet containing 2.5,10,20
-    public static @NotNull List<Double> parseNumericContextSelectional(@NotNull String context){
+    public static @Nonnull List<Double> parseNumericContextSelectional(@Nonnull String context){
         context = ArgRequirementType.stripBrackets(context); //Remove Requirement Type
 
         List<Double> numbeers = new ArrayList<>();
@@ -49,7 +49,7 @@ public class ArgsParserUtil {
 
     //Parse Contexts and return values -->
     //     [Abra|cadAbrA] --> return HashSet containing abra|cadabra
-    public static @NotNull List<String> parseStringContextSelectional(@NotNull String context){
+    public static @Nonnull List<String> parseStringContextSelectional(@Nonnull String context){
         context = ArgRequirementType.stripBrackets(context); //Remove Requirement Type
 
         List<String> strings = new ArrayList<>();

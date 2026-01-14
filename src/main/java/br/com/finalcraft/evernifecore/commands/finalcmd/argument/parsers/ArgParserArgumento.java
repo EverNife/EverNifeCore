@@ -9,8 +9,8 @@ import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import com.google.common.collect.ImmutableList;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,7 +30,7 @@ public class ArgParserArgumento extends ArgParser<Argumento> {
     }
 
     @Override
-    public Argumento parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException {
+    public Argumento parserArgument(@Nonnull CommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
 
         if (argInfo.isRequired() && argumento.isEmpty()){
             FCMessageUtil.notWithinPossibilities(sender, argumento.toString(), possibilities);
@@ -41,7 +41,7 @@ public class ArgParserArgumento extends ArgParser<Argumento> {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(TabContext tabContext) {
+    public @Nonnull List<String> tabComplete(TabContext tabContext) {
 
         return possibilities.stream()
                 .filter(s -> StringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))

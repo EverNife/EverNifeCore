@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.argument;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public enum ArgRequirementType {
     REQUIRED_OR_PROVIDED_BY_CONTEXT("<(", ")>", true, true),
@@ -38,7 +38,7 @@ public enum ArgRequirementType {
         return providedByContext;
     }
 
-    public static String stripBrackets(@NotNull String argument){
+    public static String stripBrackets(@Nonnull String argument){
         for (ArgRequirementType requirementType : values()) {
             if (argument.startsWith(requirementType.getStart()) && argument.endsWith(requirementType.getEnd())) {
                 return argument.substring(requirementType.getStart().length(), argument.length() - requirementType.getEnd().length());
@@ -47,7 +47,7 @@ public enum ArgRequirementType {
         return argument;
     }
 
-    public static @Nullable ArgRequirementType getArgumentType(@NotNull String argument){
+    public static @Nullable ArgRequirementType getArgumentType(@Nonnull String argument){
 
         if (argument.length() >= 2) {
             for (ArgRequirementType requirementType : values()) {

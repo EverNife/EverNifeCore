@@ -5,7 +5,8 @@ import br.com.finalcraft.evernifecore.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nonnull;
 
 public class FCSound {
 
@@ -69,11 +70,11 @@ public class FCSound {
     //   Play Sound at Specific Location for suround players
     // -----------------------------------------------------------------------------------------------------------------
 
-    public void playSoundAt(@NotNull Location location){
+    public void playSoundAt(@Nonnull Location location){
         FCSoundUtil.playSoundAt(this.getKey(), location);
     }
 
-    public void playSoundAt(@NotNull Location location, @NotNull String sound, float volume, float pitch){
+    public void playSoundAt(@Nonnull Location location, @Nonnull String sound, float volume, float pitch){
         FCSoundUtil.playSoundAt(this.getKey(), location, volume, pitch);
     }
 
@@ -81,15 +82,15 @@ public class FCSound {
     //   Play Sound to Specific Player
     // -----------------------------------------------------------------------------------------------------------------
 
-    public void playSoundFor(@NotNull Player player){
+    public void playSoundFor(@Nonnull Player player){
         FCSoundUtil.playSoundFor(this.getKey(), player);
     }
 
-    public void playSoundFor(@NotNull Player player, @NotNull Location location){
+    public void playSoundFor(@Nonnull Player player, @Nonnull Location location){
         FCSoundUtil.playSoundFor(this.getKey(), player, location);
     }
 
-    public void playSoundFor(@NotNull String sound, @NotNull Player player, @NotNull Location location, float volume, float pitch){
+    public void playSoundFor(@Nonnull String sound, @Nonnull Player player, @Nonnull Location location, float volume, float pitch){
         FCSoundUtil.playSoundFor(this.getKey(), player, location, volume, pitch);
     }
 }

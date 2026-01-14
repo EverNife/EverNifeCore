@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.protection.worldguard;
 
 import com.sk89q.worldguard.protection.flags.Flag;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 /**

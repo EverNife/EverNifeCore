@@ -9,8 +9,8 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.logger.debug.IDebugModule;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import org.bukkit.plugin.Plugin;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;

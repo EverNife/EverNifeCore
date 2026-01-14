@@ -9,46 +9,46 @@ import org.bukkit.block.BlockState;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 
 public class FCNBTUtil {
 
-    public static @NotNull NBTContainer empyNBT(){
+    public static @Nonnull NBTContainer empyNBT(){
         return new NBTContainer("{}");
     }
 
-    public static @NotNull NBTContainer getFrom(String nbt){
+    public static @Nonnull NBTContainer getFrom(String nbt){
         return new TrackedNBTContainer(nbt);
     }
 
-    public static @NotNull NBTPlayer getFrom(Player player){
+    public static @Nonnull NBTPlayer getFrom(Player player){
         return new NBTPlayer(player);
     }
 
-    public static @NotNull NBTEntity getFrom(Entity entity){
+    public static @Nonnull NBTEntity getFrom(Entity entity){
         return new NBTEntity(entity);
     }
 
-    public static @NotNull NBTItem getFrom(ItemStack itemStack){
+    public static @Nonnull NBTItem getFrom(ItemStack itemStack){
         return new NBTItem(itemStack, true);
     }
 
-    public static @NotNull NBTBlock getFrom(Block block){
+    public static @Nonnull NBTBlock getFrom(Block block){
         return new NBTBlock(block);
     }
 
-    public static @NotNull NBTTileEntity getFrom(BlockState tile){
+    public static @Nonnull NBTTileEntity getFrom(BlockState tile){
         return new NBTTileEntity(tile);
     }
 
-    public static @NotNull NBTChunk getFrom(Chunk chunk){
+    public static @Nonnull NBTChunk getFrom(Chunk chunk){
         return new NBTChunk(chunk);
     }
 
-    public static @NotNull NBTFile getFrom(File file){
+    public static @Nonnull NBTFile getFrom(File file){
         try {
             return new NBTFile(file);
         } catch (IOException e) {

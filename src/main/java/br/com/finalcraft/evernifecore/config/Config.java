@@ -15,14 +15,14 @@ import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.plugin.Plugin;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.simpleyaml.configuration.ConfigurationSection;
 import org.simpleyaml.configuration.comments.CommentType;
 import org.simpleyaml.configuration.file.YamlConfigurationOptions;
 import org.simpleyaml.configuration.file.YamlFile;
 import org.simpleyaml.exceptions.InvalidConfigurationException;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -333,7 +333,7 @@ public class Config {
      * @param comment the comment to add, # prefix is not needed
      * @param type    either above (BLOCK) or SIDE
      */
-    public void setComment(@NotNull String path, @NotNull String comment, @NotNull CommentType type) {
+    public void setComment(@Nonnull String path, @Nonnull String comment, @Nonnull CommentType type) {
         this.getConfiguration().setComment(path, comment, type);
     }
 
@@ -347,7 +347,7 @@ public class Config {
      * @param path    path of desired section or key
      * @param comment the block comment to add, # character is not needed
      */
-    public void setComment(@NotNull String path, @Nullable String comment) {
+    public void setComment(@Nonnull String path, @Nullable String comment) {
         this.getConfiguration().setComment(path, comment);
     }
 
@@ -361,7 +361,7 @@ public class Config {
      * @return the comment of the section or value selected by path,
      * or null if that path does not have any comment of this type
      */
-    public String getComment(@NotNull String path, @NotNull CommentType type) {
+    public String getComment(@Nonnull String path, @Nonnull CommentType type) {
         return this.getConfiguration().getComment(path, type);
     }
 
@@ -374,7 +374,7 @@ public class Config {
      * @return the block comment of the section or value selected by path,
      * or null if that path does not have any comment of type block
      */
-    public String getComment(@NotNull String path) {
+    public String getComment(@Nonnull String path) {
         return this.getConfiguration().getComment(path);
     }
 
@@ -739,7 +739,7 @@ public class Config {
     //      Basic Java Elements GetOrDefault
     // ------------------------------------------------------------------------------------------------------------------
 
-    public <D> @NotNull List<D> getOrSetDefaultValue(@NotNull String path, @NotNull List<D> def) {
+    public <D> @Nonnull List<D> getOrSetDefaultValue(@Nonnull String path, @Nonnull List<D> def) {
         if (!contains(path)){
             setValue(path, def);
             if (!newDefaultValueToSave) newDefaultValueToSave = true;
@@ -757,7 +757,7 @@ public class Config {
         }
     }
 
-    public <D> @NotNull List<D> getOrSetDefaultValue(@NotNull String path, @NotNull List<D> def, @Nullable String comment) {
+    public <D> @Nonnull List<D> getOrSetDefaultValue(@Nonnull String path, @Nonnull List<D> def, @Nullable String comment) {
         List<D> theValue = getOrSetDefaultValue(path, def);
         String existingComment = getComment(path);
         if ((existingComment == null && comment != null) || (existingComment != null && !existingComment.equals(comment))){
@@ -768,7 +768,7 @@ public class Config {
     }
 
 
-    public <D> @NotNull D getOrSetDefaultValue(@NotNull String path, @NotNull D def) {
+    public <D> @Nonnull D getOrSetDefaultValue(@Nonnull String path, @Nonnull D def) {
         if (!contains(path)){
             setValue(path, def);
             if (!newDefaultValueToSave) newDefaultValueToSave = true;
@@ -788,7 +788,7 @@ public class Config {
         }
     }
 
-    public <D> @NotNull D getOrSetDefaultValue(@NotNull String path, @NotNull D def, @Nullable String comment) {
+    public <D> @Nonnull D getOrSetDefaultValue(@Nonnull String path, @Nonnull D def, @Nullable String comment) {
         D theValue = getOrSetDefaultValue(path, def);
         String existingComment = getComment(path);
         if ((existingComment == null && comment != null) || (existingComment != null && !existingComment.equals(comment))){
@@ -809,7 +809,7 @@ public class Config {
      * @param loadableClass The class of the loadable you want to load.
      * @return A Loadable object or null
      */
-    public <L> @Nullable L getLoadable(@NotNull String path, @NotNull Class<L> loadableClass) {
+    public <L> @Nullable L getLoadable(@Nonnull String path, @Nonnull Class<L> loadableClass) {
         Validate.notNull(loadableClass, "loadableClass cannot be null");
         if (contains(path)){
             SmartLoadSave<L> smartLoadSave = CfgLoadableSalvable.getLoadableStatus(loadableClass);
@@ -831,7 +831,7 @@ public class Config {
      * @param loadableDefault The default value to return if the path is not found.
      * @return The value of the path, or the default value if the path is not found.
      */
-    public <L> @Nullable L getLoadable(@NotNull String path, @NotNull L loadableDefault) {
+    public <L> @Nullable L getLoadable(@Nonnull String path, @Nonnull L loadableDefault) {
         Validate.notNull(loadableDefault, "loadableDefault cannot be null");
         L value = (L) getLoadable(path, loadableDefault.getClass());
         return value != null ? value : loadableDefault;
@@ -844,7 +844,7 @@ public class Config {
      * @param loadableClass The class that you want to load.
      * @return A list of loadable objects.
      */
-    public <L> @NotNull List<L> getLoadableList(@NotNull String path, @NotNull Class<? extends L> loadableClass) {
+    public <L> @Nonnull List<L> getLoadableList(@Nonnull String path, @Nonnull Class<? extends L> loadableClass) {
         Validate.notNull(loadableClass, "loadableClass cannot be null");
         if (contains(path)){
             SmartLoadSave<L> smartLoadSave = CfgLoadableSalvable.getLoadableStatus(loadableClass);
@@ -877,7 +877,7 @@ public class Config {
      * @param loadableListDefault A list of the default values to be returned if the path is not found.
      * @return A List of Loadable Objects
      */
-    public <L> @NotNull List<L> getLoadableList(@NotNull String path, @NotNull List<L> loadableListDefault) {
+    public <L> @Nonnull List<L> getLoadableList(@Nonnull String path, @Nonnull List<L> loadableListDefault) {
         Validate.notNull(loadableListDefault, "loadableListDefault cannot be null");
         if (loadableListDefault.size() == 0){
             throw new IllegalArgumentException("Cannot infer the Loadable class of an Empty Default List");

@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.worldedit.clipboard.format;
 
-import org.jetbrains.annotations.Nullable;
-
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 

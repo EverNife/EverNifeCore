@@ -4,8 +4,8 @@ import br.com.finalcraft.evernifecore.gui.custom.PaginatedGuiComplex;
 import dev.triumphteam.gui.builder.gui.BaseGuiBuilder;
 import dev.triumphteam.gui.components.GuiType;
 import dev.triumphteam.gui.guis.Gui;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.function.Consumer;
 
 public class PaginatedComplexGuiBuilder extends BaseGuiBuilder<PaginatedGuiComplex, PaginatedComplexGuiBuilder> {
@@ -28,7 +28,7 @@ public class PaginatedComplexGuiBuilder extends BaseGuiBuilder<PaginatedGuiCompl
      * @param guiType The {@link GuiType}
      * @return The current builder
      */
-    @NotNull
+    @Nonnull
     public PaginatedComplexGuiBuilder type(final GuiType guiType) {
         this.guiType = guiType;
         return this;
@@ -39,7 +39,7 @@ public class PaginatedComplexGuiBuilder extends BaseGuiBuilder<PaginatedGuiCompl
      *
      * @return A new {@link Gui}
      */
-    @NotNull
+    @Nonnull
     @Override
     public PaginatedGuiComplex create() {
         final PaginatedGuiComplex gui;

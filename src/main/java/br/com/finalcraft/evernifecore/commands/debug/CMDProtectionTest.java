@@ -25,8 +25,8 @@ import com.sk89q.worldguard.protection.flags.Flag;
 import org.bukkit.Color;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -38,7 +38,7 @@ public class CMDProtectionTest implements ICustomFinalCMD {
     private boolean atLeastOne = false;
 
     @Override
-    public void customize(@NotNull CustomizeContext context) {
+    public void customize(@Nonnull CustomizeContext context) {
         context.replace("%protection_plugins%", "ALL|" +
                 ProtectionAll.getInstance().getProtectionHandlers().stream().map(ProtectionHandler::getName).collect(Collectors.joining("|"))
         );

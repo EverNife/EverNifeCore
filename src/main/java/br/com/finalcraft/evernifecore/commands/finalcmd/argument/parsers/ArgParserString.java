@@ -10,8 +10,8 @@ import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,7 +33,7 @@ public class ArgParserString extends ArgParser<String> {
     }
 
     @Override
-    public String parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException {
+    public String parserArgument(@Nonnull CommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
 
         if (possibilities.size() == 1){
             return argumento.isEmpty() ? null : argumento.toString();
@@ -54,7 +54,7 @@ public class ArgParserString extends ArgParser<String> {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(TabContext tabContext) {
+    public @Nonnull List<String> tabComplete(TabContext tabContext) {
 
         return possibilities.stream()
                 .filter(s -> StringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))

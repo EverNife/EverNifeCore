@@ -5,35 +5,35 @@ import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 
 public class FCItemFactory {
 
-    @NotNull
-    public static FCItemBuilder from(@NotNull List<String> itemDataPart){
+    @Nonnull
+    public static FCItemBuilder from(@Nonnull List<String> itemDataPart){
         ItemStack itemStack = ItemDataPart.transformItem(itemDataPart);
         return new FCItemBuilder(itemStack);
     }
 
-    @NotNull
-    public static FCItemBuilder from(@NotNull String minecraftOrBukkitIdentifier){//Bukkit OR Minecraft identifier
+    @Nonnull
+    public static FCItemBuilder from(@Nonnull String minecraftOrBukkitIdentifier){//Bukkit OR Minecraft identifier
         ItemStack itemStack = FCItemUtils.fromIdentifier(minecraftOrBukkitIdentifier);
         return new FCItemBuilder(itemStack);
     }
 
-    @NotNull
-    public static FCItemBuilder from(@NotNull final ItemStack itemStack) {
+    @Nonnull
+    public static FCItemBuilder from(@Nonnull final ItemStack itemStack) {
         return new FCItemBuilder(itemStack);
     }
 
-    @NotNull
-    public static FCItemBuilder from(@NotNull final Material material) {
+    @Nonnull
+    public static FCItemBuilder from(@Nonnull final Material material) {
         return new FCItemBuilder(new ItemStack(material));
     }
 
-    @NotNull
+    @Nonnull
     public static FCItemBuilder itemBuilder() {
         return new FCItemBuilder(new ItemStack(Material.STONE));
     }

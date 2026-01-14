@@ -12,8 +12,8 @@ import br.com.finalcraft.evernifecore.nms.data.oredict.OreDictEntry;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -32,7 +32,7 @@ public class ArgParserOreDict extends ArgParser<OreDictEntry> {
     public static LocaleMessage THERE_IS_NO_OREDICT_WITH_THE_NAME;
 
     @Override
-    public OreDictEntry parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException {
+    public OreDictEntry parserArgument(@Nonnull CommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
 
         Set<String> allOreNames = new HashSet<>(NMSUtils.get().getOreRegistry().getAllOreNames());
 
@@ -62,7 +62,7 @@ public class ArgParserOreDict extends ArgParser<OreDictEntry> {
     ).withInterval(TimeUnit.SECONDS, 10);
 
     @Override
-    public @NotNull List<String> tabComplete(TabContext tabContext) {
+    public @Nonnull List<String> tabComplete(TabContext tabContext) {
         return CACHED_OREDICT_ENTRIES.getValue().stream()
                 .map(OreDictEntry::getOreName)
                 .filter(s -> StringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))

@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.util;
 
-import org.jetbrains.annotations.NotNull;
-
+import javax.annotation.Nonnull;
 import java.lang.reflect.Array;
 
 public class FCArrayUtil {
@@ -13,7 +12,7 @@ public class FCArrayUtil {
      * @param value The value to be added to the beginning of the array.
      * @return An array of the same type as the first argument.
      */
-    public static <T> T[] merge(@NotNull T value, T... otherValues){
+    public static <T> T[] merge(@Nonnull T value, T... otherValues){
         T[] theArray = (T[]) Array.newInstance(value.getClass(), otherValues.length + 1);
         theArray[0] = value;
         for (int i = 1; i < theArray.length; i++) {
@@ -28,7 +27,7 @@ public class FCArrayUtil {
      * @param value The array to be merged with otherValues.
      * @return An array of type T
      */
-    public static <T> T[] mergeArray(@NotNull T[] value, T... otherValues){
+    public static <T> T[] mergeArray(@Nonnull T[] value, T... otherValues){
         T[] theArray = (T[]) Array.newInstance(value.getClass(), value.length + otherValues.length);
         int index = 0;
 
@@ -45,7 +44,7 @@ public class FCArrayUtil {
         return theArray;
     }
 
-    public static <T> T randomElement(@NotNull T[] array){
+    public static <T> T randomElement(@Nonnull T[] array){
         return array[FCMathUtil.getRandom().nextInt(array.length)];
     }
 

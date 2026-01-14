@@ -6,7 +6,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.custom.ICustomFinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.custom.contexts.CustomizeContext;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import org.bukkit.command.CommandSender;
-import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nonnull;
 
 public class CMDAlias implements ICustomFinalCMD {
 
@@ -34,7 +35,7 @@ public class CMDAlias implements ICustomFinalCMD {
     }
 
     @Override
-    public void customize(@NotNull CustomizeContext context) {
+    public void customize(@Nonnull CustomizeContext context) {
         context.getFinalCMDData().setLabels(this.aliases);
         context.replace("%the_command%", theCommand);
     }

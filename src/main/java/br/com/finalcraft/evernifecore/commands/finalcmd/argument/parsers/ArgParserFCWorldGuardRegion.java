@@ -13,8 +13,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,7 +37,7 @@ public class ArgParserFCWorldGuardRegion extends ArgParser<FCWorldGuardRegion> {
     public static LocaleMessage THERE_IS_MORE_THAN_ONE_REGION_AT_YOUR_LOCATION;
 
     @Override
-    public FCWorldGuardRegion parserArgument(@NotNull CommandSender sender, @NotNull Argumento argumento) throws ArgParseException {
+    public FCWorldGuardRegion parserArgument(@Nonnull CommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
 
         FCWorldGuardRegion fcWorldGuardRegion = WGPlatform.getInstance().getRegionByID(null, argumento.toString());
 
@@ -79,7 +79,7 @@ public class ArgParserFCWorldGuardRegion extends ArgParser<FCWorldGuardRegion> {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(TabContext tabContext) {
+    public @Nonnull List<String> tabComplete(TabContext tabContext) {
 
         return Bukkit.getWorlds().stream()
                 .flatMap(world -> WGPlatform.getInstance().getRegionManager(world).getRegions().values().stream())

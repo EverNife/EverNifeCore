@@ -25,9 +25,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.time.LocalDateTime;
@@ -108,7 +108,7 @@ public class CfgLoadableSalvable {
         }).orElse(null);
     }
 
-    private static <O> @NotNull Optional<Function<ConfigSection, O>> extractLoadableMethod(@NotNull Class<O> clazz){
+    private static <O> @Nonnull Optional<Function<ConfigSection, O>> extractLoadableMethod(@Nonnull Class<O> clazz){
 
         final Method method = Arrays.stream(clazz.getDeclaredMethods())
                 .filter(theMethod -> theMethod.isAnnotationPresent(Loadable.class))
