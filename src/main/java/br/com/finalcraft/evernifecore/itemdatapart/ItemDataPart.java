@@ -96,7 +96,7 @@ public abstract class ItemDataPart {
 
         ItemDataPart part = detectType(name);
         if (part == null) {
-            EverNifeCore.warning("Mistake in Config: Unable to read itemdata '" + name + ":" + argument);
+            EverNifeCore.getLog().warning("Mistake in Config: Unable to read itemdata '" + name + ":" + argument);
             return item;
         }
 
@@ -180,10 +180,10 @@ public abstract class ItemDataPart {
         try {
             return transform(item, used_name.toLowerCase(), argument);
         } catch (NoClassDefFoundError e) { //Seems like that ItemDataPart is not supported yet
-            EverNifeCore.warning("Unable to work with itemdata '" + used_name.toLowerCase() + ":" + argument + ". Seems like it is not supported by your server version yet.");
+            EverNifeCore.getLog().warning("Unable to work with itemdata '" + used_name.toLowerCase() + ":" + argument + ". Seems like it is not supported by your server version yet.");
             return item;
         } catch (NoSuchMethodError e) { //Seems like that ItemDataPart is not supported yet
-            EverNifeCore.warning("Unable to work with itemdata '" + used_name.toLowerCase() + ":" + argument + ". Seems like it is not supported by your server version yet.");
+            EverNifeCore.getLog().warning("Unable to work with itemdata '" + used_name.toLowerCase() + ":" + argument + ". Seems like it is not supported by your server version yet.");
             return item;
         }
     }

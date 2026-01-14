@@ -30,11 +30,11 @@ public class BossShopListener implements ECListener {
 
     @EventHandler
     public void onRegisterTypes(BSRegisterTypesEvent event) {
-        EverNifeCore.info("Registering BossShop Custom ItemDataPartNBT");
+        EverNifeCore.getLog().info("Registering BossShop Custom ItemDataPartNBT");
         ItemDataPart.registerType(DATAPART_NBT);
 
         //This event is fired right after the plugin is reloaded, nice time to Override the ItemStackTranslator
-        EverNifeCore.info("Replacing BossShopPro ItemStackTranslator");
+        EverNifeCore.getLog().info("Replacing BossShopPro ItemStackTranslator");
         FieldAccessor<ItemStackTranslator> translatorField = FCReflectionUtil.getField(ClassManager.class, "itemstackTranslator");
         translatorField.set(ClassManager.manager, EC_ITEM_STACK_TRANSLATOR);
     }
@@ -78,7 +78,7 @@ public class BossShopListener implements ECListener {
                 }
 
             }catch (Exception e){
-                EverNifeCore.warning("Failed to load [shop." + bsBuy.getName() + ".CopyToLocations] from shop [" + configShop.getShopName() +  "]");
+                EverNifeCore.getLog().warning("Failed to load [shop." + bsBuy.getName() + ".CopyToLocations] from shop [" + configShop.getShopName() +  "]");
                 e.printStackTrace();
             }
         }

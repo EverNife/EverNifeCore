@@ -13,7 +13,7 @@ public class ItemDataPartAmount extends ItemDataPart {
     public ItemStack transform(ItemStack itemStack, String used_name, String argument) {
         Integer amount = FCInputReader.parseInt(argument, null);
         if (amount == null) {
-            EverNifeCore.warning("Mistake in Config: '" + argument + "' is not a valid '" + used_name + "'. It needs to be a number like '1', '12' or '64'.");
+            EverNifeCore.getLog().warning("Mistake in Config: '" + argument + "' is not a valid '" + used_name + "'. It needs to be a number like '1', '12' or '64'.");
             return itemStack;
         }
         itemStack.setAmount(amount);

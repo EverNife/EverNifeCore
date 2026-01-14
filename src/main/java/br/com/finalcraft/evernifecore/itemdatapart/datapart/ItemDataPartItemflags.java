@@ -30,7 +30,7 @@ public class ItemDataPartItemflags extends ItemDataPart {
                     ItemFlag itemflag = ItemFlag.valueOf(flag.toUpperCase());
                     meta.addItemFlags(itemflag);
                 } catch (Exception e) {
-                    EverNifeCore.warning("Mistake in Config: '" + flag + "' is not a valid '" + used_name + "'.");
+                    EverNifeCore.getLog().warning("Mistake in Config: '" + flag + "' is not a valid '" + used_name + "'.");
                 }
             }
 

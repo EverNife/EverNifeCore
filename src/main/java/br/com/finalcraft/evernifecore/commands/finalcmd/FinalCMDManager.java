@@ -273,7 +273,7 @@ public class FinalCMDManager {
                 notifyPlugin.getLogger().warning("Removing existent alias (" + commandName + ") for [" + existingCommand.getName() + "] from " + originalPlugin + "!");
             }
         }catch (Exception e){
-            EverNifeCore.warning("Failed to UNREGISTER command [" +  commandName + "]");
+            EverNifeCore.getLog().warning("Failed to UNREGISTER command [" +  commandName + "]");
             e.printStackTrace();
         }
     }

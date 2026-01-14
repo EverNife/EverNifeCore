@@ -79,7 +79,7 @@ class FeatherBoardTimer extends BukkitRunnable {
 
         if (firstLoop){
             FeatherBoardAPI.showScoreboard(player, scoreBoardName);
-            EverNifeCore.info("fb show " + player.getName() + " " + scoreBoardName);
+            EverNifeCore.getLog().info("fb show " + player.getName() + " " + scoreBoardName);
             firstLoop = false;
             return;
         }

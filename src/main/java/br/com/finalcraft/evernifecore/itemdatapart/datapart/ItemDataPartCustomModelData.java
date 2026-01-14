@@ -15,7 +15,7 @@ public class ItemDataPartCustomModelData extends ItemDataPart {
     public ItemStack transform(ItemStack item, String used_name, String argument) {
         int custommodeldata = FCInputReader.parseInt(argument, -1);
         if (custommodeldata == -1) {
-            EverNifeCore.warning("Mistake in Config: '" + argument + "' is not a valid '" + used_name + "'. It needs to be a number like '1', '12' or '64'.");
+            EverNifeCore.getLog().warning("Mistake in Config: '" + argument + "' is not a valid '" + used_name + "'. It needs to be a number like '1', '12' or '64'.");
             return item;
         }
         ItemMeta meta = item.getItemMeta();

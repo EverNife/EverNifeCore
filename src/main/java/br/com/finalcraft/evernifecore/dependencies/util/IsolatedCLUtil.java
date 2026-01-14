@@ -39,7 +39,7 @@ public class IsolatedCLUtil {
                     Path path = dependencyManager.downloadLibrary(library);
                     classLoader.addPath(path);
                 } catch (Throwable e) {
-                    EverNifeCore.warning("Unable to load dependency " + library.toString() + ".");
+                    EverNifeCore.getLog().warning("Unable to load dependency " + library.toString() + ".");
                     e.printStackTrace();
                 } finally {
                     latch.countDown();

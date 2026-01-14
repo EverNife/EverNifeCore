@@ -17,7 +17,7 @@ public class FeatherBoardUtils {
 
     public static void initialize(){
         if (apiLoaded = Bukkit.getPluginManager().isPluginEnabled("FeatherBoard")){
-            EverNifeCore.info("Integration to FeatherBoard enabled!");
+            EverNifeCore.getLog().info("Integration to FeatherBoard enabled!");
         }
     }
 

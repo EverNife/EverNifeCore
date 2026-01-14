@@ -32,7 +32,7 @@ public class ArgParserEnum extends ArgParser<Enum> {
         if (context.isEmpty()){ //If context is empty, take the entire enum as possibility
             Object[] enumValues = argInfo.getArgumentType().getEnumConstants();
             if (enumValues.length > 50){
-                EverNifeCore.warning("[ArgParserEnum] The ArgInfo [" + argInfo + "] has more than " + enumValues.length + " constants! This is Wrong! Don't use ArgParserEnum like this!");
+                EverNifeCore.getLog().warning("[ArgParserEnum] The ArgInfo [" + argInfo + "] has more than " + enumValues.length + " constants! This is Wrong! Don't use ArgParserEnum like this!");
                 throw new IllegalArgumentException("The ArgParserEnum cannot have more than 50 possible values on its enum!");
             }
             // Transform the enum into something like     VALUE1|VALUE2|VALUE

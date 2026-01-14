@@ -61,7 +61,7 @@ public class Config {
                 this.getConfiguration().loadWithComments();
             } catch (IOException e) {
                 //In case of an error, usually by a MalFormed YML File, it's better to create a new file and just notify the console
-                EverNifeCore.warning(String.format("Failed to load YML file at [%s]", this.getAbsolutePath()));
+                EverNifeCore.getLog().warning(String.format("Failed to load YML file at [%s]", this.getAbsolutePath()));
                 e.printStackTrace();
                 try {
                     int corruptVersion = 2;

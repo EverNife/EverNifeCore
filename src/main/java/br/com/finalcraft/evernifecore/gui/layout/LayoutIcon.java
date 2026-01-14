@@ -74,7 +74,7 @@ public class LayoutIcon {
                 try {
                     playerGui.getGui().setItem(slot, guiItem);
                 }catch (Exception e){
-                    EverNifeCore.warning("Failed to apply LayoutIcon for {" + guiItem.getItemStack().getType() + "}: " + e.getMessage());
+                    EverNifeCore.getLog().warning("Failed to apply LayoutIcon for {" + guiItem.getItemStack().getType() + "}: " + e.getMessage());
                     e.printStackTrace();
                 }
             }

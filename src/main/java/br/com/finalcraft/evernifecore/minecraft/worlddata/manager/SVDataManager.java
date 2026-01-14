@@ -201,7 +201,7 @@ public class SVDataManager<O> extends ServerData<O>{
                                 });
                                 loadedObjects.incrementAndGet();
                             }catch (Exception e){
-                                EverNifeCore.warning(String.format("Failed to load BlockPos Data from the config at [%s]",  section.toString()));
+                                EverNifeCore.getLog().warning(String.format("Failed to load BlockPos Data from the config at [%s]",  section.toString()));
                                 e.printStackTrace();
                             }
                         }
@@ -211,7 +211,7 @@ public class SVDataManager<O> extends ServerData<O>{
                         insertOperations.forEach(Runnable::run);
                     }
                 }catch (Exception e){
-                    EverNifeCore.warning(String.format("Failed to load RegionData for the SVDataManager at [%s]",  config.getAbsolutePath()));
+                    EverNifeCore.getLog().warning(String.format("Failed to load RegionData for the SVDataManager at [%s]",  config.getAbsolutePath()));
                     e.printStackTrace();
                 }finally {
                     phaser.arriveAndDeregister();

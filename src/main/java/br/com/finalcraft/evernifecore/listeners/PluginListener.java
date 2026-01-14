@@ -37,10 +37,10 @@ public class PluginListener implements ECListener {
         final Plugin plugin = event.getPlugin();
         if (plugin.getName().equalsIgnoreCase("BossShopPro")){
             if (NMSUtils.get() != null){
-                EverNifeCore.info("Found BossShopPro, registering 'nbt' tag!");
+                EverNifeCore.getLog().info("Found BossShopPro, registering 'nbt' tag!");
                 ECListener.register(EverNifeCore.instance, BossShopListener.class);
             }else {
-                EverNifeCore.info("Found BossShopPro, but NMS not found for this server version [" + MCVersion.getCurrent() +" ] !");
+                EverNifeCore.getLog().info("Found BossShopPro, but NMS not found for this server version [" + MCVersion.getCurrent() +" ] !");
             }
             return;
         }

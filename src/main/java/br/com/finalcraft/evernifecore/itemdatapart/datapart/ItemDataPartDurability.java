@@ -17,14 +17,14 @@ public class ItemDataPartDurability extends ItemDataPart {
         int damage = FCInputReader.parseInt(argument, -1);
 
         if (damage == -1) {
-            EverNifeCore.warning("Mistake in Config: '" + argument + "' is not a valid '" + used_name + "'. " +
+            EverNifeCore.getLog().warning("Mistake in Config: '" + argument + "' is not a valid '" + used_name + "'. " +
                     "It needs to be an integer number like '0', '5' or '200'. ");
             return item;
         }
 
         if (MCVersion.isHigherEquals(MCVersion.v1_13)){
             if (!(item.getItemMeta() instanceof Damageable)) {
-                EverNifeCore.warning("Mistake in Config: Unable to add damage/durability to items of type '" + item.getType() + "'.");
+                EverNifeCore.getLog().warning("Mistake in Config: Unable to add damage/durability to items of type '" + item.getType() + "'.");
                 return item;
             }
             Damageable d = (Damageable) item.getItemMeta();

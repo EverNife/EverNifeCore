@@ -47,7 +47,7 @@ public class GenericInventory implements Salvable {
                 ItemInSlot itemInSlot = new ItemInSlot(slot,itemStack);
                 items.add(itemInSlot);
             }catch (Exception e){
-                EverNifeCore.info("Failed to load ItemSlot from [" + itemSection + "]");
+                EverNifeCore.getLog().info("Failed to load ItemSlot from [" + itemSection + "]");
                 e.printStackTrace();
             }
         }

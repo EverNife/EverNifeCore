@@ -56,14 +56,6 @@ public class EverNifeCore extends JavaPlugin {
         return instance.ecLogger;
     }
 
-    public static void info(String msg) {
-        instance.getLogger().info("[Info] " + msg);
-    }
-
-    public static void warning(String msg) {
-        instance.getLogger().warning("[Warning] " + msg);
-    }
-
     public static DependencyManager getDependencyManager() {
         return dependencyManager;
     }
@@ -72,22 +64,22 @@ public class EverNifeCore extends JavaPlugin {
     public void onEnable() {
         MinecraftVersion.replaceLogger(this.getLogger());//Replace [NBT-API] logger
 
-        info("§aStarting EverNifeCore");
-        info("§aServer Minecraft Version " + MCVersion.getCurrent().name() + " !");
+        getLog().info("§aStarting EverNifeCore");
+        getLog().info("§aServer Minecraft Version " + MCVersion.getCurrent().name() + " !");
 
-        info("§aLoading up Configurations...");
+        getLog().info("§aLoading up Configurations...");
         ConfigManager.initialize(this);
 
-        info("§aLoading up Cooldown System!");
+        getLog().info("§aLoading up Cooldown System!");
         Cooldown.initialize();
 
-        info("§aRegistering Commands!");
+        getLog().info("§aRegistering Commands!");
         CommandRegisterer.registerCommands(this);
 
-        info("§aHooking into Vault (Economy)");
+        getLog().info("§aHooking into Vault (Economy)");
         VaultIntegration.initialize();
 
-        info("§aRegistering Listeners");
+        getLog().info("§aRegistering Listeners");
         ECListener.register(this, PlayerLoginListener.class);
         ECListener.register(this, PlayerInteractListener.class);
         ECListener.register(this, PluginListener.class);
@@ -104,7 +96,7 @@ public class EverNifeCore extends JavaPlugin {
         SaveConfigThread.INSTANCE.start();
 
         FCTickUtil.getTickCount();//This will start tickCounting
-        info("§aEverNifeCore successfully started!");
+        getLog().info("§aEverNifeCore successfully started!");
 
         if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")){
             ECCorePAPIPlaceholders.initialize(this);

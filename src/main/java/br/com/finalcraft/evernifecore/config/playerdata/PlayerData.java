@@ -46,7 +46,7 @@ public class PlayerData implements IPlayerData{
             MAP_OF_PDSECTIONS.put(pdSectionClass, pdSection);
             return (T)pdSection;
         }catch (Exception e){
-            EverNifeCore.warning("Failed to instantiate PDSection [" + pdSectionClass.getName() + "]!");
+            EverNifeCore.getLog().warning("Failed to instantiate PDSection [" + pdSectionClass.getName() + "]!");
             throw new RuntimeException(e);
         }
     }
@@ -122,7 +122,7 @@ public class PlayerData implements IPlayerData{
                     pDSection.recentChanged = false;
                 }
             }catch (Throwable e){
-                EverNifeCore.warning("Failed to save PDSection {" + key.getName() + "} at [" + this.getConfig().getTheFile().getAbsolutePath() + "]");
+                EverNifeCore.getLog().warning("Failed to save PDSection {" + key.getName() + "} at [" + this.getConfig().getTheFile().getAbsolutePath() + "]");
                 e.printStackTrace();
             }
         }

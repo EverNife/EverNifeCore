@@ -187,7 +187,7 @@ public abstract class Cooldown implements Salvable {
                 Cooldown cooldown = loadFromConfig(config, "AllCooldowns." + key);
                 MAP_OF_COOLDOWNS.put(cooldown.getIdentifier(),cooldown);
             }catch (Exception e) {
-                EverNifeCore.warning("Failed to load coodown [" + key + "] at [" + ConfigManager.getCooldowns().getTheFile().getAbsolutePath() + "]");
+                EverNifeCore.getLog().warning("Failed to load coodown [" + key + "] at [" + ConfigManager.getCooldowns().getTheFile().getAbsolutePath() + "]");
                 e.printStackTrace();
             }
         }

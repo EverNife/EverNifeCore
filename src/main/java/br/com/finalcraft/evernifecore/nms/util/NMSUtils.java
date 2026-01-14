@@ -44,15 +44,15 @@ public class NMSUtils {
 				instance = new NMSUtils_v1_21_R1();
 			}
 			if (instance != null){
-				EverNifeCore.info("Successfully loaded " + instance.getClass().getSimpleName() +"!");
+				EverNifeCore.getLog().info("Successfully loaded " + instance.getClass().getSimpleName() +"!");
 				return;
 			}
 		}catch (Throwable e){
-			EverNifeCore.warning("Failed to create NMSUtils instance for " + MCVersion.getCurrent().name() + " mc version!");
+			EverNifeCore.getLog().warning("Failed to create NMSUtils instance for " + MCVersion.getCurrent().name() + " mc version!");
 			e.printStackTrace();
 			return;
 		}
-		EverNifeCore.warning("No NMSUtils instance found for " + MCVersion.getCurrent().name() + " mc version!");
+		EverNifeCore.getLog().warning("No NMSUtils instance found for " + MCVersion.getCurrent().name() + " mc version!");
 	}
 
 

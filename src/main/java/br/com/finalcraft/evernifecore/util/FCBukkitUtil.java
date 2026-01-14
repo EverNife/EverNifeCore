@@ -199,7 +199,7 @@ public class FCBukkitUtil {
         if (Bukkit.getServer().isPrimaryThread()) {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), theCommand);
         } else {
-            EverNifeCore.warning("Calling [makeConsoleExecuteCommand(\"" + theCommand + "\")] out of Main Thread... i am fixing it for you, but... you may do your job!");
+            EverNifeCore.getLog().warning("Calling [makeConsoleExecuteCommand(\"" + theCommand + "\")] out of Main Thread... i am fixing it for you, but... you may do your job!");
             makeConsoleExecuteCommandFromAsyncThread(theCommand);
         }
     }
@@ -213,7 +213,7 @@ public class FCBukkitUtil {
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), theCommand);
             }
         } else {
-            EverNifeCore.warning("Calling [makeConsoleExecuteCommand(\"" + String.join("|", theCommands) + "\")] out of Main Thread... i am fixing it for you, but... you may do your job!");
+            EverNifeCore.getLog().warning("Calling [makeConsoleExecuteCommand(\"" + String.join("|", theCommands) + "\")] out of Main Thread... i am fixing it for you, but... you may do your job!");
             makeConsoleExecuteCommandFromAsyncThread(theCommands);
         }
     }

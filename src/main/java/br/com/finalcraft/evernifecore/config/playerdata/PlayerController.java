@@ -51,7 +51,7 @@ public class PlayerController {
                     newCorruptedFile
             );
         }catch (IOException e2){
-            EverNifeCore.warning("Failed to move the Corrupted PlayerData of " + playerDataFile.getAbsolutePath() + " to the corrupt folder.");
+            EverNifeCore.getLog().warning("Failed to move the Corrupted PlayerData of " + playerDataFile.getAbsolutePath() + " to the corrupt folder.");
             e2.printStackTrace();
         }
     }
@@ -275,7 +275,7 @@ public class PlayerController {
                 dormantConfig.save(theConfigFile);
                 dormantFile.delete();
             }catch (Exception e){
-                EverNifeCore.warning("Failed to move dormant PlayerData " + dormantFile.getName() + " to the PlayerData folder... this is a terrible (sad) problem!");
+                EverNifeCore.getLog().warning("Failed to move dormant PlayerData " + dormantFile.getName() + " to the PlayerData folder... this is a terrible (sad) problem!");
                 e.printStackTrace();
             }
         }

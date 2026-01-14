@@ -101,6 +101,8 @@ dependencies {
     compileOnly name: "craftbukkit1211-javadowngraded" //Thats on you to find out | Downgraded to Java 8 with https://github.com/unimined/JvmDowngrader
     compileOnly group: 'commons-io', name: 'commons-io', version: '2.6' //Necessary for ReflectionUtils
 
+    //Annotations
+    compileOnly "jakarta.annotation:jakarta.annotation-api:2.1.1"
 
     api group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
 

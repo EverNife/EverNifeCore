@@ -50,7 +50,7 @@ public class NMSUtils_v1_7_R4 implements INMSUtils {
 		try {
 			fakePlayerClass = Class.forName("net.minecraftforge.common.util.FakePlayer");
 		}catch (Exception e){
-			EverNifeCore.info("Failed to find FakePlayer Forge's class...");
+			EverNifeCore.getLog().info("Failed to find FakePlayer Forge's class...");
 			e.printStackTrace();
 		}
 		Validate.notNull(handle_field,"CraftItemStack.class 'handle' field cannot be null!");
@@ -252,7 +252,7 @@ public class NMSUtils_v1_7_R4 implements INMSUtils {
 			return mcStack;
 		}catch (Exception e){
 			Class c = itemStack.getClass();
-			EverNifeCore.warning("Failed to get ItemStack Handle for:" +
+			EverNifeCore.getLog().warning("Failed to get ItemStack Handle for:" +
 					"\n" +
 					"\nPackage: " + c.getPackage()+"" +
 					"\nClass: " + c.getSimpleName()+"" +
@@ -270,7 +270,7 @@ public class NMSUtils_v1_7_R4 implements INMSUtils {
 			handle_field.set(craftItemStack, handle);
 		}catch (Exception e){
 			Class c = mcStack.getClass();
-			EverNifeCore.warning("ItemStack Class:\n\n Package: "+c.getPackage()+"\nClass: "+c.getSimpleName()+"\nFull Identifier: "+c.getName());
+			EverNifeCore.getLog().warning("ItemStack Class:\n\n Package: "+c.getPackage()+"\nClass: "+c.getSimpleName()+"\nFull Identifier: "+c.getName());
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		}

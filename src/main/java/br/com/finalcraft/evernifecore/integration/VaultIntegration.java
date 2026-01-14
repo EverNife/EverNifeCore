@@ -12,20 +12,20 @@ public class VaultIntegration {
 
     public static void initialize() {
         if (!Bukkit.getPluginManager().isPluginEnabled("Vault")){
-            EverNifeCore.warning("Vault plugin was not found! EverNifeCore need Vault to manage economy transactions!");
+            EverNifeCore.getLog().warning("Vault plugin was not found! EverNifeCore need Vault to manage economy transactions!");
             return;
         }
         try {
             setupEconomy();
         }catch (Throwable e){
-            EverNifeCore.warning("Vault seems to be present but there is no Economic plugin present!");
+            EverNifeCore.getLog().warning("Vault seems to be present but there is no Economic plugin present!");
 
             if (Bukkit.getPluginManager().isPluginEnabled("CMI")){
-                EverNifeCore.warning("CMI was found, but it's economy module is not enabled i think, you might want to take a look at: https://www.spigotmc.org/resources/cmi.3742/");
-                EverNifeCore.warning("Read their description to learn how to enable CMI Economy module.");
+                EverNifeCore.getLog().warning("CMI was found, but it's economy module is not enabled i think, you might want to take a look at: https://www.spigotmc.org/resources/cmi.3742/");
+                EverNifeCore.getLog().warning("Read their description to learn how to enable CMI Economy module.");
             }
 
-            EverNifeCore.warning("You might want to take a look at: https://www.spigotmc.org/resources/finaleconomy.97740/");
+            EverNifeCore.getLog().warning("You might want to take a look at: https://www.spigotmc.org/resources/finaleconomy.97740/");
             e.printStackTrace();
         }
     }

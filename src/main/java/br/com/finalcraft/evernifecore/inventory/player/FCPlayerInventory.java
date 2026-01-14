@@ -72,7 +72,7 @@ public class FCPlayerInventory implements Salvable {
                     ExtraInv extraInv = factory.extractFromPlayer(player);
                     extraInvs.add(extraInv);
                 }catch (Exception e){
-                    EverNifeCore.info("Failed to extract ExtraInv(" + factory.getId() + ") from " + player.getName());
+                    EverNifeCore.getLog().info("Failed to extract ExtraInv(" + factory.getId() + ") from " + player.getName());
                     e.printStackTrace();
                 }
             }
@@ -120,7 +120,7 @@ public class FCPlayerInventory implements Salvable {
                 ExtraInv extraInv = factory.onConfigLoad(extraInvSection);
                 extraInvList.add(extraInv);
             }catch (Throwable e){
-                EverNifeCore.info("Failed to load ExtraInv(" + extraInvKey + ") at " + extraInvSection.toString());
+                EverNifeCore.getLog().info("Failed to load ExtraInv(" + extraInvKey + ") at " + extraInvSection.toString());
                 e.printStackTrace();
             }
         }
@@ -183,7 +183,7 @@ public class FCPlayerInventory implements Salvable {
                 }
                 factory.applyToPlayer(player, extraInv);
             }catch (Throwable e){
-                EverNifeCore.info("Failed to restore ExtraInv(" + factory.getId() + ") into " + player.getName());
+                EverNifeCore.getLog().info("Failed to restore ExtraInv(" + factory.getId() + ") into " + player.getName());
                 e.printStackTrace();
             }
         }
