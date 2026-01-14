@@ -18,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 
 public class FCDefaultExecutor implements IFinalCMDExecutor {
 
@@ -59,8 +60,9 @@ public class FCDefaultExecutor implements IFinalCMDExecutor {
 
         MultiArgumentos argumentos = new MultiArgumentos(args, false);
         String subCommandName = argumentos.getStringArg(0);
+        CMDMethodInterpreter subCommand = null;
         try {
-            CMDMethodInterpreter subCommand = finalCommand.getSubCommand(subCommandName);
+            subCommand = finalCommand.getSubCommand(subCommandName);
 
             if (subCommand != null){
 
@@ -103,11 +105,9 @@ public class FCDefaultExecutor implements IFinalCMDExecutor {
                     finalCommand.mainInterpreter.invoke(sender, label, argumentos, finalCommand.helpContext, finalCommand.mainInterpreter.getHelpLine().setLabelsUsed(label, subCommandName));
                 }
             }
-        } catch (IllegalAccessException e) {
-            finalCommand.getPlugin().getLogger().warning("Failed to execute the FinalCMD, maybe args are wrong?");
-            throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-            finalCommand.getPlugin().getLogger().warning("Failed to execute the FinalCMD, maybe args are wrong?");
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            String commandInfo = getCommandInfo(subCommand != null ? subCommand : finalCommand.mainInterpreter, label, subCommandName, args);
+            finalCommand.getPlugin().getLogger().severe("Failed to execute the FinalCMD: " + commandInfo);
             throw new RuntimeException(e);
         }
 
@@ -121,5 +121,26 @@ public class FCDefaultExecutor implements IFinalCMDExecutor {
             localeMessage.getContextPlaceholders().put("%label%",label);
             if (sender instanceof Player) localeMessage.getContextPlaceholders().put("%player%",((Player) sender).getName());
         }
+    }
+
+    private String getCommandInfo(CMDMethodInterpreter interpreter, String label, String subCommandName, String[] args) {
+
+        if (!subCommandName.isEmpty()){
+            label = String.format("%s %s", label, subCommandName);
+        }
+
+        if (interpreter == null) {
+            return String.format("</%s> [%s] \n  Args: %s", label, finalCommand.getPlugin().getName(), Arrays.toString(args));
+        }
+        
+        String className = interpreter.getMethod().getDeclaringClass().getSimpleName();
+        String methodName = interpreter.getMethod().getName();
+        
+        return String.format("</%s> [%s] #%s%%%s \n  Args: %s",
+            label, 
+            finalCommand.getPlugin().getName(), 
+            className, 
+            methodName, 
+            java.util.Arrays.toString(args));
     }
 }
