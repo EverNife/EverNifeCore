@@ -5,12 +5,12 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
+import jakarta.annotation.Nonnull;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
 
-import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.stream.Collectors;
 

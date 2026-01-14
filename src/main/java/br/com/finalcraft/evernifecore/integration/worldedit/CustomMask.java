@@ -4,9 +4,8 @@ import com.sk89q.worldedit.Vector;
 import com.sk89q.worldedit.extent.clipboard.Clipboard;
 import com.sk89q.worldedit.function.mask.Mask;
 import com.sk89q.worldedit.function.mask.Mask2D;
+import jakarta.annotation.Nullable;
 import org.bukkit.World;
-
-import javax.annotation.Nullable;
 
 public abstract class CustomMask implements Mask {
 

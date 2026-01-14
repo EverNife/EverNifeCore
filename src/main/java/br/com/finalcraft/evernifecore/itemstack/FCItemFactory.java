@@ -3,10 +3,10 @@ package br.com.finalcraft.evernifecore.itemstack;
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
+import jakarta.annotation.Nonnull;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-import javax.annotation.Nonnull;
 import java.util.List;
 
 public class FCItemFactory {

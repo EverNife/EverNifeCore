@@ -7,9 +7,8 @@ import br.com.finalcraft.evernifecore.worldedit.region.IFCCuboidRegion;
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
 import com.sk89q.worldedit.math.transform.Transform;
+import jakarta.annotation.Nullable;
 import org.bukkit.World;
-
-import javax.annotation.Nullable;
 
 public abstract class FCBlockArrayClipboard {
 

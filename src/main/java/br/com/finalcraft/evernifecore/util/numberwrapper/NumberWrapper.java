@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.util.numberwrapper;
 
 import br.com.finalcraft.evernifecore.util.FCMathUtil;
+import jakarta.annotation.Nonnull;
 
-import javax.annotation.Nonnull;
 import java.util.Objects;
 
 public class NumberWrapper<N extends Number> implements Comparable<NumberWrapper> {

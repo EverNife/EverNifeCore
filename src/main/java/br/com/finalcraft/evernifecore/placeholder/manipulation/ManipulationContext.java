@@ -3,9 +3,9 @@ package br.com.finalcraft.evernifecore.placeholder.manipulation;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.placeholder.replacer.Closures;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;

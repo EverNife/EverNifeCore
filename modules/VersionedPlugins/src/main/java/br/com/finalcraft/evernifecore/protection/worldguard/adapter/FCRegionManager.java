@@ -5,10 +5,10 @@ import br.com.finalcraft.evernifecore.protection.worldguard.WGPlatform;
 import com.sk89q.worldguard.protection.RegionResultSet;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
+import jakarta.annotation.Nullable;
 import org.bukkit.Location;
 import org.bukkit.World;
 
-import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 

@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.util;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
+
 import java.lang.reflect.Array;
 
 public class FCArrayUtil {

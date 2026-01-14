@@ -18,9 +18,8 @@ import com.sk89q.worldedit.math.transform.Transform;
 import com.sk89q.worldedit.regions.CuboidRegion;
 import com.sk89q.worldedit.util.Location;
 import com.sk89q.worldedit.world.block.BaseBlock;
+import jakarta.annotation.Nullable;
 import org.bukkit.World;
-
-import javax.annotation.Nullable;
 
 public class ImpFCBlockArrayClipboard extends FCBlockArrayClipboard {
 

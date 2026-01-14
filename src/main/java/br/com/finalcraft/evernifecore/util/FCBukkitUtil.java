@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.ontime.OntimeManager;
 import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import br.com.finalcraft.evernifecore.version.ServerType;
+import jakarta.annotation.Nullable;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
@@ -20,7 +21,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.BlockIterator;
 
-import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Function;
 

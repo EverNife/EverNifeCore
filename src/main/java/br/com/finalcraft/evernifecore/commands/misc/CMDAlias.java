@@ -5,9 +5,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.custom.ICustomFinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.custom.contexts.CustomizeContext;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
+import jakarta.annotation.Nonnull;
 import org.bukkit.command.CommandSender;
-
-import javax.annotation.Nonnull;
 
 public class CMDAlias implements ICustomFinalCMD {
 

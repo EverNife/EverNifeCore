@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.gui.layout;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 public interface IHasLayout<LB extends LayoutBase> {
 

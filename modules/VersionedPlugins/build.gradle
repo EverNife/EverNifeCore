@@ -60,7 +60,7 @@ dependencies {
     implementation("com.google.guava:guava:31.1-jre")
 
     //Annotations
-    api 'org.jetbrains:annotations:23.0.0'
+    compileOnly "jakarta.annotation:jakarta.annotation-api:2.1.1"
 
     //Lombok
     compileOnly 'org.projectlombok:lombok:1.18.24'

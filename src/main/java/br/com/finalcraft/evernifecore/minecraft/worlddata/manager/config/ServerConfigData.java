@@ -2,8 +2,8 @@ package br.com.finalcraft.evernifecore.minecraft.worlddata.manager.config;
 
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.minecraft.region.RegionPos;
+import jakarta.annotation.Nullable;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.util.*;
 

@@ -8,9 +8,9 @@ import br.com.finalcraft.evernifecore.placeholder.FCRegexReplacers;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import dev.triumphteam.gui.builder.gui.BaseGuiBuilder;
 import dev.triumphteam.gui.guis.BaseGui;
+import jakarta.annotation.Nonnull;
 import org.bukkit.entity.Player;
 
-import javax.annotation.Nonnull;
 import java.util.function.Supplier;
 
 public class PlayerGui<P extends IPlayerData, G extends BaseGui> {

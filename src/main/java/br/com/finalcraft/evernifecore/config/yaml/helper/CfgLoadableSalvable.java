@@ -21,13 +21,13 @@ import br.com.finalcraft.evernifecore.time.DayOfToday;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.*;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.inventory.ItemStack;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.time.LocalDateTime;

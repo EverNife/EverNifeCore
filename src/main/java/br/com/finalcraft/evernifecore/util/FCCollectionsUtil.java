@@ -145,7 +145,7 @@ public class FCCollectionsUtil {
 
             // Prevenir IDs duplicados nos DTOs de entrada
             if (dtoId != null && !incomingIds.add(dtoId)) {
-                throw new IllegalArgumentException("There is a duplicated ID (%s) in the incoming DTOs List<%s>".formatted(dtoId, dto.getClass().getSimpleName()));
+                throw new IllegalArgumentException(String.format("There is a duplicated ID (%s) in the incoming DTOs List<%s>", dtoId, dto.getClass().getSimpleName()));
             }
         }
 
@@ -165,7 +165,7 @@ public class FCCollectionsUtil {
         Map<ID, ENTITY> entitiesById = existingEntities.stream()
                 .map(e -> {
                     ID id = entityIdGetter.apply(e);
-                    return id != null ? Map.entry(id, e) : null;
+                    return id != null ? new AbstractMap.SimpleEntry<>(id, e) : null;
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(

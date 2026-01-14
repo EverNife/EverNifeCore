@@ -3,12 +3,12 @@ package br.com.finalcraft.evernifecore.util;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import de.tr7zw.changeme.nbtapi.NBTContainer;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 

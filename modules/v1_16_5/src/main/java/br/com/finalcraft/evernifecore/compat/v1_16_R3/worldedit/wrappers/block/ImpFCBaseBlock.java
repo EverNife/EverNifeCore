@@ -5,8 +5,8 @@ import com.sk89q.jnbt.CompoundTag;
 import com.sk89q.worldedit.extent.reorder.MultiStageReorder;
 import com.sk89q.worldedit.world.block.BaseBlock;
 import com.sk89q.worldedit.world.block.BlockType;
+import jakarta.annotation.Nullable;
 
-import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.Map;
 

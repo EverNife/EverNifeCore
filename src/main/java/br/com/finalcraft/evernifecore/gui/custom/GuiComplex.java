@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.util.commons.SimpleEntry;
 import dev.triumphteam.gui.components.GuiType;
 import dev.triumphteam.gui.components.InteractionModifier;
 import dev.triumphteam.gui.guis.Gui;
+import jakarta.annotation.Nonnull;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -14,7 +15,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import javax.annotation.Nonnull;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -108,7 +108,7 @@ public class GuiComplex extends Gui {
         return this;
     }
 
-    public GuiComplex setOnGuiUpdate(BiConsumer<@Nonnull Player, @Nonnull GuiComplex> onGuiUpdate){
+    public GuiComplex setOnGuiUpdate(BiConsumer<Player, GuiComplex> onGuiUpdate){
         this.onGuiUpdate = onGuiUpdate;
         return this;
     }

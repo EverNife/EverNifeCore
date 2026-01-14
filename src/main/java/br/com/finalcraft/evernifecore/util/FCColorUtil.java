@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.util;
 
+import jakarta.annotation.Nullable;
 import org.bukkit.ChatColor;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

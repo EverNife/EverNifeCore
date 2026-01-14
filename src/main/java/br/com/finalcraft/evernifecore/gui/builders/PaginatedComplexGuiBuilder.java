@@ -4,8 +4,8 @@ import br.com.finalcraft.evernifecore.gui.custom.PaginatedGuiComplex;
 import dev.triumphteam.gui.builder.gui.BaseGuiBuilder;
 import dev.triumphteam.gui.components.GuiType;
 import dev.triumphteam.gui.guis.Gui;
+import jakarta.annotation.Nonnull;
 
-import javax.annotation.Nonnull;
 import java.util.function.Consumer;
 
 public class PaginatedComplexGuiBuilder extends BaseGuiBuilder<PaginatedGuiComplex, PaginatedComplexGuiBuilder> {

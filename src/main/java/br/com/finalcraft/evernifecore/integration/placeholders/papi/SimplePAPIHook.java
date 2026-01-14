@@ -3,13 +3,12 @@ package br.com.finalcraft.evernifecore.integration.placeholders.papi;
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import me.clip.placeholderapi.PlaceholderHook;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 public class SimplePAPIHook extends PlaceholderHook {
 

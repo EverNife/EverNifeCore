@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.util;
 import br.com.finalcraft.evernifecore.itemstack.nbtutil.TrackedNBTContainer;
 import br.com.finalcraft.evernifecore.nbt.NBTPlayer;
 import de.tr7zw.changeme.nbtapi.*;
+import jakarta.annotation.Nonnull;
 import org.bukkit.Chunk;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -10,7 +11,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 

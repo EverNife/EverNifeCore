@@ -6,13 +6,13 @@ import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
 import dev.triumphteam.gui.components.GuiAction;
 import dev.triumphteam.gui.guis.GuiItem;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -20,7 +20,7 @@ public class GuiItemComplex extends GuiItem {
 
     private int updateInterval = ECSettings.DEFAULT_GUI_UPDATE_TIME;
     private transient int counter = 0;
-    private Consumer<@Nonnull Context> onItemUpdate;
+    private Consumer<Context> onItemUpdate;
 
     public GuiItemComplex(@Nonnull ItemStack itemStack) {
         super(itemStack);
@@ -50,19 +50,19 @@ public class GuiItemComplex extends GuiItem {
         return this;
     }
 
-    public GuiItemComplex setOnItemUpdate(Consumer<@Nonnull Context> onItemUpdate){
+    public GuiItemComplex setOnItemUpdate(Consumer<Context> onItemUpdate){
         this.onItemUpdate = onItemUpdate;
         return this;
     }
 
-    public GuiItemComplex updateItemStack(@Nonnull Function<@Nonnull FCItemBuilder, @Nonnull ItemStack> update) {
+    public GuiItemComplex updateItemStack(@Nonnull Function<FCItemBuilder, ItemStack> update) {
         FCItemBuilder itemBuilder = FCItemFactory.from(this.getItemStack());
         this.setItemStack(update.apply(itemBuilder));
         return this;
     }
 
     @Override
-    public GuiItemComplex setAction(@Nullable GuiAction<@Nonnull InventoryClickEvent> action) {
+    public GuiItemComplex setAction(@Nullable GuiAction<InventoryClickEvent> action) {
         super.setAction(action);
         return this;
     }

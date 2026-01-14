@@ -4,9 +4,9 @@ import br.com.finalcraft.evernifecore.reflection.ConstructorInvoker;
 import br.com.finalcraft.evernifecore.reflection.FieldAccessor;
 import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;

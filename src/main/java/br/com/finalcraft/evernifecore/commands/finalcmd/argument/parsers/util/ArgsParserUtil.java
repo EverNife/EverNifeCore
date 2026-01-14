@@ -4,8 +4,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgRequirementT
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgMountException;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
+import jakarta.annotation.Nonnull;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;

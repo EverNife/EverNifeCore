@@ -9,12 +9,12 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
 import br.com.finalcraft.evernifecore.protection.worldguard.WGPlatform;
+import jakarta.annotation.Nonnull;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 
-import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.stream.Collectors;
 

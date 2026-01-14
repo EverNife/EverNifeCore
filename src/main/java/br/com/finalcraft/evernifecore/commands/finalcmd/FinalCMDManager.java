@@ -27,6 +27,8 @@ import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -38,8 +40,6 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.SimplePluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.lang.reflect.*;
 import java.util.*;
 

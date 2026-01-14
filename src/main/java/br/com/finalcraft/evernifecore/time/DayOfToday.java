@@ -1,7 +1,5 @@
 package br.com.finalcraft.evernifecore.time;
 
-import org.jetbrains.annotations.Range;
-
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -57,13 +55,15 @@ public class DayOfToday {
      * it was 13:00 of a day, you would pass 46800000L. Use {@link br.com.finalcraft.evernifecore.util.FCTimeUtil}
      * to help on conversions.
      *
+     *  @Range(from = 0, to = 86400000) long cycleReferenceTime
+     *
      *  For example:
      *     - if you pass '13:00' and right now is '14:00' it will return "TimeOfRightNow less 1 hour"
      *     - if you pass '13:00' and right now is '08:00' it will return "TimeOfRightNow less 19 hours"
      *
      * @return The time of the day in millis.
      */
-    public long getLastDailyCycleStartTime(@Range(from = 0, to = 86400000) long cycleReferenceTime){
+    public long getLastDailyCycleStartTime(long cycleReferenceTime){
         long millisOfRightNow = this.currentTimeMillisWithOffset(); // millis with offset
         long millisOfToday = millisOfRightNow % 86400000L; //Time passed today
         long midNightOfTodayAtGMT0 = System.currentTimeMillis() - millisOfToday; //Midnight of today at GMT0 + (diff with offset)
@@ -73,7 +73,7 @@ public class DayOfToday {
         return midNightOfTodayAtGMT0 + timeToGoBackOrForward;
     }
 
-    public long getTimeToNextDailyCycle(@Range(from = 0, to = 86400000)long cycleReferenceTime){
+    public long getTimeToNextDailyCycle(long cycleReferenceTime){
         return (getLastDailyCycleStartTime(cycleReferenceTime) + 86400000L) - System.currentTimeMillis();
     }
 

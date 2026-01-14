@@ -13,10 +13,9 @@ import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.flags.Flag;
 import com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
+import jakarta.annotation.Nonnull;
 import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
-
-import javax.annotation.Nonnull;
 
 public class ImpWGPlatform extends WGPlatform {
 

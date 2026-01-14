@@ -3,8 +3,8 @@ package br.com.finalcraft.evernifecore.placeholder.parser;
 import br.com.finalcraft.evernifecore.placeholder.manipulation.ManipulationContext;
 import br.com.finalcraft.evernifecore.placeholder.manipulation.Manipulator;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import jakarta.annotation.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.function.BiFunction;
 
 public class ManipulatedParser<O extends Object> {

@@ -2,11 +2,10 @@ package br.com.finalcraft.evernifecore.listeners.base;
 
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.util.FCArrayUtil;
+import jakarta.annotation.Nonnull;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
-
-import javax.annotation.Nonnull;
 
 public interface ECListener extends Listener {
 

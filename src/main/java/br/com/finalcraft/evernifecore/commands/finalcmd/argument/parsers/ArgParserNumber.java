@@ -10,11 +10,11 @@ import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import com.google.common.collect.ImmutableList;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.stream.Collectors;
 

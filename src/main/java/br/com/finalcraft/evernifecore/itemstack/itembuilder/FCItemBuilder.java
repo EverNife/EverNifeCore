@@ -7,10 +7,10 @@ import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import dev.triumphteam.gui.guis.GuiItem;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.bukkit.inventory.ItemStack;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;

@@ -2,10 +2,9 @@ package br.com.finalcraft.evernifecore.commands.finalcmd.help;
 
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.bukkit.command.CommandSender;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 public class HelpLine {
 

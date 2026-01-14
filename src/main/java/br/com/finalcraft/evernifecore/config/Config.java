@@ -12,6 +12,8 @@ import br.com.finalcraft.evernifecore.config.yaml.helper.ConfigHelper;
 import br.com.finalcraft.evernifecore.config.yaml.helper.smartloadable.SmartLoadSave;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.plugin.Plugin;
@@ -21,8 +23,6 @@ import org.simpleyaml.configuration.file.YamlConfigurationOptions;
 import org.simpleyaml.configuration.file.YamlFile;
 import org.simpleyaml.exceptions.InvalidConfigurationException;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;

@@ -13,10 +13,10 @@ import br.com.finalcraft.evernifecore.nms.data.oredict.OreDictEntry;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
+import jakarta.annotation.Nonnull;
 import org.bukkit.GameMode;
 import org.bukkit.inventory.ItemStack;
 
-import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 

@@ -7,9 +7,9 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.pageviwer.PageVizualization;
 import com.google.common.collect.ImmutableList;
+import jakarta.annotation.Nonnull;
 import org.bukkit.command.CommandSender;
 
-import javax.annotation.Nonnull;
 import java.util.List;
 
 public class ArgParserPageVizualization extends ArgParser<PageVizualization> {

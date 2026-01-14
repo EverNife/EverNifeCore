@@ -3,9 +3,9 @@ package br.com.finalcraft.evernifecore.gui.layout;
 import br.com.finalcraft.evernifecore.gui.PlayerGui;
 import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
 import dev.triumphteam.gui.guis.GuiItem;
+import jakarta.annotation.Nonnull;
 import org.bukkit.inventory.ItemStack;
 
-import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.List;
 

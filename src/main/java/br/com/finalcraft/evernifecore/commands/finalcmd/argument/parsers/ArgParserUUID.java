@@ -9,11 +9,11 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.context
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
+import jakarta.annotation.Nonnull;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
 
-import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;

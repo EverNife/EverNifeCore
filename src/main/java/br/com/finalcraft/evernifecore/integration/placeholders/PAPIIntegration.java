@@ -7,6 +7,8 @@ import br.com.finalcraft.evernifecore.integration.placeholders.papi.SimplePAPIHo
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.clip.placeholderapi.PlaceholderAPIPlugin;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
@@ -14,9 +16,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 public class PAPIIntegration {
 

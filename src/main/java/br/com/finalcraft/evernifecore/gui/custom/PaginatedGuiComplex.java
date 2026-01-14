@@ -6,11 +6,11 @@ import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import dev.triumphteam.gui.components.GuiType;
 import dev.triumphteam.gui.components.InteractionModifier;
 import dev.triumphteam.gui.guis.GuiItem;
+import jakarta.annotation.Nullable;
 import lombok.Data;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 
-import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Supplier;
 

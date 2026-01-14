@@ -22,11 +22,11 @@ import br.com.finalcraft.evernifecore.util.FCTextUtil;
 import br.com.finalcraft.evernifecore.vectors.CuboidSelection;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import com.sk89q.worldguard.protection.flags.Flag;
+import jakarta.annotation.Nonnull;
 import org.bukkit.Color;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;

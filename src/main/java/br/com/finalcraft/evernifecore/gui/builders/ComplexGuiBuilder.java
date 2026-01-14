@@ -4,9 +4,8 @@ import br.com.finalcraft.evernifecore.gui.custom.GuiComplex;
 import dev.triumphteam.gui.builder.gui.BaseGuiBuilder;
 import dev.triumphteam.gui.components.GuiType;
 import dev.triumphteam.gui.guis.Gui;
-import org.jetbrains.annotations.Contract;
+import jakarta.annotation.Nonnull;
 
-import javax.annotation.Nonnull;
 import java.util.function.Consumer;
 
 public class ComplexGuiBuilder extends BaseGuiBuilder<GuiComplex, ComplexGuiBuilder> {
@@ -30,7 +29,6 @@ public class ComplexGuiBuilder extends BaseGuiBuilder<GuiComplex, ComplexGuiBuil
      * @return The current builder
      */
     @Nonnull
-    @Contract("_ -> this")
     public ComplexGuiBuilder type(@Nonnull final GuiType guiType) {
         this.guiType = guiType;
         return this;
@@ -43,7 +41,6 @@ public class ComplexGuiBuilder extends BaseGuiBuilder<GuiComplex, ComplexGuiBuil
      */
     @Nonnull
     @Override
-    @Contract(" -> new")
     public GuiComplex create() {
         final GuiComplex gui;
         final String title = getTitle();

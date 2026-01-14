@@ -1,10 +1,10 @@
 package br.com.finalcraft.evernifecore.config.yaml.section;
 
 import br.com.finalcraft.evernifecore.config.Config;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.simpleyaml.configuration.comments.CommentType;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;

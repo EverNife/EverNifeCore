@@ -4,12 +4,12 @@ import br.com.finalcraft.evernifecore.protection.worldguard.IFCFlagRegistry;
 import br.com.finalcraft.evernifecore.unsafereflecton.UnsafeUtil;
 import com.sk89q.worldguard.protection.flags.DefaultFlag;
 import com.sk89q.worldguard.protection.flags.Flag;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import lombok.SneakyThrows;
 import org.bukkit.plugin.java.JavaPlugin;
 import sun.misc.Unsafe;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;

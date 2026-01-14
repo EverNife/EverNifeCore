@@ -1,10 +1,10 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.tab;
 
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
 
 public interface ITabParser {

@@ -9,10 +9,10 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCTimeUtil;
+import jakarta.annotation.Nonnull;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
 
-import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;

@@ -10,10 +10,10 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.nms.data.oredict.OreDictEntry;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
+import jakarta.annotation.Nonnull;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
 
-import javax.annotation.Nonnull;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;

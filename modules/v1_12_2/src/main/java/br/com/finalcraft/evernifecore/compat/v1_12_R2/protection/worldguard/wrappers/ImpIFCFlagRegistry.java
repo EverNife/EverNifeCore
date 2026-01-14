@@ -3,9 +3,9 @@ package br.com.finalcraft.evernifecore.compat.v1_12_R2.protection.worldguard.wra
 import br.com.finalcraft.evernifecore.protection.worldguard.IFCFlagRegistry;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.flags.Flag;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;

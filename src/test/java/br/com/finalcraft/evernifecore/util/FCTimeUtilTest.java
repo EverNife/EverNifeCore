@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.util;
 
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class FCTimeUtilTest {

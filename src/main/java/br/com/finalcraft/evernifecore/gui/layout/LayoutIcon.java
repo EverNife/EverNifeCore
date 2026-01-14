@@ -10,11 +10,11 @@ import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
 import com.google.common.collect.ImmutableList;
 import dev.triumphteam.gui.guis.GuiItem;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import lombok.Data;
 import org.bukkit.inventory.ItemStack;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

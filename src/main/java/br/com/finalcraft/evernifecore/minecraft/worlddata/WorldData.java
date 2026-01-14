@@ -2,8 +2,8 @@ package br.com.finalcraft.evernifecore.minecraft.worlddata;
 
 import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
+import jakarta.annotation.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

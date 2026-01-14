@@ -9,11 +9,11 @@ import br.com.finalcraft.evernifecore.inventory.data.ItemInSlot;
 import br.com.finalcraft.evernifecore.inventory.extrainvs.ExtraInv;
 import br.com.finalcraft.evernifecore.inventory.extrainvs.ExtraInvManager;
 import br.com.finalcraft.evernifecore.inventory.extrainvs.factory.IExtraInvFactory;
+import jakarta.annotation.Nullable;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

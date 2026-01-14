@@ -7,10 +7,10 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgPa
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.util.ArgsParserUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import com.google.common.collect.ImmutableList;
+import jakarta.annotation.Nonnull;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
 
-import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.stream.Collectors;
 

@@ -11,6 +11,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import com.google.common.collect.ImmutableList;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.command.Command;
@@ -20,8 +22,6 @@ import org.bukkit.command.PluginIdentifiableCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;

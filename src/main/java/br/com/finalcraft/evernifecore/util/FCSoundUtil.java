@@ -1,11 +1,10 @@
 package br.com.finalcraft.evernifecore.util;
 
 import br.com.finalcraft.evernifecore.version.MCVersion;
+import jakarta.annotation.Nonnull;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-
-import javax.annotation.Nonnull;
 
 public class FCSoundUtil {
 

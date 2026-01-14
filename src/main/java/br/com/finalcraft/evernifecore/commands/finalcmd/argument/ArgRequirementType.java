@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.argument;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
 public enum ArgRequirementType {
     REQUIRED_OR_PROVIDED_BY_CONTEXT("<(", ")>", true, true),

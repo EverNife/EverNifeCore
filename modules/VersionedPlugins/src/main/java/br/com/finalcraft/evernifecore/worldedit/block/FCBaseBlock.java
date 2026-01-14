@@ -1,8 +1,7 @@
 package br.com.finalcraft.evernifecore.worldedit.block;
 
 import com.sk89q.jnbt.CompoundTag;
-
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 
 public abstract class FCBaseBlock {
 
