@@ -8,7 +8,7 @@ import org.bukkit.inventory.ItemStack;
 
 public class FCInventoryUtil {
 
-    public static boolean getAmount(Player player, ItemStack itemStack){
+    public static int getAmount(Player player, ItemStack itemStack){
         int amount = 0;
         for (ItemStack content : player.getInventory().getStorageContents()) {
             if (content != null && content.getType() != Material.AIR){
@@ -17,7 +17,7 @@ public class FCInventoryUtil {
                 }
             }
         }
-        return amount <= 0;
+        return amount;
     }
 
     public static boolean contains(Player player, ItemStack itemStack, int amount){
