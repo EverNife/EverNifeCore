@@ -60,6 +60,11 @@ public abstract class PDSection implements IPlayerData{
     }
 
     @Override
+    public long getFirstSeen(){
+        return playerData.getFirstSeen();
+    }
+
+    @Override
     public long getLastSeen(){
         return playerData.getLastSeen();
     }

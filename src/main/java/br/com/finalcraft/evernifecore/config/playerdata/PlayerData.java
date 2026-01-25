@@ -16,6 +16,7 @@ public class PlayerData implements IPlayerData{
     protected final String playerName;
     protected final UUID uuid;
     protected final Map<String, PlayerCooldown> cooldownHashMap = new HashMap<>();
+    protected long firstSeen;
     protected long lastSeen;
     protected long lastSaved;
 
@@ -55,7 +56,8 @@ public class PlayerData implements IPlayerData{
         this.config = Objects.requireNonNull(config,"PlayConfig cannot be null!");
         this.playerName = Objects.requireNonNull(config.getString("PlayerData.Username"),"PlayerName cannot be null!");
         this.uuid = Objects.requireNonNull(config.getUUID("PlayerData.UUID"),"PlayerUUID cannot be null!");
-        this.lastSeen = config.getLong("PlayerData.lastSeen",0L);
+        this.firstSeen = config.getLong("PlayerData.firstSeen",System.currentTimeMillis());
+        this.lastSeen = config.getLong("PlayerData.lastSeen",System.currentTimeMillis());
         this.lastSaved = config.getLong("PlayerData.lastSaved", this.lastSeen);
 
         for (String cooldownID : config.getKeys("Cooldown")) {
@@ -69,6 +71,7 @@ public class PlayerData implements IPlayerData{
         this.config = config;
         this.playerName = playerName;
         this.uuid = uuid;
+        this.firstSeen = System.currentTimeMillis();
         this.lastSeen = System.currentTimeMillis();
         this.lastSaved = 0L;
 
@@ -108,6 +111,7 @@ public class PlayerData implements IPlayerData{
         //Player Data
         config.setValue("PlayerData.Username",this.playerName);
         config.setValue("PlayerData.UUID",this.uuid);
+        config.setValue("PlayerData.firstSeen",this.firstSeen);
         config.setValue("PlayerData.lastSeen",this.lastSeen);
         config.setValue("PlayerData.lastSaved",this.lastSaved);
 
@@ -149,6 +153,11 @@ public class PlayerData implements IPlayerData{
     @Override
     public String getPlayerName() {
         return playerName;
+    }
+
+    @Override
+    public long getFirstSeen() {
+        return firstSeen;
     }
 
     @Override

@@ -20,6 +20,8 @@ public interface IPlayerData {
 
     public Config getConfig();
 
+    public long getFirstSeen();
+
     public long getLastSeen();
 
     public long getLastSaved();
