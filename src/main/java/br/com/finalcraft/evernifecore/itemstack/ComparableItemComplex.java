@@ -17,7 +17,8 @@ public class ComparableItemComplex extends ComparableItem {
 
     protected NBTCompound extractCompound(ItemStack itemStack){
         try {
-            NBTItem nbtItem = FCNBTUtil.getFrom(itemStack);
+            ItemStack safeClone = FCItemFactory.from(itemStack).build();
+            NBTItem nbtItem = FCNBTUtil.getFrom(safeClone);
             return FCNBTUtil.getFrom(nbtItem.toString());
         }catch (Exception ignored){//Necessary, because some blocks are not able to have NBT
         }

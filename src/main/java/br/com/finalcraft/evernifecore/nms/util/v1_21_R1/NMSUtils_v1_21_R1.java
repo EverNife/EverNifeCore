@@ -177,10 +177,7 @@ public class NMSUtils_v1_21_R1 implements INMSUtils {
 
 	@Override
 	public String getItemRegistryName(org.bukkit.inventory.ItemStack itemStack) {
-		ItemStack mcItemStack = getHandle(itemStack);
-		Item item = mcItemStack.d();
-		MinecraftKey minecraftKey = BuiltInRegistries.i.b(item);
-		return minecraftKey.toString();
+		return "Cant extract MCIdentifier at 1.21.1 yet...";
 	}
 
 	@Override
