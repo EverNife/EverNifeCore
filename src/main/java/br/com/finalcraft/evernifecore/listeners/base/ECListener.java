@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.util.FCArrayUtil;
 import jakarta.annotation.Nonnull;
 import org.bukkit.Bukkit;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 
@@ -23,6 +24,10 @@ public interface ECListener extends Listener {
 
     public default void onRegister(){
         //Do Nothing
+    }
+
+    public default void unregisterAll() {
+        HandlerList.unregisterAll(this);
     }
 
     public static boolean register(@Nonnull Plugin pluginInstance, ECListener listener){
