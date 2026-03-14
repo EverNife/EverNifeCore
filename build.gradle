@@ -1,235 +1,81 @@
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath "com.github.jengelman.gradle.plugins:shadow:6.1.0"
-    }
-}
-
 plugins {
-    id 'idea'
-    id 'java-library'
-    id 'maven-publish'
+
 }
 
-apply plugin: "com.github.johnrengelman.shadow"
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 
-group 'br.com.finalcraft'
-version '2.0.4'
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'idea'
+    apply plugin: 'java-library'
+    apply plugin: 'maven-publish'
 
-targetCompatibility = 1.8
-sourceCompatibility = 1.8
+    group = 'br.com.finalcraft'
+    version = '2.0.4'
 
-compileJava.options.encoding = 'UTF-8'
-tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
-}
+    sourceCompatibility = 11
+    targetCompatibility = 11
 
-javadoc {
-    options.encoding = 'UTF-8'
-}
+    project.ext.evernifecore = "EverNifeCore"
+    project.ext.fullversion = "2.0.4.4"
 
-//This might keep function(parameter variable's Names) on the compiled jar
-compileJava.options.compilerArgs.add '-parameters'
-compileTestJava.options.compilerArgs.add '-parameters'
+    //This might keep function(parameter variable's Names) on the compiled jar
+    compileJava.options.compilerArgs.add '-parameters'
+    compileTestJava.options.compilerArgs.add '-parameters'
 
-repositories {
-    flatDir { //Change this to where are your local libs
-        dirs 'C:/Users/Petrus/Desktop/Meus/workshop/workshop/MyOwnPlugins/Bukkit/FinalCraftCore/libs'
-        dirs 'C:/Users/Petrus/Desktop/Meus/workshop/workshop/PublicLibs'
-        dirs 'C:/Users/Petrus/Desktop/Meus/workshop/workshop/PublicLibs/Bukkit'
-    }
-    mavenCentral()
-    maven {
-        name = 'spigotmc-repo'
-        url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots'
-    }
-    maven { url = "https://jitpack.io" }
-    maven { url = "https://maven.petrus.dev/public" }
-    maven {
-        url = 'https://repo.alessiodp.com/releases/'//For the custom libby-core
-    }
-    maven {
-        name = "CodeMC"
-        url = uri("https://repo.codemc.io/repository/maven-public/")
-    }
-}
-
-dependencies {
-    compileOnly 'org.spigotmc:spigot-api:1.19.2-R0.1-SNAPSHOT'
-
-    implementation project(':modules:VersionedPlugins')
-    implementation project(':modules:v1_7_10')
-    implementation project(':modules:v1_12_2')
-    implementation project(':modules:v1_16_5')
-
-    implementation "br.com.finalcraft:ChatMenuAPI:2.0.1"
-
-    implementation 'net.byteflux:libby-core:1.2.0'
-    implementation 'dev.triumphteam:triumph-gui:3.1.11-evernife-03'
-    implementation 'com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8.4'
-    implementation "br.com.finalcraft:ECForgeListener:1.0.6"
-
-    //NBT-API
-    implementation("de.tr7zw:item-nbt-api:2.15.2")
-    //END of NBT-API
-
-    implementation 'net.md-5:bungeecord-chat:1.16-R0.1' //This works from 1.7.10 onwards, is the same API
-
-    compileOnly('org.hibernate:hibernate-core:5.4.30.Final')
-
-    compileOnly name: "AuthMe-5.4.0"
-    compileOnly 'net.luckperms:api:5.4'
-    compileOnly name: "griefdefender-bukkit-2.2.1"
-    compileOnly name: "GriefPreventionPlus-13.3"
-    compileOnly name: "PlaceholderAPI-2.11.2"
-
-    compileOnly name: "worldguard-bukkit-6.2.2" //Prior to 1.12
-    compileOnly name: "worldedit-bukkit-6.0" //Prior to 1.12
-
-    compileOnly name: "Vault-1.6.7"
-    compileOnly name: "FeatherBoard-4.28.1" //This is a paid plugin, you need to buy it in order to build this project
-    compileOnly name: "BossShopPro-v1.9.8" //This WAS a paid plugin, (you need to buy it in order to build this project)~I Think
-    compileOnly name: "MVdWPlaceholderAPI"
-    compileOnly name: "ProtocolLib"
-    compileOnly name: "craftbukkit1710" //Thats on you to find out
-    compileOnly name: "craftbukkit1122" //Thats on you to find out
-    compileOnly name: "craftbukkit1165" //Thats on you to find out
-    compileOnly name: "craftbukkit1201" //Thats on you to find out
-    compileOnly name: "craftbukkit1202" //Thats on you to find out
-    compileOnly name: "craftbukkit1211-javadowngraded" //Thats on you to find out | Downgraded to Java 8 with https://github.com/unimined/JvmDowngrader
-    compileOnly group: 'commons-io', name: 'commons-io', version: '2.6' //Necessary for ReflectionUtils
-
-    //Annotations
-    compileOnly "jakarta.annotation:jakarta.annotation-api:2.1.1"
-
-    api group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
-
-    //JUnit
-    testImplementation group: 'junit', name: 'junit', version: '4.12'
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
-
-    //Lombok
-    compileOnly 'org.projectlombok:lombok:1.18.24'
-    annotationProcessor 'org.projectlombok:lombok:1.18.24'
-    testCompileOnly 'org.projectlombok:lombok:1.18.24'
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.24'
-
-    //Jabel (allows to use Java 17 features)
-    annotationProcessor 'com.github.bsideup.jabel:jabel-javac-plugin:0.4.2'
-    compileOnly 'com.github.bsideup.jabel:jabel-javac-plugin:0.4.2'
-
-    //Logging
-    implementation 'org.apache.logging.log4j:log4j-api:2.20.0'
-    implementation 'org.apache.logging.log4j:log4j-core:2.20.0'
-}
-
-configure([tasks.compileJava]) {
-    sourceCompatibility = 16 // for the IDE support
-    options.release = 8
-
-    javaCompiler = javaToolchains.compilerFor {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-}
-
-ext.getCallingTask = { ->
-    gradle.startParameter.taskNames.size() == 0
-            ? ""
-            : gradle.startParameter.taskNames.get(0)
-}
-
-
-shadowJar {
-    archiveName = "${baseName}-${version}.${extension}"
-    dependencies {
-        include(dependency('br.com.finalcraft:ChatMenuAPI:'))
-        include(dependency('net.byteflux:libby-core:'))
-        include(dependency('dev.triumphteam:triumph-gui:'))
-        include(dependency('de.tr7zw:item-nbt-api:')) //Oct 26, 2023
-        include(dependency('br.com.finalcraft:ECForgeListener:'))
-
-        include(project(':modules:VersionedPlugins'))
-        include(project(':modules:v1_7_10'))
-        include(project(':modules:v1_12_2'))
-        include(project(':modules:v1_16_5'))
-    }
-    if (getCallingTask().equals("publish")){
-        println "[Shadowing ExtraJars for Maven Publish]"
-        dependencies {
-            include(dependency('com.github.Carleslc.Simple-YAML:Simple-Yaml:'))
-        }
-        relocate 'org.yaml.snakeyaml', 'br.com.finalcraft.libs.snakeyaml'
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
     }
 
-    relocate 'de.tr7zw.changeme.nbtapi', 'br.com.finalcraft.libs.nbtapi'
-    relocate 'dev.triumphteam.gui', 'br.com.finalcraft.libs.triumphteam.gui'
-}
-
-configurations.all {
-    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-        def fullName = details.requested.group + ":" + details.requested.name;
-        if (fullName.equals("de.tr7zw:functional-annotations")){
-            details.useTarget("com.github.EverNife:functional-annotations:d26a567")
+    tasks.withType(Test).configureEach {
+        testLogging {
+            events = [TestLogEvent.PASSED, TestLogEvent.FAILED, TestLogEvent.SKIPPED]
+            exceptionFormat = TestExceptionFormat.FULL
+            showExceptions = true
+            showCauses = true
+            showStackTraces = true
         }
     }
-}
 
-java {
- //   withJavadocJar()
- //   withSourcesJar()
-    if (getCallingTask().equals("publish")){
-        println "[Appending SourcesJar]"
-        withSourcesJar()
-    }
-}
-
-jar {
-    enabled = false //Disable default jar, only shadow jar will be created
-    dependsOn(shadowJar { classifier = null })
-}
-
-tasks.withType(GenerateModuleMetadata) {
-    enabled = false
-}
-
-test {
-    useJUnitPlatform()
-}
-
-publishing {
     repositories {
+        // Fix issue with lwjgl-freetype not being found on macOS / ForgeGradle issue
+        //
+        // Could not resolve all files for configuration ':_compileJava_1'.
+        // Could not find lwjgl-freetype-3.3.3-natives-macos-patch.jar (org.lwjgl:lwjgl-freetype:3.3.3).
         maven {
-            name = "PetrusRepo"
-            url = "https://maven.petrus.dev/public"
-            credentials {
-                username = System.env.PETRUSMAVEN_ACTOR
-                password = System.env.PETRUSMAVEN_TOKEN
-            }
-            authentication {
-                basic(BasicAuthentication)
+            url "https://libraries.minecraft.net"
+            content {
+                includeModule("org.lwjgl", "lwjgl-freetype")
             }
         }
+        mavenCentral()
+        maven { url = "https://jitpack.io" }
+        maven { url 'https://libraries.minecraft.net/' }
+        maven { url 'https://maven.petrus.dev/public' }
+        flatDir { //Change this to where are your local libs
+            dirs 'C:/Users/Petrus/Desktop/Meus/workshop/workshop/MyOwnPlugins/Bukkit/FinalCraftCore/libs'
+            dirs 'C:/Users/Petrus/Desktop/Meus/workshop/workshop/PublicLibs'
+            dirs 'C:/Users/Petrus/Desktop/Meus/workshop/workshop/PublicLibs/Bukkit'
+        }
     }
-    publications {
-        petrus(MavenPublication) {
-            groupId = project.group
-            from(components.java)
-            pom.withXml {
-                asNode().appendNode('url','https://petrus.dev')
 
-                asNode().dependencies.'*'.each() {
-                    it.parent().remove(it) //Remove all dependencies from pom file
-                }
-                /* this does not work, sad :D
-                def repositoriesNode = asNode().appendNode('repositories')
-                def repositoryNode = repositoriesNode.appendNode('repository')
-                repositoryNode.appendNode('id', 'jitpack.io')
-                repositoryNode.appendNode('url', 'https://jitpack.io')
-                 */
-            }
+    dependencies {
+        compileOnly "jakarta.annotation:jakarta.annotation-api:2.1.1"
+
+        //Lombok
+        compileOnly 'org.projectlombok:lombok:1.18.42'
+        annotationProcessor 'org.projectlombok:lombok:1.18.42'
+        testCompileOnly 'org.projectlombok:lombok:1.18.42'
+        testAnnotationProcessor 'org.projectlombok:lombok:1.18.42'
+    }
+
+    configurations.all {
+        attributes {
+            attribute(
+                    TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE,
+                    25
+            )
         }
     }
 }

@@ -82,4 +82,22 @@ public class VaultIntegration {
 
         return econ;
     }
+
+    public static interface IVaultEconomy {
+
+    }
+
+    public static class VaultEconV1 {
+
+        private Economy economy;
+
+    }
+
+    public static class VaultEconV2 {
+
+        private Economy economy;
+
+    }
+
+
 }
