@@ -39,10 +39,10 @@ repositories {
 dependencies {
     compileOnly 'org.spigotmc:spigot-api:1.19.2-R0.1-SNAPSHOT'
 
-    implementation project(':modules:VersionedPlugins')
-    implementation project(':modules:v1_7_10')
-    implementation project(':modules:v1_12_2')
-    implementation project(':modules:v1_16_5')
+    implementation project(':minecraft:modules:VersionedPlugins')
+    implementation project(':minecraft:modules:v1_7_10')
+    implementation project(':minecraft:modules:v1_12_2')
+    implementation project(':minecraft:modules:v1_16_5')
 
     implementation "br.com.finalcraft:ChatMenuAPI:2.0.1"
 
@@ -126,10 +126,10 @@ shadowJar {
         include(dependency('de.tr7zw:item-nbt-api:')) //Oct 26, 2023
         include(dependency('br.com.finalcraft:ECForgeListener:'))
 
-        include(project(':modules:VersionedPlugins'))
-        include(project(':modules:v1_7_10'))
-        include(project(':modules:v1_12_2'))
-        include(project(':modules:v1_16_5'))
+        include(project(':minecraft:modules:VersionedPlugins'))
+        include(project(':minecraft:modules:v1_7_10'))
+        include(project(':minecraft:modules:v1_12_2'))
+        include(project(':minecraft:modules:v1_16_5'))
     }
     if (getCallingTask().equals("publish")){
         println "[Shadowing ExtraJars for Maven Publish]"

@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation project(':modules:VersionedPlugins')
+    implementation project(':minecraft:modules:VersionedPlugins')
     compileOnly 'org.bukkit:bukkit:1.12.2-R0.1-SNAPSHOT'
 
     compileOnly name: "worldguard-bukkit-6.1" //Prior to 1.7.10
