@@ -1,0 +1,41 @@
+package br.com.finalcraft.evernifecore.commands.finalcmd.help;
+
+import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
+import br.com.finalcraft.evernifecore.locale.LocaleMessage;
+import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+
+public class HelpLine {
+
+    private final LocaleMessageImp localeMessage;
+    private final String permission;
+    private transient String label = null;
+    private transient String subCMDLabel = null;
+
+    public HelpLine(LocaleMessageImp localeMessage, String permission) {
+        this.localeMessage = localeMessage;
+        this.permission = permission;
+    }
+
+    public LocaleMessage getLocaleMessage() {
+        return this.localeMessage;
+    }
+
+    public String getPermission(){
+        return permission;
+    }
+
+    public void sendTo(FCommandSender sender){
+        this.localeMessage
+                .addPlaceholder("%label%", label)
+                .addPlaceholder("%subcmd%", subCMDLabel)
+                .send(sender);
+    }
+
+    public HelpLine setLabelsUsed(@Nonnull String label, @Nullable String subCMDLabel){
+        this.label = label;
+        this.subCMDLabel = subCMDLabel;
+        return this;
+    }
+}

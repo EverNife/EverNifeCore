@@ -1,0 +1,125 @@
+plugins {
+    alias(libs.plugins.shadow)
+}
+
+sourceCompatibility = 25
+targetCompatibility = 25
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
+    withSourcesJar()
+    withJavadocJar()
+}
+
+javadoc {
+    options.addStringOption('Xdoclint:-missing', '-quiet')
+}
+
+repositories {
+    maven {
+        url = 'https://repo.alessiodp.com/releases/'//For the custom libby-core
+    }
+    repositories {
+        maven {
+            url "https://repo.codemc.io/repository/creatorfromhell/"
+        }
+    }
+    maven {
+        url = 'https://repo.codemc.io/repository/hytale/'
+        url = 'https://repo.helpch.at/releases/'
+    }
+    maven {
+        name = "hytale"
+        url = uri("https://maven.hytale.com/release") // Or "hytale-pre-release" for pre-release versions
+    }
+}
+
+dependencies {
+    compileOnly fileTree(dir: 'libs')
+
+    compileOnly("com.hypixel.hytale:Server:+")
+
+    compileOnly 'net.luckperms:api:5.4'
+    compileOnly 'net.cfh.vault:VaultUnlocked:2.18.3'
+    compileOnly 'at.helpch:placeholderapi-hytale:1.0.4'
+
+    implementation("net.kyori:adventure-api:4.26.1")
+    implementation("net.kyori:adventure-text-serializer-gson:4.26.1")
+    implementation("net.kyori:adventure-text-serializer-legacy:4.26.1")
+
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    implementation 'net.byteflux:libby-core:1.2.0'
+    implementation 'com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8.4'
+
+    implementation "jakarta.annotation:jakarta.annotation-api:3.0.0"
+    implementation 'com.google.guava:guava:33.4.8-jre'
+    implementation 'org.apache.commons:commons-lang3:3.15.0'
+    implementation 'commons-io:commons-io:2.21.0'
+
+    //Logging
+    implementation 'org.apache.logging.log4j:log4j-api:2.20.0'
+    implementation 'org.apache.logging.log4j:log4j-core:2.20.0'
+
+    //Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.42'
+    annotationProcessor 'org.projectlombok:lombok:1.18.42'
+    testCompileOnly 'org.projectlombok:lombok:1.18.42'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.42'
+}
+
+shadowJar {
+    archiveBaseName.set(project.ext.evernifecore)
+    archiveClassifier.set('Hytale')
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
+}
+
+processResources {
+    var expandProps = [
+            'name'           : project.ext.evernifecore,
+            'fullversion'    : project.ext.fullversion,
+            'group'          : project.group,
+            'author'         : author,
+            'mod_description': mod_description,
+            'website'        : website,
+            'server_version' : server_version,
+            'entry_point'    : entry_point
+    ]
+
+    filesMatching(['manifest.json']) {
+        expand expandProps
+    }
+
+    inputs.properties(expandProps)
+}
+
+artifacts {
+    archives shadowJar
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "PetrusRepo"
+            url = "https://maven.petrus.dev/public"
+            credentials {
+                username = System.env.PETRUSMAVEN_ACTOR
+                password = System.env.PETRUSMAVEN_TOKEN
+            }
+            authentication {
+                basic(BasicAuthentication)
+            }
+        }
+    }
+    publications {
+        petrus(MavenPublication) {
+            groupId = project.group
+            from(components.java)
+            pom.withXml {
+                asNode().appendNode('url','https://petrus.dev')
+            }
+        }
+    }
+}

@@ -1,0 +1,23 @@
+{
+  "Group": "${author}",
+  "Name": "${name}",
+  "Version": "${fullversion}",
+  "Description": "${mod_description}",
+  "Authors": [
+    {
+      "Name": "${author}"
+    }
+  ],
+  "Website": "${website}",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:EntityModule": "*"
+  },
+  "OptionalDependencies": {
+    "HelpChat:PlaceholderAPI": "*",
+    "TheNewEconomy:VaultUnlocked": "*"
+  },
+  "DisabledByDefault": false,
+  "Main": "${entry_point}",
+  "IncludesAssetPack": true
+}
