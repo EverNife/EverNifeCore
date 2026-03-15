@@ -54,7 +54,7 @@ public class FCEcoUtil {
     }
 
     public static boolean ecoGive(UUID playerUUID, double amount) {
-        return VaultIntegration.getEcon().ecoGive(playerUUID, BigDecimal.valueOf(amount));
+        return VaultIntegration.getEcon().ecoGive(playerUUID, amount);
     }
 
     public static boolean ecoGive(UUID playerUUID, BigDecimal amount) {
@@ -62,7 +62,7 @@ public class FCEcoUtil {
     }
 
     public static boolean ecoGive(OfflinePlayer player, double amount) {
-        return VaultIntegration.getEcon().ecoGive(player, BigDecimal.valueOf(amount));
+        return VaultIntegration.getEcon().ecoGive(player, amount);
     }
 
     public static boolean ecoGive(OfflinePlayer player, BigDecimal amount) {
@@ -82,7 +82,7 @@ public class FCEcoUtil {
     }
 
     public static boolean ecoTake(UUID playerUUID, double amount) {
-        return VaultIntegration.getEcon().ecoTake(playerUUID, BigDecimal.valueOf(amount));
+        return VaultIntegration.getEcon().ecoTake(playerUUID, amount);
     }
 
     public static boolean ecoTake(UUID playerUUID, BigDecimal amount) {
@@ -90,7 +90,7 @@ public class FCEcoUtil {
     }
 
     public static boolean ecoTake(OfflinePlayer player, double amount) {
-        return VaultIntegration.getEcon().ecoTake(player, BigDecimal.valueOf(amount));
+        return VaultIntegration.getEcon().ecoTake(player, amount);
     }
 
     public static boolean ecoTake(OfflinePlayer player, BigDecimal amount) {
@@ -110,7 +110,7 @@ public class FCEcoUtil {
     }
 
     public static boolean ecoSet(UUID playerUUID, double amount) {
-        return VaultIntegration.getEcon().ecoSet(playerUUID, BigDecimal.valueOf(amount));
+        return VaultIntegration.getEcon().ecoSet(playerUUID, amount);
     }
 
     public static boolean ecoSet(UUID playerUUID, BigDecimal amount) {
@@ -118,7 +118,7 @@ public class FCEcoUtil {
     }
 
     public static boolean ecoSet(OfflinePlayer player, double amount) {
-        return VaultIntegration.getEcon().ecoSet(player, BigDecimal.valueOf(amount));
+        return VaultIntegration.getEcon().ecoSet(player, amount);
     }
 
     public static boolean ecoSet(OfflinePlayer player, BigDecimal amount) {
@@ -138,7 +138,7 @@ public class FCEcoUtil {
     }
 
     public static boolean ecoHasEnough(UUID playerUUID, double amount) {
-        return VaultIntegration.getEcon().ecoHasEnough(playerUUID, BigDecimal.valueOf(amount));
+        return VaultIntegration.getEcon().ecoHasEnough(playerUUID, amount);
     }
 
     public static boolean ecoHasEnough(UUID playerUUID, BigDecimal amount) {
@@ -146,7 +146,7 @@ public class FCEcoUtil {
     }
 
     public static boolean ecoHasEnough(OfflinePlayer player, double amount) {
-        return VaultIntegration.getEcon().ecoHasEnough(player, BigDecimal.valueOf(amount));
+        return VaultIntegration.getEcon().ecoHasEnough(player, amount);
     }
 
     public static boolean ecoHasEnough(OfflinePlayer player, BigDecimal amount) {

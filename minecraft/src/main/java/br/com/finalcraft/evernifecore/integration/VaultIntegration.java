@@ -68,9 +68,15 @@ public class VaultIntegration {
 
         public boolean ecoGive(OfflinePlayer player, BigDecimal amount);
 
+        public boolean ecoGive(OfflinePlayer player, double amount);
+
         public boolean ecoTake(OfflinePlayer player, BigDecimal amount);
 
+        public boolean ecoTake(OfflinePlayer player, double amount);
+
         public boolean ecoSet(OfflinePlayer player, BigDecimal amount);
+
+        public boolean ecoSet(OfflinePlayer player, double amount);
 
         public double ecoGet(OfflinePlayer player);
 
@@ -78,17 +84,27 @@ public class VaultIntegration {
 
         public boolean ecoHasEnough(OfflinePlayer player, BigDecimal amount);
 
+        public boolean ecoHasEnough(OfflinePlayer player, double amount);
+
         public boolean ecoGive(UUID playerUUID, BigDecimal amount);
+
+        public boolean ecoGive(UUID playerUUID, double amount);
 
         public boolean ecoTake(UUID playerUUID, BigDecimal amount);
 
+        public boolean ecoTake(UUID playerUUID, double amount);
+
         public boolean ecoSet(UUID playerUUID, BigDecimal amount);
+
+        public boolean ecoSet(UUID playerUUID, double amount);
 
         public double ecoGet(UUID playerUUID);
 
         public BigDecimal ecoGetInBigDecimal(UUID playerUUID);
 
         public boolean ecoHasEnough(UUID playerUUID, BigDecimal amount);
+
+        public boolean ecoHasEnough(UUID playerUUID, double amount);
 
     }
 
@@ -107,18 +123,28 @@ public class VaultIntegration {
 
         @Override
         public boolean ecoGive(OfflinePlayer player, BigDecimal amount) {
-            return economy.depositPlayer(player, amount.doubleValue()).transactionSuccess();
+            return ecoGive(player, amount.doubleValue());
+        }
+
+        @Override
+        public boolean ecoGive(OfflinePlayer player, double amount) {
+            return economy.depositPlayer(player, amount).transactionSuccess();
         }
 
         @Override
         public boolean ecoTake(OfflinePlayer player, BigDecimal amount) {
-            if (amount.doubleValue() <= 0){
+            return ecoTake(player, amount.doubleValue());
+        }
+
+        @Override
+        public boolean ecoTake(OfflinePlayer player, double amount) {
+            if (amount <= 0){
                 return true;
             }
             if (!ecoHasEnough(player, amount)){
                 return false;
             }
-            return economy.withdrawPlayer(player, amount.doubleValue()).transactionSuccess();
+            return economy.withdrawPlayer(player, amount).transactionSuccess();
         }
 
         @Override
@@ -137,6 +163,20 @@ public class VaultIntegration {
         }
 
         @Override
+        public boolean ecoSet(OfflinePlayer player, double amount) {
+            double current = ecoGet(player);
+            double needed = amount - current;
+            if (needed == 0) {
+                return false;
+            }
+            if (needed > 0) {
+                return ecoGive(player, needed);
+            } else {
+                return ecoTake(player, -needed);
+            }
+        }
+
+        @Override
         public double ecoGet(OfflinePlayer player) {
             return economy.getBalance(player);
         }
@@ -148,46 +188,65 @@ public class VaultIntegration {
 
         @Override
         public boolean ecoHasEnough(OfflinePlayer player, BigDecimal amount) {
-            if (amount.doubleValue() <= 0){
+            return ecoHasEnough(player, amount.doubleValue());
+        }
+
+        @Override
+        public boolean ecoHasEnough(OfflinePlayer player, double amount) {
+            if (amount <= 0){
                 return true;
             }
-            return economy.has(player, amount.doubleValue());
+            return economy.has(player, amount);
         }
 
         @Override
         public boolean ecoGive(UUID playerUUID, BigDecimal amount) {
-            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerUUID);
-            return ecoGive(offlinePlayer, amount);
+            return ecoGive(Bukkit.getOfflinePlayer(playerUUID), amount);
+        }
+
+        @Override
+        public boolean ecoGive(UUID playerUUID, double amount) {
+            return ecoGive(Bukkit.getOfflinePlayer(playerUUID), amount);
         }
 
         @Override
         public boolean ecoTake(UUID playerUUID, BigDecimal amount) {
-            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerUUID);
-            return ecoTake(offlinePlayer, amount);
+            return ecoTake(Bukkit.getOfflinePlayer(playerUUID), amount);
+        }
+
+        @Override
+        public boolean ecoTake(UUID playerUUID, double amount) {
+            return ecoTake(Bukkit.getOfflinePlayer(playerUUID), amount);
         }
 
         @Override
         public boolean ecoSet(UUID playerUUID, BigDecimal amount) {
-            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerUUID);
-            return ecoSet(offlinePlayer, amount);
+            return ecoSet(Bukkit.getOfflinePlayer(playerUUID), amount);
+        }
+
+        @Override
+        public boolean ecoSet(UUID playerUUID, double amount) {
+            return ecoSet(Bukkit.getOfflinePlayer(playerUUID), amount);
         }
 
         @Override
         public double ecoGet(UUID playerUUID) {
-            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerUUID);
-            return ecoGet(offlinePlayer);
+            return ecoGet(Bukkit.getOfflinePlayer(playerUUID));
         }
 
         @Override
         public BigDecimal ecoGetInBigDecimal(UUID playerUUID) {
-            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerUUID);
-            return BigDecimal.valueOf(ecoGet(offlinePlayer));
+            return BigDecimal.valueOf(ecoGet(Bukkit.getOfflinePlayer(playerUUID)));
         }
 
         @Override
         public boolean ecoHasEnough(UUID playerUUID, BigDecimal amount) {
-            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerUUID);
-            return ecoHasEnough(offlinePlayer, amount);
+            return ecoHasEnough(Bukkit.getOfflinePlayer(playerUUID), amount);
+        }
+
+        @Override
+        public boolean ecoHasEnough(UUID playerUUID, double amount) {
+            return ecoHasEnough(Bukkit.getOfflinePlayer(playerUUID), amount);
         }
     }
 
@@ -210,12 +269,27 @@ public class VaultIntegration {
         }
 
         @Override
+        public boolean ecoGive(OfflinePlayer player, double amount) {
+            return this.ecoGive(player.getUniqueId(), amount);
+        }
+
+        @Override
         public boolean ecoTake(OfflinePlayer player, BigDecimal amount) {
             return this.ecoTake(player.getUniqueId(), amount);
         }
 
         @Override
+        public boolean ecoTake(OfflinePlayer player, double amount) {
+            return this.ecoTake(player.getUniqueId(), amount);
+        }
+
+        @Override
         public boolean ecoSet(OfflinePlayer player, BigDecimal amount) {
+            return this.ecoSet(player.getUniqueId(), amount);
+        }
+
+        @Override
+        public boolean ecoSet(OfflinePlayer player, double amount) {
             return this.ecoSet(player.getUniqueId(), amount);
         }
 
@@ -235,8 +309,18 @@ public class VaultIntegration {
         }
 
         @Override
+        public boolean ecoHasEnough(OfflinePlayer player, double amount) {
+            return this.ecoHasEnough(player.getUniqueId(), amount);
+        }
+
+        @Override
         public boolean ecoGive(UUID playerUUID, BigDecimal amount) {
             return economyV2.deposit(EverNifeCore.instance.getName(), playerUUID, amount).transactionSuccess();
+        }
+
+        @Override
+        public boolean ecoGive(UUID playerUUID, double amount) {
+            return ecoGive(playerUUID, BigDecimal.valueOf(amount));
         }
 
         @Override
@@ -251,8 +335,18 @@ public class VaultIntegration {
         }
 
         @Override
+        public boolean ecoTake(UUID playerUUID, double amount) {
+            return ecoTake(playerUUID, BigDecimal.valueOf(amount));
+        }
+
+        @Override
         public boolean ecoSet(UUID playerUUID, BigDecimal amount) {
             return economyV2.set(EverNifeCore.instance.getName(), playerUUID, amount).transactionSuccess();
+        }
+
+        @Override
+        public boolean ecoSet(UUID playerUUID, double amount) {
+            return ecoSet(playerUUID, BigDecimal.valueOf(amount));
         }
 
         @Override
@@ -271,6 +365,11 @@ public class VaultIntegration {
                 return true;
             }
             return economyV2.has(EverNifeCore.instance.getName(), playerUUID, amount);
+        }
+
+        @Override
+        public boolean ecoHasEnough(UUID playerUUID, double amount) {
+            return ecoHasEnough(playerUUID, BigDecimal.valueOf(amount));
         }
     }
 
