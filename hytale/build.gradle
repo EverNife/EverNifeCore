@@ -43,6 +43,8 @@ dependencies {
     compileOnly 'net.cfh.vault:VaultUnlocked:2.18.3'
     compileOnly 'at.helpch:placeholderapi-hytale:1.0.4'
 
+    implementation project(':common')
+
     implementation("net.kyori:adventure-api:4.26.1")
     implementation("net.kyori:adventure-text-serializer-gson:4.26.1")
     implementation("net.kyori:adventure-text-serializer-legacy:4.26.1")
