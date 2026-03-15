@@ -1,94 +1,156 @@
 package br.com.finalcraft.evernifecore.util;
 
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
-import br.com.finalcraft.evernifecore.economy.EconomyManager;
+import br.com.finalcraft.evernifecore.integration.VaultIntegration;
 import org.bukkit.OfflinePlayer;
 
-import java.util.Objects;
+import java.math.BigDecimal;
+import java.util.UUID;
 
 public class FCEcoUtil {
 
-    /**
-     * Get Players Balance
-     *
-     * @param playerData The Player's PlayerData
-     */
-    public static double ecoGet(IPlayerData playerData){
-        return EconomyManager.getProvider().ecoGet(playerData.getPlayerData());
+    // =========================================================================
+    // ecoGet (double)
+    // =========================================================================
+
+    public static double ecoGet(IPlayerData playerData) {
+        return ecoGet(playerData.getUniqueId());
+    }
+
+    public static double ecoGet(UUID playerUUID) {
+        return VaultIntegration.getEcon().ecoGet(playerUUID);
     }
 
     public static double ecoGet(OfflinePlayer player) {
-        PlayerData playerData = PlayerController.getPlayerData(player);
-        Objects.requireNonNull(playerData, player.getName() + " does not exist on EverNifeCore's Database!");
-        return ecoGet(playerData);
+        return VaultIntegration.getEcon().ecoGet(player);
     }
 
-    /**
-     * Give money to a Player
-     *
-     * @param playerData The Player's PlayerData
-     * @param value The amount of money
-     */
-    public static void ecoGive(IPlayerData playerData, double value) {
-        EconomyManager.getProvider().ecoGive(playerData.getPlayerData(), value);
+    // =========================================================================
+    // ecoGetInBigDecimal
+    // =========================================================================
+
+    public static BigDecimal ecoGetInBigDecimal(IPlayerData playerData) {
+        return ecoGetInBigDecimal(playerData.getUniqueId());
     }
 
-    public static void ecoGive(OfflinePlayer player, double value) {
-        PlayerData playerData = PlayerController.getPlayerData(player);
-        Objects.requireNonNull(playerData, player.getName() + " does not exist on EverNifeCore's Database!");
-        ecoGive(playerData, value);
+    public static BigDecimal ecoGetInBigDecimal(UUID playerUUID) {
+        return VaultIntegration.getEcon().ecoGetInBigDecimal(playerUUID);
     }
 
-    /**
-     * It takes money from the player.
-     *
-     * @param playerData The player's data.
-     * @param value The amount of money to take from the player.
-     * @return A boolean value.
-     */
-    public static boolean ecoTake(IPlayerData playerData, double value) {
-        return EconomyManager.getProvider().ecoTake(playerData.getPlayerData(), value);
+    public static BigDecimal ecoGetInBigDecimal(OfflinePlayer player) {
+        return VaultIntegration.getEcon().ecoGetInBigDecimal(player);
     }
 
-    public static boolean ecoTake(OfflinePlayer player, double value) {
-        PlayerData playerData = PlayerController.getPlayerData(player);
-        Objects.requireNonNull(playerData, player.getName() + " does not exist on EverNifeCore's Database!");
-        return ecoTake(playerData, value);
+    // =========================================================================
+    // ecoGive
+    // =========================================================================
+
+    public static boolean ecoGive(IPlayerData playerData, double amount) {
+        return ecoGive(playerData.getUniqueId(), amount);
     }
 
-    /**
-     * Set the money from a Player to a specific value
-     *
-     * @param playerData The Player's PlayerData
-     * @param value The amount of money
-     */
-    public static void ecoSet(IPlayerData playerData, double value) {
-        EconomyManager.getProvider().ecoSet(playerData.getPlayerData(), value);
+    public static boolean ecoGive(IPlayerData playerData, BigDecimal amount) {
+        return ecoGive(playerData.getUniqueId(), amount);
     }
 
-    public static void ecoSet(OfflinePlayer player, double value) {
-        PlayerData playerData = PlayerController.getPlayerData(player);
-        Objects.requireNonNull(playerData, player.getName() + " does not exist on EverNifeCore's Database!");
-        ecoSet(playerData, value);
+    public static boolean ecoGive(UUID playerUUID, double amount) {
+        return VaultIntegration.getEcon().ecoGive(playerUUID, BigDecimal.valueOf(amount));
     }
 
-    /**
-     * Returns true if the player has enough money, false if they don't.
-     *
-     * @param playerData The player's data.
-     * @param value The amount of money to add/remove
-     * @return A boolean value.
-     */
-    public static boolean ecoHasEnough(IPlayerData playerData, double value) {
-        return ecoGet(playerData) >= value;
+    public static boolean ecoGive(UUID playerUUID, BigDecimal amount) {
+        return VaultIntegration.getEcon().ecoGive(playerUUID, amount);
     }
 
-    public static boolean ecoHasEnough(OfflinePlayer player, double value) {
-        PlayerData playerData = PlayerController.getPlayerData(player);
-        Objects.requireNonNull(playerData, player.getName() + " does not exist on EverNifeCore's Database!");
-        return ecoHasEnough(playerData, value);
+    public static boolean ecoGive(OfflinePlayer player, double amount) {
+        return VaultIntegration.getEcon().ecoGive(player, BigDecimal.valueOf(amount));
+    }
+
+    public static boolean ecoGive(OfflinePlayer player, BigDecimal amount) {
+        return VaultIntegration.getEcon().ecoGive(player, amount);
+    }
+
+    // =========================================================================
+    // ecoTake
+    // =========================================================================
+
+    public static boolean ecoTake(IPlayerData playerData, double amount) {
+        return ecoTake(playerData.getUniqueId(), amount);
+    }
+
+    public static boolean ecoTake(IPlayerData playerData, BigDecimal amount) {
+        return ecoTake(playerData.getUniqueId(), amount);
+    }
+
+    public static boolean ecoTake(UUID playerUUID, double amount) {
+        return VaultIntegration.getEcon().ecoTake(playerUUID, BigDecimal.valueOf(amount));
+    }
+
+    public static boolean ecoTake(UUID playerUUID, BigDecimal amount) {
+        return VaultIntegration.getEcon().ecoTake(playerUUID, amount);
+    }
+
+    public static boolean ecoTake(OfflinePlayer player, double amount) {
+        return VaultIntegration.getEcon().ecoTake(player, BigDecimal.valueOf(amount));
+    }
+
+    public static boolean ecoTake(OfflinePlayer player, BigDecimal amount) {
+        return VaultIntegration.getEcon().ecoTake(player, amount);
+    }
+
+    // =========================================================================
+    // ecoSet
+    // =========================================================================
+
+    public static boolean ecoSet(IPlayerData playerData, double amount) {
+        return ecoSet(playerData.getUniqueId(), amount);
+    }
+
+    public static boolean ecoSet(IPlayerData playerData, BigDecimal amount) {
+        return ecoSet(playerData.getUniqueId(), amount);
+    }
+
+    public static boolean ecoSet(UUID playerUUID, double amount) {
+        return VaultIntegration.getEcon().ecoSet(playerUUID, BigDecimal.valueOf(amount));
+    }
+
+    public static boolean ecoSet(UUID playerUUID, BigDecimal amount) {
+        return VaultIntegration.getEcon().ecoSet(playerUUID, amount);
+    }
+
+    public static boolean ecoSet(OfflinePlayer player, double amount) {
+        return VaultIntegration.getEcon().ecoSet(player, BigDecimal.valueOf(amount));
+    }
+
+    public static boolean ecoSet(OfflinePlayer player, BigDecimal amount) {
+        return VaultIntegration.getEcon().ecoSet(player, amount);
+    }
+
+    // =========================================================================
+    // ecoHasEnough
+    // =========================================================================
+
+    public static boolean ecoHasEnough(IPlayerData playerData, double amount) {
+        return ecoHasEnough(playerData.getUniqueId(), amount);
+    }
+
+    public static boolean ecoHasEnough(IPlayerData playerData, BigDecimal amount) {
+        return ecoHasEnough(playerData.getUniqueId(), amount);
+    }
+
+    public static boolean ecoHasEnough(UUID playerUUID, double amount) {
+        return VaultIntegration.getEcon().ecoHasEnough(playerUUID, BigDecimal.valueOf(amount));
+    }
+
+    public static boolean ecoHasEnough(UUID playerUUID, BigDecimal amount) {
+        return VaultIntegration.getEcon().ecoHasEnough(playerUUID, amount);
+    }
+
+    public static boolean ecoHasEnough(OfflinePlayer player, double amount) {
+        return VaultIntegration.getEcon().ecoHasEnough(player, BigDecimal.valueOf(amount));
+    }
+
+    public static boolean ecoHasEnough(OfflinePlayer player, BigDecimal amount) {
+        return VaultIntegration.getEcon().ecoHasEnough(player, amount);
     }
 
 }
