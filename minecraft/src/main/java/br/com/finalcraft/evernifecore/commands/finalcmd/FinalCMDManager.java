@@ -257,6 +257,11 @@ public class FinalCMDManager {
                 return; //Command is not registered
             }
 
+            if (MCVersion.isHigherEquals(MCVersion.v1_19)) {
+                CommandMap commandMap1 = getCommandMap();
+                existingCommand.unregister(commandMap1);
+            }
+
             mapOfCommands.remove(commandName);
 
             String originalPlugin = "BUKKIT";
