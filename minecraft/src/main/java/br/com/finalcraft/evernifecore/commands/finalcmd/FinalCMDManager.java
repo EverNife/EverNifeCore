@@ -27,6 +27,7 @@ import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
+import br.com.finalcraft.evernifecore.version.MCVersion;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.Bukkit;
@@ -264,7 +265,21 @@ public class FinalCMDManager {
 
             mapOfCommands.remove(commandName);
 
-            String originalPlugin = "BUKKIT";
+            Set<String> extrasMinecraftAliases = new HashSet<>();
+            for (Map.Entry<String, Command> entry : mapOfCommands.entrySet()) {
+                if (entry.getValue().equals(existingCommand)){
+                    if (entry.getKey().startsWith("minecraft:")){
+                        extrasMinecraftAliases.add(entry.getKey());
+                    }
+                }
+            }
+
+            for (String extrasMinecraftAlias : extrasMinecraftAliases) {
+                //This is necessary to remove forge/minecraft commands like 'minecraft:some_command'
+                mapOfCommands.remove(extrasMinecraftAlias);
+            }
+
+            String originalPlugin = "BUKKIT/MINECRAFT";
             if (existingCommand instanceof PluginIdentifiableCommand){
                 Plugin plugin = ((PluginIdentifiableCommand) existingCommand).getPlugin();
                 if (plugin != null){
@@ -277,6 +292,13 @@ public class FinalCMDManager {
             }else {
                 notifyPlugin.getLogger().warning("Removing existent alias (" + commandName + ") for [" + existingCommand.getName() + "] from " + originalPlugin + "!");
             }
+
+            for (String extrasMinecraftAlias : extrasMinecraftAliases) {
+                notifyPlugin.getLogger().warning("Removing extra related Minecraft command: " + extrasMinecraftAlias);
+            }
+
+            existingCommand.unregister(getCommandMap());
+
         }catch (Exception e){
             EverNifeCore.getLog().warning("Failed to UNREGISTER command [" +  commandName + "]");
             e.printStackTrace();
