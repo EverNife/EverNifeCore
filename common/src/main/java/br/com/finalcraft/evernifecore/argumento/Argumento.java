@@ -1,18 +1,13 @@
 package br.com.finalcraft.evernifecore.argumento;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.hytale.argumento.HytaleArgumento;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import br.com.finalcraft.evernifecore.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
-import com.hypixel.hytale.server.core.NameMatching;
-import com.hypixel.hytale.server.core.plugin.JavaPlugin;
-import com.hypixel.hytale.server.core.plugin.PluginManager;
-import com.hypixel.hytale.server.core.universe.PlayerRef;
-import com.hypixel.hytale.server.core.universe.Universe;
-import com.hypixel.hytale.server.core.universe.world.World;
 
 import java.util.UUID;
 
@@ -20,7 +15,7 @@ public class Argumento {
 
     public final static Argumento EMPTY_ARG = new Argumento("");
 
-    private final String argumento;
+    protected final String argumento;
 
     public Argumento(String argumento) {
         this.argumento = argumento;
@@ -61,28 +56,10 @@ public class Argumento {
         return this.argumento.toUpperCase();
     }
 
-    public FPlayer getPlayer(){
-
-        if (argumento.isEmpty()){
-            return null;
-        }
-
-        PlayerRef playerRef = null;
-
-        for(World world : Universe.get().getWorlds().values()) {
-
-            playerRef = NameMatching.EXACT_IGNORE_CASE.find(world.getPlayerRefs(), argumento, PlayerRef::getUsername);
-
-            if (playerRef != null) {
-                break;
-            }
-        }
-
-        if (playerRef == null){
-            return null;
-        }
-
-        return FCHytaleUtil.wrap(playerRef);
+    public FPlayer getPlayer() {
+        return EverNifeCore.instance.getProviders()
+                .getPlatformOperations()
+                .getPlayer(argumento);
     }
 
     public PlayerData getPlayerData(){
@@ -99,13 +76,6 @@ public class Argumento {
     public <T extends PDSection> T getPDSection(Class<? extends T> pdClass){
         PlayerData playerData = getPlayerData();
         return playerData == null ? null : playerData.getPDSection(pdClass);
-    }
-
-    public JavaPlugin getPlugin(){
-        return (JavaPlugin) PluginManager.get().getPlugins().stream()
-                .filter(pluginBase -> pluginBase.getIdentifier().toString().equalsIgnoreCase(argumento))
-                .findFirst()
-                .orElse(null);
     }
 
     public Integer getInteger(){
@@ -170,10 +140,6 @@ public class Argumento {
         return numberWrapper != null ? numberWrapper : def == null ? null : NumberWrapper.of(def);
     }
 
-    public World getWorld(){
-        return argumento.isEmpty() ? null : Universe.get().getWorld(argumento);
-    }
-
     public Boolean getBoolean(){
         if (argumento.isEmpty()) return null;
         switch (argumento.toLowerCase()){
@@ -216,6 +182,10 @@ public class Argumento {
     @Override
     public String toString() {
         return argumento;
+    }
+
+    public HytaleArgumento asHytaleArg(){
+        return new HytaleArgumento(this.argumento);
     }
 }
 
