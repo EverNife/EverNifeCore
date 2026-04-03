@@ -1,0 +1,25 @@
+repositories {
+    maven {
+        url = 'https://repo.alessiodp.com/releases/' //For the custom libby-core
+    }
+}
+
+dependencies {
+    compileOnly 'org.slf4j:slf4j-api:1.7.36'
+    compileOnly 'org.apache.commons:commons-lang3:3.15.0'
+    compileOnly 'commons-io:commons-io:2.21.0'
+
+    implementation 'net.byteflux:libby-core:1.2.0'
+
+    annotationProcessor 'com.github.bsideup.jabel:jabel-javac-plugin:0.4.2'
+    compileOnly 'com.github.bsideup.jabel:jabel-javac-plugin:0.4.2'
+}
+
+configure([tasks.compileJava]) {
+    sourceCompatibility = 16 // for the IDE support
+    options.release = 8
+
+    javaCompiler = javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(16)
+    }
+}
