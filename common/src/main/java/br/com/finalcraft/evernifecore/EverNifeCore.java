@@ -9,7 +9,6 @@ import br.com.finalcraft.evernifecore.config.yaml.helper.CfgExecutor;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
-import br.com.finalcraft.evernifecore.integration.placeholders.PAPIIntegration;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
 import br.com.finalcraft.evernifecore.thread.SaveConfigThread;

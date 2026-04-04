@@ -6,8 +6,6 @@ import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.PluginClassLoader;
 import jakarta.annotation.Nonnull;
 
-import java.io.File;
-
 public class FCJavaPluginUtil {
 
     public static JavaPlugin getProvidingPlugin(@Nonnull Class<?> clazz) {

@@ -9,7 +9,6 @@ import br.com.finalcraft.evernifecore.config.yaml.caching.SmartCachedYamlFileHol
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCExecutorsUtil;
-import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 

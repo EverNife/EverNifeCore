@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.scheduler;
 import br.com.finalcraft.evernifecore.hytale.scheduler.HyFCScheduler;
 import br.com.finalcraft.evernifecore.hytale.scheduler.McFCScheduler;
 
-import java.util.concurrent.*;
+import java.util.concurrent.TimeUnit;
 
 public class FCScheduler {
 

@@ -1,7 +1,5 @@
 package br.com.finalcraft.evernifecore.api.common.providers;
 
-import br.com.finalcraft.evernifecore.logger.ECDebugModule;
-
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;

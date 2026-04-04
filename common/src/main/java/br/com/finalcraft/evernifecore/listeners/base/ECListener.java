@@ -3,14 +3,10 @@ package br.com.finalcraft.evernifecore.listeners.base;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
-import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
 import br.com.finalcraft.evernifecore.util.FCArrayUtil;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import jakarta.annotation.Nonnull;
 
-import java.util.*;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 public interface ECListener {
 

@@ -7,9 +7,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserComman
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserContextual;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
-import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
-import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import jakarta.annotation.Nonnull;
 
