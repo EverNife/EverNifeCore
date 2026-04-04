@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 public class DependencyManager extends LibraryManager {
@@ -58,9 +59,7 @@ public class DependencyManager extends LibraryManager {
 
         CountDownLatch latch = new CountDownLatch(libraries.size());
 
-        final ExecutorService executor = FCExecutorsUtil.createVirtualExecutorIfPossible(
-                "dependencymanager"
-        );
+        final ExecutorService executor = Executors.newFixedThreadPool(3);
 
         for (Library library : libraries) {
             executor.execute(() -> {
