@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.api.common.player;
 
+import java.util.Objects;
+
 public abstract class BaseFPlayer<DELEGATE> implements FPlayer {
 
     protected final DELEGATE delegate;
@@ -15,7 +17,7 @@ public abstract class BaseFPlayer<DELEGATE> implements FPlayer {
 
     @Override
     public int hashCode() {
-        return getDelegate().hashCode();
+        return Objects.hashCode(getDelegate());
     }
 
 }

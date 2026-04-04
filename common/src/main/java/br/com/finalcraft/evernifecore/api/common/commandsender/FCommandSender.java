@@ -2,9 +2,9 @@ package br.com.finalcraft.evernifecore.api.common.commandsender;
 
 import br.com.finalcraft.evernifecore.api.common.IFHasDelegate;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import jakarta.annotation.Nonnull;
 import net.kyori.adventure.text.Component;
 
-import javax.annotation.Nonnull;
 import java.util.UUID;
 
 public interface FCommandSender extends IFHasDelegate {

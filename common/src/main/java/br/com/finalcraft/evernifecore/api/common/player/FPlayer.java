@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.api.common.player;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-
-import javax.annotation.Nonnull;
+import br.com.finalcraft.evernifecore.api.hytale.HytaleFPlayer;
+import jakarta.annotation.Nonnull;
 
 public interface FPlayer extends FCommandSender {
 
@@ -10,6 +10,10 @@ public interface FPlayer extends FCommandSender {
 
     default void kick(@Nonnull String reason) {
         //Do kick
+    }
+
+    public default HytaleFPlayer asHytaleFPlayer(){
+        return (HytaleFPlayer) (Object) this;
     }
 
 }
