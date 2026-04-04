@@ -4,7 +4,7 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 
-public class ECPlayerDataEvent implements IECBaseEvent {
+public class ECPlayerDataEvent implements IECEvent {
 
     public final PlayerData playerData;
 

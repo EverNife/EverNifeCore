@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.api.common;
 
-public interface IFHasDelegate {
+public interface IHasDelegate {
 
     public Object getDelegate();
 

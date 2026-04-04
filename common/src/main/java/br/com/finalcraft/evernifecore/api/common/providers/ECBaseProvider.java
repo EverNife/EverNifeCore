@@ -4,8 +4,11 @@ import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 public class ECBaseProvider {
+
+    private static final Logger logger = Logger.getLogger("ECBaseProvider");
 
     private final ConcurrentHashMap<Class<?>, Object> REGISTERED_PROVIDERS = new ConcurrentHashMap<>();
 
@@ -20,9 +23,9 @@ public class ECBaseProvider {
     public <T> T register(Class<T> providerType, T something) {
         Object previousProvider = REGISTERED_PROVIDERS.put(providerType, something);
 
-        ECDebugModule.EC_PROVIDERS.infoModule("Registering ECPorvider#%s with %s", providerType.getSimpleName(), something.getClass().getName());
+        logger.info(String.format("[ECBaseProvider] Registering ECPorvider#%s with %s",  providerType.getSimpleName(), something.getClass().getName()));
         if (previousProvider != null) {
-            ECDebugModule.EC_PROVIDERS.warningModule("  The previous ECPorvider#%s %s was removed!", providerType.getSimpleName(), previousProvider.getClass().getName());
+            logger.warning(String.format("ECBaseProvider] The previous ECPorvider#%s %s was removed!", providerType.getSimpleName(), previousProvider.getClass().getName()));
         }
 
         return something;

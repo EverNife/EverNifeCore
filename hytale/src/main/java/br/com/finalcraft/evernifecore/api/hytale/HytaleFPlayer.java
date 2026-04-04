@@ -4,7 +4,7 @@ import br.com.finalcraft.evernifecore.api.common.player.BaseFPlayer;
 import br.com.finalcraft.evernifecore.api.hytale.math.vector.LocPos;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
-import br.com.finalcraft.evernifecore.util.FCAdventureUtil;
+import br.com.finalcraft.evernifecore.hytale.util.FCAdventureUtil;
 import com.hypixel.hytale.builtin.teleport.components.TeleportHistory;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
@@ -100,7 +100,7 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
 
         World world = store.getExternalData().getWorld();
 
-        return FCScheduler.SynchronizedAction.runAndGet(world, () -> {
+        return FCScheduler.getHytaleScheduler().getSynchronizedAction().runAndGet(world, () -> {
             TransformComponent transformComponent = store.getComponent(ref, TransformComponent.getComponentType());
             if (transformComponent == null) {
                 return null;
@@ -143,7 +143,7 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         AtomicReference<TransformComponent> transformComponent = new AtomicReference<>();
         AtomicReference<HeadRotation> headRotationComponent = new AtomicReference<>();
 
-        FCScheduler.SynchronizedAction.run(sourceWorld, () -> {
+        FCScheduler.getHytaleScheduler().getSynchronizedAction().run(sourceWorld, () -> {
             //Get these components only inside the sourceWorld
             transformComponent.set(store.getComponent(ref, TransformComponent.getComponentType()));
             headRotationComponent.set(store.getComponent(ref, HeadRotation.getComponentType()));
@@ -167,7 +167,7 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         float yaw = safeTargetLocation.getRotation().getY();
         float roll = safeTargetLocation.getRotation().getZ();
 
-        FCScheduler.SynchronizedAction.run(sourceWorld, () -> {
+        FCScheduler.getHytaleScheduler().getSynchronizedAction().run(sourceWorld, () -> {
             Teleport teleport = new Teleport(
                     targetWorld,
                     safeTargetLocation.getPosition(),

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.api.common.providers.extractors;
 
+import br.com.finalcraft.evernifecore.ecplugin.IPluginData;
 import jakarta.annotation.Nonnull;
 
 public interface IECPluginExtractor {
@@ -14,8 +15,8 @@ public interface IECPluginExtractor {
         }
     }
 
-    public Object getProvidingPlugin(@Nonnull Class<?> clazz) {
-        return plugin;
-    }
+    public Object getProvidingPlugin(@Nonnull Class<?> clazz);
+
+    public IPluginData getPluginData(Object javaPlugin);
 
 }

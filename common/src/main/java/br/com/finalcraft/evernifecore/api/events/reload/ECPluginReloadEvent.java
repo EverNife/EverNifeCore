@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.api.events.reload;
 
-import br.com.finalcraft.evernifecore.api.events.base.IECBaseEvent;
+import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 
 /**
@@ -18,7 +18,7 @@ public abstract class ECPluginReloadEvent {
         return ecPluginData;
     }
 
-    public static class Pre extends ECPluginReloadEvent implements IECBaseEvent {
+    public static class Pre extends ECPluginReloadEvent implements IECEvent {
 
         public Pre(ECPluginData ecPluginData) {
             super(ecPluginData);
@@ -26,7 +26,7 @@ public abstract class ECPluginReloadEvent {
 
     }
 
-    public static class Post extends ECPluginReloadEvent implements IECBaseEvent {
+    public static class Post extends ECPluginReloadEvent implements IECEvent {
 
         public Post(ECPluginData ecPluginData) {
             super(ecPluginData);
