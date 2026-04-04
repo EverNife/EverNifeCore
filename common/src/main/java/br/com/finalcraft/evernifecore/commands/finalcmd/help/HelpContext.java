@@ -30,7 +30,7 @@ public class HelpContext {
     public HelpContext(String helpHeader, FinalCMDPluginCommand finalCMDPluginCommand) {
         this.helpHeader = helpHeader;
         this.finalCMDPluginCommand = finalCMDPluginCommand;
-        this.helpLines = ImmutableList.copyOf(finalCMDPluginCommand.subCommands.stream().map(CMDMethodInterpreter::getHelpLine).collect(Collectors.toList()));
+        this.helpLines = ImmutableList.copyOf(finalCMDPluginCommand.getSubCommands().stream().map(CMDMethodInterpreter::getHelpLine).collect(Collectors.toList()));
         this.lastLabel = finalCMDPluginCommand.getPrimaryLabel();
     }
 
@@ -64,7 +64,7 @@ public class HelpContext {
 
         boolean isPlayer = sender instanceof FPlayer;
 
-        outer: for (CMDMethodInterpreter subCommand : finalCMDPluginCommand.subCommands) {
+        outer: for (CMDMethodInterpreter subCommand : finalCMDPluginCommand.getSubCommands()) {
             if (!subCommand.getCmdData().getPermission().isEmpty() && !sender.hasPermission(subCommand.getCmdData().getPermission())){
                 continue;
             }

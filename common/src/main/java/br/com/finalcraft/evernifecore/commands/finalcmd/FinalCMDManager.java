@@ -245,23 +245,7 @@ public class FinalCMDManager {
     }
 
     public static void unregisterCommand(String commandName, ECPluginData notifyPlugin){
-        try {
-            for (AbstractCommand existingCommand : CommandManager.get().getCommandRegistration().values()) {
-                if (existingCommand.getName().equalsIgnoreCase(commandName)){
-                    CommandManager.get().getCommandRegistration().remove(commandName);
-                    notifyPlugin.getLog().warning("Removing existent command [" + commandName + "] from " + existingCommand.getOwner().getName() + "!");
-                    return;
-                }
-
-                if (existingCommand.getAliases().contains(commandName)){
-                    existingCommand.getAliases().remove(commandName);
-                    notifyPlugin.getLog().warning("Removing existent alias (" + commandName + ") from " + existingCommand.getOwner().getName() + "!");
-                }
-            }
-        }catch (Exception e){
-            EverNifeCore.getLog().warning("Failed to UNREGISTER command [" +  commandName + "]");
-            e.printStackTrace();
-        }
+        EverNifeCore.getPlatform().unregisterCommand(commandName, notifyPlugin);
     }
 
 }

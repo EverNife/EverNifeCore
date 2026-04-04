@@ -44,7 +44,7 @@ public class MethodData<T extends CMDData> {
             }
 
             FlagArg flagArg = (FlagArg) Arrays.stream(tuple.getRight())
-                    .filter(annotation -> annotation.annotationType() == Arg.class)
+                    .filter(annotation -> annotation.annotationType() == FlagArg.class)
                     .findFirst()
                     .orElse(null);
             if (flagArg != null){
@@ -52,7 +52,7 @@ public class MethodData<T extends CMDData> {
             }
 
             ContextualArg contextualArg = (ContextualArg) Arrays.stream(tuple.getRight())
-                    .filter(annotation -> annotation.annotationType() == Arg.class)
+                    .filter(annotation -> annotation.annotationType() == ContextualArg.class)
                     .findFirst()
                     .orElse(null);
             if (contextualArg != null){
