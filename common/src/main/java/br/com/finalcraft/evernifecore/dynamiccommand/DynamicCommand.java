@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.dynamiccommand;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
+import br.com.finalcraft.evernifecore.cooldown.GenericCooldown;
 import org.apache.commons.lang3.Validate;
 
 import java.util.UUID;
@@ -14,12 +15,12 @@ public class DynamicCommand {
     private final UUID uuid;
     private final String identifier;
     private final Cooldown cooldown;
-    private final Consumer<DynamicCommand.Context> action;
-    private final Function<DynamicCommand.Context, Boolean> shouldRun;
-    private final Function<DynamicCommand.Context, Boolean> shouldRemove;
+    private final Consumer<Context> action;
+    private final Function<Context, Boolean> shouldRun;
+    private final Function<Context, Boolean> shouldRemove;
     private int runs = 0;
 
-    public DynamicCommand(UUID uuid, String identifier, Cooldown cooldown, Consumer<DynamicCommand.Context> action, Function<Context, Boolean> shouldRun, Function<Context, Boolean> shouldRemove) {
+    public DynamicCommand(UUID uuid, String identifier, Cooldown cooldown, Consumer<Context> action, Function<Context, Boolean> shouldRun, Function<Context, Boolean> shouldRemove) {
         this.uuid = uuid;
         this.identifier = identifier;
         this.cooldown = cooldown;
@@ -37,7 +38,7 @@ public class DynamicCommand {
     }
 
     public void runAction(FCommandSender sender) {
-        action.accept(new DynamicCommand.Context(sender, this));
+        action.accept(new Context(sender, this));
     }
 
     public Cooldown getCooldown() {
@@ -45,11 +46,11 @@ public class DynamicCommand {
     }
 
     public boolean shouldRemove(FCommandSender sender) {
-        return shouldRemove.apply(new DynamicCommand.Context(sender, this));
+        return shouldRemove.apply(new Context(sender, this));
     }
 
     public boolean shouldRun(FCommandSender sender) {
-        return shouldRun.apply(new DynamicCommand.Context(sender, this));
+        return shouldRun.apply(new Context(sender, this));
     }
 
     public int getRuns() {
@@ -72,14 +73,14 @@ public class DynamicCommand {
         private UUID uuid;
         private String identifier;
         private Cooldown cooldown;
-        private Consumer<DynamicCommand.Context> action;
-        private Function<DynamicCommand.Context, Boolean> shouldRun;
-        private Function<DynamicCommand.Context, Boolean> shouldRemove;
+        private Consumer<Context> action;
+        private Function<Context, Boolean> shouldRun;
+        private Function<Context, Boolean> shouldRemove;
 
         protected Builder() {
             this.uuid = UUID.randomUUID();
             this.identifier = "";
-            this.cooldown = new Cooldown.GenericCooldown("");
+            this.cooldown = new GenericCooldown("");
             this.cooldown.setDuration(1200);//20 min
             this.action = null;
             this.shouldRun = context -> true; //By Default, run for anyone
@@ -111,12 +112,12 @@ public class DynamicCommand {
             return this;
         }
 
-        public Builder setShouldRun(Function<DynamicCommand.Context, Boolean> shouldRun) {
+        public Builder setShouldRun(Function<Context, Boolean> shouldRun) {
             this.shouldRun = shouldRun;
             return this;
         }
 
-        public Builder setShouldRemove(Function<DynamicCommand.Context, Boolean> shouldRemove) {
+        public Builder setShouldRemove(Function<Context, Boolean> shouldRemove) {
             this.shouldRemove = shouldRemove;
             return this;
         }

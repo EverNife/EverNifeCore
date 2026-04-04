@@ -1,7 +1,5 @@
 package br.com.finalcraft.evernifecore.dynamiccommand;
 
-import br.com.finalcraft.evernifecore.consolefilter.ECBukkitConsoleFilter;
-
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -9,10 +7,11 @@ public class DynamicCommandManager {
 
     public static HashMap<UUID, DynamicCommand>  DYNAMIC_COMMANDS = new HashMap<>();
 
-    static {
-        //Only if this class is ever used whe may register a filter for it on the console
-        ECBukkitConsoleFilter.applyFilter();
-    }
+    //TODO Register on EverNifeCore Miencraft Version
+//    static {
+//        //Only if this class is ever used whe may register a filter for it on the console
+//        ECBukkitConsoleFilter.applyFilter();
+//    }
 
     /**
      * Creates a Command String that will execute this runnable when the command

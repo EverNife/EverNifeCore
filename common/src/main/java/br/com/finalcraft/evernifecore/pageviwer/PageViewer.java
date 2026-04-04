@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.pageviwer;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.dynamiccommand.DynamicCommand;
@@ -12,8 +13,6 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.util.FCTextUtil;
 import br.com.finalcraft.evernifecore.util.FCTimeUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
-import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.universe.PlayerRef;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import lombok.Data;
@@ -109,8 +108,8 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
             if (sortedList.size() > 0){ //Add more default placeholders here, like "%player%" name
                 SortedItem sortedItem = sortedList.get(0);
-                if (sortedItem.object instanceof Player) {
-                    placeholders.put("%player%", obj -> ((Player) obj).getDisplayName());
+                if (sortedItem.object instanceof FPlayer) {
+                    placeholders.put("%player%", obj -> ((FPlayer) obj).getName());
                 } else if (sortedItem.object instanceof IPlayerData) {
                     placeholders.put("%player%", obj -> ((IPlayerData) obj).getName());
                 }
@@ -151,7 +150,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
             }
 
             if (includeTotalCount){
-                if (target != null && (PlayerRef.class.isAssignableFrom(target) || Player.class.isAssignableFrom(target) || IPlayerData.class.isAssignableFrom(target))){
+                if (target != null && (FPlayer.class.isAssignableFrom(target) || IPlayerData.class.isAssignableFrom(target))){
                     pageHeaderCache.add(OF_A_TOTAL_OF_X_PLAYERS
                             .addPlaceholder("%total_players%", sortedList.size())
                             .getFancyText(null)

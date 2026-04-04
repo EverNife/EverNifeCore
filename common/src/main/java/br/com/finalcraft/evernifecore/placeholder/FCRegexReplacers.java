@@ -13,9 +13,12 @@ public class FCRegexReplacers {
             .addParser("player", IPlayerData::getName)
             .addParser("player_name", IPlayerData::getName)
             .addParser("player_uuid", IPlayerData::getUniqueId)
-            .addParser("player_isonline", IPlayerData::isPlayerOnline)
-            .addParser("player_lastseen", iPlayerData -> FCTimeUtil.getFormatted(iPlayerData.getLastSeen()))
+            .addParser("player_is_online", IPlayerData::isPlayerOnline)
             .addParser("player_ontime", iPlayerData -> FCTimeFrame.of(OntimeManager.getProvider().getOntime(iPlayerData)).getFormattedDiscursive())
+            .addParser("player_last_seen", playerData -> FCTimeUtil.getFormatted(playerData.getLastSeen()))
+            .addParser("player_last_seen_millis", playerData -> playerData.getLastSeen())
+            .addParser("player_first_seen", playerData -> FCTimeUtil.getFormatted(playerData.getFirstSeen()))
+            .addParser("player_first_seen_millis", playerData -> playerData.getFirstSeen())
             ;
 
     public static RegexReplacer<FPlayer> PLAYER = new RegexReplacer<FPlayer>()
@@ -24,6 +27,5 @@ public class FCRegexReplacers {
             .addParser("player_uuid", FPlayer::getUniqueId)
             .addParser("player_isonline", FPlayer::isOnline)
             ;
-
 
 }
