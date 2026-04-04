@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.commands.debug;
+package br.com.finalcraft.evernifecore.hytale.commands.debug;
 
 
 import br.com.finalcraft.evernifecore.PermissionNodes;
