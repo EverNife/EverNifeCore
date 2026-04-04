@@ -4,9 +4,9 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser;
-import com.google.common.collect.ImmutableList;
 import jakarta.annotation.Nonnull;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class FlagParser<T extends Object> implements ITabParser {
@@ -21,10 +21,10 @@ public abstract class FlagParser<T extends Object> implements ITabParser {
         return argInfo;
     }
 
-    public abstract T parserArgument(@Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException;
+    public abstract T parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException;
 
     @Override
     public @Nonnull List<String> tabComplete(TabContext tabContext) {
-        return ImmutableList.of();
+        return new ArrayList<>();
     }
 }

@@ -1,28 +1,18 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.executor;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.api.hytale.HytaleFCommandSender;
-import br.com.finalcraft.evernifecore.api.hytale.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
-import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
+import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgContextualData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.CMDData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.SubCMDData;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgRequirementType;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.*;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgMountException;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
-import br.com.finalcraft.evernifecore.commands.finalcmd.executor.parameter.CMDParameterType;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpLine;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser;
-import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
@@ -31,16 +21,9 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.locale.scanner.FCLocaleScanner;
-import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import br.com.finalcraft.evernifecore.util.FCHytaleUtil;
-import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
-import com.hypixel.hytale.server.core.command.system.CommandSender;
-import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.inventory.ItemStack;
-import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
@@ -53,20 +36,20 @@ import java.util.stream.Collectors;
 
 public class CMDMethodInterpreter {
 
-    private final JavaPlugin owningPlugin;
+    private final ECPluginData owningPlugin;
     private final Method method;
     private final Object executor;
     private final CMDData<?> cmdData;
     private final String[] labels; //Alias of the command or name of the subCMD
     private final boolean isSubCommand;
     private final boolean playerOnly;
-    private final Map<Integer, Tuple<CMDParameterType,Class>> simpleArguments = new LinkedHashMap();
-    private final Map<Integer, ArgParser> customArguments = new LinkedHashMap<>();
+    private final Map<Integer, ArgParser> arguments = new LinkedHashMap<>(); // Args with @Arg annotation
+    private final Map<Integer, ArgParserContextual> contextualArguments = new LinkedHashMap(); //Args without any annotation or with @ContextualArg
     private final Map<Integer, ITabParser> tabParsers = new LinkedHashMap<>();
 
     private transient HelpLine helpLine;
 
-    public CMDMethodInterpreter(JavaPlugin owningPlugin, MethodData methodData, Object executor) {
+    public CMDMethodInterpreter(ECPluginData owningPlugin, MethodData<?> methodData, Object executor) {
         this.owningPlugin = owningPlugin;
         this.method = methodData.getMethod();
         this.executor = executor;
@@ -74,76 +57,91 @@ public class CMDMethodInterpreter {
         this.labels = cmdData.getLabels();
         this.isSubCommand = cmdData instanceof SubCMDData;
 
-        if (!method.isAccessible()) method.setAccessible(true);
+        if (!method.isAccessible()){
+            method.setAccessible(true);
+        }
 
         boolean playerOnly = false;
 
         List<Tuple<Class, Annotation[]>> argsAndAnnotations = FCReflectionUtil.getArgsAndAnnotationsDeeply(method);
 
         int flagArgIndex = isSubCommand ? 1 : 0;
+        for (Map.Entry<Integer, Tuple<ArgData, Class>> entry : methodData.getArgDataMap().entrySet()) {
+            Integer index = entry.getKey();
+            ArgData argData = entry.getValue().getLeft();
+            Class parameterClazz = entry.getValue().getRight();
 
-        for (int index = 0; index < argsAndAnnotations.size(); index++) {
-
-            Tuple<Class, Annotation[]> tuple = argsAndAnnotations.get(index);
-            Class parameterClazz = tuple.getLeft();
-
-            Arg arg = (Arg) Arrays.stream(tuple.getRight()).filter(annotation -> annotation.annotationType() == Arg.class).findFirst().orElse(null);
-
-            if (arg != null){
-                //If @Arg is present, we take the ArgData from our MethodData as it may have been customized over the command creation
-                ArgData argData = ((List<Tuple<ArgData, Class>>)methodData.getArgDataList()).remove(0).getLeft();
-
-                if (ArgParser.class == argData.getParser()){
-                    //This means the DEFAULT parser, so, we look over the ArgParserManager
-                    Class<? extends ArgParser> parserClass = ArgParserManager.getParser(owningPlugin, parameterClazz);
-                    if (parserClass == null){
-                        throw new IllegalStateException("Failed to found the proper ArgParser on the FinalCMD (" + executor.getClass().getName() +")[" + method.getName() +"] parameter {index='" + index + "', name='" + argData.getName() + "'}. The dev should set it manually or register it on the ArgParserManager!");
-                    }
-                    argData.setParser(parserClass);
+            if (ArgParser.class == argData.getParser()){
+                //This means the DEFAULT parser, so, we look over the ArgParserManager
+                Class<? extends ArgParser> parserClass = ArgParserManager.getParser(owningPlugin, parameterClazz);
+                if (parserClass == null){
+                    throw new IllegalStateException("Failed to found the proper ArgParser on the FinalCMD (" + executor.getClass().getName() +")[" + method.getName() +"] parameter {index='" + index + "', name='" + argData.getName() + "'}. The dev should set it manually or register it on the ArgParserManager!");
                 }
-
-                ArgRequirementType argRequirementType = ArgRequirementType.getArgumentType(argData.getName());
-                if (argRequirementType == null){
-                    String possibleReqTyes = Arrays.stream(ArgRequirementType.values())
-                            .map(reqType -> reqType.getStart() + "" + reqType.getEnd())
-                            .collect(Collectors.joining(" or "));
-
-                    throw new ArgMountException ("Failed to load ArgRequirementType from ArgData [" + argData.getName() + "], usually this means the " +
-                            "ArgData.name() is not Quoted within \'" + possibleReqTyes + "\'");
-                }
-
-                ArgInfo argInfo = new ArgInfo(parameterClazz, argData, flagArgIndex, argRequirementType); //If subcommand, move arg to the RIGHT 1 slot
-                ArgParser parserInstance;
-                try {
-                    Constructor<? extends ArgParser> constructor = argData.getParser().getDeclaredConstructor(ArgInfo.class);
-                    constructor.setAccessible(true);
-                    parserInstance = constructor.newInstance(argInfo);
-                }catch (Exception e){
-                    e.printStackTrace();
-                    throw new IllegalStateException("Failed to instantiate the ArgParser on the FinalCMD (" + executor.getClass().getName() +")[" + method.getName() +"] parameter [index=" + index + ", name=" + argData.getName() + "]");
-                }
-
-                customArguments.put(index, parserInstance); //Index of the methodOrder eco_give(Player, arg1, PlayerData, arg3, etc...)
-                tabParsers.put(flagArgIndex, parserInstance); //Index of the final TabParser (/eco give arg1 arg2)
-                flagArgIndex++;
-            }else { //IF it's not an Annotated @Arg we look upon allowed classes
-                for (CMDParameterType parameterType : CMDParameterType.ALLOWED_CLASSES) {
-                    if (parameterClazz == parameterType.getClazz() || (parameterType.isCheckExtends() && parameterType.getClazz().isAssignableFrom(parameterClazz))){
-                        Tuple<CMDParameterType, Class> nonArgParameter = Tuple.of(parameterType, parameterClazz);
-                        if (parameterType.isPlayerOnly()){
-                            playerOnly = true;
-                        } 
-                        simpleArguments.put(index, nonArgParameter);
-                    }
-                }
+                argData.setParser(parserClass);
             }
 
+            ArgRequirementType argRequirementType = ArgRequirementType.getArgumentType(argData.getName());
+            if (argRequirementType == null){
+                String possibleReqTypes = Arrays.stream(ArgRequirementType.values())
+                        .map(reqType -> reqType.getStart() + "" + reqType.getEnd())
+                        .collect(Collectors.joining(" or "));
+
+                throw new ArgMountException ("Failed to load ArgRequirementType from ArgData [" + argData.getName() + "], usually this means the " +
+                        "ArgData.name() is not Quoted within \'" + possibleReqTypes + "\'");
+            }
+
+            ArgInfo argInfo = new ArgInfo(parameterClazz, argData, flagArgIndex, argRequirementType); //If subcommand, move arg to the RIGHT 1 slot
+            ArgParser parserInstance;
+            try {
+                Constructor<? extends ArgParser> constructor = argData.getParser().getDeclaredConstructor(ArgInfo.class);
+                constructor.setAccessible(true);
+                parserInstance = constructor.newInstance(argInfo);
+            }catch (Exception e){
+                e.printStackTrace();
+                throw new IllegalStateException("Failed to instantiate the ArgParser on the FinalCMD (" + executor.getClass().getName() +")[" + method.getName() +"] parameter [index=" + index + ", name=" + argData.getName() + "]");
+            }
+
+            arguments.put(index, parserInstance); //Index of the methodOrder eco_give(Player, arg1, PlayerData, arg3, etc...)
+            tabParsers.put(flagArgIndex, parserInstance); //Index of the final TabParser (/eco give arg1 arg2)
+            flagArgIndex++;
+        }
+
+        for (Map.Entry<Integer, Tuple<ArgContextualData, Class>> entry : methodData.getContextualArgDataMap().entrySet()) {
+            Integer index = entry.getKey();
+            ArgContextualData argContextualData = entry.getValue().getLeft();
+            Class parameterClazz = entry.getValue().getRight();
+
+            if (ArgParserContextual.class == argContextualData.getParser()){
+                //This means the DEFAULT parser, so, we look over the ArgParserManager
+                Class<? extends ArgParserContextual> contextualParserClass = ArgParserManager.getContextualParser(owningPlugin, parameterClazz);
+                if (contextualParserClass == null){
+                    throw new IllegalStateException("Failed to found the proper ArgParserContextual on the FinalCMD (" + executor.getClass().getName() +")[" + method.getName() +"] parameter {index='" + index + "', class='" + parameterClazz.getSimpleName() + "'}. The dev should set it manually or register it on the ArgParserManager!");
+                }
+                argContextualData.setParser(contextualParserClass);
+            }
+
+            ArgContextualInfo argContextualInfo = new ArgContextualInfo(parameterClazz, argContextualData);
+            ArgParserContextual parserInstance;
+            try {
+                Constructor<? extends ArgParserContextual> constructor = argContextualData.getParser().getDeclaredConstructor(ArgContextualInfo.class);
+                constructor.setAccessible(true);
+                parserInstance = constructor.newInstance(argContextualInfo);
+
+                if (parserInstance.requiresToBeAPlayer()){
+                    playerOnly = true;
+                }
+            }catch (Exception e){
+                e.printStackTrace();
+                throw new IllegalStateException("Failed to instantiate the ArgParserContextual on the FinalCMD (" + executor.getClass().getName() +")[" + method.getName() +"] parameter [index=" + index + ", class=" + parameterClazz.getSimpleName() + "]");
+            }
+
+            contextualArguments.put(index, parserInstance); //Index of the methodOrder eco_give(Player, arg1, PlayerData, arg3, etc...)
         }
 
         this.playerOnly = playerOnly;
 
-        if (simpleArguments.size() == 0) {
-            throw new IllegalStateException("You tried to create a FinalCMD with a method that has no args at all!");
+        if (contextualArguments.size() == 0) {
+            throw new IllegalStateException("You tried to create a FinalCMD with a method that has no contextual args at all! You must add parameters like Player, FPlayer, FCommandSender, etc.");
         }
 
         this.helpLine = buildHelpLine();
@@ -174,7 +172,7 @@ public class CMDMethodInterpreter {
         }
 
         HashMap<ArgParser<?>, LocaleMessageImp> argParserToLocale = new HashMap<>(); //This will hold every single @Arg locale message
-        for (ArgParser argParser : customArguments.values()) {
+        for (ArgParser argParser : arguments.values()) {
             if (argParser.getArgInfo().getArgData().getLocales().length > 0){
                 LocaleMessageImp localesForThisArg = FCLocaleScanner.scanForLocale(owningPlugin, localeMessageKey + "_Argumento." + argParser.getArgInfo().getArgData().getName(), false, argParser.getArgInfo().getArgData().getLocales());
                 argParserToLocale.put(argParser, localesForThisArg);
@@ -204,7 +202,7 @@ public class CMDMethodInterpreter {
             applyDefaultFormatting.accept(fancyFormatter);
 
             AtomicBoolean anyLocalizedArg = new AtomicBoolean(false);
-            if (customArguments.size() == 0){
+            if (arguments.size() == 0){
                 //TODO Remove Legacy Support on Next Major Release, tecnically this is not needed anymore
                 //For legacy support we need to remove the placeholders '%name%' and '%label%', on modern ECPLugins we do not use it, maybe one day I might remove this
                 fancyFormatter.append(
@@ -214,7 +212,7 @@ public class CMDMethodInterpreter {
             }else {
                 //So, if we have customArgs we need to build the proper usage using these args.
                 //Put all args one after the other
-                customArguments.entrySet().stream()
+                arguments.entrySet().stream()
                         .sorted(Comparator.comparingInt(Map.Entry::getKey))
                         .map(Map.Entry::getValue)
                         .forEach(argParser -> {
@@ -271,7 +269,7 @@ public class CMDMethodInterpreter {
     }
 
     public Map<Integer, ArgParser> getCustomArguments() {
-        return customArguments;
+        return arguments;
     }
 
     public String[] getLabels(){
@@ -291,79 +289,50 @@ public class CMDMethodInterpreter {
 
         helpContext.setLastLabel(label);
 
-        Object[] possibleArgs = new Object[]{label, argumentos, helpContext, helpLine};
-        Object[] theArgs = new Object[simpleArguments.size() + customArguments.size()];
+        Object[] theArgs = new Object[contextualArguments.size() + arguments.size()];
         LinkedHashMap<Class, Object> parsedArgs = new LinkedHashMap<>();
+        LinkedHashMap<Class, Object> parsedContext = new LinkedHashMap<>();
 
         int backwardNiddle = 0;//This is used to go backwards on the possibleArgs array when necessary
-        for (int index = 0; index < theArgs.length; index++) {
 
-            ArgParser parser = customArguments.get(index);
+        for (Map.Entry<Integer, ArgParser> entry : arguments.entrySet()) {
+            Integer index = entry.getKey();
+            ArgParser parser = entry.getValue();
 
-            if (parser != null){
-                Argumento argumento = argumentos.get(parser.getArgInfo().getIndex() - backwardNiddle);
-                if (argumento.isEmpty() && parser.getArgInfo().isRequired() == true && parser.getArgInfo().isProvidedByContext() == false){
-                    helpLine.sendTo(sender);
-                    return;
-                }
-                try {
-                    ArgParser.ArgContext argContext = new ArgParser.ArgContext(argumentos, parsedArgs);
-                    parser.setArgContext(argContext);
-                    Object parsedArgument = parser.parserArgument(sender, argumento);
-                    theArgs[index] = parsedArgument;
-                    if (parsedArgument != null){
-                        parsedArgs.put(parsedArgument.getClass(), parsedArgument);
-                    }
-                    if (!argContext.shouldMoveArgIndex()){
-                        backwardNiddle++;//If we can't move to next argumento, lets look backward on next iteration
-                    }
-                    parser.setArgContext(null);
-                }catch (ArgParseException argParseException){
-                    parser.setArgContext(null);
-                    //If we fail to parse this arg, for example, "ArgParserPlayer" 'the player is not online', we can leave now
-                    return;
-                }
-                continue;
+            Argumento argumento = argumentos.get(parser.getArgInfo().getIndex() - backwardNiddle);
+            if (argumento.isEmpty() && parser.getArgInfo().isRequired() == true && parser.getArgInfo().isProvidedByContext() == false){
+                helpLine.sendTo(sender);
+                return;
             }
-
-            Tuple<CMDParameterType, Class> tuple = simpleArguments.get(index);
-
-            CMDParameterType parameterType = tuple.getLeft();
-            Class parameterClass = tuple.getRight();
-
-
-            if (parameterType.getClazz() == HytaleFPlayer.class) { theArgs[index] = FCHytaleUtil.wrap(sender.getDelegate(Player.class)); continue; }
-            if (parameterType.getClazz() == HytaleFCommandSender.class) { theArgs[index] = sender; continue; }
-            if (parameterType.getClazz() == Player.class) { theArgs[index] = sender.getDelegate(Player.class); continue; }
-            if (parameterType.getClazz() == CommandSender.class) { theArgs[index] = sender.getDelegate(CommandSender.class); continue; }
-
-            if (parameterType.getClazz() == FCommandSender.class) { theArgs[index] = sender; continue; }
-            if (parameterType.getClazz() == FPlayer.class) { theArgs[index] = FCHytaleUtil.wrap(sender.getDelegate(Player.class)); continue; }
-            if (parameterType.getClazz() == PlayerData.class) { theArgs[index] = PlayerController.getPlayerData(sender.getUniqueId()); continue; }
-            if (parameterType.getClazz() == PDSection.class) { theArgs[index] = PlayerController.getPDSection(sender.getUniqueId(), parameterClass); continue; }
-            if (parameterType.getClazz() == ItemStack.class) {
-
-                HytaleFPlayer player = (HytaleFPlayer) FCHytaleUtil.wrap(sender.getDelegate(Player.class));
-                theArgs[index] = FCScheduler.SynchronizedAction.runAndGet(player.getWorld(), () -> {
-                    return player.getPlayer().getInventory().getItemInHand();
-                });
-
-                if (theArgs[index] == null){
-                    FCMessageUtil.needsToBeHoldingItem(sender);
-                    return;
+            try {
+                ArgParserCommandContext argContext = new ArgParserCommandContext(helpContext, helpLine, label, argumentos, parsedArgs, parsedContext);
+                Object parsedArgument = parser.parserArgument(argContext, sender, argumento);
+                theArgs[index] = parsedArgument;
+                if (parsedArgument != null){
+                    parsedArgs.put(parsedArgument.getClass(), parsedArgument);
                 }
+                if (!argContext.shouldMoveArgIndex()){
+                    backwardNiddle++;//If we can't move to next argumento, lets look backward on next iteration
+                }
+            }catch (ArgParseException argParseException){
+                //If we fail to parse this arg, for example, "ArgParserPlayer" 'the player is not online', we can leave now
+                return;
             }
+        }
 
-            for (Object possibleArg : possibleArgs) {
-                if (parameterType.isCheckExtends()){
-                    if (parameterClass.isInstance(possibleArg)){
-                        theArgs[index] = possibleArg;
-                        break;
-                    }
-                }else if (parameterClass == possibleArg.getClass()){
-                    theArgs[index] = possibleArg;
-                    break;
+        for (Map.Entry<Integer, ArgParserContextual> entry : contextualArguments.entrySet()) {
+            Integer index = entry.getKey();
+            ArgParserContextual parserContextual = entry.getValue();
+            try {
+                ArgParserCommandContext argContext = new ArgParserCommandContext(helpContext, helpLine, label, argumentos, parsedArgs, parsedContext);
+                Object parsedContextual = parserContextual.parserArgument(argContext, sender);
+                theArgs[index] = parsedContextual;
+                if (parsedContextual != null){
+                    parsedContext.put(parsedContextual.getClass(), parsedContextual);
                 }
+            }catch (ArgParseException argParseException){
+                //If we fail to parse this arg, for example, "ArgParserContextualItemStack" 'the player is not holding an itemstack', we can leave now
+                return;
             }
         }
 
@@ -371,8 +340,8 @@ public class CMDMethodInterpreter {
             method.invoke(executor, theArgs);
         }catch (IllegalArgumentException e){
             System.err.println("[CMDMethodInterpreter] IllegalArgumentException on method: " + method.getName());
-            System.err.println("Expected args: " + java.util.Arrays.toString(method.getParameterTypes()));
-            System.err.println("Received args: " + java.util.Arrays.toString(java.util.Arrays.stream(theArgs).map(arg -> arg == null ? "null" : arg.getClass().getName()).toArray()));
+            System.err.println("Expected args: " + Arrays.toString(method.getParameterTypes()));
+            System.err.println("Received args: " + Arrays.toString(Arrays.stream(theArgs).map(arg -> arg == null ? "null" : arg.getClass().getName()).toArray()));
             throw e;
         }
     }

@@ -31,7 +31,7 @@ public class HelpContext {
         this.helpHeader = helpHeader;
         this.finalCMDPluginCommand = finalCMDPluginCommand;
         this.helpLines = ImmutableList.copyOf(finalCMDPluginCommand.subCommands.stream().map(CMDMethodInterpreter::getHelpLine).collect(Collectors.toList()));
-        this.lastLabel = finalCMDPluginCommand.getName();
+        this.lastLabel = finalCMDPluginCommand.getPrimaryLabel();
     }
 
     public String getHelpHeader() {

@@ -1,9 +1,6 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.custom.contexts;
 
-import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgData;
-import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.CMDData;
-import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.FinalCMDData;
-import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.SubCMDData;
+import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.*;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.MethodData;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
@@ -66,9 +63,19 @@ public class CustomizeContext {
         for (MethodData<?> methodData : allMethods) {
             methodData.getData().replace(placeholder, value);
 
-            for (Tuple<ArgData, Class> tuple : methodData.getArgDataList()) {
+            for (Tuple<ArgData, Class> tuple : methodData.getArgDataMap().values()) {
                 ArgData argData = tuple.getLeft();
                 argData.replace(placeholder, value);
+            }
+
+            for (Tuple<ArgData, Class> tuple : methodData.getFlagArgDataMap().values()) {
+                ArgData argData = tuple.getLeft();
+                argData.replace(placeholder, value);
+            }
+
+            for (Tuple<ArgContextualData, Class> tuple : methodData.getContextualArgDataMap().values()) {
+                ArgContextualData argContextualData = tuple.getLeft();
+                argContextualData.replace(placeholder, value);
             }
         }
     }
@@ -78,9 +85,19 @@ public class CustomizeContext {
         for (MethodData<?> methodData : allMethods) {
             methodData.getData().replace(replacer);
 
-            for (Tuple<ArgData, Class> tuple : methodData.getArgDataList()) {
+            for (Tuple<ArgData, Class> tuple : methodData.getArgDataMap().values()) {
                 ArgData argData = tuple.getLeft();
                 argData.replace(replacer);
+            }
+
+            for (Tuple<ArgData, Class> tuple : methodData.getFlagArgDataMap().values()) {
+                ArgData argData = tuple.getLeft();
+                argData.replace(replacer);
+            }
+
+            for (Tuple<ArgContextualData, Class> tuple : methodData.getContextualArgDataMap().values()) {
+                ArgContextualData argContextualData = tuple.getLeft();
+                argContextualData.replace(replacer);
             }
         }
     }
