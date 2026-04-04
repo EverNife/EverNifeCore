@@ -4,22 +4,22 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.util.ArgsParserUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
 import com.google.common.collect.ImmutableList;
 import jakarta.annotation.Nonnull;
-import org.apache.commons.lang3.Validate;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class ArgParserString extends ArgParser<String> {
+public class ArgParserArgumento extends ArgParser<Argumento> {
 
     protected final List<String> possibilities;
 
-    public ArgParserString(ArgInfo argInfo) {
+    public ArgParserArgumento(ArgInfo argInfo) {
         super(argInfo);
 
         //If context is empty, take the name for it
@@ -28,29 +28,17 @@ public class ArgParserString extends ArgParser<String> {
                 : argInfo.getArgData().getContext();
 
         possibilities = ImmutableList.copyOf(ArgsParserUtil.parseStringContextSelectional(context));
-
-        Validate.isTrue(possibilities.size() > 0, "Can't create a ArgParserString without at least one option! [context=='" + context + "']");
     }
 
     @Override
-    public String parserArgument(@Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
+    public Argumento parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
 
-        if (possibilities.size() == 1){
-            return argumento.isEmpty() ? null : argumento.toString();
-        }
-
-        for (String option : possibilities) {
-            if (option.equalsIgnoreCase(argumento.toString())){
-                return option;
-            }
-        }
-
-        if (argInfo.isRequired()){
+        if (argInfo.isRequired() && argumento.isEmpty()){
             FCMessageUtil.notWithinPossibilities(sender, argumento.toString(), possibilities);
             throw new ArgParseException();
         }
 
-        return null;
+        return argumento;
     }
 
     @Override

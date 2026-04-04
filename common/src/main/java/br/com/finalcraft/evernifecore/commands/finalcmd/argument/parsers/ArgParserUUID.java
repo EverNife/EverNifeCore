@@ -1,18 +1,18 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.context.ArgContextExtractor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.context.ArgContextResult;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
-import br.com.finalcraft.evernifecore.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
-import com.hypixel.hytale.server.core.universe.Universe;
 import jakarta.annotation.Nonnull;
 
 import java.util.Collection;
@@ -36,7 +36,7 @@ public class ArgParserUUID extends ArgParser<UUID> {
     }
 
     @Override
-    public UUID parserArgument(@Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
+    public UUID parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
         UUID uuid = argumento.getUUID();
 
         if (uuid == null){
@@ -60,8 +60,7 @@ public class ArgParserUUID extends ArgParser<UUID> {
     @Override
     public @Nonnull List<String> tabComplete(TabContext tabContext) {
         Collection<PlayerData> playerDataList = online
-                ? Universe.get().getPlayers().stream()
-                .map(FCHytaleUtil::wrap)
+                ? EverNifeCore.getPlatform().getOnlinePlayers().stream()
                 .map(PlayerController::getPlayerData)
                 .collect(Collectors.toList())
                 : PlayerController.getAllPlayerData();

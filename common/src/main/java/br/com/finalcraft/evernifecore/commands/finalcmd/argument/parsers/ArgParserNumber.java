@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.util.ArgsParserUtil;
 import br.com.finalcraft.evernifecore.util.FCMathUtil;
@@ -11,10 +12,10 @@ import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
-import com.google.common.collect.ImmutableList;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,7 +42,7 @@ public class ArgParserNumber extends ArgParser<Number> {
     }
 
     @Override
-    public Number parserArgument(@Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
+    public Number parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
         Number number;
         //We cannot use a ternary operator here because of NPE caused by boxingAndUnboxing of values.
         if (isInteger) {
@@ -115,6 +116,6 @@ public class ArgParserNumber extends ArgParser<Number> {
 
         }
 
-        return ImmutableList.of();
+        return new ArrayList<>();
     }
 }

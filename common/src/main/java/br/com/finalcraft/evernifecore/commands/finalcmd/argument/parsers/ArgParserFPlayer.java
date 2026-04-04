@@ -1,14 +1,15 @@
-package br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.hytale;
+package br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
-import com.hypixel.hytale.server.core.universe.Universe;
 import jakarta.annotation.Nonnull;
 
 import java.util.List;
@@ -21,7 +22,7 @@ public class ArgParserFPlayer extends ArgParser<FPlayer> {
     }
 
     @Override
-    public FPlayer parserArgument(@Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
+    public FPlayer parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
         FPlayer player = argumento.getPlayer();
 
         if (argInfo.isRequired() && player == null){
@@ -36,8 +37,8 @@ public class ArgParserFPlayer extends ArgParser<FPlayer> {
     @Override
     public @Nonnull List<String> tabComplete(TabContext tabContext) {
 
-        return Universe.get().getPlayers().stream()
-                .map(player -> player.getUsername())
+        return EverNifeCore.getPlatform().getOnlinePlayers().stream()
+                .map(player -> player.getName())
                 .filter(s -> FCStringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .collect(Collectors.toList());

@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.pageviwer.PageVizualization;
 import com.google.common.collect.ImmutableList;
@@ -30,7 +31,7 @@ public class ArgParserPageVizualization extends ArgParser<PageVizualization> {
     }
 
     @Override
-    public PageVizualization parserArgument(@Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
+    public PageVizualization parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
 
         if (argumento.equalsIgnoreCase("all") && sender.hasPermission(PermissionNodes.EVERNIFECORE_PAGEVIEWER_ALL)){
             return new PageVizualization(0, 0, true);
@@ -40,14 +41,14 @@ public class ArgParserPageVizualization extends ArgParser<PageVizualization> {
             //Probably an interval, like 'page 1-5'
             String[] split = argumento.toString().split("-");
             if (split.length == 2){
-                int page1 = argParserNumber.parserArgument(sender, new Argumento(split[0])).intValue();
-                int page2 = argParserNumber.parserArgument(sender, new Argumento(split[1])).intValue();
+                int page1 = argParserNumber.parserArgument(argContext, sender, new Argumento(split[0])).intValue();
+                int page2 = argParserNumber.parserArgument(argContext, sender, new Argumento(split[1])).intValue();
                 return new PageVizualization(Math.min(page1, page2), Math.max(page1, page2), false);
             }
             //If the split is not 2, then it's not an interval, so it will be parsed as a single page
         }
 
-        Integer page = (Integer) argParserNumber.parserArgument(sender, argumento);
+        Integer page = (Integer) argParserNumber.parserArgument(argContext, sender, argumento);
 
         if (!argInfo.isRequired() && page == null){
             return null;

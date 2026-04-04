@@ -4,21 +4,22 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.util.ArgsParserUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
-import com.google.common.collect.ImmutableList;
 import jakarta.annotation.Nonnull;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class ArgParserArgumento extends ArgParser<Argumento> {
+public class ArgParserBoolean extends ArgParser<Boolean> {
 
-    protected final List<String> possibilities;
+    protected List<String> possibilities;
 
-    public ArgParserArgumento(ArgInfo argInfo) {
+    public ArgParserBoolean(ArgInfo argInfo) {
         super(argInfo);
 
         //If context is empty, take the name for it
@@ -26,18 +27,33 @@ public class ArgParserArgumento extends ArgParser<Argumento> {
                 ? argInfo.getArgData().getName()
                 : argInfo.getArgData().getContext();
 
-        possibilities = ImmutableList.copyOf(ArgsParserUtil.parseStringContextSelectional(context));
+        possibilities = ArgsParserUtil.parseStringContextSelectional(context);
+
+        if (possibilities.size() != 2 && argInfo.getArgData().getContext().isEmpty()){
+            possibilities = Arrays.asList("true","false");
+        }
     }
 
     @Override
-    public Argumento parserArgument(@Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
+    public Boolean parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
 
-        if (argInfo.isRequired() && argumento.isEmpty()){
+        Boolean bool = argumento.getBoolean();
+
+        if (bool == null){
+            //First lets try possibilities, maybe it's a custom boolean not a simple "yes/no"
+            if (argumento.equalsIgnoreCase(possibilities.get(0))){
+                bool = true;
+            }else if (argumento.equalsIgnoreCase(possibilities.get(1))){
+                bool = false;
+            }
+        }
+
+        if (argInfo.isRequired() && bool == null){
             FCMessageUtil.notWithinPossibilities(sender, argumento.toString(), possibilities);
             throw new ArgParseException();
         }
 
-        return argumento;
+        return bool;
     }
 
     @Override
