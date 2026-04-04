@@ -121,48 +121,6 @@ public class HyCfgLoadableSalvable {
                         }
                 )
         ;
-
-
-        createBlocPosLoadableSalvables();
     }
 
-    private static void createBlocPosLoadableSalvables(){
-        CfgLoadableSalvable.addLoadableSalvable(BlockPos.class)
-                .setOnConfigSave((configSection, pos) -> {
-                    configSection.setValue("x", pos.getX());
-                    configSection.setValue("y", pos.getY());
-                    configSection.setValue("z", pos.getZ());
-                })
-                .setOnConfigLoad(configSection -> new BlockPos(
-                        configSection.getInt("x"),
-                        configSection.getInt("y"),
-                        configSection.getInt("z")
-                ))
-                .setOnStringSerialize(BlockPos::serialize)
-                .setOnStringDeserialize(BlockPos::deserialize);
-
-        CfgLoadableSalvable.addLoadableSalvable(ChunkPos.class)
-                .setOnConfigSave((configSection, pos) -> {
-                    configSection.setValue("x", pos.getX());
-                    configSection.setValue("z", pos.getZ());
-                })
-                .setOnConfigLoad(configSection -> new ChunkPos(
-                        configSection.getInt("x"),
-                        configSection.getInt("z")
-                ))
-                .setOnStringSerialize(ChunkPos::serialize)
-                .setOnStringDeserialize(ChunkPos::deserialize);
-
-        CfgLoadableSalvable.addLoadableSalvable(RegionPos.class)
-                .setOnConfigSave((configSection, pos) -> {
-                    configSection.setValue("x", pos.getX());
-                    configSection.setValue("z", pos.getZ());
-                })
-                .setOnConfigLoad(configSection -> new RegionPos(
-                        configSection.getInt("x"),
-                        configSection.getInt("z")
-                ))
-                .setOnStringSerialize(RegionPos::serialize)
-                .setOnStringDeserialize(RegionPos::deserialize);
-    }
 }

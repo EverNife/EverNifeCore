@@ -16,6 +16,7 @@ import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.FCTimeUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
+import br.com.finalcraft.evernifecore.vector.*;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
@@ -150,6 +151,74 @@ public class CfgLoadableSalvable {
     //------------------------------------------------------------------------------------------------------------------
 
     static {
+        CfgLoadableSalvable.addLoadableSalvable(BlockPos.class)
+                .setOnConfigSave((configSection, pos) -> {
+                    configSection.setValue("x", pos.getX());
+                    configSection.setValue("y", pos.getY());
+                    configSection.setValue("z", pos.getZ());
+                })
+                .setOnConfigLoad(configSection -> new BlockPos(
+                        configSection.getInt("x"),
+                        configSection.getInt("y"),
+                        configSection.getInt("z")
+                ))
+                .setOnStringSerialize(BlockPos::serialize)
+                .setOnStringDeserialize(BlockPos::deserialize);
+
+        CfgLoadableSalvable.addLoadableSalvable(LocPos.class)
+                .setOnConfigSave((configSection, pos) -> {
+                    configSection.setValue("x", pos.getX());
+                    configSection.setValue("y", pos.getY());
+                    configSection.setValue("z", pos.getZ());
+                })
+                .setOnConfigLoad(configSection -> new LocPos(
+                        configSection.getDouble("x"),
+                        configSection.getDouble("y"),
+                        configSection.getDouble("z")
+                ))
+                .setOnStringSerialize(LocPos::serialize)
+                .setOnStringDeserialize(LocPos::deserialize);
+
+        CfgLoadableSalvable.addLoadableSalvable(WorldLocPos.class)
+                .setOnConfigSave((configSection, pos) -> {
+                    configSection.setValue("x", pos.getX());
+                    configSection.setValue("y", pos.getY());
+                    configSection.setValue("z", pos.getZ());
+                    configSection.setValue("worldName", pos.getWorldName());
+                })
+                .setOnConfigLoad(configSection -> new WorldLocPos(
+                        configSection.getDouble("x"),
+                        configSection.getDouble("y"),
+                        configSection.getDouble("z"),
+                        configSection.getString("worldName")
+                ))
+                .setOnStringSerialize(WorldLocPos::serialize)
+                .setOnStringDeserialize(WorldLocPos::deserialize);
+
+        CfgLoadableSalvable.addLoadableSalvable(ChunkPos.class)
+                .setOnConfigSave((configSection, pos) -> {
+                    configSection.setValue("x", pos.getX());
+                    configSection.setValue("z", pos.getZ());
+                })
+                .setOnConfigLoad(configSection -> new ChunkPos(
+                        configSection.getInt("x"),
+                        configSection.getInt("z")
+                ))
+                .setOnStringSerialize(ChunkPos::serialize)
+                .setOnStringDeserialize(ChunkPos::deserialize);
+
+        CfgLoadableSalvable.addLoadableSalvable(RegionPos.class)
+                .setOnConfigSave((configSection, pos) -> {
+                    configSection.setValue("x", pos.getX());
+                    configSection.setValue("z", pos.getZ());
+                })
+                .setOnConfigLoad(configSection -> new RegionPos(
+                        configSection.getInt("x"),
+                        configSection.getInt("z")
+                ))
+                .setOnStringSerialize(RegionPos::serialize)
+                .setOnStringDeserialize(RegionPos::deserialize);
+
         addLoadableSalvable(UUID.class)
                 .setOnConfigSave((configSection, uuid) -> configSection.setValue(uuid.toString()))
                 .setOnConfigLoad(configSection -> UUID.fromString(configSection.getString("")))
