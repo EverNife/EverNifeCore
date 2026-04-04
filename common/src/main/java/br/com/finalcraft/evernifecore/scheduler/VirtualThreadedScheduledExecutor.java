@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.scheduler;
 
+import br.com.finalcraft.evernifecore.thread.SimpleThreadFactory;
 import br.com.finalcraft.evernifecore.util.FCExecutorsUtil;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.java.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
  * This class requires Java 21 or higher to utilize virtual threads.
  * On lower Java versions, it falls back to a fixed thread pool of System core count.
  */
-@Log4j2
+@Log
 public class VirtualThreadedScheduledExecutor implements AutoCloseable {
 
     private final String identifier;
@@ -40,10 +40,7 @@ public class VirtualThreadedScheduledExecutor implements AutoCloseable {
         // We use half of the available processors to avoid oversubscription
         this.scheduler = new ScheduledThreadPoolExecutor(
                 FCExecutorsUtil.getMinMaxThreadCountBoundedToSystemCoreCount(Runtime.getRuntime().availableProcessors() / 2).getMax(),
-                new ThreadFactoryBuilder()
-                        .setNameFormat(identifier + "-evernifecore-scheduler-%d")
-                        .setDaemon(true)
-                        .build()
+                new SimpleThreadFactory(identifier + "-evernifecore-scheduler-%d")
         );
         this.scheduler.setMaximumPoolSize(Runtime.getRuntime().availableProcessors());
         this.scheduler.setRemoveOnCancelPolicy(true);
@@ -113,7 +110,8 @@ public class VirtualThreadedScheduledExecutor implements AutoCloseable {
             }
         } catch (Exception e) {
             errors.add(e);
-            log.error("[EverNifeCore-VirtualThreadedScheduledExecutorService] {} - error while shutting down scheduler", identifier, e);
+            log.severe(String.format("[EverNifeCore-VirtualThreadedScheduledExecutorService] {} - error while shutting down scheduler", identifier));
+            e.printStackTrace();
         }
 
         try {
@@ -122,7 +120,8 @@ public class VirtualThreadedScheduledExecutor implements AutoCloseable {
             }
         } catch (Exception e) {
             errors.add(e);
-            log.error("[EverNifeCore-VirtualThreadedScheduledExecutorService] {} - error while shutting down executor", identifier, e);
+            log.severe(String.format("[EverNifeCore-VirtualThreadedScheduledExecutorService] {} - error while shutting down executor", identifier));
+            e.printStackTrace();
         }
 
         if (!errors.isEmpty()) {
@@ -148,8 +147,9 @@ public class VirtualThreadedScheduledExecutor implements AutoCloseable {
             if (tasks != null){
                 pending.addAll(tasks);
             }
-        } catch (Exception ex) {
-            log.error("[EverNifeCore-VirtualThreadedScheduledExecutorService] {} - error while calling executor.shutdownNow()", identifier, ex);
+        } catch (Exception e) {
+            log.severe(String.format("[EverNifeCore-VirtualThreadedScheduledExecutorService] {} - error while calling executor.shutdownNow()", identifier));
+            e.printStackTrace();
         }
 
         return pending;
@@ -184,11 +184,13 @@ public class VirtualThreadedScheduledExecutor implements AutoCloseable {
                 shutdownNow();
             }
         } catch (InterruptedException ie) {
-            log.warn("[EverNifeCore-VirtualThreadedScheduledExecutorService] {} - interrupted while awaiting termination during close(); invoking shutdownNow() and restoring interruption", identifier, ie);
+            log.warning(String.format("[EverNifeCore-VirtualThreadedScheduledExecutorService] {} - interrupted while awaiting termination during close(); invoking shutdownNow() and restoring interruption", identifier));
+            ie.printStackTrace();
             try {
                 shutdownNow();
             } catch (Exception e) {
-                log.error("[EverNifeCore-VirtualThreadedScheduledExecutorService] {} - error while invoking shutdownNow() during close", identifier, e);
+                log.severe(String.format("[EverNifeCore-VirtualThreadedScheduledExecutorService] {} - error while invoking shutdownNow() during close", identifier));
+                e.printStackTrace();
             }
             Thread.currentThread().interrupt();
         }
