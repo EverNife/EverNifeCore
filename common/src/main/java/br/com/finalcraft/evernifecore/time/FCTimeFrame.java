@@ -12,27 +12,35 @@ public class FCTimeFrame {
     @FCLocale(lang = LocaleType.EN_US, text = "day")
     @FCLocale(lang = LocaleType.PT_BR, text = "dia")
     private static LocaleMessage DAY;
+
     @FCLocale(lang = LocaleType.EN_US, text = "days")
     @FCLocale(lang = LocaleType.PT_BR, text = "dias")
     private static LocaleMessage DAYS;
+
     @FCLocale(lang = LocaleType.EN_US, text = "hour")
     @FCLocale(lang = LocaleType.PT_BR, text = "hora")
     private static LocaleMessage HOUR;
+
     @FCLocale(lang = LocaleType.EN_US, text = "hours")
     @FCLocale(lang = LocaleType.PT_BR, text = "horas")
     private static LocaleMessage HOURS;
+
     @FCLocale(lang = LocaleType.EN_US, text = "minute")
     @FCLocale(lang = LocaleType.PT_BR, text = "minuto")
     private static LocaleMessage MINUTE;
+
     @FCLocale(lang = LocaleType.EN_US, text = "minutes")
     @FCLocale(lang = LocaleType.PT_BR, text = "minutos")
     private static LocaleMessage MINUTES;
+
     @FCLocale(lang = LocaleType.EN_US, text = "second")
     @FCLocale(lang = LocaleType.PT_BR, text = "segundo")
     private static LocaleMessage SECOND;
+
     @FCLocale(lang = LocaleType.EN_US, text = "seconds")
     @FCLocale(lang = LocaleType.PT_BR, text = "segundos")
     private static LocaleMessage SECONDS;
+
     @FCLocale(lang = LocaleType.EN_US, text = "and")
     @FCLocale(lang = LocaleType.PT_BR, text = "e")
     private static LocaleMessage AND;

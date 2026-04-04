@@ -1,8 +1,5 @@
 package br.com.finalcraft.evernifecore.util;
 
-import com.google.common.base.Preconditions;
-import jakarta.annotation.Nonnull;
-
 public class FCStringUtil {
 
     /**
@@ -17,8 +14,7 @@ public class FCStringUtil {
      * @throws NullPointerException if prefix is null
      * @throws IllegalArgumentException if string is null
      */
-    public static boolean startsWithIgnoreCase(@Nonnull final String string, @Nonnull final String prefix) throws IllegalArgumentException, NullPointerException {
-        Preconditions.checkArgument(string != null, "Cannot check a null string for a match");
+    public static boolean startsWithIgnoreCase(final String string, final String prefix) throws IllegalArgumentException, NullPointerException {
         if (string.length() < prefix.length()) {
             return false;
         }

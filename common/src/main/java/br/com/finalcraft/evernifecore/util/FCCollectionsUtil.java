@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.util;
 
 import br.com.finalcraft.evernifecore.util.commons.MergeListResult;
+import br.com.finalcraft.evernifecore.util.commons.SimpleEntry;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -114,15 +115,11 @@ public class FCCollectionsUtil {
      *         entity.setName(dto.getName());
      *         entity.setEmail(dto.getEmail());
      *     },
-     *     dto ->              {  // Create new entity
-     *         User entity = new User()
-     *         entity.setName(dto.getName());
-     *         entity.setEmail(dto.getEmail());
-     *         entity.setSomethingSpecialThatOnlyHappensOnCreate(dto.special());
-     *     }
+     *     dto -> new User()     // Create new entity
      * );
      * </pre>
      */
+    @SuppressWarnings("java:S3776")
     public static <ENTITY, DTO, ID> MergeListResult<ENTITY> mergeListWithDTO(
             List<ENTITY> existingEntities,
             List<DTO> incomingDtos,
@@ -165,7 +162,7 @@ public class FCCollectionsUtil {
         Map<ID, ENTITY> entitiesById = existingEntities.stream()
                 .map(e -> {
                     ID id = entityIdGetter.apply(e);
-                    return id != null ? new AbstractMap.SimpleEntry<>(id, e) : null;
+                    return id != null ? SimpleEntry.of(id, e) : null;
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(
