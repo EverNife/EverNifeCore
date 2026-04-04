@@ -5,10 +5,13 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.hytale.argumento.HytaleArgumento;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 
+import java.util.Map;
 import java.util.UUID;
 
 public class Argumento {
@@ -46,6 +49,15 @@ public class Argumento {
             }
         }
         return false;
+    }
+
+    public ECPluginData getECPluginData() {
+        for (Map.Entry<String, ECPluginData> entry : ECPluginManager.getECPluginsMap().entrySet()) {
+            if (argumento.equalsIgnoreCase(entry.getKey())){
+                return entry.getValue();
+            }
+        }
+        return null;
     }
 
     public String toLowerCase(){
