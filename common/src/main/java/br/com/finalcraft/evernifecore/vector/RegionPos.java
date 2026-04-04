@@ -1,6 +1,6 @@
-package br.com.finalcraft.evernifecore.api.hytale.math.vector;
+package br.com.finalcraft.evernifecore.vector;
 
-import br.com.finalcraft.evernifecore.api.common.math.vector.options.RegionGridOptions;
+import br.com.finalcraft.evernifecore.vector.options.RegionGridOptions;
 
 public class RegionPos {
 

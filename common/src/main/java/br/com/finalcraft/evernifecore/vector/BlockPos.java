@@ -1,10 +1,5 @@
-package br.com.finalcraft.evernifecore.api.hytale.math.vector;
+package br.com.finalcraft.evernifecore.vector;
 
-import com.hypixel.hytale.math.vector.Location;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3i;
-import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
-import com.hypixel.hytale.server.core.universe.world.World;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
@@ -39,18 +34,6 @@ public class BlockPos implements Comparable<BlockPos> {
         this.x = floor_double(x);
         this.y = floor_double(y);
         this.z = floor_double(z);
-    }
-
-    public static BlockPos at(Vector3d vector3d){
-        return at(vector3d.getX(), vector3d.getY(), vector3d.getZ());
-    }
-
-    public static BlockPos at(Vector3i vector3i){
-        return at(vector3i.getX(), vector3i.getY(), vector3i.getZ());
-    }
-
-    public static BlockPos at(Location location){
-        return at(location.getPosition());
     }
 
     public BlockPos setX(int x){
@@ -186,14 +169,6 @@ public class BlockPos implements Comparable<BlockPos> {
             && this.getY() <= max.getY()
             && this.getZ() >= min.getZ()
             && this.getZ() <= max.getZ();
-    }
-
-    public Location getLocation(World world){
-        return new Location(world.getName(), this.x, this.y, this.z);
-    }
-
-    public BlockType getBlock(World world){
-        return world.getBlockType(x,y,z);
     }
 
     public LocPos getLocPos(){

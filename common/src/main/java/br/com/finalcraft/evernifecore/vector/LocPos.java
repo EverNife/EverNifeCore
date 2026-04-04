@@ -1,10 +1,6 @@
-package br.com.finalcraft.evernifecore.api.hytale.math.vector;
+package br.com.finalcraft.evernifecore.vector;
 
 import com.google.common.collect.ComparisonChain;
-import com.hypixel.hytale.math.vector.Location;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
-import com.hypixel.hytale.server.core.universe.world.World;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
@@ -20,11 +16,6 @@ public class LocPos implements Comparable<LocPos> {
         this.x = x;
         this.y = y;
         this.z = z;
-    }
-
-    public static LocPos at(Location location){
-        Vector3d position = location.getPosition();
-        return new LocPos(position.getX(), position.getY(), position.getZ());
     }
 
     public LocPos setX(double x){
@@ -79,14 +70,6 @@ public class LocPos implements Comparable<LocPos> {
         return new LocPos(x, y, z);
     }
 
-    public Location getLocation(World world){
-        return new Location(world.getName(), this.x, this.y, this.z);
-    }
-
-    public BlockType getBlock(World world){
-        return this.getBlockPos().getBlock(world);
-    }
-
     public BlockPos getBlockPos(){
         return new BlockPos(this.x, this.y, this.z);
     }
@@ -115,5 +98,4 @@ public class LocPos implements Comparable<LocPos> {
 
         return new LocPos(x, y, z);
     }
-
 }

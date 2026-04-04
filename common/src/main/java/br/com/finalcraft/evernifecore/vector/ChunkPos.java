@@ -1,12 +1,6 @@
-package br.com.finalcraft.evernifecore.api.hytale.math.vector;
+package br.com.finalcraft.evernifecore.vector;
 
-import br.com.finalcraft.evernifecore.api.common.math.vector.options.RegionGridOptions;
-import com.hypixel.hytale.math.util.ChunkUtil;
-import com.hypixel.hytale.math.vector.Location;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3i;
-import com.hypixel.hytale.server.core.universe.world.World;
-import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
+import br.com.finalcraft.evernifecore.vector.options.RegionGridOptions;
 
 public class ChunkPos {
     protected final int x;
@@ -15,22 +9,6 @@ public class ChunkPos {
     public ChunkPos(int x, int z) {
         this.x = x;
         this.z = z;
-    }
-
-    public static ChunkPos at(WorldChunk chunk){
-        return new ChunkPos(chunk.getX(), chunk.getZ());
-    }
-
-    public static ChunkPos at(Location location){
-        return BlockPos.at(location).getChunkPos();
-    }
-
-    public static ChunkPos at(Vector3d vector3d){
-        return BlockPos.at(vector3d.getX(), vector3d.getY(), vector3d.getZ()).getChunkPos();
-    }
-
-    public static ChunkPos at(Vector3i vector3i){
-        return BlockPos.at(vector3i.getX(), vector3i.getY(), vector3i.getZ()).getChunkPos();
     }
 
     public ChunkPos(BlockPos block) {
@@ -75,15 +53,6 @@ public class ChunkPos {
     public RegionPos getRegionPos(){
         return new RegionPos(this);
     }
-
-    public WorldChunk getChunk(World world){
-        return world.getChunk(indexChunkFromBlock());
-    }
-
-    public long indexChunkFromBlock(){
-        return ChunkUtil.indexChunkFromBlock(this.x, this.z);
-    }
-
 
     @Override
     public int hashCode(){

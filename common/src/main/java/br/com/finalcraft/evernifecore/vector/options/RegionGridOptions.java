@@ -1,11 +1,11 @@
-package br.com.finalcraft.evernifecore.api.common.math.vector.options;
+package br.com.finalcraft.evernifecore.vector.options;
 
 public class RegionGridOptions {
     
     public static final RegionGridOptions MINECRAFT = new RegionGridOptions(16);
     public static final RegionGridOptions HYTALE = new RegionGridOptions(32);
     
-    private static RegionGridOptions current = HYTALE;
+    private static RegionGridOptions current = MINECRAFT;
     
     private final int chunkSize;
     private final int chunkShift;
