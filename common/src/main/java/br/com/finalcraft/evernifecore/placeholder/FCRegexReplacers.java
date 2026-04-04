@@ -1,11 +1,11 @@
 package br.com.finalcraft.evernifecore.placeholder;
 
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ontime.OntimeManager;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCTimeUtil;
-import com.hypixel.hytale.server.core.universe.PlayerRef;
 
 public class FCRegexReplacers {
 
@@ -18,11 +18,11 @@ public class FCRegexReplacers {
             .addParser("player_ontime", iPlayerData -> FCTimeFrame.of(OntimeManager.getProvider().getOntime(iPlayerData)).getFormattedDiscursive())
             ;
 
-    public static RegexReplacer<PlayerRef> PLAYER = new RegexReplacer<PlayerRef>()
-            .addParser("player", PlayerRef::getUsername)
-            .addParser("player_name", PlayerRef::getUsername)
-            .addParser("player_uuid", PlayerRef::getUsername)
-            .addParser("player_isonline", PlayerRef::isValid)
+    public static RegexReplacer<FPlayer> PLAYER = new RegexReplacer<FPlayer>()
+            .addParser("player", FPlayer::getName)
+            .addParser("player_name", FPlayer::getName)
+            .addParser("player_uuid", FPlayer::getUniqueId)
+            .addParser("player_isonline", FPlayer::isOnline)
             ;
 
 
