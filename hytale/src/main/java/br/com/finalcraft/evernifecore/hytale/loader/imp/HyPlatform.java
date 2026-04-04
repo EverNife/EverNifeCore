@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.eventhandler.ECEventHandler;
-import br.com.finalcraft.evernifecore.api.hytale.HytaleFPlayer;
+import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -26,6 +26,7 @@ import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -191,6 +192,11 @@ public class HyPlatform implements IPlatform {
     @Override
     public boolean isPAPIPresent() {
         return HyPAPIIntegration.isPresent();
+    }
+
+    @Override
+    public String parse(@Nullable FPlayer player, @NonNull String text) {
+        return HyPAPIIntegration.parse(player, text);
     }
 
     @Override

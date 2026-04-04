@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
 import java.util.List;
 import java.util.UUID;
@@ -36,6 +37,8 @@ public interface IPlatform {
     public void unregisterECListener(ECListener listener);
 
     public boolean isPAPIPresent();
+
+    public String parse(@Nullable FPlayer player, @Nonnull String text);
 
     public <P extends IPlayerData> RegexReplacer<P> createPlaceholderIntegration(@Nonnull ECPluginData plugin, @Nonnull String pluginBaseID, @Nonnull Class<P> playerDataType);
 

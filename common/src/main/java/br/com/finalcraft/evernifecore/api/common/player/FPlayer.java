@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.api.common.player;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.api.hytale.HytaleFPlayer;
+import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import jakarta.annotation.Nonnull;
 
 public interface FPlayer extends FCommandSender {

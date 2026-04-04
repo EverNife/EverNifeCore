@@ -12,13 +12,13 @@ subprojects {
     apply plugin: 'maven-publish'
 
     group = 'br.com.finalcraft'
-    version = '2.0.4'
+    version = '2.1.1'
 
     sourceCompatibility = 11
     targetCompatibility = 11
 
     project.ext.evernifecore = "EverNifeCore"
-    project.ext.fullversion = "2.0.4.4"
+    project.ext.fullversion = "2.1.1"
 
     //This might keep function(parameter variable's Names) on the compiled jar
     compileJava.options.compilerArgs.add '-parameters'

@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.api.hytale;
+package br.com.finalcraft.evernifecore.hytale.api;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.BaseFCommandSender;
 import br.com.finalcraft.evernifecore.hytale.util.FCAdventureUtil;

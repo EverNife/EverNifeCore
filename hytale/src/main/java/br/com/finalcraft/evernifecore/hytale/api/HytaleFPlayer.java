@@ -1,7 +1,8 @@
-package br.com.finalcraft.evernifecore.api.hytale;
+package br.com.finalcraft.evernifecore.hytale.api;
 
 import br.com.finalcraft.evernifecore.api.common.player.BaseFPlayer;
-import br.com.finalcraft.evernifecore.api.hytale.math.vector.LocPos;
+import br.com.finalcraft.evernifecore.hytale.util.FCHytaleVectorUtil;
+import br.com.finalcraft.evernifecore.vector.LocPos;
 import br.com.finalcraft.evernifecore.hytale.util.FCAdventureUtil;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
@@ -191,8 +192,8 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
 
             return String.format("[TP] Teleporting player %s from %s to %s { Yaw:%s, Pitch:%s, Roll:%s }",
                     getName(),
-                    LocPos.at(origin),
-                    LocPos.at(safeTargetLocation),
+                    FCHytaleVectorUtil.locPosAt(origin),
+                    FCHytaleVectorUtil.locPosAt(safeTargetLocation),
                     displayYaw,
                     displayPitch,
                     displayRoll

@@ -16,30 +16,6 @@ public class HytaleArgumento extends Argumento {
         super(argumento);
     }
 
-    public FPlayer getPlayer(){
-
-        if (argumento.isEmpty()){
-            return null;
-        }
-
-        PlayerRef playerRef = null;
-
-        for(World world : Universe.get().getWorlds().values()) {
-
-            playerRef = NameMatching.EXACT_IGNORE_CASE.find(world.getPlayerRefs(), argumento, PlayerRef::getUsername);
-
-            if (playerRef != null) {
-                break;
-            }
-        }
-
-        if (playerRef == null){
-            return null;
-        }
-
-        return FCHytaleUtil.wrap(playerRef);
-    }
-
     public JavaPlugin getPlugin(){
         return (JavaPlugin) PluginManager.get().getPlugins().stream()
                 .filter(pluginBase -> pluginBase.getIdentifier().toString().equalsIgnoreCase(argumento))

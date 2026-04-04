@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.commands.finalcmd;
 
-import br.com.finalcraft.evernifecore.api.hytale.HytaleFCommandSender;
-import br.com.finalcraft.evernifecore.api.hytale.HytaleFPlayer;
+import br.com.finalcraft.evernifecore.hytale.api.HytaleFCommandSender;
+import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserFPlayer;
 import br.com.finalcraft.evernifecore.hytale.commands.finalcmd.argument.contextualparsers.*;

@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.commands.finalcmd.implementation;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.api.hytale.HytaleFCommandSender;
+import br.com.finalcraft.evernifecore.hytale.api.HytaleFCommandSender;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.IPlatformCMD;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;

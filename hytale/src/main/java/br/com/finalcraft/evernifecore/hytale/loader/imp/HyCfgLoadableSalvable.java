@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.hytale.loader.imp;
 
-import br.com.finalcraft.evernifecore.api.hytale.math.vector.BlockPos;
-import br.com.finalcraft.evernifecore.api.hytale.math.vector.ChunkPos;
-import br.com.finalcraft.evernifecore.api.hytale.math.vector.RegionPos;
+import br.com.finalcraft.evernifecore.vector.BlockPos;
+import br.com.finalcraft.evernifecore.vector.ChunkPos;
+import br.com.finalcraft.evernifecore.vector.RegionPos;
 import br.com.finalcraft.evernifecore.config.yaml.helper.CfgLoadableSalvable;
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;

@@ -16,7 +16,7 @@ public class PAPIIntegration {
     }
 
     public static String parse(@Nullable FPlayer player, @Nonnull String text){
-       throw new NotImplementedException();
+        return EverNifeCore.getPlatform().parse(player, text);
     }
 
     public static <P extends IPlayerData> RegexReplacer<P> createPlaceholderIntegration(@Nonnull ECPluginData plugin, @Nonnull String pluginBaseID, @Nonnull Class<P> playerDataType){
