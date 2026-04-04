@@ -1,13 +1,12 @@
 package br.com.finalcraft.evernifecore.commands;
 
-import br.com.finalcraft.evernifecore.commands.debug.CMDItemInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.commands.misc.*;
-import com.hypixel.hytale.server.core.plugin.JavaPlugin;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 
 public class CommandRegisterer {
 
-    public static void registerCommands(JavaPlugin pluginInstance) {
+    public static void registerCommands(ECPluginData pluginInstance) {
 
         FinalCMDManager.registerCommand(pluginInstance, CoreCommand.class);
         FinalCMDManager.registerCommand(pluginInstance, CMDCooldown.class);
@@ -17,7 +16,6 @@ public class CommandRegisterer {
         FinalCMDManager.registerCommand(pluginInstance, CMDECLocale.class);
         FinalCMDManager.registerCommand(pluginInstance, CMDECDynamicCommand.class);
         FinalCMDManager.registerCommand(pluginInstance, CMDList.class);
-        FinalCMDManager.registerCommand(pluginInstance, CMDItemInfo.class);
 
     }
 

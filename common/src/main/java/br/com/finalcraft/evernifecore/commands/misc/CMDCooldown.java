@@ -86,7 +86,6 @@ public class CMDCooldown {
     }
 
 
-
     @FCLocale(lang = LocaleType.EN_US, text = "§2§l ▶ §aAll NonPlayer Cooldowns have been reloaded!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§2§l ▶ §aTodos os NonPLayer Cooldowns foram recarregados!")
     private static LocaleMessage COOLDOWN_RELOAD;
