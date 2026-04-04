@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.commands.debug;
 
 
-import br.com.finalcraft.evernifecore.PermissionNodes;
+import br.com.finalcraft.evernifecore.hytale.HyPermissionNodes;
 import br.com.finalcraft.evernifecore.api.hytale.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
@@ -56,7 +56,7 @@ public class CMDItemInfo {
 
     @FinalCMD(
             aliases = {"eciteminfo","iteminfo"},
-            permission = PermissionNodes.EVERNIFECORE_COMMAND_ITEMINFO
+            permission = HyPermissionNodes.EVERNIFECORE_COMMAND_ITEMINFO
     )
     public void iteminfo(HytaleFPlayer player, ItemStack heldItem) {
 

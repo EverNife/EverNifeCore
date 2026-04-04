@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.hytale.argumento;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
-import br.com.finalcraft.evernifecore.util.FCHytaleUtil;
+import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.PluginManager;

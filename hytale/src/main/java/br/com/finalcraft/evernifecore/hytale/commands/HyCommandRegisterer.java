@@ -1,14 +1,16 @@
 package br.com.finalcraft.evernifecore.hytale.commands;
 
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.hytale.commands.debug.CMDItemInfo;
-import com.hypixel.hytale.server.core.plugin.JavaPlugin;
+import br.com.finalcraft.evernifecore.hytale.commands.debug.CMDTestScheduler;
 
 public class HyCommandRegisterer {
 
-    public static void registerCommands(JavaPlugin pluginInstance) {
+    public static void registerCommands(ECPluginData ecPluginData) {
 
-        FinalCMDManager.registerCommand(pluginInstance, CMDItemInfo.class);
+        FinalCMDManager.registerCommand(ecPluginData, CMDItemInfo.class);
+        FinalCMDManager.registerCommand(ecPluginData, CMDTestScheduler.class);
 
     }
 

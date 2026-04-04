@@ -16,9 +16,6 @@ javadoc {
 }
 
 repositories {
-    maven {
-        url = 'https://repo.alessiodp.com/releases/'//For the custom libby-core
-    }
     repositories {
         maven {
             url "https://repo.codemc.io/repository/creatorfromhell/"
@@ -32,6 +29,9 @@ repositories {
         name = "hytale"
         url = uri("https://maven.hytale.com/release") // Or "hytale-pre-release" for pre-release versions
     }
+    maven {
+        url = 'https://repo.alessiodp.com/releases/' //For the custom libby-core
+    }
 }
 
 dependencies {
@@ -39,7 +39,6 @@ dependencies {
 
     compileOnly("com.hypixel.hytale:Server:+")
 
-    compileOnly 'net.luckperms:api:5.4'
     compileOnly 'net.cfh.vault:VaultUnlocked:2.18.3'
     compileOnly 'at.helpch:placeholderapi-hytale:1.0.4'
 
@@ -53,7 +52,6 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    implementation 'net.byteflux:libby-core:1.2.0'
     implementation 'com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8.4'
 
     implementation "jakarta.annotation:jakarta.annotation-api:3.0.0"

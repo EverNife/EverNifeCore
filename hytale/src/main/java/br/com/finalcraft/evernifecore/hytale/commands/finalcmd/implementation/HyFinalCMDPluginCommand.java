@@ -1,9 +1,12 @@
 package br.com.finalcraft.evernifecore.hytale.commands.finalcmd.implementation;
 
+import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.hytale.HytaleFCommandSender;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.IPlatformCMD;
+import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import com.hypixel.hytale.server.core.command.system.*;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import org.jspecify.annotations.NonNull;
 
@@ -24,12 +27,6 @@ public class HyFinalCMDPluginCommand extends AbstractCommand implements IPlatfor
         this.setOwner(this.getJavaPlugin());
     }
 
-    public boolean registerCommand() {
-        return this.getJavaPlugin().getCommandRegistry()
-                .registerCommand(this)
-                .isRegistered();
-    }
-
     @Override
     protected @org.jspecify.annotations.Nullable CompletableFuture<Void> execute(@NonNull CommandContext ctx) {
         throw new UnsupportedOperationException();
@@ -46,7 +43,14 @@ public class HyFinalCMDPluginCommand extends AbstractCommand implements IPlatfor
         }
 
         try {
-            finalCMDPluginCommand.getExecutor().onCommand(HytaleFCommandSender.of(sender), commandLabel, args);
+            final FCommandSender fCommandSender;
+            if (sender instanceof Player player){
+                fCommandSender = FCHytaleUtil.wrap(player);
+            }else {
+                fCommandSender = HytaleFCommandSender.of(sender);
+            }
+
+            finalCMDPluginCommand.getExecutor().onCommand(fCommandSender, commandLabel, args);
             return CompletableFuture.completedFuture(null);
         } catch (Throwable ex) {
             throw new RuntimeException("Unhandled exception executing command '" + commandLabel + "' in plugin " + getJavaPlugin().getName(), ex);
