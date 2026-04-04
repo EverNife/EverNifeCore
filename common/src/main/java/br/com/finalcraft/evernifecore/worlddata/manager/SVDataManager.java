@@ -1,14 +1,14 @@
 package br.com.finalcraft.evernifecore.worlddata.manager;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.api.hytale.math.vector.BlockPos;
-import br.com.finalcraft.evernifecore.api.hytale.math.vector.ChunkPos;
-import br.com.finalcraft.evernifecore.api.hytale.math.vector.RegionPos;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
+import br.com.finalcraft.evernifecore.vector.BlockPos;
+import br.com.finalcraft.evernifecore.vector.ChunkPos;
+import br.com.finalcraft.evernifecore.vector.RegionPos;
 import br.com.finalcraft.evernifecore.worlddata.BlockMetaData;
 import br.com.finalcraft.evernifecore.worlddata.ServerData;
 import br.com.finalcraft.evernifecore.worlddata.WorldData;

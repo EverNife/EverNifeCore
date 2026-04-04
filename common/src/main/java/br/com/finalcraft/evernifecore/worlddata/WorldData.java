@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.worlddata;
 
-import br.com.finalcraft.evernifecore.api.hytale.math.vector.BlockPos;
-import br.com.finalcraft.evernifecore.api.hytale.math.vector.ChunkPos;
+import br.com.finalcraft.evernifecore.vector.BlockPos;
+import br.com.finalcraft.evernifecore.vector.ChunkPos;
 import jakarta.annotation.Nullable;
 
 import java.util.ArrayList;

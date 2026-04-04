@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.worlddata.manager.config;
 
-import br.com.finalcraft.evernifecore.api.hytale.math.vector.RegionPos;
 import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.evernifecore.vector.RegionPos;
 import jakarta.annotation.Nullable;
 
 import java.io.File;

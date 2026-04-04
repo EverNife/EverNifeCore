@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.worlddata;
 
-import br.com.finalcraft.evernifecore.api.hytale.math.vector.BlockPos;
-import com.hypixel.hytale.math.vector.Location;
+import br.com.finalcraft.evernifecore.vector.BlockPos;
+import br.com.finalcraft.evernifecore.vector.WorldLocPos;
 import jakarta.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -52,8 +52,8 @@ public abstract class ServerData<O extends Object> {
         return worldData.setBlockData(blockPos, value);
     }
 
-    public @Nullable BlockMetaData<O> setBlockData(Location location, @Nullable O value){
-        return this.setBlockData(location.getWorld(), BlockPos.at(location), value);
+    public @Nullable BlockMetaData<O> setBlockData(WorldLocPos location, @Nullable O value){
+        return this.setBlockData(location.getWorldName(), location.getBlockPos(), value);
     }
 
     public @Nullable BlockMetaData<O> getBlockMetaData(String worldName, BlockPos blockPos){
@@ -66,12 +66,12 @@ public abstract class ServerData<O extends Object> {
         return blockMetaData == null ? null : blockMetaData.getValue();
     }
 
-    public @Nullable BlockMetaData<O> getBlockMetaData(Location location){
-        return this.getBlockMetaData(location.getWorld(), BlockPos.at(location));
+    public @Nullable BlockMetaData<O> getBlockMetaData(WorldLocPos location){
+        return this.getBlockMetaData(location.getWorldName(), location.getBlockPos());
     }
 
-    public @Nullable O getBlockData(Location location){
-        return this.getBlockData(location.getWorld(), BlockPos.at(location));
+    public @Nullable O getBlockData(WorldLocPos location){
+        return this.getBlockData(location.getWorldName(), location.getBlockPos());
     }
 
     public List<BlockMetaData<O>> getAllBlockMetaData(){
