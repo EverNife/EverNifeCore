@@ -6,12 +6,11 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.pageviwer.PageViewer;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
-import br.com.finalcraft.evernifecore.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
-import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -24,20 +23,19 @@ public class ConfigManager {
     public static Config getMainConfig(){
         return mainConfig;
     }
+
     public static Config getCooldowns(){
         return cooldowns;
     }
 
-    public static void initialize(JavaPlugin instance){
-
-        mainConfig      = new Config(instance,"config.yml");
-        cooldowns       = new Config(instance,"Cooldowns.yml");
+    public static void initialize(ECPluginData ecPluginData){
+        mainConfig      = new Config(ecPluginData,"config.yml");
+        cooldowns       = new Config(ecPluginData,"Cooldowns.yml");
 
         ECSettings.initialize();
 
-        FCLocaleManager.loadLocale(EverNifeCore.instance,
+        FCLocaleManager.loadLocale(ecPluginData,
                 Arrays.asList(
-                        FCHytaleUtil.class,
                         FCMessageUtil.class,
                         FCTimeFrame.class,
                         Cooldown.class,
@@ -53,7 +51,7 @@ public class ConfigManager {
     }
 
     public static void reloadCooldownConfig(){
-        cooldowns = new Config(EverNifeCore.instance,"Cooldowns.yml");
+        cooldowns = new Config(EverNifeCore.instance.getEcPluginData(),"Cooldowns.yml");
         Cooldown.initialize();
     }
 

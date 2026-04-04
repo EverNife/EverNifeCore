@@ -9,14 +9,17 @@ public class CfgExecutor {
 
     private static final Logger logger = Logger.getLogger("CfgExecutor");
 
-    private static VirtualThreadedScheduledExecutor SCHEDULER = new VirtualThreadedScheduledExecutor("config-caching");
+    private static VirtualThreadedScheduledExecutor SCHEDULER;
 
     public static VirtualThreadedScheduledExecutor getScheduler() {
+        if (SCHEDULER == null){
+            SCHEDULER = new VirtualThreadedScheduledExecutor("config-caching");
+        }
         return SCHEDULER;
     }
 
     public static synchronized void shutdownExecutorAndScheduler(){
-        if (!SCHEDULER.isShutdown() && !SCHEDULER.isTerminated()){
+        if (SCHEDULER != null && !SCHEDULER.isShutdown() && !SCHEDULER.isTerminated()){
             try {
                 SCHEDULER.shutdown();
                 boolean success = SCHEDULER.awaitTermination(15, TimeUnit.SECONDS); //Give some time for the executor to finish
@@ -26,6 +29,8 @@ public class CfgExecutor {
                 }
             } catch (InterruptedException e){
                 e.printStackTrace();
+            } finally {
+                SCHEDULER = null;
             }
         } else {
             throw new IllegalStateException("Tried to stop the ConfigHelper Scheduler while it was not running at all!");

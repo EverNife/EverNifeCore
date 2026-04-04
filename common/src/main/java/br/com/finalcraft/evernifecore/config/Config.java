@@ -11,9 +11,8 @@ import br.com.finalcraft.evernifecore.config.yaml.helper.CfgLoadableSalvable;
 import br.com.finalcraft.evernifecore.config.yaml.helper.ConfigHelper;
 import br.com.finalcraft.evernifecore.config.yaml.helper.smartloadable.SmartLoadSave;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
-import br.com.finalcraft.evernifecore.util.FCJavaPluginUtil;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
-import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.Validate;
@@ -70,7 +69,7 @@ public class Config {
                     }
 //                    FileUtils.copyFile(this.getTheFile(), newCorruptedFile);
                 }catch (Exception e2){
-                    EverNifeCore.instance.getLogger().atSevere().log(String.format("[SEVERE_ERROR] Failed to create a COPY of the corrupted file at [%s]!", this.getAbsolutePath()));
+                    EverNifeCore.getLog().severe(String.format("[SEVERE_ERROR] Failed to create a COPY of the corrupted file at [%s]!", this.getAbsolutePath()));
                     e2.printStackTrace();
                 }
             }
@@ -143,14 +142,14 @@ public class Config {
     //      ECPlugins Constructors
     // ------------------------------------------------------------------------------------------------------------------
 
-    public Config(JavaPlugin plugin, String configName, boolean copyDefaults) {
-        File targetFile = new File(FCJavaPluginUtil.getDataFolder(plugin), configName);
+    public Config(ECPluginData plugin, String configName, boolean copyDefaults) {
+        File targetFile = new File(plugin.getPluginData().getDataFolder(), configName);
 
         if (!targetFile.exists() && copyDefaults) {
             try {
-                ConfigHelper.copyAsset(plugin, configName, FCJavaPluginUtil.getDataFolder(plugin));
+                ConfigHelper.copyAsset(plugin, configName, plugin.getPluginData().getDataFolder());
             }catch (IOException e){
-                plugin.getLogger().atWarning().log("Failed to load Asset for the config [" + configName + "]!");
+                plugin.getLog().warning("Failed to load Asset for the config [" + configName + "]!");
                 e.printStackTrace();
             }
         }
@@ -180,13 +179,13 @@ public class Config {
                         "\n  " +
                         "\n              EverNife's Config Manager" +
                         "\n" +
-                        "\n Plugin: " + plugin.getName() +
-                        "\n Author: " + (plugin.getManifest().getAuthors().size() > 0 ? plugin.getManifest().getAuthors().get(0) : "Desconhecido") +
+                        "\n Plugin: " + plugin.getPluginData().getName() +
+                        "\n Author: " + plugin.getPluginData().getAuthor() +
                         "\n"
         );
     }
 
-    public Config(JavaPlugin plugin, String configName) {
+    public Config(ECPluginData plugin, String configName) {
         this(plugin,configName, false);
     }
 

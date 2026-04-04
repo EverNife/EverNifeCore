@@ -1,8 +1,7 @@
 package br.com.finalcraft.evernifecore.config.yaml.helper;
 
 import br.com.finalcraft.evernifecore.config.Config;
-import br.com.finalcraft.evernifecore.exeptions.HytaleDoesNotHaveTheMinecraftEquivalentYet;
-import com.hypixel.hytale.server.core.plugin.JavaPlugin;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import org.simpleyaml.configuration.comments.format.YamlCommentFormat;
 import org.simpleyaml.configuration.file.YamlFile;
 import org.simpleyaml.configuration.implementation.SimpleYamlImplementation;
@@ -44,7 +43,7 @@ public class ConfigHelper {
      * @param recursive If true, it will search all sub-folders for config files.
      * @return A list of all the configs in the directory.
      */
-    public static List<Config> getAllConfings(File directory, boolean recursive){ //TODO [ON_NEXT_RELEASE] fix typo
+    public static List<Config> getAllConfigs(File directory, boolean recursive){
         if (directory == null) throw new IllegalArgumentException("Directory to search can't be null!");
         if (directory.isFile()) throw new IllegalArgumentException("Directory to search must be a FOLDER not a FILE!");
 
@@ -60,7 +59,7 @@ public class ConfigHelper {
                         configList.add(new Config(innerFile));
                     }
                 }else if (recursive){
-                    configList.addAll(getAllConfings(innerFile, recursive));
+                    configList.addAll(getAllConfigs(innerFile, recursive));
                 }
             }
         }
@@ -77,8 +76,8 @@ public class ConfigHelper {
      * @param targetFile The File where to place the asset to.
      * @return A file object
      */
-    public static File copyAsset(JavaPlugin plugin, String assetPath, File targetFile) throws IOException {
-        throw new HytaleDoesNotHaveTheMinecraftEquivalentYet();
+    public static File copyAsset(ECPluginData plugin, String assetPath, File targetFile) throws IOException {
+        throw new IllegalStateException("This feature is not available here!");
     }
 
 }

@@ -10,7 +10,6 @@ import br.com.finalcraft.evernifecore.reflection.ConstructorInvoker;
 import br.com.finalcraft.evernifecore.reflection.FieldAccessor;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.commons.Tuple;
-import org.apache.commons.lang3.NotImplementedException;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
@@ -141,7 +140,7 @@ public class FCConfigurationManager {
                         key = toKebabCase(key);
                         break;
                     default:
-                        throw new NotImplementedException("Unsupported Key Transform Case: " + fieldKey.transformCase() + " on field: " + fieldAccessor.getTheField().getName());
+                        throw new UnsupportedOperationException("Unsupported Key Transform Case: " + fieldKey.transformCase() + " on field: " + fieldAccessor.getTheField().getName());
                 }
             }
             String finalKey = key;
