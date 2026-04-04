@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.hytale.loader;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.vector.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.eventhandler.ECEventDispatcher;
@@ -18,6 +17,7 @@ import br.com.finalcraft.evernifecore.hytale.loader.imp.HyECPluginExtractor;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;
 import br.com.finalcraft.evernifecore.integration.placeholders.PAPIIntegration;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.vector.options.RegionGridOptions;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import org.jspecify.annotations.NonNull;

@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.util;
+package br.com.finalcraft.evernifecore.hytale.util;
 
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.asset.type.item.config.Item;

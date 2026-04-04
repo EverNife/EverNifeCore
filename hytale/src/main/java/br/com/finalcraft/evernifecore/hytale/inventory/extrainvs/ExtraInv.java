@@ -1,8 +1,8 @@
-package br.com.finalcraft.evernifecore.inventory.extrainvs;
+package br.com.finalcraft.evernifecore.hytale.inventory.extrainvs;
 
-import br.com.finalcraft.evernifecore.inventory.GenericInventory;
-import br.com.finalcraft.evernifecore.inventory.data.ItemInSlot;
-import br.com.finalcraft.evernifecore.inventory.extrainvs.factory.IExtraInvFactory;
+import br.com.finalcraft.evernifecore.hytale.inventory.GenericInventory;
+import br.com.finalcraft.evernifecore.hytale.inventory.data.ItemInSlot;
+import br.com.finalcraft.evernifecore.hytale.inventory.extrainvs.factory.IExtraInvFactory;
 
 import java.util.Collection;
 

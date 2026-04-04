@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.inventory.data;
+package br.com.finalcraft.evernifecore.hytale.inventory.data;
 
 
 import com.hypixel.hytale.server.core.inventory.ItemStack;

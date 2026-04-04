@@ -1,9 +1,9 @@
-package br.com.finalcraft.evernifecore.itemstack;
+package br.com.finalcraft.evernifecore.hytale.itemstack;
 
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
-import br.com.finalcraft.evernifecore.util.FCItemUtils;
+import br.com.finalcraft.evernifecore.hytale.util.FCItemUtils;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.asset.type.item.config.Item;
 import com.hypixel.hytale.server.core.inventory.ItemStack;

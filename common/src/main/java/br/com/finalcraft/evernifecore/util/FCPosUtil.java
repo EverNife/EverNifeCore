@@ -1,14 +1,14 @@
 package br.com.finalcraft.evernifecore.util;
 
 import br.com.finalcraft.evernifecore.util.commons.MinMax;
-import com.hypixel.hytale.math.vector.Vector3d;
+import br.com.finalcraft.evernifecore.vector.BlockPos;
 import org.apache.commons.lang3.Validate;
 
 import java.util.Collection;
 
 public class FCPosUtil {
 
-    public static MinMax<Vector3d> getMinimumAndMaximum(Collection<Vector3d> blockPosList){
+    public static MinMax<BlockPos> getMinimumAndMaximum(Collection<BlockPos> blockPosList){
         Validate.isTrue(blockPosList.size() > 0, "The list of blockPos must have at least one element!");
 
         double minX = 0;
@@ -19,7 +19,7 @@ public class FCPosUtil {
         double maxZ = 0;
 
         boolean firstLoop = true;
-        for (Vector3d blockPos : blockPosList) {
+        for (BlockPos blockPos : blockPosList) {
             double x = blockPos.getX();
             double y = blockPos.getY();
             double z = blockPos.getZ();
@@ -38,7 +38,7 @@ public class FCPosUtil {
             if (y > maxY) maxY = y;
             if (z > maxZ) maxZ = z;
         }
-        return MinMax.of(new Vector3d(minX, minY, minZ), new Vector3d(maxX, maxY, maxZ));
+        return MinMax.of(new BlockPos(minX, minY, minZ), new BlockPos(maxX, maxY, maxZ));
     }
 
 }

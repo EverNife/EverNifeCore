@@ -1,16 +1,16 @@
 package br.com.finalcraft.evernifecore.hytale.commands.debug;
 
 
-import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.hytale.HyPermissionNodes;
-import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
+import br.com.finalcraft.evernifecore.hytale.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.hytale.util.FCItemUtils;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import br.com.finalcraft.evernifecore.util.FCItemUtils;
 import br.com.finalcraft.evernifecore.util.FCTextUtil;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 

@@ -1,9 +1,9 @@
-package br.com.finalcraft.evernifecore.inventory.extrainvs.factory;
+package br.com.finalcraft.evernifecore.hytale.inventory.extrainvs.factory;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
-import br.com.finalcraft.evernifecore.inventory.GenericInventory;
-import br.com.finalcraft.evernifecore.inventory.extrainvs.ExtraInv;
+import br.com.finalcraft.evernifecore.hytale.inventory.GenericInventory;
+import br.com.finalcraft.evernifecore.hytale.inventory.extrainvs.ExtraInv;
 
 import java.util.Collections;
 

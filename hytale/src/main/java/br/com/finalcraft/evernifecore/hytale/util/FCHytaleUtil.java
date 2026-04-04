@@ -2,10 +2,10 @@ package br.com.finalcraft.evernifecore.hytale.util;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.hytale.api.HytaleFCommandSender;
-import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.hytale.api.HytaleFCommandSender;
+import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
@@ -19,6 +19,7 @@ import com.hypixel.hytale.math.vector.Location;
 import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.math.vector.Vector3i;
+import com.hypixel.hytale.server.core.asset.type.item.config.Item;
 import com.hypixel.hytale.server.core.command.system.CommandManager;
 import com.hypixel.hytale.server.core.command.system.CommandSender;
 import com.hypixel.hytale.server.core.console.ConsoleSender;
@@ -42,6 +43,10 @@ public class FCHytaleUtil {
     @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cOnly players can use this command!.")
     @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cApenas jogadores podem usar esse comando!.")
     private static LocaleMessage ONLY_PLAYERS_CAN_USE_THIS_COMMAND;
+
+    public static Item parseItem(String item){
+        return Item.getAssetMap().getAsset(item);
+    }
 
     /**
      * If the sender is not a player, send the sender the message

@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.itemstack;
+package br.com.finalcraft.evernifecore.hytale.itemstack;
 
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;

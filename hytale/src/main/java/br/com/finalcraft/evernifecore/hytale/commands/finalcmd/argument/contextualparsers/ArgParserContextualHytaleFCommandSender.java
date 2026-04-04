@@ -1,11 +1,11 @@
 package br.com.finalcraft.evernifecore.hytale.commands.finalcmd.argument.contextualparsers;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.hytale.api.HytaleFCommandSender;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgContextualInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserContextual;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.hytale.api.HytaleFCommandSender;
 import jakarta.annotation.Nonnull;
 
 public class ArgParserContextualHytaleFCommandSender extends ArgParserContextual<HytaleFCommandSender> {

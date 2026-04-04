@@ -1,9 +1,8 @@
 package br.com.finalcraft.evernifecore.hytale.api;
 
 import br.com.finalcraft.evernifecore.api.common.player.BaseFPlayer;
-import br.com.finalcraft.evernifecore.hytale.util.FCHytaleVectorUtil;
-import br.com.finalcraft.evernifecore.vector.LocPos;
 import br.com.finalcraft.evernifecore.hytale.util.FCAdventureUtil;
+import br.com.finalcraft.evernifecore.hytale.util.FCHytaleVectorUtil;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import com.hypixel.hytale.builtin.teleport.components.TeleportHistory;

@@ -1,6 +1,6 @@
-package br.com.finalcraft.evernifecore.itemdatapart.datapart;
+package br.com.finalcraft.evernifecore.hytale.itemdatapart.datapart;
 
-import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.hytale.itemdatapart.ItemDataPart;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import org.bson.BsonDocument;
 

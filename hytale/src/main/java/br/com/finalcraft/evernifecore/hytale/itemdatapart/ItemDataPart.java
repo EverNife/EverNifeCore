@@ -1,7 +1,7 @@
-package br.com.finalcraft.evernifecore.itemdatapart;
+package br.com.finalcraft.evernifecore.hytale.itemdatapart;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.itemdatapart.datapart.*;
+import br.com.finalcraft.evernifecore.hytale.itemdatapart.datapart.*;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;

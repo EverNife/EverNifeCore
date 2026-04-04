@@ -1,15 +1,15 @@
-package br.com.finalcraft.evernifecore.inventory.player;
+package br.com.finalcraft.evernifecore.hytale.inventory.player;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
-import br.com.finalcraft.evernifecore.inventory.GenericInventory;
-import br.com.finalcraft.evernifecore.inventory.extrainvs.ExtraInv;
-import br.com.finalcraft.evernifecore.inventory.extrainvs.ExtraInvManager;
-import br.com.finalcraft.evernifecore.inventory.extrainvs.factory.IExtraInvFactory;
+import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
+import br.com.finalcraft.evernifecore.hytale.inventory.GenericInventory;
+import br.com.finalcraft.evernifecore.hytale.inventory.extrainvs.ExtraInv;
+import br.com.finalcraft.evernifecore.hytale.inventory.extrainvs.ExtraInvManager;
+import br.com.finalcraft.evernifecore.hytale.inventory.extrainvs.factory.IExtraInvFactory;
 import com.hypixel.hytale.server.core.inventory.Inventory;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import jakarta.annotation.Nullable;

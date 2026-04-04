@@ -1,10 +1,10 @@
-package br.com.finalcraft.evernifecore.inventory;
+package br.com.finalcraft.evernifecore.hytale.inventory;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
-import br.com.finalcraft.evernifecore.inventory.data.ItemInSlot;
+import br.com.finalcraft.evernifecore.hytale.inventory.data.ItemInSlot;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
 

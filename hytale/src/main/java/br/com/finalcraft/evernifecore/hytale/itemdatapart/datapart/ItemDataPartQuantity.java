@@ -1,7 +1,7 @@
-package br.com.finalcraft.evernifecore.itemdatapart.datapart;
+package br.com.finalcraft.evernifecore.hytale.itemdatapart.datapart;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.hytale.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 
