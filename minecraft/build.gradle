@@ -8,9 +8,15 @@ version '2.0.4'
 targetCompatibility = 1.8
 sourceCompatibility = 1.8
 
-compileJava.options.encoding = 'UTF-8'
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
+    options.release.set(8)
+    options.compilerArgs.add('-parameters')
+}
+
+// Disable default jar (we only want shadow)
+tasks.jar {
+    enabled = false
 }
 
 javadoc {
@@ -56,7 +62,7 @@ dependencies {
     implementation "br.com.finalcraft:ECForgeListener:1.0.6"
 
     //NBT-API
-    implementation("de.tr7zw:item-nbt-api:2.15.2")
+    implementation("de.tr7zw:item-nbt-api:2.15.6")
     //END of NBT-API
 
     implementation 'net.md-5:bungeecord-chat:1.16-R0.1' //This works from 1.7.10 onwards, is the same API
@@ -122,9 +128,11 @@ ext.getCallingTask = { ->
 
 shadowJar {
     archiveBaseName.set(project.ext.evernifecore)
-    archiveClassifier.set('minecraft')
+    archiveClassifier.set('')
+
     dependencies {
         include(dependency('br.com.finalcraft:ChatMenuAPI:'))
+        include(dependency('br.com.finalcraft:ECNmsUtils:'))
         include(dependency('net.byteflux:libby-core:'))
         include(dependency('dev.triumphteam:triumph-gui:'))
         include(dependency('de.tr7zw:item-nbt-api:')) //Oct 26, 2023
@@ -135,7 +143,8 @@ shadowJar {
         include(project(':minecraft:modules:v1_12_2'))
         include(project(':minecraft:modules:v1_16_5'))
     }
-    if (getCallingTask().equals("publish")){
+
+    if (getCallingTask().contains("publish")){
         println "[Shadowing ExtraJars for Maven Publish]"
         dependencies {
             include(dependency('com.github.Carleslc.Simple-YAML:Simple-Yaml:'))
@@ -175,7 +184,7 @@ test {
 
 processResources {
     var expandProps = [
-            'fullversion'        : project.ext.fullversion
+            'version'        : project.version
     ]
 
     filesMatching(['plugin.yml']) {
@@ -206,6 +215,7 @@ publishing {
     publications {
         petrus(MavenPublication) {
             groupId = project.group
+            artifactId = "evernife-core-" + "minecraft"
             from(components.java)
             pom.withXml {
                 asNode().appendNode('url','https://petrus.dev')
