@@ -34,6 +34,7 @@ public abstract class ItemDataPart {
     public static ItemDataPart NAME             = registerType(new ItemDataPartName());
     public static ItemDataPart LORE             = registerType(new ItemDataPartLore());
     public static ItemDataPart NBT              = registerType(new ItemDataPartNBT());
+    public static ItemDataPart ENCHANTMENT      = MCVersion.isHigherEquals(MCVersion.v1_21) ? registerType(new ItemDataPartEnchantment()) : null;
 
     public static @Nullable <DP extends ItemDataPart> DP registerType(@Nonnull DP type) {
         if (MCVersion.isHigherEquals(type.getMinimumVersion())){
