@@ -1,12 +1,12 @@
 package br.com.finalcraft.evernifecore.nms.util;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.nms.util.v1_12_R1.NMSUtils_v1_12_R1;
-import br.com.finalcraft.evernifecore.nms.util.v1_16_R3.NMSUtils_v1_16_R3;
-import br.com.finalcraft.evernifecore.nms.util.v1_20_R1.NMSUtils_v1_20_R1;
-import br.com.finalcraft.evernifecore.nms.util.v1_20_R2.NMSUtils_v1_20_R2;
-import br.com.finalcraft.evernifecore.nms.util.v1_21_R1.NMSUtils_v1_21_R1;
-import br.com.finalcraft.evernifecore.nms.util.v1_7_R4.NMSUtils_v1_7_R4;
+import br.com.finalcraft.evernifecore.nms.imp.v1_12_R1.NMSUtils_v1_12_R1;
+import br.com.finalcraft.evernifecore.nms.imp.v1_16_R3.NMSUtils_v1_16_R3;
+import br.com.finalcraft.evernifecore.nms.imp.v1_20_R1.NMSUtils_v1_20_R1;
+import br.com.finalcraft.evernifecore.nms.imp.v1_20_R2.NMSUtils_v1_20_R2;
+import br.com.finalcraft.evernifecore.nms.imp.v1_21_R1.NMSUtils_v1_21_R1;
+import br.com.finalcraft.evernifecore.nms.imp.v1_7_R4.NMSUtils_v1_7_R4;
 import br.com.finalcraft.evernifecore.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 

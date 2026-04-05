@@ -44,6 +44,10 @@ dependencies {
     implementation project(':minecraft:modules:v1_12_2')
     implementation project(':minecraft:modules:v1_16_5')
 
+    implementation("br.com.finalcraft:ECNmsUtils:1.1.2") {
+        exclude group: "br.com.finalcraft", module: "*"
+    }
+
     implementation "br.com.finalcraft:ChatMenuAPI:2.0.1"
 
     implementation 'net.byteflux:libby-core:1.2.0'
