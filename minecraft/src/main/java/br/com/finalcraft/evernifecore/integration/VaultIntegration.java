@@ -37,18 +37,23 @@ public class VaultIntegration {
     }
 
     private static void setupEconomy() {
-        Class economyV2Class = FCReflectionUtil.getClass("net.milkbowl.vault2.economy.Economy");
-        RegisteredServiceProvider<?> registration2 = EverNifeCore.instance.getServer().getServicesManager().getRegistration(economyV2Class);
-        if (registration2 != null && registration2.getProvider() != null){
-            vaultEconomy = new VaultEconV2(registration2.getProvider());
-            return;
+
+        if (FCReflectionUtil.isClassLoaded("net.milkbowl.vault2.economy.Economy")){
+            Class economyV2Class = FCReflectionUtil.getClass("net.milkbowl.vault2.economy.Economy");
+            RegisteredServiceProvider<?> registration2 = EverNifeCore.instance.getServer().getServicesManager().getRegistration(economyV2Class);
+            if (registration2 != null && registration2.getProvider() != null){
+                vaultEconomy = new VaultEconV2(registration2.getProvider());
+                return;
+            }
         }
 
-        Class economyV1Class = FCReflectionUtil.getClass("net.milkbowl.vault.economy.Economy");
-        RegisteredServiceProvider<?> registration1 = EverNifeCore.instance.getServer().getServicesManager().getRegistration(economyV1Class);
-        if (registration1 != null && registration1.getProvider() != null){
-            vaultEconomy = new VaultEconV1(registration1.getProvider());
-            return;
+        if (FCReflectionUtil.isClassLoaded("net.milkbowl.vault.economy.Economy")){
+            Class economyV1Class = FCReflectionUtil.getClass("net.milkbowl.vault.economy.Economy");
+            RegisteredServiceProvider<?> registration1 = EverNifeCore.instance.getServer().getServicesManager().getRegistration(economyV1Class);
+            if (registration1 != null && registration1.getProvider() != null){
+                vaultEconomy = new VaultEconV1(registration1.getProvider());
+                return;
+            }
         }
 
         throw new IllegalStateException("No Economy plugin found on the Server!");
