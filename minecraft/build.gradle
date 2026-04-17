@@ -215,7 +215,7 @@ publishing {
     publications {
         petrus(MavenPublication) {
             groupId = project.group
-            artifactId = "evernife-core-" + "minecraft"
+            artifactId = "evernifecore-" + "minecraft"
             from(components.java)
             pom.withXml {
                 asNode().appendNode('url','https://petrus.dev')

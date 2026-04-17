@@ -92,7 +92,7 @@ public class SendCustom implements ILocaleMessageBase {
 
     @Override
     public void broadcast(){
-        FCommandSender[] onlinePlayers = EverNifeCore.instance.getProviders().getPlatformOperations()
+        FCommandSender[] onlinePlayers = EverNifeCore.getProviders().getPlatform()
                 .getOnlinePlayers()
                 .toArray(new FCommandSender[0]);
         send(onlinePlayers);

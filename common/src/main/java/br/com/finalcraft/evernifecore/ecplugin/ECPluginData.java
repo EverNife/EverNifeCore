@@ -39,10 +39,10 @@ public class ECPluginData {
     private Boolean debugEnabled = null;
 
     public ECPluginData(Object plugin) {
-        EverNifeCore.instance.getProviders().getECPluginExtractor().validateJavaPlugin(plugin);
+        EverNifeCore.getProviders().getECPluginExtractor().validateJavaPlugin(plugin);
 
         this.plugin = plugin;
-        this.iPluginData = EverNifeCore.instance.getProviders().getECPluginExtractor().getPluginData(plugin);
+        this.iPluginData = EverNifeCore.getProviders().getECPluginExtractor().getPluginData(plugin);
         this.ecLogger = new ECLogger(this);
 
         // -------------------------------------------- //

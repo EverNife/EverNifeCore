@@ -69,8 +69,7 @@ public class Argumento {
     }
 
     public FPlayer getPlayer() {
-        return EverNifeCore.instance.getProviders()
-                .getPlatformOperations()
+        return EverNifeCore.getPlatform()
                 .getPlayer(argumento);
     }
 

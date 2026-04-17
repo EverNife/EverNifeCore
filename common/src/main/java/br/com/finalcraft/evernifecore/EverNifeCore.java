@@ -26,14 +26,13 @@ public class EverNifeCore {
 
     private ECProviders ecProviders = new ECProviders();
 
-    public ECProviders getProviders() {
-        return ecProviders;
+    public static ECProviders getProviders() {
+        return instance.ecProviders;
     }
 
     public static IPlatform getPlatform(){
-        return instance.getProviders().getPlatformOperations();
+        return instance.getProviders().getPlatform();
     }
-
 
     public void onLoaderInstantiate(ECPluginData ecPluginData){
         this.ecPluginData = ecPluginData;

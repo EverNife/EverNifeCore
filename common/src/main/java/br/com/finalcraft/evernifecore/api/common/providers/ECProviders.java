@@ -20,7 +20,7 @@ public class ECProviders {
         return BASE_PROVIDER.provide(IECPluginExtractor.class);
     }
 
-    public IPlatform getPlatformOperations(){
+    public IPlatform getPlatform(){
         return BASE_PROVIDER.provide(IPlatform.class);
     }
 

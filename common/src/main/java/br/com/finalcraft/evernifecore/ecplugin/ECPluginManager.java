@@ -82,7 +82,7 @@ public class ECPluginManager {
 //            FCSound.LEVEL_UP.playSoundFor((Player) sender);
         }
 
-        EverNifeCore.instance.getProviders()
+        EverNifeCore.getProviders()
                 .getEventDispatcher()
                 .post(new ECPluginReloadEvent.Pre(ecPluginData));
 
@@ -98,7 +98,7 @@ public class ECPluginManager {
             }
         }
 
-        EverNifeCore.instance.getProviders()
+        EverNifeCore.getProviders()
                 .getEventDispatcher()
                 .post(new ECPluginReloadEvent.Post(ecPluginData));
     }

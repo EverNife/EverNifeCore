@@ -32,17 +32,17 @@ public class HyEverNifeCore extends JavaPlugin {
         instance = this; //Attribute Instance at the exact moment that this class is instantiated
 
         //Register Providers as Early as Possible
-        EverNifeCore.instance.getProviders().getBaseProvider().register(
+        EverNifeCore.getProviders().getBaseProvider().register(
                 IECPluginExtractor.class,
                 new HyECPluginExtractor()
         );
 
-        EverNifeCore.instance.getProviders().getBaseProvider().register(
+        EverNifeCore.getProviders().getBaseProvider().register(
                 IPlatform.class,
                 new HyPlatform()
         );
 
-        EverNifeCore.instance.getProviders().getBaseProvider().register(
+        EverNifeCore.getProviders().getBaseProvider().register(
                 ECEventDispatcher.class,
                 new HyECEventDispatcher()
         );
