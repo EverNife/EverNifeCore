@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.thread;
 
 import jakarta.annotation.Nonnull;
 import lombok.Data;
-import org.jspecify.annotations.NonNull;
+import jakarta.annotation.Nonnull;
 
 import java.util.Locale;
 import java.util.concurrent.Executors;
@@ -28,7 +28,7 @@ public class SimpleThreadFactory implements ThreadFactory {
     }
 
     @Override
-    public Thread newThread(@NonNull Runnable r) {
+    public Thread newThread(@Nonnull Runnable r) {
         Thread thread = threadFactory.newThread(r);
         if (identifier != null) {
             thread.setName(String.format(Locale.ROOT, identifier, counter.getAndIncrement()));

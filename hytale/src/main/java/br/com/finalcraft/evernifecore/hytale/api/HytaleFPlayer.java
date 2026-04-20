@@ -22,9 +22,9 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
-import org.jspecify.annotations.NonNull;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
@@ -56,13 +56,13 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
     }
 
     @Override
-    public void sendMessage(@NonNull Component component) {
+    public void sendMessage(@Nonnull Component component) {
         Message message = FCAdventureUtil.toHytaleMessage(component);
         getPlayerRef().sendMessage(message);
     }
 
     @Override
-    public boolean hasPermission(@NonNull String permission) {
+    public boolean hasPermission(@Nonnull String permission) {
         return PermissionsModule.get().hasPermission(getPlayerRef().getUuid(), permission);
     }
 

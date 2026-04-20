@@ -20,14 +20,14 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.vector.options.RegionGridOptions;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
-import org.jspecify.annotations.NonNull;
+import jakarta.annotation.Nonnull;
 
 
 public class HyEverNifeCore extends JavaPlugin {
 
     public static HyEverNifeCore instance;
 
-    public HyEverNifeCore(@NonNull JavaPluginInit init) {
+    public HyEverNifeCore(@Nonnull JavaPluginInit init) {
         super(init);
         instance = this; //Attribute Instance at the exact moment that this class is instantiated
 

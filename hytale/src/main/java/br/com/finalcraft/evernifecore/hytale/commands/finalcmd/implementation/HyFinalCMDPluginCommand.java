@@ -8,7 +8,7 @@ import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import com.hypixel.hytale.server.core.command.system.*;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
-import org.jspecify.annotations.NonNull;
+import jakarta.annotation.Nonnull;
 
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
@@ -28,12 +28,12 @@ public class HyFinalCMDPluginCommand extends AbstractCommand implements IPlatfor
     }
 
     @Override
-    protected @org.jspecify.annotations.Nullable CompletableFuture<Void> execute(@NonNull CommandContext ctx) {
+    protected @org.jspecify.annotations.Nullable CompletableFuture<Void> execute(@Nonnull CommandContext ctx) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public @org.jspecify.annotations.Nullable CompletableFuture<Void> acceptCall(@NonNull CommandSender sender, @NonNull ParserContext parserContext, @NonNull ParseResult parseResult) {
+    public @org.jspecify.annotations.Nullable CompletableFuture<Void> acceptCall(@Nonnull CommandSender sender, @Nonnull ParserContext parserContext, @Nonnull ParseResult parseResult) {
         String[] inputStrings = parserContext.getInputString().split(" ");
         String commandLabel = inputStrings[0];
         String[] args = Arrays.copyOfRange(inputStrings, 1, inputStrings.length);

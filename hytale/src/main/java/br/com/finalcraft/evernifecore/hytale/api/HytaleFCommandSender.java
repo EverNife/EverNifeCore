@@ -9,7 +9,7 @@ import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.receiver.IMessageReceiver;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import net.kyori.adventure.text.Component;
-import org.jspecify.annotations.NonNull;
+import jakarta.annotation.Nonnull;
 
 import java.util.UUID;
 
@@ -28,7 +28,7 @@ public abstract class HytaleFCommandSender<DELEGATE extends IMessageReceiver> ex
     }
 
     @Override
-    public void sendMessage(@NonNull Component component) {
+    public void sendMessage(@Nonnull Component component) {
         Message message = FCAdventureUtil.toHytaleMessage(component);
         getDelegate().sendMessage(message);
     }

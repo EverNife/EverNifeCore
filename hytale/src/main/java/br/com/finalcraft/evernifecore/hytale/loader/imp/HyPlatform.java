@@ -25,8 +25,8 @@ import com.hypixel.hytale.server.core.command.system.CommandManager;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -195,12 +195,12 @@ public class HyPlatform implements IPlatform {
     }
 
     @Override
-    public String parse(@Nullable FPlayer player, @NonNull String text) {
+    public String parse(@Nullable FPlayer player, @Nonnull String text) {
         return HyPAPIIntegration.parse(player, text);
     }
 
     @Override
-    public <P extends IPlayerData> RegexReplacer<P> createPlaceholderIntegration(@NonNull ECPluginData plugin, @NonNull String pluginBaseID, @NonNull Class<P> playerDataType) {
+    public <P extends IPlayerData> RegexReplacer<P> createPlaceholderIntegration(@Nonnull ECPluginData plugin, @Nonnull String pluginBaseID, @Nonnull Class<P> playerDataType) {
        return HyPAPIIntegration.createPlaceholderIntegration(plugin, pluginBaseID, playerDataType);
     }
 

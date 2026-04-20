@@ -4,7 +4,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginE
 import br.com.finalcraft.evernifecore.ecplugin.IPluginData;
 import br.com.finalcraft.evernifecore.hytale.util.FCJavaPluginUtil;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
-import org.jspecify.annotations.NonNull;
+import jakarta.annotation.Nonnull;
 
 public class HyECPluginExtractor implements IECPluginExtractor {
 
@@ -19,7 +19,7 @@ public class HyECPluginExtractor implements IECPluginExtractor {
     }
 
     @Override
-    public Object getProvidingPlugin(@NonNull Class<?> clazz) {
+    public Object getProvidingPlugin(@Nonnull Class<?> clazz) {
         return FCJavaPluginUtil.getProvidingPlugin(clazz);
     }
 
