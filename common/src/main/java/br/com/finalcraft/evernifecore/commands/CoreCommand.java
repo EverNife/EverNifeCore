@@ -30,18 +30,18 @@ public class CoreCommand {
     public void info(FCommandSender sender, @Arg(name = "[page]", context = "[1:*]") Integer page){
         PageViewer.targeting(ECPluginData.class)
                 .withSuplier(() -> new ArrayList<>(ECPluginManager.getECPluginsMap().values()))
-                .extracting(ecPluginData -> ecPluginData.getPluginData().getName())
+                .extracting(ecPluginData -> ecPluginData.getMetaInfo().getName())
                 .setFormatLine(
                         FancyText.of("§7# %number%: §e§l◆ §a %value% §7§o(%version%)").setHoverText("%plugin_info%")
                                 .append("%can_update%").setHoverText("§aClique to go to DownloadLink").setOpenLinkAction("%update_link%")
                 )
-                .addPlaceholder("%version%", ecPlugin -> ecPlugin.getPluginData().getVersion())
+                .addPlaceholder("%version%", ecPlugin -> ecPlugin.getMetaInfo().getVersion())
                 .addPlaceholder("%can_update%", ecPlugin -> ecPlugin.hasUpdate() ? "§b  [Update]" : "")
                 .addPlaceholder("%update_link%", ecPlugin -> ecPlugin.hasUpdate() ? ecPlugin.getUpdateLink() : "")
                 .addPlaceholder("%plugin_info%", ecPlugin -> {
                     StringBuilder stringBuilder = new StringBuilder();
-                    stringBuilder.append("\n§d ▲ Name: §a" + ecPlugin.getPluginData().getName());
-                    stringBuilder.append("\n§d ▲ Version: §a" + ecPlugin.getPluginData().getVersion());
+                    stringBuilder.append("\n§d ▲ Name: §a" + ecPlugin.getMetaInfo().getName());
+                    stringBuilder.append("\n§d ▲ Version: §a" + ecPlugin.getMetaInfo().getVersion());
                     stringBuilder.append("\n\n§d ▲ Is Up To Date: " + (ecPlugin.hasUpdate() ? "§c" : "§b") + !ecPlugin.hasUpdate());
                     stringBuilder.append("\n");
                     return stringBuilder.toString();

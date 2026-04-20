@@ -143,11 +143,11 @@ public class Config {
     // ------------------------------------------------------------------------------------------------------------------
 
     public Config(ECPluginData plugin, String configName, boolean copyDefaults) {
-        File targetFile = new File(plugin.getPluginData().getDataFolder(), configName);
+        File targetFile = new File(plugin.getMetaInfo().getDataFolder(), configName);
 
         if (!targetFile.exists() && copyDefaults) {
             try {
-                ConfigHelper.copyAsset(plugin, configName, plugin.getPluginData().getDataFolder());
+                ConfigHelper.copyAsset(plugin, configName, plugin.getMetaInfo().getDataFolder());
             }catch (IOException e){
                 plugin.getLog().warning("Failed to load Asset for the config [" + configName + "]!");
                 e.printStackTrace();
@@ -179,8 +179,8 @@ public class Config {
                         "\n  " +
                         "\n              EverNife's Config Manager" +
                         "\n" +
-                        "\n Plugin: " + plugin.getPluginData().getName() +
-                        "\n Author: " + plugin.getPluginData().getAuthor() +
+                        "\n Plugin: " + plugin.getMetaInfo().getName() +
+                        "\n Author: " + plugin.getMetaInfo().getAuthor() +
                         "\n"
         );
     }

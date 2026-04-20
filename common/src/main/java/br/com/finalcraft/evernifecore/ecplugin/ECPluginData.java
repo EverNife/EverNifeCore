@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 public class ECPluginData {
 
     private final Object plugin;
-    private final IPluginData iPluginData;
+    private final IPluginMetaInfo iPluginMetaInfo;
     private final ECLogger ecLogger;
 
     private final Runnable onReload;
@@ -42,7 +42,7 @@ public class ECPluginData {
         EverNifeCore.getProviders().getECPluginExtractor().validateJavaPlugin(plugin);
 
         this.plugin = plugin;
-        this.iPluginData = EverNifeCore.getProviders().getECPluginExtractor().getPluginData(plugin);
+        this.iPluginMetaInfo = EverNifeCore.getProviders().getECPluginExtractor().getPluginMetaInfo(plugin);
         this.ecLogger = new ECLogger(this);
 
         // -------------------------------------------- //
@@ -59,7 +59,7 @@ public class ECPluginData {
                 try {
                     reloadMethod.invoke(isStatic ? null : plugin);
                 }catch (InvocationTargetException | IllegalAccessException e){
-                    getLog().warning("Failed to execute OnReload method of (" + getPluginData().getName() + ")");
+                    getLog().warning("Failed to execute OnReload method of (" + getMetaInfo().getName() + ")");
                     e.printStackTrace();
                 }
             };
@@ -86,7 +86,7 @@ public class ECPluginData {
             debugEnabled = config.getOrSetDefaultValue(
                     "DebugMode.enabled",
                     false,
-                    "If '" + getPluginData().getName() + "' should log debug messages on the console!"
+                    "If '" + getMetaInfo().getName() + "' should log debug messages on the console!"
             );
 
             for (IDebugModule module : debugModules) {
@@ -287,8 +287,8 @@ public class ECPluginData {
         return this.customLangConfig;
     }
 
-    public IPluginData getPluginData(){
-        return iPluginData;
+    public IPluginMetaInfo getMetaInfo(){
+        return iPluginMetaInfo;
     }
 
     public ECLogger<?> getLog(){

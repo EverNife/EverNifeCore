@@ -4,8 +4,7 @@ import br.com.finalcraft.evernifecore.api.common.IHasDelegate;
 
 import java.io.File;
 
-//TODO Rename to MetaInfo
-public interface IPluginData extends IHasDelegate {
+public interface IPluginMetaInfo extends IHasDelegate {
 
     public String getName();
 

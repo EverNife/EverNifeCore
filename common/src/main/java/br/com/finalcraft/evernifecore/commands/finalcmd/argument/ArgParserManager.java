@@ -32,29 +32,29 @@ public class ArgParserManager {
     }
 
     public static void addPluginParser(ECPluginData plugin, Class clazz, Class<? extends ArgParser> parser){
-        PLUGIN_CONTEXT_MAP.computeIfAbsent(plugin.getPluginData().getName(), s -> new ParserContext())
+        PLUGIN_CONTEXT_MAP.computeIfAbsent(plugin.getMetaInfo().getName(), s -> new ParserContext())
                 .getParsers()
                 .add(Tuple.of(clazz, parser));
 
-        EverNifeCore.getLog().debugModule(ECDebugModule.ARG_PARSER, "Added Plugin [%s] Parser: %s -> %s", plugin.getPluginData().getName(), clazz.getSimpleName(), parser.getSimpleName());
+        EverNifeCore.getLog().debugModule(ECDebugModule.ARG_PARSER, "Added Plugin [%s] Parser: %s -> %s", plugin.getMetaInfo().getName(), clazz.getSimpleName(), parser.getSimpleName());
 
         ECPluginData ecPluginData = ECPluginManager.getProvidingPlugin(parser);//Not always the same as the plugin adding it
         FCLocaleManager.loadLocale(ecPluginData, true, parser);
     }
 
     public static void addPluginContextualParser(ECPluginData plugin, Class clazz, Class<? extends ArgParserContextual> parser){
-        PLUGIN_CONTEXT_MAP.computeIfAbsent(plugin.getPluginData().getName(), s -> new ParserContext())
+        PLUGIN_CONTEXT_MAP.computeIfAbsent(plugin.getMetaInfo().getName(), s -> new ParserContext())
                 .getContextualArgParsers()
                 .add(Tuple.of(clazz, parser));
 
-        EverNifeCore.getLog().debugModule(ECDebugModule.CONTEXTUAL_ARG_PARSER, "Added Plugin [%s] ContextualParser: %s -> %s", plugin.getPluginData().getName(), clazz.getSimpleName(), parser.getSimpleName());
+        EverNifeCore.getLog().debugModule(ECDebugModule.CONTEXTUAL_ARG_PARSER, "Added Plugin [%s] ContextualParser: %s -> %s", plugin.getMetaInfo().getName(), clazz.getSimpleName(), parser.getSimpleName());
 
         ECPluginData ecPluginData = ECPluginManager.getProvidingPlugin(parser);//Not always the same as the plugin adding it
         FCLocaleManager.loadLocale(ecPluginData, true, parser);
     }
 
     public static Class<? extends ArgParser> getParser(ECPluginData plugin, Class argument){
-        ParserContext pluginContext = PLUGIN_CONTEXT_MAP.get(plugin.getPluginData().getName());
+        ParserContext pluginContext = PLUGIN_CONTEXT_MAP.get(plugin.getMetaInfo().getName());
         Class<? extends ArgParser> argParser = pluginContext == null ? null : pluginContext.getParser(argument);
 
         if (argParser == null){
@@ -65,7 +65,7 @@ public class ArgParserManager {
     }
 
     public static Class<? extends ArgParserContextual> getContextualParser(ECPluginData plugin, Class argument){
-        ParserContext pluginContext = PLUGIN_CONTEXT_MAP.get(plugin.getPluginData().getName());
+        ParserContext pluginContext = PLUGIN_CONTEXT_MAP.get(plugin.getMetaInfo().getName());
         Class<? extends ArgParserContextual> argParser = pluginContext == null ? null : pluginContext.getContextualParser(argument);
 
         if (argParser == null){

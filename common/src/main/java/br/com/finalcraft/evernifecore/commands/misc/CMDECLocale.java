@@ -37,11 +37,11 @@ public class CMDECLocale {
         FancyFormatter formatter = FancyFormatter.of(FCTextUtil.straightLineOf("§a§m-§r"));
 
         List<ECPluginData> sortedPlugins = ECPluginManager.getECPluginsMap().values().stream()
-                .sorted(Comparator.comparing(ecPlugin -> ecPlugin.getPluginData().getName()))
+                .sorted(Comparator.comparing(ecPlugin -> ecPlugin.getMetaInfo().getName()))
                 .collect(Collectors.toList());
 
         for (ECPluginData ecplugin : sortedPlugins) {
-            formatter.append("\n§d ♦ §b" + ecplugin.getPluginData().getName() + " §7");
+            formatter.append("\n§d ♦ §b" + ecplugin.getMetaInfo().getName() + " §7");
 
             for (String localeType : LocaleType.values()) {
                 boolean isThisSelected = ecplugin.getPluginLanguage().equals(localeType);
@@ -49,7 +49,7 @@ public class CMDECLocale {
                         FancyText.of((isThisSelected ? "§a§l" : "") +  "[" + localeType + "]§7")
                                 .setHoverText(isThisSelected ? "§aThis locale is already selected!" : "Click to Change Locale to: " + localeType)
                                 .setRunCommandAction(isThisSelected ? null : FCCommandUtil.dynamicCommand(() -> {
-                                    FCServerUtil.makeConsoleExecuteCommand(label + " set " + ecplugin.getPluginData().getName() + " " + localeType);
+                                    FCServerUtil.makeConsoleExecuteCommand(label + " set " + ecplugin.getMetaInfo().getName() + " " + localeType);
                                     this.list(sender, label); //Send this command again
                                 }))
                 );
@@ -84,7 +84,7 @@ public class CMDECLocale {
         ECPluginData plugin = argumentos.get(1).getECPluginData();
         ECPluginData ecPluginData = plugin == null
                 ? null
-                : ECPluginManager.getECPluginsMap().get(plugin.getPluginData().getName());
+                : ECPluginManager.getECPluginsMap().get(plugin.getMetaInfo().getName());
 
         if (ecPluginData == null){
             sender.sendMessage("§e§l ▶ §cThere is no ECPlugin with the name §e[" + argumentos.get(1) + "]§c found on this server.");
@@ -110,7 +110,7 @@ public class CMDECLocale {
             ecPluginData.reloadAllCustomLocales();
         }
 
-        sender.sendMessage("§2§l ▶ §b§l" + plugin.getPluginData().getName() + "'s §alocalization file name set to [" + localization_config.getString("Localization.fileName") + "]!");
+        sender.sendMessage("§2§l ▶ §b§l" + plugin.getMetaInfo().getName() + "'s §alocalization file name set to [" + localization_config.getString("Localization.fileName") + "]!");
     }
 
     @FinalCMD.SubCMD(
@@ -129,7 +129,7 @@ public class CMDECLocale {
         }
 
         for (ECPluginData value : ECPluginManager.getECPluginsMap().values()) {
-            FCServerUtil.makePlayerExecuteCommand(sender, label + " set " + value.getPluginData().getName() + " " + argumentos.get(1));
+            FCServerUtil.makePlayerExecuteCommand(sender, label + " set " + value.getMetaInfo().getName() + " " + argumentos.get(1));
         }
 
     }

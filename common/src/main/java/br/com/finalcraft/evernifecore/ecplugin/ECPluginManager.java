@@ -51,8 +51,8 @@ public class ECPluginManager {
         if (!ecPluginData.canReload()){
             throw new IllegalStateException(String.format(
                     "The plugin [%s] does not implement a '@ECPlugin.Reload' System on it! Tell the author (%s) !",
-                    ecPluginData.getPluginData().getName(),
-                    ecPluginData.getPluginData().getAuthor()
+                    ecPluginData.getMetaInfo().getName(),
+                    ecPluginData.getMetaInfo().getAuthor()
             ));
         }
 
@@ -74,11 +74,11 @@ public class ECPluginManager {
         long end = System.currentTimeMillis();
 
         //Notify the Console
-        ecPluginData.getLog().info("§e[Reloading] §a" + ecPluginData.getPluginData().getName() + " has been reloaded! §7(It took " + FCTimeFrame.of(end - start).getFormattedDiscursive(true) + ")");
+        ecPluginData.getLog().info("§e[Reloading] §a" + ecPluginData.getMetaInfo().getName() + " has been reloaded! §7(It took " + FCTimeFrame.of(end - start).getFormattedDiscursive(true) + ")");
 
         //Notify the sender if it's a Player
         if (sender != null) {
-            FCMessageUtil.pluginHasBeenReloaded(sender, ecPluginData.getPluginData().getName());
+            FCMessageUtil.pluginHasBeenReloaded(sender, ecPluginData.getMetaInfo().getName());
 //            FCSound.LEVEL_UP.playSoundFor((Player) sender);
         }
 
@@ -90,8 +90,8 @@ public class ECPluginManager {
         for (ECPluginData ecPlugin : new ArrayList<>(EVERNIFECORE_PLUGINS_MAP.values())) {
             if (ecPlugin.canReload()){
                 for (String pluginName : ecPlugin.getReloadAfter()) {
-                    if (ecPlugin.getPluginData().getName().equalsIgnoreCase(pluginName)){
-                        ecPlugin.getLog().info("[ECPlugin] Reloading by demand of ´" + ecPlugin.getPluginData().getName() + "´.");
+                    if (ecPlugin.getMetaInfo().getName().equalsIgnoreCase(pluginName)){
+                        ecPlugin.getLog().info("[ECPlugin] Reloading by demand of ´" + ecPlugin.getMetaInfo().getName() + "´.");
                         ecPlugin.reloadPlugin();
                     }
                 }

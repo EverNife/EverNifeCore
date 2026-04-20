@@ -128,7 +128,7 @@ public class FCDefaultExecutor {
         }
 
         if (interpreter == null) {
-            return String.format("</%s> [%s] \n  Args: %s", label, finalCommand.getOwningPlugin().getPluginData().getName(), Arrays.toString(args));
+            return String.format("</%s> [%s] \n  Args: %s", label, finalCommand.getOwningPlugin().getMetaInfo().getName(), Arrays.toString(args));
         }
         
         String className = interpreter.getMethod().getDeclaringClass().getSimpleName();
@@ -136,7 +136,7 @@ public class FCDefaultExecutor {
         
         return String.format("</%s> [%s] #%s%%%s \n  Args: %s",
             label, 
-            finalCommand.getOwningPlugin().getPluginData().getName(),
+            finalCommand.getOwningPlugin().getMetaInfo().getName(),
             className, 
             methodName, 
             Arrays.toString(args));

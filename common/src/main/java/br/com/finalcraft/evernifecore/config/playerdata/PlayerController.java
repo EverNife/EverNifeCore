@@ -24,7 +24,7 @@ public class PlayerController {
 
     private static Map<UUID,PlayerData> MAP_OF_PLAYER_DATA = new ConcurrentHashMap<>();
 
-    private static final File DATA_FOLDER = EverNifeCore.instance.getEcPluginData().getPluginData().getDataFolder();
+    private static final File DATA_FOLDER = EverNifeCore.instance.getEcPluginData().getMetaInfo().getDataFolder();
     private static final File PLAYER_DATA_FOLDER = new File(DATA_FOLDER, "PlayerData");
     private static final File CORRUPTED_PLAYER_DATA_FOLDER = new File(DATA_FOLDER, "PlayerData-Corrupted");
     private static final File DORMANT_PLAYER_DATA_FOLDER = new File(DATA_FOLDER, "PlayerData-Dormant");
@@ -456,7 +456,7 @@ public class PlayerController {
             PlayerData playerData = PlayerController.getPlayerData(existingUUID);
             PlayerController.getMapOfPlayerData().remove(playerData.getUniqueId());//Unload this PlayerData
 
-            playerData.getConfig().save(new File(EverNifeCore.instance.getEcPluginData().getPluginData().getDataFolder(), "PlayerData-Dormant/" + existingUUID + ".yml"));//Move to dormant folder
+            playerData.getConfig().save(new File(EverNifeCore.instance.getEcPluginData().getMetaInfo().getDataFolder(), "PlayerData-Dormant/" + existingUUID + ".yml"));//Move to dormant folder
             EverNifeCore.getLog().info("[UUIDsController] [%s:%s] was moved to dormant files because his name is not valid anymore!", existingUUID, currentName);
 
             //Now we can create a new PlayerData for this player
@@ -480,7 +480,7 @@ public class PlayerController {
 
             playerData.getConfig().getTheFile().delete(); //Delete previous file, in case we have changed its name
             String newFileName = (ECSettings.useNamesInsteadOfUUIDToStorePlayerData ? currentName : currentUUID.toString()) + ".yml";
-            playerData.getConfig().save(new File(EverNifeCore.instance.getEcPluginData().getPluginData().getDataFolder(), "PlayerData/" + newFileName));
+            playerData.getConfig().save(new File(EverNifeCore.instance.getEcPluginData().getMetaInfo().getDataFolder(), "PlayerData/" + newFileName));
 
             EverNifeCore.getLog().info("[UUIDsController] [%s] changed his UUID from %s to %s", currentName, playerData.getUniqueId(), currentUUID);
             UUIDsController.addOrUpdateUUIDName(currentUUID, currentName);
@@ -493,7 +493,7 @@ public class PlayerController {
 
             playerData.getConfig().getTheFile().delete(); //Delete previous file, in case we have changed its name
             String newFileName = (ECSettings.useNamesInsteadOfUUIDToStorePlayerData ? currentName : currentUUID.toString()) + ".yml";
-            playerData.getConfig().save(new File(EverNifeCore.instance.getEcPluginData().getPluginData().getDataFolder(), "PlayerData/" + newFileName));
+            playerData.getConfig().save(new File(EverNifeCore.instance.getEcPluginData().getMetaInfo().getDataFolder(), "PlayerData/" + newFileName));
 
             EverNifeCore.getLog().info("[UUIDsController] [%s] changed his name from %s to %s", currentUUID, playerData.getName(), currentName);
             UUIDsController.addOrUpdateUUIDName(currentUUID, currentName);
