@@ -1,15 +1,15 @@
 package br.com.finalcraft.evernifecore.hytale.loader.imp;
 
-import br.com.finalcraft.evernifecore.ecplugin.IPluginData;
+import br.com.finalcraft.evernifecore.ecplugin.IPluginMetaInfo;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 
 import java.io.File;
 
-public class HyPluginData implements IPluginData {
+public class HyPluginMetaInfo implements IPluginMetaInfo {
 
     private final JavaPlugin javaPlugin;
 
-    public HyPluginData(JavaPlugin javaPlugin) {
+    public HyPluginMetaInfo(JavaPlugin javaPlugin) {
         this.javaPlugin = javaPlugin;
     }
 

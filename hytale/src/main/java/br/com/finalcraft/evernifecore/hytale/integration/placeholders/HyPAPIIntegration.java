@@ -34,7 +34,7 @@ public class HyPAPIIntegration {
         //Inner caller prevents 'java.lang.NoClassDefFoundError'
         InnerPAPIRegisterer.register(plugin, pluginBaseID, papiRegexReplacer);
 
-        EverNifeCore.getLog().info("Registering PAPI Hook for the plugin " + plugin.getPluginData().getName() + " with prefix '"  + pluginBaseID + "' using Modern PAPI method.");
+        EverNifeCore.getLog().info("Registering PAPI Hook for the plugin " + plugin.getMetaInfo().getName() + " with prefix '"  + pluginBaseID + "' using Modern PAPI method.");
 
         return papiRegexReplacer.getRegexReplacer();
     }

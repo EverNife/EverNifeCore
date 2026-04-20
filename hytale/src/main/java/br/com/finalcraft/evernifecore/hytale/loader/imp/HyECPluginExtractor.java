@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.loader.imp;
 
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
-import br.com.finalcraft.evernifecore.ecplugin.IPluginData;
+import br.com.finalcraft.evernifecore.ecplugin.IPluginMetaInfo;
 import br.com.finalcraft.evernifecore.hytale.util.FCJavaPluginUtil;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import jakarta.annotation.Nonnull;
@@ -24,7 +24,7 @@ public class HyECPluginExtractor implements IECPluginExtractor {
     }
 
     @Override
-    public IPluginData getPluginData(Object javaPlugin) {
-        return new HyPluginData((JavaPlugin) javaPlugin);
+    public IPluginMetaInfo getPluginMetaInfo(Object javaPlugin) {
+        return new HyPluginMetaInfo((JavaPlugin) javaPlugin);
     }
 }

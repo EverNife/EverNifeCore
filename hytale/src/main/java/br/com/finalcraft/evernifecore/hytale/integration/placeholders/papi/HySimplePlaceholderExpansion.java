@@ -20,7 +20,7 @@ public class HySimplePlaceholderExpansion extends PlaceholderExpansion {
 
     @Override
     public @Nonnull String getName() {
-        return plugin.getPluginData().getName();
+        return plugin.getMetaInfo().getName();
     }
 
     @Override
@@ -30,12 +30,12 @@ public class HySimplePlaceholderExpansion extends PlaceholderExpansion {
 
     @Override
     public @Nonnull String getAuthor() {
-        return plugin.getPluginData().getAuthor();
+        return plugin.getMetaInfo().getAuthor();
     }
 
     @Override
     public @Nonnull String getVersion() {
-        return plugin.getPluginData().getVersion();
+        return plugin.getMetaInfo().getVersion();
     }
 
     @Override
