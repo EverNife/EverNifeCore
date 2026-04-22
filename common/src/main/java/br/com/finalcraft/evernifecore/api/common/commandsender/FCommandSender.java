@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.api.common.commandsender;
 
 import br.com.finalcraft.evernifecore.api.common.IHasDelegate;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import jakarta.annotation.Nonnull;
 import net.kyori.adventure.text.Component;
@@ -19,6 +20,13 @@ public interface FCommandSender extends IHasDelegate {
 
     default boolean isConsole() {
         return !isPlayer();
+    }
+
+    default FPlayer asPlayer() {
+        if (this instanceof FPlayer) {
+            return (FPlayer) this;
+        }
+        throw new IllegalArgumentException("Invalid FPlayer Conversion: #" + this.getClass().getSimpleName() + ".asPlayer() was executed but this FCommandSender was not a FPlayer. | The class with delegate [" + this.getDelegate().getClass().getName() + "] is not assignable for a FPlayer.");
     }
 
     boolean hasPermission(@Nonnull String permission);
