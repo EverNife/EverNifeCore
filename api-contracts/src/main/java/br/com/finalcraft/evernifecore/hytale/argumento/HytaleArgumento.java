@@ -5,4 +5,5 @@ public class HytaleArgumento {
     public HytaleArgumento(String argumento) {
 
     }
+
 }
