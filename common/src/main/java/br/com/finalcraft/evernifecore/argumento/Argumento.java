@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.hytale.argumento.HytaleArgumento;
+import br.com.finalcraft.evernifecore.minecraft.argumento.MinecraftArgumento;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 
@@ -197,6 +198,10 @@ public class Argumento {
 
     public HytaleArgumento asHytaleArg(){
         return new HytaleArgumento(this.argumento);
+    }
+
+    public MinecraftArgumento asMinecraftArg(){
+        return new MinecraftArgumento(this.argumento);
     }
 }
 
