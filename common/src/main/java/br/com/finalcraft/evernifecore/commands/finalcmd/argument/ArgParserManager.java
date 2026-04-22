@@ -17,21 +17,21 @@ public class ArgParserManager {
     private static ParserContext GLOBAL_CONTEXT_PARSER = new ParserContext();
     private static Map<String,ParserContext> PLUGIN_CONTEXT_MAP = new HashMap<>();
 
-    public static void addGlobalParser(Class clazz, Class<? extends ArgParser> parser){
+    public static <T> void addGlobalParser(Class<? extends T> clazz, Class<? extends ArgParser<T>> parser){
         GLOBAL_CONTEXT_PARSER.getParsers().add(Tuple.of(clazz, parser));
         ECDebugModule.ARG_PARSER.debugModule("Added Global Parser: %s -> %s", clazz.getSimpleName(), parser.getSimpleName());
         ECPluginData ecPluginData = ECPluginManager.getProvidingPlugin(parser);
         FCLocaleManager.loadLocale(ecPluginData, true, parser);
     }
 
-    public static void addGlobalContextualParser(Class clazz, Class<? extends ArgParserContextual> contextualParser){
+    public static <T> void addGlobalContextualParser(Class<? extends T> clazz, Class<? extends ArgParserContextual<T>> contextualParser){
         GLOBAL_CONTEXT_PARSER.getContextualArgParsers().add(Tuple.of(clazz, contextualParser));
         ECDebugModule.CONTEXTUAL_ARG_PARSER.debugModule("Added Global ContextualParser: %s -> %s", clazz.getSimpleName(), contextualParser.getSimpleName());
         ECPluginData ecPluginData = ECPluginManager.getProvidingPlugin(contextualParser);
         FCLocaleManager.loadLocale(ecPluginData, true, contextualParser);
     }
 
-    public static void addPluginParser(ECPluginData plugin, Class clazz, Class<? extends ArgParser> parser){
+    public static <T> void addPluginParser(ECPluginData plugin, Class<? extends T> clazz, Class<? extends ArgParser<T>> parser){
         PLUGIN_CONTEXT_MAP.computeIfAbsent(plugin.getMetaInfo().getName(), s -> new ParserContext())
                 .getParsers()
                 .add(Tuple.of(clazz, parser));
@@ -42,7 +42,7 @@ public class ArgParserManager {
         FCLocaleManager.loadLocale(ecPluginData, true, parser);
     }
 
-    public static void addPluginContextualParser(ECPluginData plugin, Class clazz, Class<? extends ArgParserContextual> parser){
+    public static <T> void addPluginContextualParser(ECPluginData plugin, Class<? extends T> clazz, Class<? extends ArgParserContextual<T>> parser){
         PLUGIN_CONTEXT_MAP.computeIfAbsent(plugin.getMetaInfo().getName(), s -> new ParserContext())
                 .getContextualArgParsers()
                 .add(Tuple.of(clazz, parser));
