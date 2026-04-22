@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.actionbar;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
@@ -80,6 +81,6 @@ public class PlayerActionBarManager implements Runnable {
     }
 
     public static void sendActionBarMessage(FPlayer player, FancyText fancyText){
-        //Logic to actually send the message here
+        EverNifeCore.getPlatform().sendActionBarMessage(player, fancyText);
     }
 }

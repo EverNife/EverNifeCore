@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.api.eventhandler.ECEventHandler;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.hytale.commands.finalcmd.implementation.HyFinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.hytale.integration.placeholders.HyPAPIIntegration;
@@ -230,5 +231,10 @@ public class HyPlatform implements IPlatform {
                 javaPlugin.getLogger().at(level).log(string);
             }
         };
+    }
+
+    @Override
+    public void sendActionBarMessage(FPlayer player, FancyText fancyText) {
+        // Hytale does not have action-bar messages
     }
 }
