@@ -430,6 +430,29 @@ public class CuboidSelection {
 
     @Override
     public String toString() {
-        return minium + " # " + maximum;
+        return serialize();
     }
+
+    public String serialize() {
+        return minium.serialize() + " <> " + maximum.serialize();
+    }
+
+    /**
+     * Deserializes patterns like:
+     *
+     *   x1|y1|z1 <> x2|y2|z2
+     *
+     */
+    public static CuboidSelection deserialize(String s) {
+        int sep = s.indexOf(" <> ");
+        if (sep == -1) {
+            throw new IllegalArgumentException("Invalid cuboid format. Should be something like 'x1|y1|z1 <> x2|y2|z2' but this was found: " + s);
+        }
+
+        BlockPos min = BlockPos.deserialize(s.substring(0, sep));
+        BlockPos max = BlockPos.deserialize(s.substring(sep + 4, s.length()));
+
+        return new CuboidSelection(min, max);
+    }
+
 }
