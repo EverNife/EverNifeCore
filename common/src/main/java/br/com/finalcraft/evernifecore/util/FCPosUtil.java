@@ -1,10 +1,13 @@
 package br.com.finalcraft.evernifecore.util;
 
+import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
 import br.com.finalcraft.evernifecore.util.commons.MinMax;
-import br.com.finalcraft.evernifecore.vector.BlockPos;
 import org.apache.commons.lang3.Validate;
 
 import java.util.Collection;
+import java.util.List;
 
 public class FCPosUtil {
 
@@ -38,7 +41,10 @@ public class FCPosUtil {
             if (y > maxY) maxY = y;
             if (z > maxZ) maxZ = z;
         }
-        return MinMax.of(new BlockPos(minX, minY, minZ), new BlockPos(maxX, maxY, maxZ));
+        return MinMax.of(BlockPos.of(minX, minY, minZ), BlockPos.of(maxX, maxY, maxZ));
     }
 
+    public static List<ChunkPos> getAllChunksBetween(BlockPos loc1, BlockPos loc2){
+        return CuboidSelection.of(loc1, loc2).getChunks();
+    }
 }

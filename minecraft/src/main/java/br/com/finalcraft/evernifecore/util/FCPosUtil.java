@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.util;
 
-import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
 import br.com.finalcraft.evernifecore.util.commons.MinMax;
 import br.com.finalcraft.evernifecore.vectors.CuboidSelection;
