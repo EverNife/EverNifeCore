@@ -10,13 +10,24 @@ import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.MutableBlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
+import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.MutableChunkPos;
+import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.WorldChunkPos;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.LocPos;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.MutableLocPos;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.math.game.vector.region.MutableRegionPos;
+import br.com.finalcraft.evernifecore.math.game.vector.region.RegionPos;
+import br.com.finalcraft.evernifecore.math.game.vector.region.WorldRegionPos;
 import br.com.finalcraft.evernifecore.time.DayOfToday;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import br.com.finalcraft.evernifecore.util.FCTimeUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
-import br.com.finalcraft.evernifecore.vector.*;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
@@ -151,7 +162,7 @@ public class CfgLoadableSalvable {
     //------------------------------------------------------------------------------------------------------------------
 
     static {
-        CfgLoadableSalvable.addLoadableSalvable(BlockPos.class)
+        addLoadableSalvable(BlockPos.class)
                 .setOnConfigSave((configSection, pos) -> {
                     configSection.setValue("x", pos.getX());
                     configSection.setValue("y", pos.getY());
@@ -165,7 +176,38 @@ public class CfgLoadableSalvable {
                 .setOnStringSerialize(BlockPos::serialize)
                 .setOnStringDeserialize(BlockPos::deserialize);
 
-        CfgLoadableSalvable.addLoadableSalvable(LocPos.class)
+        addLoadableSalvable(MutableBlockPos.class)
+                .setOnConfigSave((configSection, pos) -> {
+                    configSection.setValue("x", pos.getX());
+                    configSection.setValue("y", pos.getY());
+                    configSection.setValue("z", pos.getZ());
+                })
+                .setOnConfigLoad(configSection -> new MutableBlockPos(
+                        configSection.getInt("x"),
+                        configSection.getInt("y"),
+                        configSection.getInt("z")
+                ))
+                .setOnStringSerialize(MutableBlockPos::serialize)
+                .setOnStringDeserialize(MutableBlockPos::deserialize);
+
+        addLoadableSalvable(WorldBlockPos.class)
+                .setOnConfigSave((configSection, pos) -> {
+                    configSection.setValue("x", pos.getX());
+                    configSection.setValue("y", pos.getY());
+                    configSection.setValue("z", pos.getZ());
+                    configSection.setValue("worldName", pos.getWorldName());
+                })
+                .setOnConfigLoad(configSection -> new WorldBlockPos(
+                        configSection.getInt("x"),
+                        configSection.getInt("y"),
+                        configSection.getInt("z"),
+                        configSection.getString("worldName")
+                ))
+                .setOnStringSerialize(WorldBlockPos::serialize)
+                .setOnStringDeserialize(WorldBlockPos::deserialize);
+
+
+        addLoadableSalvable(LocPos.class)
                 .setOnConfigSave((configSection, pos) -> {
                     configSection.setValue("x", pos.getX());
                     configSection.setValue("y", pos.getY());
@@ -179,7 +221,21 @@ public class CfgLoadableSalvable {
                 .setOnStringSerialize(LocPos::serialize)
                 .setOnStringDeserialize(LocPos::deserialize);
 
-        CfgLoadableSalvable.addLoadableSalvable(WorldLocPos.class)
+        addLoadableSalvable(MutableLocPos.class)
+                .setOnConfigSave((configSection, pos) -> {
+                    configSection.setValue("x", pos.getX());
+                    configSection.setValue("y", pos.getY());
+                    configSection.setValue("z", pos.getZ());
+                })
+                .setOnConfigLoad(configSection -> new MutableLocPos(
+                        configSection.getDouble("x"),
+                        configSection.getDouble("y"),
+                        configSection.getDouble("z")
+                ))
+                .setOnStringSerialize(MutableLocPos::serialize)
+                .setOnStringDeserialize(MutableLocPos::deserialize);
+
+        addLoadableSalvable(WorldLocPos.class)
                 .setOnConfigSave((configSection, pos) -> {
                     configSection.setValue("x", pos.getX());
                     configSection.setValue("y", pos.getY());
@@ -195,7 +251,7 @@ public class CfgLoadableSalvable {
                 .setOnStringSerialize(WorldLocPos::serialize)
                 .setOnStringDeserialize(WorldLocPos::deserialize);
 
-        CfgLoadableSalvable.addLoadableSalvable(ChunkPos.class)
+        addLoadableSalvable(ChunkPos.class)
                 .setOnConfigSave((configSection, pos) -> {
                     configSection.setValue("x", pos.getX());
                     configSection.setValue("z", pos.getZ());
@@ -207,7 +263,33 @@ public class CfgLoadableSalvable {
                 .setOnStringSerialize(ChunkPos::serialize)
                 .setOnStringDeserialize(ChunkPos::deserialize);
 
-        CfgLoadableSalvable.addLoadableSalvable(RegionPos.class)
+        addLoadableSalvable(MutableChunkPos.class)
+                .setOnConfigSave((configSection, pos) -> {
+                    configSection.setValue("x", pos.getX());
+                    configSection.setValue("z", pos.getZ());
+                })
+                .setOnConfigLoad(configSection -> new MutableChunkPos(
+                        configSection.getInt("x"),
+                        configSection.getInt("z")
+                ))
+                .setOnStringSerialize(MutableChunkPos::serialize)
+                .setOnStringDeserialize(MutableChunkPos::deserialize);
+
+        addLoadableSalvable(WorldChunkPos.class)
+                .setOnConfigSave((configSection, pos) -> {
+                    configSection.setValue("x", pos.getX());
+                    configSection.setValue("z", pos.getZ());
+                    configSection.setValue("worldName", pos.getWorldName());
+                })
+                .setOnConfigLoad(configSection -> new WorldChunkPos(
+                        configSection.getInt("x"),
+                        configSection.getInt("z"),
+                        configSection.getString("worldName")
+                ))
+                .setOnStringSerialize(WorldChunkPos::serialize)
+                .setOnStringDeserialize(WorldChunkPos::deserialize);
+
+        addLoadableSalvable(RegionPos.class)
                 .setOnConfigSave((configSection, pos) -> {
                     configSection.setValue("x", pos.getX());
                     configSection.setValue("z", pos.getZ());
@@ -218,6 +300,32 @@ public class CfgLoadableSalvable {
                 ))
                 .setOnStringSerialize(RegionPos::serialize)
                 .setOnStringDeserialize(RegionPos::deserialize);
+
+        addLoadableSalvable(MutableRegionPos.class)
+                .setOnConfigSave((configSection, pos) -> {
+                    configSection.setValue("x", pos.getX());
+                    configSection.setValue("z", pos.getZ());
+                })
+                .setOnConfigLoad(configSection -> new MutableRegionPos(
+                        configSection.getInt("x"),
+                        configSection.getInt("z")
+                ))
+                .setOnStringSerialize(MutableRegionPos::serialize)
+                .setOnStringDeserialize(MutableRegionPos::deserialize);
+
+        addLoadableSalvable(WorldRegionPos.class)
+                .setOnConfigSave((configSection, pos) -> {
+                    configSection.setValue("x", pos.getX());
+                    configSection.setValue("z", pos.getZ());
+                    configSection.setValue("worldName", pos.getWorldName());
+                })
+                .setOnConfigLoad(configSection -> new WorldRegionPos(
+                        configSection.getInt("x"),
+                        configSection.getInt("z"),
+                        configSection.getString("worldName")
+                ))
+                .setOnStringSerialize(WorldRegionPos::serialize)
+                .setOnStringDeserialize(WorldRegionPos::deserialize);
 
         addLoadableSalvable(UUID.class)
                 .setOnConfigSave((configSection, uuid) -> configSection.setValue(uuid.toString()))

@@ -17,6 +17,10 @@ public class BlockPos extends Vec3i<BlockPos> {
         super(x, y, z);
     }
 
+    public BlockPos(double x, double y, double z) {
+        super(VecMath.floor_double(x), VecMath.floor_double(y), VecMath.floor_double(z));
+    }
+
     @Override
     public BlockPos at(int x, int y, int z) {
         return new BlockPos(x, y, z);
@@ -25,6 +29,10 @@ public class BlockPos extends Vec3i<BlockPos> {
     // -- Factories ------------------------------------------------------------
 
     public static BlockPos of(int x, int y, int z) {
+        return new BlockPos(x, y, z);
+    }
+
+    public static BlockPos of(double x, double y, double z) {
         return new BlockPos(x, y, z);
     }
 
