@@ -1,10 +1,12 @@
-package br.com.finalcraft.evernifecore.vectors;
+package br.com.finalcraft.evernifecore.math.game.selection;
 
-import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
-import br.com.finalcraft.evernifecore.minecraft.vector.ChunkPos;
-import br.com.finalcraft.evernifecore.minecraft.vector.LocPos;
+import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.LocPos;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -22,6 +24,13 @@ public class CuboidSelection {
         this.recalculate();
     }
 
+    protected CuboidSelection(BlockPos pos1, BlockPos pos2, BlockPos minium, BlockPos maximum) {
+        this.pos1 = pos1;
+        this.pos2 = pos2;
+        this.minium = minium;
+        this.maximum = maximum;
+    }
+
     public static CuboidSelection of(BlockPos center){
         return new CuboidSelection(center, center);
     }
@@ -30,15 +39,19 @@ public class CuboidSelection {
         return new CuboidSelection(pos1, pos2);
     }
 
-    private void recalculate(){
-        pos1 = pos1.boundY(0, 255);
-        pos2 = pos2.boundY(0, 255);
+    protected void recalculate(){
+        int minHeight = RegionGridOptions.getCurrent().getMinHeight();
+        int maxHeight = RegionGridOptions.getCurrent().getMaxHeight();
+
+        pos1 = pos1.boundY(minHeight, maxHeight);
+        pos2 = pos2.boundY(minHeight, maxHeight);
         int minX = Math.min(pos1.getX(), pos2.getX());
         int minY = Math.min(pos1.getY(), pos2.getY());
         int minZ = Math.min(pos1.getZ(), pos2.getZ());
         int maxX = Math.max(pos1.getX(), pos2.getX());
         int maxY = Math.max(pos1.getY(), pos2.getY());
         int maxZ = Math.max(pos1.getZ(), pos2.getZ());
+
         this.minium = new BlockPos(minX,minY,minZ);
         this.maximum = new BlockPos(maxX,maxY,maxZ);
     }
@@ -72,7 +85,11 @@ public class CuboidSelection {
     }
 
     public LocPos getCenter(){
-        return new LocPos((minium.getX() + maximum.getX()) / 2D, (minium.getY() + maximum.getY()) / 2D, (minium.getZ() + maximum.getZ()) / 2D);
+        return new LocPos(
+                (minium.getX() + maximum.getX()) / 2D,
+                (minium.getY() + maximum.getY()) / 2D,
+                (minium.getZ() + maximum.getZ()) / 2D
+        );
     }
 
     public int getVolume(){
@@ -81,6 +98,113 @@ public class CuboidSelection {
 
     public int getArea(){
         return (maximum.getX() - minium.getX() + 1) * (maximum.getZ() - minium.getZ() + 1);
+    }
+
+    public Iterable<BlockPos> getBlocksIterator() {
+        BlockPos min = getMinium();
+        BlockPos max = getMaximum();
+
+        final int lowerX = min.getX();
+        final int lowerY = min.getY();
+        final int lowerZ = min.getZ();
+
+        final int upperX = max.getX();
+        final int upperY = max.getY();
+        final int upperZ = max.getZ();
+
+        return () -> new Iterator<>() {
+            int x = lowerX;
+            int y = lowerY;
+            int z = lowerZ;
+
+            @Override
+            public boolean hasNext() {
+                return x <= upperX;
+            }
+
+            @Override
+            public BlockPos next() {
+                BlockPos pos = new BlockPos(x, y, z);
+
+                // advance (z → y → x)
+                z++;
+                if (z > upperZ) {
+                    z = lowerZ;
+                    y++;
+                    if (y > upperY) {
+                        y = lowerY;
+                        x++;
+                    }
+                }
+
+                return pos;
+            }
+        };
+    }
+
+    public List<BlockPos> getBlocks() {
+        BlockPos min = getMinium();
+        BlockPos max = getMaximum();
+
+        final int lowerX = min.getX();
+        final int lowerY = min.getY();
+        final int lowerZ = min.getZ();
+
+        final int upperX = max.getX();
+        final int upperY = max.getY();
+        final int upperZ = max.getZ();
+
+        // total size = (dx * dy * dz)
+        final int sizeX = upperX - lowerX + 1;
+        final int sizeY = upperY - lowerY + 1;
+        final int sizeZ = upperZ - lowerZ + 1;
+
+        final int total = sizeX * sizeY * sizeZ;
+
+        List<BlockPos> blocks = new ArrayList<>(total);
+
+        for (int x = lowerX; x <= upperX; x++) {
+            for (int y = lowerY; y <= upperY; y++) {
+                for (int z = lowerZ; z <= upperZ; z++) {
+                    blocks.add(new BlockPos(x, y, z));
+                }
+            }
+        }
+
+        return blocks;
+    }
+
+    public Iterable<ChunkPos> getChunksIterator() {
+        ChunkPos minChunk = getMinium().getChunkPos();
+        ChunkPos maxChunk = getMaximum().getChunkPos();
+
+        final int lowerX = minChunk.getX();
+        final int lowerZ = minChunk.getZ();
+        final int upperX = maxChunk.getX();
+        final int upperZ = maxChunk.getZ();
+
+        return () -> new Iterator<>() {
+            int x = lowerX;
+            int z = lowerZ;
+
+            @Override
+            public boolean hasNext() {
+                return x <= upperX;
+            }
+
+            @Override
+            public ChunkPos next() {
+                ChunkPos pos = new ChunkPos(x, z);
+
+                z++;
+                if (z > upperZ) {
+                    z = lowerZ;
+                    x++;
+                }
+
+                return pos;
+            }
+        };
     }
 
     public List<ChunkPos> getChunks(){
@@ -103,6 +227,43 @@ public class CuboidSelection {
         return allChunks;
     }
 
+    public List<BlockPos> getCorners2D() {
+        List<BlockPos> corners = new ArrayList<>(4);
+        int minX = minium.getX();
+        int minZ = minium.getZ();
+        int maxX = maximum.getX();
+        int maxZ = maximum.getZ();
+
+        int minY = minium.getY();
+
+        corners.add(new BlockPos(minX, minY, minZ));
+        corners.add(new BlockPos(minX, minY, maxZ));
+        corners.add(new BlockPos(maxX, minY, minZ));
+        corners.add(new BlockPos(maxX, minY, maxZ));
+
+        return corners;
+    }
+
+    public List<BlockPos> getCorners3D() {
+        List<BlockPos> corners = new ArrayList<>(8);
+        int minX = minium.getX();
+        int minZ = minium.getZ();
+        int maxX = maximum.getX();
+        int maxZ = maximum.getZ();
+
+        int minY = minium.getY();
+        int maxY = maximum.getY();
+
+        for (int y : new int[]{minY, maxY}) {
+            corners.add(new BlockPos(minX, y, minZ));
+            corners.add(new BlockPos(minX, y, maxZ));
+            corners.add(new BlockPos(maxX, y, minZ));
+            corners.add(new BlockPos(maxX, y, maxZ));
+        }
+
+        return corners;
+    }
+
     public boolean contains(BlockPos other){
         return other.containedWithin(this.getMinium(), this.getMaximum());
     }
@@ -112,6 +273,10 @@ public class CuboidSelection {
         this.pos2 = this.pos2.add(change);
         this.recalculate();
         return this;
+    }
+
+    public CuboidSelection contract(int amount){
+        return this.contract(new BlockPos(amount,amount,amount), new BlockPos(-amount,-amount,-amount));
     }
 
     public CuboidSelection contract(BlockPos blockPos, BlockPos... otherBlockPos) {
@@ -221,7 +386,7 @@ public class CuboidSelection {
     }
 
     public CuboidSelection clone(){
-        return new CuboidSelection(this.pos1, this.pos2);
+        return new CuboidSelection(this.pos1, this.pos2, this.minium, this.maximum);
     }
 
     public CuboidSelection expandHoriz(int amount){
@@ -237,12 +402,14 @@ public class CuboidSelection {
     }
 
     public CuboidSelection expandVert(){
+        int minHeight = RegionGridOptions.getCurrent().getMinHeight();
+        int maxHeight = RegionGridOptions.getCurrent().getMaxHeight();
         if (this.pos1.getY() < this.pos2.getY()){
-            this.pos1 = this.pos1.setY(0);
-            this.pos2 = this.pos2.setY(255);
+            this.pos1 = this.pos1.setY(minHeight);
+            this.pos2 = this.pos2.setY(maxHeight);
         } else{
-            this.pos1 = this.pos1.setY(255);
-            this.pos2 = this.pos2.setY(0);
+            this.pos1 = this.pos1.setY(maxHeight);
+            this.pos2 = this.pos2.setY(minHeight);
         }
         this.recalculate();
         return this;
