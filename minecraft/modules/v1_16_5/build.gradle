@@ -12,6 +12,8 @@ repositories {
 }
 
 dependencies {
+    compileOnly project(':common')
+
     implementation project(':minecraft:modules:VersionedPlugins')
     compileOnly 'org.spigotmc:spigot-api:1.19.2-R0.1-SNAPSHOT'
 

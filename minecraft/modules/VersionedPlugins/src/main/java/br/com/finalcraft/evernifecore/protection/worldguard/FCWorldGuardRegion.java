@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.protection.worldguard;
 
-import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
-import br.com.finalcraft.evernifecore.vectors.CuboidSelection;
+import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import com.sk89q.worldguard.domains.DefaultDomain;
 import com.sk89q.worldguard.protection.flags.Flag;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
@@ -32,7 +32,7 @@ public interface FCWorldGuardRegion {
 
     public ProtectedRegion getProtectedRegion();
 
-    public boolean contains(Location location);
+    public boolean contains(BlockPos blockPos);
 
     public World getWorld();
 
@@ -82,8 +82,8 @@ public interface FCWorldGuardRegion {
         return contains(player.getLocation());
     }
 
-    public default boolean contains(BlockPos blockPos){
-        return contains(blockPos.getLocation(null));
+    public default boolean contains(Location location) {
+        return contains(BlockPos.of(location.getBlockX(), location.getBlockY(), location.getBlockZ()));
     }
 
     public default <T extends Flag<V>, V> void setFlag(@Nonnull T flag, @Nullable V val) {

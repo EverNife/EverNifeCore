@@ -4,7 +4,7 @@ import br.com.finalcraft.evernifecore.compat.v1_7_R4.worldedit.wrappers.clipboar
 import br.com.finalcraft.evernifecore.compat.v1_7_R4.worldedit.wrappers.clipboard.format.IFCClipboardFormat_Schematic;
 import br.com.finalcraft.evernifecore.compat.v1_7_R4.worldedit.wrappers.operation.ImpIFCOperationManager;
 import br.com.finalcraft.evernifecore.compat.v1_7_R4.worldedit.wrappers.region.ImpIFCCuboidRegion;
-import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.worldedit.WEPlatform;
 import br.com.finalcraft.evernifecore.worldedit.block.FCBaseBlock;
 import br.com.finalcraft.evernifecore.worldedit.clipboard.FCBlockArrayClipboard;

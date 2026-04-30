@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.compat.v1_7_R4.protection.worldguard;
 import br.com.finalcraft.evernifecore.compat.v1_7_R4.protection.worldguard.wrappers.ImpFCRegionManager;
 import br.com.finalcraft.evernifecore.compat.v1_7_R4.protection.worldguard.wrappers.ImpIFCFlagRegistry;
 import br.com.finalcraft.evernifecore.compat.v1_7_R4.protection.worldguard.wrappers.ImpWorldGuardRegion;
-import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
 import br.com.finalcraft.evernifecore.protection.worldguard.IFCFlagRegistry;
 import br.com.finalcraft.evernifecore.protection.worldguard.WGPlatform;

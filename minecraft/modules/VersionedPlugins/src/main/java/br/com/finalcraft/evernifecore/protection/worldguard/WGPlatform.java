@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.protection.worldguard;
 
-import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.protection.worldguard.adapter.FCRegionManager;
 import br.com.finalcraft.evernifecore.protection.worldguard.adapter.FCRegionResultSet;
 import com.sk89q.worldguard.LocalPlayer;

@@ -2,8 +2,8 @@ package br.com.finalcraft.evernifecore.compat.v1_7_R4.worldedit.wrappers.clipboa
 
 import br.com.finalcraft.evernifecore.compat.v1_7_R4.worldedit.wrappers.block.ImpFCBaseBlock;
 import br.com.finalcraft.evernifecore.compat.v1_7_R4.worldedit.wrappers.region.ImpIFCCuboidRegion;
-import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
-import br.com.finalcraft.evernifecore.minecraft.vector.LocPos;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.LocPos;
 import br.com.finalcraft.evernifecore.worldedit.block.FCBaseBlock;
 import br.com.finalcraft.evernifecore.worldedit.clipboard.FCBlockArrayClipboard;
 import br.com.finalcraft.evernifecore.worldedit.region.IFCCuboidRegion;

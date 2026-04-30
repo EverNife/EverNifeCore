@@ -9,6 +9,8 @@ repositories {
 }
 
 dependencies {
+    compileOnly project(':common')
+
     compileOnly 'org.spigotmc:spigot-api:1.19.2-R0.1-SNAPSHOT'
 
     compileOnly name: "GriefPreventionPlus-13.3"

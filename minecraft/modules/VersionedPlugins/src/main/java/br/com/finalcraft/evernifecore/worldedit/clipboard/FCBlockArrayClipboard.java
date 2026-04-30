@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.worldedit.clipboard;
 
-import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
-import br.com.finalcraft.evernifecore.minecraft.vector.LocPos;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.LocPos;
 import br.com.finalcraft.evernifecore.worldedit.block.FCBaseBlock;
 import br.com.finalcraft.evernifecore.worldedit.region.IFCCuboidRegion;
 import com.sk89q.worldedit.EditSession;

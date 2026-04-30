@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.worldedit;
 
-import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.worldedit.block.FCBaseBlock;
 import br.com.finalcraft.evernifecore.worldedit.clipboard.FCBlockArrayClipboard;
 import br.com.finalcraft.evernifecore.worldedit.clipboard.format.IFCClipboardManager;

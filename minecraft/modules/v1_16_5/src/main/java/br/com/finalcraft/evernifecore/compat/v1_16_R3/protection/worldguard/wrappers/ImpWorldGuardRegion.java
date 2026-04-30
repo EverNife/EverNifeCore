@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.compat.v1_16_R3.protection.worldguard.wrappers;
 
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
@@ -22,8 +23,8 @@ public class ImpWorldGuardRegion implements FCWorldGuardRegion {
     }
 
     @Override
-    public boolean contains(Location location) {
-        return this.protectedRegion.contains(BlockVector3.at(location.getX(), location.getY(), location.getZ()));
+    public boolean contains(BlockPos blockPos) {
+        return this.protectedRegion.contains(BlockVector3.at(blockPos.getX(), blockPos.getY(), blockPos.getZ()));
     }
 
     @Override
