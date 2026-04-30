@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.vector.options;
+package br.com.finalcraft.evernifecore.math.game.options;
 
 public class RegionGridOptions {
     
