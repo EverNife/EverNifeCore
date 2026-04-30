@@ -2,12 +2,11 @@ package br.com.finalcraft.evernifecore.listeners;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.autoupdater.SpigotUpdateChecker;
-import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.listeners.bossshop.BossShopListener;
-import br.com.finalcraft.evernifecore.metrics.Metrics;
+import br.com.finalcraft.evernifecore.minecraft.metrics.Metrics;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import org.bukkit.Bukkit;
@@ -49,7 +48,7 @@ public class PluginListener implements ECListener {
         if (ecPlugin != null){
             //Enable BStats for this plugin
             if (!ecPlugin.bstatsID().isEmpty()){
-                new Metrics((JavaPlugin) plugin, Integer.parseInt(ecPlugin.bstatsID()));
+                new Metrics(plugin, Integer.parseInt(ecPlugin.bstatsID()));
             }
 
             //Enable Automatic Spigot Update for this plugin
