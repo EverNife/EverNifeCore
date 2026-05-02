@@ -28,7 +28,9 @@ public class BlockPos extends Vec3i<BlockPos> {
         return new BlockPos(x, y, z);
     }
 
-    // -- Factories ------------------------------------------------------------
+    // =========================================================================
+    //  Factories
+    // =========================================================================
 
     public static BlockPos of(int x, int y, int z) {
         return new BlockPos(x, y, z);
@@ -50,13 +52,17 @@ public class BlockPos extends Vec3i<BlockPos> {
         );
     }
 
-    // -- Adapters -----------------------------------------------------
+    // =========================================================================
+    //  Adapters
+    // =========================================================================
 
     public MCGameVecAdapter.AdaptBlockPos getMinecraftAdapter(){
         return EverNifeCore.getPlatform().getVecAdapter().adaptBlockPos(this);
     }
 
-    // -- Conversions -----------------------------------------------------
+    // =========================================================================
+    //  Conversions
+    // =========================================================================
 
     public LocPos getLocPos() {
         return LocPos.of(x, y, z);
@@ -80,7 +86,9 @@ public class BlockPos extends Vec3i<BlockPos> {
         return WorldBlockPos.of(x, y, z, worldName);
     }
 
-    // -- Serialization --------------------------------------------------------
+    // =========================================================================
+    //  Serialization
+    // =========================================================================
 
     @Override
     public String toString() {

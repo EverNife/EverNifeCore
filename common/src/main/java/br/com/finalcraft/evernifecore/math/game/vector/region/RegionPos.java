@@ -21,7 +21,9 @@ public class RegionPos extends Vec2i<RegionPos> {
         return new RegionPos(x, z);
     }
 
-    // -- Factories ------------------------------------------------------------
+    // =========================================================================
+    //  Factories
+    // =========================================================================
 
     public static RegionPos of(int x, int z) {
         return new RegionPos(x, z);
@@ -50,7 +52,9 @@ public class RegionPos extends Vec2i<RegionPos> {
         return fromChunk(vec2i.getX(), vec2i.getZ());
     }
 
-    // -- Grid info ------------------------------------------------------------
+    // =========================================================================
+    //  Grid Info
+    // =========================================================================
 
     public int getXStart() {
         return x << RegionGridOptions.getCurrent().getRegionShift();
@@ -81,7 +85,9 @@ public class RegionPos extends Vec2i<RegionPos> {
         return ChunkPos.of(x << chunkToRegionShift, z << chunkToRegionShift);
     }
 
-    // -- Conversions ----------------------------------------------------------
+    // =========================================================================
+    //  Conversions
+    // =========================================================================
 
     public MutableRegionPos toMutable() {
         return new MutableRegionPos(x, z);
@@ -91,7 +97,9 @@ public class RegionPos extends Vec2i<RegionPos> {
         return new WorldRegionPos(x, z, worldName);
     }
 
-    // -- Serialization --------------------------------------------------------
+    // =========================================================================
+    //  Serialization
+    // =========================================================================
 
     @Override
     public String toString() {

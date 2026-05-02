@@ -28,7 +28,9 @@ public class WorldChunkPos extends Vec2i<WorldChunkPos> {
         return new WorldChunkPos(x, z, this.worldName);
     }
 
-    // -- Factories ------------------------------------------------------------
+    // =========================================================================
+    //  Factories
+    // =========================================================================
 
     public static WorldChunkPos of(int x, int z, String worldName) {
         return new WorldChunkPos(x, z, worldName);
@@ -51,13 +53,17 @@ public class WorldChunkPos extends Vec2i<WorldChunkPos> {
         return fromBlock(iVec3i.getX(), iVec3i.getZ(), worldName);
     }
 
-    // -- Set ------------------------------------------------------------------
+    // =========================================================================
+    //  Set
+    // =========================================================================
 
     public WorldChunkPos setWorldName(String worldName) {
         return new WorldChunkPos(x, z, worldName);
     }
 
-    // -- Grid info ------------------------------------------------------------
+    // =========================================================================
+    //  Grid Info
+    // =========================================================================
 
     public int getXStart() {
         return x << RegionGridOptions.getCurrent().getChunkShift();
@@ -82,13 +88,17 @@ public class WorldChunkPos extends Vec2i<WorldChunkPos> {
         return BlockPos.of((this.x << shift) + x, y, (this.z << shift) + z);
     }
 
-    // -- Adapters -----------------------------------------------------
+    // =========================================================================
+    //  Adapters
+    // =========================================================================
 
     public MCGameVecAdapter.AdaptChunkPosWorld getMCAdapter(){
         return EverNifeCore.getPlatform().getVecAdapter().adaptChunkPosWorld(this);
     }
 
-    // -- Conversions ----------------------------------------------------------
+    // =========================================================================
+    //  Conversions
+    // =========================================================================
 
     public ChunkPos getChunkPos() {
         return ChunkPos.of(x, z);
@@ -100,7 +110,9 @@ public class WorldChunkPos extends Vec2i<WorldChunkPos> {
         return new RegionPos(x >> chunkToRegionShift, z >> chunkToRegionShift);
     }
 
-    // -- Comparable -----------------------------------------------------------
+    // =========================================================================
+    //  Comparable
+    // =========================================================================
 
     @Override
     public int compareTo(WorldChunkPos o) {
@@ -127,7 +139,9 @@ public class WorldChunkPos extends Vec2i<WorldChunkPos> {
         return (int) FCHashUtil.hash(worldNameHash, x, z);
     }
 
-    // -- Serialization --------------------------------------------------------
+    // =========================================================================
+    //  Serialization
+    // =========================================================================
 
     @Override
     public String toString() {

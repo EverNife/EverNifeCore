@@ -23,7 +23,9 @@ public class MutableRegionPos extends MutableVec2i<MutableRegionPos> {
         return this;
     }
 
-    // -- Factories ------------------------------------------------------------
+    // =========================================================================
+    //  Factories
+    // =========================================================================
 
     public static MutableRegionPos of(int x, int z) {
         return new MutableRegionPos(x, z);
@@ -52,7 +54,9 @@ public class MutableRegionPos extends MutableVec2i<MutableRegionPos> {
         return fromBlock(iVec3i.getX(), iVec3i.getZ());
     }
 
-    // -- Grid info ------------------------------------------------------------
+    // =========================================================================
+    //  Grid Info
+    // =========================================================================
 
     public int getXStart() {
         return x << RegionGridOptions.getCurrent().getRegionShift();
@@ -83,7 +87,9 @@ public class MutableRegionPos extends MutableVec2i<MutableRegionPos> {
         return ChunkPos.of(x << chunkToRegionShift, z << chunkToRegionShift);
     }
 
-    // -- Conversions ----------------------------------------------------------
+    // =========================================================================
+    //  Conversions
+    // =========================================================================
 
     public RegionPos toImmutable() {
         return new RegionPos(x, z);
@@ -93,7 +99,9 @@ public class MutableRegionPos extends MutableVec2i<MutableRegionPos> {
         return new WorldRegionPos(x, z, worldName);
     }
 
-    // -- Serialization --------------------------------------------------------
+    // =========================================================================
+    //  Serialization
+    // =========================================================================
 
     @Override
     public String toString() {

@@ -27,7 +27,9 @@ public class WorldLocPos extends Vec3d<WorldLocPos> {
         return new WorldLocPos(x, y, z, worldName);
     }
 
-    // -- Factories ------------------------------------------------------------
+    // =========================================================================
+    //  Factories
+    // =========================================================================
 
     public static WorldLocPos of(double x, double y, double z, String worldName) {
         return new WorldLocPos(x, y, z, worldName);
@@ -41,19 +43,25 @@ public class WorldLocPos extends Vec3d<WorldLocPos> {
         return of(vec3d.getX(), vec3d.getY(), vec3d.getZ(), worldName);
     }
 
-    // -- Set ------------------------------------------------------------------
+    // =========================================================================
+    //  Set
+    // =========================================================================
 
     public WorldLocPos setWorldName(String worldName) {
         return new WorldLocPos(x, y, z, worldName);
     }
 
-    // -- Adapters -----------------------------------------------------
+    // =========================================================================
+    //  Adapters
+    // =========================================================================
 
     public MCGameVecAdapter.AdaptLocPosWorld getMinecraftAdapter(){
         return EverNifeCore.getPlatform().getVecAdapter().adaptLocPosWorld(this);
     }
 
-    // -- Game conversions -----------------------------------------------------
+    // =========================================================================
+    //  Conversions
+    // =========================================================================
 
     public LocPos getLocPos() {
         return LocPos.of(x, y, z);
@@ -71,7 +79,9 @@ public class WorldLocPos extends Vec3d<WorldLocPos> {
         return getBlockPos().getRegionPos();
     }
 
-    // -- Comparable -----------------------------------------------------------
+    // =========================================================================
+    //  Comparable
+    // =========================================================================
 
     @Override
     public int compareTo(WorldLocPos o) {
@@ -110,7 +120,9 @@ public class WorldLocPos extends Vec3d<WorldLocPos> {
         return hash;
     }
 
-    // -- Serialization --------------------------------------------------------
+    // =========================================================================
+    //  Serialization
+    // =========================================================================
 
     @Override
     public String toString() {

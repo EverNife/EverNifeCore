@@ -25,7 +25,9 @@ public class MutableChunkPos extends MutableVec2i<MutableChunkPos> {
         return this;
     }
 
-    // -- Factories ------------------------------------------------------------
+    // =========================================================================
+    //  Factories
+    // =========================================================================
 
     public static MutableChunkPos of(int x, int z) {
         return new MutableChunkPos(x, z);
@@ -48,7 +50,9 @@ public class MutableChunkPos extends MutableVec2i<MutableChunkPos> {
         return fromBlock(iVec3i.getX(), iVec3i.getZ());
     }
 
-    // -- Grid info ------------------------------------------------------------
+    // =========================================================================
+    //  Grid Info
+    // =========================================================================
 
     public int getXStart() {
         return x << RegionGridOptions.getCurrent().getChunkShift();
@@ -73,13 +77,17 @@ public class MutableChunkPos extends MutableVec2i<MutableChunkPos> {
         return BlockPos.of((this.x << shift) + x, y, (this.z << shift) + z);
     }
 
-    // -- Adapters -----------------------------------------------------
+    // =========================================================================
+    //  Adapters
+    // =========================================================================
 
     public MCGameVecAdapter.AdaptChunkPos getMCAdapter(){
         return EverNifeCore.getPlatform().getVecAdapter().adaptChunkPos(this);
     }
 
-    // -- Conversions ----------------------------------------------------------
+    // =========================================================================
+    //  Conversions
+    // =========================================================================
 
     public RegionPos getRegionPos() {
         RegionGridOptions options = RegionGridOptions.getCurrent();
@@ -95,7 +103,9 @@ public class MutableChunkPos extends MutableVec2i<MutableChunkPos> {
         return new WorldChunkPos(x, z, worldName);
     }
 
-    // -- Serialization --------------------------------------------------------
+    // =========================================================================
+    //  Serialization
+    // =========================================================================
 
     @Override
     public String toString() {

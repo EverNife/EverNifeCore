@@ -28,7 +28,9 @@ public class WorldBlockPos extends Vec3i<WorldBlockPos> {
         return new WorldBlockPos(x, y, z, worldName);
     }
 
-    // -- Factories ------------------------------------------------------------
+    // =========================================================================
+    //  Factories
+    // =========================================================================
 
     public static WorldBlockPos of(int x, int y, int z, String worldName) {
         return new WorldBlockPos(x, y, z, worldName);
@@ -47,19 +49,25 @@ public class WorldBlockPos extends Vec3i<WorldBlockPos> {
         );
     }
 
-    // -- Set ------------------------------------------------------------------
+    // =========================================================================
+    //  Set
+    // =========================================================================
 
     public WorldBlockPos setWorldName(String worldName) {
         return new WorldBlockPos(x, y, z, worldName);
     }
 
-    // -- Adapters -----------------------------------------------------
+    // =========================================================================
+    //  Adapters
+    // =========================================================================
 
     public MCGameVecAdapter.AdaptBlockPos getMinecraftAdapter(){
         return EverNifeCore.getPlatform().getVecAdapter().adaptBlockPosWorld(this);
     }
 
-    // -- Game conversions -----------------------------------------------------
+    // =========================================================================
+    //  Conversions
+    // =========================================================================
 
     public BlockPos getBlockPos() {
         return BlockPos.of(x, y, z);
@@ -79,7 +87,9 @@ public class WorldBlockPos extends Vec3i<WorldBlockPos> {
         return RegionPos.of(x >> shift, z >> shift);
     }
 
-    // -- Comparable -----------------------------------------------------------
+    // =========================================================================
+    //  Comparable
+    // =========================================================================
 
     @Override
     public int compareTo(WorldBlockPos o) {
@@ -107,7 +117,9 @@ public class WorldBlockPos extends Vec3i<WorldBlockPos> {
         return this.worldName.equals(other.worldName) && x == other.getX() && y == other.getY() && z == other.getZ();
     }
 
-    // -- Serialization --------------------------------------------------------
+    // =========================================================================
+    //  Serialization
+    // =========================================================================
 
     @Override
     public String toString() {

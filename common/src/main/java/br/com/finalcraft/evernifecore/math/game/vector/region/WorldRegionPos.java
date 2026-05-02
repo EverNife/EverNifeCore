@@ -26,7 +26,9 @@ public class WorldRegionPos extends Vec2i<WorldRegionPos> {
         return new WorldRegionPos(x, z, worldName);
     }
 
-    // -- Factories ------------------------------------------------------------
+    // =========================================================================
+    //  Factories
+    // =========================================================================
 
     public static WorldRegionPos of(int x, int z, String worldName) {
         return new WorldRegionPos(x, z, worldName);
@@ -55,13 +57,17 @@ public class WorldRegionPos extends Vec2i<WorldRegionPos> {
         return fromBlock(iVec3i.getX(), iVec3i.getZ(), worldName);
     }
 
-    // -- Set ------------------------------------------------------------------
+    // =========================================================================
+    //  Set
+    // =========================================================================
 
     public WorldRegionPos setWorldName(String worldName) {
         return new WorldRegionPos(x, z, worldName);
     }
 
-    // -- Grid info ------------------------------------------------------------
+    // =========================================================================
+    //  Grid Info
+    // =========================================================================
 
     public int getXStart() {
         return x << RegionGridOptions.getCurrent().getRegionShift();
@@ -92,13 +98,17 @@ public class WorldRegionPos extends Vec2i<WorldRegionPos> {
         return ChunkPos.of(x << chunkToRegionShift, z << chunkToRegionShift);
     }
 
-    // -- Conversions ----------------------------------------------------------
+    // =========================================================================
+    //  Conversions
+    // =========================================================================
 
     public RegionPos getRegionPos() {
         return RegionPos.of(x, z);
     }
 
-    // -- Comparable -----------------------------------------------------------
+    // =========================================================================
+    //  Comparable
+    // =========================================================================
 
     @Override
     public int compareTo(WorldRegionPos o) {
@@ -125,7 +135,9 @@ public class WorldRegionPos extends Vec2i<WorldRegionPos> {
         return (int) FCHashUtil.hash(worldNameHash, x, z);
     }
 
-    // -- Serialization --------------------------------------------------------
+    // =========================================================================
+    //  Serialization
+    // =========================================================================
 
     @Override
     public String toString() {

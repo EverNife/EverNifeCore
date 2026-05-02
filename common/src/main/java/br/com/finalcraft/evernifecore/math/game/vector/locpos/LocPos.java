@@ -23,7 +23,9 @@ public class LocPos extends Vec3d<LocPos> {
         return new LocPos(x, y, z);
     }
 
-    // -- Factories ------------------------------------------------------------
+    // =========================================================================
+    //  Factories
+    // =========================================================================
 
     public static LocPos of(double x, double y, double z) {
         return new LocPos(x, y, z);
@@ -37,13 +39,17 @@ public class LocPos extends Vec3d<LocPos> {
         return of(vec3d.getX(), vec3d.getY(), vec3d.getZ());
     }
 
-    // -- Adapters -----------------------------------------------------
+    // =========================================================================
+    //  Adapters
+    // =========================================================================
 
     public MCGameVecAdapter.AdaptLocPos getMinecraftAdapter(){
         return EverNifeCore.getPlatform().getVecAdapter().adaptLocPos(this);
     }
 
-    // -- Game conversions -----------------------------------------------------
+    // =========================================================================
+    //  Conversions
+    // =========================================================================
 
     public BlockPos getBlockPos() {
         return new BlockPos(VecMath.floor_double(x), VecMath.floor_double(y), VecMath.floor_double(z));
@@ -65,7 +71,9 @@ public class LocPos extends Vec3d<LocPos> {
         return WorldLocPos.of(x, y, z, worldName);
     }
 
-    // -- Serialization --------------------------------------------------------
+    // =========================================================================
+    //  Serialization
+    // =========================================================================
 
     @Override
     public String toString() {
