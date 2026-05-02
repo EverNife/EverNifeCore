@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -46,4 +47,9 @@ public interface IPlatform {
     public ILogAdapter createLogAdapterFor(ECPluginData ecPluginData);
 
     public void sendActionBarMessage(FPlayer player, FancyText fancyText);
+
+    public boolean serverSupportsActionBar();
+
+    public IPlatformVecAdapter getVecAdapter();
+
 }

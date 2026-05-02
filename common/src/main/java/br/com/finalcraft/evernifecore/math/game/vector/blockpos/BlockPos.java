@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.math.game.vector.blockpos;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.LocPos;
@@ -8,6 +9,7 @@ import br.com.finalcraft.evernifecore.math.vecmath.VecMath;
 import br.com.finalcraft.evernifecore.math.vector.Vec3i;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3d;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3i;
+import br.com.finalcraft.evernifecore.minecraft.math.game.adapter.MCGameVecAdapter;
 import lombok.Getter;
 
 @Getter
@@ -46,6 +48,12 @@ public class BlockPos extends Vec3i<BlockPos> {
                 VecMath.floor_double(iVec3d.getY()),
                 VecMath.floor_double(iVec3d.getZ())
         );
+    }
+
+    // -- Adapters -----------------------------------------------------
+
+    public MCGameVecAdapter.AdaptBlockPos getMinecraftAdapter(){
+        return EverNifeCore.getPlatform().getVecAdapter().adaptBlockPos(this);
     }
 
     // -- Conversions -----------------------------------------------------

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.math.game.vector.locpos;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
 import br.com.finalcraft.evernifecore.math.game.vector.region.RegionPos;
@@ -7,6 +8,7 @@ import br.com.finalcraft.evernifecore.math.vecmath.VecMath;
 import br.com.finalcraft.evernifecore.math.vector.Vec3d;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3d;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3i;
+import br.com.finalcraft.evernifecore.minecraft.math.game.adapter.MCGameVecAdapter;
 import br.com.finalcraft.evernifecore.util.FCHashUtil;
 import lombok.Getter;
 
@@ -43,6 +45,12 @@ public class WorldLocPos extends Vec3d<WorldLocPos> {
 
     public WorldLocPos setWorldName(String worldName) {
         return new WorldLocPos(x, y, z, worldName);
+    }
+
+    // -- Adapters -----------------------------------------------------
+
+    public MCGameVecAdapter.AdaptLocPosWorld getMinecraftAdapter(){
+        return EverNifeCore.getPlatform().getVecAdapter().adaptLocPosWorld(this);
     }
 
     // -- Game conversions -----------------------------------------------------

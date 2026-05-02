@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.math.game.vector.chunkpos;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.region.RegionPos;
@@ -8,6 +9,7 @@ import br.com.finalcraft.evernifecore.math.vector.MutableVec2i;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec2i;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3d;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3i;
+import br.com.finalcraft.evernifecore.minecraft.math.game.adapter.MCGameVecAdapter;
 
 public class MutableChunkPos extends MutableVec2i<MutableChunkPos> {
 
@@ -69,6 +71,12 @@ public class MutableChunkPos extends MutableVec2i<MutableChunkPos> {
     public BlockPos getBlock(int x, int y, int z) {
         int shift = RegionGridOptions.getCurrent().getChunkShift();
         return BlockPos.of((this.x << shift) + x, y, (this.z << shift) + z);
+    }
+
+    // -- Adapters -----------------------------------------------------
+
+    public MCGameVecAdapter.AdaptChunkPos getMCAdapter(){
+        return EverNifeCore.getPlatform().getVecAdapter().adaptChunkPos(this);
     }
 
     // -- Conversions ----------------------------------------------------------
