@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.pageviwer;
+package br.com.finalcraft.evernifecore.pageviewer;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
