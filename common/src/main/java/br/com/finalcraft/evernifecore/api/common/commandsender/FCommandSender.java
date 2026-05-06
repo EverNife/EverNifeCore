@@ -22,7 +22,7 @@ public interface FCommandSender extends IHasDelegate {
         return !isPlayer();
     }
 
-    default FPlayer asPlayer() {
+    default FPlayer asFPlayer() {
         if (this instanceof FPlayer) {
             return (FPlayer) this;
         }

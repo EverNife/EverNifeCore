@@ -7,7 +7,6 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
-import org.apache.commons.lang3.NotImplementedException;
 
 public class PAPIIntegration {
 
