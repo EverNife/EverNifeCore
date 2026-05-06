@@ -1,22 +1,23 @@
-package br.com.finalcraft.evernifecore.integration.placeholders.papi;
+package br.com.finalcraft.evernifecore.minecraft.integration.placeholders.papi;
 
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.integration.placeholders.PAPIRegexReplacer;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import me.clip.placeholderapi.PlaceholderHook;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 
-public class SimplePAPIHook extends PlaceholderHook {
+public class McSimplePAPIHook extends PlaceholderHook {
 
-    private final Plugin plugin;
+    private final ECPluginData plugin;
     private final PAPIRegexReplacer PAPI_REGEX_REPLACER;
     private final boolean isPDSection;
 
-    public SimplePAPIHook(Plugin plugin, PAPIRegexReplacer PAPI_REGEX_REPLACER) {
+    public McSimplePAPIHook(ECPluginData plugin, PAPIRegexReplacer PAPI_REGEX_REPLACER) {
         this.plugin = plugin;
         this.PAPI_REGEX_REPLACER = PAPI_REGEX_REPLACER;
         this.isPDSection = PDSection.class.isAssignableFrom(PAPI_REGEX_REPLACER.getReferClass());
@@ -47,7 +48,7 @@ public class SimplePAPIHook extends PlaceholderHook {
 
             return parsedPlaceholder;
         }catch (Exception e){
-            this.plugin.getLogger().warning("Failed to parse the Placeholder [" + placeholder + "]");
+            this.plugin.getLog().warning("Failed to parse the Placeholder [" + placeholder + "]");
             e.printStackTrace();
             return "[ErrorOnPlaceholder=='%" + placeholder + "%']";
         }
