@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.actionbar;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 
@@ -9,7 +10,6 @@ import java.util.UUID;
 
 public class ActionBarAPI {
 
-    private static final boolean THIS_SERVER_SUPPORTS_ACTIONBAR = false;
     private static Map<UUID, PlayerActionBarManager> PLAYER_ACTION_BAR_MAP = new HashMap<>();
 
     public static void send(FPlayer player, String message){
@@ -17,7 +17,7 @@ public class ActionBarAPI {
     }
 
     public static void send(FPlayer player, ActionBarMessage actionBarMessage){
-        if (!THIS_SERVER_SUPPORTS_ACTIONBAR){
+        if (!EverNifeCore.getPlatform().serverSupportsActionBar()){
             return;
         }
 
@@ -32,7 +32,7 @@ public class ActionBarAPI {
     }
 
     public static void clear(FPlayer player){
-        if (!THIS_SERVER_SUPPORTS_ACTIONBAR){
+        if (!EverNifeCore.getPlatform().serverSupportsActionBar()){
             //This server is on 1.7.10, and we don't have NecroTempus
             return;
         }
