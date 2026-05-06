@@ -237,4 +237,9 @@ public class HyPlatform implements IPlatform {
     public void sendActionBarMessage(FPlayer player, FancyText fancyText) {
         // Hytale does not have action-bar messages
     }
+
+    @Override
+    public boolean serverSupportsActionBar() {
+        return false; // Hytale does not have action-bar messages
+    }
 }

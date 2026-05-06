@@ -1,25 +1,32 @@
-package br.com.finalcraft.evernifecore;
+package br.com.finalcraft.evernifecore.minecraft.loader;
 
-import br.com.finalcraft.evernifecore.commands.CommandRegisterer;
+import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
+import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.api.eventhandler.ECEventDispatcher;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.config.yaml.helper.CfgExecutor;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.dependencies.DependencyManager;
 import br.com.finalcraft.evernifecore.dependencies.ECoreDependencies;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.featherboard.FeatherBoardUtils;
-import br.com.finalcraft.evernifecore.integration.ECCorePAPIPlaceholders;
 import br.com.finalcraft.evernifecore.integration.VaultIntegration;
 import br.com.finalcraft.evernifecore.integration.WorldEditIntegration;
 import br.com.finalcraft.evernifecore.listeners.PlayerInteractListener;
 import br.com.finalcraft.evernifecore.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.listeners.PluginListener;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
-import br.com.finalcraft.evernifecore.logger.ECDebugModule;
-import br.com.finalcraft.evernifecore.logger.ECLogger;
+import br.com.finalcraft.evernifecore.minecraft.commands.McCommandRegisterer;
+import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.MinecraftArgParsers;
+import br.com.finalcraft.evernifecore.minecraft.loader.imp.HyCfgLoadableSalvable;
+import br.com.finalcraft.evernifecore.minecraft.loader.imp.McECEventDispatcher;
+import br.com.finalcraft.evernifecore.minecraft.loader.imp.McECPluginExtractor;
+import br.com.finalcraft.evernifecore.minecraft.loader.imp.McPlatform;
 import br.com.finalcraft.evernifecore.thread.SaveConfigThread;
 import br.com.finalcraft.evernifecore.util.FCTickUtil;
+import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.version.MCVersion;
 import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
 import org.bukkit.Bukkit;
@@ -28,13 +35,12 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 @ECPlugin(
         spigotID = "97739",
-        bstatsID = "13351",
-        debugModuleEnum = ECDebugModule.class
+        bstatsID = "13351"
 )
-public class EverNifeCore extends JavaPlugin {
+public class McEverNifeCore extends JavaPlugin {
 
     private static final DependencyManager dependencyManager;
-    public static EverNifeCore instance; { instance = this; } //Attribute Instance at the exact moment that this class is instantiated
+    public static McEverNifeCore instance;
     static {
         dependencyManager = new DependencyManager();//This is the DefaultConstrutor for EverNifeCore DependencyManager
         dependencyManager.addJitPack();
@@ -50,36 +56,56 @@ public class EverNifeCore extends JavaPlugin {
         MinecraftVersion.disableUpdateCheck();
     }
 
-    private ECLogger<ECDebugModule> ecLogger = new ECLogger<>(this, ECDebugModule.values());
+    {
+        instance = this; //Attribute Instance at the exact moment that this class is instantiated
 
-    public static ECLogger<ECDebugModule> getLog(){
-        return instance.ecLogger;
-    }
+        //Register Providers as Early as Possible
+        EverNifeCore.getProviders().getBaseProvider().register(
+                IECPluginExtractor.class,
+                new McECPluginExtractor()
+        );
 
-    public static DependencyManager getDependencyManager() {
-        return dependencyManager;
+        EverNifeCore.getProviders().getBaseProvider().register(
+                IPlatform.class,
+                new McPlatform()
+        );
+
+        EverNifeCore.getProviders().getBaseProvider().register(
+                ECEventDispatcher.class,
+                new McECEventDispatcher()
+        );
+
+        RegionGridOptions.setCurrent(RegionGridOptions.HYTALE);
+
+        EverNifeCore.instance.onLoaderInstantiate(ECPluginManager.getOrCreateECorePluginData(this));
+        HyCfgLoadableSalvable.initialize();
+        MinecraftArgParsers.initialize();
     }
 
     @Override
     public void onEnable() {
+        ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(this);
+
+        EverNifeCore.instance.onLoadPre();
+
         MinecraftVersion.replaceLogger(this.getLogger());//Replace [NBT-API] logger
 
-        getLog().info("§aStarting EverNifeCore");
-        getLog().info("§aServer Minecraft Version " + MCVersion.getCurrent().name() + " !");
+        EverNifeCore.getLog().info("§aStarting EverNifeCore");
+        EverNifeCore.getLog().info("§aServer Minecraft Version " + MCVersion.getCurrent().name() + " !");
 
-        getLog().info("§aLoading up Configurations...");
+        EverNifeCore.getLog().info("§aLoading up Configurations...");
         ConfigManager.initialize(this);
 
-        getLog().info("§aLoading up Cooldown System!");
+        EverNifeCore.getLog().info("§aLoading up Cooldown System!");
         Cooldown.initialize();
 
-        getLog().info("§aRegistering Commands!");
-        CommandRegisterer.registerCommands(this);
+        EverNifeCore.getLog().info("§aRegistering Commands!");
+        McCommandRegisterer.registerCommands(ecPluginData);
 
-        getLog().info("§aHooking into Vault (Economy)");
+        EverNifeCore.getLog().info("§aHooking into Vault (Economy)");
         VaultIntegration.initialize();
 
-        getLog().info("§aRegistering Listeners");
+        EverNifeCore.getLog().info("§aRegistering Listeners");
         ECListener.register(this, PlayerLoginListener.class);
         ECListener.register(this, PlayerInteractListener.class);
         ECListener.register(this, PluginListener.class);
@@ -96,29 +122,18 @@ public class EverNifeCore extends JavaPlugin {
         SaveConfigThread.INSTANCE.start();
 
         FCTickUtil.getTickCount();//This will start tickCounting
-        getLog().info("§aEverNifeCore successfully started!");
-
-        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")){
-            ECCorePAPIPlaceholders.initialize(this);
-        }
+        EverNifeCore.getLog().info("§aEverNifeCore successfully started!");
     }
 
     @Override
     public void onDisable() {
         HandlerList.unregisterAll(this);
-        SaveConfigThread.INSTANCE.shutdown();
-        PlayerController.savePlayerDataOnConfig();
-        CfgExecutor.shutdownExecutorAndScheduler();
+        EverNifeCore.instance.onUnload();
     }
 
     @ECPlugin.Reload
     public void onReload(){
-        SaveConfigThread.INSTANCE.setSilent(true);
-        SaveConfigThread.INSTANCE.shutdown();
-        ConfigManager.initialize(this);
-        ConfigManager.reloadCooldownConfig();
-        SaveConfigThread.INSTANCE.start();
-        SaveConfigThread.INSTANCE.setSilent(false);
+        EverNifeCore.instance.onReload();
     }
 
 }

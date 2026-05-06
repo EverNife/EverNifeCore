@@ -15,11 +15,9 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.parsers.ArgParserOreDict;
 import br.com.finalcraft.evernifecore.nms.data.oredict.OreDictEntry;
 import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
-import br.com.finalcraft.evernifecore.pageviwer.PageViewer;
-import br.com.finalcraft.evernifecore.pageviwer.PageVizualization;
+import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
+import br.com.finalcraft.evernifecore.pageviewer.PageVizualization;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.StringUtil;
 
