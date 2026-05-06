@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.worlddata;
 
-import br.com.finalcraft.evernifecore.vector.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 
 public class BlockMetaData<O extends Object> {
 

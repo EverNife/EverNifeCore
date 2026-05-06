@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.worlddata;
 
-import br.com.finalcraft.evernifecore.vector.BlockPos;
-import br.com.finalcraft.evernifecore.vector.WorldLocPos;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import jakarta.annotation.Nullable;
 
 import java.util.ArrayList;
