@@ -43,6 +43,9 @@ repositories {
 }
 
 dependencies {
+    implementation project(':common')
+    implementation project(':libby')
+
     compileOnly 'org.spigotmc:spigot-api:1.19.2-R0.1-SNAPSHOT'
 
     implementation project(':minecraft:modules:VersionedPlugins')
@@ -66,8 +69,6 @@ dependencies {
     //END of NBT-API
 
     implementation 'net.md-5:bungeecord-chat:1.16-R0.1' //This works from 1.7.10 onwards, is the same API
-
-    compileOnly('org.hibernate:hibernate-core:5.4.30.Final')
 
     compileOnly name: "AuthMe-5.4.0"
     compileOnly 'net.luckperms:api:5.4'
