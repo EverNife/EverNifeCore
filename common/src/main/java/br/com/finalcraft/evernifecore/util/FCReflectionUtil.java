@@ -294,24 +294,26 @@ public class FCReflectionUtil {
      * @throws IllegalStateException If we cannot find this method.
      */
     public static Stream<MethodInvoker> getMethods(Class<?> clazz, Function<Method, Boolean> filter) {
-        return Arrays.stream(clazz.getMethods()).filter(method -> filter.apply(method)).map(method -> {
-            method.setAccessible(true);
-            return new MethodInvoker() {
-                @Override
-                public Object invoke(Object target, Object... arguments) {
-                    try {
-                        return method.invoke(target, arguments);
-                    } catch (Exception e) {
-                        throw new RuntimeException("Cannot invoke method " + method, e);
-                    }
-                }
+        return Arrays.stream(clazz.getMethods())
+                .filter(method -> filter.apply(method))
+                .map(method -> {
+                    method.setAccessible(true);
+                    return new MethodInvoker() {
+                        @Override
+                        public Object invoke(Object target, Object... arguments) {
+                            try {
+                                return method.invoke(target, arguments);
+                            } catch (Exception e) {
+                                throw new RuntimeException("Cannot invoke method " + method, e);
+                            }
+                        }
 
-                @Override
-                public Method get() {
-                    return method;
-                }
-            };
-        });
+                        @Override
+                        public Method get() {
+                            return method;
+                        }
+                    };
+                });
     }
 
 

@@ -7,7 +7,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
-import br.com.finalcraft.evernifecore.pageviewer.PageVizualization;
+import br.com.finalcraft.evernifecore.pageviwer.PageVizualization;
 import com.google.common.collect.ImmutableList;
 import jakarta.annotation.Nonnull;
 

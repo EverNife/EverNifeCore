@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.pageviewer;
+package br.com.finalcraft.evernifecore.pageviwer;
 
 import lombok.Getter;
 

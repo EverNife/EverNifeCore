@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.hytale.scheduler;
+package br.com.finalcraft.evernifecore.minecraft.scheduler;
 
 public class McFCScheduler {
 

@@ -39,8 +39,8 @@ public class EverNifeCore {
         ecPluginData.defineDebugModules(ECDebugModule.values());
     }
 
-    public ECPluginData getEcPluginData() {
-        return ecPluginData;
+    public static ECPluginData getEcPluginData() {
+        return instance.ecPluginData;
     }
 
     public void onLoadPre() {

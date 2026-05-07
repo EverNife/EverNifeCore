@@ -6,8 +6,8 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
-import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
-import br.com.finalcraft.evernifecore.pageviewer.PageVizualization;
+import br.com.finalcraft.evernifecore.pageviwer.PageViewer;
+import br.com.finalcraft.evernifecore.pageviwer.PageVizualization;
 
 import java.util.ArrayList;
 
