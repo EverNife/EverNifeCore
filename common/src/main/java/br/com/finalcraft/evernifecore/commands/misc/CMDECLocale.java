@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.commands.misc;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.PermissionNodes;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
@@ -14,7 +15,6 @@ import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.util.FCCommandUtil;
 import br.com.finalcraft.evernifecore.util.FCServerUtil;
-import br.com.finalcraft.evernifecore.util.FCTextUtil;
 
 import java.util.Comparator;
 import java.util.List;
@@ -34,7 +34,7 @@ public class CMDECLocale {
             }
     )
     public void list(FCommandSender sender, String label) {
-        FancyFormatter formatter = FancyFormatter.of(FCTextUtil.straightLineOf("§a§m-§r"));
+        FancyFormatter formatter = FancyFormatter.of(EverNifeCore.getPlatform().getChatAdapter().straightLineOf("§a§m-§r"));
 
         List<ECPluginData> sortedPlugins = ECPluginManager.getECPluginsMap().values().stream()
                 .sorted(Comparator.comparing(ecPlugin -> ecPlugin.getMetaInfo().getName()))

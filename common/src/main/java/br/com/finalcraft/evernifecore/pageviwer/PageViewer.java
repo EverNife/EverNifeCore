@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.pageviwer;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
@@ -10,7 +11,6 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.util.FCTextUtil;
 import br.com.finalcraft.evernifecore.util.FCTimeUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import jakarta.annotation.Nonnull;
@@ -245,7 +245,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
                 //Gerenete the SpaceBorders, by generenating it arround the center and spliting it afterwards
                 String holeLine = previousButton + centerSpace + center + centerSpace + nextButton;
-                String[] borders = FCTextUtil.alignCenter(holeLine).split(Pattern.quote(holeLine), -1);
+                String[] borders = EverNifeCore.getPlatform().getChatAdapter().alignCenter(holeLine).split(Pattern.quote(holeLine), -1);
 
                 //Replace colors on buttons based on possibility of next or previous page
                 if (page <= 1) previousButton = previousButton.replace("§a","§7").replace("§2","§7");
@@ -352,7 +352,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
             return String.CASE_INSENSITIVE_ORDER.compare(String.valueOf(value2), String.valueOf(value1));//The order is reversed, to keep the highest value on top
         };
 
-        protected List<FancyText> formatHeader = Arrays.asList(new FancyText("§a§m" + FCTextUtil.straightLineOf("-")));
+        protected List<FancyText> formatHeader = Arrays.asList(new FancyText("§a§m" + EverNifeCore.getPlatform().getChatAdapter().straightLineOf("-")));
         protected Function<O, FancyText> formatLine = o -> new FancyText("§7#  %number%:   §e%player%§f - §a%value%");
         protected List<FancyText> formatFooter = Collections.emptyList();
         protected long cooldown = ECSettings.PAGEVIEWERS_REFRESH_TIME * 1000; //def 5 seconds

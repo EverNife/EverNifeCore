@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
 import br.com.finalcraft.evernifecore.api.eventhandler.ECEventHandler;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
@@ -37,6 +38,7 @@ import java.util.stream.Collectors;
 public class HyPlatform implements IPlatform {
 
     public static Map<ECListener, List<EventRegistration>> MAP_OF_ECLISTENERS = new HashMap<>();
+    private final HyPlatformChatAdapter CHAT_ADAPTER = new HyPlatformChatAdapter();
 
     @Override
     public List<FPlayer> getOnlinePlayers() {
@@ -241,5 +243,10 @@ public class HyPlatform implements IPlatform {
     @Override
     public boolean serverSupportsActionBar() {
         return false; // Hytale does not have action-bar messages
+    }
+
+    @Override
+    public IPlatformChatAdapter getChatAdapter() {
+        return CHAT_ADAPTER;
     }
 }

@@ -1,11 +1,11 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAccessValidation;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.CMDHelpType;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
-import br.com.finalcraft.evernifecore.util.FCTextUtil;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -34,7 +34,7 @@ public class FinalCMDData extends CMDData<FinalCMDData> {
         this.helpType = finalCMD.useDefaultHelp();
 
         if (!this.helpHeader.isEmpty()){
-            this.helpHeader = FCTextUtil.alignCenter(this.helpHeader, "§2§m-§r");
+            this.helpHeader = EverNifeCore.getPlatform().getChatAdapter().alignCenter(this.helpHeader, "§2§m-§r");
         }
     }
 

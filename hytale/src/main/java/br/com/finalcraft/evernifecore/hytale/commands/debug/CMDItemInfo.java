@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.commands.debug;
 
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.hytale.HyPermissionNodes;
@@ -11,7 +12,6 @@ import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import br.com.finalcraft.evernifecore.util.FCTextUtil;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 
 import java.util.stream.Collectors;
@@ -60,7 +60,7 @@ public class CMDItemInfo {
     )
     public void iteminfo(HytaleFPlayer player, ItemStack heldItem) {
 
-        player.sendMessage("&7" + FCColorUtil.stripColor(FCTextUtil.straightLineOf("---------------------------------")));
+        player.sendMessage("&7" + FCColorUtil.stripColor(EverNifeCore.getPlatform().getChatAdapter().straightLineOf("---------------------------------")));
 
         String localizedName = FCItemUtils.getLocalizedName(heldItem);
         String uncolorfiedLocalizedName = FCColorUtil.decolorfy(localizedName);

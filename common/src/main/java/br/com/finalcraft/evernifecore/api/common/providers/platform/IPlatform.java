@@ -51,4 +51,5 @@ public interface IPlatform {
 
     public IPlatformVecAdapter getVecAdapter();
 
+    public IPlatformChatAdapter getChatAdapter();
 }
