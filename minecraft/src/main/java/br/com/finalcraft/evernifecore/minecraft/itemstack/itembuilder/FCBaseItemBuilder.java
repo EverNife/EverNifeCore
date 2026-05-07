@@ -1,12 +1,12 @@
-package br.com.finalcraft.evernifecore.itemstack.itembuilder;
+package br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder;
 
-import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
-import br.com.finalcraft.evernifecore.itemstack.nbtutil.TrackedNBTContainer;
-import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.nbtutil.TrackedNBTContainer;
+import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import br.com.finalcraft.evernifecore.util.FCNBTUtil;
-import br.com.finalcraft.evernifecore.version.MCDetailedVersion;
-import br.com.finalcraft.evernifecore.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.util.FCNBTUtil;
+import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
+import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import de.tr7zw.changeme.nbtapi.NBTCompound;
 import de.tr7zw.changeme.nbtapi.NBTItem;
 import dev.triumphteam.gui.builder.item.ItemBuilder;

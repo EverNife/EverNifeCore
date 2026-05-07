@@ -1,6 +1,6 @@
-package br.com.finalcraft.evernifecore.itemdatapart.datapart;
+package br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart;
 
-import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.inventory.ItemStack;

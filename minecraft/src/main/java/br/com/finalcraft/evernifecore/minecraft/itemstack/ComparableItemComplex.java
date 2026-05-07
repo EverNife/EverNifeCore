@@ -1,8 +1,8 @@
-package br.com.finalcraft.evernifecore.itemstack;
+package br.com.finalcraft.evernifecore.minecraft.itemstack;
 
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
-import br.com.finalcraft.evernifecore.util.FCNBTUtil;
+import br.com.finalcraft.evernifecore.minecraft.util.FCNBTUtil;
 import de.tr7zw.changeme.nbtapi.NBTCompound;
 import de.tr7zw.changeme.nbtapi.NBTItem;
 import org.bukkit.Material;

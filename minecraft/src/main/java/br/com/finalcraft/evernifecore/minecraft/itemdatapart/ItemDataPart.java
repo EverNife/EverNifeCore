@@ -1,9 +1,9 @@
-package br.com.finalcraft.evernifecore.itemdatapart;
+package br.com.finalcraft.evernifecore.minecraft.itemdatapart;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.itemdatapart.datapart.*;
-import br.com.finalcraft.evernifecore.version.MCDetailedVersion;
-import br.com.finalcraft.evernifecore.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.*;
+import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
+import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.Material;

@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.itemstack.nbtutil;
+package br.com.finalcraft.evernifecore.minecraft.itemstack.nbtutil;
 
 import de.tr7zw.changeme.nbtapi.NBTContainer;
 

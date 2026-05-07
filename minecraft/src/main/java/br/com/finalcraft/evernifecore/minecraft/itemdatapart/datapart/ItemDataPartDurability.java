@@ -1,9 +1,9 @@
-package br.com.finalcraft.evernifecore.itemdatapart.datapart;
+package br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
-import br.com.finalcraft.evernifecore.version.MCVersion;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;

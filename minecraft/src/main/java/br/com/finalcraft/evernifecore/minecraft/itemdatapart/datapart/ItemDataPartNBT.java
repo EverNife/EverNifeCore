@@ -1,10 +1,10 @@
-package br.com.finalcraft.evernifecore.itemdatapart.datapart;
+package br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart;
 
-import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
-import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
-import br.com.finalcraft.evernifecore.util.FCItemUtils;
-import br.com.finalcraft.evernifecore.util.FCNBTUtil;
-import br.com.finalcraft.evernifecore.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
+import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
+import br.com.finalcraft.evernifecore.minecraft.util.FCNBTUtil;
+import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import de.tr7zw.changeme.nbtapi.NBTCompound;
 import org.bukkit.inventory.ItemStack;
 

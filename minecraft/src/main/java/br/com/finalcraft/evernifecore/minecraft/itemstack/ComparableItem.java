@@ -1,10 +1,11 @@
-package br.com.finalcraft.evernifecore.itemstack;
+package br.com.finalcraft.evernifecore.minecraft.itemstack;
 
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
+import br.com.finalcraft.evernifecore.minecraft.util.FCMaterialUtil;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
-import br.com.finalcraft.evernifecore.util.FCItemUtils;
+import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
 import jakarta.annotation.Nullable;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -108,7 +109,7 @@ public class ComparableItem implements Salvable {
 
         //Case 1
         if (split.length == 1){
-            Material material = FCInputReader.parseMaterial(split[0]);
+            Material material = FCMaterialUtil.parseMaterial(split[0]);
             if (material == null){
                 throw new IllegalArgumentException("Invalid bukkit material: " + split[0]);
             }
@@ -122,7 +123,7 @@ public class ComparableItem implements Salvable {
                 : Optional.ofNullable(FCInputReader.parseInt(damagePartString))
                         .map(integer -> integer.shortValue()).orElse(null);
         if (damageValue != null){
-            Material material = FCInputReader.parseMaterial(split[0]);
+            Material material = FCMaterialUtil.parseMaterial(split[0]);
             if (material == null){
                 throw new IllegalArgumentException("Invalid bukkit material: " + split[0]);
             }

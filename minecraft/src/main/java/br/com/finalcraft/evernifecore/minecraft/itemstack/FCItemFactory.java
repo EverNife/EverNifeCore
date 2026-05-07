@@ -1,8 +1,8 @@
-package br.com.finalcraft.evernifecore.itemstack;
+package br.com.finalcraft.evernifecore.minecraft.itemstack;
 
-import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
-import br.com.finalcraft.evernifecore.itemstack.itembuilder.FCItemBuilder;
-import br.com.finalcraft.evernifecore.util.FCItemUtils;
+import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder.FCItemBuilder;
+import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
 import jakarta.annotation.Nonnull;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
