@@ -2,13 +2,15 @@ package br.com.finalcraft.evernifecore.minecraft.commands.debug;
 
 
 import br.com.finalcraft.evernifecore.PermissionNodes;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.*;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -57,9 +59,9 @@ public class CMDItemInfo {
             aliases = {"iteminfo"},
             permission = PermissionNodes.EVERNIFECORE_COMMAND_ITEMINFO
     )
-    public void onCommand(Player player) {
+    public void onCommand(FPlayer player) {
 
-        ItemStack heldItem = FCBukkitUtil.getPlayersHeldItem(player);
+        ItemStack heldItem = FCBukkitUtil.getPlayersHeldItem(player.getDelegate(Player.class));
 
         if (heldItem == null){
             FCMessageUtil.needsToBeHoldingItem(player);

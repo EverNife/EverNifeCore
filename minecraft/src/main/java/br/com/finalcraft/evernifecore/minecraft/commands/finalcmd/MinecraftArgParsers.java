@@ -9,9 +9,9 @@ import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.parse
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.parsers.ArgParserOreDict;
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.parsers.ArgParserPlayer;
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.parsers.ArgParserWorld;
-import br.com.finalcraft.evernifecore.nms.data.oredict.OreDictEntry;
+import br.com.finalcraft.evernifecore.minecraft.nms.data.oredict.OreDictEntry;
 import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
-import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;

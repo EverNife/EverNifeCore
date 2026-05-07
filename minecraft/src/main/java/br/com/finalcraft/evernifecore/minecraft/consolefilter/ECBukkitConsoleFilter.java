@@ -1,10 +1,9 @@
-package br.com.finalcraft.evernifecore.consolefilter;
+package br.com.finalcraft.evernifecore.minecraft.consolefilter;
 
-import br.com.finalcraft.evernifecore.consolefilter.base.BaseLog4jFilter;
+import br.com.finalcraft.evernifecore.minecraft.consolefilter.base.BaseLog4jFilter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
-
 
 //This will only filter BUKKIT consoles
 public class ECBukkitConsoleFilter extends BaseLog4jFilter {

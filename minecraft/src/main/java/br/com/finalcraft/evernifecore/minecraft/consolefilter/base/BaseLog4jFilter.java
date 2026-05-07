@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.consolefilter.base;
+package br.com.finalcraft.evernifecore.minecraft.consolefilter.base;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Marker;

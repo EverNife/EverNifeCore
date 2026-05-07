@@ -10,10 +10,9 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgPa
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.nms.data.oredict.OreDictEntry;
-import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
+import br.com.finalcraft.evernifecore.minecraft.nms.data.oredict.OreDictEntry;
+import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import jakarta.annotation.Nonnull;
-import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
 import org.checkerframework.checker.nullness.qual.NonNull;
 

@@ -7,7 +7,6 @@ import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
-import br.com.finalcraft.evernifecore.math.vector.Vec3i;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.Player;
 

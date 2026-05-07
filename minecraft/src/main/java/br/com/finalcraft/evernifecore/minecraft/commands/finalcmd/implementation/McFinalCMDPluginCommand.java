@@ -9,7 +9,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDP
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.IPlatformCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFCommandSender;
-import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import com.google.common.collect.ImmutableList;
 import jakarta.annotation.Nonnull;
@@ -50,7 +50,7 @@ public class McFinalCMDPluginCommand extends Command implements PluginIdentifiab
             return true;
         }
 
-        FCMessageUtil.needsThePermission(FCBukkitUtil.wrap(target), getPermission());
+        FCMessageUtil.needsThePermission(FCBukkitUtil.adapt(target), getPermission());
         return false;
     }
 
@@ -68,16 +68,16 @@ public class McFinalCMDPluginCommand extends Command implements PluginIdentifiab
 
         Plugin owningPlugin = (org.bukkit.plugin.Plugin) finalCMDPluginCommand.getOwningPlugin().getPlugin();
 
-        if (!finalCMDPluginCommand.getOwningPlugin().getPlugin().isEnabled()) {
+        if (!owningPlugin.isEnabled()) {
             throw new CommandException("Cannot execute command '" + commandLabel + "' in plugin " + owningPlugin.getDescription().getFullName() + " - plugin is disabled.");
         }
 
         try {
             final FCommandSender fCommandSender;
             if (sender instanceof Player player){
-                fCommandSender = FCBukkitUtil.wrap(player);
+                fCommandSender = FCBukkitUtil.adapt(player);
             }else {
-                fCommandSender = FCBukkitUtil.wrap(sender);
+                fCommandSender = FCBukkitUtil.adapt(sender);
             }
 
             finalCMDPluginCommand.getExecutor().onCommand(fCommandSender, commandLabel, args);
@@ -149,7 +149,7 @@ public class McFinalCMDPluginCommand extends Command implements PluginIdentifiab
             return ImmutableList.of();
         }
 
-        ITabParser.TabContext tabContext = new ITabParser.TabContext(FCBukkitUtil.wrap(sender), alias, args, index);
+        ITabParser.TabContext tabContext = new ITabParser.TabContext(FCBukkitUtil.adapt(sender), alias, args, index);
 
         return tabParser.tabComplete(tabContext);
     }

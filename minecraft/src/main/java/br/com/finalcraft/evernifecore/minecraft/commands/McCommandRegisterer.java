@@ -3,8 +3,8 @@ package br.com.finalcraft.evernifecore.minecraft.commands;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.minecraft.commands.debug.*;
-import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
-import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 
 public class McCommandRegisterer {
 

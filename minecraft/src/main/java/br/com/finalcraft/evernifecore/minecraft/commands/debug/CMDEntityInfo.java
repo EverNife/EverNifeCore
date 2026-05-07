@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.commands.debug;
 
 
 import br.com.finalcraft.evernifecore.PermissionNodes;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
@@ -27,7 +28,7 @@ public class CMDEntityInfo {
             aliases = {"entityinfo"},
             permission = PermissionNodes.EVERNIFECORE_COMMAND_ENTITYINFO
     )
-    public void onCommand(Player player) {
+    public void onCommand(FPlayer player) {
         UUID uuid = player.getUniqueId();
         if (INFO_HASHSET.contains(uuid)){
             INFO_HASHSET.remove(uuid);

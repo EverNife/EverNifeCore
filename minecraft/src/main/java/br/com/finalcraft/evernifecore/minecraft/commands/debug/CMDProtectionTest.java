@@ -11,7 +11,9 @@ import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.protection.ProtectionAll;
 import br.com.finalcraft.evernifecore.protection.integration.ProtectionHandler;
 import br.com.finalcraft.evernifecore.protection.integration.imp.WorldGuardHandler;
@@ -20,8 +22,7 @@ import br.com.finalcraft.evernifecore.protection.worldguard.WGPlatform;
 import br.com.finalcraft.evernifecore.protection.worldguard.adapter.FCRegionResultSet;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import br.com.finalcraft.evernifecore.util.FCTextUtil;
-import br.com.finalcraft.evernifecore.vectors.CuboidSelection;
-import br.com.finalcraft.evernifecore.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import com.sk89q.worldguard.protection.flags.Flag;
 import jakarta.annotation.Nonnull;
 import org.bukkit.Color;
@@ -91,7 +92,7 @@ public class CMDProtectionTest implements ICustomFinalCMD {
                         .map(handler -> handler.getName())
                         .collect(Collectors.joining(", "))
         );
-        BlockPos blockPos = BlockPos.from(player.getLocation());
+        BlockPos blockPos = FCBukkitUtil.adapt(player.getLocation()).getBlockPos();
 
         String result;
 
@@ -118,8 +119,8 @@ public class CMDProtectionTest implements ICustomFinalCMD {
 
         //Regional Checks
         CuboidSelection cuboidSelection = new CuboidSelection(
-                BlockPos.from(player).add(BlockPos.at(10,10,10)),
-                BlockPos.from(player).subtract(BlockPos.at(10,10,10))
+                FCBukkitUtil.adapt(player.getLocation()).getBlockPos().add(BlockPos.of(10,10,10)),
+                FCBukkitUtil.adapt(player.getLocation()).getBlockPos().subtract(BlockPos.of(10,10,10))
         );
         boolean canBreakOnRegion = protectionHandler.canBreakOnRegion(player, player.getLocation().getWorld(), cuboidSelection);
         boolean canBuildOnRegion = protectionHandler.canBuildOnRegion(player, player.getLocation().getWorld(), cuboidSelection);
@@ -212,6 +213,7 @@ public class CMDProtectionTest implements ICustomFinalCMD {
     }
 
     private static class ParticleCompat{
+
         //This is necessary to keep this class compatible with older versions without wasting too much time
         private static void sendParticles(boolean canBreakOnRegion, boolean canBuildOnRegion, Player player, CuboidSelection cuboidSelection) {
             FCScheduler.runAsync(() -> {
@@ -225,7 +227,7 @@ public class CMDProtectionTest implements ICustomFinalCMD {
                 for (int i = 0; i < 4; i++) {
                     FCScheduler.scheduleAsync(() -> {
                         selectionWalls.forEach(pos -> {
-                            player.spawnParticle(Particle.REDSTONE, pos.getLocation(player.getWorld()), 1, SELECTED_COLOR);
+                            player.spawnParticle(Particle.REDSTONE, pos.getMinecraftAdapter().getLocation(player.getWorld()), 1, SELECTED_COLOR);
                         });
                     }, i * 5);
                 }

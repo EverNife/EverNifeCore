@@ -6,7 +6,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserComman
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserContextual;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
-import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import jakarta.annotation.Nonnull;
 import org.bukkit.inventory.ItemStack;
