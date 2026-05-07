@@ -1,12 +1,12 @@
-package br.com.finalcraft.evernifecore.protection.integration.imp;
+package br.com.finalcraft.evernifecore.minecraft.protection.integration.imp;
 
-import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
-import br.com.finalcraft.evernifecore.protection.integration.ProtectionHandler;
+import br.com.finalcraft.evernifecore.math.FCVectors;
+import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
+import br.com.finalcraft.evernifecore.minecraft.protection.integration.ProtectionHandler;
 import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
 import br.com.finalcraft.evernifecore.protection.worldguard.WGFlags;
 import br.com.finalcraft.evernifecore.protection.worldguard.WGPlatform;
 import br.com.finalcraft.evernifecore.protection.worldguard.adapter.FCRegionResultSet;
-import br.com.finalcraft.evernifecore.vectors.CuboidSelection;
 import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.protection.flags.StateFlag;
 import org.bukkit.Location;
@@ -116,7 +116,7 @@ public class WorldGuardHandler implements ProtectionHandler {
             return true;
         }
 
-        CuboidSelection cuboidSelection = CuboidSelection.of(BlockPos.from(location)).expand(range).expandVert();
+        CuboidSelection cuboidSelection = CuboidSelection.of(FCVectors.getConverter().getBlockPos(location)).expand(range).expandVert();
         FCRegionResultSet regions = this.getRegionsAtSelection(location.getWorld(), cuboidSelection);
         LocalPlayer localPlayer = WGPlatform.getInstance().wrapPlayer(player);
 

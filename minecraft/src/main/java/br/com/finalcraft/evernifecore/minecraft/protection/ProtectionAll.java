@@ -1,10 +1,10 @@
-package br.com.finalcraft.evernifecore.protection;
+package br.com.finalcraft.evernifecore.minecraft.protection;
 
-import br.com.finalcraft.evernifecore.protection.integration.ProtectionHandler;
-import br.com.finalcraft.evernifecore.protection.integration.imp.GriefDefenderHandler;
-import br.com.finalcraft.evernifecore.protection.integration.imp.GriefPreventionPlusHandler;
-import br.com.finalcraft.evernifecore.protection.integration.imp.WorldGuardHandler;
-import br.com.finalcraft.evernifecore.vectors.CuboidSelection;
+import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
+import br.com.finalcraft.evernifecore.minecraft.protection.integration.ProtectionHandler;
+import br.com.finalcraft.evernifecore.minecraft.protection.integration.imp.GriefDefenderHandler;
+import br.com.finalcraft.evernifecore.minecraft.protection.integration.imp.GriefPreventionPlusHandler;
+import br.com.finalcraft.evernifecore.minecraft.protection.integration.imp.WorldGuardHandler;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class ProtectionAll implements ProtectionHandler{
+public class ProtectionAll implements ProtectionHandler {
 
     private static final ProtectionAll INSTANCE = new ProtectionAll(
             Arrays.asList(

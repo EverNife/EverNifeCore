@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.protection;
+package br.com.finalcraft.evernifecore.minecraft.protection;
 
 import net.kaikk.mc.gpp.Claim;
 import net.kaikk.mc.gpp.GriefPreventionPlus;

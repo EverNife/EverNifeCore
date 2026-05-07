@@ -1,6 +1,6 @@
-package br.com.finalcraft.evernifecore.protection.integration;
+package br.com.finalcraft.evernifecore.minecraft.protection.integration;
 
-import br.com.finalcraft.evernifecore.vectors.CuboidSelection;
+import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -32,7 +32,7 @@ public interface ProtectionHandler {
 	 * @return				whether the player has permission to break at the location
 	 * */
 	boolean canBreak(Player player, Location location);
-	
+
 	/**
 	 * Returns whether the player has the permission to interact with a block
 	 * at the target location.
@@ -50,7 +50,7 @@ public interface ProtectionHandler {
 	 * @see Entity
 	 * */
 	boolean canAttack(Player player, Entity victim);
-	
+
 	/**
 	 * Returns whether the player has the permission to use an Area of Effect item at
 	 * the specified location. The Area of Effect has the specified range in blocks.

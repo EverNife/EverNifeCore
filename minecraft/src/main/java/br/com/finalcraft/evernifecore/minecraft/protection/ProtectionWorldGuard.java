@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.protection;
+package br.com.finalcraft.evernifecore.minecraft.protection;
 
 import br.com.finalcraft.evernifecore.protection.worldguard.WGFlags;
 import br.com.finalcraft.evernifecore.protection.worldguard.WGPlatform;

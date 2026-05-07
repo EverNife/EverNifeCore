@@ -1,10 +1,10 @@
-package br.com.finalcraft.evernifecore.protection.integration.imp;
+package br.com.finalcraft.evernifecore.minecraft.protection.integration.imp;
 
-import br.com.finalcraft.evernifecore.minecraft.vector.BlockPos;
-import br.com.finalcraft.evernifecore.protection.integration.ProtectionHandler;
+import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
+import br.com.finalcraft.evernifecore.minecraft.protection.integration.ProtectionHandler;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
-import br.com.finalcraft.evernifecore.vectors.CuboidSelection;
 import com.griefdefender.api.GriefDefender;
 import com.griefdefender.api.claim.*;
 import com.griefdefender.lib.flowpowered.math.vector.Vector3i;
@@ -96,8 +96,8 @@ public class GriefDefenderHandler implements ProtectionHandler {
                 player,
                 location.getWorld(),
                 CuboidSelection.of(
-                        BlockPos.from(location).add(-range, 0, -range),
-                        BlockPos.from(location).add(range, 255, range)
+                        FCBukkitUtil.adapt(location).getBlockPos().add(-range, 0, -range),
+                        FCBukkitUtil.adapt(location).getBlockPos().add(range, 255, range)
                 )
         );
 
@@ -106,7 +106,7 @@ public class GriefDefenderHandler implements ProtectionHandler {
     @Override
     public boolean canBuildOnRegion(Player player, World world, CuboidSelection cuboidSelection) {
         cuboidSelection = cuboidSelection.clone().expandVert();
-        Location firstCorner = cuboidSelection.getPos1().getLocation(world);
+        Location firstCorner = cuboidSelection.getPos1().getAdapter().getLocation(world);
         Claim claim = GriefDefender.getCore().getClaimAt(firstCorner);
 
         if (claim != null && !claim.isWilderness()){
