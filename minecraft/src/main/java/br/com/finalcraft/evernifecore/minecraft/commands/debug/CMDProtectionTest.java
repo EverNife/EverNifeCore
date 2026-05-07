@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.commands.debug;
 
 
-import br.com.finalcraft.evernifecore.PermissionNodes;
+import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
@@ -14,9 +14,9 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
-import br.com.finalcraft.evernifecore.protection.ProtectionAll;
-import br.com.finalcraft.evernifecore.protection.integration.ProtectionHandler;
-import br.com.finalcraft.evernifecore.protection.integration.imp.WorldGuardHandler;
+import br.com.finalcraft.evernifecore.minecraft.protection.ProtectionAll;
+import br.com.finalcraft.evernifecore.minecraft.protection.integration.ProtectionHandler;
+import br.com.finalcraft.evernifecore.minecraft.protection.integration.imp.WorldGuardHandler;
 import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
 import br.com.finalcraft.evernifecore.protection.worldguard.WGPlatform;
 import br.com.finalcraft.evernifecore.protection.worldguard.adapter.FCRegionResultSet;
@@ -57,7 +57,7 @@ public class CMDProtectionTest implements ICustomFinalCMD {
 
     @FinalCMD(
             aliases = {"protectiontest"},
-            permission = PermissionNodes.EVERNIFECORE_COMMAND_TESTPROTECTION
+            permission = McPermissionNodes.EVERNIFECORE_COMMAND_TESTPROTECTION
     )
     public void onCommand(Player player, FPlayer fPlayer, @Arg(name = "[%protection_plugins%]") String procteionHandlerName) {
 
@@ -227,7 +227,7 @@ public class CMDProtectionTest implements ICustomFinalCMD {
                 for (int i = 0; i < 4; i++) {
                     FCScheduler.scheduleAsync(() -> {
                         selectionWalls.forEach(pos -> {
-                            player.spawnParticle(Particle.REDSTONE, pos.getMinecraftAdapter().getLocation(player.getWorld()), 1, SELECTED_COLOR);
+                            player.spawnParticle(Particle.REDSTONE, pos.getAdapter().getLocation(player.getWorld()), 1, SELECTED_COLOR);
                         });
                     }, i * 5);
                 }

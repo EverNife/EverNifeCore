@@ -4,7 +4,7 @@ import br.com.finalcraft.evernifecore.minecraft.api.events.ECPlayerCraftItemEven
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCCraftUtil;
-import br.com.finalcraft.evernifecore.util.FCInventoryUtil;
+import br.com.finalcraft.evernifecore.minecraft.util.FCInventoryUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;

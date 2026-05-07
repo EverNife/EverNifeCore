@@ -9,7 +9,7 @@ import br.com.finalcraft.evernifecore.minecraft.commands.debug.CMDBlockInfo;
 import br.com.finalcraft.evernifecore.minecraft.commands.debug.CMDEntityInfo;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
-import br.com.finalcraft.evernifecore.util.FCItemUtils;
+import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
 import br.com.finalcraft.evernifecore.minecraft.util.FCNBTUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import org.bukkit.Location;

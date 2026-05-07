@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.commands.debug;
 
 
-import br.com.finalcraft.evernifecore.PermissionNodes;
+import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
@@ -14,7 +14,7 @@ public class CMDBiomeInfo {
 
     @FinalCMD(
             aliases = {"biomeinfo"},
-            permission = PermissionNodes.EVERNIFECORE_COMMAND_BIOMEINFO
+            permission = McPermissionNodes.EVERNIFECORE_COMMAND_BIOMEINFO
     )
     public void onCommand(FCommandSender sender, MultiArgumentos argumentos, HelpContext helpContext) {
 

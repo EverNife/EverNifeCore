@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.commands.debug;
 
 
-import br.com.finalcraft.evernifecore.PermissionNodes;
+import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
@@ -26,7 +26,7 @@ public class CMDEntityInfo {
 
     @FinalCMD(
             aliases = {"entityinfo"},
-            permission = PermissionNodes.EVERNIFECORE_COMMAND_ENTITYINFO
+            permission = McPermissionNodes.EVERNIFECORE_COMMAND_ENTITYINFO
     )
     public void onCommand(FPlayer player) {
         UUID uuid = player.getUniqueId();

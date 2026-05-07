@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.commands.debug;
 
 
-import br.com.finalcraft.evernifecore.PermissionNodes;
+import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
@@ -17,7 +17,7 @@ import br.com.finalcraft.evernifecore.minecraft.nms.data.oredict.OreDictEntry;
 import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.pageviwer.PageViewer;
 import br.com.finalcraft.evernifecore.pageviwer.PageVizualization;
-import br.com.finalcraft.evernifecore.util.FCItemUtils;
+import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.StringUtil;
 
@@ -25,7 +25,7 @@ import java.util.List;
 
 @FinalCMD(
         aliases = {"fcoredictinfo","oredictinfo", "oreinfo"},
-        permission = PermissionNodes.EVERNIFECORE_COMMAND_OREINFO
+        permission = McPermissionNodes.EVERNIFECORE_COMMAND_OREINFO
 )
 public class CMDOreDictInfo {
 
@@ -49,7 +49,7 @@ public class CMDOreDictInfo {
                     @FCLocale(lang = LocaleType.EN_US, text = "Open a menu showing all items from this OreDict!"),
                     @FCLocale(lang = LocaleType.PT_BR, text = "Abre um menu mostrando todos os itens deste OreDict!")
             },
-            permission = PermissionNodes.EVERNIFECORE_COMMAND_OREINFO
+            permission = McPermissionNodes.EVERNIFECORE_COMMAND_OREINFO
     )
     public void menu(PlayerData playerData, @Arg(name = "<oreDict>") OreDictEntry oreDictEntry) {
 
@@ -63,7 +63,7 @@ public class CMDOreDictInfo {
                     @FCLocale(lang = LocaleType.EN_US, text = "List all itemIdentifiers from this OreDict!"),
                     @FCLocale(lang = LocaleType.PT_BR, text = "Lista todos os itemIdentifiers deste OreDict!")
             },
-            permission = PermissionNodes.EVERNIFECORE_COMMAND_OREINFO
+            permission = McPermissionNodes.EVERNIFECORE_COMMAND_OREINFO
     )
     public void listItemsFrom(FCommandSender sender, @Arg(name = "<oreDict>") OreDictEntry oreDictEntry, @Arg(name = "[page]") PageVizualization pageVizualization) {
 
@@ -84,7 +84,7 @@ public class CMDOreDictInfo {
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "List all oredicts!"),
             },
-            permission = PermissionNodes.EVERNIFECORE_COMMAND_OREINFO
+            permission = McPermissionNodes.EVERNIFECORE_COMMAND_OREINFO
     )
     public void list(FCommandSender sender, String label, @Arg(name = "[startsWith]") String startsWith) {
 
@@ -113,7 +113,7 @@ public class CMDOreDictInfo {
 
     @FinalCMD.SubCMD(
             subcmd = {"hand"},
-            permission = PermissionNodes.EVERNIFECORE_COMMAND_BLOCKINFO
+            permission = McPermissionNodes.EVERNIFECORE_COMMAND_BLOCKINFO
     )
     public void onCommand(String label, FPlayer player, ItemStack heldItem) {
 

@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners.bossshop;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.integration.BossShopIntegration;
-import br.com.finalcraft.evernifecore.integration.bossshop.customizer.ECItemStackTranslator;
-import br.com.finalcraft.evernifecore.integration.bossshop.datapart.BSItemDataPartNBT;
+import br.com.finalcraft.evernifecore.minecraft.integration.BossShopIntegration;
+import br.com.finalcraft.evernifecore.minecraft.integration.bossshop.customizer.ECItemStackTranslator;
+import br.com.finalcraft.evernifecore.minecraft.integration.bossshop.datapart.BSItemDataPartNBT;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.reflection.FieldAccessor;
 import org.black_ixx.bossshop.core.BSBuy;

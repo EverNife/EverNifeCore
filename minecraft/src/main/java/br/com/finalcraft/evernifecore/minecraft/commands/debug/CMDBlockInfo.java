@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.commands.debug;
 
 
-import br.com.finalcraft.evernifecore.PermissionNodes;
+import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
@@ -27,7 +27,7 @@ public class CMDBlockInfo {
 
     @FinalCMD(
             aliases = {"blockinfo"},
-            permission = PermissionNodes.EVERNIFECORE_COMMAND_BLOCKINFO
+            permission = McPermissionNodes.EVERNIFECORE_COMMAND_BLOCKINFO
     )
     public void onCommand(FPlayer player, String label, MultiArgumentos argumentos) {
         UUID uuid = player.getUniqueId();
