@@ -1,6 +1,6 @@
-package br.com.finalcraft.evernifecore.integration;
+package br.com.finalcraft.evernifecore.minecraft.integration;
 
-import br.com.finalcraft.evernifecore.integration.worldedit.CustomMask;
+import br.com.finalcraft.evernifecore.minecraft.integration.worldedit.CustomMask;
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.Vector;

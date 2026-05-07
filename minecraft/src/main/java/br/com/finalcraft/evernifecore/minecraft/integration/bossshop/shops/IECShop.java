@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.integration.bossshop.shops;
+package br.com.finalcraft.evernifecore.minecraft.integration.bossshop.shops;
 
 import org.black_ixx.bossshop.core.BSBuy;
 import org.black_ixx.bossshop.core.BSShop;

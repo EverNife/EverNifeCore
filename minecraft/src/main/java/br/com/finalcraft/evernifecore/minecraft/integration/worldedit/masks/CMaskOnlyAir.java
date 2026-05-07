@@ -1,6 +1,6 @@
-package br.com.finalcraft.evernifecore.integration.worldedit.masks;
+package br.com.finalcraft.evernifecore.minecraft.integration.worldedit.masks;
 
-import br.com.finalcraft.evernifecore.integration.worldedit.CustomMask;
+import br.com.finalcraft.evernifecore.minecraft.integration.worldedit.CustomMask;
 import com.sk89q.worldedit.Vector;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -22,6 +22,5 @@ public class CMaskOnlyAir extends CustomMask {
 
         return block.getType() == Material.AIR;
     }
-
 
 }

@@ -1,10 +1,10 @@
-package br.com.finalcraft.evernifecore.integration.bossshop.customizer;
+package br.com.finalcraft.evernifecore.minecraft.integration.bossshop.customizer;
 
-import br.com.finalcraft.evernifecore.integration.bossshop.datapart.BSItemDataPartNBT;
-import br.com.finalcraft.evernifecore.integration.bossshop.shops.IECShop;
+import br.com.finalcraft.evernifecore.minecraft.integration.bossshop.datapart.BSItemDataPartNBT;
+import br.com.finalcraft.evernifecore.minecraft.integration.bossshop.shops.IECShop;
 import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
-import br.com.finalcraft.evernifecore.util.FCItemUtils;
-import br.com.finalcraft.evernifecore.util.FCNBTUtil;
+import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
+import br.com.finalcraft.evernifecore.minecraft.util.FCNBTUtil;
 import de.tr7zw.changeme.nbtapi.NBTContainer;
 import de.tr7zw.changeme.nbtapi.NBTItem;
 import org.black_ixx.bossshop.core.BSBuy;

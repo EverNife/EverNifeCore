@@ -1,6 +1,7 @@
-package br.com.finalcraft.evernifecore.integration;
+package br.com.finalcraft.evernifecore.minecraft.integration;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
@@ -40,7 +41,7 @@ public class VaultIntegration {
 
         if (FCReflectionUtil.isClassLoaded("net.milkbowl.vault2.economy.Economy")){
             Class economyV2Class = FCReflectionUtil.getClass("net.milkbowl.vault2.economy.Economy");
-            RegisteredServiceProvider<?> registration2 = EverNifeCore.instance.getServer().getServicesManager().getRegistration(economyV2Class);
+            RegisteredServiceProvider<?> registration2 = EverNifeCoreBukkitPlugin.instance.getServer().getServicesManager().getRegistration(economyV2Class);
             if (registration2 != null && registration2.getProvider() != null){
                 vaultEconomy = new VaultEconV2(registration2.getProvider());
                 return;
@@ -49,7 +50,7 @@ public class VaultIntegration {
 
         if (FCReflectionUtil.isClassLoaded("net.milkbowl.vault.economy.Economy")){
             Class economyV1Class = FCReflectionUtil.getClass("net.milkbowl.vault.economy.Economy");
-            RegisteredServiceProvider<?> registration1 = EverNifeCore.instance.getServer().getServicesManager().getRegistration(economyV1Class);
+            RegisteredServiceProvider<?> registration1 = EverNifeCoreBukkitPlugin.instance.getServer().getServicesManager().getRegistration(economyV1Class);
             if (registration1 != null && registration1.getProvider() != null){
                 vaultEconomy = new VaultEconV1(registration1.getProvider());
                 return;
@@ -320,7 +321,7 @@ public class VaultIntegration {
 
         @Override
         public boolean ecoGive(UUID playerUUID, BigDecimal amount) {
-            return economyV2.deposit(EverNifeCore.instance.getName(), playerUUID, amount).transactionSuccess();
+            return economyV2.deposit(EverNifeCoreBukkitPlugin.instance.getName(), playerUUID, amount).transactionSuccess();
         }
 
         @Override
@@ -336,7 +337,7 @@ public class VaultIntegration {
             if (!ecoHasEnough(playerUUID, amount)){
                 return false;
             }
-            return economyV2.withdraw(EverNifeCore.instance.getName(), playerUUID, amount).transactionSuccess();
+            return economyV2.withdraw(EverNifeCoreBukkitPlugin.instance.getName(), playerUUID, amount).transactionSuccess();
         }
 
         @Override
@@ -346,7 +347,7 @@ public class VaultIntegration {
 
         @Override
         public boolean ecoSet(UUID playerUUID, BigDecimal amount) {
-            return economyV2.set(EverNifeCore.instance.getName(), playerUUID, amount).transactionSuccess();
+            return economyV2.set(EverNifeCoreBukkitPlugin.instance.getName(), playerUUID, amount).transactionSuccess();
         }
 
         @Override
@@ -356,12 +357,12 @@ public class VaultIntegration {
 
         @Override
         public double ecoGet(UUID playerUUID) {
-            return economyV2.balance(EverNifeCore.instance.getName(), playerUUID).doubleValue();
+            return economyV2.balance(EverNifeCoreBukkitPlugin.instance.getName(), playerUUID).doubleValue();
         }
 
         @Override
         public BigDecimal ecoGetInBigDecimal(UUID playerUUID) {
-            return economyV2.balance(EverNifeCore.instance.getName(), playerUUID);
+            return economyV2.balance(EverNifeCoreBukkitPlugin.instance.getName(), playerUUID);
         }
 
         @Override
@@ -369,7 +370,7 @@ public class VaultIntegration {
             if (amount.compareTo(BigDecimal.ZERO) <= 0){
                 return true;
             }
-            return economyV2.has(EverNifeCore.instance.getName(), playerUUID, amount);
+            return economyV2.has(EverNifeCoreBukkitPlugin.instance.getName(), playerUUID, amount);
         }
 
         @Override

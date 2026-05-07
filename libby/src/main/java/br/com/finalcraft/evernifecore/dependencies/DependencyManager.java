@@ -16,15 +16,15 @@ import java.util.logging.Logger;
 
 public class DependencyManager extends LibraryManager {
 
-    private final URLClassLoaderHelper classLoader;
+	private final URLClassLoaderHelper classLoader;
 
-    public DependencyManager(String pluginName, File pluginRootFolder, String libsFolderName) {
-        this(pluginName, pluginRootFolder, libsFolderName, DependencyManager.class.getClassLoader());
-    }
+	public DependencyManager(String pluginName, File pluginRootFolder, String libsFolderName) {
+		this(pluginName, pluginRootFolder, libsFolderName, DependencyManager.class.getClassLoader());
+	}
 
-    public DependencyManager(String pluginName, File pluginRootFolder, String libsFolderName, ClassLoader classLoader) {
-        super(
-                new JDKLogAdapter(Logger.getLogger("DependencyManager_" + pluginName)),
+	public DependencyManager(String pluginName, File pluginRootFolder, String libsFolderName, ClassLoader classLoader) {
+		super(
+				new JDKLogAdapter(Logger.getLogger("DependencyManager_" + pluginName)),
                 pluginRootFolder.toPath(),
                 libsFolderName
         );

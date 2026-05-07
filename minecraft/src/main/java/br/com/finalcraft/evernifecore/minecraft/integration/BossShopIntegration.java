@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.integration;
+package br.com.finalcraft.evernifecore.minecraft.integration;
 
 import br.com.finalcraft.evernifecore.reflection.FieldAccessor;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;

@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.integration.worldedit;
+package br.com.finalcraft.evernifecore.minecraft.integration.worldedit;
 
 import com.sk89q.worldedit.Vector;
 import com.sk89q.worldedit.extent.clipboard.Clipboard;

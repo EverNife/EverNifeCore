@@ -1,6 +1,6 @@
-package br.com.finalcraft.evernifecore.integration.bossshop.datapart;
+package br.com.finalcraft.evernifecore.minecraft.integration.bossshop.datapart;
 
-import br.com.finalcraft.evernifecore.util.FCNBTUtil;
+import br.com.finalcraft.evernifecore.minecraft.util.FCNBTUtil;
 import de.tr7zw.changeme.nbtapi.NBTContainer;
 import org.black_ixx.bossshop.core.BSBuy;
 import org.black_ixx.bossshop.managers.item.ItemDataPart;
