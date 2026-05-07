@@ -1,9 +1,9 @@
-package br.com.finalcraft.evernifecore.listeners;
+package br.com.finalcraft.evernifecore.minecraft.listeners;
 
-import br.com.finalcraft.evernifecore.api.events.ECPlayerCraftItemEvent;
+import br.com.finalcraft.evernifecore.minecraft.api.events.ECPlayerCraftItemEvent;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
-import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
-import br.com.finalcraft.evernifecore.util.FCCraftUtil;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.minecraft.util.FCCraftUtil;
 import br.com.finalcraft.evernifecore.util.FCInventoryUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;

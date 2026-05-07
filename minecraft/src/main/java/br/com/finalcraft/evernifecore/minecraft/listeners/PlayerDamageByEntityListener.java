@@ -1,9 +1,9 @@
-package br.com.finalcraft.evernifecore.listeners;
+package br.com.finalcraft.evernifecore.minecraft.listeners;
 
-import br.com.finalcraft.evernifecore.api.events.damage.*;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.minecraft.api.events.damage.*;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -37,10 +37,10 @@ public class PlayerDamageByEntityListener implements ECListener {
         Tameable tamableVictim = null;
 
         PlayerData attackerData = attackerEntity instanceof Player
-                ? PlayerController.getPlayerData((Player) attackerEntity)
+                ? PlayerController.getPlayerData(attackerEntity.getUniqueId())
                 : null;
         PlayerData victimData = victimEntity instanceof Player
-                ? PlayerController.getPlayerData((Player) victimEntity)
+                ? PlayerController.getPlayerData(victimEntity.getUniqueId())
                 : null;
 
         //Maybe the damage cause is an Arrow or another Projectile
@@ -48,7 +48,7 @@ public class PlayerDamageByEntityListener implements ECListener {
             Projectile projectile = (Projectile) attackerEntity;
             if (projectile.getShooter() instanceof Player){
                 attackerEntity = (Player) projectile.getShooter();
-                attackerData = PlayerController.getPlayerData((Player) attackerEntity);
+                attackerData = PlayerController.getPlayerData(attackerEntity.getUniqueId());
             }
 
             //Maybe the projectile shooter is a Pet itself

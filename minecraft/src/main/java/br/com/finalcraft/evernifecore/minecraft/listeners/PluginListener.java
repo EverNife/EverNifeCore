@@ -1,14 +1,16 @@
-package br.com.finalcraft.evernifecore.listeners;
+package br.com.finalcraft.evernifecore.minecraft.listeners;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.autoupdater.SpigotUpdateChecker;
+import br.com.finalcraft.evernifecore.minecraft.autoupdater.SpigotUpdateChecker;
+import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
-import br.com.finalcraft.evernifecore.listeners.bossshop.BossShopListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.bossshop.BossShopListener;
 import br.com.finalcraft.evernifecore.minecraft.metrics.Metrics;
-import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
-import br.com.finalcraft.evernifecore.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
+import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -37,9 +39,9 @@ public class PluginListener implements ECListener {
         if (plugin.getName().equalsIgnoreCase("BossShopPro")){
             if (NMSUtils.get() != null){
                 EverNifeCore.getLog().info("Found BossShopPro, registering 'nbt' tag!");
-                ECListener.register(EverNifeCore.instance, BossShopListener.class);
+                ECListener.register(EverNifeCore.getEcPluginData(), BossShopListener.class);
             }else {
-                EverNifeCore.getLog().info("Found BossShopPro, but NMS not found for this server version [" + MCVersion.getCurrent() +" ] !");
+                EverNifeCore.getLog().warning("Found BossShopPro, but NMS not found for this server version [" + MCVersion.getCurrent() +" ] !");
             }
             return;
         }
@@ -53,7 +55,8 @@ public class PluginListener implements ECListener {
 
             //Enable Automatic Spigot Update for this plugin
             if (!ecPlugin.spigotID().isEmpty()){
-                SpigotUpdateChecker.checkForUpdates((JavaPlugin) plugin, ecPlugin.spigotID(), new Config(plugin, "config.yml"));
+                ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(plugin);
+                SpigotUpdateChecker.checkForUpdates((JavaPlugin) plugin, ecPlugin.spigotID(), new Config(ecPluginData, "config.yml"));
             }
         }
     }

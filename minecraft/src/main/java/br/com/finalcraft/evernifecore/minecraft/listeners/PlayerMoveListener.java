@@ -1,8 +1,9 @@
-package br.com.finalcraft.evernifecore.listeners;
+package br.com.finalcraft.evernifecore.minecraft.listeners;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.api.events.ECPlayerChangeChunkEvent;
+import br.com.finalcraft.evernifecore.minecraft.api.events.ECPlayerChangeChunkEvent;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import org.bukkit.Chunk;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -21,7 +22,7 @@ public class PlayerMoveListener implements ECListener {
         Chunk from = event.getFrom().getChunk();
         Chunk to = event.getTo().getChunk();
         if (from != to){
-            EverNifeCore.instance.getServer().getPluginManager().callEvent(new ECPlayerChangeChunkEvent(event, from, to));
+            EverNifeCoreBukkitPlugin.instance.getServer().getPluginManager().callEvent(new ECPlayerChangeChunkEvent(event, from, to));
         }
     }
 

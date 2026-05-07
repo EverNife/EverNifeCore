@@ -1,16 +1,17 @@
-package br.com.finalcraft.evernifecore.listeners;
+package br.com.finalcraft.evernifecore.minecraft.listeners;
 
-import br.com.finalcraft.evernifecore.commands.debug.CMDBlockInfo;
-import br.com.finalcraft.evernifecore.commands.debug.CMDEntityInfo;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
+import br.com.finalcraft.evernifecore.minecraft.commands.debug.CMDBlockInfo;
+import br.com.finalcraft.evernifecore.minecraft.commands.debug.CMDEntityInfo;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.util.FCItemUtils;
-import br.com.finalcraft.evernifecore.util.FCNBTUtil;
-import br.com.finalcraft.evernifecore.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.util.FCNBTUtil;
+import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -73,7 +74,7 @@ public class PlayerInteractListener implements ECListener {
                 .addPlaceholder("%block_meta%", MCVersion.isHigherEquals(MCVersion.v1_13) ? "" : block.getData() == 0 ? "" : ":" + block.getData())
                 .addPlaceholder("%biome%", block.getBiome().name())
                 .addSuggest(FCItemUtils.getBukkitIdentifier(itemStack))
-                .send(player);
+                .send(FCBukkitUtil.adapt(player));
     }
 
     @FCLocale(lang = LocaleType.EN_US,
@@ -130,7 +131,7 @@ public class PlayerInteractListener implements ECListener {
                 .addPlaceholder("%entity_registry_name%", NMSUtils.get().getEntityRegistryName(rightClicked))
                 .addPlaceholder("%entity_tostring%", NMSUtils.get().asMinecraftEntity(rightClicked).toString())
                 .addPlaceholder("%entity_nbt%", includeNBT ? FCNBTUtil.getFrom(rightClicked).toString() : "(Hold Shift to Scan)")
-                .send(player);
+                .send(FCBukkitUtil.adapt(player));
 
     }
 
