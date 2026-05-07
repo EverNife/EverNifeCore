@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.interpreters;
 
-import br.com.finalcraft.evernifecore.util.FCInputReader;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
+import br.com.finalcraft.evernifecore.util.FCInputReader;
 import com.google.common.collect.Sets;
 import org.bukkit.Material;
 

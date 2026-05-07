@@ -1,15 +1,15 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.layout;
 
 import br.com.finalcraft.evernifecore.config.Config;
-import br.com.finalcraft.evernifecore.minecraft.gui.cfg.SettingsScanner;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytextold.FancyText;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder.FCItemBuilder;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
+import br.com.finalcraft.evernifecore.minecraft.gui.cfg.SettingsScanner;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder.FCItemBuilder;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import jakarta.annotation.Nullable;

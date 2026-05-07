@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.interpreters;
 
-import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
 import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
+import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 

@@ -8,8 +8,8 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.receiver.IMessageReceiver;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
-import net.kyori.adventure.text.Component;
 import jakarta.annotation.Nonnull;
+import net.kyori.adventure.text.Component;
 
 import java.util.UUID;
 

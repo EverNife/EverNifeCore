@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.api.events;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerMoveListener;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerMoveListener;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import org.bukkit.Chunk;
 import org.bukkit.entity.Player;

@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners;
 
-import br.com.finalcraft.evernifecore.minecraft.api.events.ECPlayerCraftItemEvent;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.minecraft.api.events.ECPlayerCraftItemEvent;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCCraftUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCInventoryUtil;

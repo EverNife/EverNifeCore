@@ -2,9 +2,9 @@ package br.com.finalcraft.evernifecore.minecraft.config;
 
 import br.com.finalcraft.evernifecore.chatmenuapi.menu.element.InputElement;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.minecraft.gui.layout.DefaultIcons;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.minecraft.autoupdater.SpigotUpdateChecker;
+import br.com.finalcraft.evernifecore.minecraft.gui.layout.DefaultIcons;
 import br.com.finalcraft.evernifecore.minecraft.guis.LayoutManager;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 

@@ -1,12 +1,12 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.minecraft.autoupdater.SpigotUpdateChecker;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.minecraft.autoupdater.SpigotUpdateChecker;
 import br.com.finalcraft.evernifecore.minecraft.listeners.bossshop.BossShopListener;
 import br.com.finalcraft.evernifecore.minecraft.metrics.Metrics;
 import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;

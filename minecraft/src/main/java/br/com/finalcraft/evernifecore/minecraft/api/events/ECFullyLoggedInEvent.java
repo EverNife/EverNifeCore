@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.api.events;
 
-import br.com.finalcraft.evernifecore.minecraft.api.events.base.ECPlayerDataEvent;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.minecraft.api.events.base.ECPlayerDataEvent;
 
 public class ECFullyLoggedInEvent extends ECPlayerDataEvent {
 

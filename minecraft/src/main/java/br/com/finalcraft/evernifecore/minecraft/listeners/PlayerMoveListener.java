@@ -1,8 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.minecraft.api.events.ECPlayerChangeChunkEvent;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.minecraft.api.events.ECPlayerChangeChunkEvent;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import org.bukkit.Chunk;
 import org.bukkit.event.EventHandler;

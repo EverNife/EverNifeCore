@@ -1,8 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.autoupdater;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
-import br.com.finalcraft.evernifecore.minecraft.api.events.ECFullyLoggedInEvent;
 import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
@@ -10,8 +8,10 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
+import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
+import br.com.finalcraft.evernifecore.minecraft.api.events.ECFullyLoggedInEvent;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.apache.commons.io.FileUtils;

@@ -2,9 +2,9 @@ package br.com.finalcraft.evernifecore.math.game.vector.blockpos;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
-import br.com.finalcraft.evernifecore.math.game.vector.region.RegionPos;
 import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.LocPos;
+import br.com.finalcraft.evernifecore.math.game.vector.region.RegionPos;
 import br.com.finalcraft.evernifecore.math.vecmath.VecMath;
 import br.com.finalcraft.evernifecore.math.vector.Vec3i;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3d;

@@ -1,10 +1,10 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.layout;
 
-import br.com.finalcraft.evernifecore.minecraft.gui.util.EnumWool;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.minecraft.gui.util.EnumWool;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import org.bukkit.Material;
 

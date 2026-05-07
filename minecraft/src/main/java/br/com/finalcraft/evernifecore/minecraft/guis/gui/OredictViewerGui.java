@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.guis.gui;
 
-import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.cooldown.PlayerCooldown;
+import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
 import br.com.finalcraft.evernifecore.minecraft.gui.PlayerGui;
 import br.com.finalcraft.evernifecore.minecraft.gui.custom.PaginatedGuiComplex;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.IHasLayout;
@@ -10,9 +10,9 @@ import br.com.finalcraft.evernifecore.minecraft.guis.LayoutManager;
 import br.com.finalcraft.evernifecore.minecraft.guis.loyalt.OredictViewerLayout;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.minecraft.nms.data.oredict.OreDictEntry;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
-import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import jakarta.annotation.Nonnull;
 import org.bukkit.GameMode;
 import org.bukkit.inventory.ItemStack;

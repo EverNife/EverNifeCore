@@ -2,8 +2,8 @@ package br.com.finalcraft.evernifecore.minecraft.api.events.damage;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
-import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerDamageByEntityListener;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerDamageByEntityListener;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Tameable;

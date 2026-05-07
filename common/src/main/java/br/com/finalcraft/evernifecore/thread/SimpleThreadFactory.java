@@ -2,7 +2,6 @@ package br.com.finalcraft.evernifecore.thread;
 
 import jakarta.annotation.Nonnull;
 import lombok.Data;
-import jakarta.annotation.Nonnull;
 
 import java.util.Locale;
 import java.util.concurrent.Executors;

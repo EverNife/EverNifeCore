@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.minecraft.ontime;
 
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.ontime.IOntimeProvider;
 import br.com.finalcraft.evernifecore.ontime.OntimeManager;
-import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Statistic;
