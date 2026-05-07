@@ -1,6 +1,6 @@
-package br.com.finalcraft.evernifecore.cache;
+package br.com.finalcraft.evernifecore.minecraft.cache;
 
-import br.com.finalcraft.evernifecore.util.FCTickUtil;
+import br.com.finalcraft.evernifecore.minecraft.util.FCTickUtil;
 import lombok.Getter;
 
 import java.util.function.Supplier;
