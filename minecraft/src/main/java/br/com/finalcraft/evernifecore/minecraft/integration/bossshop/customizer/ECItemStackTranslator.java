@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.integration.bossshop.customizer
 
 import br.com.finalcraft.evernifecore.minecraft.integration.bossshop.datapart.BSItemDataPartNBT;
 import br.com.finalcraft.evernifecore.minecraft.integration.bossshop.shops.IECShop;
-import br.com.finalcraft.evernifecore.itemstack.FCItemFactory;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
 import br.com.finalcraft.evernifecore.minecraft.util.FCNBTUtil;
 import de.tr7zw.changeme.nbtapi.NBTContainer;

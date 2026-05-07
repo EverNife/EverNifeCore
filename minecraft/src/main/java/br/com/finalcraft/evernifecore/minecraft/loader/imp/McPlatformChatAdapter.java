@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.loader.imp;
 
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
-import br.com.finalcraft.evernifecore.util.FCTextUtil;
+import br.com.finalcraft.evernifecore.minecraft.util.FCTextUtil;
 
 public class McPlatformChatAdapter implements IPlatformChatAdapter {
 

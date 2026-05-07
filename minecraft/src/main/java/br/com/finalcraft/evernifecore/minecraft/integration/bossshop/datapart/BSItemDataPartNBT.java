@@ -29,27 +29,27 @@ public class BSItemDataPartNBT extends ItemDataPart {
             argument = nbtContainer.toString();
         }
 
-        return br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart.NBT.transform(item, used_name, argument);
+        return br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart.NBT.transform(item, used_name, argument);
     }
 
     @Override
     public int getPriority() {
-        return br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart.NBT.getPriority();
+        return br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart.NBT.getPriority();
     }
 
     @Override
     public boolean removeSpaces() {
-        return br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart.NBT.removeSpaces();
+        return br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart.NBT.removeSpaces();
     }
 
     @Override
     public String[] createNames() {
-        return br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart.NBT.createNames();
+        return br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart.NBT.createNames();
     }
 
     @Override
     public List<String> read(ItemStack i, List<String> output) {
-        return br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart.NBT.read(i, output);
+        return br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart.NBT.read(i, output);
     }
 
     @Override

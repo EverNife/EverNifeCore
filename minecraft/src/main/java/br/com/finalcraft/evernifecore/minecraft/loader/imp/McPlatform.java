@@ -4,8 +4,9 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
-import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.fancytextold.FancyText;
 import br.com.finalcraft.evernifecore.minecraft.integration.placeholders.McPAPIIntegration;
 import br.com.finalcraft.evernifecore.minecraft.actionbar.McActionBarHelper;
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.implementation.FinalCMDPluginCommandOld;
@@ -16,8 +17,8 @@ import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.implementation.McFinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
-import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
-import br.com.finalcraft.evernifecore.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import net.md_5.bungee.api.ChatMessageType;
@@ -36,6 +37,8 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 public class McPlatform implements IPlatform {
+
+    private final McPlatformChatAdapter CHAT_ADAPTER = new McPlatformChatAdapter();
 
     @Override
     public List<FPlayer> getOnlinePlayers() {
@@ -244,5 +247,10 @@ public class McPlatform implements IPlatform {
         } catch(Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public IPlatformChatAdapter getChatAdapter() {
+        return CHAT_ADAPTER;
     }
 }

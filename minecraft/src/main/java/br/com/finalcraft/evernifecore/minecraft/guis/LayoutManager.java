@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.guis;
 
-import br.com.finalcraft.evernifecore.gui.layout.FCLayoutScanner;
+import br.com.finalcraft.evernifecore.minecraft.gui.layout.FCLayoutScanner;
 import br.com.finalcraft.evernifecore.minecraft.guis.loyalt.OredictViewerLayout;
 import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;

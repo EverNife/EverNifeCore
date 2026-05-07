@@ -1,11 +1,12 @@
 package br.com.finalcraft.evernifecore.minecraft.commands.debug;
 
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
-import br.com.finalcraft.evernifecore.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
@@ -69,7 +70,7 @@ public class CMDItemInfo {
             return;
         }
 
-        player.sendMessage("§7§m" + FCColorUtil.stripColor(FCTextUtil.straightLineOf("-")));
+        player.sendMessage("§7§m" + FCColorUtil.stripColor(EverNifeCore.getPlatform().getChatAdapter().straightLineOf("-")));
         if (NMSUtils.get() != null){
             String localizedName = FCItemUtils.getLocalizedName(heldItem);
             String uncolorfiedLocalizedName = FCColorUtil.decolorfy(localizedName);

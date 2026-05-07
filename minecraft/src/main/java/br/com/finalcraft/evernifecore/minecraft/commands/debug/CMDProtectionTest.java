@@ -1,13 +1,14 @@
 package br.com.finalcraft.evernifecore.minecraft.commands.debug;
 
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.custom.ICustomFinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.custom.contexts.CustomizeContext;
-import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
+import br.com.finalcraft.evernifecore.fancytextold.FancyFormatter;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
@@ -21,7 +22,6 @@ import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
 import br.com.finalcraft.evernifecore.protection.worldguard.WGPlatform;
 import br.com.finalcraft.evernifecore.protection.worldguard.adapter.FCRegionResultSet;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
-import br.com.finalcraft.evernifecore.util.FCTextUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import com.sk89q.worldguard.protection.flags.Flag;
 import jakarta.annotation.Nonnull;
@@ -83,7 +83,7 @@ public class CMDProtectionTest implements ICustomFinalCMD {
             }
         }
 
-        FancyFormatter formatter = FancyFormatter.of("§7§m" + FCTextUtil.straightLineOf(" ") + "§r");
+        FancyFormatter formatter = FancyFormatter.of("§7§m" + EverNifeCore.getPlatform().getChatAdapter().straightLineOf(" ") + "§r");
         formatter.append("\n§2§l ▶ §bProtection Plugin(s): §6").append(
                 protectionHandler != ProtectionAll.getInstance()
                         ? protectionHandler.getName()

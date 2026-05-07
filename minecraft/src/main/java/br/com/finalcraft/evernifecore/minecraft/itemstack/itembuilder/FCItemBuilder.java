@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder;
 
-import br.com.finalcraft.evernifecore.gui.item.GuiItemComplex;
-import br.com.finalcraft.evernifecore.gui.layout.LayoutIcon;
-import br.com.finalcraft.evernifecore.gui.layout.LayoutIconBuilder;
+import br.com.finalcraft.evernifecore.minecraft.gui.item.GuiItemComplex;
+import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutIcon;
+import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutIconBuilder;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.util.FCReflectionUtil;

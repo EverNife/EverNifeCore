@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.util;
 
-import br.com.finalcraft.evernifecore.itemstack.nbtutil.TrackedNBTContainer;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.nbtutil.TrackedNBTContainer;
 import br.com.finalcraft.evernifecore.minecraft.nbt.NBTPlayer;
 import de.tr7zw.changeme.nbtapi.*;
 import jakarta.annotation.Nonnull;

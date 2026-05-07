@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.guis.loyalt;
 
-import br.com.finalcraft.evernifecore.gui.builders.PaginatedComplexGuiBuilder;
-import br.com.finalcraft.evernifecore.gui.layout.*;
-import br.com.finalcraft.evernifecore.gui.util.EnumStainedGlassPane;
+import br.com.finalcraft.evernifecore.minecraft.gui.builders.PaginatedComplexGuiBuilder;
+import br.com.finalcraft.evernifecore.minecraft.gui.layout.*;
+import br.com.finalcraft.evernifecore.minecraft.gui.util.EnumStainedGlassPane;
 
 @LayoutBaseData(
         title = "➲  §0%oredict_name%",
