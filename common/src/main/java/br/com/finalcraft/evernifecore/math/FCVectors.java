@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.math;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.MutableBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
@@ -12,8 +13,13 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.math.game.vector.region.MutableRegionPos;
 import br.com.finalcraft.evernifecore.math.game.vector.region.RegionPos;
 import br.com.finalcraft.evernifecore.math.game.vector.region.WorldRegionPos;
+import br.com.finalcraft.evernifecore.minecraft.math.game.adapter.GameVecPlatformAdapterConverter;
 
 public final class FCVectors {
+
+    public static GameVecPlatformAdapterConverter getConverter() {
+        return EverNifeCore.getPlatform().getVecAdapter().getPosConverter();
+    }
 
     // -- BlockPos -------------------------------------------------------------
 

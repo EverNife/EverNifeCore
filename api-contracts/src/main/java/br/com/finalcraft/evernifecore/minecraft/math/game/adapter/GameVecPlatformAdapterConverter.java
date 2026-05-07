@@ -1,8 +1,12 @@
 package br.com.finalcraft.evernifecore.minecraft.math.game.adapter;
 
-public class MCGameVecAdapter {
+public interface GameVecPlatformAdapterConverter {
 
-    public static class AdaptBlockPos extends MCGameVecAdapter {
+    public static class BasePosAdapter {
+
+    }
+
+    public static class AdaptBlockPos extends BasePosAdapter {
 
     }
 
@@ -10,7 +14,7 @@ public class MCGameVecAdapter {
 
     }
 
-    public static class AdaptLocPos extends MCGameVecAdapter {
+    public static class AdaptLocPos extends BasePosAdapter {
 
     }
 
@@ -18,7 +22,7 @@ public class MCGameVecAdapter {
 
     }
 
-    public static class AdaptChunkPos extends MCGameVecAdapter {
+    public static class AdaptChunkPos extends BasePosAdapter {
 
 
     }

@@ -9,7 +9,7 @@ import br.com.finalcraft.evernifecore.math.vecmath.VecMath;
 import br.com.finalcraft.evernifecore.math.vector.Vec3i;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3d;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3i;
-import br.com.finalcraft.evernifecore.minecraft.math.game.adapter.MCGameVecAdapter;
+import br.com.finalcraft.evernifecore.minecraft.math.game.adapter.GameVecPlatformAdapterConverter;
 import br.com.finalcraft.evernifecore.util.FCHashUtil;
 import lombok.Getter;
 
@@ -61,7 +61,7 @@ public class WorldBlockPos extends Vec3i<WorldBlockPos> {
     //  Adapters
     // =========================================================================
 
-    public MCGameVecAdapter.AdaptBlockPos getMinecraftAdapter(){
+    public GameVecPlatformAdapterConverter.AdaptBlockPos getAdapter(){
         return EverNifeCore.getPlatform().getVecAdapter().adaptBlockPosWorld(this);
     }
 

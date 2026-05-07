@@ -9,7 +9,7 @@ import br.com.finalcraft.evernifecore.math.vector.MutableVec2i;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec2i;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3d;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3i;
-import br.com.finalcraft.evernifecore.minecraft.math.game.adapter.MCGameVecAdapter;
+import br.com.finalcraft.evernifecore.minecraft.math.game.adapter.GameVecPlatformAdapterConverter;
 
 public class MutableChunkPos extends MutableVec2i<MutableChunkPos> {
 
@@ -81,7 +81,7 @@ public class MutableChunkPos extends MutableVec2i<MutableChunkPos> {
     //  Adapters
     // =========================================================================
 
-    public MCGameVecAdapter.AdaptChunkPos getMCAdapter(){
+    public GameVecPlatformAdapterConverter.AdaptChunkPos getAdapter(){
         return EverNifeCore.getPlatform().getVecAdapter().adaptChunkPos(this);
     }
 

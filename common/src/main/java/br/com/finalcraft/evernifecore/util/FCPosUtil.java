@@ -4,10 +4,13 @@ import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
 import br.com.finalcraft.evernifecore.util.commons.MinMax;
+import br.com.finalcraft.evernifecore.util.commons.SimpleEntry;
 import org.apache.commons.lang3.Validate;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class FCPosUtil {
 
@@ -46,5 +49,25 @@ public class FCPosUtil {
 
     public static List<ChunkPos> getAllChunksBetween(BlockPos loc1, BlockPos loc2){
         return CuboidSelection.of(loc1, loc2).getChunks();
+    }
+
+    public static BlockPos getNearestLocation(BlockPos reference, List<BlockPos> locationList){
+        return getNearestLocation(reference, locationList, Integer.MAX_VALUE);
+    }
+
+    public static BlockPos getNearestLocation(BlockPos reference, List<BlockPos> locationList, int maxDistance){
+        List<BlockPos> nearestLocationList = getNearestLocationList(reference,locationList,maxDistance);
+        return nearestLocationList.size() > 0 ? nearestLocationList.get(0) : null;
+    }
+
+    public static List<BlockPos> getNearestLocationList(BlockPos reference, List<BlockPos> locationList, int maxDistance){
+        if (locationList.size() == 0) return null;
+
+        return locationList.stream()
+                .map(location -> SimpleEntry.of(location, location.distance(reference)))
+                .filter(entry -> entry.getValue() <= maxDistance)
+                .sorted(Comparator.comparing(SimpleEntry::getValue))
+                .map(SimpleEntry::getKey)
+                .collect(Collectors.toList());
     }
 }
