@@ -1,7 +1,7 @@
-package br.com.finalcraft.evernifecore.util;
+package br.com.finalcraft.evernifecore.minecraft.util;
 
 import br.com.finalcraft.evernifecore.itemstack.ComparableItem;
-import br.com.finalcraft.evernifecore.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;

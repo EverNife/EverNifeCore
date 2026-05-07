@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.util;
+package br.com.finalcraft.evernifecore.minecraft.util;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.CraftingInventory;

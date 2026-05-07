@@ -1,8 +1,7 @@
-package br.com.finalcraft.evernifecore.version;
+package br.com.finalcraft.evernifecore.minecraft.version;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.util.FCBukkitUtil;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import org.bukkit.Bukkit;
 
 //This is a personal class for my OWN PERSONAL PRIVATE servers... don't use it, this class might change a lot over the time
@@ -120,7 +119,7 @@ public enum ServerType {
             }
         }
 
-        if (EverNifeCore.instance.getServer().getPluginManager().isPluginEnabled("Factions")){
+        if (EverNifeCoreBukkitPlugin.instance.getServer().getPluginManager().isPluginEnabled("Factions")){
             return ServerType.VANILLA_FACTIONS;
         }
 

@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.util;
+package br.com.finalcraft.evernifecore.minecraft.util;
 
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;

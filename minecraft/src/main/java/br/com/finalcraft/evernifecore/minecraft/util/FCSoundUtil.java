@@ -1,6 +1,6 @@
-package br.com.finalcraft.evernifecore.util;
+package br.com.finalcraft.evernifecore.minecraft.util;
 
-import br.com.finalcraft.evernifecore.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import jakarta.annotation.Nonnull;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;

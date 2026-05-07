@@ -1,7 +1,8 @@
-package br.com.finalcraft.evernifecore.util;
+package br.com.finalcraft.evernifecore.minecraft.util;
 
-import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
-import br.com.finalcraft.evernifecore.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
+import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
+import br.com.finalcraft.evernifecore.util.FCInputReader;
 import de.tr7zw.changeme.nbtapi.NBTContainer;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -75,7 +76,7 @@ public class FCItemUtils {
                 meta = 0;
             }
         }
-        Material material = FCInputReader.parseMaterial(bukkitIdentifier);
+        Material material = FCMaterialUtil.parseMaterial(bukkitIdentifier);
         if (material == null){
             throw new IllegalArgumentException("The identifier '" + bukkitIdentifier + "' is not a valid Bukkit Material!");
         }

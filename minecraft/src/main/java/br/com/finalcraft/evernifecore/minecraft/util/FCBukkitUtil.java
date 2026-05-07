@@ -1,17 +1,27 @@
-package br.com.finalcraft.evernifecore.util;
+package br.com.finalcraft.evernifecore.minecraft.util;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
+import br.com.finalcraft.evernifecore.api.common.game.FLocation;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
-import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.LocPos;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.minecraft.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.nms.util.NMSUtils;
+import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFCommandSender;
+import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
+import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
+import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.ontime.OntimeManager;
 import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
-import br.com.finalcraft.evernifecore.version.MCVersion;
-import br.com.finalcraft.evernifecore.version.ServerType;
+import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.version.ServerType;
+import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import jakarta.annotation.Nullable;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -154,12 +164,7 @@ public class FCBukkitUtil {
      * @return A boolean value.
      */
     public static boolean hasThePermission(CommandSender player, String permission) {
-
-        if (!player.hasPermission(permission)) {
-            FCMessageUtil.needsThePermission(player, permission);
-            return false;
-        }
-        return true;
+        return FCMessageUtil.hasThePermission(adapt(player), permission);
     }
 
     /**
@@ -227,7 +232,7 @@ public class FCBukkitUtil {
             public void run() {
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), theCommand);
             }
-        }.runTask(EverNifeCore.instance);
+        }.runTask(EverNifeCoreBukkitPlugin.instance);
     }
 
     /**
@@ -241,7 +246,7 @@ public class FCBukkitUtil {
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), theCommand);
                 }
             }
-        }.runTask(EverNifeCore.instance);
+        }.runTask(EverNifeCoreBukkitPlugin.instance);
     }
 
     /**
@@ -370,6 +375,45 @@ public class FCBukkitUtil {
 
     public static boolean isMainThread() {
         return Bukkit.getServer().isPrimaryThread();
+    }
+
+    public static FPlayer adapt(Player player){
+        return MinecraftFPlayer.of(player);
+    }
+
+    public static FPlayer adapt(OfflinePlayer player){
+        return MinecraftFPlayer.of(player);
+    }
+
+    public static FCommandSender adapt(CommandSender commandSender){
+        return MinecraftFCommandSender.of(commandSender);
+    }
+
+    public static FLocation adapt(Location location){
+        WorldLocPos worldLocPos = WorldLocPos.of(
+                location.getX(),
+                location.getY(),
+                location.getZ(),
+                location.getWorld().getName()
+        );
+
+        return new FLocation(worldLocPos, location);
+    }
+
+    public static BlockPos adaptBlockPos(Location location){
+        return BlockPos.of(
+                location.getX(),
+                location.getY(),
+                location.getZ()
+        );
+    }
+
+    public static LocPos adaptLocPos(Location location){
+        return LocPos.of(
+                location.getX(),
+                location.getY(),
+                location.getZ()
+        );
     }
 
 }

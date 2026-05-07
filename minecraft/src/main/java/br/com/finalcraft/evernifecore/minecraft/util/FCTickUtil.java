@@ -1,6 +1,6 @@
-package br.com.finalcraft.evernifecore.util;
+package br.com.finalcraft.evernifecore.minecraft.util;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.concurrent.atomic.AtomicLong;
@@ -15,7 +15,7 @@ public class FCTickUtil {
             public void run() {
                 tickCount.incrementAndGet();
             }
-        }.runTaskTimerAsynchronously(EverNifeCore.instance, 1, 1);
+        }.runTaskTimerAsynchronously(EverNifeCoreBukkitPlugin.instance, 1, 1);
     }
 
     public static long getTickCount(){

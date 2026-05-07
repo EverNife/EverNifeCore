@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.version;
+package br.com.finalcraft.evernifecore.minecraft.version;
 
 public enum MCVersion {
     v1_7_10(MCDetailedVersion.v1_7_R4),

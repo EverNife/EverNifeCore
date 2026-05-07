@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.version;
+package br.com.finalcraft.evernifecore.minecraft.version;
 
 import org.bukkit.Bukkit;
 
