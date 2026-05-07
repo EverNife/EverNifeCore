@@ -1,8 +1,9 @@
-package br.com.finalcraft.evernifecore.api.events;
+package br.com.finalcraft.evernifecore.minecraft.api.events;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.listeners.PlayerCraftListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerCraftListener;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -37,9 +38,9 @@ public class ECPlayerCraftItemEvent extends Event implements Cancellable {
                 new BukkitRunnable(){
                     @Override
                     public void run() {
-                        ECListener.register(EverNifeCore.instance, PlayerCraftListener.class);
+                        ECListener.register(EverNifeCore.getEcPluginData(), PlayerCraftListener.class);
                     }
-                }.runTaskLater(EverNifeCore.instance, 1);
+                }.runTaskLater(EverNifeCoreBukkitPlugin.instance, 1);
             }
         }
     };

@@ -1,9 +1,10 @@
-package br.com.finalcraft.evernifecore.api.events.damage;
+package br.com.finalcraft.evernifecore.minecraft.api.events.damage;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
-import br.com.finalcraft.evernifecore.listeners.PlayerDamageByEntityListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerDamageByEntityListener;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Tameable;
 import org.bukkit.event.Cancellable;
@@ -36,9 +37,9 @@ public class ECPlayerdataDamagePlayerdata extends Event implements Cancellable {
                 new BukkitRunnable(){
                     @Override
                     public void run() {
-                        ECListener.register(EverNifeCore.instance, PlayerDamageByEntityListener.class);
+                        ECListener.register(EverNifeCore.getEcPluginData(), PlayerDamageByEntityListener.class);
                     }
-                }.runTaskLater(EverNifeCore.instance, 1);
+                }.runTaskLater(EverNifeCoreBukkitPlugin.instance, 1);
             }
         }
     };

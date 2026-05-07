@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.api.events.base;
+package br.com.finalcraft.evernifecore.minecraft.api.events.base;
 
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;

@@ -1,8 +1,9 @@
-package br.com.finalcraft.evernifecore.api.events;
+package br.com.finalcraft.evernifecore.minecraft.api.events;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.listeners.PlayerMoveListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerMoveListener;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import org.bukkit.Chunk;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
@@ -29,9 +30,9 @@ public class ECPlayerChangeChunkEvent extends Event implements Cancellable {
                 new BukkitRunnable(){
                     @Override
                     public void run() {
-                        ECListener.register(EverNifeCore.instance, PlayerMoveListener.class);
+                        ECListener.register(EverNifeCore.getEcPluginData(), PlayerMoveListener.class);
                     }
-                }.runTaskLater(EverNifeCore.instance, 1);
+                }.runTaskLater(EverNifeCoreBukkitPlugin.instance, 1);
             }
         }
     };

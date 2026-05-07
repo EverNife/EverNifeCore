@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.api.events.base;
+package br.com.finalcraft.evernifecore.minecraft.api.events.base;
 
 import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
@@ -21,7 +21,7 @@ public class ECPlayerDataEvent extends ECBaseEvent {
     }
 
     public Player getPlayer(){
-        return playerData.getPlayer();
+        return playerData.getPlayer().getDelegate(Player.class);
     }
 
 }

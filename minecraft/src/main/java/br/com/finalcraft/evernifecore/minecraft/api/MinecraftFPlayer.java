@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.api;
 
+import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.BaseFPlayer;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
@@ -60,14 +62,14 @@ public abstract class MinecraftFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         return player.getWorld();
     }
 
-    public @Nullable Location getLocation() {
+    public @Nullable FLocation getLocation() {
         Player player = getOfflinePlayer().getPlayer();
 
         if (player == null || !player.isOnline()) {
             return null;
         }
 
-        return player.getLocation();
+        return FCBukkitUtil.adapt(player.getLocation());
     }
 
     public boolean teleportTo(Location targetLocation){
