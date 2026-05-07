@@ -11,8 +11,8 @@ import br.com.finalcraft.evernifecore.config.Config;
 import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import org.bukkit.Bukkit;
-import org.bukkit.plugin.Plugin;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
@@ -25,9 +25,7 @@ import java.util.stream.Collectors;
 
 public class SettingsScanner {
 
-    public static void loadSettings(Plugin plugin, Config config, Object instance){
-
-        ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(plugin);
+    public static void loadSettings(ECPluginData ecPluginData, Config config, Object instance){
 
         for (Field declaredField : instance.getClass().getDeclaredFields()) {
 
@@ -44,7 +42,7 @@ public class SettingsScanner {
                 }
 
                 if (defValue == null){
-                    plugin.getLogger().warning("Failed to load ConfigSetting for [" + instance.getClass().getSimpleName() + " - " + declaredField.toString() + "] As there are no DEFAULT_VALUE set");
+                    ecPluginData.getLog().warning("Failed to load ConfigSetting for [" + instance.getClass().getSimpleName() + " - " + declaredField.toString() + "] As there are no DEFAULT_VALUE set");
                     continue;
                 }
 
@@ -100,7 +98,7 @@ public class SettingsScanner {
 
                 if (ArgParser.class == settings.parser()){
                     //This means the DEFAULT parser, so, we look over the ArgParserManager
-                    parserClass = ArgParserManager.getParser(plugin, defValue.getClass());
+                    parserClass = ArgParserManager.getParser(ECPluginManager.getOrCreateECorePluginData(ecPluginData), defValue.getClass());
                 }else {
                     parserClass = settings.parser();
                 }
@@ -110,12 +108,13 @@ public class SettingsScanner {
 
                     try {
                         ArgParser argParser = parserClass.getConstructor(ArgInfo.class).newInstance(argInfo);
-                        newValue = argParser.parserArgument(Bukkit.getConsoleSender(), new Argumento(String.valueOf(newValue)));
+                        //TODO Check this logic bellow!
+                        newValue = argParser.parserArgument(null, FCBukkitUtil.adapt(Bukkit.getConsoleSender()), new Argumento(String.valueOf(newValue)));
                     } catch (ArgParseException ignored) {
-                        plugin.getLogger().warning("Using default value for " + new ConfigSection(config, settings.key()).toString() + " Fix your Config!");
+                        ecPluginData.getLog().warning("Using default value for " + new ConfigSection(config, settings.key()).toString() + " Fix your Config!");
                         newValue = defValue;
                     } catch (Exception e) {
-                        plugin.getLogger().warning("Failed to load ConfigSetting for [" + instance.getClass().getSimpleName() + " - " + declaredField.toString() + "] As the parser failed to be created!");
+                        ecPluginData.getLog().warning("Failed to load ConfigSetting for [" + instance.getClass().getSimpleName() + " - " + declaredField.toString() + "] As the parser failed to be created!");
                         e.printStackTrace();
                         continue;
                     }
