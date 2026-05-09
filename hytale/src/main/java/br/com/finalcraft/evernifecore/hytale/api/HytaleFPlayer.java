@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.api;
 
 import br.com.finalcraft.evernifecore.api.common.player.BaseFPlayer;
-import br.com.finalcraft.evernifecore.hytale.util.FCAdventureUtil;
+import br.com.finalcraft.evernifecore.hytale.util.FCHytaleAdventureUtil;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleVectorUtil;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
@@ -57,7 +57,7 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
 
     @Override
     public void sendMessage(@Nonnull Component component) {
-        Message message = FCAdventureUtil.toHytaleMessage(component);
+        Message message = FCHytaleAdventureUtil.toHytaleMessage(component);
         getPlayerRef().sendMessage(message);
     }
 

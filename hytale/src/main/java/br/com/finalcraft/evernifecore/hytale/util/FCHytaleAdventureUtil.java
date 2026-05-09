@@ -7,7 +7,7 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
-public class FCAdventureUtil {
+public class FCHytaleAdventureUtil {
 
     public static Message toHytaleMessage(Component component) {
         if (component instanceof TextComponent text) {
@@ -53,7 +53,7 @@ public class FCAdventureUtil {
 //                }
 //            }
 
-            message.insertAll(text.children().stream().map(FCAdventureUtil::toHytaleMessage).toList());
+            message.insertAll(text.children().stream().map(FCHytaleAdventureUtil::toHytaleMessage).toList());
             return message;
         } else {
             throw new UnsupportedOperationException("Unsupported component type: " + component.getClass());

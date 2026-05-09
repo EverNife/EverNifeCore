@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.api;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.BaseFCommandSender;
-import br.com.finalcraft.evernifecore.hytale.util.FCAdventureUtil;
+import br.com.finalcraft.evernifecore.hytale.util.FCHytaleAdventureUtil;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandSender;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -29,7 +29,7 @@ public abstract class HytaleFCommandSender<DELEGATE extends IMessageReceiver> ex
 
     @Override
     public void sendMessage(@Nonnull Component component) {
-        Message message = FCAdventureUtil.toHytaleMessage(component);
+        Message message = FCHytaleAdventureUtil.toHytaleMessage(component);
         getDelegate().sendMessage(message);
     }
 
