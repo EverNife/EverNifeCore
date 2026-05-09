@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.scheduler;
 
 import br.com.finalcraft.evernifecore.thread.SimpleThreadFactory;
 import br.com.finalcraft.evernifecore.util.FCExecutorsUtil;
+import lombok.Data;
 import lombok.extern.java.Log;
 
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ import java.util.concurrent.TimeUnit;
  * On lower Java versions, it falls back to a fixed thread pool of System core count.
  */
 @Log
+@Data
 public class VirtualThreadedScheduledExecutor implements AutoCloseable {
 
     private final String identifier;
