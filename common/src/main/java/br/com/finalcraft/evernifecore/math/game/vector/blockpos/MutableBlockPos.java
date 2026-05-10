@@ -9,7 +9,7 @@ import br.com.finalcraft.evernifecore.math.vecmath.VecMath;
 import br.com.finalcraft.evernifecore.math.vector.MutableVec3i;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3d;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3i;
-import br.com.finalcraft.evernifecore.minecraft.math.game.adapter.GameVecPlatformAdapterConverter;
+import br.com.finalcraft.evernifecore.api.common.math.game.adapter.GameVecPlatformAdapterConverter;
 
 public class MutableBlockPos extends MutableVec3i<MutableBlockPos> {
 

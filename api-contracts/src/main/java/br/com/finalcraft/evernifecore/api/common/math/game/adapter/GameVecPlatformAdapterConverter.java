@@ -1,6 +1,6 @@
-package br.com.finalcraft.evernifecore.minecraft.math.game.adapter;
+package br.com.finalcraft.evernifecore.api.common.math.game.adapter;
 
-public interface GameVecPlatformAdapterConverter {
+public class GameVecPlatformAdapterConverter {
 
     public static class BasePosAdapter {
 

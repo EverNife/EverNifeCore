@@ -1,17 +1,19 @@
-package br.com.finalcraft.evernifecore.minecraft.math.game.adapter;
+package br.com.finalcraft.evernifecore.api.common.math.game.adapter;
 
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.LocPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.math.vector.Vec2i;
-import br.com.finalcraft.evernifecore.math.vector.Vec3d;
-import br.com.finalcraft.evernifecore.math.vector.Vec3i;
+import br.com.finalcraft.evernifecore.math.vector.base.IVec2i;
+import br.com.finalcraft.evernifecore.math.vector.base.IVec3d;
+import br.com.finalcraft.evernifecore.math.vector.base.IVec3i;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 
 public class GameVecPlatformAdapterConverter {
+
+    public static GameVecPlatformAdapterConverter INSTANCE = new GameVecPlatformAdapterConverter();
 
     public BlockPos getBlockPos(Location location){
         return BlockPos.of(location.getBlockX(), location.getBlockY(), location.getBlockZ());
@@ -38,10 +40,10 @@ public class GameVecPlatformAdapterConverter {
     }
 
 
-    public static class AdaptBlockPos extends BasePosAdapter<Vec3i> {
+    public static class AdaptBlockPos extends BasePosAdapter<IVec3i> {
 
-        public AdaptBlockPos(Vec3i vec3i) {
-            super(vec3i);
+        public AdaptBlockPos(IVec3i iVec3i) {
+            super(iVec3i);
         }
 
         public Location getLocation(World world) {
@@ -53,8 +55,8 @@ public class GameVecPlatformAdapterConverter {
 
         private final String worldName;
 
-        public AdaptBlockPosWorld(Vec3i vec3i, String worldName) {
-            super(vec3i);
+        public AdaptBlockPosWorld(IVec3i iVec3i, String worldName) {
+            super(iVec3i);
             this.worldName = worldName;
         }
 
@@ -67,10 +69,10 @@ public class GameVecPlatformAdapterConverter {
         }
     }
 
-    public static class AdaptLocPos extends BasePosAdapter<Vec3d> {
+    public static class AdaptLocPos extends BasePosAdapter<IVec3d> {
 
-        public AdaptLocPos(Vec3d vec3d) {
-            super(vec3d);
+        public AdaptLocPos(IVec3d iVec3d) {
+            super(iVec3d);
         }
 
         public Location getLocation(World world) {
@@ -82,8 +84,8 @@ public class GameVecPlatformAdapterConverter {
 
         private final String worldName;
 
-        public AdaptLocPosWorld(Vec3d vec3i, String worldName) {
-            super(vec3i);
+        public AdaptLocPosWorld(IVec3d iVec3d, String worldName) {
+            super(iVec3d);
             this.worldName = worldName;
         }
 
@@ -96,10 +98,10 @@ public class GameVecPlatformAdapterConverter {
         }
     }
 
-    public static class AdaptChunkPos extends BasePosAdapter<Vec2i> {
+    public static class AdaptChunkPos extends BasePosAdapter<IVec2i> {
 
-        public AdaptChunkPos(Vec2i vec2i) {
-            super(vec2i);
+        public AdaptChunkPos(IVec2i iVec2i) {
+            super(iVec2i);
         }
 
         public Chunk getChunk(World world) {
@@ -112,8 +114,8 @@ public class GameVecPlatformAdapterConverter {
 
         private final String worldName;
 
-        public AdaptChunkPosWorld(Vec2i vec2i, String worldName) {
-            super(vec2i);
+        public AdaptChunkPosWorld(IVec2i iVec2i, String worldName) {
+            super(iVec2i);
             this.worldName = worldName;
         }
 
@@ -121,7 +123,7 @@ public class GameVecPlatformAdapterConverter {
             return Bukkit.getWorld(worldName);
         }
 
-        public Chunk getChunk(World world) {
+        public Chunk getChunk() {
             return getChunk(getWorld());
         }
     }

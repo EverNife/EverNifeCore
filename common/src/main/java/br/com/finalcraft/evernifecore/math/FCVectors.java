@@ -13,7 +13,7 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.math.game.vector.region.MutableRegionPos;
 import br.com.finalcraft.evernifecore.math.game.vector.region.RegionPos;
 import br.com.finalcraft.evernifecore.math.game.vector.region.WorldRegionPos;
-import br.com.finalcraft.evernifecore.minecraft.math.game.adapter.GameVecPlatformAdapterConverter;
+import br.com.finalcraft.evernifecore.api.common.math.game.adapter.GameVecPlatformAdapterConverter;
 
 public final class FCVectors {
 

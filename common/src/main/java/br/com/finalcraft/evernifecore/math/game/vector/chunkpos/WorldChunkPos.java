@@ -9,7 +9,7 @@ import br.com.finalcraft.evernifecore.math.vector.Vec2i;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec2i;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3d;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3i;
-import br.com.finalcraft.evernifecore.minecraft.math.game.adapter.GameVecPlatformAdapterConverter;
+import br.com.finalcraft.evernifecore.api.common.math.game.adapter.GameVecPlatformAdapterConverter;
 import br.com.finalcraft.evernifecore.util.FCHashUtil;
 import lombok.Getter;
 
