@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.listeners.base;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.api.common.eclistener.IECBaseListener;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.util.FCArrayUtil;
@@ -8,7 +9,7 @@ import jakarta.annotation.Nonnull;
 
 import java.util.Objects;
 
-public interface ECListener {
+public interface ECListener extends IECBaseListener {
 
     public default String[] requiredPlugins(){
         return FCArrayUtil.toArray();
