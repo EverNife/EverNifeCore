@@ -19,4 +19,5 @@ public interface FPlayer extends FCommandSender {
 
     public FLocation getLocation();
 
+    public boolean teleportTo(FLocation targetLocation);
 }

@@ -1,8 +1,9 @@
 package br.com.finalcraft.evernifecore.hytale.api;
 
+import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.BaseFPlayer;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleAdventureUtil;
-import br.com.finalcraft.evernifecore.hytale.util.FCHytaleVectorUtil;
+import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import com.hypixel.hytale.builtin.teleport.components.TeleportHistory;
@@ -86,7 +87,8 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         return store.getExternalData().getWorld();
     }
 
-    public @Nullable Location getLocation() {
+
+    public @Nullable Location getMutableHytaleLocation() {
         Ref<EntityStore> ref = getPlayerRef().getReference();
 
         if (ref == null || !ref.isValid()) {
@@ -111,13 +113,31 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
             Vector3f rotation = headRotation != null ? headRotation.getRotation() : new Vector3f(0.0F, 0.0F, 0.0F);
             Vector3d position = transformComponent.getPosition();
 
-            return new Location(world.getName(), position.clone(), rotation.clone());
+            return new Location(world.getName(), position, rotation);
         });
     }
 
-    public boolean teleportTo(Location targetLocation){
+    @Override
+    public @Nullable FLocation getLocation() {
+        Location hytaleLocation = getMutableHytaleLocation();
+
+        if (hytaleLocation == null) {
+            return null;
+        }
+
+        return FCHytaleUtil.adapt(hytaleLocation);
+    }
+
+    @Override
+    public boolean teleportTo(FLocation targetLocation){
+        Location hyLocation = targetLocation.getDelegate(Location.class);
+
         //Safe copy the reference... hytale location is Mutable!
-        Location safeTargetLocation = new Location(targetLocation.getWorld(), targetLocation.getPosition(), targetLocation.getRotation());
+        Location safeTargetLocation = new Location(
+                hyLocation.getWorld(),
+                hyLocation.getPosition(),
+                hyLocation.getRotation()
+        );
 
         Ref<EntityStore> ref = getPlayerRef().getReference();
 
@@ -183,7 +203,7 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         });
 
         ECDebugModule.HYTALE_FPLAYER.debugModule(() -> {
-            Location origin = getLocation();
+            FLocation location = getLocation();
 
             float displayYaw    = Float.isNaN(yaw)   ? previousRotation.getYaw()    * (180.0F / (float) Math.PI) : yaw   * (180.0F / (float) Math.PI);
             float displayPitch  = Float.isNaN(pitch) ? previousRotation.getPitch()  * (180.0F / (float) Math.PI) : pitch * (180.0F / (float) Math.PI);
@@ -191,8 +211,7 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
 
             return String.format("[TP] Teleporting player %s from %s to %s { Yaw:%s, Pitch:%s, Roll:%s }",
                     getName(),
-                    FCHytaleVectorUtil.locPosAt(origin),
-                    FCHytaleVectorUtil.locPosAt(safeTargetLocation),
+                    location.getLocPos(),
                     displayYaw,
                     displayPitch,
                     displayRoll

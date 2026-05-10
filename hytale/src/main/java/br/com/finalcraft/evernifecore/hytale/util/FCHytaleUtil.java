@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.util;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
+import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
@@ -9,6 +10,7 @@ import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import com.hypixel.hytale.component.AddReason;
@@ -205,5 +207,24 @@ public class FCHytaleUtil {
 
     public static void broadcastMessage(String message) {
         FancyText.of(message).broadcast();
+    }
+
+    public static FLocation adapt(Location location){
+        Vector3d position = location.getPosition();
+
+        WorldLocPos worldLocPos = WorldLocPos.of(
+                position.getX(),
+                position.getY(),
+                position.getZ(),
+                location.getWorld()
+        );
+
+        Location locationCopy = new Location(
+                location.getWorld(),
+                location.getPosition().clone(),
+                location.getRotation().clone()
+        );
+
+        return new FLocation(worldLocPos, locationCopy);
     }
 }

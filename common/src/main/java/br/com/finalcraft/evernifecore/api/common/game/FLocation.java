@@ -8,11 +8,11 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 public class FLocation implements IHasDelegate {
 
     private final WorldLocPos worldLocPos;
-    private final Object delegate;
+    private final Object location;
 
-    public FLocation(WorldLocPos worldLocPos, Object delegate) {
+    public FLocation(WorldLocPos worldLocPos, Object location) {
         this.worldLocPos = worldLocPos;
-        this.delegate = delegate;
+        this.location = location;
     }
 
     public String getWorldName() {
@@ -33,6 +33,6 @@ public class FLocation implements IHasDelegate {
 
     @Override
     public Object getDelegate() {
-        return delegate;
+        return location;
     }
 }
