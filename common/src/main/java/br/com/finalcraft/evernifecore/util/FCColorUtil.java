@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.util;
 
+import br.com.finalcraft.evernifecore.color.ColorEnum;
+import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -79,5 +81,30 @@ public class FCColorUtil {
 
     public static String componentToString(Component component) {
         return LEGACY_SECTION_SERIALIZER.serialize(component);
+    }
+
+    public static String getLastColors(@Nonnull String input) {
+        String result = "";
+        int length = input.length();
+
+        // Search backwards from the end as it is faster
+        for (int index = length - 1; index > -1; index--) {
+            char section = input.charAt(index);
+            if (section == ColorEnum.COLOR_CHAR && index < length - 1) {
+                char c = input.charAt(index + 1);
+                ColorEnum color = ColorEnum.getByChar(c);
+
+                if (color != null) {
+                    result = color.toString() + result;
+
+                    // Once we find a color or reset we can stop searching
+                    if (color.isColor() || color.equals(ColorEnum.RESET)) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        return result;
     }
 }
