@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.FCServerUtil;
+import br.com.finalcraft.evernifecore.version.FCPlatformType;
 import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.ComponentBuilder;
@@ -166,7 +167,11 @@ public class FancyText {
         }
 
         recentChanged = false;
-        Component textComponent = FCColorUtil.colorfyComponent(this.text.replace("●","•").replace("▶","•"));
+        Component textComponent = FCColorUtil.colorfyComponent(
+                FCPlatformType.isHytale()
+                        ? this.text.replace("●","•").replace("▶","•")
+                        : this.text
+        );
 
         ComponentBuilder<?, ?> builder = textComponent.toBuilder();
 
