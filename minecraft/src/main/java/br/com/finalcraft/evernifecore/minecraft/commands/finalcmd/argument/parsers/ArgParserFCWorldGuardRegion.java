@@ -9,8 +9,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgPa
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
-import br.com.finalcraft.evernifecore.protection.worldguard.WGPlatform;
+import br.com.finalcraft.evernifecore.minecraft.protection.worldguard.FCWorldGuardRegion;
+import br.com.finalcraft.evernifecore.minecraft.protection.worldguard.WGPlatform;
 import jakarta.annotation.Nonnull;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;

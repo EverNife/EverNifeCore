@@ -7,7 +7,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.custom.ICustomFinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.custom.contexts.CustomizeContext;
-import br.com.finalcraft.evernifecore.fancytextold.FancyFormatter;
+import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
@@ -19,13 +19,14 @@ import br.com.finalcraft.evernifecore.minecraft.protection.integration.Protectio
 import br.com.finalcraft.evernifecore.minecraft.protection.integration.imp.WorldGuardHandler;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
-import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
-import br.com.finalcraft.evernifecore.protection.worldguard.WGPlatform;
-import br.com.finalcraft.evernifecore.protection.worldguard.adapter.FCRegionResultSet;
+import br.com.finalcraft.evernifecore.minecraft.protection.worldguard.FCWorldGuardRegion;
+import br.com.finalcraft.evernifecore.minecraft.protection.worldguard.WGPlatform;
+import br.com.finalcraft.evernifecore.minecraft.protection.worldguard.adapter.FCRegionResultSet;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import com.sk89q.worldguard.protection.flags.Flag;
 import jakarta.annotation.Nonnull;
 import org.bukkit.Color;
+import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 
@@ -92,20 +93,22 @@ public class CMDProtectionTest implements ICustomFinalCMD {
                         .map(handler -> handler.getName())
                         .collect(Collectors.joining(", "))
         );
-        BlockPos blockPos = FCBukkitUtil.adapt(player.getLocation()).getBlockPos();
+        BlockPos blockPos = fPlayer.getLocation().getBlockPos();
 
         String result;
 
+        Location playerLocation = fPlayer.getLocation().getDelegate(Location.class);
+
         //Basic Checks
-        result = protectionHandler.canBuild(player, player.getLocation()) ? "§eYes" : "§cNo";
+        result = protectionHandler.canBuild(player, playerLocation) ? "§eYes" : "§cNo";
         formatter.append(String.format("\n§2§l ▶ §aCan Build: %s", result))
                 .setHoverText(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bBuild Here: %s\n\n§7 - BlockPos: §7[§6%s§7]", result, blockPos));
 
-        result = protectionHandler.canBreak(player, player.getLocation()) ? "§eYes" : "§cNo";
+        result = protectionHandler.canBreak(player, playerLocation) ? "§eYes" : "§cNo";
         formatter.append(String.format("\n§2§l ▶ §aCan Break: %s", result))
                 .setHoverText(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bBreak Here: %s\n\n§7 - BlockPos: §7[§6%s§7]", result, blockPos));
 
-        result = protectionHandler.canInteract(player, player.getLocation()) ? "§eYes" : "§cNo";
+        result = protectionHandler.canInteract(player, playerLocation) ? "§eYes" : "§cNo";
         formatter.append(String.format("\n§2§l ▶ §aCan Interact: %s", result))
                 .setHoverText(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bInteract Here: %s\n\n§7 - BlockPos: §7[§6%s§7]", result, blockPos));
 
@@ -170,7 +173,7 @@ public class CMDProtectionTest implements ICustomFinalCMD {
             }
         }
 
-        formatter.send(player);
+        formatter.send(fPlayer);
 
         if (MCVersion.isHigherEquals(MCVersion.v1_13)){
             cuboidSelection.setPos1(cuboidSelection.getPos1().setY(player.getLocation().getBlockY()));

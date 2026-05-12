@@ -12,6 +12,7 @@ repositories {
 }
 
 dependencies {
+    compileOnly project(':api-contracts')
     compileOnly project(':common')
 
     implementation project(':minecraft:modules:VersionedPlugins')

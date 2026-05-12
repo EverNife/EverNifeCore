@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.protection;
 
-import br.com.finalcraft.evernifecore.protection.worldguard.WGFlags;
-import br.com.finalcraft.evernifecore.protection.worldguard.WGPlatform;
+import br.com.finalcraft.evernifecore.minecraft.protection.worldguard.WGFlags;
+import br.com.finalcraft.evernifecore.minecraft.protection.worldguard.WGPlatform;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 

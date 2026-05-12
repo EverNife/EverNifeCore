@@ -10,7 +10,7 @@ import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.parse
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.parsers.ArgParserWorld;
 import br.com.finalcraft.evernifecore.minecraft.nms.data.oredict.OreDictEntry;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
-import br.com.finalcraft.evernifecore.protection.worldguard.FCWorldGuardRegion;
+import br.com.finalcraft.evernifecore.minecraft.protection.worldguard.FCWorldGuardRegion;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
