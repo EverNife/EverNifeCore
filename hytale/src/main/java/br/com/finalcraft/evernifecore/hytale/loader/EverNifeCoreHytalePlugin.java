@@ -23,11 +23,11 @@ import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import jakarta.annotation.Nonnull;
 
 
-public class HyEverNifeCore extends JavaPlugin {
+public class EverNifeCoreHytalePlugin extends JavaPlugin {
 
-    public static HyEverNifeCore instance;
+    public static EverNifeCoreHytalePlugin instance;
 
-    public HyEverNifeCore(@Nonnull JavaPluginInit init) {
+    public EverNifeCoreHytalePlugin(@Nonnull JavaPluginInit init) {
         super(init);
         instance = this; //Attribute Instance at the exact moment that this class is instantiated
 

@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.hytale.listeners;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
-import br.com.finalcraft.evernifecore.hytale.loader.HyEverNifeCore;
+import br.com.finalcraft.evernifecore.hytale.loader.EverNifeCoreHytalePlugin;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import com.hypixel.hytale.server.core.event.events.player.PlayerConnectEvent;
@@ -15,11 +15,11 @@ public class PlayerLoginListener implements ECListener {
 
     @Override
     public void onRegister() {
-        HyEverNifeCore.instance.getEventRegistry().registerGlobal(PlayerSetupConnectEvent.class, (event) -> {
+        EverNifeCoreHytalePlugin.instance.getEventRegistry().registerGlobal(PlayerSetupConnectEvent.class, (event) -> {
             PlayerController.handlePlayerAsyncPreUUIDToNameCalculation(event.getUuid(), event.getUsername());
         });
 
-        HyEverNifeCore.instance.getEventRegistry().registerGlobal(PlayerConnectEvent.class, (event) -> {
+        EverNifeCoreHytalePlugin.instance.getEventRegistry().registerGlobal(PlayerConnectEvent.class, (event) -> {
             var playerRef = event.getHolder().getComponent(PlayerRef.getComponentType());
 
             FPlayer fPlayer = FCHytaleUtil.adapt(playerRef);
@@ -31,7 +31,7 @@ public class PlayerLoginListener implements ECListener {
             }
         });
 
-        HyEverNifeCore.instance.getEventRegistry().registerGlobal(PlayerDisconnectEvent.class, (event) -> {
+        EverNifeCoreHytalePlugin.instance.getEventRegistry().registerGlobal(PlayerDisconnectEvent.class, (event) -> {
             var playerRef = event.getPlayerRef();
 
             PlayerData playerData = PlayerController.getPlayerData(FCHytaleUtil.adapt(playerRef));
