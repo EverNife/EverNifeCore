@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.hytale.loader.imp;
 
-import br.com.finalcraft.evernifecore.api.common.math.game.adapter.GameVecPlatformAdapterConverter;
+import br.com.finalcraft.evernifecore.api.platoverride.math.game.adapter.GameVecPlatformAdapterConverter;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec2i;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3d;

@@ -1,7 +1,16 @@
 package br.com.finalcraft.evernifecore.minecraft.loader.imp;
 
+import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
+import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCTextUtil;
+import br.com.finalcraft.evernifecore.util.FCServerUtil;
+import org.bukkit.Bukkit;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class McPlatformChatAdapter implements IPlatformChatAdapter {
 
@@ -20,4 +29,16 @@ public class McPlatformChatAdapter implements IPlatformChatAdapter {
         return FCTextUtil.straightLineOf(string);
     }
 
+    @Override
+    public void broadcast(FancyText fancyText) {
+        List<FCommandSender> senders = new ArrayList<>();
+
+        for (FPlayer onlinePlayer : FCServerUtil.getOnlinePlayers()) {
+            senders.add(onlinePlayer);
+        }
+
+        senders.add(FCBukkitUtil.adapt(Bukkit.getConsoleSender()));
+
+        fancyText.send(senders.toArray(new FCommandSender[0]));
+    }
 }

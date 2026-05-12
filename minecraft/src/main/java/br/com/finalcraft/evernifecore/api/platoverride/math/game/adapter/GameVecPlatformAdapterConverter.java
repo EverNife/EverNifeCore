@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.api.common.math.game.adapter;
+package br.com.finalcraft.evernifecore.api.platoverride.math.game.adapter;
 
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.LocPos;

@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.api.common.providers.platform;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec2i;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3d;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3i;
-import br.com.finalcraft.evernifecore.api.common.math.game.adapter.GameVecPlatformAdapterConverter;
+import br.com.finalcraft.evernifecore.api.platoverride.math.game.adapter.GameVecPlatformAdapterConverter;
 
 public interface IPlatformVecAdapter {
 

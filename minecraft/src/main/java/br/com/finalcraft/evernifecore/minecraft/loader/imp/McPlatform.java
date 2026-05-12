@@ -5,10 +5,11 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
+import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.fancytextold.FancyText;
+import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.minecraft.actionbar.McActionBarHelper;
@@ -26,6 +27,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.SimplePluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -38,6 +40,7 @@ import java.util.stream.Collectors;
 public class McPlatform implements IPlatform {
 
     private final McPlatformChatAdapter CHAT_ADAPTER = new McPlatformChatAdapter();
+    private final McPlatformVecAdapter VEC_ADAPTER = new McPlatformVecAdapter();
 
     @Override
     public List<FPlayer> getOnlinePlayers() {
@@ -93,12 +96,12 @@ public class McPlatform implements IPlatform {
         command.setPlatformCommand(iPlatformCMD);
         iPlatformCMD.setPermission(command.getFinalCMD().getPermission());
 
-        return getCommandMap().register(command.getOwningPlugin().getMetaInfo().getName(), this);
+        return getCommandMap().register(command.getOwningPlugin().getMetaInfo().getName(), iPlatformCMD);
     }
 
     @Override
     public void unregisterCommand(String commandName, ECPluginData ecPluginData) {
-        Plugin notifyPlugin = ecPluginData.getPlugin();
+        Plugin notifyPlugin = (Plugin) ecPluginData.getPlugin();
         try {
             Map<String, Command> mapOfCommands = getCommandMapKnownCommands();
             Command existingCommand = mapOfCommands.get(commandName);
@@ -155,7 +158,7 @@ public class McPlatform implements IPlatform {
 
     @Override
     public void registerECListener(ECPluginData ecPluginData, ECListener listener) {
-        Plugin pluginInstance = ecPluginData.getPlugin();
+        Plugin pluginInstance = (Plugin) ecPluginData.getPlugin();
         Bukkit.getServer().getPluginManager().registerEvents(listener, pluginInstance);
     }
 
@@ -246,6 +249,11 @@ public class McPlatform implements IPlatform {
         } catch(Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public IPlatformVecAdapter getVecAdapter() {
+        return VEC_ADAPTER;
     }
 
     @Override

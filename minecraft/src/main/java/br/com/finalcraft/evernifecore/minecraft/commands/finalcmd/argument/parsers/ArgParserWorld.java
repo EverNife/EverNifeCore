@@ -24,7 +24,7 @@ public class ArgParserWorld extends ArgParser<World> {
     @Override
     public World parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
 
-        World world = argumento.asMinecraftArg().getWorld();
+        World world = argumento.adapter().getWorld();
 
         if (world == null && this.getArgInfo().isRequired()){
             FCMessageUtil.worldNotFound(sender, argumento.toString());

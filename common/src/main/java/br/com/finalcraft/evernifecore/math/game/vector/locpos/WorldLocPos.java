@@ -8,7 +8,7 @@ import br.com.finalcraft.evernifecore.math.vecmath.VecMath;
 import br.com.finalcraft.evernifecore.math.vector.Vec3d;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3d;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3i;
-import br.com.finalcraft.evernifecore.api.common.math.game.adapter.GameVecPlatformAdapterConverter;
+import br.com.finalcraft.evernifecore.api.platoverride.math.game.adapter.GameVecPlatformAdapterConverter;
 import br.com.finalcraft.evernifecore.util.FCHashUtil;
 import lombok.Getter;
 
@@ -56,7 +56,7 @@ public class WorldLocPos extends Vec3d<WorldLocPos> {
     // =========================================================================
 
     public GameVecPlatformAdapterConverter.AdaptLocPosWorld getAdapter(){
-        return EverNifeCore.getPlatform().getVecAdapter().adaptLocPosWorld(this);
+        return EverNifeCore.getPlatform().getVecAdapter().adaptLocPosWorld(this, worldName);
     }
 
     // =========================================================================

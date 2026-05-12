@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.listeners.base;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.api.common.eclistener.IECBaseListener;
+import br.com.finalcraft.evernifecore.api.platoverride.eclistener.IECBaseListener;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.util.FCArrayUtil;

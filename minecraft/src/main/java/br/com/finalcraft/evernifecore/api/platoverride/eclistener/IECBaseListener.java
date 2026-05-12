@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.api.common.eclistener;
+package br.com.finalcraft.evernifecore.api.platoverride.eclistener;
 
 import org.bukkit.event.Listener;
 

@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.api.common.math.game.adapter;
+package br.com.finalcraft.evernifecore.api.platoverride.math.game.adapter;
 
 public class GameVecPlatformAdapterConverter {
 

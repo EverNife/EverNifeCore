@@ -107,16 +107,20 @@ public class FCHytaleUtil {
         CommandManager.get().handleCommand(delegate, theCommand);
     }
 
-    public static FPlayer wrap(Player player){
+    public static FPlayer adapt(Player player){
         return HytaleFPlayer.of(player);
     }
 
-    public static FPlayer wrap(PlayerRef playerRef){
+    public static FPlayer adapt(PlayerRef playerRef){
         return HytaleFPlayer.of(playerRef);
     }
 
-    public static FCommandSender wrap(CommandSender commandSender){
+    public static FCommandSender adapt(CommandSender commandSender){
         return HytaleFCommandSender.of(commandSender);
+    }
+
+    public static FCommandSender getConsoleSender(){
+        return adapt(ConsoleSender.INSTANCE);
     }
 
     public static Vector3i getTargetBlock(FPlayer player, double maxDistance){
@@ -155,7 +159,7 @@ public class FCHytaleUtil {
 
             Player hytalePlayer = hytaleFPlayer.getPlayer();
 
-            Location location = hytaleFPlayer.getLocation();
+            Location location = hytaleFPlayer.getLocation().getDelegate(Location.class);
 
             ListTransaction<ItemStackTransaction> transactionList = hytalePlayer.getInventory()
                     .getCombinedHotbarFirst()

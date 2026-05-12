@@ -22,7 +22,7 @@ public class PlayerLoginListener implements ECListener {
         HyEverNifeCore.instance.getEventRegistry().registerGlobal(PlayerConnectEvent.class, (event) -> {
             var playerRef = event.getHolder().getComponent(PlayerRef.getComponentType());
 
-            FPlayer fPlayer = FCHytaleUtil.wrap(playerRef);
+            FPlayer fPlayer = FCHytaleUtil.adapt(playerRef);
             PlayerData playerData = PlayerController.getPlayerData(fPlayer);
 
             if (playerData != null){
@@ -34,7 +34,7 @@ public class PlayerLoginListener implements ECListener {
         HyEverNifeCore.instance.getEventRegistry().registerGlobal(PlayerDisconnectEvent.class, (event) -> {
             var playerRef = event.getPlayerRef();
 
-            PlayerData playerData = PlayerController.getPlayerData(FCHytaleUtil.wrap(playerRef));
+            PlayerData playerData = PlayerController.getPlayerData(FCHytaleUtil.adapt(playerRef));
 
             if (playerData != null){
                 //[Store an instance of a Player.class] it is a bad practice, but in hytale, what is not :D

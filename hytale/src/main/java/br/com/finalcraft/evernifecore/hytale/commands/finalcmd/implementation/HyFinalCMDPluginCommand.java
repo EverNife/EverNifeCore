@@ -45,7 +45,7 @@ public class HyFinalCMDPluginCommand extends AbstractCommand implements IPlatfor
         try {
             final FCommandSender fCommandSender;
             if (sender instanceof Player player){
-                fCommandSender = FCHytaleUtil.wrap(player);
+                fCommandSender = FCHytaleUtil.adapt(player);
             }else {
                 fCommandSender = HytaleFCommandSender.of(sender);
             }
