@@ -1,7 +1,9 @@
 package br.com.finalcraft.evernifecore.compat.v1_7_R4.protection.worldguard.wrappers;
 
 import br.com.finalcraft.evernifecore.protection.worldguard.IFCFlagRegistry;
+import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
 import br.com.finalcraft.evernifecore.unsafereflecton.UnsafeUtil;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import com.sk89q.worldguard.protection.flags.DefaultFlag;
 import com.sk89q.worldguard.protection.flags.Flag;
 import jakarta.annotation.Nonnull;
@@ -64,7 +66,8 @@ public class ImpIFCFlagRegistry implements IFCFlagRegistry {
     @Override
     public void register(Flag<?> flag) {
         if (modifiedWorldguard){
-            DefaultFlag.addFlag(flag);
+            MethodInvoker addFlag = FCReflectionUtil.getMethod(DefaultFlag.class, "addFlag");
+            addFlag.invoke(null, flag);
         }else {
             try {
                 //Create a copy of old array and increase its size by one
