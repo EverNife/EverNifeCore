@@ -2,6 +2,8 @@ package br.com.finalcraft.evernifecore.minecraft.api;
 
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.BaseFPlayer;
+import br.com.finalcraft.evernifecore.api.platoverride.player.FPlayerAdapter;
+import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -37,9 +39,10 @@ public abstract class MinecraftFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
 
     @Override
     public void sendMessage(@Nonnull Component component) {
-//        getOfflinePlayer().getPlayer().get
-//        Message message = FCAdventureUtil.toHytaleMessage(component);
-//        getPlayerRef().sendMessage(message);
+        Player player = getPlayer();
+        if (player != null && player.isOnline()) {
+            FCMinecraftAdventureUtil.sendMessage(player, component);
+        }
     }
 
     @Override
@@ -62,6 +65,7 @@ public abstract class MinecraftFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         return player.getWorld();
     }
 
+    @Override
     public @Nullable FLocation getLocation() {
         Player player = getOfflinePlayer().getPlayer();
 
@@ -81,7 +85,7 @@ public abstract class MinecraftFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         return getOfflinePlayer().getPlayer();
     }
 
-    public static class PlayerFPlayer extends MinecraftFPlayer<OfflinePlayer> {
+    public static class PlayerFPlayer extends FPlayerAdapter<OfflinePlayer> {
 
         public PlayerFPlayer(OfflinePlayer player) {
             super(player);

@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.api;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.BaseFCommandSender;
+import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import jakarta.annotation.Nonnull;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
@@ -20,8 +21,7 @@ public abstract class MinecraftFCommandSender<DELEGATE extends CommandSender> ex
 
     @Override
     public void sendMessage(@Nonnull Component component) {
-//        Message message = FCAdventureUtil.toHytaleMessage(component);
-//        getDelegate().sendMessage(message);
+        FCMinecraftAdventureUtil.sendMessage(getDelegate(), component);
     }
 
     public static class FCommandSenderSender extends MinecraftFCommandSender<CommandSender> {

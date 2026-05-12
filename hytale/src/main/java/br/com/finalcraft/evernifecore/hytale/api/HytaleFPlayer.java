@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.hytale.api;
 
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.BaseFPlayer;
+import br.com.finalcraft.evernifecore.api.platoverride.player.FPlayerAdapter;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleAdventureUtil;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
@@ -236,7 +237,7 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         }
     }
 
-    public static class PlayerRefFPlayer extends HytaleFPlayer<PlayerRef> {
+    public static class PlayerRefFPlayer extends FPlayerAdapter<PlayerRef> {
 
         public PlayerRefFPlayer(PlayerRef playerRef) {
             super(playerRef);
@@ -249,7 +250,7 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
 
     }
 
-    public static class PlayerFPlayer extends HytaleFPlayer<Player> {
+    public static class PlayerFPlayer extends FPlayerAdapter<Player> {
 
         public PlayerFPlayer(Player player) {
             super(player);

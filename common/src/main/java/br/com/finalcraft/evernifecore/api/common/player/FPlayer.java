@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.api.common.player;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
-import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
+import br.com.finalcraft.evernifecore.api.platoverride.player.FPlayerAdapter;
 import jakarta.annotation.Nonnull;
 
 public interface FPlayer extends FCommandSender {
@@ -13,8 +13,8 @@ public interface FPlayer extends FCommandSender {
         //Do kick
     }
 
-    public default HytaleFPlayer asHytaleFPlayer(){
-        return (HytaleFPlayer) (Object) this;
+    public default FPlayerAdapter adapter(){
+        return (FPlayerAdapter) this;
     }
 
     public FLocation getLocation();
