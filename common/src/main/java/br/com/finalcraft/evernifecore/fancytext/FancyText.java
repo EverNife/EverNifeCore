@@ -1,20 +1,23 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import br.com.finalcraft.evernifecore.util.FCServerUtil;
 import br.com.finalcraft.evernifecore.version.FCPlatformType;
 import jakarta.annotation.Nullable;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.nbt.api.BinaryTagHolder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.ComponentBuilder;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 
 public class FancyText {
 
@@ -22,10 +25,20 @@ public class FancyText {
     protected String hoverText = null;
     protected String clickActionText = null;
     protected ClickActionType clickActionType = ClickActionType.NONE;
+    protected String lastColor = "";
 
     private boolean recentChanged = true;
+    private String lastStartingColor = "";
     private transient Component cachedComponent = null;
     protected transient @Nullable FancyFormatter fancyFormatter;
+
+    public static final Map<String, BiConsumer<ComponentBuilder<?, ?>, String>> HOVER_HANDLERS = new LinkedHashMap<>();
+
+    static {
+        HOVER_HANDLERS.put("$show_item$", (builder, value) -> {
+            builder.hoverEvent(HoverEvent.showItem(Key.key(value), 1, BinaryTagHolder.binaryTagHolder(value)));
+        });
+    }
 
     public FancyText() {
     }
@@ -127,10 +140,12 @@ public class FancyText {
         return this;
     }
 
-    /**
-     * Seta o a RunCommand dessa FancyMessage;
-     * (Comando executado quando o jogador clica na mensagem)
-     */
+    public FancyText setHoverItem(String serializedItem) {
+        setRecentChanged();
+        this.hoverText = "$show_item$" + serializedItem;
+        return this;
+    }
+
     public FancyText setClickAction(ClickActionType actionType) {
         this.setRecentChanged();
         this.clickActionType = actionType;
@@ -162,22 +177,43 @@ public class FancyText {
     }
 
     public Component toComponent() {
+        return toComponent("");
+    }
+
+    public Component toComponent(String startingColor) {
+        if (!startingColor.equals(lastStartingColor)) {
+            setRecentChanged();
+        }
         if (cachedComponent != null && !recentChanged) {
             return cachedComponent;
         }
 
         recentChanged = false;
-        Component textComponent = FCColorUtil.colorfyComponent(
+        this.lastStartingColor = startingColor;
+
+        String fixedText = startingColor + (
                 FCPlatformType.isHytale()
-                        ? this.text.replace("●","•").replace("▶","•")
+                        ? this.text.replace("●", "•").replace("▶", "•")
                         : this.text
         );
 
+        this.lastColor = FCColorUtil.getLastColors(fixedText);
+
+        Component textComponent = FCColorUtil.colorfyComponent(fixedText);
         ComponentBuilder<?, ?> builder = textComponent.toBuilder();
 
         if (this.hoverText != null && !this.hoverText.isEmpty()) {
-            Component hoverComponent = FCColorUtil.colorfyComponent(this.hoverText);
-            builder.hoverEvent(HoverEvent.showText(hoverComponent));
+            boolean handled = false;
+            for (Map.Entry<String, BiConsumer<ComponentBuilder<?, ?>, String>> entry : HOVER_HANDLERS.entrySet()) {
+                if (this.hoverText.startsWith(entry.getKey())) {
+                    entry.getValue().accept(builder, this.hoverText.substring(entry.getKey().length()));
+                    handled = true;
+                    break;
+                }
+            }
+            if (!handled) {
+                builder.hoverEvent(HoverEvent.showText(FCColorUtil.colorfyComponent(this.hoverText)));
+            }
         }
 
         if (this.clickActionText != null) {
@@ -200,20 +236,16 @@ public class FancyText {
         return cachedComponent;
     }
 
+    protected String getLastTextColor() {
+        return lastColor;
+    }
+
     public void send(FCommandSender... commandSender) {
         FancyTextManager.send(this, commandSender);
     }
 
     public void broadcast() {
-        List<FCommandSender> senders = new ArrayList<>();
-
-        for (FPlayer onlinePlayer : FCServerUtil.getOnlinePlayers()) {
-            senders.add(onlinePlayer);
-        }
-
-        //TODO Make broadcast also send message to server (console)
-
-        send(senders.toArray(new FCommandSender[0]));
+        EverNifeCore.getPlatform().getChatAdapter().broadcast(this);
     }
 
     public FancyText clone() {
