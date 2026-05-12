@@ -30,7 +30,7 @@ public class McSimplePAPIHook extends PlaceholderHook {
 
     @Override
     public @Nullable String onRequest(OfflinePlayer player, @Nonnull String placeholder) {
-        IPlayerData playerData = player == null ? null : PlayerController.getPlayerData(player);
+        IPlayerData playerData = player == null ? null : PlayerController.getPlayerData(player.getUniqueId());
 
         if (playerData != null && isPDSection){
             playerData = playerData.getPDSection(PAPI_REGEX_REPLACER.getReferClass());

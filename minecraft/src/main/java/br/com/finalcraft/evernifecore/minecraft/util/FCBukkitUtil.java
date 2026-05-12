@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
@@ -14,14 +15,14 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.LocPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFCommandSender;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
-import br.com.finalcraft.evernifecore.minecraft.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
-import br.com.finalcraft.evernifecore.minecraft.version.ServerType;
+import br.com.finalcraft.evernifecore.minecraft.version.MCServerType;
 import br.com.finalcraft.evernifecore.ontime.OntimeManager;
 import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import jakarta.annotation.Nullable;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -78,7 +79,7 @@ public class FCBukkitUtil {
     public static boolean isFakePlayer(Player player) {
         if (isModLoaded == null) return false;
         //TODO Remove this nullCheck
-        return ServerType.isModdedServer() && NMSUtils.get() != null ? NMSUtils.get().isFakePlayer(player) : false;
+        return FCBukkitUtil.isForge() && NMSUtils.get() != null ? NMSUtils.get().isFakePlayer(player) : false;
     }
 
     //===========================================================================================
@@ -103,7 +104,7 @@ public class FCBukkitUtil {
         if (exceededItems.size() > 0 && dropIfExceeded) {
             if (ECSettings.WARN_PLAYERS_WHEN_RECEIVED_ITEMS_WERE_SEND_TO_THE_GROUND){
                 YOU_RECEIVED_EXTRA_ITEMS_THAT_WERE_DROPED
-                        .send(player);
+                        .send(adapt(player));
             }
 
             final World world = player.getWorld();
@@ -150,7 +151,7 @@ public class FCBukkitUtil {
     public static boolean isNotPlayer(CommandSender sender) {
         if (!(sender instanceof Player)) {
             ONLY_PLAYERS_CAN_USE_THIS_COMMAND
-                    .send(sender);
+                    .send(adapt(sender));
             return true;
         }
         return false;
@@ -362,7 +363,7 @@ public class FCBukkitUtil {
     //This is meanted to be only by my private network plugins, don't use this on any public plugin!
     //
     public static String getPlayerStaffRank(Player player) {
-        if (ServerType.isEverNifePersonalServer()){
+        if (MCServerType.isEverNifePersonalServer()){
             if (player.getName().equalsIgnoreCase("EverNife")) return "Dono";
             if (player.hasPermission("be.diretor")) return "Diretor";
             if (player.hasPermission("be.admin")) return "Admin";

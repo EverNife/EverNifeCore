@@ -2,10 +2,11 @@ package br.com.finalcraft.evernifecore.minecraft.version;
 
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import org.bukkit.Bukkit;
 
 //This is a personal class for my OWN PERSONAL PRIVATE servers... don't use it, this class might change a lot over the time
-public enum ServerType {
+public enum MCServerType {
     IDEAL("IDEAL"),
     SKYLORDS("Skylords"),
     SKYHORIZON("SkyHorizon"),
@@ -17,7 +18,7 @@ public enum ServerType {
     UNKNOWN("UNKNOWN");
 
     private final String name;
-    ServerType(String name) {
+    MCServerType(String name) {
         this.name = name;
     }
 
@@ -25,11 +26,11 @@ public enum ServerType {
         return name;
     }
 
-    private static ServerType serverType = null;
+    private static MCServerType MCServerType = null;
     private static Boolean personalEverNifeServer = null;
 
     public static boolean isSkylords(){
-        return getCurrent() == ServerType.SKYLORDS;
+        return getCurrent() == MCServerType.SKYLORDS;
     }
 
     public static boolean isSkylordsOrIDEAL(){
@@ -37,15 +38,15 @@ public enum ServerType {
     }
 
     public static boolean isIDEAL(){
-        return getCurrent() == ServerType.IDEAL;
+        return getCurrent() == MCServerType.IDEAL;
     }
 
     public static boolean isDragonblock(){
-        return getCurrent() == ServerType.DRAGONBLOCK;
+        return getCurrent() == MCServerType.DRAGONBLOCK;
     }
 
     public static boolean isDecimation(){
-        return getCurrent() == ServerType.DECIMATION;
+        return getCurrent() == MCServerType.DECIMATION;
     }
 
     public static boolean isVanilla(){
@@ -53,15 +54,15 @@ public enum ServerType {
     }
 
     public static boolean isVanillaFactions(){
-        return getCurrent() == ServerType.VANILLA_FACTIONS;
+        return getCurrent() == MCServerType.VANILLA_FACTIONS;
     }
 
     public static boolean isSkyHorizon(){
-        return getCurrent() == ServerType.SKYHORIZON;
+        return getCurrent() == MCServerType.SKYHORIZON;
     }
 
     public static boolean isPixelmon(){
-        return getCurrent() == ServerType.PIXELMON;
+        return getCurrent() == MCServerType.PIXELMON;
     }
 
     public static boolean isModdedServer(){
@@ -72,8 +73,8 @@ public enum ServerType {
         return isSkyHorizon() || isSkylords();
     }
 
-    public static ServerType getCurrent() {
-        return serverType != null ? serverType : (serverType = calculateServerType());
+    public static MCServerType getCurrent() {
+        return MCServerType != null ? MCServerType : (MCServerType = calculateServerType());
     }
 
     public static boolean isEverNifePersonalServer(){
@@ -83,7 +84,7 @@ public enum ServerType {
         return personalEverNifeServer;
     }
 
-    private static ServerType calculateServerType() {
+    private static MCServerType calculateServerType() {
 
         if (!isEverNifePersonalServer()){
             return UNKNOWN;
@@ -91,39 +92,39 @@ public enum ServerType {
 
         if (FCBukkitUtil.isForge()){
             if (FCReflectionUtil.isClassLoaded("com.pixelmonmod.pixelmon.Pixelmon")){
-                return ServerType.PIXELMON;
+                return MCServerType.PIXELMON;
             }
 
             if (FCReflectionUtil.isClassLoaded("br.com.finalcraft.dragonblockutils.DragonBlockUtils")){
-                return ServerType.DRAGONBLOCK;
+                return MCServerType.DRAGONBLOCK;
             }
 
             if (FCReflectionUtil.isClassLoaded("br.com.finalcraft.gppskyblock.GPPSkyBlock")){
                 if (MCVersion.isLowerEquals(MCVersion.v1_7_10)){
-                    return ServerType.SKYLORDS;
+                    return MCServerType.SKYLORDS;
                 }else {
-                    return ServerType.SKYHORIZON;
+                    return MCServerType.SKYHORIZON;
                 }
             }
 
             if (FCReflectionUtil.isClassLoaded("br.com.finalcraft.evernifeworldrpg.EverNifeWorldRPG")){
-                return ServerType.IDEAL;
+                return MCServerType.IDEAL;
             }
 
             if (FCReflectionUtil.isClassLoaded("br.com.finalcraft.evernifedarkdecimagick.EverNifeDarkDeciMagick")){
-                return ServerType.DECIMATION;
+                return MCServerType.DECIMATION;
             }
 
             if (FCReflectionUtil.isClassLoaded("com.vicmatskiv.mw.ModernWarfareMod")){
-                return ServerType.SURVIVALZ;
+                return MCServerType.SURVIVALZ;
             }
         }
 
         if (EverNifeCoreBukkitPlugin.instance.getServer().getPluginManager().isPluginEnabled("Factions")){
-            return ServerType.VANILLA_FACTIONS;
+            return MCServerType.VANILLA_FACTIONS;
         }
 
-        return ServerType.UNKNOWN;
+        return MCServerType.UNKNOWN;
     }
 
 }

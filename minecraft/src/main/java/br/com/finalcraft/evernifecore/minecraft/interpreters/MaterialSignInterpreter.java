@@ -1,7 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.interpreters;
 
+import br.com.finalcraft.evernifecore.minecraft.util.FCMaterialUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
-import br.com.finalcraft.evernifecore.util.FCInputReader;
+import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
 import com.google.common.collect.Sets;
 import org.bukkit.Material;
 
@@ -14,9 +15,9 @@ public class MaterialSignInterpreter {
     private final Class WAALL_SIGN_DATA_CLASS_MODERN = !MCVersion.isLowerEquals(MCVersion.v1_12) ? FCReflectionUtil.getClass("org.bukkit.block.data.type.WallSign") : null;
 
     private HashSet<Material> SIGN_MATERIALS_1_12_BELLOW = Sets.newHashSet(
-            FCInputReader.parseMaterial("SIGN"),
-            FCInputReader.parseMaterial("SIGN_POST"),
-            FCInputReader.parseMaterial("WALL_SIGN")
+            FCMaterialUtil.parseMaterial("SIGN"),
+            FCMaterialUtil.parseMaterial("SIGN_POST"),
+            FCMaterialUtil.parseMaterial("WALL_SIGN")
     );
 
     public boolean isSign(Material material){

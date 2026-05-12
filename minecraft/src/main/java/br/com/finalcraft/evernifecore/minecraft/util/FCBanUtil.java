@@ -25,7 +25,7 @@ public class FCBanUtil {
             try {
                 PlayerData playerData = PlayerController.getPlayerData(playerName);
                 if (playerData != null){
-                    Bukkit.getBanList(BanList.Type.NAME).pardon(playerData.getPlayerName()); //Minecraft is bugged man!
+                    Bukkit.getBanList(BanList.Type.NAME).pardon(playerData.getName()); //Minecraft is bugged man!
                     Bukkit.getBanList(BanList.Type.NAME).pardon(playerData.getUniqueId().toString()); //Minecraft is bugged man!
                 }
             }catch (Exception ignored){
