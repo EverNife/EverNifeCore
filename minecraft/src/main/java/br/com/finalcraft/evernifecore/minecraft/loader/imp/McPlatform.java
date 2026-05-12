@@ -14,6 +14,7 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.minecraft.actionbar.McActionBarHelper;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
+import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.MinecraftArgParsers;
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.implementation.McFinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.minecraft.integration.placeholders.McPAPIIntegration;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
@@ -260,4 +261,21 @@ public class McPlatform implements IPlatform {
     public IPlatformChatAdapter getChatAdapter() {
         return CHAT_ADAPTER;
     }
+
+    boolean has_registerConfiaLoadableSalvables = false;
+    @Override
+    public void registerConfiaLoadableSalvables() {
+        if (has_registerConfiaLoadableSalvables) return;
+        has_registerConfiaLoadableSalvables = true;
+        McCfgLoadableSalvable.initialize();
+    }
+
+    boolean has_registerArgParsers = false;
+    @Override
+    public void registerArgParsers() {
+        if (has_registerArgParsers) return;
+        has_registerArgParsers = true;
+        MinecraftArgParsers.initialize();
+    }
+
 }

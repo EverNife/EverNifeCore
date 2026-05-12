@@ -73,8 +73,6 @@ public class EverNifeCoreBukkitPlugin extends JavaPlugin {
         McDefaultOntimeManager.initialize();
 
         EverNifeCore.instance.onLoaderInstantiate(ECPluginManager.getOrCreateECorePluginData(this));
-        McCfgLoadableSalvable.initialize();
-        MinecraftArgParsers.initialize();
     }
 
     @Override

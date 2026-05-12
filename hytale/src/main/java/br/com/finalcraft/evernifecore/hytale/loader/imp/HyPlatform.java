@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
+import br.com.finalcraft.evernifecore.hytale.commands.finalcmd.HytaleArgParsers;
 import br.com.finalcraft.evernifecore.hytale.commands.finalcmd.implementation.HyFinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.hytale.integration.placeholders.HyPAPIIntegration;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
@@ -257,6 +258,22 @@ public class HyPlatform implements IPlatform {
     @Override
     public IPlatformChatAdapter getChatAdapter() {
         return CHAT_ADAPTER;
+    }
+
+    boolean has_registerConfiaLoadableSalvables = false;
+    @Override
+    public void registerConfiaLoadableSalvables() {
+        if (has_registerConfiaLoadableSalvables) return;
+        has_registerConfiaLoadableSalvables = true;
+        HyCfgLoadableSalvable.initialize();
+    }
+
+    boolean has_registerArgParsers = false;
+    @Override
+    public void registerArgParsers() {
+        if (has_registerArgParsers) return;
+        has_registerArgParsers = true;
+        HytaleArgParsers.initialize();
     }
 
 }

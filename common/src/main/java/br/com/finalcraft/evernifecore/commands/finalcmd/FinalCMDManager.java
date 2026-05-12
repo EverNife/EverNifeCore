@@ -66,6 +66,8 @@ public class FinalCMDManager {
         ArgParserManager.addGlobalContextualParser(MultiArgumentos.class, ArgParserContextualMultiArgumentos.class);
         ArgParserManager.addGlobalContextualParser(PDSection.class, ArgParserContextualPDSection.class);
         ArgParserManager.addGlobalContextualParser(PlayerData.class, ArgParserContextualPlayerData.class);
+
+        EverNifeCore.getPlatform().registerArgParsers();
     }
 
     public static boolean registerCommand(@Nonnull ECPluginData ecPluginData, @Nonnull Class cmdClass) {

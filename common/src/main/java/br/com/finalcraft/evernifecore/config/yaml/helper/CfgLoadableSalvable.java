@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.config.yaml.helper;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.fcconfiguration.FCConfigurationManager;
 import br.com.finalcraft.evernifecore.config.fcconfiguration.annotation.FConfig;
 import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
@@ -474,6 +475,8 @@ public class CfgLoadableSalvable {
                         }
                 )
         ;
+
+        EverNifeCore.getPlatform().registerConfiaLoadableSalvables();
     }
 
 }

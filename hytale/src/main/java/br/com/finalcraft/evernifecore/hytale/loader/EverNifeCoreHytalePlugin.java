@@ -50,8 +50,6 @@ public class EverNifeCoreHytalePlugin extends JavaPlugin {
         RegionGridOptions.setCurrent(RegionGridOptions.HYTALE);
 
         EverNifeCore.instance.onLoaderInstantiate(ECPluginManager.getOrCreateECorePluginData(this));
-        HyCfgLoadableSalvable.initialize();
-        HytaleArgParsers.initialize();
     }
 
     @Override

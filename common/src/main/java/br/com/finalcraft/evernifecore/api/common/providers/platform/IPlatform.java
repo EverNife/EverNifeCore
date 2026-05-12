@@ -52,4 +52,9 @@ public interface IPlatform {
     public IPlatformVecAdapter getVecAdapter();
 
     public IPlatformChatAdapter getChatAdapter();
+
+    public void registerConfiaLoadableSalvables();
+
+    public void registerArgParsers();
+
 }
