@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.minecraft.argumento;
+package br.com.finalcraft.evernifecore.api.platoverride.argumento;
 
 import br.com.finalcraft.evernifecore.argumento.Argumento;
 import org.bukkit.Bukkit;
@@ -7,9 +7,9 @@ import org.bukkit.plugin.Plugin;
 
 import java.util.Arrays;
 
-public class MinecraftArgumento extends Argumento {
+public class ArgumentoAdapter extends Argumento {
 
-    public MinecraftArgumento(String argumento) {
+    public ArgumentoAdapter(String argumento) {
         super(argumento);
     }
 

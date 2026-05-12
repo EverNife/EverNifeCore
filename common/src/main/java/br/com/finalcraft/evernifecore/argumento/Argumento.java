@@ -2,13 +2,12 @@ package br.com.finalcraft.evernifecore.argumento;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.api.platoverride.argumento.ArgumentoAdapter;
 import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
-import br.com.finalcraft.evernifecore.hytale.argumento.HytaleArgumento;
-import br.com.finalcraft.evernifecore.minecraft.argumento.MinecraftArgumento;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 
@@ -196,12 +195,9 @@ public class Argumento {
         return argumento;
     }
 
-    public HytaleArgumento asHytaleArg(){
-        return new HytaleArgumento(this.argumento);
+    public ArgumentoAdapter adapter() {
+        return new ArgumentoAdapter(this.argumento);
     }
 
-    public MinecraftArgumento asMinecraftArg(){
-        return new MinecraftArgumento(this.argumento);
-    }
 }
 
