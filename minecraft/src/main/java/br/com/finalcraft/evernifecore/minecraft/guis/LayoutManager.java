@@ -10,7 +10,7 @@ public class LayoutManager {
     public static OredictViewerLayout OREDICT_VIEWER_LAYOUT;
 
     public static void initialize(){
-        if (FCBukkitUtil.isForge()){
+        if (FCBukkitUtil.isModded()){
             try {
                 //Right now, only load the layout if we have the right NMS
                 NMSUtils.get().getOreRegistry();

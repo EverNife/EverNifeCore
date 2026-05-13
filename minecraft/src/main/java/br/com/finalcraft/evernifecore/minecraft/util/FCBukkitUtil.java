@@ -79,7 +79,7 @@ public class FCBukkitUtil {
     public static boolean isFakePlayer(Player player) {
         if (isModLoaded == null) return false;
         //TODO Remove this nullCheck
-        return FCBukkitUtil.isForge() && NMSUtils.get() != null ? NMSUtils.get().isFakePlayer(player) : false;
+        return FCBukkitUtil.isModded() && NMSUtils.get() != null ? NMSUtils.get().isFakePlayer(player) : false;
     }
 
     //===========================================================================================
@@ -344,6 +344,10 @@ public class FCBukkitUtil {
             return player.getTargetBlock(null, maxDistance);
         }
         return null;
+    }
+
+    public static boolean isModded(){
+        return isForge();
     }
 
     public static boolean isForge(){

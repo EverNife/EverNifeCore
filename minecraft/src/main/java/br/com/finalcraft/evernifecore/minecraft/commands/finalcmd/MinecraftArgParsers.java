@@ -23,7 +23,7 @@ public class MinecraftArgParsers {
         ArgParserManager.addGlobalParser(Player.class, ArgParserPlayer.class);
         ArgParserManager.addGlobalParser(World.class, ArgParserWorld.class);
 
-        if (FCBukkitUtil.isForge()){
+        if (FCBukkitUtil.isModded()){
             ArgParserManager.addGlobalParser(OreDictEntry.class, ArgParserOreDict.class);
         }
 

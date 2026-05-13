@@ -50,7 +50,7 @@ public enum MCServerType {
     }
 
     public static boolean isVanilla(){
-        return !FCBukkitUtil.isForge();
+        return !FCBukkitUtil.isModded();
     }
 
     public static boolean isVanillaFactions(){
@@ -66,7 +66,7 @@ public enum MCServerType {
     }
 
     public static boolean isModdedServer(){
-        return FCBukkitUtil.isForge();
+        return FCBukkitUtil.isModded();
     }
 
     public static boolean isSkyBlock(){
@@ -90,7 +90,7 @@ public enum MCServerType {
             return UNKNOWN;
         }
 
-        if (FCBukkitUtil.isForge()){
+        if (FCBukkitUtil.isModded()){
             if (FCReflectionUtil.isClassLoaded("com.pixelmonmod.pixelmon.Pixelmon")){
                 return MCServerType.PIXELMON;
             }
