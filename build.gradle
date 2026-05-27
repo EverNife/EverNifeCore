@@ -54,9 +54,9 @@ subprojects {
         maven { url 'https://libraries.minecraft.net/' }
         maven { url 'https://maven.petrus.dev/public' }
         flatDir { //Change this to where are your local libs
-            dirs 'C:/Users/Petrus/Desktop/Meus/workshop/workshop/MyOwnPlugins/Bukkit/FinalCraftCore/libs'
-            dirs 'C:/Users/Petrus/Desktop/Meus/workshop/workshop/PublicLibs'
-            dirs 'C:/Users/Petrus/Desktop/Meus/workshop/workshop/PublicLibs/Bukkit'
+            dirs 'C:/Meus/workshop/workshop/MyOwnPlugins/Bukkit/FinalCraftCore/libs'
+            dirs 'C:/Meus/workshop/workshop/PublicLibs'
+            dirs 'C:/Meus/workshop/workshop/PublicLibs/Bukkit'
         }
     }
 

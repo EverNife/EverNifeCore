@@ -1,3 +1,9 @@
+repositories {
+    maven {
+        url = 'https://repo.alessiodp.com/releases/' //For the custom libby-core
+    }
+}
+
 dependencies {
     compileOnly project(':api-contracts')
     implementation project(':libby')
@@ -22,6 +28,8 @@ dependencies {
 
     annotationProcessor 'com.github.bsideup.jabel:jabel-javac-plugin:0.4.2'
     compileOnly 'com.github.bsideup.jabel:jabel-javac-plugin:0.4.2'
+
+    implementation 'net.byteflux:libby-core:1.2.0'
 }
 
 configure([tasks.compileJava]) {
