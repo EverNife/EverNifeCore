@@ -170,6 +170,13 @@ shadowJar {
         include(project(':minecraft:modules:v1_7_10'))
         include(project(':minecraft:modules:v1_12_2'))
         include(project(':minecraft:modules:v1_16_5'))
+
+        // EveryDatabase: only the core + manager classes (canonical API, the
+        // br.com.finalcraft.everydatabase.* package is NOT relocated). The heavy deps
+        // (Jackson, Hikari, drivers, Mongo) do NOT enter the jar - libby downloads them
+        // already relocated at runtime (EDBDependencies).
+        include(dependency('br.com.finalcraft.everydatabase:everydatabase-core:'))
+        include(dependency('br.com.finalcraft.everydatabase:everydatabase-manager:'))
     }
 
     if (getCallingTask().contains("publish")){
@@ -184,6 +191,23 @@ shadowJar {
     relocate 'net.kyori', 'br.com.finalcraft.libs.net.kyori'
     relocate 'de.tr7zw.changeme.nbtapi', 'br.com.finalcraft.libs.minecraft.nbtapi'
     relocate 'dev.triumphteam', 'br.com.finalcraft.libs.minecraft.dev.triumphteam'
+
+    // EveryDatabase: rewrite the REFS of the embedded everydatabase-core/manager classes
+    // (and of ECore itself) to the relocated coordinates libby delivers at runtime
+    // (EDBDependencies uses IDENTICAL pairs to these - keep them in sync). jackson-annotations
+    // stays canonical on purpose: we relocate the core/databind/dataformat sub-packages
+    // individually, without touching com.fasterxml.jackson.annotation (annotations match by
+    // class identity - the same arrangement as everydatabase-standalone).
+    relocate 'com.fasterxml.jackson.core',       'br.com.finalcraft.everydatabase.libs.jackson.core'
+    relocate 'com.fasterxml.jackson.databind',   'br.com.finalcraft.everydatabase.libs.jackson.databind'
+    relocate 'com.fasterxml.jackson.dataformat', 'br.com.finalcraft.everydatabase.libs.jackson.dataformat'
+    relocate 'com.zaxxer.hikari',                'br.com.finalcraft.everydatabase.libs.hikari'
+    relocate 'org.slf4j',                        'br.com.finalcraft.everydatabase.libs.slf4j'
+    relocate 'com.mongodb',                      'br.com.finalcraft.everydatabase.libs.mongodb'
+    relocate 'org.bson',                         'br.com.finalcraft.everydatabase.libs.bson'
+    relocate 'org.h2',                           'br.com.finalcraft.everydatabase.libs.h2'
+    relocate 'org.postgresql',                   'br.com.finalcraft.everydatabase.libs.postgresql'
+    relocate 'com.mysql',                        'br.com.finalcraft.everydatabase.libs.mysql'
 }
 
 configurations.all {

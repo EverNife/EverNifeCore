@@ -1,3 +1,5 @@
+version '3.0.1'
+
 repositories {
     maven {
         url = 'https://repo.alessiodp.com/releases/' //For the custom libby-core
@@ -7,6 +9,12 @@ repositories {
 dependencies {
     compileOnly project(':api-contracts')
     implementation project(':libby')
+
+    // EveryDatabase storage API (api scope: its types appear in common's public API).
+    // The heavy runtime deps arrive via libby (minecraft) or the shadow jar (hytale).
+    api 'br.com.finalcraft.everydatabase:everydatabase-core:1.0.3'
+    // Typed references + per-type caching managers (write-back, parent registries).
+    api 'br.com.finalcraft.everydatabase:everydatabase-manager:1.0.3'
 
     api('net.kyori:adventure-api:4.21.0') {
         exclude(module: 'adventure-bom')
@@ -30,13 +38,71 @@ dependencies {
     compileOnly 'com.github.bsideup.jabel:jabel-javac-plugin:0.4.2'
 
     implementation 'net.byteflux:libby-core:1.2.0'
+
+    // Test infra (tests compile/run on the Java 25 toolchain; main stays release 8)
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // "platoverride" stubs on the TEST classpath (in production each platform ships the
+    // real implementation under the same FQN; compileOnly is absent from the test runtime)
+    testImplementation project(':api-contracts')
+    // H2 backend for the storage integration tests (the same Java-8-floor version as EveryDatabase)
+    testRuntimeOnly 'com.h2database:h2:1.4.200'
+}
+
+// General Java 25 toolchain: used to compile/run the TESTS.
+// compileJava (main) stays pinned below to JDK 16 + release 8 (Jabel).
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
 }
 
 configure([tasks.compileJava]) {
-    sourceCompatibility = 16 // for the IDE support
+    sourceCompatibility = 17 // Java 17 syntax (IDE hint; Jabel lifts javac's check)
     options.release = 8
 
     javaCompiler = javaToolchains.compilerFor {
-        languageVersion = JavaLanguageVersion.of(16)
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+configure([tasks.compileTestJava]) {
+    sourceCompatibility = 25
+    targetCompatibility = 25
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// Publish via the POM only. The root build tags every configuration with TargetJvmVersion=25;
+// baked into Gradle Module Metadata that would make this Java-8-bytecode artifact resolve as
+// "JVM 25 only" and reject Java-8 consumers. Disabling it (as :minecraft does) avoids that.
+tasks.withType(GenerateModuleMetadata) {
+    enabled = false
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "PetrusRepo"
+            url = "https://maven.petrus.dev/public"
+            credentials {
+                username = System.env.PETRUSMAVEN_ACTOR
+                password = System.env.PETRUSMAVEN_TOKEN
+            }
+            authentication {
+                basic(BasicAuthentication)
+            }
+        }
+    }
+    publications {
+        petrus(MavenPublication) {
+            groupId = project.group
+            artifactId = "evernifecore-common"
+            from(components.java)
+            pom.withXml {
+                asNode().appendNode('url', 'https://petrus.dev')
+            }
+        }
     }
 }

@@ -43,6 +43,8 @@ dependencies {
 
     implementation project(':common')
 
+    implementation 'org.slf4j:slf4j-api:1.7.36'
+
     implementation("net.kyori:adventure-api:4.26.1")
     implementation("net.kyori:adventure-text-serializer-gson:4.26.1")
     implementation("net.kyori:adventure-text-serializer-legacy:4.26.1")
@@ -73,6 +75,39 @@ shadowJar {
     archiveBaseName.set(project.ext.evernifecore)
     archiveClassifier.set('Hytale')
     exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
+    exclude 'module-info.class'
+
+    // EveryDatabase (SPEC v4.1, Secao 4.2): Hytale nao permite libby - o core e TODAS as
+    // deps pesadas (que fluem transitivas do everydatabase-core via :common) sao embutidas
+    // aqui e relocadas para br.com.finalcraft.everydatabase.libs.* (pares identicos aos do
+    // minecraft/build.gradle e do EDBDependencies). jackson-annotations fica canonico.
+
+    // Sem isto o shadow descarta os META-INF/services/java.sql.Driver duplicados ANTES do
+    // merge e so o primeiro driver seria descoberto (GradleUp/shadow#1348).
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    mergeServiceFiles()
+
+    dependencies {
+        // mysql-connector-j e GPLv2: redistribui-lo dentro do jar imporia GPL ao artefato
+        // (mesma regra do everydatabase-standalone). Quem precisar de MySQL no Hytale
+        // adiciona o driver manualmente.
+        exclude(dependency('com.mysql:mysql-connector-j'))
+    }
+
+    relocate 'com.fasterxml.jackson.core',       'br.com.finalcraft.everydatabase.libs.jackson.core'
+    relocate 'com.fasterxml.jackson.databind',   'br.com.finalcraft.everydatabase.libs.jackson.databind'
+    relocate 'com.fasterxml.jackson.dataformat', 'br.com.finalcraft.everydatabase.libs.jackson.dataformat'
+    relocate 'com.zaxxer.hikari',                'br.com.finalcraft.everydatabase.libs.hikari'
+    relocate 'org.slf4j',                        'br.com.finalcraft.everydatabase.libs.slf4j'
+    relocate 'com.mongodb',                      'br.com.finalcraft.everydatabase.libs.mongodb'
+    relocate 'org.bson',                         'br.com.finalcraft.everydatabase.libs.bson'
+    relocate 'org.h2',                           'br.com.finalcraft.everydatabase.libs.h2'
+    relocate 'org.postgresql',                   'br.com.finalcraft.everydatabase.libs.postgresql'
+    relocate 'com.mysql',                        'br.com.finalcraft.everydatabase.libs.mysql'
+    relocate 'org.checkerframework',             'br.com.finalcraft.everydatabase.libs.checkerframework'
+    // snakeyaml: usado pelo jackson-dataformat-yaml E pelo Simple-YAML bundlado - ambos
+    // passam a apontar para a copia relocada unica.
+    relocate 'org.yaml.snakeyaml',               'br.com.finalcraft.everydatabase.libs.snakeyaml'
 }
 
 processResources {
