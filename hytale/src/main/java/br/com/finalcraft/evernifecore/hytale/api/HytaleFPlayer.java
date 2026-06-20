@@ -11,8 +11,7 @@ import com.hypixel.hytale.builtin.teleport.components.TeleportHistory;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Location;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
+import com.hypixel.hytale.math.vector.Rotation3f;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.modules.entity.component.HeadRotation;
@@ -27,6 +26,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
+import org.joml.Vector3d;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
@@ -111,7 +111,7 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
 
             HeadRotation headRotation = store.getComponent(ref, HeadRotation.getComponentType());
 
-            Vector3f rotation = headRotation != null ? headRotation.getRotation() : new Vector3f(0.0F, 0.0F, 0.0F);
+            Rotation3f rotation = headRotation != null ? headRotation.getRotation() : new Rotation3f(0.0F, 0.0F, 0.0F);
             Vector3d position = transformComponent.getPosition();
 
             return new Location(world.getName(), position, rotation);
@@ -174,26 +174,26 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
             return false;
         }
 
-        Vector3d previousPos = transformComponent.get().getPosition().clone();
-        Vector3f previousRotation = headRotationComponent.get() == null
+        Vector3d previousPos = new Vector3d(transformComponent.get().getPosition());
+        Rotation3f previousRotation = headRotationComponent.get() == null
                 ? headRotationComponent.get().getRotation().clone()
-                : new Vector3f(0, 0, 0);
+                : new Rotation3f(0, 0, 0);
 
         //Load the chunk if already not loaded, this will prevent the player from be teleported OUTSIDE THE FRICKING WORLD
         WorldChunk worldChunk = targetWorld.isInThread()
                 ? targetWorld.getChunk(safeTargetLocation.getPosition().hashCode())
                 : targetWorld.getChunkAsync(safeTargetLocation.getPosition().hashCode()).join();
 
-        float pitch = safeTargetLocation.getRotation().getX();
-        float yaw = safeTargetLocation.getRotation().getY();
-        float roll = safeTargetLocation.getRotation().getZ();
+        float pitch = safeTargetLocation.getRotation().x();
+        float yaw = safeTargetLocation.getRotation().y();
+        float roll = safeTargetLocation.getRotation().z();
 
         FCScheduler.getHytaleScheduler().getSynchronizedAction().run(sourceWorld, () -> {
             Teleport teleport = new Teleport(
                     targetWorld,
                     safeTargetLocation.getPosition(),
-                    new Vector3f(previousRotation.getPitch(), yaw, previousRotation.getRoll())
-            ).setHeadRotation(new Vector3f(pitch, yaw, roll));
+                    new Rotation3f(previousRotation.pitch(), yaw, previousRotation.roll())
+            ).setHeadRotation(new Rotation3f(pitch, yaw, roll));
 
             //Teleport history must be called prior to the teleportation to prevent race conditions
             TeleportHistory teleportHistoryComponent = store.ensureAndGetComponent(ref, TeleportHistory.getComponentType());
@@ -206,9 +206,9 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         ECDebugModule.HYTALE_FPLAYER.debugModule(() -> {
             FLocation location = getLocation();
 
-            float displayYaw    = Float.isNaN(yaw)   ? previousRotation.getYaw()    * (180.0F / (float) Math.PI) : yaw   * (180.0F / (float) Math.PI);
-            float displayPitch  = Float.isNaN(pitch) ? previousRotation.getPitch()  * (180.0F / (float) Math.PI) : pitch * (180.0F / (float) Math.PI);
-            float displayRoll   = Float.isNaN(roll)  ? previousRotation.getRoll()   * (180.0F / (float) Math.PI) : roll  * (180.0F / (float) Math.PI);
+            float displayYaw    = Float.isNaN(yaw)   ? previousRotation.yaw()    * (180.0F / (float) Math.PI) : yaw   * (180.0F / (float) Math.PI);
+            float displayPitch  = Float.isNaN(pitch) ? previousRotation.pitch()  * (180.0F / (float) Math.PI) : pitch * (180.0F / (float) Math.PI);
+            float displayRoll   = Float.isNaN(roll)  ? previousRotation.roll()   * (180.0F / (float) Math.PI) : roll  * (180.0F / (float) Math.PI);
 
             return String.format("[TP] Teleporting player %s from %s to %s { Yaw:%s, Pitch:%s, Roll:%s }",
                     getName(),

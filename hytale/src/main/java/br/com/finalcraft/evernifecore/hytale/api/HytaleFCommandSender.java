@@ -63,7 +63,7 @@ public abstract class HytaleFCommandSender<DELEGATE extends IMessageReceiver> ex
 
         @Override
         public String getName() {
-            return getDelegate().getDisplayName();
+            return getDelegate().getUsername();
         }
 
         @Override

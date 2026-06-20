@@ -260,6 +260,12 @@ public class HyPlatform implements IPlatform {
         return CHAT_ADAPTER;
     }
 
+    @Override
+    public void runOnFirstTick(Runnable runnable) {
+        //Hytale has no global first-tick hook (schedulers are per World).
+        runnable.run();
+    }
+
     boolean has_registerConfiaLoadableSalvables = false;
     @Override
     public void registerConfiaLoadableSalvables() {

@@ -6,6 +6,10 @@ import br.com.finalcraft.evernifecore.hytale.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
 import com.hypixel.hytale.math.vector.*;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
+import org.joml.Vector2d;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
+import org.joml.Vector3i;
 
 import java.util.List;
 import java.util.regex.Pattern;
@@ -15,9 +19,9 @@ public class HyCfgLoadableSalvable {
     public static void initialize(){
         CfgLoadableSalvable.addLoadableSalvable(Vector3d.class)
                 .setOnConfigSave((configSection, vector3d) -> {
-                    configSection.setValue("x", vector3d.getX());
-                    configSection.setValue("y", vector3d.getY());
-                    configSection.setValue("z", vector3d.getZ());
+                    configSection.setValue("x", vector3d.x());
+                    configSection.setValue("y", vector3d.y());
+                    configSection.setValue("z", vector3d.z());
                 })
                 .setOnConfigLoad(configSection -> new Vector3d(
                         configSection.getDouble("x"),
@@ -27,9 +31,9 @@ public class HyCfgLoadableSalvable {
 
         CfgLoadableSalvable.addLoadableSalvable(Vector3i.class)
                 .setOnConfigSave((configSection, vector3d) -> {
-                    configSection.setValue("x", vector3d.getX());
-                    configSection.setValue("y", vector3d.getY());
-                    configSection.setValue("z", vector3d.getZ());
+                    configSection.setValue("x", vector3d.x());
+                    configSection.setValue("y", vector3d.y());
+                    configSection.setValue("z", vector3d.z());
                 })
                 .setOnConfigLoad(configSection -> new Vector3i(
                         configSection.getInt("x"),
@@ -39,9 +43,9 @@ public class HyCfgLoadableSalvable {
 
         CfgLoadableSalvable.addLoadableSalvable(Vector3f.class)
                 .setOnConfigSave((configSection, vector3f) -> {
-                    configSection.setValue("x", vector3f.getX());
-                    configSection.setValue("y", vector3f.getY());
-                    configSection.setValue("z", vector3f.getZ());
+                    configSection.setValue("x", vector3f.x());
+                    configSection.setValue("y", vector3f.y());
+                    configSection.setValue("z", vector3f.z());
                 })
                 .setOnConfigLoad(configSection -> new Vector3f(
                         (float) configSection.getDouble("x"),
@@ -49,10 +53,22 @@ public class HyCfgLoadableSalvable {
                         (float) configSection.getDouble("z"))
                 );
 
+        CfgLoadableSalvable.addLoadableSalvable(Rotation3f.class)
+            .setOnConfigSave((configSection, vector3f) -> {
+                configSection.setValue("x", vector3f.x());
+                configSection.setValue("y", vector3f.y());
+                configSection.setValue("z", vector3f.z());
+            })
+            .setOnConfigLoad(configSection -> new Rotation3f(
+                (float) configSection.getDouble("x"),
+                (float) configSection.getDouble("y"),
+                (float) configSection.getDouble("z"))
+            );
+
         CfgLoadableSalvable.addLoadableSalvable(Vector2d.class)
                 .setOnConfigSave((configSection, chunkPos) -> {
-                    configSection.setValue("x", chunkPos.getX());
-                    configSection.setValue("y", chunkPos.getY());
+                    configSection.setValue("x", chunkPos.x());
+                    configSection.setValue("y", chunkPos.y());
                 })
                 .setOnConfigLoad(configSection -> new Vector2d(
                         configSection.getInt("x"),
@@ -68,7 +84,7 @@ public class HyCfgLoadableSalvable {
                 .setOnConfigLoad(section -> {
 
                     Vector3d position = section.getLoadable("position", Vector3d.class);
-                    Vector3f rotation = section.getLoadable("rotation", Vector3f.class);
+                    Rotation3f rotation = section.getLoadable("rotation", Rotation3f.class);
 
                     return new Location(
                             section.getString("worldName"),
@@ -79,9 +95,9 @@ public class HyCfgLoadableSalvable {
                 .setOnStringSerialize(location -> { // WORLD | x y z yaw pitch
 
                     Vector3d position = location.getPosition();
-                    Vector3f rotation = location.getRotation();
+                    Rotation3f rotation = location.getRotation();
 
-                    return location.getWorld() + " | "  + position.getX() + " " + position.getY() + " " + position.getZ() + " " + rotation.getX() + " " + rotation.getY()  + " " + rotation.getZ();
+                    return location.getWorld() + " | "  + position.x() + " " + position.y() + " " + position.z() + " " + rotation.x() + " " + rotation.y()  + " " + rotation.z();
                 })
                 .setOnStringDeserialize(serializedLocation -> {
                     String[] split = serializedLocation.split(Pattern.quote("|")); // WORLD | x y z yaw pitch
@@ -96,7 +112,7 @@ public class HyCfgLoadableSalvable {
                     Double zRotation = FCInputReader.parseDouble(splitCoords[5]);
 
                     Vector3d position = new Vector3d(x,y,z);
-                    Vector3f rotation = new Vector3f(xRotation.floatValue(), yRotation.floatValue(), zRotation.floatValue());
+                    Rotation3f rotation = new Rotation3f(xRotation.floatValue(), yRotation.floatValue(), zRotation.floatValue());
 
                     return new Location(
                             world,

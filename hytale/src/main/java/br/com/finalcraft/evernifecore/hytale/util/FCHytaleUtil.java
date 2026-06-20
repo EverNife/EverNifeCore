@@ -18,9 +18,8 @@ import com.hypixel.hytale.component.Holder;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Location;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
-import com.hypixel.hytale.math.vector.Vector3i;
+import com.hypixel.hytale.math.vector.Rotation3f;
+import com.hypixel.hytale.math.vector.Rotation3fc;
 import com.hypixel.hytale.server.core.asset.type.item.config.Item;
 import com.hypixel.hytale.server.core.command.system.CommandManager;
 import com.hypixel.hytale.server.core.command.system.CommandSender;
@@ -34,6 +33,9 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.core.util.TargetUtil;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
+import org.joml.Vector3i;
 
 import java.util.List;
 import java.util.Objects;
@@ -61,7 +63,7 @@ public class FCHytaleUtil {
     public static boolean isNotPlayer(FCommandSender sender) {
         if (!sender.isPlayer()) {
             ONLY_PLAYERS_CAN_USE_THIS_COMMAND
-                    .send(sender);
+                .send(sender);
             return true;
         }
         return false;
@@ -162,13 +164,13 @@ public class FCHytaleUtil {
             Location location = hytaleFPlayer.getLocation().getDelegate(Location.class);
 
             ListTransaction<ItemStackTransaction> transactionList = hytalePlayer.getInventory()
-                    .getCombinedHotbarFirst()
-                    .addItemStacks(itemStacks);
+                .getCombinedHotbarFirst()
+                .addItemStacks(itemStacks);
 
             List<ItemStack> exceededItems = transactionList.getList().stream()
-                    .map(ItemStackTransaction::getRemainder)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+                .map(ItemStackTransaction::getRemainder)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
 
             if (exceededItems.size() > 0 && dropIfExceeded) {
 
@@ -182,13 +184,13 @@ public class FCHytaleUtil {
                     ThreadLocalRandom random = ThreadLocalRandom.current();
 
                     Holder<EntityStore> itemEntityHolder = ItemComponent.generateItemDrop(
-                            store,
-                            remainder,
-                            throwPosition,
-                            Vector3f.ZERO,
-                            (float)random.nextGaussian() * throwSpeed,
-                            0.5F,
-                            (float)random.nextGaussian() * throwSpeed
+                        store,
+                        remainder,
+                        throwPosition,
+                        new Rotation3f(),
+                        (float)random.nextGaussian() * throwSpeed,
+                        0.5F,
+                        (float)random.nextGaussian() * throwSpeed
                     );
 
                     ItemComponent itemEntityComponent = itemEntityHolder.getComponent(ItemComponent.getComponentType());
@@ -201,8 +203,8 @@ public class FCHytaleUtil {
 
                 if (ECSettings.WARN_PLAYERS_WHEN_RECEIVED_ITEMS_WERE_SEND_TO_THE_GROUND){
                     YOU_RECEIVED_EXTRA_ITEMS_THAT_WERE_DROPED
-                            .addPlaceholder("%itens_droped%", exceededItems.size())
-                            .send(player);
+                        .addPlaceholder("%itens_droped%", exceededItems.size())
+                        .send(player);
                 }
             }
         });
@@ -217,16 +219,16 @@ public class FCHytaleUtil {
         Vector3d position = location.getPosition();
 
         WorldLocPos worldLocPos = WorldLocPos.of(
-                position.getX(),
-                position.getY(),
-                position.getZ(),
-                location.getWorld()
+            position.x(),
+            position.y(),
+            position.z(),
+            location.getWorld()
         );
 
         Location locationCopy = new Location(
-                location.getWorld(),
-                location.getPosition().clone(),
-                location.getRotation().clone()
+            location.getWorld(),
+            new Vector3d(location.getPosition()),
+            location.getRotation().clone()
         );
 
         return new FLocation(worldLocPos, locationCopy);

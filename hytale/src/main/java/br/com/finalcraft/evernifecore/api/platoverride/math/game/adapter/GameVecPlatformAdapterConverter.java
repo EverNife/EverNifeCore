@@ -8,10 +8,10 @@ import br.com.finalcraft.evernifecore.math.vector.base.IVec3d;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3i;
 import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Location;
-import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
+import org.joml.Vector3d;
 
 public class GameVecPlatformAdapterConverter {
 
@@ -19,17 +19,17 @@ public class GameVecPlatformAdapterConverter {
 
     public BlockPos getBlockPos(Location location){
         Vector3d position = location.getPosition();
-        return BlockPos.of(position.getX(), position.getY(), position.getZ());
+        return BlockPos.of(position.x(), position.y(), position.z());
     }
 
     public LocPos getLocPos(Location location){
         Vector3d position = location.getPosition();
-        return LocPos.of(position.getX(), position.getY(), position.getZ());
+        return LocPos.of(position.x(), position.y(), position.z());
     }
 
     public WorldLocPos getWorldLocPos(Location location){
         Vector3d position = location.getPosition();
-        return WorldLocPos.of(position.getX(), position.getY(), position.getZ(), location.getWorld());
+        return WorldLocPos.of(position.x(), position.y(), position.z(), location.getWorld());
     }
 
     public static class BasePosAdapter<DELEGATE> {
