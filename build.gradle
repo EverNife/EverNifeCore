@@ -14,8 +14,12 @@ subprojects {
     group = 'br.com.finalcraft'
     version = '2.1.1'
 
-    sourceCompatibility = 11
-    targetCompatibility = 11
+    // Launch Gradle with JDK 25 (Gradle 9.5.1 runs on it directly). This toolchain compiles/runs
+    // everything except the dual-target compileJava overrides in the per-module build files
+    // (:common/:minecraft -> Java 8 via Jabel; the NMS modules -> Java 8; :hytale -> Java 25).
+    java {
+        toolchain.languageVersion = JavaLanguageVersion.of(25)
+    }
 
     project.ext.evernifecore = "EverNifeCore"
     project.ext.fullversion = "2.1.1"
@@ -70,12 +74,28 @@ subprojects {
         testAnnotationProcessor 'org.projectlombok:lombok:1.18.42'
     }
 
-    configurations.all {
-        attributes {
-            attribute(
-                    TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE,
-                    25
-            )
+    // Compile to Java 8 bytecode but still resolve JVM-11+ dependencies (Adventure, EveryDatabase,
+    // ...). Gradle 9 forbids setting attributes on declarable-only buckets (api/implementation),
+    // so apply the target-JVM attribute only to consumable/resolvable configurations.
+    configurations.configureEach {
+        if (canBeResolved || canBeConsumed) {
+            attributes {
+                attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 25)
+            }
+        }
+    }
+}
+
+// The NMS modules compile against old CraftBukkit (Java 8 era). Plain Java 8 bytecode, no Jabel,
+configure([project(':minecraft:modules:v1_7_10'),
+           project(':minecraft:modules:v1_12_2'),
+           project(':minecraft:modules:v1_16_5'),
+           project(':minecraft:modules:VersionedPlugins')]) {
+    compileJava {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+        javaCompiler = javaToolchains.compilerFor {
+            languageVersion = JavaLanguageVersion.of(17)
         }
     }
 }

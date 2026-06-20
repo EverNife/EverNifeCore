@@ -5,9 +5,6 @@ plugins {
 group 'br.com.finalcraft'
 version '3.0.1'
 
-targetCompatibility = 1.8
-sourceCompatibility = 1.8
-
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
     options.release.set(8)
@@ -101,6 +98,8 @@ dependencies {
     testImplementation group: 'junit', name: 'junit', version: '4.12'
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
+    // Gradle 9 no longer ships the JUnit Platform launcher to test JVMs.
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     //Jabel (allows to use Java 17 features)
     annotationProcessor 'com.github.bsideup.jabel:jabel-javac-plugin:0.4.2'
@@ -127,7 +126,7 @@ dependencies {
 }
 
 configure([tasks.compileJava]) {
-    sourceCompatibility = 16 // for the IDE support
+    sourceCompatibility = 17 // Java 17 syntax (IDE hint; Jabel lifts javac's check)
     options.release = 8
 
     javaCompiler = javaToolchains.compilerFor {

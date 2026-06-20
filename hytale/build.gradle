@@ -2,8 +2,7 @@ plugins {
     alias(libs.plugins.shadow)
 }
 
-sourceCompatibility = 25
-targetCompatibility = 25
+version = '3.0.1'
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
@@ -116,6 +115,7 @@ publishing {
     publications {
         petrus(MavenPublication) {
             groupId = project.group
+            artifactId = "evernifecore-hytale"
             from(components.java)
             pom.withXml {
                 asNode().appendNode('url','https://petrus.dev')
