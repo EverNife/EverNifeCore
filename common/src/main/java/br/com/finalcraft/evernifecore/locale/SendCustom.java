@@ -3,8 +3,8 @@ package br.com.finalcraft.evernifecore.locale;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import jakarta.annotation.Nullable;
@@ -112,7 +112,7 @@ public class SendCustom implements ILocaleMessageBase {
         allPlaceholdersReplacers.addAll(localeMessageImp.getContextPlaceholders().entrySet()); //Context Placeholders, like %label%
 
         boolean isPlayer = sender instanceof FPlayer;
-        final PlayerData playerData = isPlayer ? PlayerController.getPlayerData(sender.getUniqueId()) : null;
+        final PlayerData playerData = isPlayer ? PlayerController.getLoaded(sender.getUniqueId()) : null;
         for (Map.Entry<String, Object> entry : allPlaceholdersReplacers) {
             String placeholder = entry.getKey();
             String value;

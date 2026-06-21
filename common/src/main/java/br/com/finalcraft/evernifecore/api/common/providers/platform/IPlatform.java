@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.api.common.providers.platform;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
-import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
@@ -52,6 +52,13 @@ public interface IPlatform {
     public IPlatformVecAdapter getVecAdapter();
 
     public IPlatformChatAdapter getChatAdapter();
+
+    /**
+     * Runs the task on the server's main thread on the FIRST tick - that is, after every
+     * plugin has finished enabling. If the server is already past startup, the task simply
+     * runs on the next tick.
+     */
+    public void runOnFirstTick(Runnable runnable);
 
     public void registerConfiaLoadableSalvables();
 

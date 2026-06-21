@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.locale;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;

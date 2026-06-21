@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.integration.placeholders;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.integration.placeholders.PAPIRegexReplacer;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;

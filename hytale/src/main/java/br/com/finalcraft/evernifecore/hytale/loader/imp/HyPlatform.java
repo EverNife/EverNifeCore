@@ -8,7 +8,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformCha
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
 import br.com.finalcraft.evernifecore.api.eventhandler.ECEventHandler;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
-import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;

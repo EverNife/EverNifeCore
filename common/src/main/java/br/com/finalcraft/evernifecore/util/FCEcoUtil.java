@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.util;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.economy.EconomyManager;
 
 import java.math.BigDecimal;

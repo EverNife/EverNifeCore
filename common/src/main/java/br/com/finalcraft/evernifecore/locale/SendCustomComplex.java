@@ -2,8 +2,8 @@ package br.com.finalcraft.evernifecore.locale;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 
@@ -58,7 +58,7 @@ public class SendCustomComplex extends SendCustom {
                 allPlaceholdersReplacers.addAll(sendCustom.mapOfPlaceholders.entrySet()); //Custom placeholders, created by demand
                 allPlaceholdersReplacers.addAll(localeMessageImp.getContextPlaceholders().entrySet()); //Context Placeholders, like %label%
 
-                final PlayerData playerData = sender instanceof FPlayer ? PlayerController.getPlayerData(sender.getUniqueId()) : null;
+                final PlayerData playerData = sender instanceof FPlayer ? PlayerController.getLoaded(sender.getUniqueId()) : null;
                 for (Map.Entry<String, Object> entry : allPlaceholdersReplacers) {
                     String placeholder = entry.getKey();
                     String value;

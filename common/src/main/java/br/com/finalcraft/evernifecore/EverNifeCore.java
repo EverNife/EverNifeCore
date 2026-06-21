@@ -4,7 +4,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.ECProviders;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.commands.CommandRegisterer;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.yaml.helper.CfgExecutor;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -63,7 +63,7 @@ public class EverNifeCore {
 
     public void onUnload() {
         SaveConfigThread.INSTANCE.shutdown();
-        PlayerController.savePlayerDataOnConfig();
+        PlayerController.shutdown(); //flush dirty players + close storage backends
         CfgExecutor.shutdownExecutorAndScheduler();
     }
 

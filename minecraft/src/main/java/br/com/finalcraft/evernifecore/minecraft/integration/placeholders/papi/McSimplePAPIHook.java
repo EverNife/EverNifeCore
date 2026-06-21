@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.integration.placeholders.papi;
 
-import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
-import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.playerdata.PDSection;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.integration.placeholders.PAPIRegexReplacer;
 import jakarta.annotation.Nonnull;
@@ -30,10 +30,10 @@ public class McSimplePAPIHook extends PlaceholderHook {
 
     @Override
     public @Nullable String onRequest(OfflinePlayer player, @Nonnull String placeholder) {
-        IPlayerData playerData = player == null ? null : PlayerController.getPlayerData(player.getUniqueId());
+        IPlayerData playerData = player == null ? null : PlayerController.getLoaded(player.getUniqueId());
 
         if (playerData != null && isPDSection){
-            playerData = playerData.getPDSection(PAPI_REGEX_REPLACER.getReferClass());
+            playerData = (IPlayerData) playerData.getPDSection(PAPI_REGEX_REPLACER.getReferClass()).join();
         }
 
         try {

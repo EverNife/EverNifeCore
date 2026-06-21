@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.util;
 
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import org.bukkit.BanEntry;
 import org.bukkit.BanList;
@@ -23,7 +23,7 @@ public class FCBanUtil {
         if (banEntry != null) {
             Bukkit.getBanList(BanList.Type.NAME).pardon(banEntry.getTarget());
             try {
-                PlayerData playerData = PlayerController.getPlayerData(playerName);
+                PlayerData playerData = PlayerController.getPlayerData(playerName).join();
                 if (playerData != null){
                     Bukkit.getBanList(BanList.Type.NAME).pardon(playerData.getName()); //Minecraft is bugged man!
                     Bukkit.getBanList(BanList.Type.NAME).pardon(playerData.getUniqueId().toString()); //Minecraft is bugged man!

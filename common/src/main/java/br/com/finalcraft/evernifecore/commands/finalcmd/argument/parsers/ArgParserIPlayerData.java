@@ -9,10 +9,10 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserComman
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.context.ArgContextExtractor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.context.ArgContextResult;
-import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
-import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.playerdata.PDSection;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
 import jakarta.annotation.Nonnull;
@@ -57,22 +57,22 @@ public class ArgParserIPlayerData extends ArgParser<IPlayerData> {
             return playerData;
         }
 
-        return playerData.getPDSection((Class<? extends PDSection>) this.argInfo.getArgumentType());
+        return playerData.getPDSection((Class<? extends PDSection>) this.argInfo.getArgumentType()).join();
     }
 
     @Override
     public @Nonnull List<String> tabComplete(TabContext tabContext) {
 
         Collection<PlayerData> playerDataList = online
-                ? EverNifeCore.getPlatform().getOnlinePlayers().stream()
-                .map(PlayerController::getPlayerData)
-                .collect(Collectors.toList())
-                : PlayerController.getAllPlayerData();
+            ? EverNifeCore.getPlatform().getOnlinePlayers().stream()
+            .map(PlayerController::getLoaded)
+            .collect(Collectors.toList())
+            : PlayerController.getAllLoaded();
 
         return playerDataList.stream()
-                .map(playerData -> playerData.getName())
-                .filter(s -> FCStringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))
-                .sorted(String.CASE_INSENSITIVE_ORDER)
-                .collect(Collectors.toList());
+            .map(playerData -> playerData.getName())
+            .filter(s -> FCStringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))
+            .sorted(String.CASE_INSENSITIVE_ORDER)
+            .collect(Collectors.toList());
     }
 }

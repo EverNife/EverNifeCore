@@ -5,8 +5,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgContextualIn
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserContextual;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
-import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.PDSection;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import jakarta.annotation.Nonnull;
 
 public class ArgParserContextualPDSection extends ArgParserContextual<PDSection> {
@@ -17,7 +17,7 @@ public class ArgParserContextualPDSection extends ArgParserContextual<PDSection>
 
     @Override
     public PDSection parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender) throws ArgParseException {
-        return PlayerController.getPDSection(sender.getUniqueId(), getArgInfo().getArgumentType());
+        return (PDSection) PlayerController.getPDSection(sender.getUniqueId(), getArgInfo().getArgumentType()).join();
     }
 
     @Override

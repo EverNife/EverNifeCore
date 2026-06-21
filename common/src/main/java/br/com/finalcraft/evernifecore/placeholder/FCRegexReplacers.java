@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.placeholder;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ontime.OntimeManager;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;

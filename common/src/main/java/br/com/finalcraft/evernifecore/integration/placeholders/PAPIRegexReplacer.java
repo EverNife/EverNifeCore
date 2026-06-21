@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.integration.placeholders;
 
-import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 
 public class PAPIRegexReplacer<P extends IPlayerData> {

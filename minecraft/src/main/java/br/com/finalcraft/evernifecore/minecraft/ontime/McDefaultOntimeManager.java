@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.ontime;
 
-import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.ontime.IOntimeProvider;
 import br.com.finalcraft.evernifecore.ontime.OntimeManager;

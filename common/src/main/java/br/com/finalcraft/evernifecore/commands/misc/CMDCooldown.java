@@ -6,7 +6,7 @@ import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpLine;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;

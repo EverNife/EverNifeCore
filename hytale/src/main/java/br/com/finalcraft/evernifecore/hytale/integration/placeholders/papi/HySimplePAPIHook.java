@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.hytale.integration.placeholders.papi;
 
 import at.helpch.placeholderapi.PlaceholderHook;
-import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
-import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.playerdata.PDSection;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.integration.placeholders.PAPIRegexReplacer;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -23,10 +23,10 @@ public class HySimplePAPIHook implements PlaceholderHook {
 
     @Override
     public String onPlaceholderRequest(PlayerRef player, @NotNull String placeholder) {
-        IPlayerData playerData = player == null ? null : PlayerController.getPlayerData(player.getUuid());
+        IPlayerData playerData = player == null ? null : PlayerController.getLoaded(player.getUuid());
 
         if (playerData != null && isPDSection){
-            playerData = playerData.getPDSection(PAPI_REGEX_REPLACER.getReferClass());
+            playerData = (IPlayerData) playerData.getPDSection(PAPI_REGEX_REPLACER.getReferClass()).join();
         }
 
         try {

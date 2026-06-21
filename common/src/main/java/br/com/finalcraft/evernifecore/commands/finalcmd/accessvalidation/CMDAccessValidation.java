@@ -3,9 +3,9 @@ package br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.commands.finalcmd.custom.ICustomFinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDMethodInterpreter;
-import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.playerdata.PDSection;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 
 /**
  * Used to validate command access and HelpContext display based on customizable contexts
@@ -62,13 +62,13 @@ public abstract class CMDAccessValidation {
         public PlayerData getPlayerData(){
             if (!isPlayer()) return null;
 
-            return PlayerController.getPlayerData(sender.getUniqueId());
+            return PlayerController.getPlayerData(sender.getUniqueId()).join();
         }
 
         public <P extends PDSection> P getPDSection(Class<P> pdSectionClass){
             if (!isPlayer()) return null;
 
-            return PlayerController.getPDSection(sender.getUniqueId(), pdSectionClass);
+            return PlayerController.getPDSection(sender.getUniqueId(), pdSectionClass).join();
         }
 
         public boolean hasProperPermission(){

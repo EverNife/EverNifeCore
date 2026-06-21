@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.pageviwer;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.dynamiccommand.DynamicCommand;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;

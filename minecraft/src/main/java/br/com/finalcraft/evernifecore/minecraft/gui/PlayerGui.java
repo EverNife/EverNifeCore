@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.gui;
 
-import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.IHasLayout;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutBase;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutIcon;

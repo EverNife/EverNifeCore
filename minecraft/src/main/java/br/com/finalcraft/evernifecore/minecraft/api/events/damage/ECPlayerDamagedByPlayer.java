@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.api.events.damage;
 
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 

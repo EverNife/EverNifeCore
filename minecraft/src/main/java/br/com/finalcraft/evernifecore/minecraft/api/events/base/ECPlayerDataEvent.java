@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.api.events.base;
 
-import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.playerdata.PDSection;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import org.bukkit.entity.Player;
 
 public class ECPlayerDataEvent extends ECBaseEvent {
@@ -17,7 +17,7 @@ public class ECPlayerDataEvent extends ECBaseEvent {
     }
 
     public <T extends PDSection> T getPDSection(Class<T> pdSectionClass) {
-        return playerData.getPDSection(pdSectionClass);
+        return playerData.getPDSection(pdSectionClass).join();
     }
 
     public Player getPlayer(){

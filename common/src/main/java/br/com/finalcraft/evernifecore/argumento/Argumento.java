@@ -3,9 +3,9 @@ package br.com.finalcraft.evernifecore.argumento;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.platoverride.argumento.ArgumentoAdapter;
-import br.com.finalcraft.evernifecore.config.playerdata.PDSection;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.playerdata.PDSection;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
@@ -78,15 +78,15 @@ public class Argumento {
 
         UUID uuid = getUUID();
         if (uuid != null){
-            return PlayerController.getPlayerData(uuid);
+            return PlayerController.getLoaded(uuid);
         }
 
-        return PlayerController.getPlayerData(argumento);
+        return PlayerController.getLoaded(argumento);
     }
 
     public <T extends PDSection> T getPDSection(Class<? extends T> pdClass){
         PlayerData playerData = getPlayerData();
-        return playerData == null ? null : playerData.getPDSection(pdClass);
+        return playerData == null ? null : (T) playerData.getPDSection(pdClass).join();
     }
 
     public Integer getInteger(){

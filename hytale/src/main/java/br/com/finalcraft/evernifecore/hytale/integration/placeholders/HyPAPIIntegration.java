@@ -4,7 +4,7 @@ import at.helpch.placeholderapi.PlaceholderAPI;
 import at.helpch.placeholderapi.PlaceholderAPIPlugin;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.hytale.integration.placeholders.papi.HySimplePAPIHook;

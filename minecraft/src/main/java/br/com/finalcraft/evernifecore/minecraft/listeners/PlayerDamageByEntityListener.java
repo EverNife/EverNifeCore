@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners;
 
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.api.events.damage.*;
 import org.bukkit.Bukkit;
@@ -37,10 +37,11 @@ public class PlayerDamageByEntityListener implements ECListener {
         Tameable tamableVictim = null;
 
         PlayerData attackerData = attackerEntity instanceof Player
-                ? PlayerController.getPlayerData(attackerEntity.getUniqueId())
+                ? PlayerController.getLoaded(attackerEntity.getUniqueId())
                 : null;
+
         PlayerData victimData = victimEntity instanceof Player
-                ? PlayerController.getPlayerData(victimEntity.getUniqueId())
+                ? PlayerController.getLoaded(victimEntity.getUniqueId())
                 : null;
 
         //Maybe the damage cause is an Arrow or another Projectile
@@ -48,14 +49,14 @@ public class PlayerDamageByEntityListener implements ECListener {
             Projectile projectile = (Projectile) attackerEntity;
             if (projectile.getShooter() instanceof Player){
                 attackerEntity = (Player) projectile.getShooter();
-                attackerData = PlayerController.getPlayerData(attackerEntity.getUniqueId());
+                attackerData = PlayerController.getLoaded(attackerEntity.getUniqueId());
             }
 
             //Maybe the projectile shooter is a Pet itself
             if (projectile.getShooter() instanceof Tameable){
                 tamableAttacker = (Tameable) projectile.getShooter();
                 if (tamableAttacker.isTamed()){
-                    attackerData = PlayerController.getPlayerData(tamableAttacker.getOwner().getUniqueId());
+                    attackerData = PlayerController.getLoaded(tamableAttacker.getOwner().getUniqueId());
                 }
             }
         }
@@ -64,7 +65,7 @@ public class PlayerDamageByEntityListener implements ECListener {
         if (attackerData == null && attackerEntity instanceof Tameable){
             tamableAttacker = (Tameable) attackerEntity;
             if (tamableAttacker.isTamed()){
-                attackerData = PlayerController.getPlayerData(tamableAttacker.getOwner().getUniqueId());
+                attackerData = PlayerController.getLoaded(tamableAttacker.getOwner().getUniqueId());
             }
         }
 
@@ -72,7 +73,7 @@ public class PlayerDamageByEntityListener implements ECListener {
         if (victimData == null && victimEntity instanceof Tameable){
             tamableVictim = (Tameable) victimEntity;
             if (tamableVictim.isTamed()){
-                victimData = PlayerController.getPlayerData(tamableVictim.getOwner().getUniqueId());
+                victimData = PlayerController.getLoaded(tamableVictim.getOwner().getUniqueId());
             }
         }
 

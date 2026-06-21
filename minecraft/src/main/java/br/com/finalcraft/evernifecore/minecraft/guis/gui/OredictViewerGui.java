@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.guis.gui;
 
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.cooldown.PlayerCooldown;
 import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
 import br.com.finalcraft.evernifecore.minecraft.gui.PlayerGui;

@@ -17,6 +17,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
@@ -100,6 +101,10 @@ public class CMDMethodInterpreter {
                 e.printStackTrace();
                 throw new IllegalStateException("Failed to instantiate the ArgParser on the FinalCMD (" + executor.getClass().getName() +")[" + method.getName() +"] parameter [index=" + index + ", name=" + argData.getName() + "]");
             }
+
+            // Load the ArgParser's own @FCLocale static fields
+            ECPluginData parserPlugin = ECPluginManager.getProvidingPlugin(argData.getParser());
+            FCLocaleManager.loadLocale(parserPlugin, true, argData.getParser());
 
             arguments.put(index, parserInstance); //Index of the methodOrder eco_give(Player, arg1, PlayerData, arg3, etc...)
             tabParsers.put(flagArgIndex, parserInstance); //Index of the final TabParser (/eco give arg1 arg2)

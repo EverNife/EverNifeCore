@@ -7,7 +7,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
-import br.com.finalcraft.evernifecore.config.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
@@ -20,6 +20,7 @@ import br.com.finalcraft.evernifecore.minecraft.integration.placeholders.McPAPII
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import net.md_5.bungee.api.ChatMessageType;
@@ -127,7 +128,7 @@ public class McPlatform implements IPlatform {
             }
 
             for (String extrasMinecraftAlias : extrasMinecraftAliases) {
-                //This is necessary to remove forge/minecraft commands like 'minecraft:some_command'
+                //Needed to remove forge/minecraft commands like 'minecraft:some_command'
                 mapOfCommands.remove(extrasMinecraftAlias);
             }
 
@@ -260,6 +261,13 @@ public class McPlatform implements IPlatform {
     @Override
     public IPlatformChatAdapter getChatAdapter() {
         return CHAT_ADAPTER;
+    }
+
+    @Override
+    public void runOnFirstTick(Runnable runnable) {
+        //A task scheduled during onEnable only runs on the server's first tick,
+        //after all plugins have already been enabled
+        FCScheduler.getMinecraftScheduler().runSync(runnable);
     }
 
     boolean has_registerConfiaLoadableSalvables = false;

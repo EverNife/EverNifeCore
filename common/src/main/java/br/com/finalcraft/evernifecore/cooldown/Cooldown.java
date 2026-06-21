@@ -11,16 +11,23 @@ import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
+import br.com.finalcraft.everydatabase.util.JsonAutoDetectFieldsOnly;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 
 import java.util.LinkedHashMap;
 import java.util.concurrent.TimeUnit;
 
+@JsonAutoDetectFieldsOnly
 public abstract class Cooldown implements Salvable {
 
-    protected final String identifier;
+    protected String identifier;
     protected long timeStart = 0; //millis
     protected long timeDuration = 0; //millis
-    protected boolean persist = false; //should be saved on restart
+    protected boolean persist = false; //should be saved across restarts
+
+    protected Cooldown() {
+        //Jackson no-arg constructor
+    }
 
     public Cooldown(String identifier) {
         this.identifier = identifier;
@@ -121,7 +128,7 @@ public abstract class Cooldown implements Salvable {
         return (timeStart == 0 || customWaitTime <= 0) ? false : getTimeLeft(customWaitTime, timeUnit) >= 1;
     }
 
-    //Convenient method, as almost always cooldows are based on seconds not millis
+    //Convenience method, since cooldowns are almost always based on seconds rather than millis
     public Cooldown startWith(long timeInSeconds){
         return startWith(timeInSeconds, TimeUnit.SECONDS);
     }

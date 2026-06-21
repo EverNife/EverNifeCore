@@ -9,8 +9,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserComman
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.context.ArgContextExtractor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.context.ArgContextResult;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
 import jakarta.annotation.Nonnull;
@@ -47,7 +47,7 @@ public class ArgParserUUID extends ArgParser<UUID> {
             return null;
         }
 
-        PlayerData playerData = PlayerController.getPlayerData(uuid);
+        PlayerData playerData = PlayerController.getLoaded(uuid);
 
         if (playerData == null){
             FCMessageUtil.playerDataNotFound(sender, argumento.toString());
@@ -61,9 +61,9 @@ public class ArgParserUUID extends ArgParser<UUID> {
     public @Nonnull List<String> tabComplete(TabContext tabContext) {
         Collection<PlayerData> playerDataList = online
                 ? EverNifeCore.getPlatform().getOnlinePlayers().stream()
-                .map(PlayerController::getPlayerData)
+                .map(PlayerController::getLoaded)
                 .collect(Collectors.toList())
-                : PlayerController.getAllPlayerData();
+                : PlayerController.getAllLoaded();
 
 
         return playerDataList.stream()

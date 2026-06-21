@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.config;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.FCDefaultExecutor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -47,7 +47,7 @@ public class ConfigManager {
         );
         FCLocaleManager.updateEverNifeCoreLocale();
 
-        PlayerController.initialize();
+        PlayerController.bootstrap();
     }
 
     public static void reloadCooldownConfig(){
