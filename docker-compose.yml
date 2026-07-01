@@ -1,0 +1,197 @@
+# ======================================================================
+#  EverNifeCore - local test database suite
+# ======================================================================
+#
+# Starts the database servers used to test EverNifeCore's storage layer on
+# real network backends (the unit suite runs on H2/LocalFile/InMemory and
+# needs NONE of this). Use this to exercise, by hand or on a test server:
+#   - MariaDB / MySQL, PostgreSQL, MongoDB storage.yml backends
+#   - Valkey / Redis for the CacheSync (multi-instance cache invalidation)
+#     follow-up: point storage.yml's app-level `redis:` block at one of these.
+#
+# Kept in sync with the EveryDatabase project's compose (same services, ports,
+# credentials and container names) so both repos share one local database space.
+#
+# ----------------------------------------------------------------------
+#  How to use
+# ----------------------------------------------------------------------
+#   docker compose up -d            # start all in the background
+#   docker compose logs -f          # watch init logs
+#   docker compose ps               # status / healthchecks
+#   docker compose up -d postgres   # start only one service
+#   docker compose stop             # stop, keep data
+#   docker compose down             # remove containers, keep volumes
+#   docker compose down -v          # full wipe (deletes volumes/data)
+#
+# ----------------------------------------------------------------------
+#  Ports exposed on the host (high/sequential to avoid clashing defaults)
+# ----------------------------------------------------------------------
+#   MariaDB     -> 39306    (container 3306, wire-compatible with MySQL)
+#   PostgreSQL  -> 39307    (container 5432)
+#   MongoDB     -> 39308    (container 27017)
+#   Valkey      -> 39309    (container 6379)
+#   Redis       -> 39310    (container 6379)
+#
+# ----------------------------------------------------------------------
+#  Credentials
+# ----------------------------------------------------------------------
+#   MongoDB     -> none (open; 1-node replica set, connect with
+#                  mongodb://localhost:39308/?directConnection=true)
+#   MariaDB     -> root / root
+#   PostgreSQL  -> root / root
+#   Valkey      -> none (open)
+#   Redis       -> none (open)
+#
+# ======================================================================
+
+name: evernifecore-space
+
+services:
+
+  # --------------------------------------------------------------------
+  #  MongoDB 7  -  single-node replica set
+  #
+  #  Runs as a 1-node replica set ("rs0") so the features that REQUIRE one
+  #  work: multi-document transactions and Change Streams (the cache-sync
+  #  change feed). The healthcheck auto-initiates the set on first start and
+  #  then reports healthy only once the node is PRIMARY.
+  #
+  #  No access control: a replica set with auth would also need an internal
+  #  keyfile, awkward to provision across hosts (esp. Windows bind mounts).
+  #  Throwaway test DB, so it runs open. Connect WITHOUT credentials and with
+  #  directConnection=true:  mongodb://localhost:39308/?directConnection=true
+  # --------------------------------------------------------------------
+  mongo:
+    image: mongo:7
+    container_name: evernifecore-mongo
+    restart: unless-stopped
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "39308:27017"
+    volumes:
+      - mongo_data:/data/db
+      - mongo_configdb:/data/configdb
+    networks:
+      - evernifecore-test
+    healthcheck:
+      # Initiate the set if it has none yet; healthy only once this node is PRIMARY (myState == 1).
+      test: >-
+        mongosh --quiet --eval '
+        try { quit(rs.status().myState === 1 ? 0 : 1) }
+        catch (e) { rs.initiate({_id: "rs0", members: [{_id: 0, host: "localhost:27017"}]}); quit(1) }
+        '
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 15s
+
+  # --------------------------------------------------------------------
+  #  MariaDB 11  -  wire-compatible with MySQL: the mysql-connector-j driver
+  #  connects via jdbc:mysql://localhost:39306. Also covers real MySQL.
+  # --------------------------------------------------------------------
+  mariadb:
+    image: mariadb:11
+    container_name: evernifecore-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+    ports:
+      - "39306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - evernifecore-test
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # --------------------------------------------------------------------
+  #  PostgreSQL 16
+  # --------------------------------------------------------------------
+  postgres:
+    image: postgres:16
+    container_name: evernifecore-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+    ports:
+      - "39307:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - evernifecore-test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # --------------------------------------------------------------------
+  #  Valkey 8  -  pub/sub transport for the CacheSync follow-up
+  #
+  #  everydatabase-manager-jedis publishes cache-invalidation signals over a
+  #  Redis/Valkey pub/sub channel. Valkey is the open-source (BSD) Redis fork;
+  #  the same Jedis client connects unchanged. Ephemeral (no persistence).
+  # --------------------------------------------------------------------
+  valkey:
+    image: valkey/valkey:8.1-alpine
+    container_name: evernifecore-valkey
+    restart: unless-stopped
+    command: ["valkey-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "39309:6379"
+    networks:
+      - evernifecore-test
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 3s
+
+  # --------------------------------------------------------------------
+  #  Redis 7.4  -  the same CacheSync transport against upstream Redis
+  #  (last BSD-3 Redis line). Ephemeral, no auth.
+  # --------------------------------------------------------------------
+  redis:
+    image: redis:7.4-alpine
+    container_name: evernifecore-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "39310:6379"
+    networks:
+      - evernifecore-test
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 3s
+
+# ----------------------------------------------------------------------
+#  Named volumes - survive `down`, deleted with `down -v`.
+# ----------------------------------------------------------------------
+volumes:
+  mongo_data:
+    name: evernifecore-mongo-data
+  mongo_configdb:
+    name: evernifecore-mongo-configdb
+  mariadb_data:
+    name: evernifecore-mariadb-data
+  postgres_data:
+    name: evernifecore-postgres-data
+
+# ----------------------------------------------------------------------
+#  Shared network - useful if you ever want to link containers together
+#  (e.g. run Adminer/pgAdmin in the same compose).
+# ----------------------------------------------------------------------
+networks:
+  evernifecore-test:
+    name: evernifecore-test
+    driver: bridge
