@@ -205,6 +205,7 @@ shadowJar {
     relocate 'com.fasterxml.jackson.core',       'br.com.finalcraft.everydatabase.libs.jackson.core'
     relocate 'com.fasterxml.jackson.databind',   'br.com.finalcraft.everydatabase.libs.jackson.databind'
     relocate 'com.fasterxml.jackson.dataformat', 'br.com.finalcraft.everydatabase.libs.jackson.dataformat'
+    relocate 'com.fasterxml.jackson.datatype',   'br.com.finalcraft.everydatabase.libs.jackson.datatype'
     relocate 'com.zaxxer.hikari',                'br.com.finalcraft.everydatabase.libs.hikari'
     relocate 'org.slf4j',                        'br.com.finalcraft.everydatabase.libs.slf4j'
     relocate 'com.mongodb',                      'br.com.finalcraft.everydatabase.libs.mongodb'
