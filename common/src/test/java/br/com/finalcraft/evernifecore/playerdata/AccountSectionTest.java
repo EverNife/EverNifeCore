@@ -1,0 +1,304 @@
+package br.com.finalcraft.evernifecore.playerdata;
+
+import br.com.finalcraft.evernifecore.playerdata.account.Account;
+import br.com.finalcraft.evernifecore.playerdata.account.AccountMember;
+import br.com.finalcraft.evernifecore.playerdata.account.Accounts;
+import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
+import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * AccountSection behaviour: keying by the stamped accountId (== uuid unlinked, canonical id for a
+ * linked member, identical with the layer disabled), the shared-row round-trip, refresh on login,
+ * merge-based conflict resolution, presence semantics of the transient default, and the delete
+ * rule (a singleton's rows cascade; a linked account's rows survive one member's deletion).
+ */
+class AccountSectionTest {
+
+    @BeforeAll
+    static void installTestPlatform() {
+        TestPlatformFixture.ensureInstalled();
+    }
+
+    @TempDir
+    Path tempDir;
+
+    @AfterEach
+    void teardown() {
+        PlayerController.shutdown();
+        PlayerController.getConfiguredPDSections().clear();
+        PlayerController.getConfiguredAccountSections().clear();
+        EntitySchemaMigrations.clear();
+    }
+
+    /** Network-wide achievements: merge = set union (associative, commutative, idempotent). */
+    public static class AchievementsSection extends AccountSection<AchievementsSection> {
+        public Set<String> unlocked = new LinkedHashSet<>();
+
+        @Override
+        public AchievementsSection merge(List<AchievementsSection> others) {
+            AchievementsSection merged = new AchievementsSection();
+            merged.unlocked.addAll(this.unlocked);
+            for (AchievementsSection other : others) {
+                merged.unlocked.addAll(other.unlocked);
+            }
+            return merged;
+        }
+    }
+
+    private File writeStorageYml(String dbName, boolean accountsEnabled) throws IOException {
+        String yml = String.join("\n",
+                "storage-backends:",
+                "  test_h2:",
+                "    enabled: true",
+                "    type: h2",
+                "    url: \"jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1\"",
+                "default-backend: test_h2",
+                "multi-platform-accounts:",
+                "  enabled: " + accountsEnabled,
+                "");
+        File file = tempDir.resolve("storage_" + dbName + ".yml").toFile();
+        Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
+        return file;
+    }
+
+    private void registerAchievements() {
+        PlayerController.registerAccountSectionCfg(
+                AccountSectionConfiguration.builder(null, AchievementsSection.class).build());
+    }
+
+    /** Persists a canonical account with {@code memberUuid} linked in, plus the member's alias row. */
+    private UUID persistLinkedAccount(UUID memberUuid, String memberName) {
+        UUID canonicalId = UUID.randomUUID();
+        Account canonical = Account.singleton(canonicalId, Accounts.PLATFORM_PROVIDER,
+                canonicalId.toString(), "Owner");
+        canonical.addMember(new AccountMember(Accounts.PLATFORM_PROVIDER, memberUuid.toString(), memberName));
+        Accounts.get().getManager().saveAndCache(canonical).join();
+        Accounts.get().getManager().saveAndCache(Account.alias(memberUuid, canonicalId)).join();
+        return canonicalId;
+    }
+
+    // ------------------------------------------------------------------
+    // keying + round-trip
+    // ------------------------------------------------------------------
+
+    @Test
+    void disabledLayer_sectionKeysByUuid_andRoundTrips() throws IOException {
+        File storageYml = writeStorageYml("acs_disabled", false);
+        PlayerController.bootstrap(storageYml);
+        registerAchievements();
+
+        UUID uuid = UUID.randomUUID();
+        PlayerData playerData = PlayerController.handleLogin(uuid, "Solo").join();
+        AchievementsSection section = playerData.getAccountSection(AchievementsSection.class).join();
+        assertEquals(uuid, section.getAccountId(), "with the layer disabled the account row keys by the uuid");
+
+        section.unlocked.add("first_join");
+        section.markDirty();
+        PlayerController.get().flushAll().join();
+
+        PlayerController.bootstrap(storageYml);
+        registerAchievements();
+        AchievementsSection reloaded = PlayerController
+                .getAccountSectionByAccountId(uuid, AchievementsSection.class).join();
+        assertTrue(reloaded.unlocked.contains("first_join"), "the account row round-trips under the uuid key");
+    }
+
+    @Test
+    void linkedMember_sectionKeysByCanonicalId_andIsSharedAcrossMembers() throws IOException {
+        PlayerController.bootstrap(writeStorageYml("acs_linked", true));
+        registerAchievements();
+
+        UUID memberA = UUID.randomUUID();
+        UUID memberB = UUID.randomUUID();
+        UUID canonicalId = persistLinkedAccount(memberA, "MainName");
+        Account canonical = Accounts.get().account(canonicalId).join();
+        canonical.addMember(new AccountMember(Accounts.PLATFORM_PROVIDER, memberB.toString(), "AltName"));
+        Accounts.get().getManager().saveAndCache(canonical).join();
+        Accounts.get().getManager().saveAndCache(Account.alias(memberB, canonicalId)).join();
+
+        PlayerData playerA = PlayerController.handleLogin(memberA, "MainName").join();
+        AchievementsSection viaA = playerA.getAccountSection(AchievementsSection.class).join();
+        assertEquals(canonicalId, viaA.getAccountId(), "a linked member's account row keys by the canonical id");
+
+        viaA.unlocked.add("dragon_slayer");
+        viaA.markDirty();
+        PlayerController.get().flushAll().join();
+
+        PlayerData playerB = PlayerController.handleLogin(memberB, "AltName").join();
+        AchievementsSection viaB = playerB.getAccountSection(AchievementsSection.class).join();
+        assertTrue(viaB.unlocked.contains("dragon_slayer"),
+                "both linked members read the SAME account row");
+    }
+
+    // ------------------------------------------------------------------
+    // refresh on login: data written by another instance becomes visible
+    // ------------------------------------------------------------------
+
+    @Test
+    void loginRefreshesIdleCachedRowFromBackend() throws IOException {
+        PlayerController.bootstrap(writeStorageYml("acs_refresh", true));
+        registerAchievements();
+
+        UUID uuid = UUID.randomUUID();
+        PlayerData playerData = PlayerController.handleLogin(uuid, "Hopper").join();
+        AchievementsSection section = playerData.getAccountSection(AchievementsSection.class).join();
+        section.unlocked.add("local_one");
+        section.markDirty();
+        PlayerController.get().flushAll().join();
+
+        //another instance of the network writes the same row directly in the backend
+        AccountSectionBinding<AchievementsSection> binding =
+                PlayerController.get().accountEngine().getBinding(AchievementsSection.class);
+        AchievementsSection remote = binding.getRepository().find(uuid).join().get();
+        remote.unlocked.add("remote_two");
+        binding.getRepository().save(remote).join();
+
+        //no active local session uses the row: the next login re-reads it
+        PlayerData again = PlayerController.handleLogin(uuid, "Hopper").join();
+        AchievementsSection refreshed = again.getAccountSection(AchievementsSection.class).join();
+        assertTrue(refreshed.unlocked.contains("remote_two"),
+                "a login must surface data written by another instance");
+        assertTrue(refreshed.unlocked.contains("local_one"));
+    }
+
+    // ------------------------------------------------------------------
+    // conflict resolution = merge (no side is dropped). The generic conflict pipeline is covered by
+    // PlayerControllerConflictPipelineTest; here the account-specific resolution step is exercised
+    // directly (a real cross-instance conflict needs a lock-enforcing backend - the manual suite).
+    // ------------------------------------------------------------------
+
+    @Test
+    void mergeStoredStateCombinesBothSidesAndKeepsFrameworkIdentity() {
+        UUID accountKey = UUID.randomUUID();
+
+        AchievementsSection live = new AchievementsSection();
+        live.attachAccountId(accountKey);
+        live.unlocked.add("local_win");
+        live.recordMergedKey(UUID.randomUUID(), 3L);
+
+        AchievementsSection storedWinner = new AchievementsSection();
+        storedWinner.attachAccountId(accountKey);
+        storedWinner.unlocked.add("remote_win");
+        storedWinner.lockVersion = 9L;
+        UUID sharedLedgerKey = UUID.randomUUID();
+        storedWinner.recordMergedKey(sharedLedgerKey, 7L);
+
+        live.mergeStoredState(storedWinner);
+
+        assertTrue(live.unlocked.containsAll(Arrays.asList("local_win", "remote_win")),
+                "the resolution must keep BOTH sides: " + live.unlocked);
+        assertEquals(accountKey, live.getAccountId(), "the storage key must survive the merge copy");
+        assertEquals(Long.valueOf(9L), live.lockVersion, "the winner's lock version is adopted");
+        assertTrue(live.isDirty(), "the merged state must be re-persisted");
+        assertEquals(2, live.mergedKeys.size(), "the absorption ledgers of both rows are united");
+        assertEquals(Long.valueOf(7L), live.findMergedKey(sharedLedgerKey).getLockVersion());
+    }
+
+    // ------------------------------------------------------------------
+    // presence semantics + merge purity
+    // ------------------------------------------------------------------
+
+    @Test
+    void transientDefaultReportsAbsentUntilDirtied() throws IOException {
+        PlayerController.bootstrap(writeStorageYml("acs_presence", true));
+        registerAchievements();
+
+        UUID uuid = UUID.randomUUID();
+        PlayerData playerData = PlayerController.handleLogin(uuid, "Ghost").join();
+        AchievementsSection section = playerData.getAccountSection(AchievementsSection.class).join();
+        assertTrue(section.isTransientDefault(), "a seeded default is cache-only");
+        assertFalse(playerData.getAccountSectionIfPresent(AchievementsSection.class).join().isPresent(),
+                "the presence primitive must report absence for a never-dirtied default");
+
+        section.unlocked.add("now_real");
+        section.markDirty();
+        PlayerController.get().flushAll().join();
+        assertTrue(playerData.getAccountSectionIfPresent(AchievementsSection.class).join().isPresent(),
+                "once dirtied+persisted the row is present");
+    }
+
+    @Test
+    void mergeIsPure_returnsNewInstanceAndDoesNotMutateInputs() {
+        AchievementsSection base = new AchievementsSection();
+        base.unlocked.add("a");
+        AchievementsSection other = new AchievementsSection();
+        other.unlocked.add("b");
+
+        AchievementsSection merged = base.merge(new ArrayList<>(Arrays.asList(other)));
+        assertNotSame(base, merged);
+        assertNotSame(other, merged);
+        assertTrue(merged.unlocked.containsAll(Arrays.asList("a", "b")));
+        assertEquals(1, base.unlocked.size(), "the receiver must not be mutated");
+        assertEquals(1, other.unlocked.size(), "an input must not be mutated");
+    }
+
+    // ------------------------------------------------------------------
+    // deletePlayerData: singleton cascades, linked account survives
+    // ------------------------------------------------------------------
+
+    @Test
+    void deleteSingletonPlayerRemovesItsAccountRow() throws IOException {
+        PlayerController.bootstrap(writeStorageYml("acs_delete_solo", true));
+        registerAchievements();
+
+        UUID uuid = UUID.randomUUID();
+        PlayerData playerData = PlayerController.handleLogin(uuid, "Deleted").join();
+        AchievementsSection section = playerData.getAccountSection(AchievementsSection.class).join();
+        section.unlocked.add("gone_soon");
+        section.markDirty();
+        PlayerController.get().flushAll().join();
+
+        PlayerController.deletePlayerData(uuid).join();
+
+        AccountSectionBinding<AchievementsSection> binding =
+                PlayerController.get().accountEngine().getBinding(AchievementsSection.class);
+        assertFalse(binding.getRepository().find(uuid).join().isPresent(),
+                "a singleton player's account row cascades with the delete");
+        assertNull(PlayerController.getLoaded(uuid));
+    }
+
+    @Test
+    void deleteLinkedMemberKeepsTheSharedAccountRow() throws IOException {
+        PlayerController.bootstrap(writeStorageYml("acs_delete_linked", true));
+        registerAchievements();
+
+        UUID memberUuid = UUID.randomUUID();
+        UUID canonicalId = persistLinkedAccount(memberUuid, "Alt");
+
+        PlayerData member = PlayerController.handleLogin(memberUuid, "Alt").join();
+        AchievementsSection section = member.getAccountSection(AchievementsSection.class).join();
+        section.unlocked.add("shared_data");
+        section.markDirty();
+        PlayerController.get().flushAll().join();
+
+        PlayerController.deletePlayerData(memberUuid).join();
+
+        AccountSectionBinding<AchievementsSection> binding =
+                PlayerController.get().accountEngine().getBinding(AchievementsSection.class);
+        assertTrue(binding.getRepository().find(canonicalId).join().isPresent(),
+                "a linked account's shared row must survive one member's deletion");
+        assertNull(PlayerController.getLoaded(memberUuid), "the member's base entity is gone");
+    }
+}
