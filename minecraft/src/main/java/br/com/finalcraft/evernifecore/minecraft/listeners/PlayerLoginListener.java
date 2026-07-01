@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners;
 
 import br.com.finalcraft.evernifecore.actionbar.ActionBarAPI;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.config.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.api.events.ECFullyLoggedInEvent;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
@@ -20,13 +20,19 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 public class PlayerLoginListener implements ECListener {
 
-    @EventHandler(priority = EventPriority.MONITOR)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onAsyncPlayerPreLogin(AsyncPlayerPreLoginEvent event) {
         if (event.getLoginResult() != AsyncPlayerPreLoginEvent.Result.ALLOWED){
             return;
         }
 
-        PlayerController.handlePlayerAsyncPreUUIDToNameCalculation(event.getUniqueId(), event.getName());
+        //We are already off the main thread here - join() on the async login pipeline.
+        //Bounded by a timeout: a hung backend must DENY the login, not hang the Netty thread forever.
+        try {
+            PlayerController.handleLoginWithTimeout(event.getUniqueId(), event.getName()).join();
+        } catch (Throwable loginFailure) {
+            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, "Could not load your player data (storage unavailable). Please try again shortly.");
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -35,7 +41,7 @@ public class PlayerLoginListener implements ECListener {
             return;
         }
 
-        PlayerData playerData = PlayerController.getPlayerData(event.getPlayer().getUniqueId());
+        PlayerData playerData = PlayerController.getLoaded(event.getPlayer().getUniqueId());
 
         if (playerData != null){
             //In some cases a Player may not have a PlayerData, this usually
@@ -43,22 +49,23 @@ public class PlayerLoginListener implements ECListener {
             // calling the AsyncPlayerPreLoginEvent
 
 
-            //[Store an instance of a Player.class] it is a bad practice, but in minecraft, what is not :D
+            //[Holding onto a Player.class instance] is bad practice, but on minecraft, what isn't :D
             playerData.setPlayer(FCBukkitUtil.adapt(event.getPlayer()));
         }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuitEvent(PlayerQuitEvent event) {
-        PlayerData playerData = PlayerController.getPlayerData(event.getPlayer().getUniqueId());
+        PlayerData playerData = PlayerController.getLoaded(event.getPlayer().getUniqueId());
         if (playerData != null){
             //In some cases a Player may not have a PlayerData, this usually
-            // happens when the player has not been able to fully join the server,
-            // like when the Whitelist is turned on (AsyncPlayerPreLoginEvent is not called properly)
+            // happens when the player could not fully join the server,
+            // such as when the Whitelist is on (AsyncPlayerPreLoginEvent is not called correctly)
 
 
-            //[Store an instance of a Player.class] it is a bad practice, but in minecraft, what is not :D
-            playerData.setPlayer(null);
+            //Detach + durably flush this player off the quit thread (bounded async; retried on
+            //a storage outage, never dropped). Working-set sections evict after a short grace.
+            PlayerController.handlePlayerQuit(playerData.getUniqueId());
 
             ActionBarAPI.clearReferences(playerData.getUniqueId());
         }
@@ -93,7 +100,7 @@ public class PlayerLoginListener implements ECListener {
                     return;
                 }
 
-                PlayerData playerData = PlayerController.getPlayerData(player.getUniqueId());
+                PlayerData playerData = PlayerController.getLoaded(player.getUniqueId());
 
                 if (playerData == null || playerData.getPlayer() == null){
                     return;

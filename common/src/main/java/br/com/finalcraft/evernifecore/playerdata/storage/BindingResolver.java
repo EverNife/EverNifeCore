@@ -1,0 +1,250 @@
+package br.com.finalcraft.evernifecore.playerdata.storage;
+
+import br.com.finalcraft.evernifecore.playerdata.PDSection;
+import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
+import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigratingCodec;
+import br.com.finalcraft.evernifecore.storage.BackendType;
+import br.com.finalcraft.evernifecore.storage.StorageConfigException;
+import br.com.finalcraft.evernifecore.storage.StorageRegistry;
+import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
+import br.com.finalcraft.evernifecore.storage.config.PDSectionAdminConfig;
+import br.com.finalcraft.evernifecore.storage.config.ParsedStorageConfig;
+import br.com.finalcraft.evernifecore.storage.config.StorageYamlParser;
+import br.com.finalcraft.everydatabase.EntityDescriptor;
+import br.com.finalcraft.everydatabase.Storage;
+import br.com.finalcraft.everydatabase.codec.Codec;
+import br.com.finalcraft.everydatabase.codec.JacksonJsonCodec;
+import br.com.finalcraft.everydatabase.codec.JacksonYamlCodec;
+import br.com.finalcraft.everydatabase.manager.CachingManager;
+import br.com.finalcraft.everydatabase.manager.RefRegistry;
+import br.com.finalcraft.everydatabase.manager.cache.CacheOptions;
+import br.com.finalcraft.everydatabase.manager.cache.CachePolicy;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Resolves the dev configuration against the admin's storage.yml into a {@link PDSectionBinding}:
+ *
+ * <pre>
+ * backend  = pdsections[plugin][section].backend ?? cfg.defaultBackend ?? default-backend
+ *            (must be declared AND enabled - otherwise, fatal error)
+ *            (outside cfg.suggestedBackends -> warning; the admin has the final say)
+ * collection = yml.collection ?? cfg.collection ?? "pd_&lt;plugin&gt;_&lt;section&gt;"
+ *            (reserved in the registry - a collision is a fatal error)
+ * codec    = cfg.codec ?? localfile(yaml->JacksonYamlCodec | json->JacksonJsonCodec.pretty)
+ *            ?? compact JacksonJsonCodec
+ * cache    = yml.cache ?? cfg.sectionCachePolicy (default resident)
+ * lock     = always active via @OptimisticLock on the PDSection base
+ *            (detected by the annotation scan in EntityDescriptor.build())
+ * </pre>
+ *
+ * <p>The resolved {@link CachingManager} is created in the supplied {@link RefRegistry} (the
+ * plugin's child registry), so two plugins' managers for the same entity type never collide.</p>
+ */
+public final class BindingResolver {
+
+    private BindingResolver() {
+    }
+
+    public static <S extends PDSection> PDSectionBinding<S> resolve(PDSectionConfiguration<S> cfg,
+                                                                    ParsedStorageConfig parsed,
+                                                                    StorageRegistry registry,
+                                                                    RefRegistry refRegistry) {
+        return resolve(cfg.getPluginData().getMetaInfo().getName(), cfg, parsed, registry, refRegistry);
+    }
+
+    /** Variant with an explicit plugin name (also used by tests, avoiding the need for ECPluginData). */
+    public static <S extends PDSection> PDSectionBinding<S> resolve(String pluginName,
+                                                                    PDSectionConfiguration<S> cfg,
+                                                                    ParsedStorageConfig parsed,
+                                                                    StorageRegistry registry,
+                                                                    RefRegistry refRegistry) {
+        String sectionName = cfg.getPdSectionClass().getSimpleName();
+        String sectionId = pluginName + ":" + sectionName;
+        List<String> warnings = new ArrayList<>();
+
+        Optional<PDSectionAdminConfig> admin = parsed.getPDSection(pluginName, sectionName);
+
+        // ---- backend (resolution chain + fatal checks) ----
+        String backendName = admin.map(PDSectionAdminConfig::getBackendName).orElse(null);
+        if (backendName == null) backendName = cfg.getDefaultBackend();
+        if (backendName == null) backendName = parsed.getDefaultBackendName();
+
+        BackendDefinition backend = parsed.getBackend(backendName).orElse(null);
+        if (backend == null) {
+            throw new StorageConfigException("PDSection '" + sectionId + "' points to backend '"
+                    + backendName + "', which is not declared under 'storage-backends:' in storage.yml!");
+        }
+        if (!backend.isEnabled()) {
+            throw new StorageConfigException("PDSection '" + sectionId + "' points to backend '"
+                    + backendName + "', which is DISABLED - set 'storage-backends." + backendName
+                    + ".enabled: true' in storage.yml!");
+        }
+        // hard developer constraint: the section may only live on certain backend types
+        if (!cfg.getAllowedBackendTypes().isEmpty() && !cfg.getAllowedBackendTypes().contains(backend.getType())) {
+            throw new StorageConfigException("PDSection '" + sectionId + "' is restricted to backend type(s) "
+                    + cfg.getAllowedBackendTypes() + " by the developer, but is configured on backend '"
+                    + backendName + "' of type " + backend.getType() + ". Point 'pdsections." + pluginName
+                    + "." + sectionName + ".backend' at a backend of an allowed type.");
+        }
+        Storage storage = registry.get(backendName);
+
+        if (!cfg.getSuggestedBackends().isEmpty() && !cfg.getSuggestedBackends().contains(backendName)) {
+            warnings.add("PDSection '" + sectionId + "' is configured on backend '" + backendName
+                    + "', outside the backends suggested by the developer "
+                    + cfg.getSuggestedBackends() + ". Proceeding anyway (admin decides).");
+        }
+
+        // ---- collection (chain + claim) ----
+        String collection = admin.map(PDSectionAdminConfig::getCollection).orElse(null);
+        if (collection == null) collection = cfg.getCollection();
+        if (collection == null) collection = defaultCollection(pluginName, sectionName);
+
+        if (!StorageYamlParser.VALID_COLLECTION.matcher(collection).matches()) {
+            throw new StorageConfigException("PDSection '" + sectionId + "' resolved to invalid"
+                    + " collection name '" + collection + "' - must match "
+                    + StorageYamlParser.VALID_COLLECTION.pattern());
+        }
+        if (!registry.claimCollection(backendName, collection, sectionId)) {
+            throw new StorageConfigException("PDSection '" + sectionId + "' wants collection '"
+                    + collection + "' on backend '" + backendName + "', but it is already used by '"
+                    + registry.getCollectionOwner(backendName, collection) + "'!"
+                    + " Set a different 'collection:' in storage.yml or in the dev configuration.");
+        }
+
+        // ---- codec ----
+        Codec<S> codec = cfg.getCodec();
+        if (codec == null) {
+            codec = defaultCodec(backend, cfg.getPdSectionClass());
+        }
+        // run the registered entity-schema migration chain on the raw payload before binding (no-op when none);
+        // fail-fast here if a custom codec cannot expose an ObjectMapper while a chain is registered
+        codec = EntitySchemaMigratingCodec.wrap(cfg.getPdSectionClass(), codec, "uuid");
+
+        // ---- cache (admin override > dev SectionCachePolicy, default resident) ----
+        // The dev SectionCachePolicy carries both the store options (freshness + LRU bound) AND the
+        // framework-only lifecycle (workingSet evict-on-quit, ttl purge timer). An admin cache: override
+        // in storage.yml still wins for freshness, but keeps the dev's framework lifecycle intent.
+        SectionCachePolicy sectionCachePolicy = cfg.getSectionCachePolicy() != null
+                ? cfg.getSectionCachePolicy()
+                : SectionCachePolicy.resident();
+        CacheOptions cacheOptions;
+        if (admin.isPresent() && admin.get().getCachePolicyName() != null) {
+            try {
+                CachePolicy adminPolicy = CachePolicy.fromAdminConfig(
+                        admin.get().getCachePolicyName(), admin.get().getCacheTtlSeconds());
+                //preserve the dev's LRU bound (capacity is not expressible in the admin cache: knob)
+                cacheOptions = CacheOptions.builder()
+                        .policy(adminPolicy)
+                        .maxSize(sectionCachePolicy.toCacheOptions().maxSize())
+                        .build();
+            } catch (IllegalArgumentException e) {
+                throw new StorageConfigException("PDSection '" + sectionId + "': " + e.getMessage(), e);
+            }
+        } else {
+            cacheOptions = sectionCachePolicy.toCacheOptions();
+        }
+
+        // ---- descriptor + caching manager ----
+        EntityDescriptor<UUID, S> descriptor = EntityDescriptor
+                .builder(UUID.class, cfg.getPdSectionClass())
+                .collection(collection)
+                .keyExtractor(PDSection::getStorageKey)
+                .codec(codec)
+                .build();   // @Indexed / @OptimisticLock are scanned here
+
+        // Fail-fast: a versioned section routed to a backend that cannot enforce the
+        // optimistic lock is silent data loss under multi-instance writes. Rejected when
+        // multi-instance intent is declared (enableSync or a redis: block present).
+        PdSyncBindGuard.check(sectionId, descriptor, storage, parsed, false, warnings);
+
+        CachingManager<UUID, S> manager = refRegistry.manager(descriptor, storage, cacheOptions);
+
+        return new PDSectionBinding<>(cfg, backendName, storage, descriptor, manager, sectionCachePolicy, warnings);
+    }
+
+    /**
+     * Rebinds an existing binding to another backend (already validated and enabled) -
+     * the runtime transfer cutover. Same collection and same dev configuration;
+     * storage, manager and default codec follow the target backend.
+     */
+    public static <S extends PDSection> PDSectionBinding<S> rebindTo(PDSectionBinding<S> current,
+                                                                     String targetBackendName,
+                                                                     ParsedStorageConfig parsed,
+                                                                     StorageRegistry registry,
+                                                                     RefRegistry refRegistry) {
+        PDSectionConfiguration<S> cfg = current.getConfiguration();
+        BackendDefinition backend = parsed.getBackend(targetBackendName)
+                .orElseThrow(() -> new StorageConfigException("Backend '" + targetBackendName + "' is not declared!"));
+        if (!cfg.getAllowedBackendTypes().isEmpty() && !cfg.getAllowedBackendTypes().contains(backend.getType())) {
+            throw new StorageConfigException("Cannot transfer PDSection '" + cfg.getPdSectionClass().getSimpleName()
+                    + "' to backend '" + targetBackendName + "' of type " + backend.getType()
+                    + ": the developer restricted it to backend type(s) " + cfg.getAllowedBackendTypes() + ".");
+        }
+        Storage storage = registry.get(targetBackendName);
+        String collection = current.getCollection();
+
+        //the claim travels with the current owner (same id used in the original resolve)
+        String owner = registry.getCollectionOwner(current.getBackendName(), collection);
+        if (owner == null) owner = cfg.getPdSectionClass().getName();
+        if (!registry.claimCollection(targetBackendName, collection, owner)) {
+            throw new StorageConfigException("Cannot transfer PDSection '" + owner + "': collection '"
+                    + collection + "' on backend '" + targetBackendName + "' is already used by '"
+                    + registry.getCollectionOwner(targetBackendName, collection) + "'!");
+        }
+
+        Codec<S> codec = cfg.getCodec();
+        if (codec == null) {
+            codec = defaultCodec(backend, cfg.getPdSectionClass());
+        }
+        codec = EntitySchemaMigratingCodec.wrap(cfg.getPdSectionClass(), codec, "uuid");
+
+        EntityDescriptor<UUID, S> descriptor = EntityDescriptor
+                .builder(UUID.class, cfg.getPdSectionClass())
+                .collection(collection)
+                .keyExtractor(PDSection::getStorageKey)
+                .codec(codec)
+                .build();
+        //same fail-fast the boot-time resolve applies: a runtime transfer must not be able to move a
+        //versioned section onto a lock-unenforcing backend under multi-instance intent (and then
+        //persist a storage.yml the next boot would refuse)
+        PdSyncBindGuard.check(cfg.getPdSectionClass().getSimpleName() + " (transfer target)",
+                descriptor, storage, parsed, false, new ArrayList<>());
+        //the runtime transfer keeps the section's declared cache lifecycle across the cutover
+        SectionCachePolicy sectionCachePolicy = current.getSectionCachePolicy();
+        CachingManager<UUID, S> manager = refRegistry.manager(descriptor, storage,
+                sectionCachePolicy.toCacheOptions());
+
+        return new PDSectionBinding<>(cfg, targetBackendName, storage, descriptor, manager,
+                sectionCachePolicy, new ArrayList<>());
+    }
+
+    /** A sanitized, backend-safe collection name: {@code <prefix>_<plugin>_<section>}. */
+    public static String collectionName(String prefix, String pluginName, String sectionName) {
+        return prefix + "_" + sanitize(pluginName) + "_" + sanitize(sectionName);
+    }
+
+    /** Default collection name of a PDSection: {@code pd_<plugin>_<section>}, sanitized. */
+    public static String defaultCollection(String pluginName, String sectionName) {
+        return collectionName("pd", pluginName, sectionName);
+    }
+
+    private static String sanitize(String value) {
+        return value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_]", "");
+    }
+
+    /** Default codec per backend - also used by {@link PlayerDataBinding} and the account layer. */
+    public static <S> Codec<S> defaultCodec(BackendDefinition backend, Class<S> type) {
+        if (backend.getType() == BackendType.LOCALFILE || backend.getType() == BackendType.GROUPEDFILE) {
+            // file backends pick their codec by the configured format (YAML by default)
+            return backend.getFormat() == BackendDefinition.FileFormat.YAML
+                    ? new JacksonYamlCodec<>(type)
+                    : JacksonJsonCodec.pretty(type);   // json on a file backend is always pretty
+        }
+        return new JacksonJsonCodec<>(type);            // every other backend: compact JSON
+    }
+}

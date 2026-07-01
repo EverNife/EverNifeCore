@@ -9,13 +9,16 @@ public class CommandRegisterer {
     public static void registerCommands(ECPluginData pluginInstance) {
 
         FinalCMDManager.registerCommand(pluginInstance, CoreCommand.class);
-        FinalCMDManager.registerCommand(pluginInstance, CMDCooldown.class);
+        FinalCMDManager.registerCommand(pluginInstance, CMDECCooldown.class);
         FinalCMDManager.registerCommand(pluginInstance, CMDSvInfo.class);
         FinalCMDManager.registerCommand(pluginInstance, CMDGetName.class);
         FinalCMDManager.registerCommand(pluginInstance, CMDGetUUID.class);
         FinalCMDManager.registerCommand(pluginInstance, CMDECLocale.class);
         FinalCMDManager.registerCommand(pluginInstance, CMDECDynamicCommand.class);
         FinalCMDManager.registerCommand(pluginInstance, CMDList.class);
+        FinalCMDManager.registerCommand(pluginInstance, CMDStorageTransfer.class);
+        FinalCMDManager.registerCommand(pluginInstance, CMDStorageStatus.class);
+        FinalCMDManager.registerCommand(pluginInstance, CMDAccount.class);
 
     }
 

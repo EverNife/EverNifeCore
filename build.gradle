@@ -54,6 +54,14 @@ subprojects {
             }
         }
         mavenCentral()
+        // EveryDatabase resolves from mavenLocal until it is published to maven.petrus.dev
+        // (run publishToMavenLocal in the EveryDatabase project - core AND manager are consumed).
+        // The group filter keeps this repository from interfering with any other resolution.
+        mavenLocal {
+            content {
+                includeGroup "br.com.finalcraft.everydatabase"
+            }
+        }
         maven { url = "https://jitpack.io" }
         maven { url 'https://libraries.minecraft.net/' }
         maven { url 'https://maven.petrus.dev/public' }
@@ -68,10 +76,10 @@ subprojects {
         compileOnly "jakarta.annotation:jakarta.annotation-api:2.1.1"
 
         //Lombok
-        compileOnly 'org.projectlombok:lombok:1.18.42'
-        annotationProcessor 'org.projectlombok:lombok:1.18.42'
-        testCompileOnly 'org.projectlombok:lombok:1.18.42'
-        testAnnotationProcessor 'org.projectlombok:lombok:1.18.42'
+        compileOnly 'org.projectlombok:lombok:1.18.46'
+        annotationProcessor 'org.projectlombok:lombok:1.18.46'
+        testCompileOnly 'org.projectlombok:lombok:1.18.46'
+        testAnnotationProcessor 'org.projectlombok:lombok:1.18.46'
     }
 
     // Compile to Java 8 bytecode but still resolve JVM-11+ dependencies (Adventure, EveryDatabase,

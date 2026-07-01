@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.config.uuids;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class UUIDsController {
 
@@ -65,10 +66,10 @@ public class UUIDsController {
     }
 
     public static final class UUIDHashMap{
-        private final Map<UUID,String> storedUUIDtoName = new HashMap<>();
-        private final Map<String,UUID> storedNameToUUID = new HashMap<>();
+        private final Map<UUID,String> storedUUIDtoName = new ConcurrentHashMap<>();
+        private final Map<String,UUID> storedNameToUUID = new ConcurrentHashMap<>();
 
-        public void put(UUID uuid, String name){
+        public synchronized void put(UUID uuid, String name){
             //First, lets keep consistency between name and uuid
             String previousWrongName = storedUUIDtoName.remove(uuid);
             UUID previousWrongUUID = storedNameToUUID.remove(name.toLowerCase());
@@ -104,7 +105,7 @@ public class UUIDsController {
             return storedUUIDtoName.values();
         }
 
-        public void clear(){
+        public synchronized void clear(){
             storedUUIDtoName.clear();
             storedNameToUUID.clear();
         }

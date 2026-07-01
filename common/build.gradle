@@ -12,9 +12,9 @@ dependencies {
 
     // EveryDatabase storage API (api scope: its types appear in common's public API).
     // The heavy runtime deps arrive via libby (minecraft) or the shadow jar (hytale).
-    api 'br.com.finalcraft.everydatabase:everydatabase-core:1.0.3'
+    api 'br.com.finalcraft.everydatabase:everydatabase-core:1.0.6'
     // Typed references + per-type caching managers (write-back, parent registries).
-    api 'br.com.finalcraft.everydatabase:everydatabase-manager:1.0.3'
+    api 'br.com.finalcraft.everydatabase:everydatabase-manager:1.0.6'
 
     api('net.kyori:adventure-api:4.21.0') {
         exclude(module: 'adventure-bom')
@@ -34,8 +34,10 @@ dependencies {
     implementation("net.kyori:adventure-text-serializer-gson:4.26.1")
     implementation("net.kyori:adventure-text-serializer-legacy:4.26.1")
 
-    annotationProcessor 'com.github.bsideup.jabel:jabel-javac-plugin:0.4.2'
-    compileOnly 'com.github.bsideup.jabel:jabel-javac-plugin:0.4.2'
+    // FinalCraft fork: rides a Java 25 javac and still emits Java 8 bytecode (the bsideup 0.4.2 jar
+    // cannot hook a Java 25 compiler). Same setup as EveryConfig/EveryDatabase.
+    annotationProcessor 'br.com.finalcraft:jabel:1.2.0'
+    compileOnly 'br.com.finalcraft:jabel:1.2.0'
 
     implementation 'net.byteflux:libby-core:1.2.0'
 
@@ -57,11 +59,11 @@ java {
 }
 
 configure([tasks.compileJava]) {
-    sourceCompatibility = 17 // Java 17 syntax (IDE hint; Jabel lifts javac's check)
+    sourceCompatibility = 25 // modern syntax (IDE hint; Jabel lifts javac's check); options.release governs
     options.release = 8
 
     javaCompiler = javaToolchains.compilerFor {
-        languageVersion = JavaLanguageVersion.of(17)
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 
