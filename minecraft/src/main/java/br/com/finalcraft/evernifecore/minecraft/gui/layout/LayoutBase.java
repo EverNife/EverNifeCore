@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.layout;
 
-import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.everyconfig.config.Config;
 import dev.triumphteam.gui.builder.gui.BaseGuiBuilder;
 import dev.triumphteam.gui.builder.gui.SimpleBuilder;
 

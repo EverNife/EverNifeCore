@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.inventory.invitem;
 
-import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
+import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.evernifecore.minecraft.inventory.data.ItemInSlot;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
@@ -34,7 +34,8 @@ public interface InvItem {
 
         List<ItemInSlot> itemInSlots = new ArrayList<>();
         for (String slot : configSection.getKeys("invItem.content")) {
-            ItemStack slotItem = configSection.getLoadable("invItem.content." + slot, ItemStack.class);
+            ItemStack slotItem = configSection.getConfig().getValue(
+                    configSection.concatSubPath("invItem.content." + slot), ItemStack.class);
             itemInSlots.add(new ItemInSlot(Integer.parseInt(slot), slotItem));
         }
 

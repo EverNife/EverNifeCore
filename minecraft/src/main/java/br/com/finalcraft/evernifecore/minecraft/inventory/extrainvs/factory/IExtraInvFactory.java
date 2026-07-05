@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.inventory.extrainvs.factory;
 
-import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
+import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventory;
 import br.com.finalcraft.evernifecore.minecraft.inventory.extrainvs.ExtraInv;
 import org.bukkit.entity.Player;
@@ -18,7 +18,7 @@ public interface IExtraInvFactory<E extends ExtraInv> {
     public void applyToPlayer(Player player, E e);
 
     public default E onConfigLoad(ConfigSection section) {
-        GenericInventory genericInventory = section.getLoadable("", GenericInventory.class); //This will load the GenericInventory under the 'path.items'
+        GenericInventory genericInventory = section.getConfig().getValue(section.getPath(), GenericInventory.class); //This will load the GenericInventory under the 'path.items'
         return (E) new ExtraInv(
                 this,
                 genericInventory.getItems()

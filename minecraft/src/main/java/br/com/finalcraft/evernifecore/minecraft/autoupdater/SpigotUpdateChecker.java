@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.autoupdater;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
@@ -75,18 +75,21 @@ public class SpigotUpdateChecker {
         this.currentVersion = plugin.getDescription().getVersion();
 
         if (config != null){
-            checkForUpdates = config.getOrSetDefaultValue(
+            checkForUpdates = config.getOrSetValueIfAbsent(
                     "UpdateChecker.checkForUpdates",
                     true,
                     "If '" + plugin.getName() + "' should check for updates on the Spigot platform."
             );
-            autoDownload    = config.getOrSetDefaultValue(
+            autoDownload    = config.getOrSetValueIfAbsent(
                     "UpdateChecker.autoDownloadNewUpdates",
                     false,
                     "If '" + plugin.getName() + "' should automatically download and install the new update."
             );
             config.setComment("UpdateChecker","-----------------------\nAutomatic Update System\n-----------------------");
-            config.saveIfNewDefaults();
+            if (config.hasNewSeededDefaults()) {
+                config.save();
+                config.clearNewSeededDefaults();
+            }
         }else {
             checkForUpdates = true;
             autoDownload = false;

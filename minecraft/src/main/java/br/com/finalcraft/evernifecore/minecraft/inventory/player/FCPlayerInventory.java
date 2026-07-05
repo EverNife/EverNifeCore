@@ -1,9 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.inventory.player;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
-import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
-import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventory;
 import br.com.finalcraft.evernifecore.minecraft.inventory.data.ItemInSlot;
 import br.com.finalcraft.evernifecore.minecraft.inventory.extrainvs.ExtraInv;
@@ -18,7 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public class FCPlayerInventory implements Salvable {
+public class FCPlayerInventory {
 
     protected ItemStack helmet;
     protected ItemStack chestplate;
@@ -78,54 +75,6 @@ public class FCPlayerInventory implements Salvable {
             }
         }
 
-    }
-
-    @Override
-    public void onConfigSave(ConfigSection section) {
-        section.setValue(null);
-
-        section.setValue("helmet", helmet);
-        section.setValue("chestplate", chestplate);
-        section.setValue("leggings", leggings);
-        section.setValue("boots", boots);
-        section.setValue("inventory", inventory);
-        section.setValue("extra", null); //Clear content before saving it
-
-        for (ExtraInv extraInv : extraInvs) {
-            String extraInvID = extraInv.getFactory().getId();
-            section.setValue("extra." + extraInvID, extraInv);
-        }
-    }
-
-    @Loadable
-    public static FCPlayerInventory onConfigLoad(ConfigSection section){
-        ItemStack helmet = section.getLoadable("helmet",ItemStack.class);
-        ItemStack chestplate = section.getLoadable("chestplate",ItemStack.class);
-        ItemStack leggings = section.getLoadable("leggings",ItemStack.class);
-        ItemStack boots = section.getLoadable("boots",ItemStack.class);
-        GenericInventory inventory = section.getLoadable("inventory", GenericInventory.class);
-        if (inventory == null){
-            inventory = new GenericInventory();
-        }
-
-        List<ExtraInv> extraInvList = new ArrayList<>();
-        for (String extraInvKey : section.getKeys("extra")) {
-            ConfigSection extraInvSection = section.getConfigSection("extra." + extraInvKey);
-            try {
-                IExtraInvFactory factory = ExtraInvManager.getFactory(extraInvKey);
-                if (factory == null){
-                    continue;
-                }
-
-                ExtraInv extraInv = factory.onConfigLoad(extraInvSection);
-                extraInvList.add(extraInv);
-            }catch (Throwable e){
-                EverNifeCore.getLog().info("Failed to load ExtraInv(" + extraInvKey + ") at " + extraInvSection.toString());
-                e.printStackTrace();
-            }
-        }
-
-        return new FCPlayerInventory(helmet, chestplate, leggings, boots, inventory, extraInvList);
     }
 
     public ItemStack getHelmet() {

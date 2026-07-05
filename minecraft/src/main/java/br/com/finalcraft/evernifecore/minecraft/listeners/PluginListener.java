@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.minecraft.listeners.bossshop.BossShopListe
 import br.com.finalcraft.evernifecore.minecraft.metrics.Metrics;
 import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -56,7 +57,7 @@ public class PluginListener implements ECListener {
             //Enable Automatic Spigot Update for this plugin
             if (!ecPlugin.spigotID().isEmpty()){
                 ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(plugin);
-                SpigotUpdateChecker.checkForUpdates((JavaPlugin) plugin, ecPlugin.spigotID(), new Config(ecPluginData, "config.yml"));
+                SpigotUpdateChecker.checkForUpdates((JavaPlugin) plugin, ecPlugin.spigotID(), ConfigFactory.open(ecPluginData, "config.yml"));
             }
         }
     }
@@ -68,7 +69,17 @@ public class PluginListener implements ECListener {
          *
          * Will remove data Like "TabCompletion" and "Localization" from the memory cache
          */
-        ECPluginManager.removePluginData(event.getPlugin().getName());
+        String pluginName = event.getPlugin().getName();
+
+        //unregister the plugin's PDSections BEFORE its ECPluginData is dropped: a runtime-disabled
+        //plugin must not leave bindings pinning its classes/classloader (and a later re-enable
+        //re-registers with a fresh Class object, which would collide with the stale claim)
+        ECPluginData ecPluginData = ECPluginManager.getECPluginsMap().get(pluginName);
+        if (ecPluginData != null){
+            PlayerController.unregisterPDSections(ecPluginData);
+        }
+
+        ECPluginManager.removePluginData(pluginName);
     }
 
 

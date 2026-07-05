@@ -1,8 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.layout;
 
+import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
-import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.minecraft.gui.PlayerGui;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder.FCItemBuilder;
@@ -119,7 +118,6 @@ public class LayoutIcon {
         return LayoutIconBuilder.of(this);
     }
 
-    @Loadable
     public static LayoutIcon onConfigLoad(ConfigSection section){
 
         int[] slot = {};

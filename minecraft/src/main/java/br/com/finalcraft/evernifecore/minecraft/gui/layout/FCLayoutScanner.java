@@ -1,7 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.layout;
 
-import br.com.finalcraft.evernifecore.config.Config;
-import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
+import br.com.finalcraft.everyconfig.config.Config;
+import br.com.finalcraft.everyconfig.config.section.ConfigSection;
+import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
@@ -26,7 +27,7 @@ public class FCLayoutScanner {
 
     public static <T extends LayoutBase> T loadLayout(Class<T> layoutClass){
         ECPluginData ecPluginData = ECPluginManager.getProvidingPlugin(layoutClass);
-        return loadLayout(ecPluginData, new Config(ecPluginData, "guis/" + layoutClass.getSimpleName() + ".yml"), layoutClass);
+        return loadLayout(ecPluginData, ConfigFactory.open(ecPluginData, "guis/" + layoutClass.getSimpleName() + ".yml"), layoutClass);
     }
 
     public static <T extends LayoutBase> T loadLayout(ECPluginData ecPluginData, Config config, Class<T> layoutClass){
@@ -45,12 +46,12 @@ public class FCLayoutScanner {
 
         //Title
         layoutInstance.title = layoutInstance.title.replace("%layout_name%", layoutClass.getSimpleName());
-        layoutInstance.title = config.getOrSetDefaultValue("Settings.title", layoutInstance.title.replace("§","&"));
+        layoutInstance.title = config.getOrSetValueIfAbsent("Settings.title", layoutInstance.title.replace("§","&"));
         layoutInstance.title = FCColorUtil.colorfy(layoutInstance.title);
         //Rows
-        layoutInstance.rows = config.getOrSetDefaultValue("Settings.rows", layoutInstance.rows);
+        layoutInstance.rows = config.getOrSetValueIfAbsent("Settings.rows", layoutInstance.rows);
         if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")){
-            layoutInstance.integrateToPAPI = config.getOrSetDefaultValue("Settings.integrateToPAPI", layoutInstance.integrateToPAPI, "If the items and Title of this GUI should be PARSED by PlaceholderAPI");
+            layoutInstance.integrateToPAPI = config.getOrSetValueIfAbsent("Settings.integrateToPAPI", layoutInstance.integrateToPAPI, "If the items and Title of this GUI should be PARSED by PlaceholderAPI");
         }else {
             layoutInstance.integrateToPAPI = false;
         }
@@ -123,7 +124,7 @@ public class FCLayoutScanner {
                 //When a background, it will only save Defaults if there is already no existing Background LayoutIcon on the config
 
                 if (!permission.isEmpty()){
-                    itemSection.setDefaultValue("Permission", permission);
+                    itemSection.setValueIfAbsent("Permission", permission);
                 }
 
                 if (slot.length > 0){
@@ -131,7 +132,7 @@ public class FCLayoutScanner {
                     for (int i : slot) {
                         slotsAsString.add(String.valueOf(i));
                     }
-                    itemSection.setDefaultValue("Slot", slotsAsString.stream().collect(Collectors.joining(",","[","]"))); //Store slots like "[1,2,3,4,5]"
+                    itemSection.setValueIfAbsent("Slot", slotsAsString.stream().collect(Collectors.joining(",","[","]"))); //Store slots like "[1,2,3,4,5]"
                 }
 
                 FCItemBuilder itemBuilder = FCItemFactory.from(layoutIcon.getItemStack());
@@ -149,11 +150,11 @@ public class FCLayoutScanner {
                 }
 
                 //The Default Values name and lore are based on the Default plugin locale.
-                itemSection.setDefaultValue("DisplayItem", itemBuilder.toDataPart());
+                itemSection.setValueIfAbsent("DisplayItem", itemBuilder.toDataPart());
             }
 
             // ===========  Load Values From the Config ===========
-            if (background && !itemSection.contains()){
+            if (background && !itemSection.contains("")){
                 //If is a background and is not present on file, ignore it
                 try {
                     declaredField.set(layoutInstance, null);
@@ -202,13 +203,13 @@ public class FCLayoutScanner {
                     layoutInstance.getLayoutIcons().add(newLayout);
                 }
             }catch (Exception e){
-                ecPluginData.getLog().warning("[FCLayoutScanner] Failed to load LayoutIcon {" + ICON_NAME + "} from " + config.getAbsolutePath());
+                ecPluginData.getLog().warning("[FCLayoutScanner] Failed to load LayoutIcon {" + ICON_NAME + "} from " + layoutClass.getSimpleName());
                 e.printStackTrace();
             }
         }
 
         for (String backgroundKey : config.getKeys("Background")) {
-            LayoutIcon backgroundIcon = config.getLoadable("Background." + backgroundKey, LayoutIcon.class);
+            LayoutIcon backgroundIcon = config.getValue("Background." + backgroundKey, LayoutIcon.class);
             layoutInstance.getBackgroundIcons().add(
                     backgroundIcon
                             .asLayoutBuilder()
@@ -222,7 +223,10 @@ public class FCLayoutScanner {
 
         layoutInstance.onLayoutLoad();
 
-        config.saveIfNewDefaults();
+        if (config.hasNewSeededDefaults()) {
+            config.save();
+            config.clearNewSeededDefaults();
+        }
         return layoutInstance;
     }
 

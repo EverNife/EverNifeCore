@@ -1,7 +1,5 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack;
 
-import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
-import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.minecraft.util.FCNBTUtil;
 import de.tr7zw.changeme.nbtapi.NBTCompound;
 import de.tr7zw.changeme.nbtapi.NBTItem;
@@ -95,9 +93,8 @@ public class ComparableItemComplex extends ComparableItem {
                 && Objects.equals(this.getDamageValue(), that.getDamageValue())
                 && Objects.equals(this.getNbtCompound(), that.getNbtCompound());
     }
-    @Loadable
-    public static ComparableItemComplex onConfigLoad(ConfigSection section){
-        ComparableItem comparableItem = ComparableItem.deserialize(section.getString(""));
+    public static ComparableItemComplex deserialize(String serializedLine){
+        ComparableItem comparableItem = ComparableItem.deserialize(serializedLine);
         return new ComparableItemComplex(comparableItem.getItemStack(), comparableItem.getMaterial(), comparableItem.getDamageValue());
     }
 }

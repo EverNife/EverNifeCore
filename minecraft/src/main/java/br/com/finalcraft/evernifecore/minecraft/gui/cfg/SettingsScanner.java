@@ -7,8 +7,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgRequirementType;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
-import br.com.finalcraft.evernifecore.config.Config;
-import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
+import br.com.finalcraft.everyconfig.config.Config;
+import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
@@ -69,7 +69,7 @@ public class SettingsScanner {
                             for (int i : (List<Integer>) defValue) {
                                 slotsAsString.add(String.valueOf(i));
                             }
-                            config.setDefaultValue(settings.key(), slotsAsString.stream().collect(Collectors.joining(",","[","]"))); //Store slots like "[1,2,3,4,5]"
+                            config.setValueIfAbsent(settings.key(), slotsAsString.stream().collect(Collectors.joining(",","[","]"))); //Store slots like "[1,2,3,4,5]"
                             newValue = defValue;
                         } else if (slotObject instanceof String){
                             String slotString = (String) slotObject;
@@ -88,10 +88,10 @@ public class SettingsScanner {
                                     .toArray();
                         }
                     }else {
-                        newValue = config.getOrSetDefaultValue(settings.key(), (List<? extends Object>) defValue, comment);
+                        newValue = config.getOrSetValueIfAbsent(settings.key(), (List<? extends Object>) defValue, comment);
                     }
                 } else {
-                    newValue = config.getOrSetDefaultValue(settings.key(), defValue, comment);
+                    newValue = config.getOrSetValueIfAbsent(settings.key(), defValue, comment);
                 }
 
                 Class<? extends ArgParser> parserClass = null;
