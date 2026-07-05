@@ -5,13 +5,11 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.commands.CommandRegisterer;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.config.yaml.helper.CfgExecutor;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
-import br.com.finalcraft.evernifecore.thread.SaveConfigThread;
 
 
 public class EverNifeCore {
@@ -57,22 +55,17 @@ public class EverNifeCore {
     }
 
     public void onLoadPost() {
-        SaveConfigThread.INSTANCE.start();
         getLog().info("§aEverNifeCore successfully started!");
     }
 
     public void onUnload() {
-        SaveConfigThread.INSTANCE.shutdown();
         PlayerController.shutdown(); //flush dirty players + close storage backends
-        CfgExecutor.shutdownExecutorAndScheduler();
     }
 
     @ECPlugin.Reload
     public void onReload(){
-        SaveConfigThread.INSTANCE.shutdownSilently();
         ConfigManager.initialize(ecPluginData);
         ConfigManager.reloadCooldownConfig();
-        SaveConfigThread.INSTANCE.start();
     }
 
 }

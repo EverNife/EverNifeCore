@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.inventory.extrainvs.factory;
 
+import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.hytale.inventory.GenericInventory;
 import br.com.finalcraft.evernifecore.hytale.inventory.extrainvs.ExtraInv;
 
@@ -18,7 +18,7 @@ public interface IExtraInvFactory<E extends ExtraInv> {
     public void applyToPlayer(FPlayer player, E e);
 
     public default E onConfigLoad(ConfigSection section) {
-        GenericInventory genericInventory = section.getLoadable("", GenericInventory.class); //This will load the GenericInventory under the 'path.items'
+        GenericInventory genericInventory = section.getConfig().getValue(section.getPath(), GenericInventory.class); //This will load the GenericInventory under the 'path.items'
         return (E) new ExtraInv(
                 this,
                 genericInventory.getItems()

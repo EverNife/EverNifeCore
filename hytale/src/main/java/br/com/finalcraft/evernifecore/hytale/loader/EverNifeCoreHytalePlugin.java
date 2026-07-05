@@ -11,7 +11,6 @@ import br.com.finalcraft.evernifecore.hytale.commands.HyCommandRegisterer;
 import br.com.finalcraft.evernifecore.hytale.commands.finalcmd.HytaleArgParsers;
 import br.com.finalcraft.evernifecore.hytale.integration.HyVaultIntegration;
 import br.com.finalcraft.evernifecore.hytale.listeners.PlayerLoginListener;
-import br.com.finalcraft.evernifecore.hytale.loader.imp.HyCfgLoadableSalvable;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyECEventDispatcher;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyECPluginExtractor;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;

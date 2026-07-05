@@ -36,7 +36,6 @@ dependencies {
     implementation "jakarta.annotation:jakarta.annotation-api:3.0.0"
     implementation 'com.google.guava:guava:33.4.8-jre'
 
-    implementation 'com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8.4'
     implementation("net.kyori:adventure-text-serializer-gson:4.26.1")
     implementation("net.kyori:adventure-text-serializer-legacy:4.26.1")
 

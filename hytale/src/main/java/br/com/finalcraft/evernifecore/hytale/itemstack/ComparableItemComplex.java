@@ -1,7 +1,5 @@
 package br.com.finalcraft.evernifecore.hytale.itemstack;
 
-import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
-import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import org.bson.BsonDocument;
@@ -103,10 +101,7 @@ public class ComparableItemComplex extends ComparableItem {
         return super.serialize() + SEPARATOR + itemStack.getMetadata().toJson();
     }
 
-    @Loadable
-    public static ComparableItemComplex onConfigLoad(ConfigSection section){
-        String serialized = section.getString("");
-
+    public static ComparableItemComplex deserialize(String serialized){
         int idx = serialized.indexOf(SEPARATOR);
 
         String itemId;

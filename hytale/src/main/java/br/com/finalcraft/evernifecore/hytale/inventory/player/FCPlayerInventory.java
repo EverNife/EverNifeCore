@@ -2,9 +2,6 @@ package br.com.finalcraft.evernifecore.hytale.inventory.player;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
-import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
-import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.hytale.inventory.GenericInventory;
 import br.com.finalcraft.evernifecore.hytale.inventory.extrainvs.ExtraInv;
@@ -20,7 +17,7 @@ import java.util.Collection;
 import java.util.List;
 
 @Data
-public class FCPlayerInventory implements Salvable {
+public class FCPlayerInventory {
 
     protected GenericInventory storage = new GenericInventory();
     protected GenericInventory armor = new GenericInventory();
@@ -74,53 +71,6 @@ public class FCPlayerInventory implements Salvable {
                 }
             }
         }
-    }
-
-    @Override
-    public void onConfigSave(ConfigSection section) {
-        section.setValue(null);
-
-        section.setValue("storage", storage);
-        section.setValue("armor", armor);
-        section.setValue("hotbar", hotbar);
-        section.setValue("utility", utility);
-        section.setValue("tools", tools);
-        section.setValue("backpack", backpack);
-        section.setValue("extra", null); //Clear content before saving it
-
-        for (ExtraInv extraInv : extraInvs) {
-            String extraInvID = extraInv.getFactory().getId();
-            section.setValue("extra." + extraInvID, extraInv);
-        }
-    }
-
-    @Loadable
-    public static FCPlayerInventory onConfigLoad(ConfigSection section){
-        GenericInventory storage  = section.getLoadable("storage", new GenericInventory());
-        GenericInventory armor    = section.getLoadable("armor", new GenericInventory());
-        GenericInventory hotbar   = section.getLoadable("hotbar", new GenericInventory());
-        GenericInventory utility  = section.getLoadable("utility", new GenericInventory());
-        GenericInventory tools    = section.getLoadable("tools", new GenericInventory());
-        GenericInventory backpack = section.getLoadable("backpack", new GenericInventory());
-
-        List<ExtraInv> extraInvList = new ArrayList<>();
-        for (String extraInvKey : section.getKeys("extra")) {
-            ConfigSection extraInvSection = section.getConfigSection("extra." + extraInvKey);
-            try {
-                IExtraInvFactory factory = ExtraInvManager.getFactory(extraInvKey);
-                if (factory == null){
-                    continue;
-                }
-
-                ExtraInv extraInv = factory.onConfigLoad(extraInvSection);
-                extraInvList.add(extraInv);
-            }catch (Throwable e){
-                EverNifeCore.getLog().info("Failed to load ExtraInv(" + extraInvKey + ") at " + extraInvSection.toString());
-                e.printStackTrace();
-            }
-        }
-
-        return new FCPlayerInventory(storage, armor, hotbar, utility, tools, backpack, extraInvList);
     }
 
     public ItemStack getHead() {

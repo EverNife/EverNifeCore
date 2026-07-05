@@ -19,14 +19,12 @@ import br.com.finalcraft.evernifecore.minecraft.integration.WorldEditIntegration
 import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerInteractListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.PluginListener;
-import br.com.finalcraft.evernifecore.minecraft.loader.imp.McCfgLoadableSalvable;
 import br.com.finalcraft.evernifecore.minecraft.loader.imp.McECEventDispatcher;
 import br.com.finalcraft.evernifecore.minecraft.loader.imp.McECPluginExtractor;
 import br.com.finalcraft.evernifecore.minecraft.loader.imp.McPlatform;
 import br.com.finalcraft.evernifecore.minecraft.ontime.McDefaultOntimeManager;
 import br.com.finalcraft.evernifecore.minecraft.util.FCTickUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
-import br.com.finalcraft.evernifecore.thread.SaveConfigThread;
 import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
@@ -110,8 +108,6 @@ public class EverNifeCoreBukkitPlugin extends JavaPlugin {
         }
 
         if (Bukkit.getPluginManager().isPluginEnabled("WorldEdit")) try{WorldEditIntegration.initialize();}catch (Throwable e){e.printStackTrace();}
-
-        SaveConfigThread.INSTANCE.start();
 
         FCTickUtil.getTickCount();//This will start tickCounting
         EverNifeCore.getLog().info("§aEverNifeCore successfully started!");

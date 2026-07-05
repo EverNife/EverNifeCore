@@ -1,8 +1,5 @@
 package br.com.finalcraft.evernifecore.hytale.itemstack;
 
-import br.com.finalcraft.evernifecore.config.yaml.anntation.Loadable;
-import br.com.finalcraft.evernifecore.config.yaml.anntation.Salvable;
-import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
 import br.com.finalcraft.evernifecore.hytale.util.FCItemUtils;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.asset.type.item.config.Item;
@@ -11,7 +8,7 @@ import jakarta.annotation.Nullable;
 
 import java.util.Objects;
 
-public class ComparableItem implements Salvable {
+public class ComparableItem {
 
     protected final ItemStack itemStack;
     protected final String itemId;
@@ -107,15 +104,5 @@ public class ComparableItem implements Salvable {
     @Override
     public int hashCode() {
         return Objects.hash(itemId);
-    }
-
-    @Override
-    public void onConfigSave(ConfigSection section) {
-        section.setValue("", serialize());
-    }
-
-    @Loadable
-    public static ComparableItem onConfigLoad(ConfigSection section){
-        return deserialize(section.getString(""));
     }
 }
