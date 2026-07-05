@@ -16,6 +16,12 @@ dependencies {
     // Typed references + per-type caching managers (write-back, parent registries).
     api 'br.com.finalcraft.everydatabase:everydatabase-manager:1.0.6'
 
+    // EveryConfig: the Jackson-first config engine (Config/ConfigSection + entity binding). api scope
+    // because its types are the public config surface of common. It pulls jackson-databind and
+    // jackson-dataformat-yaml as compile deps; the runtime datatype modules (jsr310/jdk8) arrive via the
+    // shadow jar / libby on the platform side.
+    api 'br.com.finalcraft:EveryConfig:1.0.1'
+
     api('net.kyori:adventure-api:4.21.0') {
         exclude(module: 'adventure-bom')
         exclude(module: 'checker-qual')
