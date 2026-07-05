@@ -1,4 +1,5 @@
 package br.com.finalcraft.evernifecore.minecraft.loader.imp;
+import br.com.finalcraft.evernifecore.util.ExecuteOnce;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
@@ -43,6 +44,11 @@ public class McPlatform implements IPlatform {
 
     private final McPlatformChatAdapter CHAT_ADAPTER = new McPlatformChatAdapter();
     private final McPlatformVecAdapter VEC_ADAPTER = new McPlatformVecAdapter();
+
+    @Override
+    public String getPlatformProviderId() {
+        return "minecraft";
+    }
 
     @Override
     public List<FPlayer> getOnlinePlayers() {
@@ -270,20 +276,21 @@ public class McPlatform implements IPlatform {
         FCScheduler.getMinecraftScheduler().runSync(runnable);
     }
 
-    boolean has_registerConfiaLoadableSalvables = false;
     @Override
-    public void registerConfiaLoadableSalvables() {
-        if (has_registerConfiaLoadableSalvables) return;
-        has_registerConfiaLoadableSalvables = true;
-        McCfgLoadableSalvable.initialize();
+    public void runOnMainThread(Runnable runnable) {
+        FCScheduler.getMinecraftScheduler().runSync(runnable);
     }
 
-    boolean has_registerArgParsers = false;
+    private final ExecuteOnce registerConfigTypesOnce = ExecuteOnce.of(McConfigTypes::register);
+    @Override
+    public void registerConfigTypes() {
+        registerConfigTypesOnce.run();
+    }
+
+    private final ExecuteOnce registerArgParsersOnce = ExecuteOnce.of(MinecraftArgParsers::initialize);
     @Override
     public void registerArgParsers() {
-        if (has_registerArgParsers) return;
-        has_registerArgParsers = true;
-        MinecraftArgParsers.initialize();
+        registerArgParsersOnce.run();
     }
 
 }

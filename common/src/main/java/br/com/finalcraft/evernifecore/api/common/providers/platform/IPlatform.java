@@ -17,6 +17,13 @@ import java.util.UUID;
 
 public interface IPlatform {
 
+    /**
+     * The stable identity-provider tag of this platform ({@code "minecraft"}, {@code "hytale"}, ...),
+     * used by the account layer to tag platform uuid identities. It is persisted inside account rows,
+     * so it must be unique per platform and must NEVER change.
+     */
+    public String getPlatformProviderId();
+
     public List<FPlayer> getOnlinePlayers();
 
     public FPlayer getPlayer(String playerName);
@@ -60,7 +67,19 @@ public interface IPlatform {
      */
     public void runOnFirstTick(Runnable runnable);
 
-    public void registerConfiaLoadableSalvables();
+    /**
+     * Runs the task on the platform's main/server thread (on the next tick when called from another
+     * thread). The bridge async storage callbacks use to touch game state safely.
+     */
+    public void runOnMainThread(Runnable runnable);
+
+    /**
+     * Registers the platform's config types (Bukkit {@code ItemStack}/{@code Location}, Hytale vectors, ...)
+     * on {@link br.com.finalcraft.evernifecore.config.ConfigFactory}, teaching the Jackson engine how they cross to
+     * and from config. Called once at bootstrap, before any config is opened. Implementations MUST be
+     * idempotent - a repeated call must be a no-op.
+     */
+    public void registerConfigTypes();
 
     public void registerArgParsers();
 

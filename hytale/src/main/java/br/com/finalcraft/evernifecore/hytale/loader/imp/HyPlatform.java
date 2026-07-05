@@ -1,4 +1,5 @@
 package br.com.finalcraft.evernifecore.hytale.loader.imp;
+import br.com.finalcraft.evernifecore.util.ExecuteOnce;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
@@ -266,20 +267,22 @@ public class HyPlatform implements IPlatform {
         runnable.run();
     }
 
-    boolean has_registerConfiaLoadableSalvables = false;
     @Override
-    public void registerConfiaLoadableSalvables() {
-        if (has_registerConfiaLoadableSalvables) return;
-        has_registerConfiaLoadableSalvables = true;
-        HyCfgLoadableSalvable.initialize();
+    public void runOnMainThread(Runnable runnable) {
+        //Hytale has no single main thread (each world ticks independently) - run in place.
+        runnable.run();
     }
 
-    boolean has_registerArgParsers = false;
+    private final ExecuteOnce registerConfigTypesOnce = ExecuteOnce.of(HyConfigTypes::register);
+    @Override
+    public void registerConfigTypes() {
+        registerConfigTypesOnce.run();
+    }
+
+    private final ExecuteOnce registerArgParsersOnce = ExecuteOnce.of(HytaleArgParsers::initialize);
     @Override
     public void registerArgParsers() {
-        if (has_registerArgParsers) return;
-        has_registerArgParsers = true;
-        HytaleArgParsers.initialize();
+        registerArgParsersOnce.run();
     }
 
 }
