@@ -181,14 +181,11 @@ shadowJar {
         // already relocated at runtime (EDBDependencies).
         include(dependency('br.com.finalcraft.everydatabase:everydatabase-core:'))
         include(dependency('br.com.finalcraft.everydatabase:everydatabase-manager:'))
-    }
 
-    if (getCallingTask().contains("publish")){
-        println "[Shadowing ExtraJars for Maven Publish]"
-        dependencies {
-            include(dependency('com.github.Carleslc.Simple-YAML:Simple-Yaml:'))
-        }
-        relocate 'org.yaml.snakeyaml', 'br.com.finalcraft.libs.snakeyaml'
+        // EveryConfig: the config engine classes. Its Jackson refs are rewritten by the
+        // relocate rules below to the same coordinates libby delivers at runtime, so it
+        // shares the one relocated Jackson stack with EveryDatabase (no second copy in the jar).
+        include(dependency('br.com.finalcraft:EveryConfig:'))
     }
 
     relocate 'net.byteflux.libby', 'br.com.finalcraft.libs.net.byteflux'
@@ -206,6 +203,11 @@ shadowJar {
     relocate 'com.fasterxml.jackson.databind',   'br.com.finalcraft.everydatabase.libs.jackson.databind'
     relocate 'com.fasterxml.jackson.dataformat', 'br.com.finalcraft.everydatabase.libs.jackson.dataformat'
     relocate 'com.fasterxml.jackson.datatype',   'br.com.finalcraft.everydatabase.libs.jackson.datatype'
+    // EveryConfig's YamlCodec touches snakeyaml directly (LoaderOptions.setCodePointLimit) and hands it to
+    // jackson-dataformat-yaml. Point it at the snakeyaml 2.6 libby delivers - the server ships an OLDER
+    // canonical org.yaml.snakeyaml without setCodePointLimit, and the relocated dataformat-yaml expects its
+    // snakeyaml under this same coordinate (so the LoaderOptions type matches across the call).
+    relocate 'org.yaml.snakeyaml',               'br.com.finalcraft.everydatabase.libs.snakeyaml'
     relocate 'com.zaxxer.hikari',                'br.com.finalcraft.everydatabase.libs.hikari'
     relocate 'org.slf4j',                        'br.com.finalcraft.everydatabase.libs.slf4j'
     relocate 'com.mongodb',                      'br.com.finalcraft.everydatabase.libs.mongodb'
