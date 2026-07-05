@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.logger.debug;
 
-import br.com.finalcraft.evernifecore.config.yaml.section.ConfigSection;
+import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
 
@@ -24,7 +24,7 @@ public interface IDebugModule<DM extends IDebugModule>  {
     }
 
     public default boolean onConfigLoad(ConfigSection section){
-        return section.getOrSetDefaultValue("DebugModules." + getName(), isEnabledByDefault(), getComment());
+        return section.getOrSetValueIfAbsent("DebugModules." + getName(), isEnabledByDefault(), getComment());
     }
 
     public ECPluginData getPluginData();

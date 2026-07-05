@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.pageviwer.PageViewer;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
@@ -29,8 +30,8 @@ public class ConfigManager {
     }
 
     public static void initialize(ECPluginData ecPluginData){
-        mainConfig      = new Config(ecPluginData,"config.yml");
-        cooldowns       = new Config(ecPluginData,"Cooldowns.yml");
+        mainConfig      = ConfigFactory.open(ecPluginData, "config.yml");
+        cooldowns       = ConfigFactory.open(ecPluginData, "Cooldowns.yml");
 
         ECSettings.initialize();
 
@@ -51,7 +52,7 @@ public class ConfigManager {
     }
 
     public static void reloadCooldownConfig(){
-        cooldowns = new Config(EverNifeCore.instance.getEcPluginData(),"Cooldowns.yml");
+        cooldowns = ConfigFactory.open(EverNifeCore.instance.getEcPluginData(), "Cooldowns.yml");
         Cooldown.initialize();
     }
 

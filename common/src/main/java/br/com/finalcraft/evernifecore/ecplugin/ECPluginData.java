@@ -1,7 +1,8 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
@@ -11,6 +12,7 @@ import br.com.finalcraft.evernifecore.logger.ECLogger;
 import br.com.finalcraft.evernifecore.logger.debug.IDebugModule;
 import jakarta.annotation.Nullable;
 
+import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -82,8 +84,8 @@ public class ECPluginData {
 
     public boolean isDebugEnabled(@Nullable IDebugModule debugModule){
         if (debugEnabled == null){
-            Config config = new Config(this, "config.yml");
-            debugEnabled = config.getOrSetDefaultValue(
+            Config config = ConfigFactory.open(this, "config.yml");
+            debugEnabled = config.getOrSetValueIfAbsent(
                     "DebugMode.enabled",
                     false,
                     "If '" + getMetaInfo().getName() + "' should log debug messages on the console!"
@@ -98,7 +100,10 @@ public class ECPluginData {
             if (config.contains("DebugMode.DebugModules")){
                 config.setComment("DebugMode.DebugModules","List of DebugModules that are enabled!\nThese debug modules bellow will only work when 'DebugMode.enabled' is 'true'");
             }
-            config.saveIfNewDefaults();
+            if (config.hasNewSeededDefaults()){
+                config.save();
+                config.clearNewSeededDefaults();
+            }
         }
         return debugEnabled && (debugModule == null || debugModule.isEnabled());
     }
@@ -109,7 +114,8 @@ public class ECPluginData {
 
     public void addHardcodedLocaleIfNeeded(String lang){
         if (!hardcodedLocalizations.containsKey(lang)){
-            hardcodedLocalizations.put(lang, new Config(this, "localization/lang_" + lang + ".yml"));
+            String fileName = "localization/lang_" + lang + ".yml";
+            hardcodedLocalizations.put(lang, ConfigFactory.open(this, fileName));
             markedForLocaleReload = true;
         }
     }
@@ -127,11 +133,14 @@ public class ECPluginData {
         boolean requiredEntireReload = false;
         //Check for the locale name again
         if (this.localization_config == null || this.localization_config.hasBeenModified()){
-            this.localization_config = new Config(this, "localization/localization_config.yml");
-            this.pluginLanguage = localization_config.getOrSetDefaultValue("Localization.fileName", "lang_" + FCLocaleManager.DEFAULT_EVERNIFECORE_LOCALE + ".yml")
+            this.localization_config = ConfigFactory.open(this, "localization/localization_config.yml");
+            this.pluginLanguage = localization_config.getOrSetValueIfAbsent("Localization.fileName", "lang_" + FCLocaleManager.DEFAULT_EVERNIFECORE_LOCALE + ".yml")
                     .replace(".yml","")
                     .replace("lang_","");
-            localization_config.saveIfNewDefaults();
+            if (localization_config.hasNewSeededDefaults()){
+                localization_config.save();
+                localization_config.clearNewSeededDefaults();
+            }
             requiredEntireReload = true;
         }
 
@@ -141,9 +150,9 @@ public class ECPluginData {
         if (!isHardcodedLocale &&
                 (this.customLangConfig == null //There was no config, first load of the plugin
                         || this.customLangConfig.hasBeenModified() //The config has been modified
-                        || !this.customLangConfig.getTheFile().getName().equals("lang_" + this.getPluginLanguage() + ".yml") //The language name has been changed
+                        || !this.customLangConfig.getFile().getName().equals("lang_" + this.getPluginLanguage() + ".yml") //The language name has been changed
                 )){
-            this.customLangConfig = new Config(this, "localization/lang_" + this.getPluginLanguage() + ".yml");
+            this.customLangConfig = ConfigFactory.open(this, "localization/lang_" + this.getPluginLanguage() + ".yml");
             requiredEntireReload = true;
         }
 
@@ -177,7 +186,7 @@ public class ECPluginData {
             if (localeMessage.needToBeSynced()){
                 for (Map.Entry<String, Config> entry : hardcodedLocalizations.entrySet()) {
                     Config hardcodedConfig = entry.getValue();
-                    FancyText hardcodedOnConfig = hardcodedConfig.getLoadable(localeMessage.getKey(), FancyText.class);
+                    FancyText hardcodedOnConfig = hardcodedConfig.getValue(localeMessage.getKey(), FancyText.class);
                     if (hardcodedOnConfig == null){
                         hardcodedOnConfig = new FancyText("[LOCALE_NOT_FOUND]");
                     }
@@ -213,7 +222,7 @@ public class ECPluginData {
             localeMessage.setHasBeenSynced(true);
 
             //Now look for the customFile
-            FancyText customFancyText = this.customLangConfig.getLoadable(localeMessage.getKey(), FancyText.class);
+            FancyText customFancyText = this.customLangConfig.getValue(localeMessage.getKey(), FancyText.class);
             if (customFancyText == null){
                 //Update on the new file
                 customFancyText = defaultFancyText;
@@ -225,7 +234,8 @@ public class ECPluginData {
 
         //Validate Hardcoded Localization Files
         for (Map.Entry<String, Config> entry : hardcodedLocalizations.entrySet()) {
-            if (!entry.getValue().getTheFile().exists() || entry.getValue().getBoolean("HasBeenChanged", false)){
+            File hardcodedFile = entry.getValue().getFile();
+            if ((hardcodedFile != null && !hardcodedFile.exists()) || entry.getValue().getBoolean("HasBeenChanged", false)){
                 entry.getValue().setValue("HasBeenChanged", null);
                 entry.getValue().saveAsync();
             }

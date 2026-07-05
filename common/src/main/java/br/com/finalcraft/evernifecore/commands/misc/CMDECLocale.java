@@ -6,7 +6,8 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpLine;
-import br.com.finalcraft.evernifecore.config.Config;
+import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
@@ -99,7 +100,7 @@ public class CMDECLocale {
             }
         }
 
-        Config localization_config = new Config(plugin, "localization/localization_config.yml");
+        Config localization_config = ConfigFactory.open(plugin, "localization/localization_config.yml");
 
         String newLocaleValue = "lang_" + (localeType != null ? localeType : argumentos.get(2)) + ".yml";
         String previousLocaleValue = localization_config.getString("Localization.fileName");
