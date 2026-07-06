@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.util.numberwrapper;
 
 import br.com.finalcraft.evernifecore.util.FCMathUtil;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import jakarta.annotation.Nonnull;
 
 import java.util.Objects;
@@ -17,8 +19,20 @@ public class NumberWrapper<N extends Number> implements Comparable<NumberWrapper
         this.value = value;
     }
 
+    /** The raw underlying number; also this wrapper's config form (a plain numeric scalar), honored by
+     *  EveryConfig's Jackson mapper without central registration. */
+    @JsonValue
     public N get() {
         return value;
+    }
+
+    /** Reads the raw-number config form written by {@link #get()}. */
+    @JsonCreator
+    public static NumberWrapper<?> fromConfig(Number number){
+        if (number == null){
+            throw new IllegalArgumentException("Tried to load a NumberWrapper that is not a Number [null]");
+        }
+        return new NumberWrapper<>(number);
     }
 
     public int intValue() {

@@ -4,6 +4,8 @@ import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.util.FCTimeUtil;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.concurrent.TimeUnit;
 
@@ -79,6 +81,13 @@ public class FCTimeFrame {
         return millis;
     }
 
+    /** This time-frame's config form: the compact duration string ({@link FCTimeUtil#fromMillis}). Honored by
+     *  EveryConfig's Jackson mapper, so no central registration is needed. */
+    @JsonValue
+    public String toConfigString(){
+        return FCTimeUtil.fromMillis(this.millis);
+    }
+
     public String getFormatted(){
         return FCTimeUtil.getFormatted(this.millis);
     }
@@ -151,6 +160,12 @@ public class FCTimeFrame {
 
     public static FCTimeFrame of(long millis){
         return new FCTimeFrame(millis);
+    }
+
+    /** Reads the config-string form written by {@link #toConfigString()}. */
+    @JsonCreator
+    public static FCTimeFrame fromConfigString(String serialized){
+        return FCTimeFrame.of(FCTimeUtil.toMillis(serialized));
     }
 
     public static FCTimeFrame now(){

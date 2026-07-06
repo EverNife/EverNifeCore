@@ -1,20 +1,26 @@
 package br.com.finalcraft.evernifecore.config;
 
+import br.com.finalcraft.evernifecore.cooldown.Cooldown;
+import br.com.finalcraft.evernifecore.cooldown.GenericCooldown;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.LocPos;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.time.DayOfToday;
 import br.com.finalcraft.evernifecore.util.FCTimeUtil;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
+import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everyconfig.config.Config;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,10 +30,16 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies the built-in {@link ECBuiltinTypes} registrations: canonical round-trips plus the legacy
+ * Verifies the built-in {@code ECBuiltinTypes} registrations: canonical round-trips plus the legacy
  * READ-compat contract (a position stored as a legacy map OR a legacy string must still read).
  */
 class ECBuiltinTypesTest {
+
+    @BeforeAll
+    static void setUp() {
+        // ConfigFactory's static init calls getPlatform().registerConfigTypes(); seed a no-op platform first.
+        TestPlatformFixture.ensureInstalled();
+    }
 
     /** Open a fresh Config over a brand-new file using the framework's type-aware YAML codec. */
     private Config open(Path dir) {
@@ -94,6 +106,21 @@ class ECBuiltinTypesTest {
         assertEquals(pos, read);
     }
 
+    @Test
+    void blockPosListSerializesAsCompactStringList(@TempDir Path dir) {
+        List<BlockPos> positions = Arrays.asList(new BlockPos(1, 2, 3), new BlockPos(-4, 5, -6));
+
+        Config cfg = open(dir);
+        cfg.setValue("spots", positions);
+        cfg.save();
+
+        Config reopened = open(dir);
+        // Spec 03: a list whose element type declares a compact element form stores as a string-list (one
+        // compact line per element), while the SAME type stays a rich map as a solo value.
+        assertEquals(Arrays.asList("1|2|3", "-4|5|-6"), reopened.getStringList("spots"));
+        assertEquals(positions, reopened.getList("spots", BlockPos.class));
+    }
+
     // ==================== time types ====================
 
     @Test
@@ -140,6 +167,23 @@ class ECBuiltinTypesTest {
         Config reopened = open(dir);
         NumberWrapper read = reopened.getValue("wrapped", NumberWrapper.class);
         assertEquals(42, read.intValue());
+    }
+
+    // ==================== Cooldown ====================
+
+    @Test
+    void cooldownRoundTrips(@TempDir Path dir) {
+        GenericCooldown cooldown = new GenericCooldown("mycd", 1000L, 5000L, true);
+
+        Config cfg = open(dir);
+        cfg.setValue("cd", cooldown);
+        cfg.save();
+
+        Config reopened = open(dir);
+        Cooldown read = reopened.getValue("cd", Cooldown.class);
+        assertEquals("mycd", read.getIdentifier());
+        assertEquals(1000L, read.getStart());
+        assertEquals(5000L, read.getDuration());
     }
 
     // ==================== FancyText ====================
