@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.hytale.inventory.extrainvs;
 import br.com.finalcraft.evernifecore.hytale.inventory.GenericInventory;
 import br.com.finalcraft.evernifecore.hytale.inventory.data.ItemInSlot;
 import br.com.finalcraft.evernifecore.hytale.inventory.extrainvs.factory.IExtraInvFactory;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.Collection;
 
@@ -19,6 +20,7 @@ public class ExtraInv extends GenericInventory {
         this.factory = factory;
     }
 
+    @JsonIgnore
     public IExtraInvFactory getFactory() {
         return factory;
     }

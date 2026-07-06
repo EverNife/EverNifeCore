@@ -7,6 +7,10 @@ import br.com.finalcraft.evernifecore.hytale.inventory.GenericInventory;
 import br.com.finalcraft.evernifecore.hytale.inventory.extrainvs.ExtraInv;
 import br.com.finalcraft.evernifecore.hytale.inventory.extrainvs.ExtraInvManager;
 import br.com.finalcraft.evernifecore.hytale.inventory.extrainvs.factory.IExtraInvFactory;
+import br.com.finalcraft.everyconfig.binding.ConfigContext;
+import br.com.finalcraft.everyconfig.binding.ConfigLifecycle;
+import br.com.finalcraft.everyconfig.config.section.ConfigSection;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.hypixel.hytale.server.core.inventory.Inventory;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import jakarta.annotation.Nullable;
@@ -16,8 +20,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * Persists as {@code {storage, armor, hotbar, utility, tools, backpack, extra.<id>}}. The six sub-inventories
+ * bind as ordinary {@code @Data} bean properties; the factory-driven {@code extra.<id>} map is handled in the
+ * {@link ConfigLifecycle} hooks, where each factory's own {@link IExtraInvFactory#onConfigLoad} stays polymorphic.
+ */
 @Data
-public class FCPlayerInventory {
+public class FCPlayerInventory implements ConfigLifecycle {
 
     protected GenericInventory storage = new GenericInventory();
     protected GenericInventory armor = new GenericInventory();
@@ -26,6 +35,7 @@ public class FCPlayerInventory {
     protected GenericInventory tools = new GenericInventory();
     protected GenericInventory backpack = new GenericInventory();
 
+    @JsonIgnore
     protected List<ExtraInv> extraInvs = new ArrayList<>();
 
     public FCPlayerInventory() {
@@ -122,6 +132,36 @@ public class FCPlayerInventory {
                 factory.applyToPlayer(player, extraInv);
             }catch (Throwable e){
                 EverNifeCore.getLog().info("Failed to restore ExtraInv(" + factory.getId() + ") into " + player.getName());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    // ==================== config lifecycle ====================
+
+    /** Write each extra inventory under {@code extra.<id>}; its slot map routes through {@link GenericInventory}.
+     *  Runs post-save so {@code extra} lands after the bound fields, matching the legacy key order. */
+    @Override
+    public void postSave(ConfigContext context) {
+        for (ExtraInv extraInv : extraInvs) {
+            context.section().setValue("extra." + extraInv.getFactory().getId(), extraInv);
+        }
+    }
+
+    /** Rebuild the extras from {@code extra.<id>} through each factory's own polymorphic
+     *  {@link IExtraInvFactory#onConfigLoad}. */
+    @Override
+    public void postLoad(ConfigContext context) {
+        for (String extraInvKey : context.section().getKeys("extra")) {
+            ConfigSection extraInvSection = context.section().getConfigSection("extra." + extraInvKey);
+            try {
+                IExtraInvFactory factory = ExtraInvManager.getFactory(extraInvKey);
+                if (factory == null) {
+                    continue;
+                }
+                extraInvs.add(factory.onConfigLoad(extraInvSection));
+            } catch (Throwable e) {
+                EverNifeCore.getLog().info("Failed to load ExtraInv(" + extraInvKey + ") at " + extraInvSection.getPath());
                 e.printStackTrace();
             }
         }

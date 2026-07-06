@@ -3,6 +3,8 @@ package br.com.finalcraft.evernifecore.minecraft.itemstack;
 import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
 import br.com.finalcraft.evernifecore.minecraft.util.FCMaterialUtil;
 import br.com.finalcraft.evernifecore.util.FCInputReader;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import jakarta.annotation.Nullable;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -78,6 +80,7 @@ public class ComparableItem {
         return localized_name;
     }
 
+    @JsonValue
     public String serialize(){
         String suffix;
         Short damage = getDamageValue();
@@ -91,6 +94,7 @@ public class ComparableItem {
         return material + suffix;
     }
 
+    @JsonCreator
     public static ComparableItem deserialize(String serializedLine) {
         //This will accept the following patterns:
         // 1. Material

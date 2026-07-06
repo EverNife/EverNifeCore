@@ -6,6 +6,11 @@ import br.com.finalcraft.evernifecore.minecraft.inventory.data.ItemInSlot;
 import br.com.finalcraft.evernifecore.minecraft.inventory.extrainvs.ExtraInv;
 import br.com.finalcraft.evernifecore.minecraft.inventory.extrainvs.ExtraInvManager;
 import br.com.finalcraft.evernifecore.minecraft.inventory.extrainvs.factory.IExtraInvFactory;
+import br.com.finalcraft.everyconfig.binding.ConfigContext;
+import br.com.finalcraft.everyconfig.binding.ConfigLifecycle;
+import br.com.finalcraft.everyconfig.config.section.ConfigSection;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.annotation.Nullable;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -15,13 +20,22 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public class FCPlayerInventory {
+/**
+ * Persists as {@code {helmet, chestplate, leggings, boots, inventory, extra.<id>}}. The four armor pieces and
+ * the main {@link GenericInventory} are bound as ordinary fields ({@link JsonAutoDetect} exposes them since the
+ * class has getters but no setters); the factory-driven {@code extra.<id>} map is handled in the
+ * {@link ConfigLifecycle} hooks, where each factory's own {@link IExtraInvFactory#onConfigLoad} stays
+ * polymorphic.
+ */
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+public class FCPlayerInventory implements ConfigLifecycle {
 
     protected ItemStack helmet;
     protected ItemStack chestplate;
     protected ItemStack leggings;
     protected ItemStack boots;
     protected GenericInventory inventory = new GenericInventory(); //0-35
+    @JsonIgnore
     protected List<ExtraInv> extraInvs = new ArrayList<>();
 
     public FCPlayerInventory() {
@@ -97,6 +111,7 @@ public class FCPlayerInventory {
         return inventory;
     }
 
+    @JsonIgnore
     public List<ExtraInv> getExtraInvs(){
         return extraInvs;
     }
@@ -141,5 +156,35 @@ public class FCPlayerInventory {
         playerInventory.setChestplate(this.getChestplate() == null ?  null : this.getChestplate().clone());
         playerInventory.setLeggings(this.getLeggings() == null ?  null : this.getLeggings().clone());
         playerInventory.setBoots(this.getBoots() == null ?  null : this.getBoots().clone());
+    }
+
+    // ==================== config lifecycle ====================
+
+    /** Write each extra inventory under {@code extra.<id>}; its slot map routes through {@link GenericInventory}.
+     *  Runs post-save so {@code extra} lands after the bound fields, matching the legacy key order. */
+    @Override
+    public void postSave(ConfigContext context) {
+        for (ExtraInv extraInv : extraInvs) {
+            context.section().setValue("extra." + extraInv.getFactory().getId(), extraInv);
+        }
+    }
+
+    /** Rebuild the extras from {@code extra.<id>} through each factory's own polymorphic
+     *  {@link IExtraInvFactory#onConfigLoad}. */
+    @Override
+    public void postLoad(ConfigContext context) {
+        for (String extraInvKey : context.section().getKeys("extra")) {
+            ConfigSection extraInvSection = context.section().getConfigSection("extra." + extraInvKey);
+            try {
+                IExtraInvFactory factory = ExtraInvManager.getFactory(extraInvKey);
+                if (factory == null) {
+                    continue;
+                }
+                extraInvs.add(factory.onConfigLoad(extraInvSection));
+            } catch (Throwable e) {
+                EverNifeCore.getLog().info("Failed to load ExtraInv(" + extraInvKey + ") at " + extraInvSection.getPath());
+                e.printStackTrace();
+            }
+        }
     }
 }

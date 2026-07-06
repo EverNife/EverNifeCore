@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack;
 
 import br.com.finalcraft.evernifecore.minecraft.util.FCNBTUtil;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import de.tr7zw.changeme.nbtapi.NBTCompound;
 import de.tr7zw.changeme.nbtapi.NBTItem;
 import org.bukkit.Material;
@@ -80,6 +82,7 @@ public class ComparableItemComplex extends ComparableItem {
     }
 
     @Override
+    @JsonValue
     public String serialize() {
         return super.serialize();
     }
@@ -93,6 +96,7 @@ public class ComparableItemComplex extends ComparableItem {
                 && Objects.equals(this.getDamageValue(), that.getDamageValue())
                 && Objects.equals(this.getNbtCompound(), that.getNbtCompound());
     }
+    @JsonCreator
     public static ComparableItemComplex deserialize(String serializedLine){
         ComparableItem comparableItem = ComparableItem.deserialize(serializedLine);
         return new ComparableItemComplex(comparableItem.getItemStack(), comparableItem.getMaterial(), comparableItem.getDamageValue());

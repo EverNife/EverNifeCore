@@ -5,20 +5,12 @@ import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutIcon;
-import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventory;
-import br.com.finalcraft.evernifecore.minecraft.inventory.data.ItemInSlot;
-import br.com.finalcraft.evernifecore.minecraft.inventory.extrainvs.ExtraInv;
-import br.com.finalcraft.evernifecore.minecraft.inventory.extrainvs.ExtraInvManager;
-import br.com.finalcraft.evernifecore.minecraft.inventory.extrainvs.factory.IExtraInvFactory;
 import br.com.finalcraft.evernifecore.minecraft.inventory.invitem.InvItem;
 import br.com.finalcraft.evernifecore.minecraft.inventory.invitem.InvItemManager;
-import br.com.finalcraft.evernifecore.minecraft.inventory.player.FCPlayerInventory;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.ComparableItem;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.ComparableItemComplex;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
-import br.com.finalcraft.evernifecore.util.FCInputReader;
+import br.com.finalcraft.everylibs.util.FCInputReader;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -44,8 +36,9 @@ import java.util.regex.Pattern;
  * {@code Salvable} registrations so that config files written by the old engine keep reading correctly under
  * the Jackson engine.
  *
- * <p><b>Location</b> persists in two shapes on disk: a MAP {@code {worldName, x, y, z, yaw, pitch}} and a
- * compact STRING {@code WORLD | x y z yaw pitch}. The deserializer reads both; new writes emit the MAP form.
+ * <p><b>Location</b> persists as a MAP {@code {worldName, x, y, z, yaw, pitch}} for a solo value or field, and
+ * as a compact STRING {@code WORLD|x y z yaw pitch} when it is a list element (via {@code asCompactElement}).
+ * The deserializer reads both, plus the legacy string form.
  *
  * <p><b>ItemStack</b> historically persisted in several shapes:
  * <ul>
@@ -57,10 +50,10 @@ import java.util.regex.Pattern;
  * The deserializer reads every shape. The serializer always writes the item-data string-list form - see the
  * note on {@link #writeItemStack} for the one intentional write-shape narrowing versus the legacy engine.
  *
- * <p><b>Inventory families</b> ({@link GenericInventory}, {@link FCPlayerInventory}) and the
- * config-value-shaped {@link InvItem} and {@link LayoutIcon} route their nested pieces (slot
- * {@code ItemStack}s, extra inventories) back through the shared type-aware mapper, so registering the
- * ItemStack adapter once is enough for the whole family to compose.
+ * <p>The {@code GenericInventory}/{@code FCPlayerInventory} families are NOT registered here: they self-describe
+ * as bound entities ({@code @JsonAnyGetter} + {@code ConfigLifecycle}), so nesting composes for free. The
+ * config-value-shaped {@link InvItem} and {@link LayoutIcon} still route their nested pieces back through the
+ * shared type-aware mapper.
  */
 public final class McConfigTypes {
 
@@ -72,10 +65,7 @@ public final class McConfigTypes {
     public static void register() {
         registerLocation();
         registerItemStack();
-        registerGenericInventory();
-        registerFCPlayerInventory();
         registerLayoutIcon();
-        registerComparableItems();
     }
 
     // ==================== Location ====================
@@ -114,10 +104,18 @@ public final class McConfigTypes {
                         );
                     }
                 }
-        );
+        ).asCompactElement(McConfigTypes::compactLocation, McConfigTypes::fromLegacyString);
     }
 
-    /** Parse the compact string form {@code WORLD | x y z yaw pitch}. */
+    /** The compact list-element form {@code WORLD|x y z yaw pitch} - the exact inverse of
+     *  {@link #fromLegacyString} (no space around the pipe, so the coord split stays clean). */
+    private static String compactLocation(Location value) {
+        return value.getWorld().getName() + "|"
+                + value.getX() + " " + value.getY() + " " + value.getZ() + " "
+                + value.getYaw() + " " + value.getPitch();
+    }
+
+    /** Parse the compact string form {@code WORLD|x y z yaw pitch}. */
     private static Location fromLegacyString(String serializedLocation) {
         String[] split = serializedLocation.split(Pattern.quote("|"));
         String[] splitCoords = split[1].split(" ");
@@ -220,135 +218,8 @@ public final class McConfigTypes {
         return FCItemFactory.from(node.asText()).build();
     }
 
-    // ==================== GenericInventory ====================
-
-    /** A {@code {<slot>: ItemStack}} object; each slot value routes through the registered ItemStack adapter. */
-    private static void registerGenericInventory() {
-        ConfigFactory.register(GenericInventory.class).jackson(
-                new JsonSerializer<GenericInventory>() {
-                    @Override
-                    public void serialize(GenericInventory value, JsonGenerator gen, SerializerProvider provider)
-                            throws IOException {
-                        gen.writeStartObject();
-                        for (ItemInSlot itemInSlot : value.getItems()) {
-                            gen.writeFieldName(String.valueOf(itemInSlot.getSlot()));
-                            gen.writeObject(itemInSlot.getItemStack());
-                        }
-                        gen.writeEndObject();
-                    }
-                },
-                new StdDeserializer<GenericInventory>(GenericInventory.class) {
-                    @Override
-                    public GenericInventory deserialize(JsonParser parser, DeserializationContext context)
-                            throws IOException {
-                        return readGenericInventory(parser.readValueAsTree(), context);
-                    }
-                }
-        );
-    }
-
-    private static GenericInventory readGenericInventory(JsonNode node, DeserializationContext context)
-            throws IOException {
-        List<ItemInSlot> items = new ArrayList<>();
-        if (node != null && node.isObject()) {
-            node.fields().forEachRemaining(entry -> {
-                try {
-                    int slot = Integer.parseInt(entry.getKey());
-                    ItemStack itemStack = context.readTreeAsValue(entry.getValue(), ItemStack.class);
-                    items.add(new ItemInSlot(slot, itemStack));
-                } catch (Exception e) {
-                    EverNifeCore.getLog().info("Failed to load ItemSlot from [" + entry + "]");
-                    e.printStackTrace();
-                }
-            });
-        }
-        return new GenericInventory(items);
-    }
-
-    // ==================== FCPlayerInventory ====================
-
-    /** An object with the four armor {@code ItemStack}s, the main {@link GenericInventory}, and one nested
-     *  inventory per registered extra factory under {@code extra.<id>}. */
-    private static void registerFCPlayerInventory() {
-        ConfigFactory.register(FCPlayerInventory.class).jackson(
-                new JsonSerializer<FCPlayerInventory>() {
-                    @Override
-                    public void serialize(FCPlayerInventory value, JsonGenerator gen, SerializerProvider provider)
-                            throws IOException {
-                        gen.writeStartObject();
-                        gen.writeFieldName("helmet");
-                        gen.writeObject(value.getHelmet());
-                        gen.writeFieldName("chestplate");
-                        gen.writeObject(value.getChestplate());
-                        gen.writeFieldName("leggings");
-                        gen.writeObject(value.getLeggings());
-                        gen.writeFieldName("boots");
-                        gen.writeObject(value.getBoots());
-                        gen.writeFieldName("inventory");
-                        gen.writeObject(value.getInventory());
-
-                        gen.writeObjectFieldStart("extra");
-                        for (ExtraInv extraInv : value.getExtraInvs()) {
-                            gen.writeFieldName(extraInv.getFactory().getId());
-                            gen.writeObject((GenericInventory) extraInv);
-                        }
-                        gen.writeEndObject();
-
-                        gen.writeEndObject();
-                    }
-                },
-                new StdDeserializer<FCPlayerInventory>(FCPlayerInventory.class) {
-                    @Override
-                    public FCPlayerInventory deserialize(JsonParser parser, DeserializationContext context)
-                            throws IOException {
-                        return readFCPlayerInventory(parser.readValueAsTree(), context);
-                    }
-                }
-        );
-    }
-
-    private static FCPlayerInventory readFCPlayerInventory(JsonNode node, DeserializationContext context)
-            throws IOException {
-        ItemStack helmet = readChildAs(node, "helmet", ItemStack.class, context);
-        ItemStack chestplate = readChildAs(node, "chestplate", ItemStack.class, context);
-        ItemStack leggings = readChildAs(node, "leggings", ItemStack.class, context);
-        ItemStack boots = readChildAs(node, "boots", ItemStack.class, context);
-
-        GenericInventory inventory = readChildAs(node, "inventory", GenericInventory.class, context);
-        if (inventory == null) {
-            inventory = new GenericInventory();
-        }
-
-        List<ExtraInv> extraInvList = new ArrayList<>();
-        JsonNode extraNode = node == null ? null : node.get("extra");
-        if (extraNode != null && extraNode.isObject()) {
-            for (Map.Entry<String, JsonNode> entry : iterate(extraNode)) {
-                String extraInvKey = entry.getKey();
-                try {
-                    IExtraInvFactory factory = ExtraInvManager.getFactory(extraInvKey);
-                    if (factory == null) {
-                        continue;
-                    }
-                    GenericInventory extraContent = context.readTreeAsValue(entry.getValue(), GenericInventory.class);
-                    extraInvList.add(new ExtraInv(factory, extraContent.getItems()));
-                } catch (Throwable e) {
-                    EverNifeCore.getLog().info("Failed to load ExtraInv(" + extraInvKey + ") at " + entry.getValue());
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        return new FCPlayerInventory(helmet, chestplate, leggings, boots, inventory, extraInvList);
-    }
-
-    private static <T> T readChildAs(JsonNode node, String field, Class<T> type, DeserializationContext context)
-            throws IOException {
-        JsonNode child = node == null ? null : node.get(field);
-        if (child == null || child.isNull()) {
-            return null;
-        }
-        return context.readTreeAsValue(child, type);
-    }
+    // GenericInventory and FCPlayerInventory are self-describing bound entities (see their @JsonAnyGetter /
+    // ConfigLifecycle) - they need no central registration here.
 
     // ==================== LayoutIcon ====================
 
@@ -383,20 +254,6 @@ public final class McConfigTypes {
         );
     }
 
-    // ==================== ComparableItem / ComparableItemComplex ====================
-
-    /** Both persist as their compact material/damage string. */
-    private static void registerComparableItems() {
-        ConfigFactory.register(ComparableItem.class).asString(
-                ComparableItem::serialize,
-                ComparableItem::deserialize
-        );
-        ConfigFactory.register(ComparableItemComplex.class).asString(
-                ComparableItemComplex::serialize,
-                ComparableItemComplex::deserialize
-        );
-    }
-
     // ==================== shared bridge ====================
 
     /**
@@ -411,11 +268,5 @@ public final class McConfigTypes {
             bridge.getRoot().setAll((ObjectNode) node);
         }
         return new ConfigSection(bridge, "");
-    }
-
-    private static Iterable<Map.Entry<String, JsonNode>> iterate(JsonNode node) {
-        List<Map.Entry<String, JsonNode>> entries = new ArrayList<>();
-        node.fields().forEachRemaining(entries::add);
-        return entries;
     }
 }

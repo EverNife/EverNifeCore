@@ -2,17 +2,11 @@ package br.com.finalcraft.evernifecore.hytale.loader.imp;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
-import br.com.finalcraft.evernifecore.hytale.inventory.GenericInventory;
-import br.com.finalcraft.evernifecore.hytale.inventory.data.ItemInSlot;
-import br.com.finalcraft.evernifecore.hytale.inventory.extrainvs.ExtraInv;
-import br.com.finalcraft.evernifecore.hytale.inventory.extrainvs.ExtraInvManager;
-import br.com.finalcraft.evernifecore.hytale.inventory.extrainvs.factory.IExtraInvFactory;
-import br.com.finalcraft.evernifecore.hytale.inventory.player.FCPlayerInventory;
 import br.com.finalcraft.evernifecore.hytale.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.hytale.itemstack.ComparableItem;
 import br.com.finalcraft.evernifecore.hytale.itemstack.ComparableItemComplex;
 import br.com.finalcraft.evernifecore.hytale.itemstack.FCItemFactory;
-import br.com.finalcraft.evernifecore.util.FCInputReader;
+import br.com.finalcraft.everylibs.util.FCInputReader;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -38,13 +32,13 @@ import java.util.regex.Pattern;
 /**
  * The Hytale platform's config types for {@link ConfigFactory}. Ported from the legacy {@code @Loadable}/
  * {@code Salvable} registrations so that config files written by the old engine keep reading correctly under
- * the Jackson engine. The vector families persist as objects ({@code {x,y[,z]}}); {@code Location} as an
- * object ({@code {worldName, position, rotation}}) or the compact string {@code WORLD | x y z xRot yRot zRot};
- * an {@code ItemStack} as an item-data string-list.
+ * the Jackson engine. The vector families persist as objects ({@code {x,y[,z]}}) for a solo value and a
+ * compact space-separated string ({@code "x y z"}) as a list element; {@code Location} as an object
+ * ({@code {worldName, position, rotation}}) or the compact string {@code WORLD|x y z xRot yRot zRot}; an
+ * {@code ItemStack} as an item-data string-list.
  *
- * <p><b>Inventory families</b> ({@link GenericInventory}, {@link FCPlayerInventory}) route their nested
- * pieces (slot {@code ItemStack}s, extra inventories) back through the shared type-aware mapper, so
- * registering the ItemStack adapter once is enough for the whole family to compose.
+ * <p>The {@code GenericInventory}/{@code FCPlayerInventory} families are NOT registered here: they self-describe
+ * as bound entities ({@code @JsonAnyGetter} + {@code ConfigLifecycle}), so nesting composes for free.
  */
 public final class HyConfigTypes {
 
@@ -55,8 +49,6 @@ public final class HyConfigTypes {
         registerVectors();
         registerLocation();
         registerItemStack();
-        registerGenericInventory();
-        registerFCPlayerInventory();
         registerComparableItems();
     }
 
@@ -77,16 +69,27 @@ public final class HyConfigTypes {
     // ==================== vector families ====================
 
     private static void registerVectors() {
+        // Each vector keeps its rich {x,y[,z]} map as a solo value/field, and a compact space-separated string
+        // ("x y z") when it is a list element (via asCompactElement). Compact parsing mirrors each type's
+        // numeric kind (int/float/double) so a value round-trips.
         ConfigFactory.register(Vector3d.class).jackson(
                 mapSerializer(v -> vec3(v.x(), v.y(), v.z())),
                 objectDeserializer(Vector3d.class, node -> new Vector3d(
                         node.get("x").asDouble(), node.get("y").asDouble(), node.get("z").asDouble()))
+        ).asCompactElement(
+                v -> v.x() + " " + v.y() + " " + v.z(),
+                s -> { String[] p = coords(s); return new Vector3d(
+                        Double.parseDouble(p[0]), Double.parseDouble(p[1]), Double.parseDouble(p[2])); }
         );
 
         ConfigFactory.register(Vector3i.class).jackson(
                 mapSerializer(v -> vec3(v.x(), v.y(), v.z())),
                 objectDeserializer(Vector3i.class, node -> new Vector3i(
                         node.get("x").asInt(), node.get("y").asInt(), node.get("z").asInt()))
+        ).asCompactElement(
+                v -> v.x() + " " + v.y() + " " + v.z(),
+                s -> { String[] p = coords(s); return new Vector3i(
+                        Integer.parseInt(p[0]), Integer.parseInt(p[1]), Integer.parseInt(p[2])); }
         );
 
         ConfigFactory.register(Vector3f.class).jackson(
@@ -94,6 +97,10 @@ public final class HyConfigTypes {
                 objectDeserializer(Vector3f.class, node -> new Vector3f(
                         (float) node.get("x").asDouble(), (float) node.get("y").asDouble(),
                         (float) node.get("z").asDouble()))
+        ).asCompactElement(
+                v -> v.x() + " " + v.y() + " " + v.z(),
+                s -> { String[] p = coords(s); return new Vector3f(
+                        Float.parseFloat(p[0]), Float.parseFloat(p[1]), Float.parseFloat(p[2])); }
         );
 
         ConfigFactory.register(Rotation3f.class).jackson(
@@ -101,6 +108,10 @@ public final class HyConfigTypes {
                 objectDeserializer(Rotation3f.class, node -> new Rotation3f(
                         (float) node.get("x").asDouble(), (float) node.get("y").asDouble(),
                         (float) node.get("z").asDouble()))
+        ).asCompactElement(
+                v -> v.x() + " " + v.y() + " " + v.z(),
+                s -> { String[] p = coords(s); return new Rotation3f(
+                        Float.parseFloat(p[0]), Float.parseFloat(p[1]), Float.parseFloat(p[2])); }
         );
 
         ConfigFactory.register(Vector2d.class).jackson(
@@ -112,6 +123,10 @@ public final class HyConfigTypes {
                 }),
                 objectDeserializer(Vector2d.class, node -> new Vector2d(
                         node.get("x").asInt(), node.get("y").asInt()))
+        ).asCompactElement(
+                v -> v.x() + " " + v.y(),
+                s -> { String[] p = coords(s); return new Vector2d(
+                        Double.parseDouble(p[0]), Double.parseDouble(p[1])); }
         );
     }
 
@@ -121,6 +136,11 @@ public final class HyConfigTypes {
         map.put("y", y);
         map.put("z", z);
         return map;
+    }
+
+    /** Split a compact vector string into its space-separated components. */
+    private static String[] coords(String s) {
+        return s.trim().split(" ");
     }
 
     // ==================== Location ====================
@@ -151,10 +171,20 @@ public final class HyConfigTypes {
                         return new Location(stringOrNull(node.get("worldName")), position, rotation);
                     }
                 }
-        );
+        ).asCompactElement(HyConfigTypes::compactLocation, HyConfigTypes::fromLegacyString);
     }
 
-    /** Parse the compact string form {@code WORLD | x y z xRot yRot zRot}. */
+    /** The compact list-element form {@code WORLD|x y z xRot yRot zRot} - the exact inverse of
+     *  {@link #fromLegacyString} (no space around the pipe, so the coord split stays clean). */
+    private static String compactLocation(Location value) {
+        Vector3d position = value.getPosition();
+        Rotation3f rotation = value.getRotation();
+        return value.getWorld() + "|"
+                + position.x() + " " + position.y() + " " + position.z() + " "
+                + rotation.x() + " " + rotation.y() + " " + rotation.z();
+    }
+
+    /** Parse the compact string form {@code WORLD|x y z xRot yRot zRot}. */
     private static Location fromLegacyString(String serializedLocation) {
         String[] split = serializedLocation.split(Pattern.quote("|"));
         String[] splitCoords = split[1].split(" ");
@@ -200,140 +230,8 @@ public final class HyConfigTypes {
         );
     }
 
-    // ==================== GenericInventory ====================
-
-    /** A {@code {<slot>: ItemStack}} object; each slot value routes through the registered ItemStack adapter. */
-    private static void registerGenericInventory() {
-        ConfigFactory.register(GenericInventory.class).jackson(
-                new JsonSerializer<GenericInventory>() {
-                    @Override
-                    public void serialize(GenericInventory value, JsonGenerator gen, SerializerProvider provider)
-                            throws IOException {
-                        gen.writeStartObject();
-                        for (ItemInSlot itemInSlot : value.getItems()) {
-                            gen.writeFieldName(String.valueOf(itemInSlot.getSlot()));
-                            gen.writeObject(itemInSlot.getItemStack());
-                        }
-                        gen.writeEndObject();
-                    }
-                },
-                new StdDeserializer<GenericInventory>(GenericInventory.class) {
-                    @Override
-                    public GenericInventory deserialize(JsonParser parser, DeserializationContext context)
-                            throws IOException {
-                        return readGenericInventory(parser.readValueAsTree(), context);
-                    }
-                }
-        );
-    }
-
-    private static GenericInventory readGenericInventory(JsonNode node, DeserializationContext context)
-            throws IOException {
-        List<ItemInSlot> items = new ArrayList<>();
-        if (node != null && node.isObject()) {
-            node.fields().forEachRemaining(entry -> {
-                try {
-                    int slot = Integer.parseInt(entry.getKey());
-                    ItemStack itemStack = context.readTreeAsValue(entry.getValue(), ItemStack.class);
-                    items.add(new ItemInSlot(slot, itemStack));
-                } catch (Exception e) {
-                    EverNifeCore.getLog().info("Failed to load ItemSlot from [" + entry + "]");
-                    e.printStackTrace();
-                }
-            });
-        }
-        return new GenericInventory(items);
-    }
-
-    // ==================== FCPlayerInventory ====================
-
-    /** An object with the six {@link GenericInventory} sub-inventories (storage/armor/hotbar/utility/tools/
-     *  backpack) and one nested inventory per registered extra factory under {@code extra.<id>}. */
-    private static void registerFCPlayerInventory() {
-        ConfigFactory.register(FCPlayerInventory.class).jackson(
-                new JsonSerializer<FCPlayerInventory>() {
-                    @Override
-                    public void serialize(FCPlayerInventory value, JsonGenerator gen, SerializerProvider provider)
-                            throws IOException {
-                        gen.writeStartObject();
-                        gen.writeFieldName("storage");
-                        gen.writeObject(value.getStorage());
-                        gen.writeFieldName("armor");
-                        gen.writeObject(value.getArmor());
-                        gen.writeFieldName("hotbar");
-                        gen.writeObject(value.getHotbar());
-                        gen.writeFieldName("utility");
-                        gen.writeObject(value.getUtility());
-                        gen.writeFieldName("tools");
-                        gen.writeObject(value.getTools());
-                        gen.writeFieldName("backpack");
-                        gen.writeObject(value.getBackpack());
-
-                        gen.writeObjectFieldStart("extra");
-                        for (ExtraInv extraInv : value.getExtraInvs()) {
-                            gen.writeFieldName(extraInv.getFactory().getId());
-                            gen.writeObject((GenericInventory) extraInv);
-                        }
-                        gen.writeEndObject();
-
-                        gen.writeEndObject();
-                    }
-                },
-                new StdDeserializer<FCPlayerInventory>(FCPlayerInventory.class) {
-                    @Override
-                    public FCPlayerInventory deserialize(JsonParser parser, DeserializationContext context)
-                            throws IOException {
-                        return readFCPlayerInventory(parser.readValueAsTree(), context);
-                    }
-                }
-        );
-    }
-
-    private static FCPlayerInventory readFCPlayerInventory(JsonNode node, DeserializationContext context)
-            throws IOException {
-        GenericInventory storage = readChildAsInventory(node, "storage", context);
-        GenericInventory armor = readChildAsInventory(node, "armor", context);
-        GenericInventory hotbar = readChildAsInventory(node, "hotbar", context);
-        GenericInventory utility = readChildAsInventory(node, "utility", context);
-        GenericInventory tools = readChildAsInventory(node, "tools", context);
-        GenericInventory backpack = readChildAsInventory(node, "backpack", context);
-
-        List<ExtraInv> extraInvList = new ArrayList<>();
-        JsonNode extraNode = node == null ? null : node.get("extra");
-        if (extraNode != null && extraNode.isObject()) {
-            for (Map.Entry<String, JsonNode> entry : iterate(extraNode)) {
-                String extraInvKey = entry.getKey();
-                try {
-                    IExtraInvFactory factory = ExtraInvManager.getFactory(extraInvKey);
-                    if (factory == null) {
-                        continue;
-                    }
-                    GenericInventory extraContent = context.readTreeAsValue(entry.getValue(), GenericInventory.class);
-                    extraInvList.add(new ExtraInv(factory, extraContent.getItems()));
-                } catch (Throwable e) {
-                    EverNifeCore.getLog().info("Failed to load ExtraInv(" + extraInvKey + ") at " + entry.getValue());
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        return new FCPlayerInventory(storage, armor, hotbar, utility, tools, backpack, extraInvList);
-    }
-
-    private static GenericInventory readChildAsInventory(JsonNode node, String field, DeserializationContext context)
-            throws IOException {
-        JsonNode child = node == null ? null : node.get(field);
-        if (child == null || child.isNull()) {
-            return new GenericInventory();
-        }
-        return context.readTreeAsValue(child, GenericInventory.class);
-    }
-
-    private static Iterable<Map.Entry<String, JsonNode>> iterate(JsonNode node) {
-        List<Map.Entry<String, JsonNode>> entries = new ArrayList<>();
-        node.fields().forEachRemaining(entries::add);
-        return entries;
-    }
+    // GenericInventory and FCPlayerInventory are self-describing bound entities (see their @JsonAnyGetter /
+    // ConfigLifecycle) - they need no central registration here.
 
     // ==================== helpers ====================
 
