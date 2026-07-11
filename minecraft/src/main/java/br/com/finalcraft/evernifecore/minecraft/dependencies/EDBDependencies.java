@@ -11,11 +11,16 @@ import java.util.List;
  * EveryDatabase runtime dependencies, downloaded via libby and RELOCATED at download-time
  * to {@code br.com.finalcraft.everydatabase.libs.*}.
  *
+ * <p>Despite the name, the Jackson bundle here is the UNION of the EveryDatabase and EveryConfig
+ * runtime needs (both share one relocated Jackson copy in the jar): the backend deps mirror
+ * EveryDatabase, and {@code jackson-dataformat-toml} is added for EveryConfig's TomlCodec.</p>
+ *
  * <p>SYNC RULES (do not break):</p>
  * <ul>
- *   <li>The coordinates/versions below mirror {@code EveryDatabaseDependencies} of the
+ *   <li>The backend coordinates/versions below mirror {@code EveryDatabaseDependencies} of the
  *       EveryDatabase project (its gradle/libs.versions.toml). Update them TOGETHER with
- *       every everydatabase-core upgrade in common/build.gradle.</li>
+ *       every everydatabase-core upgrade in common/build.gradle. The Jackson version line is shared
+ *       with EveryConfig (both pin jackson 2.22.0), so it also tracks the EveryConfig upgrade.</li>
  *   <li>The relocation pairs below must be IDENTICAL to the {@code relocate ...} entries of
  *       the shadowJar in minecraft/build.gradle (which rewrites the REFS of the embedded
  *       everydatabase-core classes to these same coordinates).</li>
@@ -29,7 +34,7 @@ import java.util.List;
  */
 public final class EDBDependencies {
 
-    private static final String JACKSON_VERSION = "2.22.0"; // aligned to everydatabase-core 1.0.6
+    private static final String JACKSON_VERSION = "2.22.0"; // aligned to everydatabase-core 1.0.8
 
     private static final String LIBS_PREFIX = "br{}com{}finalcraft{}everydatabase{}libs{}";
 
@@ -49,8 +54,15 @@ public final class EDBDependencies {
     private EDBDependencies() {
     }
 
-    /** Jackson JSON+YAML stack - ALWAYS required (EveryDatabase codecs). */
-    public static void loadJacksonYaml(DependencyManager manager) {
+    /**
+     * The shared, relocated Jackson stack - ALWAYS required. It is the UNION of what EveryDatabase
+     * (JSON/YAML storage codecs) and EveryConfig (Yaml/Toml/Json/Jsonc config codecs) need, because
+     * both share the one relocated {@code br.com.finalcraft.everydatabase.libs.jackson.*} copy in the
+     * jar. In particular {@code jackson-dataformat-toml} is an EveryConfig-only need that EveryDatabase
+     * itself never uses, yet it must be here: {@code ConfigFactory} builds a {@code TomlCodec} on every
+     * open, so omitting it makes the whole config factory unloadable at runtime.
+     */
+    public static void loadJacksonStack(DependencyManager manager) {
         List<Library> libs = new ArrayList<>();
         libs.add(lib("com{}fasterxml{}jackson{}core", "jackson-core", JACKSON_VERSION,
                 REL_JACKSON_CORE));
@@ -69,6 +81,11 @@ public final class EDBDependencies {
                 REL_JACKSON_CORE, REL_JACKSON_DATABIND, REL_JACKSON_DATATYPE));
         libs.add(lib("com{}fasterxml{}jackson{}dataformat", "jackson-dataformat-yaml", JACKSON_VERSION,
                 REL_JACKSON_CORE, REL_JACKSON_DATABIND, REL_JACKSON_DATAFORMAT, REL_SNAKEYAML));
+        // jackson-dataformat-toml: EveryConfig's TomlCodec, which ConfigFactory ALWAYS instantiates
+        // (every open builds Yaml/Toml/Json/Jsonc). Not a transitive of anything else here, so it must
+        // be listed explicitly or ConfigFactory dies with NoClassDefFoundError on TomlMapper.
+        libs.add(lib("com{}fasterxml{}jackson{}dataformat", "jackson-dataformat-toml", JACKSON_VERSION,
+                REL_JACKSON_CORE, REL_JACKSON_DATABIND, REL_JACKSON_DATAFORMAT));
         libs.add(lib("org{}yaml", "snakeyaml", "2.6",
                 REL_SNAKEYAML));
         manager.loadLibrary(libs);

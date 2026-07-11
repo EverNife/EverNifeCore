@@ -23,7 +23,7 @@ public class ECoreDependencies {
         // EveryDatabase runtime deps: download every backend's dependencies up front, all
         // relocated to br.com.finalcraft.everydatabase.libs.* at download-time. The admin can
         // switch a backend in storage.yml at any time without a missing-dependency surprise.
-        EDBDependencies.loadJacksonYaml(dependencyManager);
+        EDBDependencies.loadJacksonStack(dependencyManager);
         EDBDependencies.loadSqlPool(dependencyManager);
         EDBDependencies.loadH2(dependencyManager);
         EDBDependencies.loadMySqlDriver(dependencyManager);
