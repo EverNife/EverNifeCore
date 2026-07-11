@@ -50,7 +50,7 @@ dependencies {
     implementation project(':minecraft:modules:v1_12_2')
     implementation project(':minecraft:modules:v1_16_5')
 
-    implementation("br.com.finalcraft:ECNmsUtils:1.1.4") {
+    implementation("br.com.finalcraft:ECNmsUtils:1.1.5") {
         exclude group: "br.com.finalcraft", module: "*"
     }
 
