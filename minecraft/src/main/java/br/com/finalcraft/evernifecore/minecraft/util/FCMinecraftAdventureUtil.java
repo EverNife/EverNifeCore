@@ -3,8 +3,8 @@ package br.com.finalcraft.evernifecore.minecraft.util;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
-import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.everylibs.reflection.MethodInvoker;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import com.google.common.collect.Iterables;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.Component;
@@ -36,12 +36,12 @@ public class FCMinecraftAdventureUtil {
         String PLAYER_SPIGOT_METHOD_CONTRACT_1 = "public org.bukkit.entity.Player$Spigot " + CRAFT_PLAYER_CLASS + ".spigot()";
         String PLAYER_SPIGOT_METHOD_CONTRACT_2 = "public org.bukkit.entity.Player$Spigot " + CRAFT_PLAYER_CLASS_PAPER_POST_1_21 + ".spigot()";
 
-        method_spigot = FCReflectionUtil.getMethods(FCReflectionUtil.getClass(CRAFT_PLAYER_CLASS),
+        method_spigot = FCReflectionUtil.getMethods().getMethods(FCReflectionUtil.getClasses().getClass(CRAFT_PLAYER_CLASS),
                 method -> {
                     return method.toString().equals(PLAYER_SPIGOT_METHOD_CONTRACT_1) || method.toString().equals(PLAYER_SPIGOT_METHOD_CONTRACT_2);
                 }).findFirst().get();
 
-        method_sendmessage = FCReflectionUtil.getMethods(method_spigot.get().getReturnType(),
+        method_sendmessage = FCReflectionUtil.getMethods().getMethods(method_spigot.getMethod().getReturnType(),
                 method -> {
                     return method.toString().equals("public void org.bukkit.entity.Player$Spigot.sendMessage(net.md_5.bungee.api.chat.BaseComponent[])");
                 }).findFirst().get();
@@ -86,7 +86,7 @@ public class FCMinecraftAdventureUtil {
 
                 // Call player.spigot().sendMessage(BaseComponent[])
                 Object spigot = method_spigot.invoke(player);
-                method_sendmessage.get().invoke(
+                method_sendmessage.getMethod().invoke(
                         spigot,
                         (Object) bungeeComponents // Cast to Object to avoid varargs ambiguity
                 );

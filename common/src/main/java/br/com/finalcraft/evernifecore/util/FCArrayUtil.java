@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.util;
 
+import br.com.finalcraft.everylibs.util.FCMathUtil;
 import jakarta.annotation.Nonnull;
 
 import java.lang.reflect.Array;

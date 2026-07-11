@@ -12,15 +12,25 @@ dependencies {
 
     // EveryDatabase storage API (api scope: its types appear in common's public API).
     // The heavy runtime deps arrive via libby (minecraft) or the shadow jar (hytale).
-    api 'br.com.finalcraft.everydatabase:everydatabase-core:1.0.6'
+    api 'br.com.finalcraft.everydatabase:everydatabase-core:1.0.8'
     // Typed references + per-type caching managers (write-back, parent registries).
-    api 'br.com.finalcraft.everydatabase:everydatabase-manager:1.0.6'
+    api 'br.com.finalcraft.everydatabase:everydatabase-manager:1.0.8'
 
     // EveryConfig: the Jackson-first config engine (Config/ConfigSection + entity binding). api scope
     // because its types are the public config surface of common. It pulls jackson-databind and
     // jackson-dataformat-yaml as compile deps; the runtime datatype modules (jsr310/jdk8) arrive via the
     // shadow jar / libby on the platform side.
     api 'br.com.finalcraft:EveryConfig:1.0.1'
+
+    // EveryLibs: the general-purpose pieces carved out of ECore (reflection, utils, executors,
+    // shared primitives). api scope because these types appear in common's public API
+    // (FCReflectionUtil returns, Tuple/Triple in signatures, FCJavaVersion, etc.). Pure Java 8
+    // bytecode with no runtime deps - embedded canonically in the shadow jar (minecraft) or flows
+    // transitively (hytale); the br.com.finalcraft.everylibs package is never relocated.
+    api 'br.com.finalcraft.everylibs:everylibs-common:1.0.0'
+    api 'br.com.finalcraft.everylibs:everylibs-reflection:1.0.0'
+    api 'br.com.finalcraft.everylibs:everylibs-utils:1.0.0'
+    api 'br.com.finalcraft.everylibs:everylibs-executors:1.0.0'
 
     api('net.kyori:adventure-api:4.21.0') {
         exclude(module: 'adventure-bom')

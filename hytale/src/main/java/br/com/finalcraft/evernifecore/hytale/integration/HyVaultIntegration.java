@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.integration;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import net.cfh.vault.VaultUnlockedServicesManager;
 import net.milkbowl.vault2.economy.Economy;
 
@@ -14,7 +14,7 @@ public class HyVaultIntegration {
     public static Economy econ = null;
 
     public static void initialize() {
-        if (!FCReflectionUtil.isClassLoaded("net.cfh.vault.VaultUnlocked")){
+        if (!FCReflectionUtil.getClasses().isClassLoaded("net.cfh.vault.VaultUnlocked")){
             EverNifeCore.getLog().warning("VaultUnlocked plugin was not found! EverNifeCore need Vault to manage economy transactions!");
             return;
         }

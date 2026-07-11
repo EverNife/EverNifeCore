@@ -63,6 +63,8 @@ subprojects {
                 // EveryConfig resolves from mavenLocal too until it is published to maven.petrus.dev.
                 // Scoped to the exact module so it does not shadow other br.com.finalcraft artifacts (jabel).
                 includeModule "br.com.finalcraft", "EveryConfig"
+                // EveryLibs (reflection/utils/executors/common primitives) resolves from mavenLocal too.
+                includeGroup "br.com.finalcraft.everylibs"
             }
         }
         maven { url = "https://jitpack.io" }

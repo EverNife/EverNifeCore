@@ -3,8 +3,8 @@ package br.com.finalcraft.evernifecore.minecraft.protection.integration.imp;
 import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
 import br.com.finalcraft.evernifecore.minecraft.protection.integration.ProtectionHandler;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
-import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.everylibs.reflection.MethodInvoker;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import com.griefdefender.api.GriefDefender;
 import com.griefdefender.api.claim.*;
 import com.griefdefender.lib.flowpowered.math.vector.Vector3i;
@@ -30,9 +30,9 @@ public class GriefDefenderHandler implements ProtectionHandler {
         try {
             //Fuck the JarInJarClassLoader, i need this...
             BukkitLoaderPlugin bukkitLoaderPlugin = (BukkitLoaderPlugin) Bukkit.getPluginManager().getPlugin(getName());
-            LoaderBootstrap bootstrap = (LoaderBootstrap) FCReflectionUtil.getField(bukkitLoaderPlugin.getClass(), "plugin").get(bukkitLoaderPlugin);
+            LoaderBootstrap bootstrap = (LoaderBootstrap) FCReflectionUtil.getFields().getField(bukkitLoaderPlugin.getClass(), "plugin").get(bukkitLoaderPlugin);
             Class GDClaim_class = Class.forName("com.griefdefender.claim.GDClaim", false, bootstrap.getClass().getClassLoader());
-            checkArea = FCReflectionUtil.getMethod(GDClaim_class, "checkArea");
+            checkArea = FCReflectionUtil.getMethods().getMethod(GDClaim_class, "checkArea");
             GDClaim_constructor = GDClaim_class.getDeclaredConstructor(
                     World.class,
                     Vector3i.class,

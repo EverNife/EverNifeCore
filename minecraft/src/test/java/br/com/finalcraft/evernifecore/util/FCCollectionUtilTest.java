@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.util;
 
+import br.com.finalcraft.everylibs.util.FCCollectionsUtil;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;

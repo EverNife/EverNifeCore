@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
-import br.com.finalcraft.evernifecore.util.commons.Tuple;
+import br.com.finalcraft.everylibs.commons.Tuple;
 
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.interpreters;
 
 import br.com.finalcraft.evernifecore.minecraft.util.FCMaterialUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import com.google.common.collect.Sets;
 import org.bukkit.Material;
 
@@ -10,9 +10,9 @@ import java.util.HashSet;
 
 public class MaterialSignInterpreter {
 
-    private final Class SIGN_DATA_CLASS_LEGACY = MCVersion.isLowerEquals(MCVersion.v1_12) ? FCReflectionUtil.getClass("org.bukkit.material.Sign") : null;
-    private final Class SIGN_DATA_CLASS_MODERN = !MCVersion.isLowerEquals(MCVersion.v1_12) ? FCReflectionUtil.getClass("org.bukkit.block.data.type.Sign") : null;
-    private final Class WAALL_SIGN_DATA_CLASS_MODERN = !MCVersion.isLowerEquals(MCVersion.v1_12) ? FCReflectionUtil.getClass("org.bukkit.block.data.type.WallSign") : null;
+    private final Class SIGN_DATA_CLASS_LEGACY = MCVersion.isLowerEquals(MCVersion.v1_12) ? FCReflectionUtil.getClasses().getClass("org.bukkit.material.Sign") : null;
+    private final Class SIGN_DATA_CLASS_MODERN = !MCVersion.isLowerEquals(MCVersion.v1_12) ? FCReflectionUtil.getClasses().getClass("org.bukkit.block.data.type.Sign") : null;
+    private final Class WAALL_SIGN_DATA_CLASS_MODERN = !MCVersion.isLowerEquals(MCVersion.v1_12) ? FCReflectionUtil.getClasses().getClass("org.bukkit.block.data.type.WallSign") : null;
 
     private HashSet<Material> SIGN_MATERIALS_1_12_BELLOW = Sets.newHashSet(
             FCMaterialUtil.parseMaterial("SIGN"),

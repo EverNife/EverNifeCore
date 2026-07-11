@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.commands.finalcmd.custom.contexts;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.*;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.MethodData;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
-import br.com.finalcraft.evernifecore.util.commons.Tuple;
+import br.com.finalcraft.everylibs.commons.Tuple;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;

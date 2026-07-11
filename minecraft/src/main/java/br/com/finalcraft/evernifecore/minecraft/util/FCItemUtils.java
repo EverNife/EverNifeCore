@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.util;
 
 import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
-import br.com.finalcraft.evernifecore.util.FCInputReader;
+import br.com.finalcraft.everylibs.util.FCInputReader;
 import de.tr7zw.changeme.nbtapi.NBTContainer;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;

@@ -19,8 +19,8 @@ import br.com.finalcraft.evernifecore.hytale.integration.placeholders.HyPAPIInte
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
-import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.everylibs.reflection.MethodInvoker;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import com.hypixel.hytale.event.EventRegistration;
 import com.hypixel.hytale.event.ICancellable;
 import com.hypixel.hytale.event.IEvent;
@@ -45,6 +45,11 @@ public class HyPlatform implements IPlatform {
     private HyPlatformChatAdapter CHAT_ADAPTER = new HyPlatformChatAdapter();
 
     private HyPlatformVecAdapter VEC_ADAPTER = new HyPlatformVecAdapter();
+
+    @Override
+    public String getPlatformProviderId() {
+        return "hytale";
+    }
 
     @Override
     public List<FPlayer> getOnlinePlayers() {
@@ -126,7 +131,7 @@ public class HyPlatform implements IPlatform {
     @Override
     public void registerECListener(ECPluginData ecPluginData, ECListener listener) {
 
-        List<MethodInvoker> annotatedMethods = FCReflectionUtil.getMethods(listener.getClass(), method -> {
+        List<MethodInvoker> annotatedMethods = FCReflectionUtil.getMethods().getMethods(listener.getClass(), method -> {
             ECEventHandler annotation = method.getAnnotation(ECEventHandler.class);
             return annotation != null;
         }).collect(Collectors.toList());
@@ -136,27 +141,27 @@ public class HyPlatform implements IPlatform {
         List<EventRegistration> registrations = new ArrayList<>();
 
         for (MethodInvoker methodListener : annotatedMethods) {
-            Class<?>[] parameterTypes = methodListener.get().getParameterTypes();
+            Class<?>[] parameterTypes = methodListener.getMethod().getParameterTypes();
 
             if (parameterTypes.length == 0) {
-                ecPluginData.getLog().severe(String.format("[ECListener] @ECEventHandler(%s#%s) | No parameter found on this listener.. ", listener.getClass().getSimpleName(), methodListener.get().getName()));
+                ecPluginData.getLog().severe(String.format("[ECListener] @ECEventHandler(%s#%s) | No parameter found on this listener.. ", listener.getClass().getSimpleName(), methodListener.getMethod().getName()));
                 foundAnyError = true;
                 continue;
             }
 
             if (parameterTypes.length > 1) {
-                ecPluginData.getLog().severe(String.format("[ECListener] @ECEventHandler(%s#%s) | More than one parameter found on this listener.. ", listener.getClass().getSimpleName(), methodListener.get().getName()));
+                ecPluginData.getLog().severe(String.format("[ECListener] @ECEventHandler(%s#%s) | More than one parameter found on this listener.. ", listener.getClass().getSimpleName(), methodListener.getMethod().getName()));
                 foundAnyError = true;
                 continue;
             }
 
             if (!IEvent.class.isAssignableFrom(parameterTypes[0])) {
-                ecPluginData.getLog().severe(String.format("[ECListener] @ECEventHandler(%s#%s) | The parameter %s is not assignable to IEvent", listener.getClass().getSimpleName(), methodListener.get().getName(), parameterTypes[0].getSimpleName()));
+                ecPluginData.getLog().severe(String.format("[ECListener] @ECEventHandler(%s#%s) | The parameter %s is not assignable to IEvent", listener.getClass().getSimpleName(), methodListener.getMethod().getName(), parameterTypes[0].getSimpleName()));
                 foundAnyError = true;
                 continue;
             }
 
-            ECEventHandler annotation = methodListener.get().getAnnotation(ECEventHandler.class);
+            ECEventHandler annotation = methodListener.getMethod().getAnnotation(ECEventHandler.class);
 
             Class<IEvent> eventClass = (Class<IEvent>) parameterTypes[0];
 

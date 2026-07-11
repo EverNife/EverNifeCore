@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.interpreters;
 
 import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
-import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.everylibs.reflection.MethodInvoker;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
@@ -18,7 +18,7 @@ public class MaterialVanillaInterpreter {
         this.isVanilla.put(Material.AIR, true);
 
         try {
-            isForgeBlock = FCReflectionUtil.getMethod(Material.class, "isForgeBlock");
+            isForgeBlock = FCReflectionUtil.getMethods().getMethod(Material.class, "isForgeBlock");
         }catch (Exception ignored) {
             //Do Nothing
         }

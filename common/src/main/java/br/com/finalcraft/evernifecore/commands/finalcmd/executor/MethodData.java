@@ -6,8 +6,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FlagArg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgContextualData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.CMDData;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
-import br.com.finalcraft.evernifecore.util.commons.Tuple;
+import br.com.finalcraft.everylibs.commons.Tuple;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
@@ -32,7 +31,7 @@ public class MethodData<T extends CMDData> {
         if (method == null) return;
         //Add all @Arg methods
         int index = -1;
-        for (Tuple<Class, Annotation[]> tuple : FCReflectionUtil.getArgsAndAnnotationsDeeply(method)) {
+        for (Tuple<Class, Annotation[]> tuple : MethodArgScanner.getArgsAndAnnotationsDeeply(method)) {
             index++;
 
             Arg arg = (Arg) Arrays.stream(tuple.getRight())

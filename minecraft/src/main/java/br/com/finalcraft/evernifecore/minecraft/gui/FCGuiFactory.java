@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.gui;
 
 import br.com.finalcraft.evernifecore.minecraft.gui.builders.ComplexGuiBuilder;
 import br.com.finalcraft.evernifecore.minecraft.gui.builders.PaginatedComplexGuiBuilder;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import dev.triumphteam.gui.builder.gui.BaseGuiBuilder;
 import dev.triumphteam.gui.builder.gui.PaginatedBuilder;
 import dev.triumphteam.gui.builder.gui.SimpleBuilder;
@@ -39,7 +39,7 @@ public class FCGuiFactory {
         if (classBuilder == PaginatedBuilder.class) return (B) paginated();
         if (classBuilder == PaginatedComplexGuiBuilder.class) return (B) paginatedComplex();
 
-        return FCReflectionUtil.getConstructor(classBuilder).invoke();
+        return FCReflectionUtil.getConstructors().getConstructor(classBuilder).newInstance();
     }
 
 }

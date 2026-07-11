@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.hytale.itemdatapart.datapart;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.hytale.itemdatapart.ItemDataPart;
-import br.com.finalcraft.evernifecore.util.FCInputReader;
+import br.com.finalcraft.everylibs.util.FCInputReader;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 
 import java.util.List;

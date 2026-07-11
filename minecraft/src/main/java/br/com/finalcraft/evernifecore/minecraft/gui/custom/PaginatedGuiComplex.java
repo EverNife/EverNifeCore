@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.custom;
 
 import br.com.finalcraft.evernifecore.minecraft.gui.item.GuiItemComplex;
-import br.com.finalcraft.evernifecore.util.commons.SimpleEntry;
+import br.com.finalcraft.everylibs.commons.SimpleEntry;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import dev.triumphteam.gui.components.GuiType;
 import dev.triumphteam.gui.components.InteractionModifier;

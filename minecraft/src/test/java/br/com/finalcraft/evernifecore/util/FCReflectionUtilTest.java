@@ -1,7 +1,8 @@
 package br.com.finalcraft.evernifecore.util;
 
-import br.com.finalcraft.evernifecore.reflection.ConstructorInvoker;
-import br.com.finalcraft.evernifecore.util.commons.Tuple;
+import br.com.finalcraft.everylibs.reflection.ConstructorInvoker;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
+import br.com.finalcraft.everylibs.commons.Tuple;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -45,14 +46,14 @@ public class FCReflectionUtilTest {
         TestClass test;
         ConstructorInvoker<TestClass> constructorInvoker;
 
-        constructorInvoker = FCReflectionUtil.getConstructor(TestClass.class, int.class, Boolean.class, Float.class, double.class);
-        test = constructorInvoker.invoke(1,true, 1F, 1D);
+        constructorInvoker = FCReflectionUtil.getConstructors().getConstructor(TestClass.class, int.class, Boolean.class, Float.class, double.class);
+        test = constructorInvoker.newInstance(1,true, 1F, 1D);
 
         System.out.println("Test1: ");
         System.out.println(test);
 
-        constructorInvoker = FCReflectionUtil.getConstructor(TestClass.class, Integer.class, Boolean.class, Float.class, Double.class);
-        test = constructorInvoker.invoke(2,false, 2F, 2D);
+        constructorInvoker = FCReflectionUtil.getConstructors().getConstructor(TestClass.class, Integer.class, Boolean.class, Float.class, Double.class);
+        test = constructorInvoker.newInstance(2,false, 2F, 2D);
 
         System.out.println("Test2: ");
         System.out.println(test);

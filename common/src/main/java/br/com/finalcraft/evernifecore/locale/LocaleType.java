@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.locale;
 
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -12,8 +12,8 @@ public class LocaleType {
 
     private static Map<String,String> NORMALIZED_LOCALES = new LinkedHashMap<>();
     static {
-        FCReflectionUtil.getDeclaredFields(LocaleType.class).stream()
-                .filter(fieldAccessor -> fieldAccessor.getTheField().getType() == String.class)
+        FCReflectionUtil.getFields().getAllFields(LocaleType.class, false).stream()
+                .filter(fieldAccessor -> fieldAccessor.getField().getType() == String.class)
                 .map(fieldAccessor -> fieldAccessor.get(null))
                 .forEach(locale -> NORMALIZED_LOCALES.put(locale.toString(), locale.toString()));
     }

@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.minecraft.compat.v1_7_R4.protection.worldguard.wrappers;
 
 import br.com.finalcraft.evernifecore.minecraft.protection.worldguard.IFCFlagRegistry;
-import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
+import br.com.finalcraft.everylibs.reflection.MethodInvoker;
 import br.com.finalcraft.evernifecore.minecraft.unsafereflecton.UnsafeUtil;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import com.sk89q.worldguard.protection.flags.DefaultFlag;
 import com.sk89q.worldguard.protection.flags.Flag;
 import jakarta.annotation.Nonnull;
@@ -66,7 +66,7 @@ public class ImpIFCFlagRegistry implements IFCFlagRegistry {
     @Override
     public void register(Flag<?> flag) {
         if (modifiedWorldguard){
-            MethodInvoker addFlag = FCReflectionUtil.getMethod(DefaultFlag.class, "addFlag");
+            MethodInvoker addFlag = FCReflectionUtil.getMethods().getMethod(DefaultFlag.class, "addFlag");
             addFlag.invoke(null, flag);
         }else {
             try {

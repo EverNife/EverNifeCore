@@ -20,9 +20,9 @@ import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCServerType;
 import br.com.finalcraft.evernifecore.ontime.OntimeManager;
-import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
+import br.com.finalcraft.everylibs.reflection.MethodInvoker;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import jakarta.annotation.Nullable;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -40,26 +40,26 @@ public class FCBukkitUtil {
     private static Function<String, Boolean> isModLoaded = null;
     static {
         try {
-            if (FCReflectionUtil.isClassLoaded("cpw.mods.fml.common.Loader")) { //Minecraft 1.7.10
+            if (FCReflectionUtil.getClasses().isClassLoaded("cpw.mods.fml.common.Loader")) { //Minecraft 1.7.10
                 isModLoaded = new Function<String, Boolean>() {
-                    private final MethodInvoker<Boolean> isModLoaded = FCReflectionUtil.getMethod("cpw.mods.fml.common.Loader", "isModLoaded", String.class);
+                    private final MethodInvoker<Boolean> isModLoaded = FCReflectionUtil.getMethods().getMethod("cpw.mods.fml.common.Loader", "isModLoaded", String.class);
                     @Override
                     public Boolean apply(String modName) {
                         return isModLoaded.invoke(null, modName);
                     }
                 };
-            }else if (FCReflectionUtil.isClassLoaded("net.minecraftforge.fml.common.Loader")){ //Minecraft 1.12.2
+            }else if (FCReflectionUtil.getClasses().isClassLoaded("net.minecraftforge.fml.common.Loader")){ //Minecraft 1.12.2
                 isModLoaded = new Function<String, Boolean>() {
-                    private final MethodInvoker<Boolean> isModLoaded = FCReflectionUtil.getMethod("net.minecraftforge.fml.common.Loader", "isModLoaded", String.class);
+                    private final MethodInvoker<Boolean> isModLoaded = FCReflectionUtil.getMethods().getMethod("net.minecraftforge.fml.common.Loader", "isModLoaded", String.class);
                     @Override
                     public Boolean apply(String modName) {
                         return isModLoaded.invoke(null, modName);
                     }
                 };
-            }else if (FCReflectionUtil.isClassLoaded("net.minecraftforge.fml.ModList")){ //Minecraft 1.16.5
+            }else if (FCReflectionUtil.getClasses().isClassLoaded("net.minecraftforge.fml.ModList")){ //Minecraft 1.16.5
                 isModLoaded = new Function<String, Boolean>() {
-                    private final Object modListObj = FCReflectionUtil.getMethod("net.minecraftforge.fml.ModList", "get").invoke(null);
-                    private final MethodInvoker<Boolean> isLoaded = FCReflectionUtil.getMethod("net.minecraftforge.fml.ModList", "isLoaded", String.class);
+                    private final Object modListObj = FCReflectionUtil.getMethods().getMethod("net.minecraftforge.fml.ModList", "get").invoke(null);
+                    private final MethodInvoker<Boolean> isLoaded = FCReflectionUtil.getMethods().getMethod("net.minecraftforge.fml.ModList", "isLoaded", String.class);
                     @Override
                     public Boolean apply(String modName) {
                         return isLoaded.invoke(modListObj, modName);

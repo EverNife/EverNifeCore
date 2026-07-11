@@ -12,7 +12,7 @@ import br.com.finalcraft.evernifecore.hytale.integration.placeholders.papi.HySim
 import br.com.finalcraft.evernifecore.integration.placeholders.PAPIRegexReplacer;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -23,7 +23,7 @@ public class HyPAPIIntegration {
 
     public static boolean isPresent(){
         if (isPresent == null){
-            isPresent = FCReflectionUtil.isClassLoaded("at.helpch.placeholderapi.PlaceholderAPIPlugin");
+            isPresent = FCReflectionUtil.getClasses().isClassLoaded("at.helpch.placeholderapi.PlaceholderAPIPlugin");
         }
         return isPresent;
     }

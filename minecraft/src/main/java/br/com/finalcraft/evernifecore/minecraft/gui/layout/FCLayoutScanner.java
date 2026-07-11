@@ -12,7 +12,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.cfg.SettingsScanner;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder.FCItemBuilder;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import jakarta.annotation.Nullable;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
@@ -32,7 +32,7 @@ public class FCLayoutScanner {
 
     public static <T extends LayoutBase> T loadLayout(ECPluginData ecPluginData, Config config, Class<T> layoutClass){
 
-        T layoutInstance = FCReflectionUtil.getConstructor(layoutClass).invoke();
+        T layoutInstance = FCReflectionUtil.getConstructors().getConstructor(layoutClass).newInstance();
         layoutInstance.config = config;
 
         @Nullable LayoutBaseData layoutBaseData = layoutClass.getAnnotation(LayoutBaseData.class);

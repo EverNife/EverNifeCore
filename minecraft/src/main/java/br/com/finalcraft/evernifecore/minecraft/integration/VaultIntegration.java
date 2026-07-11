@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.integration;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -39,8 +39,8 @@ public class VaultIntegration {
 
     private static void setupEconomy() {
 
-        if (FCReflectionUtil.isClassLoaded("net.milkbowl.vault2.economy.Economy")){
-            Class economyV2Class = FCReflectionUtil.getClass("net.milkbowl.vault2.economy.Economy");
+        if (FCReflectionUtil.getClasses().isClassLoaded("net.milkbowl.vault2.economy.Economy")){
+            Class economyV2Class = FCReflectionUtil.getClasses().getClass("net.milkbowl.vault2.economy.Economy");
             RegisteredServiceProvider<?> registration2 = EverNifeCoreBukkitPlugin.instance.getServer().getServicesManager().getRegistration(economyV2Class);
             if (registration2 != null && registration2.getProvider() != null){
                 vaultEconomy = new VaultEconV2(registration2.getProvider());
@@ -48,8 +48,8 @@ public class VaultIntegration {
             }
         }
 
-        if (FCReflectionUtil.isClassLoaded("net.milkbowl.vault.economy.Economy")){
-            Class economyV1Class = FCReflectionUtil.getClass("net.milkbowl.vault.economy.Economy");
+        if (FCReflectionUtil.getClasses().isClassLoaded("net.milkbowl.vault.economy.Economy")){
+            Class economyV1Class = FCReflectionUtil.getClasses().getClass("net.milkbowl.vault.economy.Economy");
             RegisteredServiceProvider<?> registration1 = EverNifeCoreBukkitPlugin.instance.getServer().getServicesManager().getRegistration(economyV1Class);
             if (registration1 != null && registration1.getProvider() != null){
                 vaultEconomy = new VaultEconV1(registration1.getProvider());

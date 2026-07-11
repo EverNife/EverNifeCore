@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
-import br.com.finalcraft.evernifecore.util.FCInputReader;
+import br.com.finalcraft.everylibs.util.FCInputReader;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.List;

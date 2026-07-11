@@ -23,8 +23,7 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.locale.scanner.FCLocaleScanner;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
-import br.com.finalcraft.evernifecore.util.commons.Tuple;
+import br.com.finalcraft.everylibs.commons.Tuple;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
@@ -64,7 +63,7 @@ public class CMDMethodInterpreter {
 
         boolean playerOnly = false;
 
-        List<Tuple<Class, Annotation[]>> argsAndAnnotations = FCReflectionUtil.getArgsAndAnnotationsDeeply(method);
+        List<Tuple<Class, Annotation[]>> argsAndAnnotations = MethodArgScanner.getArgsAndAnnotationsDeeply(method);
 
         int flagArgIndex = isSubCommand ? 1 : 0;
         for (Map.Entry<Integer, Tuple<ArgData, Class>> entry : methodData.getArgDataMap().entrySet()) {

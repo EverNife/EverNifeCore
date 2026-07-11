@@ -3,8 +3,8 @@ package br.com.finalcraft.evernifecore.util;
 import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
-import br.com.finalcraft.evernifecore.util.commons.MinMax;
-import br.com.finalcraft.evernifecore.util.commons.SimpleEntry;
+import br.com.finalcraft.everylibs.commons.MinMax;
+import br.com.finalcraft.everylibs.commons.SimpleEntry;
 import org.apache.commons.lang3.Validate;
 
 import java.util.Collection;

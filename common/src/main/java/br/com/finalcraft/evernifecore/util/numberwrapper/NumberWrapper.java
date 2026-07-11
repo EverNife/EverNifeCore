@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.util.numberwrapper;
 
-import br.com.finalcraft.evernifecore.util.FCMathUtil;
+import br.com.finalcraft.everylibs.util.FCMathUtil;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import jakarta.annotation.Nonnull;

@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.scheduler;
 
 import br.com.finalcraft.evernifecore.hytale.scheduler.HyFCScheduler;
 import br.com.finalcraft.evernifecore.minecraft.scheduler.McFCScheduler;
+import br.com.finalcraft.everylibs.executors.scheduler.VirtualThreadedScheduledExecutor;
 
 import java.util.concurrent.TimeUnit;
 

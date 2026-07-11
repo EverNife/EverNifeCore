@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.version;
 
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import org.bukkit.Bukkit;
 
 //This is a personal class for my OWN PERSONAL PRIVATE servers... don't use it, this class might change a lot over the time
@@ -91,15 +91,15 @@ public enum MCServerType {
         }
 
         if (FCBukkitUtil.isModded()){
-            if (FCReflectionUtil.isClassLoaded("com.pixelmonmod.pixelmon.Pixelmon")){
+            if (FCReflectionUtil.getClasses().isClassLoaded("com.pixelmonmod.pixelmon.Pixelmon")){
                 return MCServerType.PIXELMON;
             }
 
-            if (FCReflectionUtil.isClassLoaded("br.com.finalcraft.dragonblockutils.DragonBlockUtils")){
+            if (FCReflectionUtil.getClasses().isClassLoaded("br.com.finalcraft.dragonblockutils.DragonBlockUtils")){
                 return MCServerType.DRAGONBLOCK;
             }
 
-            if (FCReflectionUtil.isClassLoaded("br.com.finalcraft.gppskyblock.GPPSkyBlock")){
+            if (FCReflectionUtil.getClasses().isClassLoaded("br.com.finalcraft.gppskyblock.GPPSkyBlock")){
                 if (MCVersion.isLowerEquals(MCVersion.v1_7_10)){
                     return MCServerType.SKYLORDS;
                 }else {
@@ -107,15 +107,15 @@ public enum MCServerType {
                 }
             }
 
-            if (FCReflectionUtil.isClassLoaded("br.com.finalcraft.evernifeworldrpg.EverNifeWorldRPG")){
+            if (FCReflectionUtil.getClasses().isClassLoaded("br.com.finalcraft.evernifeworldrpg.EverNifeWorldRPG")){
                 return MCServerType.IDEAL;
             }
 
-            if (FCReflectionUtil.isClassLoaded("br.com.finalcraft.evernifedarkdecimagick.EverNifeDarkDeciMagick")){
+            if (FCReflectionUtil.getClasses().isClassLoaded("br.com.finalcraft.evernifedarkdecimagick.EverNifeDarkDeciMagick")){
                 return MCServerType.DECIMATION;
             }
 
-            if (FCReflectionUtil.isClassLoaded("com.vicmatskiv.mw.ModernWarfareMod")){
+            if (FCReflectionUtil.getClasses().isClassLoaded("com.vicmatskiv.mw.ModernWarfareMod")){
                 return MCServerType.SURVIVALZ;
             }
         }

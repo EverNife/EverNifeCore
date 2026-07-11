@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutIcon;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutIconBuilder;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import dev.triumphteam.gui.guis.GuiItem;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -98,8 +98,8 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
      */
     @Nonnull
     public <ItemStackHolder> ItemStackHolder as(Class<ItemStackHolder> itemStackHolderClass) {
-        return FCReflectionUtil.getConstructor(itemStackHolderClass, ItemStack.class)
-                .invoke(this.build());
+        return FCReflectionUtil.getConstructors().getConstructor(itemStackHolderClass, ItemStack.class)
+                .newInstance(this.build());
     }
 
     /**

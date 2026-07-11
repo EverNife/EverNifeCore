@@ -186,6 +186,13 @@ shadowJar {
         // relocate rules below to the same coordinates libby delivers at runtime, so it
         // shares the one relocated Jackson stack with EveryDatabase (no second copy in the jar).
         include(dependency('br.com.finalcraft:EveryConfig:'))
+
+        // EveryLibs: first-party utility/reflection/executors modules (pure Java 8, no runtime
+        // deps). Embedded canonical - no relocate rule below touches br.com.finalcraft.everylibs.
+        include(dependency('br.com.finalcraft.everylibs:everylibs-common:'))
+        include(dependency('br.com.finalcraft.everylibs:everylibs-reflection:'))
+        include(dependency('br.com.finalcraft.everylibs:everylibs-utils:'))
+        include(dependency('br.com.finalcraft.everylibs:everylibs-executors:'))
     }
 
     relocate 'net.byteflux.libby', 'br.com.finalcraft.libs.net.byteflux'

@@ -4,9 +4,9 @@ import br.com.finalcraft.evernifecore.minecraft.interpreters.MaterialHeadInterpr
 import br.com.finalcraft.evernifecore.minecraft.interpreters.MaterialSignInterpreter;
 import br.com.finalcraft.evernifecore.minecraft.interpreters.MaterialVanillaInterpreter;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
-import br.com.finalcraft.evernifecore.reflection.MethodInvoker;
-import br.com.finalcraft.evernifecore.util.FCInputReader;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.everylibs.reflection.MethodInvoker;
+import br.com.finalcraft.everylibs.util.FCInputReader;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import org.bukkit.Material;
 
 //We use separated interpreters on this class to prevent static instantion of non-used classes
@@ -47,7 +47,7 @@ public class FCMaterialUtil {
 
     private static MethodInvoker<Material> getMaterialByNumericID = null; static {
         try {
-            getMaterialByNumericID = FCReflectionUtil.getMethod(Material.class, "getMaterial", int.class);
+            getMaterialByNumericID = FCReflectionUtil.getMethods().getMethod(Material.class, "getMaterial", int.class);
         }catch (Throwable ignored){
 
         }

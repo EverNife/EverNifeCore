@@ -9,7 +9,7 @@ import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
 import br.com.finalcraft.evernifecore.minecraft.integration.placeholders.papi.McSimplePAPIHook;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import br.com.finalcraft.evernifecore.util.FCReflectionUtil;
+import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import me.clip.placeholderapi.PlaceholderAPI;
@@ -24,7 +24,7 @@ public class McPAPIIntegration {
 
     public static boolean isPresent(){
         if (isPresent == null){
-            isPresent = FCReflectionUtil.isClassLoaded("at.helpch.placeholderapi.PlaceholderAPIPlugin");
+            isPresent = FCReflectionUtil.getClasses().isClassLoaded("at.helpch.placeholderapi.PlaceholderAPIPlugin");
         }
         return isPresent;
     }
@@ -56,7 +56,7 @@ public class McPAPIIntegration {
         public static void register(ECPluginData plugin, String pluginBaseID, PAPIRegexReplacer papiRegexReplacer) {
             McSimplePAPIHook mcSimplePAPIHook = new McSimplePAPIHook(plugin, papiRegexReplacer);
 
-            boolean weAreOnModernPAPI = FCReflectionUtil.isClassLoaded("me.clip.placeholderapi.expansion.manager.LocalExpansionManager");
+            boolean weAreOnModernPAPI = FCReflectionUtil.getClasses().isClassLoaded("me.clip.placeholderapi.expansion.manager.LocalExpansionManager");
             if (weAreOnModernPAPI == false){
                 // Legacy PAPI Support
                 EverNifeCore.getLog().info("Registering PAPI Hook for the plugin " + plugin.getMetaInfo().getName() + " with prefix '"  + pluginBaseID + "' using Legacy PAPI method.");

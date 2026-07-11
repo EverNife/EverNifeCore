@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore._misc.spliting;
 
-import br.com.finalcraft.evernifecore.util.FCMathUtil;
+import br.com.finalcraft.everylibs.util.FCMathUtil;
 import lombok.SneakyThrows;
 import lombok.extern.java.Log;
 import org.junit.jupiter.api.Test;
