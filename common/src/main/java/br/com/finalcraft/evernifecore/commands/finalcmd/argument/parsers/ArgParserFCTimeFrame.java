@@ -11,7 +11,7 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
-import br.com.finalcraft.evernifecore.util.FCTimeUtil;
+import br.com.finalcraft.everylibs.util.FCTimeUtil;
 import jakarta.annotation.Nonnull;
 
 import java.util.Arrays;

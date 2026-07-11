@@ -11,7 +11,7 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.util.FCTimeUtil;
+import br.com.finalcraft.evernifecore.time.ECTimeFormat;
 import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -122,7 +122,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
             if (includeDate){
                 pageHeaderCache.add(DATE_OF_TODAY_IS
-                        .addPlaceholder("%date_of_today%", FCTimeUtil.getFormattedNoHours(System.currentTimeMillis()))
+                        .addPlaceholder("%date_of_today%", ECTimeFormat.getFormattedNoHours(System.currentTimeMillis()))
                         .getFancyText(null)
                 );
             }

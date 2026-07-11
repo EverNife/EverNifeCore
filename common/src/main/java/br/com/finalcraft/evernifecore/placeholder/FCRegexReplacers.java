@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ontime.OntimeManager;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
-import br.com.finalcraft.evernifecore.util.FCTimeUtil;
+import br.com.finalcraft.evernifecore.time.ECTimeFormat;
 
 public class FCRegexReplacers {
 
@@ -15,9 +15,9 @@ public class FCRegexReplacers {
             .addParser("player_uuid", IPlayerData::getUniqueId)
             .addParser("player_is_online", IPlayerData::isPlayerOnline)
             .addParser("player_ontime", iPlayerData -> FCTimeFrame.of(OntimeManager.getProvider().getOntime(iPlayerData)).getFormattedDiscursive())
-            .addParser("player_last_seen", playerData -> FCTimeUtil.getFormatted(playerData.getLastSeen()))
+            .addParser("player_last_seen", playerData -> ECTimeFormat.getFormatted(playerData.getLastSeen()))
             .addParser("player_last_seen_millis", playerData -> playerData.getLastSeen())
-            .addParser("player_first_seen", playerData -> FCTimeUtil.getFormatted(playerData.getFirstSeen()))
+            .addParser("player_first_seen", playerData -> ECTimeFormat.getFormatted(playerData.getFirstSeen()))
             .addParser("player_first_seen_millis", playerData -> playerData.getFirstSeen())
             ;
 

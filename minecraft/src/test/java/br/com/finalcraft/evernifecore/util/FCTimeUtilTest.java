@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.util;
 
+import br.com.finalcraft.everylibs.util.FCTimeUtil;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

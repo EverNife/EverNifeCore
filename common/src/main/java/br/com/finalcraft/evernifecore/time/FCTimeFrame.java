@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.time;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.util.FCTimeUtil;
+import br.com.finalcraft.everylibs.util.FCTimeUtil;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
@@ -89,11 +89,11 @@ public class FCTimeFrame {
     }
 
     public String getFormatted(){
-        return FCTimeUtil.getFormatted(this.millis);
+        return ECTimeFormat.getFormatted(this.millis);
     }
 
     public String getFormattedNoHours(){
-        return FCTimeUtil.getFormattedNoHours(this.millis);
+        return ECTimeFormat.getFormattedNoHours(this.millis);
     }
 
     public String getFormattedDiscursive(){
