@@ -62,7 +62,12 @@ dependencies {
     implementation "br.com.finalcraft:ECForgeListener:1.0.6"
 
     //NBT-API
-    implementation("de.tr7zw:item-nbt-api:2.15.6")
+    // TEMPORARY fork build: restores NBT-API on Forge/Cauldron 1.7.10 (Crucible). Upstream 2.15.7
+    // renamed the COMPOUND_*_LEGACY reflection methods but left the Forge1710Mappings keys on the
+    // old names, so nested/list NBT fails to resolve on the remapped NMS. Built from the
+    // EverNife/Item-NBT-API fork and published to maven.petrus.dev.
+    // TODO: switch back to the official 'de.tr7zw:item-nbt-api' release once the fix is upstreamed.
+    implementation("de.tr7zw:item-nbt-api:2.15.8-crucible")
     //END of NBT-API
 
     implementation 'net.md-5:bungeecord-chat:1.16-R0.1' //This works from 1.7.10 onwards, is the same API
@@ -152,7 +157,7 @@ shadowJar {
         include(dependency('br.com.finalcraft:ECNmsUtils:'))
         include(dependency('net.byteflux:libby-core:'))
         include(dependency('dev.triumphteam:triumph-gui:'))
-        include(dependency('de.tr7zw:item-nbt-api:')) //Oct 26, 2023
+        include(dependency('de.tr7zw:item-nbt-api:')) //item-nbt-api (Crucible fork, see dep above)
         include(dependency('br.com.finalcraft:ECForgeListener:'))
         include(dependency('net.kyori:adventure-api:'))
         include(dependency("net.kyori:adventure-key:"))

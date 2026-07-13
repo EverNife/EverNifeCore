@@ -22,6 +22,7 @@ import br.com.finalcraft.evernifecore.minecraft.listeners.PluginListener;
 import br.com.finalcraft.evernifecore.minecraft.loader.imp.McECEventDispatcher;
 import br.com.finalcraft.evernifecore.minecraft.loader.imp.McECPluginExtractor;
 import br.com.finalcraft.evernifecore.minecraft.loader.imp.McPlatform;
+import br.com.finalcraft.evernifecore.minecraft.nbt.NBTSelfTest;
 import br.com.finalcraft.evernifecore.minecraft.ontime.McDefaultOntimeManager;
 import br.com.finalcraft.evernifecore.minecraft.util.FCTickUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
@@ -84,6 +85,8 @@ public class EverNifeCoreBukkitPlugin extends JavaPlugin {
         EverNifeCore.getLog().info("§aStarting EverNifeCore");
         EverNifeCore.getLog().info("§aServer Minecraft Version " + MCVersion.getCurrent().name() + " !");
 
+        logNBTSelfTest(NBTSelfTest.run());
+
         EverNifeCore.getLog().info("§aLoading up Configurations...");
         McConfigManager.initialize(ecPluginData);
 
@@ -111,6 +114,28 @@ public class EverNifeCoreBukkitPlugin extends JavaPlugin {
 
         FCTickUtil.getTickCount();//This will start tickCounting
         EverNifeCore.getLog().info("§aEverNifeCore successfully started!");
+    }
+
+    // Prints the NBT-API self-test outcome to the console. A failure here is not
+    // fatal (item/GUI NBT would be broken, but the plugin still starts), so this
+    // only logs; it never rethrows.
+    private static void logNBTSelfTest(NBTSelfTest.Result result) {
+        EverNifeCore.getLog().info("§8===== §bNBT-API Self-Test §8=====");
+        EverNifeCore.getLog().info("§7  detected NMS version: §f" + result.getDetectedNmsVersion());
+        for (String step : result.getSteps()) {
+            EverNifeCore.getLog().info("§7  " + step);
+        }
+        if (result.isEnvironmentUnavailable()) {
+            EverNifeCore.getLog().warning("§e[NBT Self-Test] " + result.getSummary());
+        } else if (result.isSuccess()) {
+            EverNifeCore.getLog().info("§a[NBT Self-Test] " + result.getSummary());
+        } else {
+            EverNifeCore.getLog().severe("§c[NBT Self-Test] " + result.getSummary());
+            if (result.getError() != null) {
+                EverNifeCore.getLog().severe("§c[NBT Self-Test] cause: " + result.getError());
+            }
+            EverNifeCore.getLog().warning("§e[NBT Self-Test] Item/GUI NBT features will not work correctly on this server.");
+        }
     }
 
     @Override
