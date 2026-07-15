@@ -30,10 +30,6 @@ dependencies {
     implementation libs.guava
     implementation libs.libby.core
 
-    // FinalCraft fork: rides a Java 25 javac and still emits Java 8 bytecode.
-    annotationProcessor libs.jabel
-    compileOnly libs.jabel
-
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter
     testRuntimeOnly libs.junit.platform.launcher
@@ -42,17 +38,9 @@ dependencies {
     testRuntimeOnly libs.h2 // H2 backend for the storage integration tests
 }
 
-// Tests compile and run on the toolchain's Java 25; main is capped at Java 8 BYTECODE by
-// options.release + Jabel, not by an older JDK.
-compileJava {
-    sourceCompatibility = 25 // IDE/syntax hint only; options.release governs the output
-    options.release = 8
-}
-
-compileTestJava {
-    sourceCompatibility = 25
-    targetCompatibility = 25
-}
+// Toolchain (Java 25) and the dual-target compileJava override (modern source syntax -> Java 8
+// bytecode via Jabel) are configured centrally in the root build.gradle. Test code is not capped:
+// it compiles and runs on the full Java 25 API.
 
 test {
     useJUnitPlatform()

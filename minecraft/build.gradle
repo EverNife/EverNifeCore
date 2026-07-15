@@ -83,20 +83,11 @@ dependencies {
     compileOnly name: "MVdWPlaceholderAPI"
     compileOnly name: "ProtocolLib"
 
-    // Jabel: lets this module use modern syntax and still emit Java 8 bytecode.
-    annotationProcessor libs.jabel
-    compileOnly libs.jabel
-
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter
     testRuntimeOnly libs.junit.platform.launcher
     // A real server provides commons-lang3 to the code under test; the test JVM has to supply it.
     testRuntimeOnly libs.commons.lang3.legacy
-}
-
-compileJava {
-    sourceCompatibility = 25 // IDE/syntax hint; options.release governs the output
-    options.release = 8
 }
 
 shadowJar {

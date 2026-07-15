@@ -1,12 +1,10 @@
+// Toolchain (Java 25) and the dual-target compileJava override (modern source syntax -> Java 8
+// bytecode via Jabel) are configured centrally in the root build.gradle.
+
 repositories {
     maven { url = 'https://repo.alessiodp.com/releases/' } // the custom libby-core lives here
 }
 
 dependencies {
     implementation libs.libby.core
-}
-
-// Java 8 bytecode. Plain Java 8 syntax too, so no Jabel and no compiler pin.
-compileJava {
-    options.release = 8
 }

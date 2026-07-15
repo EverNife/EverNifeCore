@@ -1,6 +1,6 @@
 // Compile-time-only "platoverride" stubs: each platform ships the real class under the same
-// fully-qualified name, and these are never packaged. Java 8 bytecode so the release-8 modules
-// can read them. The stubs are empty and import nothing, so they need no dependencies and no Jabel.
-compileJava {
-    options.release = 8
-}
+// fully-qualified name, and these are never packaged. The stubs are empty and import nothing,
+// so this module needs no dependencies of its own.
+//
+// Toolchain (Java 25) and the dual-target compileJava override (modern source syntax -> Java 8
+// bytecode via Jabel) are configured centrally in the root build.gradle.

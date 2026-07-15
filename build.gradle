@@ -10,8 +10,8 @@ subprojects {
     group = 'br.com.finalcraft'
     version = '3.0.1'
 
-    // Launch Gradle with JDK 25. Modules that must emit older bytecode override compileJava
-    // themselves (:common and :minecraft -> Java 8 via Jabel; the NMS modules -> Java 8).
+    // One toolchain for the whole build: launch Gradle with JDK 25 and it compiles and runs
+    // everything, including the tests. The only override is the dual-target block at the bottom.
     java {
         toolchain.languageVersion = JavaLanguageVersion.of(25)
     }
@@ -79,8 +79,47 @@ subprojects {
     }
 }
 
-// The version-compat modules target old servers and are written in plain Java 8 syntax, so they
-// need no Jabel - they cap the output the old way instead of with options.release.
+// ======================================================================
+//  Dual-target: modern Java source syntax -> Java 8 bytecode
+//
+//  These modules are written in modern Java syntax but must run on a Java 8 JVM. The FinalCraft
+//  Jabel fork (an annotation processor) lifts javac's source-level check so the Java 25 compiler
+//  can emit Java 8 bytecode, while `options.release = 8` keeps the *API* floor honest - no Java 9+
+//  library API can slip into code that has to run on an old server.
+//
+//  Unlike the upstream Jabel (which only rode javac internals up to JDK 17), the fork works on
+//  JDK 25, so there is no separate compiler pin anywhere: Gradle, production compile, test compile
+//  and test execution all run on the single Java 25 toolchain.
+//
+//  :hytale is deliberately absent - it is plain Java 25 with no bytecode cap. The version-compat
+//  modules are handled by the block below, which explains why they cannot use options.release.
+// ======================================================================
+configure([project(':api-contracts'),
+           project(':common'),
+           project(':libby'),
+           project(':minecraft')]) {
+    dependencies {
+        annotationProcessor libs.jabel
+        compileOnly libs.jabel
+    }
+
+    compileJava {
+        sourceCompatibility = 25 // modern *syntax* (IDE hint; Jabel lifts javac's source check)
+        options.release = 8      // Java 8 *bytecode* and *API* floor
+    }
+}
+
+// ======================================================================
+//  Version-compat modules: Java 8 bytecode WITHOUT options.release
+//
+//  These reach for sun.misc.Unsafe (UnsafeUtil, and ImpIFCFlagRegistry through it) to rewrite a
+//  final field in WorldGuard's flag registry. `options.release` deliberately hides the JDK's
+//  internal packages, so it cannot be used here - the old source/target pair is what keeps
+//  sun.misc reachable. The trade-off is that these modules get no API floor: nothing but review
+//  stops a Java 9+ API from reaching a 1.7.10 server. They are plain Java 8 syntax, so no Jabel.
+//
+//  They still compile on the single Java 25 toolchain - no compiler pin anywhere in this build.
+// ======================================================================
 configure([project(':minecraft:modules:v1_7_10'),
            project(':minecraft:modules:v1_12_2'),
            project(':minecraft:modules:v1_16_5'),
@@ -88,8 +127,5 @@ configure([project(':minecraft:modules:v1_7_10'),
     compileJava {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
-        javaCompiler = javaToolchains.compilerFor {
-            languageVersion = JavaLanguageVersion.of(17)
-        }
     }
 }
