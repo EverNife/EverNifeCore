@@ -16,6 +16,4 @@ dependencies {
 
     compileOnly name: "worldguard-bukkit-6.1"
     compileOnly name: "worldedit-bukkit-6.0"
-    implementation name: "craftbukkit1710"
-    implementation name: "craftbukkit1122"
 }

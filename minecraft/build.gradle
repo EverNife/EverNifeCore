@@ -82,16 +82,10 @@ dependencies {
     compileOnly name: "BossShopPro-v1.9.8"
     compileOnly name: "MVdWPlaceholderAPI"
     compileOnly name: "ProtocolLib"
-    compileOnly name: "craftbukkit1710"
-    compileOnly name: "craftbukkit1122"
-    compileOnly name: "craftbukkit1165"
-    compileOnly name: "craftbukkit1201"
-    compileOnly name: "craftbukkit1202"
-    compileOnly name: "craftbukkit1211-javadowngraded" // downgraded to Java 8 with JvmDowngrader
 
-    // Jabel: lets this module use Java 17 syntax and still emit Java 8 bytecode.
-    annotationProcessor libs.jabel.upstream
-    compileOnly libs.jabel.upstream
+    // Jabel: lets this module use modern syntax and still emit Java 8 bytecode.
+    annotationProcessor libs.jabel
+    compileOnly libs.jabel
 
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter
@@ -100,14 +94,9 @@ dependencies {
     testRuntimeOnly libs.commons.lang3.legacy
 }
 
-// Upstream 0.4.2 Jabel cannot hook a newer javac, so this module stays on a JDK 17 compiler.
 compileJava {
-    sourceCompatibility = 17 // IDE/syntax hint; options.release governs the output
+    sourceCompatibility = 25 // IDE/syntax hint; options.release governs the output
     options.release = 8
-
-    javaCompiler = javaToolchains.compilerFor {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
 }
 
 shadowJar {
@@ -175,15 +164,6 @@ shadowJar {
     relocate 'org.h2',                           'br.com.finalcraft.everydatabase.libs.h2'
     relocate 'org.postgresql',                   'br.com.finalcraft.everydatabase.libs.postgresql'
     relocate 'com.mysql',                        'br.com.finalcraft.everydatabase.libs.mysql'
-}
-
-// The NBT-API fork needs the EverNife build of functional-annotations.
-configurations.all {
-    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-        if ("${details.requested.group}:${details.requested.name}" == "de.tr7zw:functional-annotations") {
-            details.useTarget("com.github.EverNife:functional-annotations:d26a567")
-        }
-    }
 }
 
 java {

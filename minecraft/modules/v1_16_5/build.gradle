@@ -15,6 +15,4 @@ dependencies {
 
     compileOnly name: "worldguard-bukkit-7.0.5-dist" // up to 1.16
     compileOnly name: "worldedit-bukkit-7.2.5-dist"  // up to 1.16
-
-    implementation name: "craftbukkit1165"
 }

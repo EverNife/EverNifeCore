@@ -9,10 +9,9 @@ ecnmsutils = "1.1.5"
 chatmenuapi = "2.0.1"
 ecforgelistener = "1.0.6"
 
-# Two Jabel forks on purpose: the FinalCraft one hooks a Java 25 javac, upstream 0.4.2 cannot
-# (which is why its consumers pin a JDK 17 compiler). Both only lift javac's syntax check.
+# FinalCraft fork (same one EveryDatabase/EveryConfig use): hooks a Java 25 javac and only lifts
+# javac's syntax check, so modules can write modern syntax and still emit options.release bytecode.
 jabel = "1.2.0"
-jabel-upstream = "0.4.2"
 
 # Server and plugin APIs
 spigot = "1.19.2-R0.1-SNAPSHOT"
@@ -58,7 +57,6 @@ ecnmsutils = { module = "br.com.finalcraft:ECNmsUtils", version.ref = "ecnmsutil
 chatmenuapi = { module = "br.com.finalcraft:ChatMenuAPI", version.ref = "chatmenuapi" }
 ecforgelistener = { module = "br.com.finalcraft:ECForgeListener", version.ref = "ecforgelistener" }
 jabel = { module = "br.com.finalcraft:jabel", version.ref = "jabel" }
-jabel-upstream = { module = "com.github.bsideup.jabel:jabel-javac-plugin", version.ref = "jabel-upstream" }
 
 spigot-api = { module = "org.spigotmc:spigot-api", version.ref = "spigot" }
 bukkit = { module = "org.bukkit:bukkit", version.ref = "bukkit" }

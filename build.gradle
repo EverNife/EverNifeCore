@@ -48,8 +48,8 @@ subprojects {
         maven { url = "https://jitpack.io" }
         maven { url = 'https://libraries.minecraft.net/' }
         maven { url = 'https://maven.petrus.dev/public' }
-        // Local-only jars: CraftBukkit builds and paid/unobtainable plugins. Without these the
-        // :minecraft side cannot compile; :common, :api-contracts and :libby still can.
+        // Local-only jars: paid or otherwise unobtainable plugins the :minecraft side compiles
+        // against. Without these that module cannot compile; the other modules still can.
         flatDir {
             dirs 'C:/Meus/workshop/workshop/MyOwnPlugins/Bukkit/FinalCraftCore/libs'
             dirs 'C:/Meus/workshop/workshop/PublicLibs'
@@ -79,7 +79,8 @@ subprojects {
     }
 }
 
-// The NMS modules compile against Java-8-era CraftBukkit: plain Java 8, no Jabel.
+// The version-compat modules target old servers and are written in plain Java 8 syntax, so they
+// need no Jabel - they cap the output the old way instead of with options.release.
 configure([project(':minecraft:modules:v1_7_10'),
            project(':minecraft:modules:v1_12_2'),
            project(':minecraft:modules:v1_16_5'),
