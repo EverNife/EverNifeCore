@@ -1,88 +1,55 @@
-version '3.0.1'
-
 repositories {
-    maven {
-        url = 'https://repo.alessiodp.com/releases/' //For the custom libby-core
-    }
+    maven { url = 'https://repo.alessiodp.com/releases/' } // the custom libby-core lives here
 }
 
 dependencies {
     compileOnly project(':api-contracts')
     implementation project(':libby')
 
-    // EveryDatabase storage API (api scope: its types appear in common's public API).
-    // The heavy runtime deps arrive via libby (minecraft) or the shadow jar (hytale).
-    api 'br.com.finalcraft.everydatabase:everydatabase-core:1.0.8'
-    // Typed references + per-type caching managers (write-back, parent registries).
-    api 'br.com.finalcraft.everydatabase:everydatabase-manager:1.0.8'
+    // api scope throughout: these types show up in common's own public API. The heavy runtime deps
+    // behind EveryDatabase/EveryConfig arrive via libby (minecraft) or the shadow jar (hytale).
+    api libs.everydatabase.core
+    api libs.everydatabase.manager
+    api libs.everyconfig
+    api libs.everylibs.common
+    api libs.everylibs.reflection
+    api libs.everylibs.utils
+    api libs.everylibs.executors
 
-    // EveryConfig: the Jackson-first config engine (Config/ConfigSection + entity binding). api scope
-    // because its types are the public config surface of common. It pulls jackson-databind and
-    // jackson-dataformat-yaml as compile deps; the runtime datatype modules (jsr310/jdk8) arrive via the
-    // shadow jar / libby on the platform side.
-    api 'br.com.finalcraft:EveryConfig:1.0.1'
-
-    // EveryLibs: the general-purpose pieces carved out of ECore (reflection, utils, executors,
-    // shared primitives). api scope because these types appear in common's public API
-    // (FCReflectionUtil returns, Tuple/Triple in signatures, FCJavaVersion, etc.). Pure Java 8
-    // bytecode with no runtime deps - embedded canonically in the shadow jar (minecraft) or flows
-    // transitively (hytale); the br.com.finalcraft.everylibs package is never relocated.
-    api 'br.com.finalcraft.everylibs:everylibs-common:1.0.0'
-    api 'br.com.finalcraft.everylibs:everylibs-reflection:1.0.0'
-    api 'br.com.finalcraft.everylibs:everylibs-utils:1.0.0'
-    api 'br.com.finalcraft.everylibs:everylibs-executors:1.0.0'
-
-    api('net.kyori:adventure-api:4.21.0') {
+    api(libs.adventure.api) {
         exclude(module: 'adventure-bom')
         exclude(module: 'checker-qual')
         exclude(module: 'annotations')
     }
+    implementation libs.adventure.serializer.gson
+    implementation libs.adventure.serializer.legacy
 
-    compileOnly 'org.slf4j:slf4j-api:1.7.36'
-    compileOnly 'org.apache.commons:commons-lang3:3.15.0'
-    compileOnly 'commons-io:commons-io:2.21.0'
-    compileOnly 'net.luckperms:api:5.4'
+    compileOnly libs.commons.lang3
+    compileOnly libs.luckperms.api
 
-    implementation "jakarta.annotation:jakarta.annotation-api:3.0.0"
-    implementation 'com.google.guava:guava:33.4.8-jre'
+    implementation libs.guava
+    implementation libs.libby.core
 
-    implementation("net.kyori:adventure-text-serializer-gson:4.26.1")
-    implementation("net.kyori:adventure-text-serializer-legacy:4.26.1")
+    // FinalCraft fork: rides a Java 25 javac and still emits Java 8 bytecode.
+    annotationProcessor libs.jabel
+    compileOnly libs.jabel
 
-    // FinalCraft fork: rides a Java 25 javac and still emits Java 8 bytecode (the bsideup 0.4.2 jar
-    // cannot hook a Java 25 compiler). Same setup as EveryConfig/EveryDatabase.
-    annotationProcessor 'br.com.finalcraft:jabel:1.2.0'
-    compileOnly 'br.com.finalcraft:jabel:1.2.0'
-
-    implementation 'net.byteflux:libby-core:1.2.0'
-
-    // Test infra (tests compile/run on the Java 25 toolchain; main stays release 8)
-    testImplementation platform('org.junit:junit-bom:5.10.0')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    // "platoverride" stubs on the TEST classpath (in production each platform ships the
-    // real implementation under the same FQN; compileOnly is absent from the test runtime)
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
+    // The platoverride stubs are compileOnly in production, so the test runtime needs them back.
     testImplementation project(':api-contracts')
-    // H2 backend for the storage integration tests (the same Java-8-floor version as EveryDatabase)
-    testRuntimeOnly 'com.h2database:h2:1.4.200'
+    testRuntimeOnly libs.h2 // H2 backend for the storage integration tests
 }
 
-// General Java 25 toolchain: used to compile/run the TESTS.
-// compileJava (main) stays pinned below to JDK 16 + release 8 (Jabel).
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of(25)
-}
-
-configure([tasks.compileJava]) {
-    sourceCompatibility = 25 // modern syntax (IDE hint; Jabel lifts javac's check); options.release governs
+// Tests compile and run on the toolchain's Java 25; main is capped at Java 8 BYTECODE by
+// options.release + Jabel, not by an older JDK.
+compileJava {
+    sourceCompatibility = 25 // IDE/syntax hint only; options.release governs the output
     options.release = 8
-
-    javaCompiler = javaToolchains.compilerFor {
-        languageVersion = JavaLanguageVersion.of(25)
-    }
 }
 
-configure([tasks.compileTestJava]) {
+compileTestJava {
     sourceCompatibility = 25
     targetCompatibility = 25
 }
@@ -91,9 +58,8 @@ test {
     useJUnitPlatform()
 }
 
-// Publish via the POM only. The root build tags every configuration with TargetJvmVersion=25;
-// baked into Gradle Module Metadata that would make this Java-8-bytecode artifact resolve as
-// "JVM 25 only" and reject Java-8 consumers. Disabling it (as :minecraft does) avoids that.
+// The root tags every configuration with TargetJvmVersion=25; baked into Gradle Module Metadata
+// that would make this Java-8 artifact resolve as "JVM 25 only" and reject Java 8 consumers.
 tasks.withType(GenerateModuleMetadata) {
     enabled = false
 }

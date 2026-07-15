@@ -1,7 +1,7 @@
 {
   "Group": "${author}",
   "Name": "${name}",
-  "Version": "${fullversion}",
+  "Version": "${version}",
   "Description": "${mod_description}",
   "Authors": [
     {

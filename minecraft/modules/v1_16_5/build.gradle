@@ -1,5 +1,4 @@
-group 'br.com.finalcraft'
-version 'dont-matter'
+version 'dont-matter' // never published; bundled into the minecraft shadow jar
 
 repositories {
     maven {
@@ -12,14 +11,10 @@ dependencies {
     compileOnly project(':common')
 
     implementation project(':minecraft:modules:VersionedPlugins')
-    compileOnly 'org.spigotmc:spigot-api:1.19.2-R0.1-SNAPSHOT'
+    compileOnly libs.spigot.api
 
-    compileOnly name: "worldguard-bukkit-7.0.5-dist"    //Up to 1.16
-    compileOnly name: "worldedit-bukkit-7.2.5-dist"     //Up to 1.16
+    compileOnly name: "worldguard-bukkit-7.0.5-dist" // up to 1.16
+    compileOnly name: "worldedit-bukkit-7.2.5-dist"  // up to 1.16
 
-    implementation name: "craftbukkit1165" //Thats on you to find out
-
-    compileOnly group: 'commons-io', name: 'commons-io', version: '2.6' //Necessary for ReflectionUtils
-    compileOnly group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
-    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    implementation name: "craftbukkit1165"
 }

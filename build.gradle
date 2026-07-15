@@ -1,7 +1,3 @@
-plugins {
-
-}
-
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
@@ -12,24 +8,19 @@ subprojects {
     apply plugin: 'maven-publish'
 
     group = 'br.com.finalcraft'
-    version = '2.1.1'
+    version = '3.0.1'
 
-    // Launch Gradle with JDK 25 (Gradle 9.5.1 runs on it directly). This toolchain compiles/runs
-    // everything except the dual-target compileJava overrides in the per-module build files
-    // (:common/:minecraft -> Java 8 via Jabel; the NMS modules -> Java 8; :hytale -> Java 25).
+    // Launch Gradle with JDK 25. Modules that must emit older bytecode override compileJava
+    // themselves (:common and :minecraft -> Java 8 via Jabel; the NMS modules -> Java 8).
     java {
         toolchain.languageVersion = JavaLanguageVersion.of(25)
     }
 
     project.ext.evernifecore = "EverNifeCore"
-    project.ext.fullversion = "2.1.1"
-
-    //This might keep function(parameter variable's Names) on the compiled jar
-    compileJava.options.compilerArgs.add '-parameters'
-    compileTestJava.options.compilerArgs.add '-parameters'
 
     tasks.withType(JavaCompile).configureEach {
         options.encoding = 'UTF-8'
+        options.compilerArgs.add '-parameters' // keeps parameter names on the compiled jar
     }
 
     tasks.withType(Test).configureEach {
@@ -43,37 +34,23 @@ subprojects {
     }
 
     repositories {
-        // Fix issue with lwjgl-freetype not being found on macOS / ForgeGradle issue
-        //
-        // Could not resolve all files for configuration ':_compileJava_1'.
-        // Could not find lwjgl-freetype-3.3.3-natives-macos-patch.jar (org.lwjgl:lwjgl-freetype:3.3.3).
-        maven {
-            url "https://libraries.minecraft.net"
-            content {
-                includeModule("org.lwjgl", "lwjgl-freetype")
-            }
-        }
         mavenCentral()
-        // EveryDatabase resolves from mavenLocal until it is published to maven.petrus.dev
-        // (run publishToMavenLocal in the EveryDatabase project - core AND manager are consumed).
-        // The group filter keeps this repository from interfering with any other resolution.
+        // The sibling FinalCraft libraries resolve from mavenLocal until they are published to
+        // maven.petrus.dev. Filtered so this never shadows another group's resolution.
         mavenLocal {
             content {
                 includeGroup "br.com.finalcraft.everydatabase"
-                // EveryConfig resolves from mavenLocal too until it is published to maven.petrus.dev.
-                // Scoped to the exact module so it does not shadow other br.com.finalcraft artifacts (jabel).
-                includeModule "br.com.finalcraft", "EveryConfig"
-                // EveryLibs (reflection/utils/executors/common primitives) resolves from mavenLocal too.
                 includeGroup "br.com.finalcraft.everylibs"
-                // ECNmsUtils 1.1.5 (rebuilt against the everylibs FCReflectionUtil) is on mavenLocal
-                // only until it is published to maven.petrus.dev. Scoped to the exact module.
+                includeModule "br.com.finalcraft", "EveryConfig"
                 includeModule "br.com.finalcraft", "ECNmsUtils"
             }
         }
         maven { url = "https://jitpack.io" }
-        maven { url 'https://libraries.minecraft.net/' }
-        maven { url 'https://maven.petrus.dev/public' }
-        flatDir { //Change this to where are your local libs
+        maven { url = 'https://libraries.minecraft.net/' }
+        maven { url = 'https://maven.petrus.dev/public' }
+        // Local-only jars: CraftBukkit builds and paid/unobtainable plugins. Without these the
+        // :minecraft side cannot compile; :common, :api-contracts and :libby still can.
+        flatDir {
             dirs 'C:/Meus/workshop/workshop/MyOwnPlugins/Bukkit/FinalCraftCore/libs'
             dirs 'C:/Meus/workshop/workshop/PublicLibs'
             dirs 'C:/Meus/workshop/workshop/PublicLibs/Bukkit'
@@ -81,18 +58,18 @@ subprojects {
     }
 
     dependencies {
-        compileOnly "jakarta.annotation:jakarta.annotation-api:2.1.1"
+        // Signature annotations only (@Nonnull/@Nullable): never needed at runtime.
+        compileOnly libs.jakarta.annotation
+        testCompileOnly libs.jakarta.annotation
 
-        //Lombok
-        compileOnly 'org.projectlombok:lombok:1.18.46'
-        annotationProcessor 'org.projectlombok:lombok:1.18.46'
-        testCompileOnly 'org.projectlombok:lombok:1.18.46'
-        testAnnotationProcessor 'org.projectlombok:lombok:1.18.46'
+        compileOnly libs.lombok
+        annotationProcessor libs.lombok
+        testCompileOnly libs.lombok
+        testAnnotationProcessor libs.lombok
     }
 
-    // Compile to Java 8 bytecode but still resolve JVM-11+ dependencies (Adventure, EveryDatabase,
-    // ...). Gradle 9 forbids setting attributes on declarable-only buckets (api/implementation),
-    // so apply the target-JVM attribute only to consumable/resolvable configurations.
+    // Lets Java-8-bytecode modules still resolve JVM-11+ dependencies. Gradle 9 forbids attributes
+    // on declarable-only buckets, so only consumable/resolvable configurations are tagged.
     configurations.configureEach {
         if (canBeResolved || canBeConsumed) {
             attributes {
@@ -102,7 +79,7 @@ subprojects {
     }
 }
 
-// The NMS modules compile against old CraftBukkit (Java 8 era). Plain Java 8 bytecode, no Jabel,
+// The NMS modules compile against Java-8-era CraftBukkit: plain Java 8, no Jabel.
 configure([project(':minecraft:modules:v1_7_10'),
            project(':minecraft:modules:v1_12_2'),
            project(':minecraft:modules:v1_16_5'),

@@ -2,16 +2,7 @@ plugins {
     alias(libs.plugins.shadow)
 }
 
-group 'br.com.finalcraft'
-version '3.0.1'
-
-tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
-    options.release.set(8)
-    options.compilerArgs.add('-parameters')
-}
-
-// Disable default jar (we only want shadow)
+// Only the shadow jar is deployable.
 tasks.jar {
     enabled = false
 }
@@ -20,120 +11,98 @@ javadoc {
     options.encoding = 'UTF-8'
 }
 
-//This might keep function(parameter variable's Names) on the compiled jar
-compileJava.options.compilerArgs.add '-parameters'
-compileTestJava.options.compilerArgs.add '-parameters'
-
 repositories {
     maven {
         name = 'spigotmc-repo'
         url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots'
     }
-    maven {
-        url = 'https://repo.alessiodp.com/releases/'//For the custom libby-core
-    }
+    maven { url = 'https://repo.alessiodp.com/releases/' } // the custom libby-core lives here
     maven {
         name = "CodeMC"
         url = uri("https://repo.codemc.io/repository/maven-public/")
     }
-    maven { url 'https://repo.codemc.io/repository/creatorfromhell/' } //VaultUnlocked
+    maven { url = 'https://repo.codemc.io/repository/creatorfromhell/' } // VaultUnlocked
 }
 
 dependencies {
     implementation project(':common')
     implementation project(':libby')
 
-    compileOnly 'org.spigotmc:spigot-api:1.19.2-R0.1-SNAPSHOT'
+    compileOnly libs.spigot.api
 
     implementation project(':minecraft:modules:VersionedPlugins')
     implementation project(':minecraft:modules:v1_7_10')
     implementation project(':minecraft:modules:v1_12_2')
     implementation project(':minecraft:modules:v1_16_5')
 
-    implementation("br.com.finalcraft:ECNmsUtils:1.1.5") {
+    implementation(libs.ecnmsutils) {
         exclude group: "br.com.finalcraft", module: "*"
     }
+    implementation libs.chatmenuapi
+    implementation libs.ecforgelistener
+    implementation libs.libby.core
+    implementation libs.triumph.gui
 
-    implementation "br.com.finalcraft:ChatMenuAPI:2.0.1"
+    // Fork that restores NBT-API on Forge/Cauldron 1.7.10 (Crucible): upstream 2.15.7 renamed the
+    // COMPOUND_*_LEGACY reflection methods but left the Forge1710Mappings keys on the old names.
+    // TODO: back to the official de.tr7zw:item-nbt-api release once the fix is upstreamed.
+    implementation libs.nbtapi
 
-    implementation 'net.byteflux:libby-core:1.2.0'
-    implementation 'dev.triumphteam:triumph-gui:3.1.11-evernife-03'
-    implementation 'com.github.Carleslc.Simple-YAML:Simple-Yaml:1.8.4'
-    implementation "br.com.finalcraft:ECForgeListener:1.0.6"
+    implementation libs.bungeecord.chat // same API from 1.7.10 onwards
 
-    //NBT-API
-    // TEMPORARY fork build: restores NBT-API on Forge/Cauldron 1.7.10 (Crucible). Upstream 2.15.7
-    // renamed the COMPOUND_*_LEGACY reflection methods but left the Forge1710Mappings keys on the
-    // old names, so nested/list NBT fails to resolve on the remapped NMS. Built from the
-    // EverNife/Item-NBT-API fork and published to maven.petrus.dev.
-    // TODO: switch back to the official 'de.tr7zw:item-nbt-api' release once the fix is upstreamed.
-    implementation("de.tr7zw:item-nbt-api:2.15.8-crucible")
-    //END of NBT-API
+    implementation libs.adventure.api
+    implementation libs.adventure.key
+    implementation libs.adventure.serializer.gson
+    implementation libs.adventure.serializer.json
+    implementation libs.adventure.serializer.legacy
+    implementation libs.adventure.serializer.bungeecord
+    implementation libs.adventure.platform.bukkit
+    implementation libs.adventure.platform.api
+    implementation libs.adventure.platform.facet
+    implementation libs.examination.api
+    implementation libs.examination.string
+    implementation libs.kyori.option
 
-    implementation 'net.md-5:bungeecord-chat:1.16-R0.1' //This works from 1.7.10 onwards, is the same API
+    implementation libs.log4j.api
+    implementation libs.log4j.core
 
+    compileOnly libs.luckperms.api
+    compileOnly libs.vaultunlocked
+    compileOnly libs.commons.io
+    compileOnly libs.commons.lang3.legacy
+
+    // Local jars. FeatherBoard and BossShopPro are paid plugins: you must own them to build this.
     compileOnly name: "AuthMe-5.4.0"
-    compileOnly 'net.luckperms:api:5.4'
     compileOnly name: "griefdefender-bukkit-2.2.1"
     compileOnly name: "GriefPreventionPlus-13.3"
     compileOnly name: "PlaceholderAPI-2.11.2"
-
-    compileOnly name: "worldguard-bukkit-6.2.2" //Prior to 1.12
-    compileOnly name: "worldedit-bukkit-6.0" //Prior to 1.12
-
-    compileOnly 'net.cfh.vault:VaultUnlocked:2.18.3'
-    compileOnly name: "FeatherBoard-4.28.1" //This is a paid plugin, you need to buy it in order to build this project
-    compileOnly name: "BossShopPro-v1.9.8" //This WAS a paid plugin, (you need to buy it in order to build this project)~I Think
+    compileOnly name: "worldguard-bukkit-6.2.2" // prior to 1.12
+    compileOnly name: "worldedit-bukkit-6.0"    // prior to 1.12
+    compileOnly name: "FeatherBoard-4.28.1"
+    compileOnly name: "BossShopPro-v1.9.8"
     compileOnly name: "MVdWPlaceholderAPI"
     compileOnly name: "ProtocolLib"
-    compileOnly name: "craftbukkit1710" //Thats on you to find out
-    compileOnly name: "craftbukkit1122" //Thats on you to find out
-    compileOnly name: "craftbukkit1165" //Thats on you to find out
-    compileOnly name: "craftbukkit1201" //Thats on you to find out
-    compileOnly name: "craftbukkit1202" //Thats on you to find out
-    compileOnly name: "craftbukkit1211-javadowngraded" //Thats on you to find out | Downgraded to Java 8 with https://github.com/unimined/JvmDowngrader
-    compileOnly group: 'commons-io', name: 'commons-io', version: '2.6' //Necessary for ReflectionUtils
+    compileOnly name: "craftbukkit1710"
+    compileOnly name: "craftbukkit1122"
+    compileOnly name: "craftbukkit1165"
+    compileOnly name: "craftbukkit1201"
+    compileOnly name: "craftbukkit1202"
+    compileOnly name: "craftbukkit1211-javadowngraded" // downgraded to Java 8 with JvmDowngrader
 
-    //Annotations
-    compileOnly "jakarta.annotation:jakarta.annotation-api:2.1.1"
+    // Jabel: lets this module use Java 17 syntax and still emit Java 8 bytecode.
+    annotationProcessor libs.jabel.upstream
+    compileOnly libs.jabel.upstream
 
-    compileOnly group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
-
-    //JUnit
-    testImplementation group: 'junit', name: 'junit', version: '4.12'
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
-    // Gradle 9 no longer ships the JUnit Platform launcher to test JVMs.
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
-    //Jabel (allows to use Java 17 features)
-    annotationProcessor 'com.github.bsideup.jabel:jabel-javac-plugin:0.4.2'
-    compileOnly 'com.github.bsideup.jabel:jabel-javac-plugin:0.4.2'
-
-    //Logging
-    implementation 'org.apache.logging.log4j:log4j-api:2.20.0'
-    implementation 'org.apache.logging.log4j:log4j-core:2.20.0'
-
-//    implementation("net.bytebuddy:byte-buddy:1.18.8")
-
-    implementation("net.kyori:adventure-api:4.26.1")
-    implementation("net.kyori:adventure-key:4.26.1")
-    implementation("net.kyori:adventure-text-serializer-gson:4.26.1")
-    implementation("net.kyori:adventure-text-serializer-json:4.26.1")
-    implementation("net.kyori:adventure-text-serializer-legacy:4.26.1")
-    implementation("net.kyori:adventure-text-serializer-bungeecord:4.4.1")
-    implementation("net.kyori:adventure-platform-bukkit:4.4.1")
-    implementation("net.kyori:adventure-platform-api:4.4.1")
-    implementation("net.kyori:adventure-platform-facet:4.4.1")
-
-    implementation("net.kyori:examination-api:1.3.0")
-    implementation("net.kyori:examination-string:1.3.0")
-
-    implementation("net.kyori:option:1.1.0")
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
+    // A real server provides commons-lang3 to the code under test; the test JVM has to supply it.
+    testRuntimeOnly libs.commons.lang3.legacy
 }
 
-configure([tasks.compileJava]) {
-    sourceCompatibility = 17 // Java 17 syntax (IDE hint; Jabel lifts javac's check)
+// Upstream 0.4.2 Jabel cannot hook a newer javac, so this module stays on a JDK 17 compiler.
+compileJava {
+    sourceCompatibility = 17 // IDE/syntax hint; options.release governs the output
     options.release = 8
 
     javaCompiler = javaToolchains.compilerFor {
@@ -141,23 +110,17 @@ configure([tasks.compileJava]) {
     }
 }
 
-ext.getCallingTask = { ->
-    gradle.startParameter.taskNames.size() == 0
-            ? ""
-            : gradle.startParameter.taskNames.get(0)
-}
-
-
 shadowJar {
     archiveBaseName.set(project.ext.evernifecore)
     archiveClassifier.set('')
 
+    // Allowlist: everything else is expected from the server or fetched by libby at runtime.
     dependencies {
         include(dependency('br.com.finalcraft:ChatMenuAPI:'))
         include(dependency('br.com.finalcraft:ECNmsUtils:'))
         include(dependency('net.byteflux:libby-core:'))
         include(dependency('dev.triumphteam:triumph-gui:'))
-        include(dependency('de.tr7zw:item-nbt-api:')) //item-nbt-api (Crucible fork, see dep above)
+        include(dependency('de.tr7zw:item-nbt-api:'))
         include(dependency('br.com.finalcraft:ECForgeListener:'))
         include(dependency('net.kyori:adventure-api:'))
         include(dependency("net.kyori:adventure-key:"))
@@ -170,7 +133,6 @@ shadowJar {
         include(dependency("net.kyori:adventure-platform-facet:"))
         include(dependency("net.kyori:examination-api:"))
         include(dependency("net.kyori:examination-string:"))
-
         include(dependency("net.kyori:option:"))
 
         include(project(':common'))
@@ -180,20 +142,11 @@ shadowJar {
         include(project(':minecraft:modules:v1_12_2'))
         include(project(':minecraft:modules:v1_16_5'))
 
-        // EveryDatabase: only the core + manager classes (canonical API, the
-        // br.com.finalcraft.everydatabase.* package is NOT relocated). The heavy deps
-        // (Jackson, Hikari, drivers, Mongo) do NOT enter the jar - libby downloads them
-        // already relocated at runtime (EDBDependencies).
+        // Only the canonical EveryDatabase/EveryConfig/EveryLibs classes. Their heavy deps
+        // (Jackson, Hikari, drivers, Mongo) stay out - libby downloads them already relocated.
         include(dependency('br.com.finalcraft.everydatabase:everydatabase-core:'))
         include(dependency('br.com.finalcraft.everydatabase:everydatabase-manager:'))
-
-        // EveryConfig: the config engine classes. Its Jackson refs are rewritten by the
-        // relocate rules below to the same coordinates libby delivers at runtime, so it
-        // shares the one relocated Jackson stack with EveryDatabase (no second copy in the jar).
         include(dependency('br.com.finalcraft:EveryConfig:'))
-
-        // EveryLibs: first-party utility/reflection/executors modules (pure Java 8, no runtime
-        // deps). Embedded canonical - no relocate rule below touches br.com.finalcraft.everylibs.
         include(dependency('br.com.finalcraft.everylibs:everylibs-common:'))
         include(dependency('br.com.finalcraft.everylibs:everylibs-reflection:'))
         include(dependency('br.com.finalcraft.everylibs:everylibs-utils:'))
@@ -205,20 +158,15 @@ shadowJar {
     relocate 'de.tr7zw.changeme.nbtapi', 'br.com.finalcraft.libs.minecraft.nbtapi'
     relocate 'dev.triumphteam', 'br.com.finalcraft.libs.minecraft.dev.triumphteam'
 
-    // EveryDatabase: rewrite the REFS of the embedded everydatabase-core/manager classes
-    // (and of ECore itself) to the relocated coordinates libby delivers at runtime
-    // (EDBDependencies uses IDENTICAL pairs to these - keep them in sync). jackson-annotations
-    // stays canonical on purpose: we relocate the core/databind/dataformat sub-packages
-    // individually, without touching com.fasterxml.jackson.annotation (annotations match by
-    // class identity - the same arrangement as everydatabase-standalone).
+    // Rewrites the embedded EveryDatabase/EveryConfig refs onto the coordinates libby delivers at
+    // runtime. EDBDependencies and hytale/build.gradle use the SAME pairs - keep the three in sync.
+    // jackson-annotations stays canonical on purpose: annotations match by class identity.
     relocate 'com.fasterxml.jackson.core',       'br.com.finalcraft.everydatabase.libs.jackson.core'
     relocate 'com.fasterxml.jackson.databind',   'br.com.finalcraft.everydatabase.libs.jackson.databind'
     relocate 'com.fasterxml.jackson.dataformat', 'br.com.finalcraft.everydatabase.libs.jackson.dataformat'
     relocate 'com.fasterxml.jackson.datatype',   'br.com.finalcraft.everydatabase.libs.jackson.datatype'
-    // EveryConfig's YamlCodec touches snakeyaml directly (LoaderOptions.setCodePointLimit) and hands it to
-    // jackson-dataformat-yaml. Point it at the snakeyaml 2.6 libby delivers - the server ships an OLDER
-    // canonical org.yaml.snakeyaml without setCodePointLimit, and the relocated dataformat-yaml expects its
-    // snakeyaml under this same coordinate (so the LoaderOptions type matches across the call).
+    // The server ships an older canonical snakeyaml without setCodePointLimit, which EveryConfig's
+    // YamlCodec calls; this points it at the snakeyaml libby delivers.
     relocate 'org.yaml.snakeyaml',               'br.com.finalcraft.everydatabase.libs.snakeyaml'
     relocate 'com.zaxxer.hikari',                'br.com.finalcraft.everydatabase.libs.hikari'
     relocate 'org.slf4j',                        'br.com.finalcraft.everydatabase.libs.slf4j'
@@ -229,20 +177,17 @@ shadowJar {
     relocate 'com.mysql',                        'br.com.finalcraft.everydatabase.libs.mysql'
 }
 
+// The NBT-API fork needs the EverNife build of functional-annotations.
 configurations.all {
     resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-        def fullName = details.requested.group + ":" + details.requested.name;
-        if (fullName.equals("de.tr7zw:functional-annotations")){
+        if ("${details.requested.group}:${details.requested.name}" == "de.tr7zw:functional-annotations") {
             details.useTarget("com.github.EverNife:functional-annotations:d26a567")
         }
     }
 }
 
 java {
- //   withJavadocJar()
- //   withSourcesJar()
-    if (getCallingTask().equals("publish")){
-        println "[Appending SourcesJar]"
+    if (gradle.startParameter.taskNames.any { it.contains('publish') }) {
         withSourcesJar()
     }
 }
@@ -256,9 +201,7 @@ test {
 }
 
 processResources {
-    var expandProps = [
-            'version'        : project.version
-    ]
+    var expandProps = ['version': project.version]
 
     filesMatching(['plugin.yml']) {
         expand expandProps
@@ -288,20 +231,14 @@ publishing {
     publications {
         petrus(MavenPublication) {
             groupId = project.group
-            artifactId = "evernifecore-" + "minecraft"
+            artifactId = "evernifecore-minecraft"
             from(components.java)
             pom.withXml {
                 asNode().appendNode('url','https://petrus.dev')
-
+                // The shadow jar carries its dependencies; consumers must not resolve them again.
                 asNode().dependencies.'*'.each() {
-                    it.parent().remove(it) //Remove all dependencies from pom file
+                    it.parent().remove(it)
                 }
-                /* this does not work, sad :D
-                def repositoriesNode = asNode().appendNode('repositories')
-                def repositoryNode = repositoriesNode.appendNode('repository')
-                repositoryNode.appendNode('id', 'jitpack.io')
-                repositoryNode.appendNode('url', 'https://jitpack.io')
-                 */
             }
         }
     }
