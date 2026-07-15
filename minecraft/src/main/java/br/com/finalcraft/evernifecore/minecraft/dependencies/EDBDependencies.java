@@ -19,7 +19,7 @@ import java.util.List;
  * <ul>
  *   <li>The backend coordinates/versions below mirror {@code EveryDatabaseDependencies} of the
  *       EveryDatabase project (its gradle/libs.versions.toml). Update them TOGETHER with
- *       every everydatabase-core upgrade in common/build.gradle. The Jackson version line is shared
+ *       every everydatabase bump in this project's own catalog. The Jackson version line is shared
  *       with EveryConfig (both pin jackson 2.22.0), so it also tracks the EveryConfig upgrade.</li>
  *   <li>The relocation pairs below must be IDENTICAL to the {@code relocate ...} entries of
  *       the shadowJar in minecraft/build.gradle (which rewrites the REFS of the embedded
@@ -34,7 +34,7 @@ import java.util.List;
  */
 public final class EDBDependencies {
 
-    private static final String JACKSON_VERSION = "2.22.0"; // aligned to everydatabase-core 1.0.8
+    private static final String JACKSON_VERSION = "2.22.0"; // aligned to everydatabase-core 1.0.9
 
     private static final String LIBS_PREFIX = "br{}com{}finalcraft{}everydatabase{}libs{}";
 

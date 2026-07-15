@@ -1,6 +1,11 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
+// Project version: single source of truth is gradle/libs.versions.toml ([versions].evernifecore).
+// Captured here (root project scope, where the `libs` catalog accessor is unambiguous) and
+// applied to every module below.
+def evernifecoreVersion = libs.versions.evernifecore.get()
+
 subprojects {
     apply plugin: 'java'
     apply plugin: 'idea'
@@ -8,7 +13,7 @@ subprojects {
     apply plugin: 'maven-publish'
 
     group = 'br.com.finalcraft'
-    version = '3.0.1'
+    version = evernifecoreVersion
 
     // One toolchain for the whole build: launch Gradle with JDK 25 and it compiles and runs
     // everything, including the tests. The only override is the dual-target block at the bottom.

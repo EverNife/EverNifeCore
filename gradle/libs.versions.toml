@@ -1,8 +1,12 @@
 [versions]
+# Project version: the single source of truth. The root build applies it to every subproject
+# (the version-compat modules override it - they are never published).
+evernifecore = "3.0.1"
+
 shadow = "9.4.2"
 
 # FinalCraft libraries
-everydatabase = "1.0.8"
+everydatabase = "1.0.9"
 everyconfig = "1.0.1"
 everylibs = "1.0.0"
 ecnmsutils = "1.1.5"
