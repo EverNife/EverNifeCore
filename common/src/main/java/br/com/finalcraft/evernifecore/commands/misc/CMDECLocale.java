@@ -55,7 +55,9 @@ public class CMDECLocale {
                                 }))
                 );
             }
-            if (ecplugin.getCustomLangConfig() != null){
+            // Only add a button for the active language when it is a custom one; a standard locale is
+            // already rendered (and highlighted) by the loop above, so re-adding it would duplicate it.
+            if (ecplugin.getCustomLangConfig() != null && !LocaleType.values().contains(ecplugin.getPluginLanguage())){
                 formatter.append(
                         FancyText.of("§a§l[" + ecplugin.getPluginLanguage() + "]§7")
                                 .setHoverText("§aThis locale is already selected!")
