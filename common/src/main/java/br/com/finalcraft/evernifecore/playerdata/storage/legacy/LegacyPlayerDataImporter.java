@@ -41,9 +41,12 @@ import java.util.logging.Logger;
  * <ul>
  *   <li><b>Idempotent</b> - entities whose UUID is already present in the target collection
  *       are skipped (a re-run never overwrites more recent data).</li>
- *   <li><b>Never deletes a YAML file</b> - processed files go to {@code PlayerData-Imported/},
- *       broken ones to {@code PlayerData-Failed/}; the section blocks remain intact inside them.</li>
- *   <li><b>A broken file never aborts the run</b> - it is archived as failed and reported.</li>
+ *   <li><b>Leaving the folder means completion</b> - a file moves to {@code PlayerData-Imported/}
+ *       only once every root key holding data got migrated. Anything else stays put, which makes
+ *       what remains in {@code PlayerData/} the to-do list itself.</li>
+ *   <li><b>Never edits nor deletes a YAML file</b> - a broken one is COPIED to
+ *       {@code PlayerData-Failed/} for diagnosis while the original stays behind as pending.</li>
+ *   <li><b>A broken file never aborts the run</b> - it is reported and the rest still imports.</li>
  * </ul>
  *
  * <p>Every run rewrites the {@link LegacyMigrationMetadata} progress file with each root key it
@@ -54,8 +57,6 @@ public final class LegacyPlayerDataImporter {
 
     /** The base block of a legacy file - the importer converts it itself, no adapter involved. */
     private static final String BASE_ROOT_KEY = "PlayerData";
-    /** The player-cooldown block: read by nobody today, but claimed here so it is not reported as orphan. */
-    private static final String LEGACY_COOLDOWN_ROOT_KEY = "Cooldown";
 
     private final File legacyFolder;
     private final PlayerDataBinding playerDataBinding;
@@ -122,11 +123,13 @@ public final class LegacyPlayerDataImporter {
         for (ParsedFile parsedFile : parsed) {
             if (parsedFile.failReason != null) {
                 report.addFailedFile(parsedFile.file.getName(), parsedFile.failReason);
-                moveFile(parsedFile.file, failedFolder);
+                copyFile(parsedFile.file, failedFolder); //copy: the original is still a pending item
                 failedFiles++;
                 continue;
             }
-            if (moveFile(parsedFile.file, importedFolder)) {
+            //the move IS the completion signal: whatever stays in the folder is the pending list,
+            //and the boot that finally brings the missing adapter is the one that archives it
+            if (parsedFile.isFullyImported() && moveFile(parsedFile.file, importedFolder)) {
                 archivedFiles++;
             }
             if (parsedFile.baseAlreadyPresent) {
@@ -162,6 +165,19 @@ public final class LegacyPlayerDataImporter {
         ParsedFile parsed = new ParsedFile(file);
         try {
             Config legacyConfig = ConfigFactory.open(file);
+
+            //inventory first: a file that blows up further down still has to report WHICH root keys
+            //it held, or a broken file would silently vanish from the progress report
+            Set<String> mappedRootKeys = mappedRootKeys();
+            for (String rootKey : legacyConfig.getKeys()) {
+                //an empty block has nothing to migrate, so it never needs an adapter
+                boolean hasContent = !legacyConfig.getKeys(rootKey).isEmpty();
+                parsed.rootKeys.put(rootKey, hasContent);
+                if (hasContent && !mappedRootKeys.contains(rootKey)) {
+                    parsed.unmappedKeys.add(rootKey);
+                }
+            }
+
             parsed.playerData = LegacyPlayerDataYamlConverter.convertBase(legacyConfig);
             UUID uuid = parsed.playerData.getUniqueId();
             parsed.baseAlreadyPresent = playerDataBinding.getRepository().exists(uuid).join();
@@ -180,19 +196,10 @@ public final class LegacyPlayerDataImporter {
                 boolean alreadyPresent = binding.getRepository().exists(uuid).join();
                 parsed.sections.add(new SectionEntry(parsed, binding, section, alreadyPresent));
             }
-
-            Set<String> mappedRootKeys = mappedRootKeys();
-            for (String rootKey : legacyConfig.getKeys()) {
-                //an empty block has nothing to migrate, so it never needs an adapter
-                parsed.rootKeys.put(rootKey, !legacyConfig.getKeys(rootKey).isEmpty());
-                if (!mappedRootKeys.contains(rootKey)) {
-                    parsed.unmappedKeys.add(rootKey);
-                }
-            }
         } catch (Throwable e) {
             parsed.failReason = e.getMessage() != null ? e.getMessage() : e.toString();
-            logWarning("Failed to convert the legacy PlayerData file [%s] - it will be moved to"
-                    + " the '-Failed' folder.", file.getName());
+            logWarning("Failed to convert the legacy PlayerData file [%s] - a copy goes to the"
+                    + " '-Failed' folder and the original stays pending.", file.getName());
             e.printStackTrace();
         }
         return parsed;
@@ -202,7 +209,6 @@ public final class LegacyPlayerDataImporter {
     private Set<String> mappedRootKeys() {
         Set<String> mapped = new HashSet<>();
         mapped.add(BASE_ROOT_KEY);
-        mapped.add(LEGACY_COOLDOWN_ROOT_KEY);
         for (PDSectionBinding<PDSection> binding : adapterBindings) {
             mapped.add(binding.getConfiguration().getLegacyYamlRootKey());
         }
@@ -282,8 +288,8 @@ public final class LegacyPlayerDataImporter {
     private void markSaveFailed(ParsedFile parsedFile, String what, Throwable error) {
         String reason = "failed to save " + what + ": "
                 + (error.getMessage() != null ? error.getMessage() : error.toString());
-        //a partially saved file is archived as failed; the next 'force' run skips
-        //what ALREADY reached the backend (idempotency) and retries only the rest
+        //a partially saved file stays in the legacy folder, so the next run picks it up again and
+        //retries only what never reached the backend (idempotency skips the rest)
         parsedFile.failReason = parsedFile.failReason == null ? reason : parsedFile.failReason + "; " + reason;
         logWarning("Legacy import of [%s]: %s", parsedFile.file.getName(), reason);
     }
@@ -295,14 +301,7 @@ public final class LegacyPlayerDataImporter {
     /** @return true when the file left the legacy folder. */
     private boolean moveFile(File source, File targetFolder) {
         try {
-            targetFolder.mkdirs();
-            File target = new File(targetFolder, source.getName());
-            if (target.exists()) {
-                String name = source.getName();
-                target = new File(targetFolder, name.substring(0, name.length() - ".yml".length())
-                        + "_" + System.currentTimeMillis() + ".yml");
-            }
-            Files.move(source.toPath(), target.toPath());
+            Files.move(source.toPath(), freeTargetIn(targetFolder, source).toPath());
             return true;
         } catch (IOException e) {
             //never deletes and never aborts: a file that cannot be moved simply stays in place
@@ -311,6 +310,35 @@ public final class LegacyPlayerDataImporter {
                     source.getName(), targetFolder.getName(), e.toString());
             return false;
         }
+    }
+
+    /**
+     * Duplicates a file for diagnosis, leaving the original where it is - a file that failed is still
+     * pending, and only a file that completed may ever leave the legacy folder.
+     */
+    private void copyFile(File source, File targetFolder) {
+        try {
+            Files.copy(source.toPath(), freeTargetIn(targetFolder, source).toPath());
+        } catch (IOException e) {
+            //the diagnostic copy is a nicety: losing it must never cost the run
+            logWarning("Failed to copy the failed legacy PlayerData file [%s] into [%s]: %s",
+                    source.getName(), targetFolder.getName(), e.toString());
+        }
+    }
+
+    /**
+     * A free path for {@code source} inside {@code targetFolder}: a timestamp suffix keeps a re-run
+     * from overwriting what an earlier one archived under the same name.
+     */
+    private static File freeTargetIn(File targetFolder, File source) {
+        targetFolder.mkdirs();
+        File target = new File(targetFolder, source.getName());
+        if (target.exists()) {
+            String name = source.getName();
+            target = new File(targetFolder, name.substring(0, name.length() - ".yml".length())
+                    + "_" + System.currentTimeMillis() + ".yml");
+        }
+        return target;
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------//
@@ -336,11 +364,17 @@ public final class LegacyPlayerDataImporter {
         Map<String, Integer> foundByRootKey = new LinkedHashMap<>();
         Map<String, Integer> importedByRootKey = new LinkedHashMap<>();
         Set<String> rootKeysWithContent = new HashSet<>();
+        Set<String> rootKeysHitByAFailure = new HashSet<>();
         for (ParsedFile parsedFile : parsed) {
             for (Map.Entry<String, Boolean> rootKey : parsedFile.rootKeys.entrySet()) {
                 foundByRootKey.merge(rootKey.getKey(), 1, Integer::sum);
                 if (rootKey.getValue()) {
                     rootKeysWithContent.add(rootKey.getKey());
+                    if (parsedFile.failReason != null) {
+                        //deliberately coarse: failure is tracked per FILE, so every key carrying data in a
+                        //broken file is suspect - naming a whole key is better than losing the trail
+                        rootKeysHitByAFailure.add(rootKey.getKey());
+                    }
                 }
             }
             if (parsedFile.failReason != null) {
@@ -366,7 +400,9 @@ public final class LegacyPlayerDataImporter {
         for (Map.Entry<String, Integer> found : foundByRootKey.entrySet()) {
             String rootKey = found.getKey();
             LegacyMigrationMetadata.SectionStatus status;
-            if (!rootKeysWithContent.contains(rootKey)) {
+            if (rootKeysHitByAFailure.contains(rootKey)) {
+                status = LegacyMigrationMetadata.SectionStatus.FAILED; //louder than "no adapter yet"
+            } else if (!rootKeysWithContent.contains(rootKey)) {
                 status = LegacyMigrationMetadata.SectionStatus.EMPTY;
             } else if (mappedRootKeys.contains(rootKey)) {
                 status = LegacyMigrationMetadata.SectionStatus.DONE;
@@ -407,12 +443,22 @@ public final class LegacyPlayerDataImporter {
         boolean baseAlreadyPresent;
         String failReason;                                        //non-null = archive as failed
         final List<SectionEntry> sections = new ArrayList<>();
+        /** Root keys holding data that no adapter claims - each one is a reason to keep the file. */
         final List<String> unmappedKeys = new ArrayList<>();
         /** Every root key of the file (adapter or not) -> whether it holds anything. */
         final Map<String, Boolean> rootKeys = new LinkedHashMap<>();
 
         ParsedFile(File file) {
             this.file = file;
+        }
+
+        /**
+         * Whether everything this file carries reached the backend: nothing failed, and every root key
+         * holding data had an adapter to route it. An adapter that returned {@code null} counts as
+         * satisfied - skipping that player is the adapter's call to make, not a pending item.
+         */
+        boolean isFullyImported() {
+            return failReason == null && unmappedKeys.isEmpty();
         }
     }
 

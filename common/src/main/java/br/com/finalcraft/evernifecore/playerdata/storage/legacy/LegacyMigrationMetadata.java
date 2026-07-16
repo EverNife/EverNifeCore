@@ -155,18 +155,16 @@ public final class LegacyMigrationMetadata {
     }
 
     /**
-     * The migration is complete once no discovered root key is waiting for an adapter. A key nobody
-     * claims is the one thing that must bring the import back on a later boot - the plugin that owns
-     * it may only be installed then.
+     * The migration is complete once the legacy folder has nothing left to give: every file was fully
+     * imported and archived away. A file kept back - because a root key of it still waits for an
+     * adapter, or because it failed - is exactly what must bring the import back on a later boot,
+     * since the plugin owning that key may only be installed then.
+     *
+     * <p>Reads the file tally, not the section statuses: a file left behind by a FAILURE is just as
+     * pending as one left behind by a missing adapter, and only the tally sees both.</p>
      */
     public void recomputeComplete() {
-        for (SectionProgress progress : sections.values()) {
-            if (progress.getStatus() == SectionStatus.PENDING_NO_ADAPTER) {
-                complete = false;
-                return;
-            }
-        }
-        complete = true;
+        complete = filesPending == 0 && filesFailed == 0;
     }
 
     /** Writes the whole file in a single save. */

@@ -82,13 +82,13 @@ public final class LegacyImportReport {
             }
         }
         if (!unmappedRootKeys.isEmpty()) {
-            sb.append("\n  Sections WITHOUT a legacyYaml adapter (left untouched in the archived files):");
+            sb.append("\n  Sections WITHOUT a legacyYaml adapter (their files were KEPT as pending):");
             for (Map.Entry<String, Integer> entry : unmappedRootKeys.entrySet()) {
                 sb.append("\n    - '").append(entry.getKey()).append("' in ").append(entry.getValue()).append(" file(s)");
             }
         }
         if (!failedFiles.isEmpty()) {
-            sb.append("\n  FAILED files (moved to the '-Failed' folder):");
+            sb.append("\n  FAILED files (copied to the '-Failed' folder, originals kept as pending):");
             for (String failedFile : failedFiles) {
                 sb.append("\n    - ").append(failedFile);
             }
