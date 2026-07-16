@@ -101,8 +101,12 @@ public class FancyFormatter extends FancyText {
     @Override
     public Component toComponent() {
         TextComponent.Builder builder = Component.text();
+        // Legacy chat lets a colour bleed into the following text; Adventure siblings do not inherit
+        // one another's colour, so carry each segment's trailing colour into the next as its start.
+        String previousColor = "";
         for (FancyText fancyText : fancyTextList) {
-            builder.append(fancyText.toComponent());
+            builder.append(fancyText.toComponent(previousColor));
+            previousColor = fancyText.getLastTextColor();
         }
         return builder.build();
     }
