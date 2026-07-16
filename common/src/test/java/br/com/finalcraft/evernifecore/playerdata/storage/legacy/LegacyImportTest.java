@@ -11,6 +11,8 @@ import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.playerdata.storage.legacy.LegacyMigrationMetadata.SectionProgress;
+import br.com.finalcraft.evernifecore.playerdata.storage.legacy.LegacyMigrationMetadata.SectionStatus;
 import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -22,6 +24,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Legacy import acceptance tests: given a folder with YAML files in the v3 layout, a boot imports the
@@ -255,6 +260,32 @@ class LegacyImportTest {
     private static File[] ymlFiles(File folder) {
         File[] files = folder.listFiles((dir, name) -> name.endsWith(".yml"));
         return files != null ? files : new File[0];
+    }
+
+    /** The report the importer hands the console, filled from the progress file a real run left behind. */
+    private LegacyImportReport reportOfThePersistedRun() {
+        LegacyMigrationMetadata metadata = LegacyMigrationMetadata.load(metadataFile());
+        LegacyImportReport report = new LegacyImportReport();
+        report.setPaths(legacyFolder(), tempDir.resolve("PlayerData-Imported").toFile(),
+                tempDir.resolve("PlayerData-Failed").toFile(), metadataFile());
+        report.setFiles(metadata.getFilesTotalFound(), metadata.getFilesFullyImported(),
+                metadata.getFilesPending(), metadata.getFilesFailed());
+        report.setSections(metadata.getSections());
+        report.setCompletion(false, metadata.isComplete());
+        return report;
+    }
+
+    /**
+     * The one line of the per-root-key table that belongs to {@code rootKey}. Matching the whole line
+     * keeps the assertions blind to the column padding, which is free to change.
+     */
+    private static String sectionLine(String text, String rootKey) {
+        for (String line : text.split("\n")) {
+            if (line.trim().startsWith(rootKey + " ")) {
+                return line;
+            }
+        }
+        return fail("no table line for the root key '" + rootKey + "' in:\n" + text);
     }
 
     // ------------------------------------------------------------------
@@ -722,5 +753,205 @@ class LegacyImportTest {
                 "the progress file must name the plugin an admin has to install for a pending key");
         assertEquals("LegacyJobsPDSection", progress.getString("sections.FinalJobs.pdsection"));
         assertEquals("DONE", progress.getString("sections.FinalJobs.status"));
+    }
+
+    // ------------------------------------------------------------------
+    // The report: what an admin reads on the console
+    // ------------------------------------------------------------------
+
+    @Test
+    void theReportBreaksTheRunDownByRootKey() {
+        Map<String, SectionProgress> sections = new LinkedHashMap<>();
+        sections.put("PlayerData", new SectionProgress(SectionStatus.DONE, 3, 3, "EverNifeCore", "PlayerData"));
+        sections.put("Ontime", new SectionProgress(SectionStatus.DONE, 2, 2, "ENCTemplate", "LegacyOntimeSection"));
+        sections.put("Cooldown", new SectionProgress(SectionStatus.PENDING_NO_ADAPTER, 181, 0, "", ""));
+        sections.put("FinalRTP", new SectionProgress(SectionStatus.EMPTY, 153, 0, "", ""));
+
+        LegacyImportReport report = new LegacyImportReport();
+        report.setPaths(legacyFolder(), tempDir.resolve("PlayerData-Imported").toFile(),
+                tempDir.resolve("PlayerData-Failed").toFile(), metadataFile());
+        report.setFiles(3, 2, 1, 0);
+        report.setSections(sections);
+        report.setCompletion(false, false);
+
+        String text = report.format();
+
+        //the discovery breakdown, per status
+        assertTrue(text.contains("4 root key(s)"), text);
+        assertTrue(text.contains("2 with adapter"), text);
+        assertTrue(text.contains("1 without adapter"), text);
+        assertTrue(text.contains("1 empty"), text);
+
+        //a claimed key names its owner AND its PDSection right next to the root key
+        String ontime = sectionLine(text, "Ontime");
+        assertTrue(ontime.contains("LegacyOntimeSection"), ontime);
+        assertTrue(ontime.contains("ENCTemplate"), ontime);
+        assertTrue(ontime.contains("2 found"), ontime);
+        assertTrue(ontime.contains("[DONE]"), ontime);
+
+        //an unclaimed key still says how much data it is holding hostage
+        String cooldown = sectionLine(text, "Cooldown");
+        assertTrue(cooldown.contains("181 found"), cooldown);
+        assertTrue(cooldown.contains("[PENDING_NO_ADAPTER]"), cooldown);
+
+        //an empty key is reported as empty, never as a pending adapter
+        String finalRtp = sectionLine(text, "FinalRTP");
+        assertTrue(finalRtp.contains("[EMPTY]"), finalRtp);
+        assertFalse(finalRtp.contains("PENDING"), finalRtp);
+    }
+
+    @Test
+    void theReportTellsArchivedFilesApartFromPendingOnes() {
+        Map<String, SectionProgress> sections = new LinkedHashMap<>();
+        sections.put("PlayerData", new SectionProgress(SectionStatus.DONE, 3, 3, "EverNifeCore", "PlayerData"));
+        sections.put("Cooldown", new SectionProgress(SectionStatus.PENDING_NO_ADAPTER, 1, 0, "", ""));
+
+        LegacyImportReport report = new LegacyImportReport();
+        report.setPaths(legacyFolder(), tempDir.resolve("PlayerData-Imported").toFile(),
+                tempDir.resolve("PlayerData-Failed").toFile(), metadataFile());
+        report.setFiles(3, 2, 1, 0);
+        report.setSections(sections);
+        report.setCompletion(false, false);
+
+        String text = report.format();
+
+        //"processed" counted the pending files too, so it read as "archived" while meaning nothing
+        assertFalse(text.contains("Files processed:"),
+                "a count that lumps pending files in with archived ones misleads the admin: " + text);
+        assertTrue(text.contains("3 file(s) found"), text);
+        assertTrue(text.contains("2 file(s) fully imported"), text);
+        assertTrue(text.contains("1 file(s) still pending"), text);
+        assertTrue(text.contains("0 file(s) failed"), text);
+        assertTrue(text.contains(metadataFile().getPath()), "an incomplete run must point at the progress file");
+    }
+
+    @Test
+    void theRollbackWarningBelongsOnlyToTheRunThatDrainedTheFolder() {
+        assertTrue(completionOf(false, true).isBecameCompleteThisRun(),
+                "the run that finally emptied the folder is the one that owes the warning");
+        assertFalse(completionOf(true, true).isBecameCompleteThisRun(),
+                "a later boot merely FINDS the folder empty - the warning was already given");
+        assertFalse(completionOf(false, false).isBecameCompleteThisRun());
+        assertFalse(completionOf(true, false).isBecameCompleteThisRun());
+    }
+
+    private static LegacyImportReport completionOf(boolean wasComplete, boolean isCompleteNow) {
+        LegacyImportReport report = new LegacyImportReport();
+        report.setCompletion(wasComplete, isCompleteNow);
+        return report;
+    }
+
+    @Test
+    void theReportNarratesARealRunDownToTheOwningPlugin() throws IOException {
+        //one claimed key (a real plugin owns it), one nobody claims, one empty
+        writeLegacyYml("petrus.yml", String.join("\n",
+                "PlayerData:",
+                "  Username: Petrus",
+                "  UUID: " + PETRUS_UUID,
+                "  firstSeen: 1600000000000",
+                "  lastSeen: 1700000000000",
+                "  lastSaved: 1700000000001",
+                "FinalJobs:",
+                "  level: 42",
+                "  job: miner",
+                "Cooldown:",
+                "  test_kit:",
+                "    identifier: test_kit",
+                "    timeStart: 1600000000000",
+                "    timeDuration: 99999999",
+                "FinalRTP: {}",
+                ""));
+        registerJobsSectionOwnedBy(realPluginData());
+
+        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+
+        String text = reportOfThePersistedRun().format();
+
+        //the four root keys the real run discovered, each one narrated
+        assertTrue(text.contains("4 root key(s)"), text);
+        String jobs = sectionLine(text, "FinalJobs");
+        assertTrue(jobs.contains(FAKE_PLUGIN_NAME), "the log must name the plugin owning the key: " + jobs);
+        assertTrue(jobs.contains("LegacyJobsPDSection"), jobs);
+        assertTrue(jobs.contains("[DONE]"), jobs);
+        assertTrue(sectionLine(text, "PlayerData").contains("EverNifeCore"), text);
+        assertTrue(sectionLine(text, "Cooldown").contains("[PENDING_NO_ADAPTER]"), text);
+        assertTrue(sectionLine(text, "FinalRTP").contains("[EMPTY]"), text);
+
+        //the outcome of a run that kept its only file back, and WHY it did
+        assertFalse(text.contains("Files processed:"), text);
+        assertTrue(text.contains("1 file(s) found"), text);
+        assertTrue(text.contains("0 file(s) fully imported"), text);
+        assertTrue(text.contains("1 file(s) still pending"), text);
+        assertTrue(text.contains("0 file(s) failed"), text);
+    }
+
+    @Test
+    void theOutcomeNamesTheSingleRootKeyHoldingTheRunBack() throws IOException {
+        //Cooldown is the ONLY unclaimed key here: a generic "1 pending" would leave the admin guessing
+        //which plugin to go install
+        writeLegacyYml("petrus.yml", String.join("\n",
+                "PlayerData:",
+                "  Username: Petrus",
+                "  UUID: " + PETRUS_UUID,
+                "  firstSeen: 1600000000000",
+                "  lastSeen: 1700000000000",
+                "  lastSaved: 1700000000001",
+                "Cooldown:",
+                "  test_kit:",
+                "    identifier: test_kit",
+                "    timeStart: 1600000000000",
+                "    timeDuration: 99999999",
+                "FinalJobs:",
+                "  level: 42",
+                "  job: miner",
+                ""));
+        registerJobsSectionWithAdapter();
+
+        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+
+        String text = reportOfThePersistedRun().format();
+
+        String pending = null;
+        for (String line : text.split("\n")) {
+            if (line.contains("still pending")) {
+                pending = line;
+            }
+        }
+        assertNotNull(pending, "the outcome must state what stayed behind: " + text);
+        assertTrue(pending.contains("Cooldown"),
+                "the outcome must NAME the root key holding the run back, not just count it: " + pending);
+        assertFalse(pending.contains("FinalJobs"), "a key that migrated is not a blocker: " + pending);
+    }
+
+    @Test
+    void theMetadataHeaderExplainsHowToRollBack() throws IOException {
+        writeLegacyYml("petrus.yml", fullyMappedV3Yaml("Petrus", 42, "miner"));
+        registerJobsSectionWithAdapter();
+
+        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+
+        //the header is the admin's only instruction once the server is down and the folder is empty
+        String raw = new String(Files.readAllBytes(metadataFile().toPath()), StandardCharsets.UTF_8);
+        assertTrue(raw.contains("ROLLBACK"), raw);
+        assertTrue(raw.contains("DOWNGRADE"), raw);
+        assertTrue(raw.contains("PlayerData-Imported"), "the header must say WHERE the .yml files went: " + raw);
+    }
+
+    @Test
+    void theBootThatCompletesTheMigrationIsTheOneThatFlipsTheFlag() throws IOException {
+        writeLegacyYml("petrus.yml", fullyMappedV3Yaml("Petrus", 42, "miner"));
+        File storageYml = writeStorageYml("storage.yml", "");
+
+        //boot 1: nobody claims FinalJobs yet, so the migration stays open
+        PlayerController.bootstrap(storageYml);
+        assertFalse(LegacyMigrationMetadata.load(metadataFile()).isComplete(),
+                "a pending key must leave the migration incomplete");
+
+        //boot 2: the adapter finally shows up - THIS is the run that drains the folder, and the only
+        //one that may warn about a downgrade
+        registerJobsSectionWithAdapter();
+        PlayerController.bootstrap(storageYml);
+        assertTrue(LegacyMigrationMetadata.load(metadataFile()).isComplete());
+        assertEquals(0, ymlFiles(legacyFolder()).length);
     }
 }

@@ -59,6 +59,8 @@ public final class LegacyPlayerDataImporter {
     private static final String BASE_ROOT_KEY = "PlayerData";
 
     private final File legacyFolder;
+    private final File importedFolder;
+    private final File failedFolder;
     private final PlayerDataBinding playerDataBinding;
     private final List<PDSectionBinding<PDSection>> adapterBindings = new ArrayList<>();
 
@@ -66,6 +68,8 @@ public final class LegacyPlayerDataImporter {
     public LegacyPlayerDataImporter(File legacyFolder, PlayerDataBinding playerDataBinding,
                                     Collection<? extends PDSectionBinding<? extends PDSection>> sectionBindings) {
         this.legacyFolder = legacyFolder;
+        this.importedFolder = new File(legacyFolder.getParentFile(), legacyFolder.getName() + "-Imported");
+        this.failedFolder = new File(legacyFolder.getParentFile(), legacyFolder.getName() + "-Failed");
         this.playerDataBinding = playerDataBinding;
         for (PDSectionBinding<? extends PDSection> binding : sectionBindings) {
             if (binding.getConfiguration().getLegacyYamlRootKey() != null
@@ -78,13 +82,13 @@ public final class LegacyPlayerDataImporter {
     public LegacyImportReport run() {
         long start = System.currentTimeMillis();
         LegacyImportReport report = new LegacyImportReport();
+        report.setPaths(legacyFolder, importedFolder, failedFolder, LegacyMigrationMetadata.fileOf(legacyFolder));
 
         File[] files = legacyFolder.listFiles((dir, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
         if (files == null || files.length == 0) {
             report.setDurationMillis(System.currentTimeMillis() - start);
             return report;
         }
-        report.setTotalFiles(files.length);
 
         //Phase A - parse + conversion + routing + idempotency check (one virtual thread per file)
         Queue<ParsedFile> parseResults = new ConcurrentLinkedQueue<>();
@@ -116,8 +120,6 @@ public final class LegacyPlayerDataImporter {
         saveSectionBatches(parsed);
 
         //Phase C - archiving (never deletes) + report
-        File importedFolder = new File(legacyFolder.getParentFile(), legacyFolder.getName() + "-Imported");
-        File failedFolder = new File(legacyFolder.getParentFile(), legacyFolder.getName() + "-Failed");
         int archivedFiles = 0;
         int failedFiles = 0;
         for (ParsedFile parsedFile : parsed) {
@@ -132,26 +134,10 @@ public final class LegacyPlayerDataImporter {
             if (parsedFile.isFullyImported() && moveFile(parsedFile.file, importedFolder)) {
                 archivedFiles++;
             }
-            if (parsedFile.baseAlreadyPresent) {
-                report.addSkippedPlayer();
-            } else {
-                report.addImportedPlayer();
-            }
-            for (SectionEntry entry : parsedFile.sections) {
-                String sectionName = entry.binding.getPdSectionClass().getSimpleName();
-                if (entry.alreadyPresent) {
-                    report.addSkippedSection(sectionName);
-                } else {
-                    report.addImportedSection(sectionName);
-                }
-            }
-            for (String unmappedKey : parsedFile.unmappedKeys) {
-                report.addUnmappedRootKey(unmappedKey);
-            }
         }
 
         //Phase D - progress file: what the next boot's trigger reads instead of counting rows
-        writeProgress(parsed, files.length, archivedFiles, failedFiles);
+        writeProgress(parsed, report, files.length, archivedFiles, failedFiles);
 
         report.setDurationMillis(System.currentTimeMillis() - start);
         return report;
@@ -345,15 +331,23 @@ public final class LegacyPlayerDataImporter {
     // Phase D - progress file
     // -----------------------------------------------------------------------------------------------------------------------------//
 
-    private void writeProgress(List<ParsedFile> parsed, int totalFound, int archivedFiles, int failedFiles) {
+    private void writeProgress(List<ParsedFile> parsed, LegacyImportReport report,
+                               int totalFound, int archivedFiles, int failedFiles) {
         File progressFile = LegacyMigrationMetadata.fileOf(legacyFolder);
         LegacyMigrationMetadata metadata = LegacyMigrationMetadata.load(progressFile); //keeps started-at + runs
+        boolean wasComplete = metadata.isComplete(); //what the PREVIOUS run left behind, read before mutating
         metadata.beginRun();
         //whatever did not reach an archive folder is still sitting in the legacy folder
-        metadata.setFiles(totalFound, archivedFiles, totalFound - archivedFiles - failedFiles, failedFiles);
+        int pendingFiles = totalFound - archivedFiles - failedFiles;
+        metadata.setFiles(totalFound, archivedFiles, pendingFiles, failedFiles);
         metadata.replaceSections(discoverSections(parsed));
         metadata.recomputeComplete();
         metadata.save(progressFile);
+
+        //the console tells the same story as the file, off the very same numbers
+        report.setFiles(totalFound, archivedFiles, pendingFiles, failedFiles);
+        report.setSections(metadata.getSections());
+        report.setCompletion(wasComplete, metadata.isComplete());
     }
 
     /**

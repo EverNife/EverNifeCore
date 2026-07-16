@@ -106,6 +106,7 @@ public final class StorageYamlDefaults {
         config.setValue("playerdata.load-mode", "ALL");
         config.setValue("playerdata.recent-days", 60);
         config.setValue("playerdata.login-timeout-seconds", 5);
+        config.setValue("playerdata.migrate-legacy", "");
         config.setComment("playerdata", String.join("\n",
                 "============================================================",
                 " Base PlayerData (EverNifeCore)",
@@ -116,6 +117,15 @@ public final class StorageYamlDefaults {
                         + " 'recent-days' (older players lazy-load on demand)");
         config.setComment("playerdata.login-timeout-seconds",
                 "How long a login may wait on storage before being denied (storage down)");
+        config.setComment("playerdata.migrate-legacy", String.join("\n",
+                "One-time import of the v3 'PlayerData/*.yml' files into the storage above.",
+                "It runs by itself while anything is left to migrate, and stops once the",
+                "progress file (playerdata-storage-migration-metadata.yml, next to this one)",
+                "reports 'complete: true'. Leave this EMPTY.",
+                "",
+                "migrate-legacy: force  -> re-scan on every boot, ignoring that 'complete: true'.",
+                "Only useful to retry a migration you believe the progress file got wrong:",
+                "it never overwrites anything, since a player already on the backend is skipped."));
 
         // ---- pdsections ----
         config.setValue("pdsections", new java.util.LinkedHashMap<String, Object>());
