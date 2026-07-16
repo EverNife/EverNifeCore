@@ -101,7 +101,9 @@ public class FCColorUtil {
                 ColorEnum color = ColorEnum.getByChar(c);
 
                 if (color != null) {
-                    result = color.toString() + result;
+                    // Emit the actual code chars (§ + code) from the input; ColorEnum has no
+                    // toString() override, so color.toString() would yield the enum name (GRAY, RESET).
+                    result = String.valueOf(ColorEnum.COLOR_CHAR) + c + result;
 
                     // Once we find a color or reset we can stop searching
                     if (color.isColor() || color.equals(ColorEnum.RESET)) {

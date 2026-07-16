@@ -6,18 +6,14 @@ import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import br.com.finalcraft.everylibs.reflection.MethodInvoker;
-import com.google.common.collect.Iterables;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.JoinConfiguration;
-import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.serializer.bungeecord.BungeeComponentSerializer;
 import net.md_5.bungee.api.chat.BaseComponent;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.Array;
-import java.util.*;
 
 /**
  * Sends an Adventure {@link Component} to a Bukkit {@link CommandSender}, picking the transport by
@@ -107,7 +103,7 @@ public class FCMinecraftAdventureUtil {
     private static void sendViaSpigot(Player player, Component component) {
         try {
             Object spigot = METHOD_SPIGOT.invoke(player);
-            for (Component line : splitNewlines(component)) {
+            for (Component line : FCComponentUtil.splitNewlines(component)) {
                 BaseComponent[] baseComponents = BUNGEE_SERIALIZER.serialize(line);
                 // Pass the array as a single argument (sendMessage takes one BaseComponent[] parameter).
                 METHOD_SEND_BASECOMPONENTS.invoke(spigot, (Object) baseComponents);
@@ -117,41 +113,6 @@ public class FCMinecraftAdventureUtil {
             e.printStackTrace();
             player.sendMessage(FCColorUtil.componentToString(component));
         }
-    }
-
-    public static Iterable<Component> splitNewlines(Component message) {
-        if (message instanceof TextComponent && message.style().isEmpty() && !message.children().isEmpty() && ((TextComponent) message).content().isEmpty()) {
-            LinkedList<List<Component>> split = new LinkedList<>();
-            split.add(new ArrayList<>());
-
-            for (Component child : message.children()) {
-                if (Component.newline().equals(child)) {
-                    split.add(new ArrayList<>());
-                } else {
-                    Iterator<Component> splitChildren = splitNewlines(child).iterator();
-                    if (splitChildren.hasNext()) {
-                        split.getLast().add(splitChildren.next());
-                    }
-                    while (splitChildren.hasNext()) {
-                        split.add(new ArrayList<>());
-                        split.getLast().add(splitChildren.next());
-                    }
-                }
-            }
-
-            return Iterables.transform(split, input -> {
-                switch (input.size()) {
-                    case 0:
-                        return Component.empty();
-                    case 1:
-                        return input.get(0);
-                    default:
-                        return Component.join(JoinConfiguration.separator(Component.empty()), input);
-                }
-            });
-        }
-
-        return Collections.singleton(message);
     }
 
     public static BukkitAudiences getAdventure() {
