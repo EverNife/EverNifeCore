@@ -45,6 +45,11 @@ commons-lang3 = "3.15.0"
 # server ships keeps newer APIs from reaching a runtime that lacks them.
 commons-lang3-legacy = "3.0"
 
+# Bundled + relocated into the compile-view artifact evernifecore-common-relocated. Pinned to the
+# same line EveryDatabase/EveryConfig compile against (their POMs declare jackson-databind 2.22.0),
+# so the embedded classes and their relocated references stay on one Jackson version.
+jackson = "2.22.0"
+
 # Test
 junit = "5.10.0"
 h2 = "1.4.200"
@@ -95,6 +100,9 @@ bungeecord-chat = { module = "net.md-5:bungeecord-chat", version.ref = "bungeeco
 commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
 commons-lang3-legacy = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3-legacy" }
+
+jackson-core = { module = "com.fasterxml.jackson.core:jackson-core", version.ref = "jackson" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
 
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }

@@ -1,10 +1,38 @@
+plugins {
+    alias(libs.plugins.shadow)
+}
+
 repositories {
     maven { url = 'https://repo.alessiodp.com/releases/' } // the custom libby-core lives here
+}
+
+configurations {
+    // Exactly the jars embedded into the evernifecore-common-relocated compile artifact. Non-transitive
+    // on purpose: only EveryDatabase/EveryConfig/EveryLibs and Jackson core+databind get bundled, never
+    // edb-core's heavy runtime stack (mongo, hikari, drivers) - those are relocated by reference only,
+    // matching the deployables where the server/libby delivers them at runtime.
+    relocatedBundle {
+        transitive = false
+        canBeConsumed = false
+    }
 }
 
 dependencies {
     compileOnly project(':api-contracts')
     implementation project(':libby')
+
+    // The relocated compile-view bundle (see the relocatedBundle configuration above). Jackson core+
+    // databind are pulled in so ObjectNode/JsonNode/ObjectMapper - which pervade the public API of
+    // EveryDatabase/EveryConfig - resolve to the SAME relocated names in compile and runtime.
+    relocatedBundle libs.everydatabase.core
+    relocatedBundle libs.everydatabase.manager
+    relocatedBundle libs.everyconfig
+    relocatedBundle libs.everylibs.common
+    relocatedBundle libs.everylibs.reflection
+    relocatedBundle libs.everylibs.utils
+    relocatedBundle libs.everylibs.executors
+    relocatedBundle libs.jackson.core
+    relocatedBundle libs.jackson.databind
 
     // api scope throughout: these types show up in common's own public API. The heavy runtime deps
     // behind EveryDatabase/EveryConfig arrive via libby (minecraft) or the shadow jar (hytale).
@@ -46,6 +74,46 @@ test {
     useJUnitPlatform()
 }
 
+// evernifecore-common-relocated: the same common classes plus EveryDatabase/EveryConfig/EveryLibs
+// embedded, with Jackson relocated to the runtime coordinates. A downstream plugin compiles the
+// schema-migration API (EntitySchemaStep.upgrade(ObjectNode)) against the relocated ObjectNode that
+// the deployed shadow jar actually carries, instead of the canonical one the thin POM leaks. It is a
+// compile-only view: the server provides the real classes at runtime, so nobody ships this jar.
+shadowJar {
+    archiveBaseName.set('evernifecore-common-relocated')
+    archiveClassifier.set('')
+    configurations = [project.configurations.relocatedBundle]
+
+    // jackson-annotations must NOT be embedded or relocated - it stays canonical and is provided by
+    // the consumer (the relocatedBundle is non-transitive so this is a belt-and-suspenders guard).
+    dependencies {
+        exclude(dependency('com.fasterxml.jackson.core:jackson-annotations'))
+    }
+
+    // Jackson pairs from the single source in the root build, shared with minecraft and hytale.
+    rootProject.jacksonRelocations.each { from, to -> relocate from, to }
+    // The remaining EveryDatabase-relocated packages: only references inside the embedded classes are
+    // rewritten (the classes themselves are not bundled), so they line up with the runtime names.
+    relocate 'org.yaml.snakeyaml', 'br.com.finalcraft.everydatabase.libs.snakeyaml'
+    relocate 'com.zaxxer.hikari',  'br.com.finalcraft.everydatabase.libs.hikari'
+    relocate 'org.slf4j',          'br.com.finalcraft.everydatabase.libs.slf4j'
+    relocate 'com.mongodb',        'br.com.finalcraft.everydatabase.libs.mongodb'
+    relocate 'org.bson',           'br.com.finalcraft.everydatabase.libs.bson'
+    relocate 'org.h2',             'br.com.finalcraft.everydatabase.libs.h2'
+    relocate 'org.postgresql',     'br.com.finalcraft.everydatabase.libs.postgresql'
+    relocate 'com.mysql',          'br.com.finalcraft.everydatabase.libs.mysql'
+}
+
+// The shadow plugin folds shadowRuntimeElements into components.java; left alone, the thin
+// evernifecore-common publication (from components.java) would carry two null-classifier jars. Skip
+// that variant so the relocated jar ships only under its own artifactId. Deferred to afterEvaluate
+// because the plugin registers the variant during evaluation, after this script body runs.
+afterEvaluate {
+    components.java.withVariantsFromConfiguration(configurations.shadowRuntimeElements) {
+        skip()
+    }
+}
+
 // The root tags every configuration with TargetJvmVersion=25; baked into Gradle Module Metadata
 // that would make this Java-8 artifact resolve as "JVM 25 only" and reject Java 8 consumers.
 tasks.withType(GenerateModuleMetadata) {
@@ -72,6 +140,40 @@ publishing {
             artifactId = "evernifecore-common"
             from(components.java)
             pom.withXml {
+                asNode().appendNode('url', 'https://petrus.dev')
+            }
+        }
+        // The relocated compile-view artifact. Its POM is hand-built (not from components.java): the
+        // embedded EveryDatabase/EveryConfig/EveryLibs and Jackson are gone, leaving only the genuinely
+        // external, non-relocated deps the consumer still needs on its compile classpath.
+        relocated(MavenPublication) {
+            groupId = project.group
+            artifactId = "evernifecore-common-relocated"
+            artifact tasks.named('shadowJar')
+            pom.withXml {
+                def deps = asNode().appendNode('dependencies')
+                def addDep = { String g, String a, String v, String scope, List exclusions ->
+                    def d = deps.appendNode('dependency')
+                    d.appendNode('groupId', g)
+                    d.appendNode('artifactId', a)
+                    d.appendNode('version', v)
+                    d.appendNode('scope', scope)
+                    if (exclusions != null) {
+                        def exNode = d.appendNode('exclusions')
+                        exclusions.each { e ->
+                            def x = exNode.appendNode('exclusion')
+                            x.appendNode('groupId', e[0])
+                            x.appendNode('artifactId', e[1])
+                        }
+                    }
+                }
+                def adventureVersion = libs.versions.adventure.asProvider().get()
+                addDep('net.kyori', 'adventure-api', adventureVersion, 'compile',
+                        [['*', 'checker-qual'], ['*', 'adventure-bom'], ['*', 'annotations']])
+                addDep('net.kyori', 'adventure-text-serializer-gson', adventureVersion, 'runtime', null)
+                addDep('net.kyori', 'adventure-text-serializer-legacy', adventureVersion, 'runtime', null)
+                addDep('com.google.guava', 'guava', libs.versions.guava.get(), 'runtime', null)
+                addDep('net.byteflux', 'libby-core', libs.versions.libby.get(), 'runtime', null)
                 asNode().appendNode('url', 'https://petrus.dev')
             }
         }

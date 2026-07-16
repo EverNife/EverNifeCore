@@ -62,10 +62,9 @@ shadowJar {
         exclude(dependency('com.mysql:mysql-connector-j'))
     }
 
-    // jackson-annotations stays canonical on purpose: annotations match by class identity.
-    relocate 'com.fasterxml.jackson.core',       'br.com.finalcraft.everydatabase.libs.jackson.core'
-    relocate 'com.fasterxml.jackson.databind',   'br.com.finalcraft.everydatabase.libs.jackson.databind'
-    relocate 'com.fasterxml.jackson.dataformat', 'br.com.finalcraft.everydatabase.libs.jackson.dataformat'
+    // Jackson pairs come from the single source in the root build (rootProject.jacksonRelocations),
+    // shared with minecraft and the relocated compile artifact. jackson-annotations stays canonical.
+    rootProject.jacksonRelocations.each { from, to -> relocate from, to }
     relocate 'com.zaxxer.hikari',                'br.com.finalcraft.everydatabase.libs.hikari'
     relocate 'org.slf4j',                        'br.com.finalcraft.everydatabase.libs.slf4j'
     relocate 'com.mongodb',                      'br.com.finalcraft.everydatabase.libs.mongodb'

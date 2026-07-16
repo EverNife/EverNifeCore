@@ -6,6 +6,17 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 // applied to every module below.
 def evernifecoreVersion = libs.versions.evernifecore.get()
 
+// Jackson relocation - one source for every shaded jar. The deployables (minecraft, hytale) and the
+// evernifecore-common-relocated compile artifact all apply these so the relocated names match the
+// classes libby delivers / the shadow jar carries at runtime. jackson-annotations is deliberately
+// absent: annotations match by class identity, so they stay canonical everywhere.
+ext.jacksonRelocations = [
+        'com.fasterxml.jackson.core'      : 'br.com.finalcraft.everydatabase.libs.jackson.core',
+        'com.fasterxml.jackson.databind'  : 'br.com.finalcraft.everydatabase.libs.jackson.databind',
+        'com.fasterxml.jackson.dataformat': 'br.com.finalcraft.everydatabase.libs.jackson.dataformat',
+        'com.fasterxml.jackson.datatype'  : 'br.com.finalcraft.everydatabase.libs.jackson.datatype',
+]
+
 subprojects {
     apply plugin: 'java'
     apply plugin: 'idea'

@@ -139,12 +139,9 @@ shadowJar {
     relocate 'dev.triumphteam', 'br.com.finalcraft.libs.minecraft.dev.triumphteam'
 
     // Rewrites the embedded EveryDatabase/EveryConfig refs onto the coordinates libby delivers at
-    // runtime. EDBDependencies and hytale/build.gradle use the SAME pairs - keep the three in sync.
-    // jackson-annotations stays canonical on purpose: annotations match by class identity.
-    relocate 'com.fasterxml.jackson.core',       'br.com.finalcraft.everydatabase.libs.jackson.core'
-    relocate 'com.fasterxml.jackson.databind',   'br.com.finalcraft.everydatabase.libs.jackson.databind'
-    relocate 'com.fasterxml.jackson.dataformat', 'br.com.finalcraft.everydatabase.libs.jackson.dataformat'
-    relocate 'com.fasterxml.jackson.datatype',   'br.com.finalcraft.everydatabase.libs.jackson.datatype'
+    // runtime. The Jackson pairs come from the single source in the root build (rootProject.
+    // jacksonRelocations); EDBDependencies mirrors them at the runtime-download side.
+    rootProject.jacksonRelocations.each { from, to -> relocate from, to }
     // The server ships an older canonical snakeyaml without setCodePointLimit, which EveryConfig's
     // YamlCodec calls; this points it at the snakeyaml libby delivers.
     relocate 'org.yaml.snakeyaml',               'br.com.finalcraft.everydatabase.libs.snakeyaml'
