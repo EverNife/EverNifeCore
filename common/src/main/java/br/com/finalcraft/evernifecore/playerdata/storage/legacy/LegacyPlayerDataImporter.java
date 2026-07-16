@@ -45,8 +45,17 @@ import java.util.logging.Logger;
  *       broken ones to {@code PlayerData-Failed/}; the section blocks remain intact inside them.</li>
  *   <li><b>A broken file never aborts the run</b> - it is archived as failed and reported.</li>
  * </ul>
+ *
+ * <p>Every run rewrites the {@link LegacyMigrationMetadata} progress file with each root key it
+ * found - the ones no adapter claims included, since those are what brings the import back on a
+ * later boot, once the plugin owning them is installed.</p>
  */
 public final class LegacyPlayerDataImporter {
+
+    /** The base block of a legacy file - the importer converts it itself, no adapter involved. */
+    private static final String BASE_ROOT_KEY = "PlayerData";
+    /** The player-cooldown block: read by nobody today, but claimed here so it is not reported as orphan. */
+    private static final String LEGACY_COOLDOWN_ROOT_KEY = "Cooldown";
 
     private final File legacyFolder;
     private final PlayerDataBinding playerDataBinding;
@@ -108,13 +117,18 @@ public final class LegacyPlayerDataImporter {
         //Phase C - archiving (never deletes) + report
         File importedFolder = new File(legacyFolder.getParentFile(), legacyFolder.getName() + "-Imported");
         File failedFolder = new File(legacyFolder.getParentFile(), legacyFolder.getName() + "-Failed");
+        int archivedFiles = 0;
+        int failedFiles = 0;
         for (ParsedFile parsedFile : parsed) {
             if (parsedFile.failReason != null) {
                 report.addFailedFile(parsedFile.file.getName(), parsedFile.failReason);
                 moveFile(parsedFile.file, failedFolder);
+                failedFiles++;
                 continue;
             }
-            moveFile(parsedFile.file, importedFolder);
+            if (moveFile(parsedFile.file, importedFolder)) {
+                archivedFiles++;
+            }
             if (parsedFile.baseAlreadyPresent) {
                 report.addSkippedPlayer();
             } else {
@@ -133,6 +147,9 @@ public final class LegacyPlayerDataImporter {
             }
         }
 
+        //Phase D - progress file: what the next boot's trigger reads instead of counting rows
+        writeProgress(parsed, files.length, archivedFiles, failedFiles);
+
         report.setDurationMillis(System.currentTimeMillis() - start);
         return report;
     }
@@ -149,12 +166,8 @@ public final class LegacyPlayerDataImporter {
             UUID uuid = parsed.playerData.getUniqueId();
             parsed.baseAlreadyPresent = playerDataBinding.getRepository().exists(uuid).join();
 
-            Set<String> mappedRootKeys = new HashSet<>();
-            mappedRootKeys.add("PlayerData");
-            mappedRootKeys.add("Cooldown");
             for (PDSectionBinding<PDSection> binding : adapterBindings) {
                 String rootKey = binding.getConfiguration().getLegacyYamlRootKey();
-                mappedRootKeys.add(rootKey);
                 if (!legacyConfig.contains(rootKey)) {
                     continue;
                 }
@@ -167,7 +180,11 @@ public final class LegacyPlayerDataImporter {
                 boolean alreadyPresent = binding.getRepository().exists(uuid).join();
                 parsed.sections.add(new SectionEntry(parsed, binding, section, alreadyPresent));
             }
+
+            Set<String> mappedRootKeys = mappedRootKeys();
             for (String rootKey : legacyConfig.getKeys()) {
+                //an empty block has nothing to migrate, so it never needs an adapter
+                parsed.rootKeys.put(rootKey, !legacyConfig.getKeys(rootKey).isEmpty());
                 if (!mappedRootKeys.contains(rootKey)) {
                     parsed.unmappedKeys.add(rootKey);
                 }
@@ -179,6 +196,17 @@ public final class LegacyPlayerDataImporter {
             e.printStackTrace();
         }
         return parsed;
+    }
+
+    /** Root keys this run knows how to handle - the same for every file, since it only depends on the bindings. */
+    private Set<String> mappedRootKeys() {
+        Set<String> mapped = new HashSet<>();
+        mapped.add(BASE_ROOT_KEY);
+        mapped.add(LEGACY_COOLDOWN_ROOT_KEY);
+        for (PDSectionBinding<PDSection> binding : adapterBindings) {
+            mapped.add(binding.getConfiguration().getLegacyYamlRootKey());
+        }
+        return mapped;
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------//
@@ -264,7 +292,8 @@ public final class LegacyPlayerDataImporter {
     // Phase C - archiving
     // -----------------------------------------------------------------------------------------------------------------------------//
 
-    private void moveFile(File source, File targetFolder) {
+    /** @return true when the file left the legacy folder. */
+    private boolean moveFile(File source, File targetFolder) {
         try {
             targetFolder.mkdirs();
             File target = new File(targetFolder, source.getName());
@@ -274,12 +303,98 @@ public final class LegacyPlayerDataImporter {
                         + "_" + System.currentTimeMillis() + ".yml");
             }
             Files.move(source.toPath(), target.toPath());
+            return true;
         } catch (IOException e) {
             //never deletes and never aborts: a file that cannot be moved simply stays in place
             //(idempotency skips its entities again on a future run)
             logWarning("Failed to archive the legacy PlayerData file [%s] into [%s]: %s",
                     source.getName(), targetFolder.getName(), e.toString());
+            return false;
         }
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------------------//
+    // Phase D - progress file
+    // -----------------------------------------------------------------------------------------------------------------------------//
+
+    private void writeProgress(List<ParsedFile> parsed, int totalFound, int archivedFiles, int failedFiles) {
+        File progressFile = LegacyMigrationMetadata.fileOf(legacyFolder);
+        LegacyMigrationMetadata metadata = LegacyMigrationMetadata.load(progressFile); //keeps started-at + runs
+        metadata.beginRun();
+        //whatever did not reach an archive folder is still sitting in the legacy folder
+        metadata.setFiles(totalFound, archivedFiles, totalFound - archivedFiles - failedFiles, failedFiles);
+        metadata.replaceSections(discoverSections(parsed));
+        metadata.recomputeComplete();
+        metadata.save(progressFile);
+    }
+
+    /**
+     * Aggregates every root key seen in the run - the ones nobody migrates included, since a key
+     * without an adapter is exactly what a later boot must come back for.
+     */
+    private Map<String, LegacyMigrationMetadata.SectionProgress> discoverSections(List<ParsedFile> parsed) {
+        Map<String, Integer> foundByRootKey = new LinkedHashMap<>();
+        Map<String, Integer> importedByRootKey = new LinkedHashMap<>();
+        Set<String> rootKeysWithContent = new HashSet<>();
+        for (ParsedFile parsedFile : parsed) {
+            for (Map.Entry<String, Boolean> rootKey : parsedFile.rootKeys.entrySet()) {
+                foundByRootKey.merge(rootKey.getKey(), 1, Integer::sum);
+                if (rootKey.getValue()) {
+                    rootKeysWithContent.add(rootKey.getKey());
+                }
+            }
+            if (parsedFile.failReason != null) {
+                continue; //nothing of this file reached the backend
+            }
+            if (!parsedFile.baseAlreadyPresent) {
+                importedByRootKey.merge(BASE_ROOT_KEY, 1, Integer::sum);
+            }
+            for (SectionEntry entry : parsedFile.sections) {
+                if (!entry.alreadyPresent) {
+                    importedByRootKey.merge(entry.binding.getConfiguration().getLegacyYamlRootKey(), 1, Integer::sum);
+                }
+            }
+        }
+
+        Map<String, PDSectionBinding<PDSection>> bindingByRootKey = new LinkedHashMap<>();
+        for (PDSectionBinding<PDSection> binding : adapterBindings) {
+            bindingByRootKey.put(binding.getConfiguration().getLegacyYamlRootKey(), binding);
+        }
+        Set<String> mappedRootKeys = mappedRootKeys();
+
+        Map<String, LegacyMigrationMetadata.SectionProgress> sections = new LinkedHashMap<>();
+        for (Map.Entry<String, Integer> found : foundByRootKey.entrySet()) {
+            String rootKey = found.getKey();
+            LegacyMigrationMetadata.SectionStatus status;
+            if (!rootKeysWithContent.contains(rootKey)) {
+                status = LegacyMigrationMetadata.SectionStatus.EMPTY;
+            } else if (mappedRootKeys.contains(rootKey)) {
+                status = LegacyMigrationMetadata.SectionStatus.DONE;
+            } else {
+                status = LegacyMigrationMetadata.SectionStatus.PENDING_NO_ADAPTER;
+            }
+            sections.put(rootKey, new LegacyMigrationMetadata.SectionProgress(status, found.getValue(),
+                    importedByRootKey.getOrDefault(rootKey, 0), ownerOf(rootKey, bindingByRootKey.get(rootKey)),
+                    pdSectionOf(rootKey, bindingByRootKey.get(rootKey))));
+        }
+        return sections;
+    }
+
+    private static String ownerOf(String rootKey, PDSectionBinding<PDSection> binding) {
+        if (BASE_ROOT_KEY.equals(rootKey)) {
+            return "EverNifeCore";
+        }
+        if (binding == null || binding.getConfiguration().getPluginData() == null) {
+            return "";
+        }
+        return binding.getConfiguration().getPluginData().getMetaInfo().getName();
+    }
+
+    private static String pdSectionOf(String rootKey, PDSectionBinding<PDSection> binding) {
+        if (BASE_ROOT_KEY.equals(rootKey)) {
+            return PlayerData.class.getSimpleName();
+        }
+        return binding == null ? "" : binding.getPdSectionClass().getSimpleName();
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------//
@@ -293,6 +408,8 @@ public final class LegacyPlayerDataImporter {
         String failReason;                                        //non-null = archive as failed
         final List<SectionEntry> sections = new ArrayList<>();
         final List<String> unmappedKeys = new ArrayList<>();
+        /** Every root key of the file (adapter or not) -> whether it holds anything. */
+        final Map<String, Boolean> rootKeys = new LinkedHashMap<>();
 
         ParsedFile(File file) {
             this.file = file;

@@ -82,6 +82,17 @@ class LegacyImportTest {
         return tempDir.resolve("PlayerData").toFile();
     }
 
+    private File metadataFile() {
+        return tempDir.resolve("playerdata-storage-migration-metadata.yml").toFile();
+    }
+
+    /** Hand-writes a progress file claiming the migration is over (the state a finished run leaves). */
+    private File writeCompleteMetadata() throws IOException {
+        File file = metadataFile();
+        Files.write(file.toPath(), "complete: true\n".getBytes(StandardCharsets.UTF_8));
+        return file;
+    }
+
     private File writeLegacyYml(String fileName, String content) throws IOException {
         File folder = legacyFolder();
         folder.mkdirs();
@@ -108,6 +119,21 @@ class LegacyImportTest {
                 "  job: miner",
                 "OrphanPluginSection:",
                 "  some: data",
+                "");
+    }
+
+    /** Same layout as {@link #petrusV3Yaml()} minus the orphan block: every root key here has an owner. */
+    private String fullyMappedV3Yaml(String username, int level, String job) {
+        return String.join("\n",
+                "PlayerData:",
+                "  Username: " + username,
+                "  UUID: " + PETRUS_UUID,
+                "  firstSeen: 1600000000000",
+                "  lastSeen: 1700000000000",
+                "  lastSaved: 1700000000001",
+                "FinalJobs:",
+                "  level: " + level,
+                "  job: " + job,
                 "");
     }
 
@@ -272,11 +298,11 @@ class LegacyImportTest {
     }
 
     // ------------------------------------------------------------------
-    // Trigger: an already-populated backend without 'force' never imports
+    // Trigger: a finished migration never runs again
     // ------------------------------------------------------------------
 
     @Test
-    void noImportWhenTheBackendIsAlreadyPopulated() throws IOException {
+    void noImportWhenTheMigrationAlreadyCompleted() throws IOException {
         File storageYml = writeStorageYml("storage.yml", "");
         PlayerController.bootstrap(storageYml);
         PlayerController.handleLogin(UUID.randomUUID(), "Resident").join();
@@ -289,11 +315,88 @@ class LegacyImportTest {
                 "  firstSeen: 1",
                 "  lastSeen: 2",
                 ""));
+        writeCompleteMetadata();
 
-        PlayerController.bootstrap(storageYml); //count() > 0 and no force -> no import
+        PlayerController.bootstrap(storageYml); //the progress file says there is nothing left to do
 
-        assertNull(PlayerController.getLoaded(SIMPLE_UUID), "no import may run over a populated backend");
+        assertNull(PlayerController.getLoaded(SIMPLE_UUID), "a finished migration must not import a late file");
         assertEquals(1, ymlFiles(legacyFolder()).length, "the file must stay in place");
         assertFalse(tempDir.resolve("PlayerData-Imported").toFile().exists());
+    }
+
+    // ------------------------------------------------------------------
+    // Trigger: the progress file decides it, the backend is never consulted
+    // ------------------------------------------------------------------
+
+    @Test
+    void completeMetadataSkipsTheImportWithoutConsultingTheBackend() throws IOException {
+        writeLegacyYml("petrus.yml", petrusV3Yaml());
+        registerJobsSectionWithAdapter();
+        writeCompleteMetadata();
+
+        //the backend is EMPTY: a trigger that counted rows would find 0 and import (that was the old
+        //guard). Skipping the import anyway is what proves count()/exists() are never called.
+        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+
+        assertNull(PlayerController.getLoaded(PETRUS_UUID), "a complete progress file must skip the import");
+        assertEquals(0, PlayerController.getLoadedCount());
+        assertEquals(1, ymlFiles(legacyFolder()).length, "the file must stay in place");
+        assertFalse(tempDir.resolve("PlayerData-Imported").toFile().exists());
+    }
+
+    // ------------------------------------------------------------------
+    // Trigger: 'force' overrides a complete progress file
+    // ------------------------------------------------------------------
+
+    @Test
+    void forceImportsDespiteACompleteMetadata() throws IOException {
+        writeLegacyYml("petrus.yml", petrusV3Yaml());
+        registerJobsSectionWithAdapter();
+        writeCompleteMetadata();
+
+        PlayerController.bootstrap(writeStorageYml("storage_force.yml",
+                "playerdata:\n  migrate-legacy: force"));
+
+        PlayerData petrus = PlayerController.getLoaded(PETRUS_UUID);
+        assertNotNull(petrus, "force must ignore the progress file and import anyway");
+        assertEquals(42, petrus.getPDSection(LegacyJobsPDSection.class).join().level);
+        assertEquals(0, ymlFiles(legacyFolder()).length, "the folder must be drained");
+        assertEquals(1, ymlFiles(tempDir.resolve("PlayerData-Imported").toFile()).length);
+    }
+
+    // ------------------------------------------------------------------
+    // The progress file is rebuildable: deleting it re-scans, and the re-scan imports nothing new
+    // ------------------------------------------------------------------
+
+    @Test
+    void deletingTheMetadataRebuildsItWithoutReimporting() throws IOException {
+        writeLegacyYml("petrus.yml", fullyMappedV3Yaml("Petrus", 42, "miner"));
+        registerJobsSectionWithAdapter();
+        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        assertEquals("Petrus", PlayerController.getLoaded(PETRUS_UUID).getName());
+
+        //the progress file lands next to storage.yml - never inside a folder the import drains
+        File metadata = metadataFile();
+        assertTrue(metadata.isFile(), "the import must leave a progress file next to storage.yml");
+        assertEquals(tempDir.toFile(), metadata.getParentFile());
+        assertTrue(ConfigFactory.open(metadata).getBoolean("complete"),
+                "every root key had an adapter, so the migration is complete");
+
+        //an admin deleting the file asks for a full re-scan - over a backend that is already populated,
+        //and with the same UUID carrying DIFFERENT data, which a skipped import must not apply
+        assertTrue(metadata.delete());
+        writeLegacyYml("petrus.yml", fullyMappedV3Yaml("Imposter", 99, "hacker"));
+
+        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+
+        PlayerData petrus = PlayerController.getLoaded(PETRUS_UUID);
+        assertEquals("Petrus", petrus.getName(), "the re-scan must import 0 entities over a populated backend");
+        assertEquals(42, petrus.getPDSection(LegacyJobsPDSection.class).join().level);
+        assertEquals(1, PlayerController.getLoadedCount(), "nothing may be duplicated");
+
+        assertEquals(0, ymlFiles(legacyFolder()).length, "the re-scanned file is archived again");
+        assertEquals(2, ymlFiles(tempDir.resolve("PlayerData-Imported").toFile()).length);
+        assertTrue(ConfigFactory.open(metadataFile()).getBoolean("complete"),
+                "the progress file must be rebuilt as complete");
     }
 }
