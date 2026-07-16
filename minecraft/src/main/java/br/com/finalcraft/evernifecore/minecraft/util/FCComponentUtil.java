@@ -3,15 +3,43 @@ package br.com.finalcraft.evernifecore.minecraft.util;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
+import net.kyori.adventure.text.serializer.json.JSONOptions;
+import net.kyori.option.OptionState;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.chat.ComponentSerializer;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Pure Adventure {@link Component} helpers (no Bukkit dependency), so they stay unit-testable
- * without a running server.
+ * Adventure {@link Component} helpers for the legacy {@code player.spigot().sendMessage(...)} path.
+ * <p>
+ * Free of any Bukkit dependency (only Adventure and the server-provided Bungee chat classes), so it
+ * stays unit-testable without a running server.
  */
 public class FCComponentUtil {
+
+    // adventure emits the Minecraft 1.21.5+ snake_case click/hover JSON by default, which pre-1.21.5
+    // clients (down to 1.7.10) do not read - so force BOTH the modern and the legacy field names. The
+    // JSON is then parsed into real md_5 components, which the server re-serialises in its own native
+    // dialect, so every client ends up with the shape it understands.
+    private static final GsonComponentSerializer COMPAT_GSON = GsonComponentSerializer.builder()
+            .options(OptionState.optionState()
+                    .value(JSONOptions.EMIT_CLICK_EVENT_TYPE, JSONOptions.ClickEventValueMode.BOTH)
+                    .value(JSONOptions.EMIT_HOVER_EVENT_TYPE, JSONOptions.HoverEventValueMode.ALL)
+                    .build())
+            .build();
+
+    /**
+     * Converts an Adventure component into real md_5 {@link BaseComponent}s (not Adventure's opaque
+     * {@code AdapterComponent}), so {@code player.spigot().sendMessage(...)} hands the server ordinary
+     * components it will serialise in its own version's chat-JSON format - preserving click/hover on
+     * every client from 1.7.10 up.
+     */
+    public static BaseComponent[] toBaseComponents(Component component) {
+        return ComponentSerializer.parse(COMPAT_GSON.serialize(component));
+    }
 
     /**
      * Splits a component into one component per line, breaking on {@code '\n'} wherever it occurs -

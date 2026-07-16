@@ -8,7 +8,6 @@ import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import br.com.finalcraft.everylibs.reflection.MethodInvoker;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.bungeecord.BungeeComponentSerializer;
 import net.md_5.bungee.api.chat.BaseComponent;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -25,7 +24,8 @@ import java.lang.reflect.Array;
  *   <li>{@code player.spigot().sendMessage(BaseComponent[])} when that method resolves. It renders
  *       every feature FancyText emits (colour, hex, hover text/item, click) and is present from
  *       1.7.10 (and its backports) through the latest Spigot/Paper, so it is the most portable path.
- *       Bungee's {@code BaseComponent} classes come from the server, never bundled here.</li>
+ *       Bungee's chat classes ({@code BaseComponent}, {@code ComponentSerializer}) come from the
+ *       server and re-serialise our components in that server's own JSON dialect, never bundled here.</li>
  *   <li>The adventure-platform bridge ({@link BukkitAudiences}) when the BaseComponent method is
  *       absent - it self-selects a native facet and degrades to plain text as a last resort.</li>
  * </ol>
@@ -38,11 +38,6 @@ public class FCMinecraftAdventureUtil {
     // servers old enough (or trimmed enough) not to carry the Spigot chat backport.
     private static final MethodInvoker<?> METHOD_SPIGOT;
     private static final MethodInvoker<?> METHOD_SEND_BASECOMPONENTS;
-
-    // The modern hover model (SHOW_TEXT carrying a component, plus RGB) only exists on 1.16+. Its
-    // presence decides whether we keep those (get) or downsample them to the legacy form (legacy);
-    // calling get() against a server without it would fail to link the newer Bungee classes.
-    private static final BungeeComponentSerializer BUNGEE_SERIALIZER;
 
     // adventure-platform bridge; built lazily and only used when the BaseComponent path is missing.
     private static BukkitAudiences adventure;
@@ -70,10 +65,6 @@ public class FCMinecraftAdventureUtil {
         }
         METHOD_SPIGOT = spigot;
         METHOD_SEND_BASECOMPONENTS = sendBaseComponents;
-
-        boolean modernHover = FCReflectionUtil.getClasses()
-                .isClassLoaded("net.md_5.bungee.api.chat.hover.content.Content");
-        BUNGEE_SERIALIZER = modernHover ? BungeeComponentSerializer.get() : BungeeComponentSerializer.legacy();
     }
 
     private static boolean hasBaseComponentChat() {
@@ -104,7 +95,7 @@ public class FCMinecraftAdventureUtil {
         try {
             Object spigot = METHOD_SPIGOT.invoke(player);
             for (Component line : FCComponentUtil.splitNewlines(component)) {
-                BaseComponent[] baseComponents = BUNGEE_SERIALIZER.serialize(line);
+                BaseComponent[] baseComponents = FCComponentUtil.toBaseComponents(line);
                 // Pass the array as a single argument (sendMessage takes one BaseComponent[] parameter).
                 METHOD_SEND_BASECOMPONENTS.invoke(spigot, (Object) baseComponents);
             }
