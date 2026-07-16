@@ -16,7 +16,13 @@ public class FCColorUtil {
 
     private static final Pattern HEX_PATTERN = Pattern.compile("&#([A-Fa-f0-9]{6})");
     private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacyAmpersand();
-    private static final LegacyComponentSerializer LEGACY_SECTION_SERIALIZER = LegacyComponentSerializer.legacySection();
+    // Hex-aware: colorfy() expands &#RRGGBB into the §x§R§R§G§G§B§B form, which only round-trips
+    // through a serializer built with hexColors() + useUnusualXRepeatedCharacterHexFormat().
+    private static final LegacyComponentSerializer LEGACY_SECTION_SERIALIZER = LegacyComponentSerializer.builder()
+            .character(LegacyComponentSerializer.SECTION_CHAR)
+            .hexColors()
+            .useUnusualXRepeatedCharacterHexFormat()
+            .build();
 
     public static String decolorfy(@Nullable String text) {
         if (text == null) return null;
