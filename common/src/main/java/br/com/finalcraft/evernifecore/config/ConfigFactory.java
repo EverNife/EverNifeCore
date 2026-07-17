@@ -8,6 +8,7 @@ import br.com.finalcraft.everyconfig.codec.Codec;
 import br.com.finalcraft.everyconfig.codec.CodecRegistry;
 import br.com.finalcraft.everyconfig.codec.jackson.*;
 import br.com.finalcraft.everyconfig.config.Config;
+import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.everyconfig.io.BackStore;
 import br.com.finalcraft.everyconfig.selfdescribe.CompactElementCodec;
 import br.com.finalcraft.everyconfig.selfdescribe.CompactElementResolver;
@@ -16,11 +17,13 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.File;
 import java.io.IOException;
@@ -227,6 +230,37 @@ public final class ConfigFactory {
     public static Config inMemory() {
         final Codec base = codecForFile("in-memory.yml");
         return Config.inMemory(new InMemoryCodec(base.getObjectMapper(), base.compactElementResolver()));
+    }
+
+    /** A file-less, type-aware {@link ConfigSection} over a fresh in-memory {@link Config} seeded with
+     *  {@code node} (empty when {@code null} or not an object). The section resolves
+     *  {@code getValue(path, T)}/{@code setValue} through the same registered type adapters a real config
+     *  does; it has NO back-store (no file). It is the shared substrate for hosting a raw Jackson subtree
+     *  and reading it back through the path-based API - the storage bridge codec, the schema-migration
+     *  adapter and {@code McConfigTypes.sectionFrom} all host their tree here. */
+    public static ConfigSection inMemorySection(final JsonNode node) {
+        final Config host = inMemory();
+        if (node instanceof ObjectNode) {
+            host.getRoot().setAll((ObjectNode) node);
+        }
+        return new ConfigSection(host, "");
+    }
+
+    /** A fresh Jackson {@link Module} carrying every currently-registered type adapter's serializer/
+     *  deserializer pair - the same pairs that augment the EveryConfig codecs in {@link #build()}. It lets
+     *  another Jackson stack (the EveryDatabase storage codec) share the exact type authority this factory
+     *  owns. Rebuilt on each call so it reflects late registrations, mirroring the copy-on-write contract of
+     *  {@link #codecForFile}. The compact list-element forms ({@code asCompactElement}) are deliberately NOT
+     *  included - they are an EveryConfig per-codec resolver concern, not a Jackson module - so a type's
+     *  solo/field form crosses to storage but its compact list-element form does not. */
+    public static Module sharedTypeModule() {
+        synchronized (LOCK) {
+            final SimpleModule module = new SimpleModule("EverNifeConfigFactoryTypes");
+            for (final TypeAdapter<?> adapter : ADAPTERS) {
+                adapter.contributeTo(module);
+            }
+            return module;
+        }
     }
 
     /** Resolve the shared, type-aware codec for {@code fileName}'s extension, rebuilding the registry if a

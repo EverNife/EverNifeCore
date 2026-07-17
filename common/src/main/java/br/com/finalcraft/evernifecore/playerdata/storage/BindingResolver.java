@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata.storage;
 
+import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigratingCodec;
@@ -13,8 +14,6 @@ import br.com.finalcraft.evernifecore.storage.config.StorageYamlParser;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.Storage;
 import br.com.finalcraft.everydatabase.codec.Codec;
-import br.com.finalcraft.everydatabase.codec.JacksonJsonCodec;
-import br.com.finalcraft.everydatabase.codec.JacksonYamlCodec;
 import br.com.finalcraft.everydatabase.manager.CachingManager;
 import br.com.finalcraft.everydatabase.manager.RefRegistry;
 import br.com.finalcraft.everydatabase.manager.cache.CacheOptions;
@@ -35,8 +34,8 @@ import java.util.UUID;
  *            (outside cfg.suggestedBackends -> warning; the admin has the final say)
  * collection = yml.collection ?? cfg.collection ?? "pd_&lt;plugin&gt;_&lt;section&gt;"
  *            (reserved in the registry - a collision is a fatal error)
- * codec    = cfg.codec ?? localfile(yaml->JacksonYamlCodec | json->JacksonJsonCodec.pretty)
- *            ?? compact JacksonJsonCodec
+ * codec    = cfg.codec ?? ConfigFactoryCodec (bridge) - file(yaml->yaml | json->jsonPretty)
+ *            ?? compact json  (carries the ConfigFactory type authority + ConfigLifecycle into storage)
  * cache    = yml.cache ?? cfg.sectionCachePolicy (default resident)
  * lock     = always active via @OptimisticLock on the PDSection base
  *            (detected by the annotation scan in EntityDescriptor.build())
@@ -237,14 +236,19 @@ public final class BindingResolver {
         return value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_]", "");
     }
 
-    /** Default codec per backend - also used by {@link PlayerDataBinding} and the account layer. */
+    /**
+     * Default codec per backend - also used by {@link PlayerDataBinding} and the account layer. Returns the
+     * {@link ConfigFactoryCodec} bridge, so every section that does not opt out through
+     * {@code PDSectionConfiguration.Builder.codec(...)} carries the ConfigFactory type authority and the
+     * ConfigLifecycle hooks into storage. File backends pick their wire format from the configured format
+     * (YAML by default, else pretty JSON); every other backend uses compact JSON.
+     */
     public static <S> Codec<S> defaultCodec(BackendDefinition backend, Class<S> type) {
         if (backend.getType() == BackendType.LOCALFILE || backend.getType() == BackendType.GROUPEDFILE) {
-            // file backends pick their codec by the configured format (YAML by default)
             return backend.getFormat() == BackendDefinition.FileFormat.YAML
-                    ? new JacksonYamlCodec<>(type)
-                    : JacksonJsonCodec.pretty(type);   // json on a file backend is always pretty
+                    ? ConfigFactoryCodec.yaml(type)
+                    : ConfigFactoryCodec.jsonPretty(type);   // json on a file backend is always pretty
         }
-        return new JacksonJsonCodec<>(type);            // every other backend: compact JSON
+        return ConfigFactoryCodec.json(type);                // every other backend: compact JSON
     }
 }

@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.minecraft.loader.imp;
 
-import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
@@ -18,7 +17,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -257,16 +255,12 @@ public final class McConfigTypes {
     // ==================== shared bridge ====================
 
     /**
-     * Materialize {@code node} into a file-less, type-aware {@link Config} and return a root
-     * {@link ConfigSection} over it. This is the bridge a path-based reader ({@link InvItem#onConfigLoad},
-     * {@link LayoutIcon#onConfigLoad}) needs: it reads through {@code getValue(path, ItemStack.class)} etc.,
-     * which the in-memory config resolves through the same registered adapters.
+     * Materialize {@code node} into a file-less, type-aware {@link ConfigSection}. This is the bridge a
+     * path-based reader ({@link InvItem#onConfigLoad}, {@link LayoutIcon#onConfigLoad}) needs: it reads
+     * through {@code getValue(path, ItemStack.class)} etc., which the in-memory config resolves through the
+     * same registered adapters. Delegates to the shared {@link ConfigFactory#inMemorySection(JsonNode)}.
      */
     private static ConfigSection sectionFrom(JsonNode node) {
-        Config bridge = ConfigFactory.inMemory();
-        if (node != null && node.isObject()) {
-            bridge.getRoot().setAll((ObjectNode) node);
-        }
-        return new ConfigSection(bridge, "");
+        return ConfigFactory.inMemorySection(node);
     }
 }
