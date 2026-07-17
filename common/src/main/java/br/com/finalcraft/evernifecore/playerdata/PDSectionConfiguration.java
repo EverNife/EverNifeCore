@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
+import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchema;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrationMode;
@@ -190,8 +191,8 @@ public class PDSectionConfiguration<S extends PDSection> {
             return this;
         }
 
-        /** Appends a {@link EntitySchemaMigrationMode#LAZY} schema-migration step. See {@link #migration(int, EntitySchemaMigrationMode, EntitySchemaStep)}. */
-        public Builder<S> migration(int fromVersion, EntitySchemaStep step) {
+        /** Appends a {@link EntitySchemaMigrationMode#LAZY} schema-migration step. See {@link #migration(int, EntitySchemaMigrationMode, SectionSchemaStep)}. */
+        public Builder<S> migration(int fromVersion, SectionSchemaStep step) {
             return migration(fromVersion, EntitySchemaMigrationMode.LAZY, step);
         }
 
@@ -199,14 +200,23 @@ public class PDSectionConfiguration<S extends PDSection> {
          * Appends the schema-migration step that upgrades a stored payload FROM {@code fromVersion} to
          * {@code fromVersion + 1}. Steps form a contiguous chain starting at
          * {@link EntitySchema#INITIAL_SCHEMA_VERSION}; adding one bumps the section's current version.
-         * The step edits the raw JSON tree before binding (no legacy fields on the POJO). An
+         * The step mutates the payload as a file-less, type-aware {@link ConfigSection} before binding
+         * (no legacy fields on the POJO), the same rich surface {@link #legacyYaml} uses. An
          * {@link EntitySchemaMigrationMode#EAGER} step additionally drives a boot-time full-collection sweep (see the
          * cascade note on {@link EntitySchemaMigrationMode}).
          */
-        public Builder<S> migration(int fromVersion, EntitySchemaMigrationMode mode, EntitySchemaStep step) {
+        public Builder<S> migration(int fromVersion, EntitySchemaMigrationMode mode, SectionSchemaStep step) {
+            EntitySchemaStep raw = node -> {
+                // Host the raw tree in an in-memory, type-aware section so the step works the rich path
+                // API; write the mutated tree back into the SAME node the migration runner reads.
+                ConfigSection section = ConfigFactory.inMemorySection(node);
+                step.upgrade(section);
+                node.removeAll();
+                node.setAll(section.getConfig().getRoot());
+            };
             EntitySchemaMigrations.checkContiguous(pdSectionClass,
                     EntitySchema.INITIAL_SCHEMA_VERSION + migrations.size(), fromVersion);
-            migrations.add(new EntitySchemaMigrations.Step(step, mode));
+            migrations.add(new EntitySchemaMigrations.Step(raw, mode));
             return this;
         }
 
