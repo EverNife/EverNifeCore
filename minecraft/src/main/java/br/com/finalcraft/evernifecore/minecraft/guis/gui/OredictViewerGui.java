@@ -47,15 +47,19 @@ public class OredictViewerGui extends PlayerGui<PlayerData, PaginatedGuiComplex>
 
         getGui().addPageSlotAll();
 
+        //a 200ms click throttle so a double-click in creative does not hand out two stacks. Resolved
+        //once for this online viewer - its cooldown row is hot-loaded, so the join is a cache hit - and
+        //shared by every paginated item's action; memory-only by design, it need not outlive the menu.
+        PlayerCooldown clickThrottle = playerData.getCooldown("OREDICT_MENU_CLICK").join();
+
         for (ItemStack oreDictItem : this.oreDictItems) {
             getGui().addPaginatedItem(
                     FCItemFactory.from(oreDictItem).asGuiItem()
                             .setAction(event -> {
-                                PlayerCooldown cooldown = getPlayerData().getCooldown("OREDICT_MENU_CLICK");
-                                if (cooldown.isInCooldown()){
+                                if (clickThrottle.isInCooldown()){
                                     return;
                                 }
-                                cooldown.startWith(200, TimeUnit.MILLISECONDS);
+                                clickThrottle.startWith(200, TimeUnit.MILLISECONDS);
 
                                 if (getPlayer().getGameMode() != GameMode.CREATIVE || !FCBukkitUtil.hasThePermission(getPlayer(), McPermissionNodes.EVERNIFECORE_COMMAND_OREINFO_CREATIVE)){
                                     return;

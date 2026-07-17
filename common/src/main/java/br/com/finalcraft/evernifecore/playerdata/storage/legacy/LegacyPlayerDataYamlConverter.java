@@ -1,8 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata.storage.legacy;
 
 import br.com.finalcraft.everyconfig.config.Config;
-import br.com.finalcraft.evernifecore.cooldown.GenericCooldown;
-import br.com.finalcraft.evernifecore.cooldown.PlayerCooldown;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 
 import java.util.Objects;
@@ -23,12 +21,11 @@ import java.util.UUID;
  *   lastSaved: 1700000000001
  * </pre>
  *
- * <p>The legacy {@code Cooldown:} block is NOT imported: the player-cooldown flow was removed
- * from PlayerData and will be redesigned as its own storage entity. The block stays intact in
- * the archived YAML file, so a future importer can still read it.</p>
- *
- * <p>PDSection blocks (any other root key) are handled by the binding routing
- * {@code legacyYaml(rootKey, adapter)} in {@link LegacyPlayerDataImporter}.</p>
+ * <p>This handles ONLY the base block. Every other root key - the legacy {@code Cooldown:} block
+ * included - is migrated by the section it belongs to, through the {@code legacyYaml(rootKey, adapter)}
+ * binding routing in {@link LegacyPlayerDataImporter}. The {@code Cooldown:} block is claimed by the
+ * framework's own {@code PlayerCooldownsLocal} row, so it migrates like any other section and its file
+ * is archived once done.</p>
  */
 public final class LegacyPlayerDataYamlConverter {
 
@@ -46,22 +43,8 @@ public final class LegacyPlayerDataYamlConverter {
         long lastSeen = legacyConfig.getLong("PlayerData.lastSeen", now);
         long lastSaved = legacyConfig.getLong("PlayerData.lastSaved", lastSeen);
 
-        PlayerData playerData = new PlayerData(uuid, name, firstSeen, lastSeen, lastSaved);
-
-        //Player cooldown was DECOUPLED from PlayerData (pending rewrite as its own storage entity).
-        //The legacy 'Cooldown:' block is intentionally NOT imported here; the original reader is kept
-        //commented as a marker so a future cooldown importer knows exactly where it used to live:
-        //for (String cooldownKey : legacyConfig.getKeys("Cooldown")) {
-        //    String base = "Cooldown." + cooldownKey + ".";
-        //    String identifier = legacyConfig.getString(base + "identifier", cooldownKey);
-        //    long timeStart = legacyConfig.getLong(base + "timeStart", 0L);
-        //    long timeDuration = legacyConfig.getLong(base + "timeDuration", 0L);
-        //    //only persistent cooldowns were ever written to the player's legacy file
-        //    PlayerCooldown playerCooldown = new PlayerCooldown(
-        //            new GenericCooldown(identifier, timeStart, timeDuration, true), uuid);
-        //    playerData.getCooldownHashMap().put(identifier, playerCooldown);
-        //}
-
-        return playerData;
+        //Only the base block is converted here; the Cooldown: block (and every other section key) is
+        //migrated by its own section's legacyYaml adapter - for Cooldown, PlayerCooldownsLocal.
+        return new PlayerData(uuid, name, firstSeen, lastSeen, lastSaved);
     }
 }
