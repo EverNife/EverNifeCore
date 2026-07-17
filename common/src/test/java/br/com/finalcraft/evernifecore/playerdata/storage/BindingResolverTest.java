@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata.storage;
 
+import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
 import br.com.finalcraft.evernifecore.storage.BackendType;
@@ -8,6 +9,7 @@ import br.com.finalcraft.evernifecore.storage.StorageRegistry;
 import br.com.finalcraft.evernifecore.storage.config.ParsedStorageConfig;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlParser;
 import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
+import br.com.finalcraft.everydatabase.codec.Codec;
 import br.com.finalcraft.everydatabase.log.StorageLogConfig;
 import br.com.finalcraft.everydatabase.manager.RefRegistry;
 import br.com.finalcraft.everydatabase.manager.cache.CachePolicy;
@@ -41,6 +43,11 @@ class BindingResolverTest {
     }
 
     public static class PointsPDSection extends PDSection {
+    }
+
+    /** A section with a persisted field, so a codec round-trip has something to preserve. */
+    public static class RoundTripSection extends PDSection {
+        public String note;
     }
 
     private ParsedStorageConfig parsed;
@@ -222,6 +229,50 @@ class BindingResolverTest {
                         .defaultBackend("json_files").build(),
                 parsed, registry, refRegistry);
         assertEquals("application/json", json.getDescriptor().codec().contentType());
+    }
+
+    // ------------------------------------------------------------------
+    // The global default codec is the ConfigFactory bridge, per backend type/format
+    // ------------------------------------------------------------------
+
+    @Test
+    void defaultCodecIsTheConfigFactoryBridgePerBackendFormat() throws IOException {
+        setup();
+
+        // every non-file backend: compact JSON bridge
+        Codec<JobsPDSection> memory = BindingResolver.defaultCodec(
+                parsed.getBackend("main_storage").get(), JobsPDSection.class);
+        assertTrue(memory instanceof ConfigFactoryCodec, "the global default must be the bridge codec");
+        assertEquals("application/json", memory.contentType());
+
+        // a YAML file backend: YAML bridge
+        Codec<JobsPDSection> yaml = BindingResolver.defaultCodec(
+                parsed.getBackend("yaml_files").get(), JobsPDSection.class);
+        assertTrue(yaml instanceof ConfigFactoryCodec);
+        assertEquals("application/yaml", yaml.contentType());
+
+        // a JSON file backend: (pretty) JSON bridge - still application/json
+        Codec<JobsPDSection> jsonFile = BindingResolver.defaultCodec(
+                parsed.getBackend("json_files").get(), JobsPDSection.class);
+        assertTrue(jsonFile instanceof ConfigFactoryCodec);
+        assertEquals("application/json", jsonFile.contentType());
+    }
+
+    @Test
+    void aSectionRoundTripsThroughTheResolvedBridgeCodec() throws IOException {
+        setup();
+        PDSectionBinding<RoundTripSection> binding = BindingResolver.resolve("FinalJobs",
+                PDSectionConfiguration.builder(null, RoundTripSection.class).build(),
+                parsed, registry, refRegistry);
+
+        // the descriptor's codec is the bridge (wrapped for schema migration); a section round-trips through it
+        Codec<RoundTripSection> codec = binding.getDescriptor().codec();
+        RoundTripSection section = new RoundTripSection();
+        section.note = "hello-bridge";
+
+        RoundTripSection out = codec.decode(codec.encode(section));
+        assertEquals("hello-bridge", out.note, "the bridge codec preserves a section field through storage bytes");
+        assertEquals(1, out.getSchemaVersion());
     }
 
     @Test
