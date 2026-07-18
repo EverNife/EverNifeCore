@@ -88,7 +88,7 @@ public final class BindingResolver {
             throw new StorageConfigException("PDSection '" + sectionId + "' is restricted to backend type(s) "
                     + cfg.getAllowedBackendTypes() + " by the developer, but is configured on backend '"
                     + backendName + "' of type " + backend.getType() + ". Point 'pdsections." + pluginName
-                    + "." + sectionName + ".backend' at a backend of an allowed type.");
+                    + "." + sectionName + ".storage-backend-id' at a backend of an allowed type.");
         }
         Storage storage = registry.get(backendName);
 
@@ -156,9 +156,9 @@ public final class BindingResolver {
                 .codec(codec)
                 .build();   // @Indexed / @OptimisticLock are scanned here
 
-        // Fail-fast: a versioned section routed to a backend that cannot enforce the
-        // optimistic lock is silent data loss under multi-instance writes. Rejected when
-        // multi-instance intent is declared (enableSync or a redis: block present).
+        // A versioned section routed to a backend that cannot enforce the optimistic lock is silent
+        // data loss under multi-instance writes. Warned (not rejected) when multi-instance intent is
+        // declared (an enabled redis block).
         PdSyncBindGuard.check(sectionId, descriptor, storage, parsed, false, warnings);
 
         CachingManager<UUID, S> manager = refRegistry.manager(descriptor, storage, cacheOptions);
@@ -208,18 +208,18 @@ public final class BindingResolver {
                 .keyExtractor(PDSection::getStorageKey)
                 .codec(codec)
                 .build();
-        //same fail-fast the boot-time resolve applies: a runtime transfer must not be able to move a
-        //versioned section onto a lock-unenforcing backend under multi-instance intent (and then
-        //persist a storage.yml the next boot would refuse)
+        //same soft-warn the boot-time resolve applies: a runtime transfer onto a lock-unenforcing
+        //backend under multi-instance intent is surfaced (not blocked) - the caller logs it
+        List<String> warnings = new ArrayList<>();
         PdSyncBindGuard.check(cfg.getPdSectionClass().getSimpleName() + " (transfer target)",
-                descriptor, storage, parsed, false, new ArrayList<>());
+                descriptor, storage, parsed, false, warnings);
         //the runtime transfer keeps the section's declared cache lifecycle across the cutover
         SectionCachePolicy sectionCachePolicy = current.getSectionCachePolicy();
         CachingManager<UUID, S> manager = refRegistry.manager(descriptor, storage,
                 sectionCachePolicy.toCacheOptions());
 
         return new PDSectionBinding<>(cfg, targetBackendName, storage, descriptor, manager,
-                sectionCachePolicy, new ArrayList<>());
+                sectionCachePolicy, warnings);
     }
 
     /** A sanitized, backend-safe collection name: {@code <prefix>_<plugin>_<section>}. */

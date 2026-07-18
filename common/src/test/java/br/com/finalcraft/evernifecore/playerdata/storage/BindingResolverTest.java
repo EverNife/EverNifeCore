@@ -114,7 +114,7 @@ class BindingResolverTest {
         setup("pdsections:",
                 "  FinalJobs:",
                 "    JobsPDSection:",
-                "      backend: economy_storage",
+                "      storage-backend-id: economy_storage",
                 "      collection: custom_jobs");
         PDSectionBinding<JobsPDSection> binding = BindingResolver.resolve("FinalJobs",
                 jobsCfg().defaultBackend("main_storage").collection("dev_collection").build(),
@@ -129,7 +129,7 @@ class BindingResolverTest {
         setup("pdsections:",
                 "  FinalJobs:",
                 "    JobsPDSection:",
-                "      backend: economy_storage");
+                "      storage-backend-id: economy_storage");
         PDSectionBinding<JobsPDSection> binding = BindingResolver.resolve("FinalJobs",
                 jobsCfg().suggestedBackends("main_storage", "yaml_files").build(),
                 parsed, registry, refRegistry);
@@ -144,7 +144,7 @@ class BindingResolverTest {
         setup("pdsections:",
                 "  FinalJobs:",
                 "    JobsPDSection:",
-                "      backend: nonexistent");
+                "      storage-backend-id: nonexistent");
         StorageConfigException error = assertThrows(StorageConfigException.class,
                 () -> BindingResolver.resolve("FinalJobs", jobsCfg().build(), parsed, registry, refRegistry));
         assertTrue(error.getMessage().contains("nonexistent"));
@@ -297,22 +297,28 @@ class BindingResolverTest {
     }
 
     // ------------------------------------------------------------------
-    // Bind-guard: versioned entity on a lock-unenforcing backend + multi-instance intent
+    // Bind-guard: versioned entity on a lock-unenforcing backend + multi-instance intent -> WARNS
+    // (never aborts; intent now comes from an enabled redis block, not the always-on sync flag)
     // ------------------------------------------------------------------
 
     @Test
-    void versionedSectionOnNonEnforcingBackendWithSyncIsHardError() throws IOException {
-        // enableSync makes multi-instance intent explicit; main_storage is a memory (non-enforcing) backend
-        setup("enableSync: true");
-        StorageConfigException error = assertThrows(StorageConfigException.class,
-                () -> BindingResolver.resolve("FinalJobs", jobsCfg().build(), parsed, registry, refRegistry));
-        assertTrue(error.getMessage().contains("does NOT enforce"), error.getMessage());
-        assertTrue(error.getMessage().contains("cache-sync/redis"), error.getMessage());
+    void versionedSectionOnNonEnforcingBackendWithRedisIntentWarns() throws IOException {
+        // an enabled redis block declares multi-instance intent; main_storage is memory (non-enforcing)
+        setup("multi-server-cache-sync:",
+                "  redis:",
+                "    enabled: true",
+                "    host: localhost");
+        PDSectionBinding<JobsPDSection> binding =
+                BindingResolver.resolve("FinalJobs", jobsCfg().build(), parsed, registry, refRegistry);
+        String warnings = String.join(" | ", binding.getResolutionWarnings());
+        assertTrue(warnings.contains("does NOT enforce"), warnings);
+        assertTrue(warnings.contains("redis"), warnings);
     }
 
     @Test
-    void versionedSectionOnNonEnforcingBackendWithoutSyncIsAllowed() throws IOException {
-        // no enableSync -> single-instance -> the guard is a no-op even on a non-enforcing backend
+    void versionedSectionOnNonEnforcingBackendWithoutIntentIsAllowed() throws IOException {
+        // no enabled redis block -> no multi-instance intent -> the guard is a no-op even on a
+        // non-enforcing backend (the common single-server case)
         setup();
         PDSectionBinding<JobsPDSection> binding =
                 BindingResolver.resolve("FinalJobs", jobsCfg().build(), parsed, registry, refRegistry);
@@ -320,14 +326,17 @@ class BindingResolverTest {
         assertTrue(binding.getResolutionWarnings().isEmpty());
     }
 
-    /** Parses a second storage config (same backends) with an explicit enableSync flag for rebindTo. */
-    private ParsedStorageConfig parseWithSync(boolean enableSync) throws IOException {
+    /** Parses a second storage config (same backends) with an enabled/disabled redis block for rebindTo. */
+    private ParsedStorageConfig parseWithRedis(boolean redisEnabled) throws IOException {
         String yml = String.join("\n",
                 "storage-backends:",
                 "  main_storage: { enabled: true, type: memory }",
                 "  economy_storage: { enabled: true, type: memory }",
                 "default-backend: main_storage",
-                "enableSync: " + enableSync,
+                "multi-server-cache-sync:",
+                "  redis:",
+                "    enabled: " + redisEnabled,
+                "    host: localhost",
                 "");
         File file = tempDir.resolve("storage_sync_" + System.nanoTime() + ".yml").toFile();
         Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
@@ -336,43 +345,52 @@ class BindingResolverTest {
 
     // ------------------------------------------------------------------
     // rebindTo re-runs the bind-guard: moving a versioned entity to a non-enforcing backend under
-    // multi-instance intent is a hard error
+    // multi-instance intent WARNS (never blocks the transfer)
     // ------------------------------------------------------------------
 
     @Test
-    void rebindSectionToNonEnforcingBackendWithSyncIsHardError() throws IOException {
-        // resolve cleanly with sync OFF, then attempt a runtime transfer under a sync-ON config
+    void rebindSectionToNonEnforcingBackendWithRedisIntentWarns() throws IOException {
+        // resolve cleanly with no intent, then attempt a runtime transfer under a redis-enabled config
         setup();
         PDSectionBinding<JobsPDSection> current =
                 BindingResolver.resolve("FinalJobs", jobsCfg().build(), parsed, registry, refRegistry);
 
-        ParsedStorageConfig syncOn = parseWithSync(true);
-        StorageConfigException error = assertThrows(StorageConfigException.class,
-                () -> BindingResolver.rebindTo(current, "economy_storage", syncOn, registry, refRegistry));
-        assertTrue(error.getMessage().contains("does NOT enforce"), error.getMessage());
+        ParsedStorageConfig redisOn = parseWithRedis(true);
+        //a fresh RefRegistry for the target context: the guard now warns (no longer aborts), so the
+        //rebind runs to completion and would otherwise collide with 'current' in the same registry
+        PDSectionBinding<JobsPDSection> rebound =
+                BindingResolver.rebindTo(current, "economy_storage", redisOn, registry, new RefRegistry());
+        String warnings = String.join(" | ", rebound.getResolutionWarnings());
+        assertTrue(warnings.contains("does NOT enforce"), warnings);
     }
 
     @Test
-    void rebindPlayerDataToNonEnforcingBackendWithSyncIsHardError() throws IOException {
+    void rebindPlayerDataToNonEnforcingBackendWithRedisIntentWarns() throws IOException {
         setup();
         PlayerDataBinding current = PlayerDataBinding.resolve(parsed, registry, refRegistry);
 
-        ParsedStorageConfig syncOn = parseWithSync(true);
-        StorageConfigException error = assertThrows(StorageConfigException.class,
-                () -> PlayerDataBinding.rebindTo(current, "economy_storage", syncOn, registry, refRegistry));
-        assertTrue(error.getMessage().contains("does NOT enforce"), error.getMessage());
+        ParsedStorageConfig redisOn = parseWithRedis(true);
+        //fresh RefRegistry: the guard now warns (no longer aborts), so the rebind completes and
+        //would otherwise collide with 'current' registered in the same registry
+        PlayerDataBinding rebound =
+                PlayerDataBinding.rebindTo(current, "economy_storage", redisOn, registry, new RefRegistry());
+        String warnings = String.join(" | ", rebound.getResolutionWarnings());
+        assertTrue(warnings.contains("does NOT enforce"), warnings);
     }
 
     // ------------------------------------------------------------------
-    // base-binding boot guard: enableSync + non-enforcing playerdata backend is a hard error at resolve
+    // base-binding boot guard: redis intent + non-enforcing playerdata backend WARNS at resolve
     // ------------------------------------------------------------------
 
     @Test
-    void playerDataResolveOnNonEnforcingBackendWithSyncIsHardError() throws IOException {
-        setup("enableSync: true");
-        StorageConfigException error = assertThrows(StorageConfigException.class,
-                () -> PlayerDataBinding.resolve(parsed, registry, refRegistry));
-        assertTrue(error.getMessage().contains("does NOT enforce"), error.getMessage());
+    void playerDataResolveOnNonEnforcingBackendWithRedisIntentWarns() throws IOException {
+        setup("multi-server-cache-sync:",
+                "  redis:",
+                "    enabled: true",
+                "    host: localhost");
+        PlayerDataBinding binding = PlayerDataBinding.resolve(parsed, registry, refRegistry);
+        String warnings = String.join(" | ", binding.getResolutionWarnings());
+        assertTrue(warnings.contains("does NOT enforce"), warnings);
     }
 
 }

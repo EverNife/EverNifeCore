@@ -26,15 +26,16 @@ public final class ParsedStorageConfig {
     private final Map<String, Map<String, PDSectionAdminConfig>> pdSections; // plugin -> section -> cfg
     private final StorageLogLevel loggingLevel;
     private final boolean enableSync;
-    private final RedisSyncConfig redisSync;                          // nullable: no redis block
+    private final SyncTransportMode transportMode;
+    private final RedisSyncConfig redisSync;                          // nullable: redis block absent or disabled
     private final List<String> warnings;
 
     ParsedStorageConfig(Map<String, BackendDefinition> backends, String defaultBackendName,
                         boolean multiplatformAccountsEnabled, String accountBackendName,
                         PlayerDataAdminConfig playerData,
                         Map<String, Map<String, PDSectionAdminConfig>> pdSections,
-                        StorageLogLevel loggingLevel, boolean enableSync, RedisSyncConfig redisSync,
-                        List<String> warnings) {
+                        StorageLogLevel loggingLevel, boolean enableSync, SyncTransportMode transportMode,
+                        RedisSyncConfig redisSync, List<String> warnings) {
         this.backends = Collections.unmodifiableMap(new LinkedHashMap<>(backends));
         this.defaultBackendName = defaultBackendName;
         this.multiplatformAccountsEnabled = multiplatformAccountsEnabled;
@@ -43,6 +44,7 @@ public final class ParsedStorageConfig {
         this.pdSections = Collections.unmodifiableMap(pdSections);
         this.loggingLevel = loggingLevel;
         this.enableSync = enableSync;
+        this.transportMode = transportMode;
         this.redisSync = redisSync;
         this.warnings = Collections.unmodifiableList(warnings);
     }
@@ -61,7 +63,7 @@ public final class ParsedStorageConfig {
     }
 
     /**
-     * Whether the multi-platform account layer is enabled ({@code multiplatform-accounts.enabled}
+     * Whether the multi-platform account layer is enabled ({@code multi-platform-accounts.enabled}
      * in storage.yml, {@code false} by default). When disabled, every identity resolves to its own
      * singleton account and no account row is ever written.
      */
@@ -71,7 +73,7 @@ public final class ParsedStorageConfig {
 
     /**
      * The backend hosting the whole account family - the account registry and every account-wide
-     * section ({@code multiplatform-accounts.backend} in storage.yml). Shared across instances;
+     * section ({@code multi-platform-accounts.storage-backend-id} in storage.yml). Shared across instances;
      * falls back to {@link #getDefaultBackendName()} when the admin does not override it. Always an
      * enabled, declared backend.
      */
@@ -96,23 +98,33 @@ public final class ParsedStorageConfig {
         return loggingLevel;
     }
 
-    /** Whether cross-instance cache-sync is enabled ({@code enableSync: true} in storage.yml). */
+    /**
+     * Whether cross-instance cache-sync is enabled ({@code multi-server-cache-sync.enabled}, default
+     * {@code true}). On a single server it is a harmless no-op; it only does real work once a shared
+     * transport exists (a native change feed or an enabled redis block).
+     */
     public boolean isEnableSync() {
         return enableSync;
     }
 
-    /** The single app-level redis block, or {@code null} when none is configured. */
+    /** How the sync signal travels ({@code multi-server-cache-sync.transport}); never null. */
+    public SyncTransportMode getTransportMode() {
+        return transportMode;
+    }
+
+    /** The single app-level redis block, or {@code null} when it is absent or disabled. */
     public RedisSyncConfig getRedisSync() {
         return redisSync;
     }
 
     /**
-     * Whether the admin declared multi-instance intent - the signal the bind-guard uses to reject a
-     * versioned entity on a lock-unenforcing backend. True when cache-sync is enabled or a redis
-     * block is present.
+     * Whether the admin declared REAL multi-instance intent - the signal the bind-guard uses to warn
+     * about a versioned entity on a lock-unenforcing backend. Since cache-sync is on by default, the
+     * flag alone no longer signals intent: only an enabled redis block does (the one transport that
+     * makes a non-enforcing/feedless backend actually shared across instances).
      */
     public boolean isMultiInstanceIntent() {
-        return enableSync || redisSync != null;
+        return redisSync != null;
     }
 
     public List<String> getWarnings() {

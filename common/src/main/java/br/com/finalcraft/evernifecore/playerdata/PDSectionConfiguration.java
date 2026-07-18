@@ -44,7 +44,7 @@ public class PDSectionConfiguration<S extends PDSection> {
     private final String collection;
     /** Nullable - falls back to the 'default-backend' from storage.yml. */
     private final String defaultBackend;
-    /** Never null (may be empty). Becomes the generated 'Possible Backends' comment. */
+    /** Never null (may be empty). Becomes the generated 'Recommended Backend Types' comment. */
     private final List<String> suggestedBackends;
     /**
      * Never null (may be empty). When non-empty, the resolved backend's {@link BackendType} MUST be

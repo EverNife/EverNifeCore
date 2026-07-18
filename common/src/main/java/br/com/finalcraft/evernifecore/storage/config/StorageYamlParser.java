@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.storage.config;
 
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.everyconfig.config.Config;
+import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.evernifecore.storage.BackendType;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
 import br.com.finalcraft.evernifecore.storage.StorageRegistry;
@@ -14,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -23,7 +25,7 @@ import java.util.regex.Pattern;
  * <ul>
  *   <li>no backend declared / unknown {@code type} / missing required field</li>
  *   <li>{@code default-backend} missing, not declared or disabled</li>
- *   <li>{@code playerdata.backend} not declared or disabled</li>
+ *   <li>{@code playerdata.storage-backend-id} not declared or disabled</li>
  *   <li>invalid collection name (must match {@code ^[a-zA-Z][a-zA-Z0-9_]*$})</li>
  * </ul>
  *
@@ -67,11 +69,11 @@ public final class StorageYamlParser {
         // ---- playerdata ----
         PlayerDataAdminConfig playerData = parsePlayerData(config, backends, defaultBackendName);
 
-        // ---- multiplatform-accounts (identity layer): opt-in, one backend for the whole family ----
-        boolean multiplatformAccountsEnabled = config.getBoolean("multiplatform-accounts.enabled", false);
-        String accountBackendName = emptyToNull(config.getString("multiplatform-accounts.backend", null));
+        // ---- multi-platform-accounts (identity layer): opt-in, one backend for the whole family ----
+        boolean multiplatformAccountsEnabled = config.getBoolean("multi-platform-accounts.enabled", false);
+        String accountBackendName = emptyToNull(config.getString("multi-platform-accounts.storage-backend-id", null));
         if (accountBackendName != null) {
-            requireEnabledBackend(backends, accountBackendName, "'multiplatform-accounts.backend'");
+            requireEnabledBackend(backends, accountBackendName, "'multi-platform-accounts.storage-backend-id'");
         } else {
             accountBackendName = defaultBackendName;
         }
@@ -89,34 +91,47 @@ public final class StorageYamlParser {
         // ---- logging ----
         StorageLogLevel loggingLevel = parseLogLevel(config.getString("logging.level", "warn"), warnings);
 
-        // ---- cache-sync (multi-instance coherence) ----
-        boolean enableSync = config.getBoolean("enableSync", false);
-        RedisSyncConfig redisSync = parseRedis(config);
-        if (redisSync != null && !enableSync) {
-            warnings.add("A 'redis:' block is present but 'enableSync' is false - the redis"
-                    + " transport is only wired when 'enableSync: true'. Set it to enable cache-sync.");
-        }
+        // ---- multi-server-cache-sync (multi-instance coherence) ----
+        boolean enableSync = config.getBoolean("multi-server-cache-sync.enabled", true);
+        SyncTransportMode transportMode = parseTransportMode(
+                config.getString("multi-server-cache-sync.transport", "auto"), warnings);
+        RedisSyncConfig redisSync = parseRedis(config);   // null unless the redis block is enabled
 
         return new ParsedStorageConfig(backends, defaultBackendName, multiplatformAccountsEnabled,
-                accountBackendName, playerData, pdSections, loggingLevel, enableSync, redisSync, warnings);
+                accountBackendName, playerData, pdSections, loggingLevel, enableSync, transportMode,
+                redisSync, warnings);
     }
 
-    /** Parses the single optional app-level {@code redis:} block; {@code null} when absent. */
+    /** Parses the {@code multi-server-cache-sync.redis} block; {@code null} unless it is enabled. */
     private static RedisSyncConfig parseRedis(Config config) {
-        if (!config.contains("redis")) {
+        String base = "multi-server-cache-sync.redis";
+        if (!config.getBoolean(base + ".enabled", false)) {
             return null;
         }
-        String host = config.getString("redis.host", null);
+        String host = config.getString(base + ".host", null);
         if (host == null || host.isEmpty()) {
-            throw new StorageConfigException("storage.yml has a 'redis:' block but no 'redis.host'!");
+            throw new StorageConfigException("storage.yml enables 'multi-server-cache-sync.redis'"
+                    + " but has no 'host'!");
         }
-        int port = config.getInt("redis.port", RedisSyncConfig.DEFAULT_PORT);
-        String username = emptyToNull(config.getString("redis.user", null));
-        String password = emptyToNull(config.getString("redis.pass", null));
-        int database = config.getInt("redis.database", 0);
-        String channel = emptyToNull(config.getString("redis.channel", null));
-        boolean ssl = config.getBoolean("redis.ssl", false);
+        int port = config.getInt(base + ".port", RedisSyncConfig.DEFAULT_PORT);
+        String username = emptyToNull(config.getString(base + ".user", null));
+        String password = emptyToNull(config.getString(base + ".pass", null));
+        int database = config.getInt(base + ".database", 0);
+        String channel = emptyToNull(config.getString(base + ".channel", null));
+        boolean ssl = config.getBoolean(base + ".ssl", false);
         return new RedisSyncConfig(host, port, username, password, database, channel, ssl);
+    }
+
+    private static SyncTransportMode parseTransportMode(String raw, List<String> warnings) {
+        switch (raw.toLowerCase(Locale.ROOT)) {
+            case "auto":   return SyncTransportMode.AUTO;
+            case "redis":  return SyncTransportMode.REDIS;
+            case "native": return SyncTransportMode.NATIVE;
+            default:
+                warnings.add("'multi-server-cache-sync.transport' has unknown value '" + raw
+                        + "' - using 'auto'. Valid: auto | redis | native");
+                return SyncTransportMode.AUTO;
+        }
     }
 
     private static String emptyToNull(String value) {
@@ -140,13 +155,22 @@ public final class StorageYamlParser {
     // ---------------------------------------------------------------------
 
     private static BackendDefinition parseBackend(Config config, String name, List<String> warnings) {
-        String base = "storage-backends." + name + ".";
+        ConfigSection section = config.getConfigSection("storage-backends." + name);
+        BackendType type = BackendType.fromId(section.getString("type", null));
+        boolean enabled = section.getBoolean("enabled", false);
+        return readBackend(section, name, type, enabled, warnings);
+    }
 
-        BackendType type = BackendType.fromId(config.getString(base + "type", null));
-        boolean enabled = config.getBoolean(base + "enabled", false);
-
+    /**
+     * Reads the per-type fields of ONE backend from its own section - the single source of truth shared
+     * by the storage.yml form ({@code storage-backends.<id>}, where {@code type}/{@code enabled} are
+     * fields) and the inline form ({@link #parseInlineBackend}, where the child key IS the type and
+     * enabling is implicit). The paths are relative to {@code section}, so both forms read identically.
+     */
+    private static BackendDefinition readBackend(ConfigSection section, String name, BackendType type,
+                                                 boolean enabled, List<String> warnings) {
         BackendDefinition.FileFormat format = null;
-        String formatRaw = config.getString(base + "format", null);
+        String formatRaw = section.getString("format", null);
         if (formatRaw != null) {
             if (type != BackendType.LOCALFILE && type != BackendType.GROUPEDFILE) {
                 warnings.add("Backend '" + name + "': 'format' is only valid on type localfile/groupedfile"
@@ -166,29 +190,73 @@ public final class StorageYamlParser {
                     + " lost on shutdown - use only for tests/throwaway servers.");
         }
 
-        Integer poolMinIdle = getIntOrNull(config, base + "pool.minIdle");
-        Integer poolMaxSize = getIntOrNull(config, base + "pool.maxSize");
-        Integer poolConnectTimeout = getIntOrNull(config, base + "pool.connectTimeoutSeconds");
-        Integer poolIdleTimeout = getIntOrNull(config, base + "pool.idleTimeoutSeconds");
+        Integer poolMinIdle = getIntOrNull(section, "pool.minIdle");
+        Integer poolMaxSize = getIntOrNull(section, "pool.maxSize");
+        Integer poolConnectTimeout = getIntOrNull(section, "pool.connectTimeoutSeconds");
+        Integer poolIdleTimeout = getIntOrNull(section, "pool.idleTimeoutSeconds");
 
         return BackendDefinition.of(
                 name, enabled, type,
-                config.getString(base + "url", null),
-                config.getString(base + "user", ""),
-                config.getString(base + "pass", ""),
+                section.getString("url", null),
+                section.getString("user", ""),
+                section.getString("pass", ""),
                 poolMinIdle, poolMaxSize, poolConnectTimeout, poolIdleTimeout,
-                config.getString(base + "path", null),
+                section.getString("path", null),
                 format,
-                config.getString(base + "db", null)
+                section.getString("db", null)
         );
+    }
+
+    /**
+     * Parses ONE backend declared inline in a plugin's own config (any file, any path), where the
+     * SINGLE child key IS the backend type - there is no {@code enabled} (declaring it IS enabling it)
+     * and no separate {@code type} field. This is the "declare one and use it directly" shape a plugin
+     * routes its own data through, distinct from storage.yml's "declare many, pick one by id".
+     *
+     * <pre>{@code
+     * storage:
+     *   mongo:
+     *     url: "mongodb://localhost:27017"
+     *     db: myplugin
+     * }</pre>
+     *
+     * @param section the parent section whose one child is the backend (e.g. a config.yml's 'storage')
+     * @throws StorageConfigException if the section declares no backend, more than one, or an unknown type
+     */
+    public static BackendDefinition parseInlineBackend(ConfigSection section) {
+        return parseInlineBackend(section, new ArrayList<>());
+    }
+
+    /** As {@link #parseInlineBackend(ConfigSection)}, collecting soft warnings into {@code warnings}. */
+    public static BackendDefinition parseInlineBackend(ConfigSection section, List<String> warnings) {
+        Set<String> declared = section.getKeys();
+        if (declared.isEmpty()) {
+            throw new StorageConfigException("No storage backend declared under '" + sectionLabel(section)
+                    + "'! Declare exactly one, keyed by its type"
+                    + " (groupedfile | localfile | sql | postgresql | h2 | mongo | memory).");
+        }
+        if (declared.size() > 1) {
+            throw new StorageConfigException("More than one storage backend declared under '"
+                    + sectionLabel(section) + "' " + declared + "! Declare EXACTLY ONE - the child key is"
+                    + " the backend type; comment the others out.");
+        }
+        String typeId = declared.iterator().next();
+        BackendType type = BackendType.fromId(typeId);
+        // implicitly enabled (declaring IS enabling) and named after its own type
+        return readBackend(section.getConfigSection(typeId), typeId, type, true, warnings);
+    }
+
+    private static String sectionLabel(ConfigSection section) {
+        String path = section.getPath();
+        return path == null || path.isEmpty() ? "(root)" : path;
     }
 
     private static PlayerDataAdminConfig parsePlayerData(Config config,
                                                          Map<String, BackendDefinition> backends,
                                                          String defaultBackendName) {
-        String backendName = config.getString("playerdata.backend", null);
+        String backendName = config.getString("playerdata.storage-backend-id", null);
         if (backendName != null) {
-            requireEnabledBackend(backends, backendName, "'playerdata.backend'");
+            requireEnabledBackend(backends, backendName, "'playerdata.storage-backend-id'");
         }
 
         String collection = config.getString("playerdata.collection", null);
@@ -211,9 +279,6 @@ public final class StorageYamlParser {
                     + " load-mode is RECENT!");
         }
 
-        boolean forceLegacyImport = "force".equalsIgnoreCase(
-                config.getString("playerdata.migrate-legacy", ""));
-
         boolean orphanReaperEnabled = config.getBoolean("playerdata.orphan-reaper.enabled", false);
         int orphanReaperInterval = config.getInt("playerdata.orphan-reaper.interval-minutes",
                 PlayerDataAdminConfig.DEFAULT_ORPHAN_REAPER_INTERVAL_MINUTES);
@@ -228,7 +293,7 @@ public final class StorageYamlParser {
             throw new StorageConfigException("'playerdata.login-timeout-seconds' must be > 0!");
         }
 
-        return new PlayerDataAdminConfig(backendName, collection, loadMode, recentDays, forceLegacyImport,
+        return new PlayerDataAdminConfig(backendName, collection, loadMode, recentDays,
                 orphanReaperEnabled, orphanReaperInterval, loginTimeoutSeconds);
     }
 
@@ -243,7 +308,7 @@ public final class StorageYamlParser {
         return new PDSectionAdminConfig(
                 pluginName,
                 sectionName,
-                config.getString(base + "backend", null),
+                config.getString(base + "storage-backend-id", null),
                 collection,
                 config.getString(base + "cache.policy", null),
                 getIntOrNull(config, base + "cache.ttlSeconds")
@@ -286,5 +351,9 @@ public final class StorageYamlParser {
 
     private static Integer getIntOrNull(Config config, String path) {
         return config.contains(path) ? config.getInt(path) : null;
+    }
+
+    private static Integer getIntOrNull(ConfigSection section, String sub) {
+        return section.contains(sub) ? section.getInt(sub) : null;
     }
 }
