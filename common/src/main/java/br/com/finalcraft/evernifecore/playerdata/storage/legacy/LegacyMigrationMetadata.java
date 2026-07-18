@@ -1,10 +1,13 @@
 package br.com.finalcraft.evernifecore.playerdata.storage.legacy;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.everyconfig.config.Config;
 import lombok.Getter;
 
 import java.io.File;
+import java.util.Arrays;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
@@ -36,8 +39,11 @@ public final class LegacyMigrationMetadata {
             " DELETE THIS FILE to force a full re-scan from scratch.",
             " The original .yml files are NEVER edited nor deleted.",
             "",
-            " ROLLBACK / DOWNGRADE: move PlayerData-Imported/*.yml back",
-            " into PlayerData/ before going back to an older version.",
+            " ROLLBACK / DOWNGRADE: an older version reads ONLY PlayerData/.",
+            " While migrating, archived files sit in PlayerData-Imported/;",
+            " once complete they are consolidated into __LegacyData_V2/PlayerData/",
+            " (beside this file). Move them back into PlayerData/ before",
+            " going back to an older version.",
             "============================================================"
     };
 
@@ -170,7 +176,7 @@ public final class LegacyMigrationMetadata {
     /** Writes the whole file in a single save. */
     public void save(File file) {
         Config config = ConfigFactory.open(file);
-        config.setHeader(HEADER);
+        config.setHeader(bannerPlusRollbackHeader());
         config.setValue("complete", complete);
         config.setValue("started-at", startedAt);
         config.setValue("last-run-at", lastRunAt);
@@ -191,5 +197,23 @@ public final class LegacyMigrationMetadata {
             config.setValue(path + "pdsection", progress.getPdSection());
         }
         config.save();
+    }
+
+    /**
+     * The standard EverNifeCore banner followed by this file's own rollback instructions. The banner
+     * makes the file consistent with every other config; the {@link #HEADER} lines below it are the
+     * admin's only instruction once the server is down and the legacy folder has been drained. Falls
+     * back to just the rollback lines in a headless runtime that has no {@link ECPluginData} (tests).
+     */
+    private static String[] bannerPlusRollbackHeader() {
+        ECPluginData plugin = EverNifeCore.getEcPluginData();
+        if (plugin == null) {
+            return HEADER;
+        }
+        String[] banner = ConfigFactory.standardHeader(plugin);
+        String[] combined = Arrays.copyOf(banner, banner.length + 1 + HEADER.length);
+        combined[banner.length] = ""; //a blank line separating the banner from the rollback notes
+        System.arraycopy(HEADER, 0, combined, banner.length + 1, HEADER.length);
+        return combined;
     }
 }

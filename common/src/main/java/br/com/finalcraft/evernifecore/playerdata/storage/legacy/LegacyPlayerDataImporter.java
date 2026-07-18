@@ -138,8 +138,15 @@ public final class LegacyPlayerDataImporter {
 
         //Phase D - progress file: what the next boot's trigger reads instead of counting rows
         writeProgress(parsed, report, files.length, archivedFiles, failedFiles);
-
         report.setDurationMillis(System.currentTimeMillis() - start);
+
+        //Phase E - the run that finally drained the folder gathers every artifact into __LegacyData_V2
+        //(the archive renamed back to PlayerData, the progress file, and a migration-result.log)
+        if (report.isBecameCompleteThisRun()) {
+            File consolidated = LegacyMigrationConsolidator.consolidate(legacyFolder, importedFolder,
+                    failedFolder, LegacyMigrationMetadata.fileOf(legacyFolder), report);
+            report.setConsolidatedFolder(consolidated);
+        }
         return report;
     }
 
@@ -347,6 +354,7 @@ public final class LegacyPlayerDataImporter {
         //the console tells the same story as the file, off the very same numbers
         report.setFiles(totalFound, archivedFiles, pendingFiles, failedFiles);
         report.setSections(metadata.getSections());
+        report.setRunInfo(metadata.getRuns(), metadata.getStartedAt(), metadata.getLastRunAt());
         report.setCompletion(wasComplete, metadata.isComplete());
     }
 

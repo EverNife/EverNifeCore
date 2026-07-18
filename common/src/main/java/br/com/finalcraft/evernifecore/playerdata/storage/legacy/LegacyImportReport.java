@@ -42,6 +42,12 @@ public final class LegacyImportReport {
     private final List<String> failedFiles = new ArrayList<>();
     private long durationMillis;
 
+    private int runs;
+    private String startedAt = "";
+    private String lastRunAt = "";
+    /** Path of the __LegacyData_V2 archive, set only on the run that consolidated it; null otherwise. */
+    private String consolidatedFolder;
+
     void setPaths(File legacyFolder, File importedFolder, File failedFolder, File metadataFile) {
         this.legacyFolder = legacyFolder.getPath();
         this.importedFolder = importedFolder.getPath();
@@ -74,6 +80,18 @@ public final class LegacyImportReport {
         this.durationMillis = durationMillis;
     }
 
+    /** Run counters carried from the progress file, so the console/log can date the whole migration. */
+    void setRunInfo(int runs, String startedAt, String lastRunAt) {
+        this.runs = runs;
+        this.startedAt = startedAt == null ? "" : startedAt;
+        this.lastRunAt = lastRunAt == null ? "" : lastRunAt;
+    }
+
+    /** Marks the folder the completing run consolidated everything into ({@code __LegacyData_V2}). */
+    void setConsolidatedFolder(File consolidatedFolder) {
+        this.consolidatedFolder = consolidatedFolder == null ? null : consolidatedFolder.getPath();
+    }
+
     void addFailedFile(String fileName, String reason) {
         failedFiles.add(fileName + " (" + reason + ")");
     }
@@ -90,11 +108,31 @@ public final class LegacyImportReport {
         appendOutcome(sb);
         appendFailedFiles(sb);
         if (becameCompleteThisRun) {
-            sb.append('\n').append(rollbackWarning(legacyFolder, importedFolder));
+            sb.append('\n').append(consolidatedFolder != null
+                    ? consolidatedNotice(consolidatedFolder)
+                    : rollbackWarning(legacyFolder, importedFolder));
         } else if (!migrationComplete) {
             sb.append("\n  INCOMPLETE - the next boot tries again; the details survive in ").append(metadataFile);
         }
         return sb.toString();
+    }
+
+    /**
+     * The completion notice of the run that consolidated everything into {@code __LegacyData_V2}: the
+     * archived files, the progress file and a {@code migration-result.log} now live together there.
+     * Says the same as that log's own header, which is where an admin looks once the server is down.
+     */
+    static String consolidatedNotice(String consolidatedFolder) {
+        return String.join("\n",
+                "  ============================================================",
+                "  MIGRATION COMPLETE - the legacy artifacts were consolidated into:",
+                "    " + consolidatedFolder,
+                "  The archived player files are under that folder's 'PlayerData',",
+                "  beside the progress file and a 'migration-result.log'.",
+                "  ROLLBACK / DOWNGRADE: an older version reads ONLY the original",
+                "  PlayerData folder, so move that 'PlayerData' back into place",
+                "  BEFORE downgrading.",
+                "  ============================================================");
     }
 
     /**

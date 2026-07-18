@@ -4,6 +4,8 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.everyconfig.config.Config;
+import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
+import br.com.finalcraft.evernifecore.cooldown.PlayerCooldownsLocal;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.IPluginMetaInfo;
@@ -99,6 +101,36 @@ class LegacyImportTest {
 
     private File metadataFile() {
         return tempDir.resolve("playerdata-storage-migration-metadata.yml").toFile();
+    }
+
+    /** The one-time archive a COMPLETED migration consolidates everything into. */
+    private File consolidatedFolder() {
+        return tempDir.resolve("__LegacyData_V2").toFile();
+    }
+
+    /** After completion, PlayerData-Imported is renamed back to PlayerData in here (the rollback source). */
+    private File consolidatedPlayerData() {
+        return new File(consolidatedFolder(), "PlayerData");
+    }
+
+    /** After completion, the progress file is moved out of the plugin root to here. */
+    private File consolidatedMetadata() {
+        return new File(consolidatedFolder(), "playerdata-storage-migration-metadata.yml");
+    }
+
+    /** Archived .yml files across every subfolder of a consolidated archive (its {@code PlayerData/}). */
+    private static int archivedYmlCount(File consolidatedFolder) {
+        File[] children = consolidatedFolder.listFiles();
+        if (children == null) {
+            return 0;
+        }
+        int count = 0;
+        for (File child : children) {
+            if (child.isDirectory()) {
+                count += ymlFiles(child).length;
+            }
+        }
+        return count;
     }
 
     /** Hand-writes a progress file claiming the migration is over (the state a finished run leaves). */
@@ -313,8 +345,8 @@ class LegacyImportTest {
         assertEquals(1600000000000L, converted.getFirstSeen());
         assertEquals(1700000000000L, converted.getLastSeen());
         assertEquals(1700000000000L, converted.getLastSaved(), "missing lastSaved must default to lastSeen");
-        //the legacy Cooldown: block is deliberately NOT imported (the player-cooldown flow
-        //was removed from PlayerData); it stays intact in the archived YAML file
+        //convertBase handles only the base block; the Cooldown: block is migrated by the
+        //PlayerCooldownsLocal legacyYaml adapter, not here
     }
 
     // ------------------------------------------------------------------
@@ -356,14 +388,16 @@ class LegacyImportTest {
                 .getPDSection(LegacyJobsPDSection.class).join();
         assertEquals(0, simpleJobs.level);
 
-        //archiving: nothing was left pending, so both files are moved to -Imported
+        //completion consolidates everything into __LegacyData_V2: the legacy folder is drained and the
+        //archived originals live under __LegacyData_V2/PlayerData (renamed back from PlayerData-Imported)
         assertEquals(0, ymlFiles(legacyFolder()).length, "the PlayerData folder must be drained");
-        File importedFolder = tempDir.resolve("PlayerData-Imported").toFile();
-        assertEquals(2, ymlFiles(importedFolder).length);
-        assertFalse(tempDir.resolve("PlayerData-Failed").toFile().exists(), "no failures expected");
+        assertFalse(tempDir.resolve("PlayerData-Imported").toFile().exists(),
+                "PlayerData-Imported is consolidated away on completion");
+        assertEquals(2, ymlFiles(consolidatedPlayerData()).length);
+        assertFalse(new File(consolidatedFolder(), "PlayerData-Failed").exists(), "no failures expected");
 
         //an archived file is moved, never rewritten: its blocks are still there afterwards
-        Config archived = ConfigFactory.open(new File(importedFolder, "petrus.yml"));
+        Config archived = ConfigFactory.open(new File(consolidatedPlayerData(), "petrus.yml"));
         assertTrue(archived.contains("FinalJobs"), "files are moved, never rewritten");
         assertEquals("miner", archived.getString("FinalJobs.job"));
 
@@ -403,17 +437,19 @@ class LegacyImportTest {
     }
 
     // ------------------------------------------------------------------
-    // Idempotency: a re-run (migrate-legacy: force) never duplicates or overwrites
+    // Idempotency: a re-run never duplicates or overwrites
     // ------------------------------------------------------------------
 
     @Test
-    void forcedReRunSkipsEntitiesAlreadyOnTheBackend() throws IOException {
+    void reRunSkipsEntitiesAlreadyOnTheBackend() throws IOException {
         writeLegacyYml("petrus.yml", fullyMappedV3Yaml("Petrus", 42, "miner"));
         registerJobsSectionWithAdapter();
         PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
         assertEquals("Petrus", PlayerController.getLoaded(PETRUS_UUID).getName());
 
-        //the same UUID comes back with DIFFERENT data - a skipped import must not apply it
+        //completion consolidated the progress file into __LegacyData_V2, so restoring a legacy .yml is
+        //all it takes to re-trigger the import (the "delete the generated artifacts to re-migrate" flow).
+        //The same UUID comes back with DIFFERENT data - a skipped import must not apply it
         //(every field differs from the backend's, so an overwrite could not hide anywhere)
         writeLegacyYml("petrus.yml", String.join("\n",
                 "PlayerData:",
@@ -427,19 +463,23 @@ class LegacyImportTest {
                 "  job: hacker",
                 ""));
 
-        PlayerController.bootstrap(writeStorageYml("storage_force.yml",
-                "playerdata:\n  migrate-legacy: force"));
+        PlayerController.bootstrap(writeStorageYml("storage_rerun.yml", ""));
 
         //the backend data is intact (skip by UUID), nothing duplicated
         PlayerData petrus = PlayerController.getLoaded(PETRUS_UUID);
-        assertEquals("Petrus", petrus.getName(), "a forced re-run must never overwrite newer backend data");
+        assertEquals("Petrus", petrus.getName(), "a re-run must never overwrite newer backend data");
         assertEquals(1600000000000L, petrus.getFirstSeen());
         assertEquals(42, petrus.getPDSection(LegacyJobsPDSection.class).join().level);
         assertEquals(1, PlayerController.getLoadedCount());
 
-        //the re-imported file is still archived (with an anti-collision suffix), the folder is drained again
+        //each completion gets its OWN archive folder: the first import landed in __LegacyData_V2, and
+        //the re-import, finding that one already filled, went into a fresh __LegacyData_V2_2 sibling
+        //(instead of being dumped into the first archive under renamed names)
         assertEquals(0, ymlFiles(legacyFolder()).length);
-        assertEquals(2, ymlFiles(tempDir.resolve("PlayerData-Imported").toFile()).length);
+        assertEquals(1, archivedYmlCount(consolidatedFolder()));
+        File secondArchive = tempDir.resolve("__LegacyData_V2_2").toFile();
+        assertTrue(secondArchive.isDirectory(), "a second completed migration must get its own folder");
+        assertEquals(1, archivedYmlCount(secondArchive));
     }
 
     // ------------------------------------------------------------------
@@ -490,59 +530,69 @@ class LegacyImportTest {
     }
 
     // ------------------------------------------------------------------
-    // Trigger: 'force' overrides a complete progress file
+    // Re-migration: deleting the progress file lets a completed migration run again
     // ------------------------------------------------------------------
 
     @Test
-    void forceImportsDespiteACompleteMetadata() throws IOException {
+    void deletingTheProgressFileReTriggersACompletedMigration() throws IOException {
         writeLegacyYml("petrus.yml", fullyMappedV3Yaml("Petrus", 42, "miner"));
         registerJobsSectionWithAdapter();
         writeCompleteMetadata();
 
-        PlayerController.bootstrap(writeStorageYml("storage_force.yml",
-                "playerdata:\n  migrate-legacy: force"));
+        //a complete progress file skips the import (there is no 'force' switch anymore)...
+        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        assertNull(PlayerController.getLoaded(PETRUS_UUID), "a complete progress file must skip the import");
+
+        //...and deleting that generated artifact is the supported way to force a re-migration
+        assertTrue(metadataFile().delete());
+        PlayerController.bootstrap(writeStorageYml("storage_rerun.yml", ""));
 
         PlayerData petrus = PlayerController.getLoaded(PETRUS_UUID);
-        assertNotNull(petrus, "force must ignore the progress file and import anyway");
+        assertNotNull(petrus, "deleting the progress file must let the import run again");
         assertEquals(42, petrus.getPDSection(LegacyJobsPDSection.class).join().level);
         assertEquals(0, ymlFiles(legacyFolder()).length, "the folder must be drained");
-        assertEquals(1, ymlFiles(tempDir.resolve("PlayerData-Imported").toFile()).length);
     }
 
     // ------------------------------------------------------------------
-    // The progress file is rebuildable: deleting it re-scans, and the re-scan imports nothing new
+    // Completion consolidates every artifact into __LegacyData_V2 (a one-time tidy-up)
     // ------------------------------------------------------------------
 
     @Test
-    void deletingTheMetadataRebuildsItWithoutReimporting() throws IOException {
+    void completingTheMigrationConsolidatesEveryArtifactIntoLegacyDataV2() throws IOException {
         writeLegacyYml("petrus.yml", fullyMappedV3Yaml("Petrus", 42, "miner"));
+        writeLegacyYml("simple.yml", fullyMappedV3Yaml(SIMPLE_UUID, "Simple", 7, "farmer"));
         registerJobsSectionWithAdapter();
-        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
-        assertEquals("Petrus", PlayerController.getLoaded(PETRUS_UUID).getName());
-
-        //the progress file lands next to storage.yml - never inside a folder the import drains
-        File metadata = metadataFile();
-        assertTrue(metadata.isFile(), "the import must leave a progress file next to storage.yml");
-        assertEquals(tempDir.toFile(), metadata.getParentFile());
-        assertTrue(ConfigFactory.open(metadata).getBoolean("complete"),
-                "every root key had an adapter, so the migration is complete");
-
-        //an admin deleting the file asks for a full re-scan - over a backend that is already populated,
-        //and with the same UUID carrying DIFFERENT data, which a skipped import must not apply
-        assertTrue(metadata.delete());
-        writeLegacyYml("petrus.yml", fullyMappedV3Yaml("Imposter", 99, "hacker"));
 
         PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
 
-        PlayerData petrus = PlayerController.getLoaded(PETRUS_UUID);
-        assertEquals("Petrus", petrus.getName(), "the re-scan must import 0 entities over a populated backend");
-        assertEquals(42, petrus.getPDSection(LegacyJobsPDSection.class).join().level);
-        assertEquals(1, PlayerController.getLoadedCount(), "nothing may be duplicated");
+        //the plugin root is left clean: no PlayerData, no -Imported, no root metadata file
+        assertFalse(legacyFolder().exists(), "the drained legacy folder is deleted");
+        assertFalse(tempDir.resolve("PlayerData-Imported").toFile().exists(),
+                "PlayerData-Imported is consolidated away");
+        assertFalse(metadataFile().exists(), "the progress file is moved out of the plugin root");
 
-        assertEquals(0, ymlFiles(legacyFolder()).length, "the re-scanned file is archived again");
-        assertEquals(2, ymlFiles(tempDir.resolve("PlayerData-Imported").toFile()).length);
-        assertTrue(ConfigFactory.open(metadataFile()).getBoolean("complete"),
-                "the progress file must be rebuilt as complete");
+        //everything the migration produced now lives together under __LegacyData_V2
+        assertTrue(consolidatedFolder().isDirectory());
+        assertEquals(2, ymlFiles(consolidatedPlayerData()).length,
+                "PlayerData-Imported is renamed back to PlayerData inside the archive");
+        assertTrue(consolidatedMetadata().isFile(), "the progress file is moved into the archive");
+        assertTrue(ConfigFactory.open(consolidatedMetadata()).getBoolean("complete"));
+
+        //a human-readable result log documents the whole migration: numbers, sections and their owners
+        File resultLog = new File(consolidatedFolder(), "migration-result.log");
+        assertTrue(resultLog.isFile(), "a migration-result.log must be written");
+        String log = new String(Files.readAllBytes(resultLog.toPath()), StandardCharsets.UTF_8);
+        assertTrue(log.contains("COMPLETE"), log);
+        assertTrue(log.contains("Files scanned"), log);
+        assertTrue(log.contains("Sections"), log);
+        assertTrue(log.contains("PlayerData"), "the log lists the base section: " + log);
+        assertTrue(log.contains("FinalJobs"), "the log lists the adapter section: " + log);
+        assertTrue(log.contains("EverNifeCore"), "the log names the base owner: " + log);
+        assertTrue(log.contains("Entities migrated"), log);
+
+        //the players still load from the backend afterwards - consolidation only tidies the legacy files
+        assertNotNull(PlayerController.getLoaded(PETRUS_UUID));
+        assertNotNull(PlayerController.getLoaded(SIMPLE_UUID));
     }
 
     // ------------------------------------------------------------------
@@ -595,8 +645,8 @@ class LegacyImportTest {
                 "the section must migrate on the boot that finally brings its adapter");
         assertEquals("miner", petrus.getPDSection(LegacyJobsPDSection.class).join().job);
         assertEquals(0, ymlFiles(legacyFolder()).length, "and only NOW may the file be archived");
-        assertEquals(1, ymlFiles(tempDir.resolve("PlayerData-Imported").toFile()).length);
-        assertTrue(ConfigFactory.open(metadataFile()).getBoolean("complete"));
+        assertEquals(1, ymlFiles(consolidatedPlayerData()).length);
+        assertTrue(ConfigFactory.open(consolidatedMetadata()).getBoolean("complete"));
     }
 
     @Test
@@ -625,9 +675,10 @@ class LegacyImportTest {
     }
 
     @Test
-    void theCooldownBlockBlocksLikeAnyOtherUnclaimedRootKey() throws IOException {
-        //Cooldown used to be hardcoded as 'mapped' while nothing read it, so it went silently missing.
-        //Here it is the ONLY unclaimed key: every other one has an adapter, and it still must block.
+    void theCooldownBlockIsClaimedByTheBuiltinLocalSectionAndMigrates() throws IOException {
+        //Cooldown is no longer a homeless root key: the framework's own PlayerCooldownsLocal claims it
+        //through a legacyYaml adapter, so a v3 Cooldown block migrates like any other section and its
+        //file is archived once done - where it used to block the migration forever.
         writeLegacyYml("petrus.yml", String.join("\n",
                 "PlayerData:",
                 "  Username: Petrus",
@@ -648,15 +699,24 @@ class LegacyImportTest {
 
         PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
 
-        assertEquals(1, ymlFiles(legacyFolder()).length,
-                "an unread Cooldown block must keep its file, not vanish with it");
-        assertFalse(tempDir.resolve("PlayerData-Imported").toFile().exists());
+        assertEquals(0, ymlFiles(legacyFolder()).length,
+                "every root key now has an owner, so the file is drained");
+        assertEquals(1, ymlFiles(consolidatedPlayerData()).length);
 
-        Config progress = ConfigFactory.open(metadataFile());
-        assertEquals("PENDING_NO_ADAPTER", progress.getString("sections.Cooldown.status"),
-                "Cooldown must be visible as pending, like any other key nobody claims");
+        Config progress = ConfigFactory.open(consolidatedMetadata());
+        assertEquals("DONE", progress.getString("sections.Cooldown.status"),
+                "Cooldown is claimed by the builtin local cooldown row, so it migrates");
         assertEquals("DONE", progress.getString("sections.FinalJobs.status"));
-        assertFalse(progress.getBoolean("complete"));
+        assertTrue(progress.getBoolean("complete"));
+
+        //the cooldown itself reached the player's local cooldown row
+        PlayerCooldownsLocal cooldowns = PlayerController.getLoaded(PETRUS_UUID)
+                .getPDSection(PlayerCooldownsLocal.class).join();
+        CooldownEntry migrated = cooldowns.getPersistedCooldowns().get("test_kit");
+        assertNotNull(migrated, "the v3 cooldown must land in the player's local cooldown row");
+        assertEquals(1600000000000L, migrated.getTimeStart());
+        assertEquals(99999999L, migrated.getTimeDuration());
+        assertTrue(migrated.isPersist(), "only persistent cooldowns were ever written to a v3 file");
     }
 
     @Test
@@ -674,9 +734,9 @@ class LegacyImportTest {
         PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
 
         assertEquals(0, ymlFiles(legacyFolder()).length, "an empty block has nothing to migrate");
-        assertEquals(1, ymlFiles(tempDir.resolve("PlayerData-Imported").toFile()).length);
+        assertEquals(1, ymlFiles(consolidatedPlayerData()).length);
 
-        Config progress = ConfigFactory.open(metadataFile());
+        Config progress = ConfigFactory.open(consolidatedMetadata());
         assertEquals("EMPTY", progress.getString("sections.FinalRTP.status"),
                 "an empty root key is reported, but as EMPTY - never as a pending adapter");
         assertTrue(progress.getBoolean("complete"));
@@ -703,11 +763,11 @@ class LegacyImportTest {
 
         assertEquals(42, PlayerController.getLoaded(PETRUS_UUID).getPDSection(LegacyJobsPDSection.class).join().level);
         assertEquals(0, ymlFiles(legacyFolder()).length, "a field nobody reads must not hold a file back");
-        assertEquals(1, ymlFiles(tempDir.resolve("PlayerData-Imported").toFile()).length);
+        assertEquals(1, ymlFiles(consolidatedPlayerData()).length);
 
         //the contract is the root key, never the field: what an adapter drops is its author's call,
         //so no field name may show up anywhere in the progress file
-        String progress = new String(Files.readAllBytes(metadataFile().toPath()), StandardCharsets.UTF_8);
+        String progress = new String(Files.readAllBytes(consolidatedMetadata().toPath()), StandardCharsets.UTF_8);
         assertFalse(progress.contains("pKills"), "base fields must never be tracked");
         assertFalse(progress.contains("xp"), "fields inside a mapped root key must never be tracked");
         assertTrue(progress.contains("FinalJobs"), "root keys, on the other hand, ARE tracked");
@@ -748,7 +808,7 @@ class LegacyImportTest {
         assertEquals(FAKE_PLUGIN_NAME, owner.getMetaInfo().getName(), "a real ECPluginData, not a null stand-in");
         assertEquals(42, PlayerController.getLoaded(PETRUS_UUID).getPDSection(LegacyJobsPDSection.class).join().level);
 
-        Config progress = ConfigFactory.open(metadataFile());
+        Config progress = ConfigFactory.open(consolidatedMetadata());
         assertEquals(FAKE_PLUGIN_NAME, progress.getString("sections.FinalJobs.owner"),
                 "the progress file must name the plugin an admin has to install for a pending key");
         assertEquals("LegacyJobsPDSection", progress.getString("sections.FinalJobs.pdsection"));
@@ -764,7 +824,7 @@ class LegacyImportTest {
         Map<String, SectionProgress> sections = new LinkedHashMap<>();
         sections.put("PlayerData", new SectionProgress(SectionStatus.DONE, 3, 3, "EverNifeCore", "PlayerData"));
         sections.put("Ontime", new SectionProgress(SectionStatus.DONE, 2, 2, "ENCTemplate", "LegacyOntimeSection"));
-        sections.put("Cooldown", new SectionProgress(SectionStatus.PENDING_NO_ADAPTER, 181, 0, "", ""));
+        sections.put("OrphanPluginSection", new SectionProgress(SectionStatus.PENDING_NO_ADAPTER, 181, 0, "", ""));
         sections.put("FinalRTP", new SectionProgress(SectionStatus.EMPTY, 153, 0, "", ""));
 
         LegacyImportReport report = new LegacyImportReport();
@@ -790,9 +850,9 @@ class LegacyImportTest {
         assertTrue(ontime.contains("[DONE]"), ontime);
 
         //an unclaimed key still says how much data it is holding hostage
-        String cooldown = sectionLine(text, "Cooldown");
-        assertTrue(cooldown.contains("181 found"), cooldown);
-        assertTrue(cooldown.contains("[PENDING_NO_ADAPTER]"), cooldown);
+        String orphan = sectionLine(text, "OrphanPluginSection");
+        assertTrue(orphan.contains("181 found"), orphan);
+        assertTrue(orphan.contains("[PENDING_NO_ADAPTER]"), orphan);
 
         //an empty key is reported as empty, never as a pending adapter
         String finalRtp = sectionLine(text, "FinalRTP");
@@ -804,7 +864,7 @@ class LegacyImportTest {
     void theReportTellsArchivedFilesApartFromPendingOnes() {
         Map<String, SectionProgress> sections = new LinkedHashMap<>();
         sections.put("PlayerData", new SectionProgress(SectionStatus.DONE, 3, 3, "EverNifeCore", "PlayerData"));
-        sections.put("Cooldown", new SectionProgress(SectionStatus.PENDING_NO_ADAPTER, 1, 0, "", ""));
+        sections.put("OrphanPluginSection", new SectionProgress(SectionStatus.PENDING_NO_ADAPTER, 1, 0, "", ""));
 
         LegacyImportReport report = new LegacyImportReport();
         report.setPaths(legacyFolder(), tempDir.resolve("PlayerData-Imported").toFile(),
@@ -854,11 +914,8 @@ class LegacyImportTest {
                 "FinalJobs:",
                 "  level: 42",
                 "  job: miner",
-                "Cooldown:",
-                "  test_kit:",
-                "    identifier: test_kit",
-                "    timeStart: 1600000000000",
-                "    timeDuration: 99999999",
+                "OrphanPluginSection:",
+                "  some: data",
                 "FinalRTP: {}",
                 ""));
         registerJobsSectionOwnedBy(realPluginData());
@@ -874,7 +931,7 @@ class LegacyImportTest {
         assertTrue(jobs.contains("LegacyJobsPDSection"), jobs);
         assertTrue(jobs.contains("[DONE]"), jobs);
         assertTrue(sectionLine(text, "PlayerData").contains("EverNifeCore"), text);
-        assertTrue(sectionLine(text, "Cooldown").contains("[PENDING_NO_ADAPTER]"), text);
+        assertTrue(sectionLine(text, "OrphanPluginSection").contains("[PENDING_NO_ADAPTER]"), text);
         assertTrue(sectionLine(text, "FinalRTP").contains("[EMPTY]"), text);
 
         //the outcome of a run that kept its only file back, and WHY it did
@@ -887,8 +944,8 @@ class LegacyImportTest {
 
     @Test
     void theOutcomeNamesTheSingleRootKeyHoldingTheRunBack() throws IOException {
-        //Cooldown is the ONLY unclaimed key here: a generic "1 pending" would leave the admin guessing
-        //which plugin to go install
+        //OrphanPluginSection is the ONLY unclaimed key here: a generic "1 pending" would leave the admin
+        //guessing which plugin to go install
         writeLegacyYml("petrus.yml", String.join("\n",
                 "PlayerData:",
                 "  Username: Petrus",
@@ -896,11 +953,8 @@ class LegacyImportTest {
                 "  firstSeen: 1600000000000",
                 "  lastSeen: 1700000000000",
                 "  lastSaved: 1700000000001",
-                "Cooldown:",
-                "  test_kit:",
-                "    identifier: test_kit",
-                "    timeStart: 1600000000000",
-                "    timeDuration: 99999999",
+                "OrphanPluginSection:",
+                "  some: data",
                 "FinalJobs:",
                 "  level: 42",
                 "  job: miner",
@@ -918,7 +972,7 @@ class LegacyImportTest {
             }
         }
         assertNotNull(pending, "the outcome must state what stayed behind: " + text);
-        assertTrue(pending.contains("Cooldown"),
+        assertTrue(pending.contains("OrphanPluginSection"),
                 "the outcome must NAME the root key holding the run back, not just count it: " + pending);
         assertFalse(pending.contains("FinalJobs"), "a key that migrated is not a blocker: " + pending);
     }
@@ -931,10 +985,10 @@ class LegacyImportTest {
         PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
 
         //the header is the admin's only instruction once the server is down and the folder is empty
-        String raw = new String(Files.readAllBytes(metadataFile().toPath()), StandardCharsets.UTF_8);
+        String raw = new String(Files.readAllBytes(consolidatedMetadata().toPath()), StandardCharsets.UTF_8);
         assertTrue(raw.contains("ROLLBACK"), raw);
         assertTrue(raw.contains("DOWNGRADE"), raw);
-        assertTrue(raw.contains("PlayerData-Imported"), "the header must say WHERE the .yml files went: " + raw);
+        assertTrue(raw.contains("__LegacyData_V2"), "the header must say WHERE the .yml files went: " + raw);
     }
 
     @Test
@@ -951,7 +1005,7 @@ class LegacyImportTest {
         //one that may warn about a downgrade
         registerJobsSectionWithAdapter();
         PlayerController.bootstrap(storageYml);
-        assertTrue(LegacyMigrationMetadata.load(metadataFile()).isComplete());
+        assertTrue(LegacyMigrationMetadata.load(consolidatedMetadata()).isComplete());
         assertEquals(0, ymlFiles(legacyFolder()).length);
     }
 }
