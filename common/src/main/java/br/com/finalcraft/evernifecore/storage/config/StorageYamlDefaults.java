@@ -2,10 +2,13 @@ package br.com.finalcraft.evernifecore.storage.config;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.evernifecore.storage.BackendType;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 
 import java.io.File;
+import java.util.LinkedHashMap;
+import java.util.Locale;
 
 /**
  * Generates the default {@code storage.yml} programmatically through the EveryConfig
@@ -46,7 +49,7 @@ public final class StorageYamlDefaults {
 
         config.setValue("storage-backends.mysql.enabled", false);
         config.setValue("storage-backends.mysql.type", "sql");
-        config.setValue("storage-backends.mysql.url", "jdbc:mariadb://localhost:3306/minecraft");
+        config.setValue("storage-backends.mysql.url", "jdbc:mysql://localhost:3306/minecraft");
         config.setValue("storage-backends.mysql.user", "root");
         config.setValue("storage-backends.mysql.pass", "");
         config.setValue("storage-backends.mysql.pool.minIdle", 2);
@@ -79,11 +82,11 @@ public final class StorageYamlDefaults {
                 "   mysql_economy:",
                 "     enabled: true",
                 "     type: sql",
-                "     url: \"jdbc:mariadb://economy-db:3306/minecraft\"",
+                "     url: \"jdbc:mysql://economy-db:3306/minecraft\"",
                 "   mysql_points:",
                 "     enabled: true",
                 "     type: sql",
-                "     url: \"jdbc:mariadb://points-db:3306/minecraft\"",
+                "     url: \"jdbc:mysql://points-db:3306/minecraft\"",
                 "",
                 " Valid types: groupedfile | localfile | sql | postgresql | h2 | mongo | memory",
                 " Every backend's runtime dependencies (JDBC drivers, Mongo) are",
@@ -194,62 +197,151 @@ public final class StorageYamlDefaults {
      * Seeds a default inline single-backend block at {@code section} - a plugin's own config field (e.g.
      * config.yml's {@code storage:}) that {@link StorageYamlParser#parseInlineBackend} then reads. The
      * shape mirrors storage.yml's backends but simplified: the child key IS the backend type, enabling is
-     * implicit, and EXACTLY ONE is declared. Idempotent (seeds only what is absent), so it is safe to call
-     * on every load. Ships a {@code groupedfile} default under {@code defaultDataPath/groupedfile} plus a
-     * comment documenting the other types a plugin's admin can switch to. Each FILE backend (groupedfile,
-     * localfile) is rooted in its OWN {@code defaultDataPath/<type>} subfolder, so switching type never
-     * makes two backends share a directory (they must not - one dir holds one container format).
+     * implicit, and EXACTLY ONE is declared. Idempotent: if a backend is already declared it returns
+     * untouched, keeping the admin's choice - so it is safe to call on every load.
+     *
+     * <p>The seeded {@code type}/{@code format} are the plugin's own standardized default, so a plugin can
+     * ship whichever default it wants (a groupedfile server, a mongo server, ...). {@code format} is only
+     * meaningful for the FILE backends ({@code groupedfile}/{@code localfile}): a {@code null} format on a
+     * file backend defaults to {@link BackendDefinition.FileFormat#YAML}, and on any non-file backend the
+     * format is dropped altogether (there is no file format to pick - it is overridden to none). Each file
+     * backend is rooted in its OWN {@code baseStoragePath/<type>} subfolder, so switching type never makes
+     * two backends share a directory (one dir holds one container format).</p>
      *
      * @param section         the field to seed (e.g. {@code config.getConfigSection("storage")})
-     * @param defaultDataPath the base data folder; each file backend gets a {@code /<type>} subfolder of it
+     * @param baseStoragePath the base data folder; each file backend gets a {@code /<type>} subfolder of it
      *                        (e.g. {@code plugins/MyPlugin/Data} -&gt; {@code plugins/MyPlugin/Data/groupedfile})
+     * @param type            the backend type to seed (becomes the single child key); {@code null} = groupedfile
+     * @param format          the file format for a file backend ({@code null} = YAML); ignored for non-file types
+     * @param compactComment  {@code true} writes the short header; {@code false} the full block documenting
+     *                        every switchable type
      */
-    public static void writeInlineBackendTemplate(ConfigSection section, String defaultDataPath) {
+    public static void writeInlineBackendTemplate(ConfigSection section, String baseStoragePath,
+                                                  BackendType type, BackendDefinition.FileFormat format,
+                                                  boolean compactComment) {
         if (!section.getKeys().isEmpty()) {
             return; //a backend is already declared - never add a second one or override the admin's choice
         }
-        section.setValueIfAbsent("groupedfile.path", defaultDataPath + "/groupedfile");
-        section.setValueIfAbsent("groupedfile.format", "yaml");
-        section.setDefaultComment("groupedfile.format",
-                "format: yaml | json - groupedfile co-locates a key's whole record in one file");
+        if (type == null) {
+            type = BackendType.GROUPEDFILE;
+        }
+
+        seedBackendFields(section, type, resolveFileFormat(type, format), baseStoragePath);
+
         String path = section.getPath();
         if (path != null && !path.isEmpty()) {
-            section.getConfig().setDefaultComment(path, inlineBackendTemplateComment(defaultDataPath));
+            section.getConfig().setDefaultComment(path, compactComment
+                    ? inlineBackendTemplateCommentCompact()
+                    : inlineBackendTemplateComment(baseStoragePath));
         }
     }
 
-    private static String inlineBackendTemplateComment(String defaultDataPath) {
+    /**
+     * Convenience default: seeds a {@code groupedfile} (YAML) backend documented by the full comment block -
+     * the plain "give me the standard file default" call.
+     */
+    public static void writeInlineBackendTemplate(ConfigSection section, String baseStoragePath) {
+        writeInlineBackendTemplate(section, baseStoragePath, BackendType.GROUPEDFILE, null, false);
+    }
+
+    /**
+     * Resolves the file format actually written for {@code type}: honoured (defaulting to YAML) for the file
+     * backends, and dropped to {@code null} for every other type, which has no file format to pick.
+     */
+    private static BackendDefinition.FileFormat resolveFileFormat(BackendType type,
+                                                                  BackendDefinition.FileFormat requested) {
+        if (type != BackendType.GROUPEDFILE && type != BackendType.LOCALFILE) {
+            return null;
+        }
+        return requested != null ? requested : BackendDefinition.FileFormat.YAML;
+    }
+
+    /**
+     * Writes the per-type default fields of ONE inline backend under {@code section}, keyed by the type's own
+     * id. Mirrors the per-type field set that {@link StorageYamlParser#parseInlineBackend} reads back.
+     */
+    private static void seedBackendFields(ConfigSection section, BackendType type,
+                                          BackendDefinition.FileFormat format, String baseStoragePath) {
+        String key = type.getId();
+        switch (type) {
+            case GROUPEDFILE:
+            case LOCALFILE:
+                section.setValueIfAbsent(key + ".path", baseStoragePath + "/" + key);
+                section.setValueIfAbsent(key + ".format", format.name().toLowerCase(Locale.ROOT));
+                section.setDefaultComment(key + ".format", type == BackendType.GROUPEDFILE
+                        ? "format: yaml | json - groupedfile co-locates a key's whole record in one file"
+                        : "format: yaml | json (json is always pretty/indented)");
+                break;
+            case H2:
+                section.setValueIfAbsent(key + ".url", "jdbc:h2:file:./" + baseStoragePath + "/h2database");
+                break;
+            case SQL:
+                section.setValueIfAbsent(key + ".url", "jdbc:mysql://localhost:3306/minecraft");
+                section.setValueIfAbsent(key + ".user", "root");
+                section.setValueIfAbsent(key + ".pass", "");
+                break;
+            case POSTGRESQL:
+                section.setValueIfAbsent(key + ".url", "jdbc:postgresql://localhost:5432/minecraft");
+                section.setValueIfAbsent(key + ".user", "root");
+                section.setValueIfAbsent(key + ".pass", "");
+                break;
+            case MONGO:
+                section.setValueIfAbsent(key + ".url", "mongodb://localhost:27017");
+                section.setValueIfAbsent(key + ".db", "minecraft");
+                break;
+            case MEMORY:
+                // memory has no fields - seed an empty block so the inline parser still sees a declared backend
+                section.setValueIfAbsent(key, new LinkedHashMap<String, Object>());
+                break;
+        }
+    }
+
+    /** The full inline-backend header: documents every switchable type and its fields. */
+    public static String inlineBackendTemplateComment(String defaultDataPath) {
         return String.join("\n",
                 "============================================================",
                 " Storage backend (EveryDatabase, via EverNifeCore)",
                 "",
                 " Declare EXACTLY ONE backend here - the child key IS its type,",
-                " and declaring it is what enables it (no 'enabled', no 'type').",
                 " To switch backend, replace the block below with another type.",
                 "",
                 " Valid types and their fields:",
+                "",
                 "   groupedfile:            # one file per key (the default)",
                 "     path: " + defaultDataPath + "/groupedfile",
                 "     format: yaml           # yaml | json",
+                "",
                 "   localfile:              # one file per entity",
                 "     path: " + defaultDataPath + "/localfile",
                 "     format: yaml",
+                "",
                 "   h2:",
                 "     url: \"jdbc:h2:file:./" + defaultDataPath + "/h2database\"",
+                "",
                 "   sql:                    # MySQL / MariaDB",
-                "     url: \"jdbc:mariadb://localhost:3306/minecraft\"",
+                "     url: \"jdbc:mysql://localhost:3306/minecraft\"",
                 "     user: root",
                 "     pass: \"\"",
+                "",
                 "   postgresql:",
                 "     url: \"jdbc:postgresql://localhost:5432/minecraft\"",
                 "     user: root",
                 "     pass: \"\"",
+                "",
                 "   mongo:",
                 "     url: \"mongodb://localhost:27017\"",
                 "     db: minecraft",
+                "============================================================");
+    }
+
+    /** The compact inline-backend header: just the one rule, for configs that document types elsewhere. */
+    public static String inlineBackendTemplateCommentCompact() {
+        return String.join("\n",
+                "============================================================",
+                " Storage backend (EveryDatabase, via EverNifeCore)",
                 "",
-                " Every backend's driver is downloaded by EverNifeCore at boot,",
-                " so any type here works with no extra install.",
+                " Declare EXACTLY ONE backend here - the child key IS its type,",
+                " To switch backend, replace the block below with another type.",
                 "============================================================");
     }
 

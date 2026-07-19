@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -168,6 +169,87 @@ class InlineBackendTest {
 
         BackendDefinition backend = StorageYamlParser.parseInlineBackend(storage);
         assertEquals(BackendType.MONGO, backend.getType(), "seeding must not override the admin's choice");
+    }
+
+    @Test
+    void seedsAChosenFileBackendWithItsRequestedFormat() throws IOException {
+        Config config = configOf("triggers:\n  on-death: true\n");
+        ConfigSection storage = config.getConfigSection("storage");
+
+        StorageYamlDefaults.writeInlineBackendTemplate(storage, path("SnapshotData"),
+                BackendType.LOCALFILE, BackendDefinition.FileFormat.JSON, false);
+
+        BackendDefinition backend = StorageYamlParser.parseInlineBackend(storage);
+        assertEquals(BackendType.LOCALFILE, backend.getType());
+        assertEquals(BackendDefinition.FileFormat.JSON, backend.getFormat(), "a file backend honours the requested format");
+    }
+
+    @Test
+    void aNullFormatOnAFileBackendDefaultsToYaml() throws IOException {
+        Config config = configOf("triggers:\n  on-death: true\n");
+        ConfigSection storage = config.getConfigSection("storage");
+
+        StorageYamlDefaults.writeInlineBackendTemplate(storage, path("SnapshotData"),
+                BackendType.GROUPEDFILE, null, false);
+
+        assertEquals(BackendDefinition.FileFormat.YAML,
+                StorageYamlParser.parseInlineBackend(storage).getFormat());
+    }
+
+    @Test
+    void seedsANonFileBackendAndDropsTheRequestedFormat() throws IOException {
+        Config config = configOf("triggers:\n  on-death: true\n");
+        ConfigSection storage = config.getConfigSection("storage");
+
+        //a format was requested, but mongo is not a file backend - it must be overridden away, not seeded
+        StorageYamlDefaults.writeInlineBackendTemplate(storage, path("SnapshotData"),
+                BackendType.MONGO, BackendDefinition.FileFormat.YAML, false);
+
+        BackendDefinition backend = StorageYamlParser.parseInlineBackend(storage);
+        assertEquals(BackendType.MONGO, backend.getType());
+        assertFalse(storage.contains("mongo.format"), "format is meaningless on a non-file backend and must not be seeded");
+        assertTrue(storage.contains("mongo.url"));
+        assertTrue(storage.contains("mongo.db"));
+    }
+
+    @Test
+    void seedsAnH2BackendWithItsUrl() throws IOException {
+        Config config = configOf("triggers:\n  on-death: true\n");
+        ConfigSection storage = config.getConfigSection("storage");
+
+        StorageYamlDefaults.writeInlineBackendTemplate(storage, path("SnapshotData"),
+                BackendType.H2, null, false);
+
+        BackendDefinition backend = StorageYamlParser.parseInlineBackend(storage);
+        assertEquals(BackendType.H2, backend.getType());
+        assertTrue(storage.contains("h2.url"));
+        assertFalse(storage.contains("h2.format"));
+    }
+
+    @Test
+    void seedsAMemoryBackendThatParsesBack() throws IOException {
+        Config config = configOf("triggers:\n  on-death: true\n");
+        ConfigSection storage = config.getConfigSection("storage");
+
+        StorageYamlDefaults.writeInlineBackendTemplate(storage, path("SnapshotData"),
+                BackendType.MEMORY, null, false);
+
+        assertEquals(BackendType.MEMORY, StorageYamlParser.parseInlineBackend(storage).getType());
+    }
+
+    @Test
+    void theCompactCommentOmitsTheFullTypeCatalog() throws IOException {
+        Config config = configOf("triggers:\n  on-death: true\n");
+        ConfigSection storage = config.getConfigSection("storage");
+
+        StorageYamlDefaults.writeInlineBackendTemplate(storage, path("SnapshotData"),
+                BackendType.GROUPEDFILE, null, true);
+
+        config.save();
+        String raw = new String(Files.readAllBytes(config.getFile().toPath()), StandardCharsets.UTF_8);
+        assertTrue(raw.contains("Declare EXACTLY ONE backend here"), raw);
+        assertFalse(raw.contains("Valid types and their fields"),
+                "the compact header must not document every type: " + raw);
     }
 
     // ------------------------------------------------------------------
