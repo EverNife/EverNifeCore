@@ -106,10 +106,18 @@ public class FCMinecraftAdventureUtil {
         }
     }
 
-    public static BukkitAudiences getAdventure() {
+    public static synchronized BukkitAudiences getAdventure() {
         if (adventure == null) {
             adventure = BukkitAudiences.create(EverNifeCoreBukkitPlugin.instance);
         }
         return adventure;
+    }
+
+    // Release the bridge on plugin disable so a /reload does not leave a handle to a closed plugin.
+    public static synchronized void close() {
+        if (adventure != null) {
+            adventure.close();
+            adventure = null;
+        }
     }
 }

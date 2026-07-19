@@ -24,6 +24,7 @@ import br.com.finalcraft.evernifecore.minecraft.loader.imp.McECPluginExtractor;
 import br.com.finalcraft.evernifecore.minecraft.loader.imp.McPlatform;
 import br.com.finalcraft.evernifecore.minecraft.nbt.NBTSelfTest;
 import br.com.finalcraft.evernifecore.minecraft.ontime.McDefaultOntimeManager;
+import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCTickUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
@@ -142,6 +143,7 @@ public class EverNifeCoreBukkitPlugin extends JavaPlugin {
     public void onDisable() {
         HandlerList.unregisterAll(this);
         EverNifeCore.instance.onUnload();
+        FCMinecraftAdventureUtil.close();
     }
 
     @ECPlugin.Reload

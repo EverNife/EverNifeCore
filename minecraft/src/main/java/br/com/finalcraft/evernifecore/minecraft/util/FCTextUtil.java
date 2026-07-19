@@ -37,7 +37,8 @@ public class FCTextUtil {
 
     public static String generateWidth(String string, int width, boolean canExceed) {
         int stringWidth = ChatMenuAPI.getWidth(string);
-        if (stringWidth < 0) throw new IllegalStateException("String without any size cannot be used as argument in generateWidth() str: [" +  string + "]");
+        // Zero width (e.g. a string of only colour codes) would divide by zero and yield MAX_VALUE repeats.
+        if (stringWidth <= 0) throw new IllegalStateException("String with no visible width cannot be used as argument in generateWidth() str: [" +  string + "]");
         int count = (int) (canExceed ? Math.round(width / (double) stringWidth) : Math.floor(width / (double) stringWidth));
         return repeatString(string, count);
     }
