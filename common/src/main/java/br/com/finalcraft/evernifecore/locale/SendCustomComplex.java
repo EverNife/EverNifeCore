@@ -32,6 +32,8 @@ public class SendCustomComplex extends SendCustom {
         this.hover = sendCustom.hover;
         this.action = sendCustom.action;
         this.suggest = sendCustom.suggest;
+        this.link = sendCustom.link;
+        this.compoundReplacer = sendCustom.compoundReplacer;
 
         if (previous instanceof SendCustomComplex){
             concatList = ((SendCustomComplex)previous).concatList;
@@ -52,6 +54,7 @@ public class SendCustomComplex extends SendCustom {
                 if (sendCustom.hover != null) fancyText.setHoverText(sendCustom.hover);
                 if (sendCustom.action != null) fancyText.setRunCommandAction(sendCustom.action);
                 if (sendCustom.suggest != null) fancyText.setSuggestCommandAction(sendCustom.suggest);
+                if (sendCustom.link != null) fancyText.setOpenLinkAction(sendCustom.link);
 
                 LocaleMessageImp localeMessageImp = (LocaleMessageImp) sendCustom.localeMessage;
                 List<Map.Entry<String, Object>> allPlaceholdersReplacers = new ArrayList<>();
@@ -73,6 +76,8 @@ public class SendCustomComplex extends SendCustom {
 
                     fancyText.replace(placeholder, value);
                 }
+
+                fancyText.replace(sendCustom.compoundReplacer);
 
                 formatter.append(fancyText);
             }

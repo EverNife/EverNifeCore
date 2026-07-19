@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.locale;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -99,6 +100,7 @@ public class LocaleMessageImp implements LocaleMessage {
 
     @Override
     public FancyText getFancyText(String lang){
+        if (lang == null) return null; //getLangOf may yield null when no default lang is resolved
         return fancyTextMap.get(lang.toUpperCase());
     }
 
@@ -114,6 +116,11 @@ public class LocaleMessageImp implements LocaleMessage {
         if (defaultFancyText == null){
             defaultFancyText = getFancyText(FCLocaleManager.getLangOf(this.plugin));
             if (defaultFancyText == null){ //There is no set message for this lang, take first available
+                if (fancyTextMap.isEmpty()){
+                    EverNifeCore.getLog().warning("LocaleMessage '" + key + "' of plugin '"
+                            + plugin.getMetaInfo().getName() + "' has no registered locale text.");
+                    return null;
+                }
                 defaultFancyText = new ArrayList<>(fancyTextMap.values()).get(0);
             }
         }
