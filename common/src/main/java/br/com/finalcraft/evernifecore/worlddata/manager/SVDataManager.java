@@ -14,8 +14,10 @@ import br.com.finalcraft.everydatabase.Storage;
 import lombok.Data;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Spatial per-block data store ({@code world -> chunk -> block -> O}) persisted on the EveryDatabase
@@ -26,6 +28,14 @@ import java.util.Map;
  * {@link #load()} mirrors the whole dataset into {@code worldDataMap}, and {@link #save()} flushes
  * the pending block changes into the chunk entities and lets the {@code CachingManager} write them
  * back in a batch.</p>
+ *
+ * <p><b>Threading.</b> The block-change writers ({@link #onBlockMetaSet}/{@link #onBlockMetaRemove})
+ * may run on any thread. They append to the pending-operations set while holding an internal
+ * monitor; {@link #save()} coordinates with them by swapping that set for a fresh one under the same
+ * monitor and draining the captured snapshot, so its swap-and-drain never races an in-flight write
+ * and no queued operation is lost. {@link #load()} clears the pending set under the same monitor.
+ * The backing set is a concurrent, insertion-ordered set: the set-then-remove ordering of the same
+ * block is preserved.</p>
  *
  * <p>Build one with {@link #targeting(Class)}, supplying the backend {@link Storage} and collection.
  * A {@code legacyFolder} enables the one-time region-YAML import (see {@link #importLegacy()}).</p>
@@ -40,13 +50,16 @@ public class SVDataManager<O> extends ServerData<O> {
 
     private final transient String targetClassName;
 
-    private transient LinkedHashSet<BlockMetaDataOperation<O>> blocksToSaveOrRemove;
+    //stable monitor guarding the pending-operations set; NOT the set itself, which save() swaps out
+    private final transient Object saveLock = new Object();
+
+    private transient Set<BlockMetaDataOperation<O>> blocksToSaveOrRemove;
 
     public SVDataManager(Class<O> targetClass, File legacyFolder, WorldChunkDataBinding binding) {
         this.targetClass = targetClass;
         this.legacyFolder = legacyFolder;
         this.binding = binding;
-        this.blocksToSaveOrRemove = new LinkedHashSet<>();
+        this.blocksToSaveOrRemove = Collections.synchronizedSet(new LinkedHashSet<>());
         this.targetClassName = (targetClass == null ? "null" : targetClass.getSimpleName());
     }
 
@@ -64,15 +77,19 @@ public class SVDataManager<O> extends ServerData<O> {
 
     @Override
     public void onBlockMetaSet(BlockMetaData blockMetaData) {
-        this.blocksToSaveOrRemove.add(new BlockMetaDataOperation<>(blockMetaData, false));
+        synchronized (saveLock) {
+            this.blocksToSaveOrRemove.add(new BlockMetaDataOperation<>(blockMetaData, false));
+        }
     }
 
     @Override
     public void onBlockMetaRemove(BlockMetaData blockMetaData) {
-        this.blocksToSaveOrRemove.add(new BlockMetaDataOperation<>(blockMetaData, true));
+        synchronized (saveLock) {
+            this.blocksToSaveOrRemove.add(new BlockMetaDataOperation<>(blockMetaData, true));
+        }
     }
 
-    public LinkedHashSet<BlockMetaDataOperation<O>> getBlocksToSaveOrRemove() {
+    public Set<BlockMetaDataOperation<O>> getBlocksToSaveOrRemove() {
         return blocksToSaveOrRemove;
     }
 
@@ -85,10 +102,10 @@ public class SVDataManager<O> extends ServerData<O> {
             return;
         }
 
-        LinkedHashSet<BlockMetaDataOperation<O>> pending;
-        synchronized (blocksToSaveOrRemove) {
+        Set<BlockMetaDataOperation<O>> pending;
+        synchronized (saveLock) {
             pending = blocksToSaveOrRemove;
-            blocksToSaveOrRemove = new LinkedHashSet<>();
+            blocksToSaveOrRemove = Collections.synchronizedSet(new LinkedHashSet<>());
         }
 
         for (BlockMetaDataOperation<O> operation : pending) {
@@ -120,7 +137,9 @@ public class SVDataManager<O> extends ServerData<O> {
 
     public int load() {
         this.worldDataMap.clear();
-        this.blocksToSaveOrRemove.clear();
+        synchronized (saveLock) {
+            blocksToSaveOrRemove.clear();
+        }
 
         long start = System.currentTimeMillis();
         binding.getManager().preloadAll().join();
@@ -141,7 +160,9 @@ public class SVDataManager<O> extends ServerData<O> {
         }
 
         //setBlockData routed every load through onBlockMetaSet, queuing a needless re-save
-        this.blocksToSaveOrRemove.clear();
+        synchronized (saveLock) {
+            blocksToSaveOrRemove.clear();
+        }
 
         try {
             EverNifeCore.getLog().debugModule(
