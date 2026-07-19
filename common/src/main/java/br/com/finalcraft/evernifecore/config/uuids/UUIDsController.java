@@ -46,7 +46,9 @@ public class UUIDsController {
     }
 
     public static String normalizeName(String unformattedPlayerName){
-        return UUID_HASH_MAP.get(UUID_HASH_MAP.get(unformattedPlayerName));
+        //Unknown name: echo the input back (callers such as ban handling pass it straight through).
+        UUID id = UUID_HASH_MAP.get(unformattedPlayerName);
+        return id == null ? unformattedPlayerName : UUID_HASH_MAP.get(id);
     }
 
     public static Collection<UUID> getAllUUIDs(){

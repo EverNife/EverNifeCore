@@ -28,9 +28,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -75,8 +74,10 @@ public final class ConfigFactory {
 
     private static final Object LOCK = new Object();
 
-    /** Every registration, in order; drained into a fresh {@link SimpleModule} on each rebuild. */
-    private static final List<TypeAdapter<?>> ADAPTERS = new ArrayList<>();
+    /** Every registration, keyed by adapter type so a re-register of a type replaces rather than accumulates
+     *  (last one wins, matching Jackson's per-type resolution); iteration order is stable (first-registration
+     *  order). Drained into a fresh {@link SimpleModule} on each rebuild. */
+    private static final Map<Class<?>, TypeAdapter<?>> ADAPTERS = new LinkedHashMap<>();
 
     /** The codec-by-extension registry; {@code null} means "stale, rebuild on next use". Volatile so a reader
      *  sees the swapped-in instance without locking on the hot path. */
@@ -95,7 +96,7 @@ public final class ConfigFactory {
     public static <T> TypeAdapter<T> register(final Class<T> type) {
         final TypeAdapter<T> adapter = new TypeAdapter<>(type);
         synchronized (LOCK) {
-            ADAPTERS.add(adapter);
+            ADAPTERS.put(type, adapter);
         }
         return adapter;
     }
@@ -256,7 +257,7 @@ public final class ConfigFactory {
     public static Module sharedTypeModule() {
         synchronized (LOCK) {
             final SimpleModule module = new SimpleModule("EverNifeConfigFactoryTypes");
-            for (final TypeAdapter<?> adapter : ADAPTERS) {
+            for (final TypeAdapter<?> adapter : ADAPTERS.values()) {
                 adapter.contributeTo(module);
             }
             return module;
@@ -288,7 +289,7 @@ public final class ConfigFactory {
         final SimpleModule module = new SimpleModule("EverNifeConfigFactoryTypes");
         final Map<Class<?>, CompactElementCodec<?>> compact = new HashMap<>();
 
-        for (final TypeAdapter<?> adapter : ADAPTERS) {
+        for (final TypeAdapter<?> adapter : ADAPTERS.values()) {
             adapter.contributeTo(module);
             adapter.contributeCompact(compact);
         }
