@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public abstract class ManipulationContext {
@@ -23,7 +24,8 @@ public abstract class ManipulationContext {
         this.inputText = inputText;
 
         for (String delimiter : manipulator.getDelimiters()) {
-            inputText = inputText.replaceFirst(delimiter,"\uFFFF");
+            //delimiters are raw tokens, not regexes; quote so metacharacters match literally
+            inputText = inputText.replaceFirst(Pattern.quote(delimiter),"\uFFFF");
         }
 
         List<String> inputClosures = Arrays.asList(inputText.split("\uFFFF"))

@@ -131,8 +131,9 @@ public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O
             }
 
             if (requested != null){
-                requested = requested.replace("$", "\\$"); // '$' needs to be escaped in replacement to prevent 'Illegal group reference'
-                matcher.appendReplacement(builder, requested);
+                // Both '\' and '$' are special in a replacement string; quoteReplacement escapes both,
+                // so a value like "C:\Users\x" or one ending in '\' is inserted literally.
+                matcher.appendReplacement(builder, Matcher.quoteReplacement(requested));
             }
         }
         while (matcher.find());
