@@ -117,58 +117,73 @@ public class FancyFormatter extends FancyText {
         for (FancyText fancyText : this.fancyTextList) {
             clone.append(fancyText.clone());
         }
-        clone.mapOfPlaceholders = this.mapOfPlaceholders;
+        clone.mapOfPlaceholders = new HashMap<>(this.mapOfPlaceholders);
         clone.complexPlaceholder = this.complexPlaceholder;
         return clone;
     }
 
+    // Getters/setters target the last appended segment; an empty formatter has none, so degrade
+    // gracefully (null / NONE / no-op) instead of throwing IndexOutOfBounds.
+    private FancyText lastOrNull() {
+        return fancyTextList.isEmpty() ? null : fancyTextList.get(fancyTextList.size() - 1);
+    }
+
     @Override
     public String getText() {
-        return this.fancyTextList.get(fancyTextList.size() - 1).getText();
+        FancyText last = lastOrNull();
+        return last == null ? null : last.getText();
     }
 
     @Override
     public String getHoverText() {
-        return this.fancyTextList.get(fancyTextList.size() - 1).getHoverText();
+        FancyText last = lastOrNull();
+        return last == null ? null : last.getHoverText();
     }
 
     @Override
     public String getClickActionText() {
-        return this.fancyTextList.get(fancyTextList.size() - 1).getClickActionText();
+        FancyText last = lastOrNull();
+        return last == null ? null : last.getClickActionText();
     }
 
     @Override
     public ClickActionType getClickActionType() {
-        return this.fancyTextList.get(fancyTextList.size() - 1).getClickActionType();
+        FancyText last = lastOrNull();
+        return last == null ? ClickActionType.NONE : last.getClickActionType();
     }
 
     @Override
     public FancyFormatter setHoverText(String hoverText) {
-        this.fancyTextList.get(fancyTextList.size() - 1).setHoverText(hoverText);
+        FancyText last = lastOrNull();
+        if (last != null) last.setHoverText(hoverText);
         return this;
     }
 
     @Override
     public FancyText setClickAction(String actionText, ClickActionType actionType) {
-        this.fancyTextList.get(fancyTextList.size() - 1).setClickAction(actionText, actionType);
+        FancyText last = lastOrNull();
+        if (last != null) last.setClickAction(actionText, actionType);
         return this;
     }
 
     @Override
     public FancyFormatter setRunCommandAction(String runCommandAction) {
-        this.fancyTextList.get(fancyTextList.size() - 1).setRunCommandAction(runCommandAction);
+        FancyText last = lastOrNull();
+        if (last != null) last.setRunCommandAction(runCommandAction);
         return this;
     }
 
     @Override
     public FancyFormatter setSuggestCommandAction(String suggestCommandAction) {
-        this.fancyTextList.get(fancyTextList.size() - 1).setSuggestCommandAction(suggestCommandAction);
+        FancyText last = lastOrNull();
+        if (last != null) last.setSuggestCommandAction(suggestCommandAction);
         return this;
     }
 
     @Override
     public FancyFormatter setOpenLinkAction(String linkToOpen) {
-        this.fancyTextList.get(fancyTextList.size() - 1).setOpenLinkAction(linkToOpen);
+        FancyText last = lastOrNull();
+        if (last != null) last.setOpenLinkAction(linkToOpen);
         return this;
     }
 

@@ -38,7 +38,7 @@ public class FancyTextManager {
             for (FCommandSender sender : commandSenders) {
                 FancyFormatter formatterClone = fancyFormatter.clone();
                 final boolean isPlayer = sender instanceof FPlayer;
-                final PlayerData playerData = isPlayer ? PlayerController.getPlayerData(sender.getUniqueId()).join() : null;
+                final PlayerData playerData = isPlayer ? PlayerController.getLoaded(sender.getUniqueId()) : null;
                 
                 for (Map.Entry<String, Object> entry : formatterClone.mapOfPlaceholders.entrySet()) {
                     String placeholder = entry.getKey();
