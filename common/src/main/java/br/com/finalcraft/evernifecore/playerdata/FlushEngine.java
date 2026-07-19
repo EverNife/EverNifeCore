@@ -214,8 +214,18 @@ final class FlushEngine {
         for (E section : manager.cachedValues()) {
             if (!section.isDirty()) continue;
             if (flusher.refuseAheadWrite(section, what, hooks.storageKey(section))) continue;
-            section.markClean(); //clear before persisting; a concurrent change re-sets it (at-least-once)
-            dirty.add(section);
+            ReentrantLock lock = hooks.lock(section);
+            lock.lock();
+            try {
+                if (!section.isDirty()) continue;
+                //the freeze is read HERE, under the lock and before markClean(): once the flag is
+                //cleared the write is unrecoverable, so a later check would already be too late
+                if (manager.isFrozen()) continue; //mid-transfer: the cell stays dirty and re-collects on a later tick
+                section.markClean(); //clear before persisting; a concurrent change re-sets it (at-least-once)
+                dirty.add(section);
+            } finally {
+                lock.unlock();
+            }
         }
         if (dirty.isEmpty()) return null;
         return flusher.persistBatch(manager, dirty, mode(forced), what, hooks, StoredSection::markStoredInBackend);
@@ -227,7 +237,17 @@ final class FlushEngine {
         E section = manager.peek(key).orElse(null);
         if (section == null || !section.isDirty()) return null;
         if (flusher.refuseAheadWrite(section, what, key)) return null;
-        section.markClean(); //clear before persisting; a concurrent change re-sets it (at-least-once)
+        ReentrantLock lock = hooks.lock(section);
+        lock.lock();
+        try {
+            if (!section.isDirty()) return null;
+            //the freeze is read HERE, under the lock and before markClean(): a mid-transfer cell
+            //stays dirty in memory and drains after the cutover, never persisting to the old backend
+            if (manager.isFrozen()) return null;
+            section.markClean(); //clear before persisting; a concurrent change re-sets it (at-least-once)
+        } finally {
+            lock.unlock();
+        }
         return flusher.persistBatch(manager, Collections.singletonList(section), mode(forced), what, hooks,
                 StoredSection::markStoredInBackend);
     }
