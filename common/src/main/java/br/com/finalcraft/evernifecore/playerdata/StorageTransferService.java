@@ -168,12 +168,10 @@ final class StorageTransferService {
     private <S extends PDSection> void migrateCachedSections(PDSectionBinding<S> from, PDSectionBinding<S> to) {
         CachingManager<UUID, S> oldManager = from.getManager();
         CachingManager<UUID, S> newManager = to.getManager();
-        for (PlayerData playerData : controller.baseManager().cachedValues()) {
-            UUID key = playerData.getUniqueId();
-            S section = oldManager.peek(key).orElse(null);
-            if (section != null) {
-                newManager.seedIfAbsent(key, section);
-            }
+        //iterate the section manager's OWN cache (keyed by its storage key): a section whose base
+        //PlayerData was evicted would be missed by walking the base cache instead
+        for (S section : oldManager.cachedValues()) {
+            newManager.seedIfAbsent(section.getStorageKey(), section);
         }
     }
 
