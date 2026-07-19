@@ -201,12 +201,15 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
     public void send(int page, int lineStart, int lineEnd, FCommandSender... sender){
         validateCachedLines();
 
+        //Pin a strong reference to the weakly-cached lines so GC cannot clear them mid-send.
+        List<FancyText> lines = pageLinesCache.get();
+
         //Bound lineEnd to lastLine
-        lineEnd = NumberWrapper.of(lineEnd).boundUpper(pageLinesCache.get().size()).intValue();
+        lineEnd = NumberWrapper.of(lineEnd).boundUpper(lines.size()).intValue();
 
         if (lineStart > lineEnd){
             //Rebound, one page backwards
-            int lastPossiblePage = pageLinesCache.get().size() / pageSize;
+            int lastPossiblePage = lines.size() / pageSize;
             lineStart = NumberWrapper.of(lineStart).boundUpper(lastPossiblePage * pageSize).intValue();
         }
 
@@ -214,7 +217,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
         FancyFormatter nextAndPreviousPage = null;
         if (nextAndPreviousPageButton){
-            int lastPage = (int) Math.ceil(pageLinesCache.get().size() / (double) pageSize);
+            int lastPage = (int) Math.ceil(lines.size() / (double) pageSize);
             int currentPage = NumberWrapper.of(page).boundUpper(lastPage).boundLower(1).intValue();
 
             Function<Integer, String> moveToPage = integer -> {
@@ -267,8 +270,8 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
             for (FancyText headerLine : pageHeaderCache) {
                 headerLine.send(commandSender);
             }
-            for (int i = lineStart; i < pageLinesCache.get().size() && i < lineEnd; i++) {
-                pageLinesCache.get().get(i).send(sender);
+            for (int i = lineStart; i < lines.size() && i < lineEnd; i++) {
+                lines.get(i).send(sender);
             }
             if (nextAndPreviousPage != null){
                 nextAndPreviousPage.send(sender);
