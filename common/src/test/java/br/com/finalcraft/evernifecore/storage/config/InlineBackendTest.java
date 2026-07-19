@@ -360,6 +360,64 @@ class InlineBackendTest {
                 "a non-file backend uses compact json (the payload is parsed, not read by a human)");
     }
 
+    @Test
+    void seededGroupedfileJsonWritesJsonFormatToTheFile() throws IOException {
+        Config config = configOf("triggers:\n  on-death: true\n");
+        ConfigSection storage = config.getConfigSection("storage");
+
+        // a plugin standardizing its factory default on groupedfile + json (not the yaml convenience default)
+        StorageYamlDefaults.writeInlineBackendTemplate(storage, path("SnapshotData"),
+                BackendType.GROUPEDFILE, BackendDefinition.FileFormat.JSON, false);
+
+        config.save();
+        String raw = new String(Files.readAllBytes(config.getFile().toPath()), StandardCharsets.UTF_8);
+        assertTrue(raw.contains("format: json"),
+                "the seeded groupedfile default must write format: json to the file: " + raw);
+    }
+
+    @Test
+    void openBackendWritesTheContainerFormatTheConfigChose() throws IOException {
+        // the whole point of the fix: the on-disk container extension follows the configured format,
+        // end to end through openBackend + the config-driven default codec.
+        assertContainerExtension("json", ".json");
+        assertContainerExtension("yaml", ".yml");
+    }
+
+    private void assertContainerExtension(String format, String expectedExtension) throws IOException {
+        String dir = "container_" + format;
+        Config config = configOf(String.join("\n",
+                "storage:",
+                "  groupedfile:",
+                "    path: \"" + path(dir) + "\"",
+                "    format: " + format,
+                ""));
+
+        OwnedBackend backend = ECStorage.openBackend(config.getConfigSection("storage"));
+        try {
+            EntityDescriptor<UUID, Widget> descriptor = EntityDescriptor.builder(UUID.class, Widget.class)
+                    .collection("container_widgets")
+                    .keyExtractor(widget -> widget.id)
+                    .codec(backend.defaultCodec(Widget.class))   // the codec the config chose
+                    .build();
+            backend.storage().repository(descriptor).save(new Widget(UUID.randomUUID(), "hi")).join();
+
+            File[] files = new File(path(dir)).listFiles();
+            assertNotNull(files, "the backend wrote to its own folder");
+            boolean hasExpected = false;
+            StringBuilder seen = new StringBuilder();
+            for (File file : files) {
+                seen.append(file.getName()).append(' ');
+                if (file.getName().endsWith(expectedExtension)) {
+                    hasExpected = true;
+                }
+            }
+            assertTrue(hasExpected, "a " + format + " backend must write a " + expectedExtension
+                    + " container; found: " + seen);
+        } finally {
+            backend.close().join();
+        }
+    }
+
     private BackendDefinition parseStorage(String yaml) throws IOException {
         return StorageYamlParser.parseInlineBackend(configOf(yaml).getConfigSection("storage"));
     }
