@@ -1,8 +1,10 @@
 package br.com.finalcraft.evernifecore.storage.config;
 
+import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
 import br.com.finalcraft.evernifecore.storage.BackendType;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
 import br.com.finalcraft.everydatabase.Storage;
+import br.com.finalcraft.everydatabase.codec.Codec;
 import br.com.finalcraft.everydatabase.log.StorageLogConfig;
 import br.com.finalcraft.everydatabase.modules.groupedfile.GroupedFileConfig;
 import br.com.finalcraft.everydatabase.modules.groupedfile.GroupedFileStorage;
@@ -81,6 +83,26 @@ public final class BackendDefinition {
     /** Meaningful for LOCALFILE and GROUPEDFILE backends; YAML by default. */
     public FileFormat getFormat() {
         return format;
+    }
+
+    /**
+     * The default storage codec for {@code type} on this backend. Returns the {@link ConfigFactoryCodec}
+     * bridge, so every entity that does not opt out of it carries the ConfigFactory type authority and the
+     * ConfigLifecycle hooks into storage. A file backend picks its wire format from {@link #getFormat()}
+     * (YAML by default, else pretty JSON - a human may open the file); every other backend uses compact
+     * JSON (SQL/Mongo/InMemory parse the payload as JSON).
+     *
+     * <p>Both PlayerData ({@code BindingResolver}/{@code PlayerDataBinding}/the account layer) and
+     * plugin-owned inline backends ({@link br.com.finalcraft.evernifecore.storage.OwnedBackend}) route
+     * through here, so a config's {@code format} maps to the same codec everywhere.</p>
+     */
+    public <V> Codec<V> defaultCodec(Class<V> type) {
+        if (this.type == BackendType.LOCALFILE || this.type == BackendType.GROUPEDFILE) {
+            return format == FileFormat.YAML
+                    ? ConfigFactoryCodec.yaml(type)
+                    : ConfigFactoryCodec.jsonPretty(type);   // json on a file backend is always pretty
+        }
+        return ConfigFactoryCodec.json(type);                // every other backend: compact JSON
     }
 
     /**

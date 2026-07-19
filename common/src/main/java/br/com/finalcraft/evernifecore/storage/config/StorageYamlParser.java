@@ -175,7 +175,7 @@ public final class StorageYamlParser {
             if (type != BackendType.LOCALFILE && type != BackendType.GROUPEDFILE) {
                 warnings.add("Backend '" + name + "': 'format' is only valid on type localfile/groupedfile"
                         + " - ignored (always JSON).");
-            } else if (formatRaw.equalsIgnoreCase("yaml")) {
+            } else if (formatRaw.equalsIgnoreCase("yaml") || formatRaw.equalsIgnoreCase("yml")) {
                 format = BackendDefinition.FileFormat.YAML;
             } else if (formatRaw.equalsIgnoreCase("json")) {
                 format = BackendDefinition.FileFormat.JSON;

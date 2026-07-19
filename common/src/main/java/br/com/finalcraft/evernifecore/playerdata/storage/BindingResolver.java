@@ -1,10 +1,8 @@
 package br.com.finalcraft.evernifecore.playerdata.storage;
 
-import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigratingCodec;
-import br.com.finalcraft.evernifecore.storage.BackendType;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
 import br.com.finalcraft.evernifecore.storage.StorageRegistry;
 import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
@@ -237,18 +235,11 @@ public final class BindingResolver {
     }
 
     /**
-     * Default codec per backend - also used by {@link PlayerDataBinding} and the account layer. Returns the
-     * {@link ConfigFactoryCodec} bridge, so every section that does not opt out through
-     * {@code PDSectionConfiguration.Builder.codec(...)} carries the ConfigFactory type authority and the
-     * ConfigLifecycle hooks into storage. File backends pick their wire format from the configured format
-     * (YAML by default, else pretty JSON); every other backend uses compact JSON.
+     * Default codec per backend - also used by {@link PlayerDataBinding} and the account layer. Delegates
+     * to {@link BackendDefinition#defaultCodec(Class)} (the definition owns the type/format mapping); this
+     * public entry point is kept so the PlayerData resolution and account layer keep a single call site.
      */
     public static <S> Codec<S> defaultCodec(BackendDefinition backend, Class<S> type) {
-        if (backend.getType() == BackendType.LOCALFILE || backend.getType() == BackendType.GROUPEDFILE) {
-            return backend.getFormat() == BackendDefinition.FileFormat.YAML
-                    ? ConfigFactoryCodec.yaml(type)
-                    : ConfigFactoryCodec.jsonPretty(type);   // json on a file backend is always pretty
-        }
-        return ConfigFactoryCodec.json(type);                // every other backend: compact JSON
+        return backend.defaultCodec(type);
     }
 }

@@ -3,12 +3,12 @@ package br.com.finalcraft.evernifecore.storage.config;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.storage.BackendType;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
+import br.com.finalcraft.evernifecore.storage.OwnedBackend;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.Repository;
-import br.com.finalcraft.everydatabase.Storage;
 import br.com.finalcraft.everydatabase.codec.JacksonJsonCodec;
 import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.BeforeAll;
@@ -265,14 +265,14 @@ class InlineBackendTest {
                 "    format: yaml",
                 ""));
 
-        Storage storage = ECStorage.openBackend(config.getConfigSection("storage"));
+        OwnedBackend backend = ECStorage.openBackend(config.getConfigSection("storage"));
         try {
             EntityDescriptor<UUID, Widget> descriptor = EntityDescriptor.builder(UUID.class, Widget.class)
                     .collection("inline_widgets")
                     .keyExtractor(widget -> widget.id)
                     .codec(new JacksonJsonCodec<>(Widget.class))
                     .build();
-            Repository<UUID, Widget> repository = storage.repository(descriptor);
+            Repository<UUID, Widget> repository = backend.storage().repository(descriptor);
 
             UUID id = UUID.randomUUID();
             repository.save(new Widget(id, "hello")).join();
@@ -281,11 +281,92 @@ class InlineBackendTest {
             assertTrue(found.isPresent(), "the plugin-owned backend must persist and serve its own data");
             assertEquals("hello", found.get().name);
 
+            //the handle carries the definition it was opened from (a yaml file backend)
+            assertEquals(BackendType.LOCALFILE, backend.definition().getType());
+            assertEquals(BackendDefinition.FileFormat.YAML, backend.definition().getFormat());
+
             //the payload really landed in the plugin's own path, not the core's storage
             assertNotNull(new File(path("owned")).listFiles(), "the owned backend wrote to its own folder");
         } finally {
-            storage.close().join();
+            backend.close().join();
         }
+    }
+
+    // ------------------------------------------------------------------
+    // format parsing (alias + validation)
+    // ------------------------------------------------------------------
+
+    @Test
+    void acceptsYmlAsAnAliasOfYaml() throws IOException {
+        Config config = configOf(String.join("\n",
+                "storage:",
+                "  groupedfile:",
+                "    path: \"" + path("aliased") + "\"",
+                "    format: yml",
+                ""));
+
+        BackendDefinition backend = StorageYamlParser.parseInlineBackend(config.getConfigSection("storage"));
+        assertEquals(BackendDefinition.FileFormat.YAML, backend.getFormat(),
+                "'yml' must be read as the yaml format, not rejected");
+    }
+
+    @Test
+    void rejectsAnUnknownFormatValue() throws IOException {
+        Config config = configOf(String.join("\n",
+                "storage:",
+                "  groupedfile:",
+                "    path: \"" + path("bad") + "\"",
+                "    format: xml",
+                ""));
+
+        StorageConfigException error = assertThrows(StorageConfigException.class,
+                () -> StorageYamlParser.parseInlineBackend(config.getConfigSection("storage")));
+        assertTrue(error.getMessage().contains("invalid format"), error.getMessage());
+    }
+
+    // ------------------------------------------------------------------
+    // default codec (the config's type/format decides the wire codec)
+    // ------------------------------------------------------------------
+
+    @Test
+    void defaultCodecFollowsBackendTypeAndFormat() throws IOException {
+        BackendDefinition yamlFile = parseStorage(String.join("\n",
+                "storage:",
+                "  groupedfile:",
+                "    path: \"" + path("yamlfmt") + "\"",
+                "    format: yaml",
+                ""));
+        assertEquals("application/yaml", yamlFile.defaultCodec(Widget.class).contentType(),
+                "a yaml file backend serializes as yaml");
+
+        BackendDefinition jsonFile = parseStorage(String.join("\n",
+                "storage:",
+                "  groupedfile:",
+                "    path: \"" + path("jsonfmt") + "\"",
+                "    format: json",
+                ""));
+        assertEquals("application/json", jsonFile.defaultCodec(Widget.class).contentType());
+        assertTrue(encodedText(jsonFile).contains("\n"),
+                "json on a file backend is pretty/indented (a human may open the file)");
+
+        BackendDefinition nonFile = parseStorage(String.join("\n",
+                "storage:",
+                "  mongo:",
+                "    url: \"mongodb://localhost:27017\"",
+                "    db: myplugin",
+                ""));
+        assertEquals("application/json", nonFile.defaultCodec(Widget.class).contentType());
+        assertFalse(encodedText(nonFile).contains("\n"),
+                "a non-file backend uses compact json (the payload is parsed, not read by a human)");
+    }
+
+    private BackendDefinition parseStorage(String yaml) throws IOException {
+        return StorageYamlParser.parseInlineBackend(configOf(yaml).getConfigSection("storage"));
+    }
+
+    private static String encodedText(BackendDefinition backend) {
+        return new String(backend.defaultCodec(Widget.class).encode(new Widget(UUID.randomUUID(), "x")),
+                StandardCharsets.UTF_8);
     }
 
     public static class Widget {

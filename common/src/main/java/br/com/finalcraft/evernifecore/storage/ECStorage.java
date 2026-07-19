@@ -98,29 +98,41 @@ public final class ECStorage {
      *
      * <pre>{@code
      * // onEnable (your plugin depends on EverNifeCore, so the drivers are already loaded):
-     * Storage storage = ECStorage.openBackend(config.getConfigSection("storage"));
-     * Repository<UUID, Snapshot> repo = storage.repository(MY_DESCRIPTOR);
+     * OwnedBackend backend = ECStorage.openBackend(config.getConfigSection("storage"));
+     * Repository<UUID, Snapshot> repo = backend.storage().repository(MY_DESCRIPTOR);
+     * Codec<Snapshot> codec = backend.defaultCodec(Snapshot.class); // honours the configured format
      * // onDisable:
-     * storage.close().join();
+     * backend.close().join();
      * }</pre>
      */
-    public static Storage openBackend(ConfigSection section) {
+    public static OwnedBackend openBackend(ConfigSection section) {
         return openBackend(section, StorageLogConfig.defaults());
     }
 
     /** As {@link #openBackend(ConfigSection)}, with an explicit {@link StorageLogConfig}. */
-    public static Storage openBackend(ConfigSection section, StorageLogConfig logConfig) {
+    public static OwnedBackend openBackend(ConfigSection section, StorageLogConfig logConfig) {
         List<String> warnings = new ArrayList<>();
         BackendDefinition backend = StorageYamlParser.parseInlineBackend(section, warnings);
         for (String warning : warnings) {
             logWarning(warning);
         }
         Storage storage = backend.createStorage(logConfig);
-        storage.init().exceptionally(error -> {
-            throw new StorageConfigException("Failed to open the '" + backend.getType().getId()
-                    + "' storage backend declared at '" + section.getPath() + "'!", error);
-        }).join();
-        return storage;
+        try {
+            storage.init().exceptionally(error -> {
+                throw new StorageConfigException("Failed to open the '" + backend.getType().getId()
+                        + "' storage backend declared at '" + section.getPath() + "'!", error);
+            }).join();
+        } catch (RuntimeException initFailure) {
+            // init failed: the storage was created (e.g. a connection pool) but never came up - close it
+            // best-effort so a failed open leaves no orphaned pool/handle, then surface the original error.
+            try {
+                storage.close().join();
+            } catch (RuntimeException ignored) {
+                // best-effort teardown; the init failure below is the error that matters
+            }
+            throw initFailure;
+        }
+        return new OwnedBackend(storage, backend);
     }
 
     private static void logWarning(String message) {
