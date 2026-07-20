@@ -158,7 +158,9 @@ public class PaginatedGuiComplex extends GuiComplex {
      * @return The pages number
      */
     public int getTotalNumberOfPages() {
-        return (int) Math.ceil((double) paginatedItems.size() / calculateMaxContentPerPage());
+        int perPage = calculateMaxContentPerPage();
+        if (perPage <= 0) return 0; // no page slots: avoid a divide-by-zero that casts Infinity to Integer.MAX_VALUE
+        return (int) Math.ceil((double) paginatedItems.size() / perPage);
     }
 
     public int calculateMaxContentPerPage() {
@@ -191,7 +193,7 @@ public class PaginatedGuiComplex extends GuiComplex {
      */
     public void setPageNum(final int pageNum) {
         this.pageNum = NumberWrapper.of(pageNum)
-                .bound(0, getTotalNumberOfPages())
+                .bound(0, Math.max(0, getTotalNumberOfPages() - 1)) // pages are 0-indexed; last valid = total-1
                 .get();
     }
 
