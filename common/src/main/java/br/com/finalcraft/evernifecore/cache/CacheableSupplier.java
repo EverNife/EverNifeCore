@@ -5,21 +5,30 @@ import lombok.Data;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+/**
+ * Caches the result of a {@link Supplier} for a fixed interval, refreshing lazily on the next read
+ * after it expires.
+ *
+ * <p>Thread-safe: {@code getValue()} and {@code refreshAndGetValue()} are synchronized and the
+ * cached fields are {@code volatile}, so concurrent readers see a consistent value and the wrapped
+ * {@code supplier.get()} runs at most once per interval no matter how many threads race on an
+ * expired cache.</p>
+ */
 @Data
 public class CacheableSupplier<O> {
 
     protected Supplier<O> supplier;
     protected long cacheInterval = 0;
 
-    protected transient long lastExecuted = 0;
-    protected transient O value = null;
+    protected transient volatile long lastExecuted = 0;
+    protected transient volatile O value = null;
 
     public CacheableSupplier(Supplier<O> supplier, long cacheInterval) {
         this.supplier = supplier;
         this.cacheInterval = cacheInterval;
     }
 
-    public O getValue(){
+    public synchronized O getValue(){
         long currentTimeMillis = System.currentTimeMillis();
         if (currentTimeMillis > getEndTime()){
             value = supplier.get();
@@ -32,7 +41,7 @@ public class CacheableSupplier<O> {
         return lastExecuted + cacheInterval;
     }
 
-    public O refreshAndGetValue(){
+    public synchronized O refreshAndGetValue(){
         lastExecuted = 0;
         return getValue();
     }
