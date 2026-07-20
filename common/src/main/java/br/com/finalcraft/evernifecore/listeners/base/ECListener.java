@@ -29,6 +29,9 @@ public interface ECListener extends IECBaseListener {
 
     public default void unregisterThis() {
         EverNifeCore.getPlatform().unregisterECListener(this);
+        if (EverNifeCore.getProviders().getEventDispatcher() != null) {
+            EverNifeCore.getProviders().getEventDispatcher().unregister(this);
+        }
     }
 
     public static boolean register(@Nonnull ECPluginData ecPluginData, ECListener listener){
@@ -62,6 +65,12 @@ public interface ECListener extends IECBaseListener {
             }
 
             EverNifeCore.getPlatform().registerECListener(ecPluginData, listener);
+
+            //Deliver framework-agnostic IECEvents to @ECEventHandler methods of this listener.
+            //Guarded because a very early boot (or a test fixture) may not have a dispatcher yet.
+            if (EverNifeCore.getProviders().getEventDispatcher() != null) {
+                EverNifeCore.getProviders().getEventDispatcher().register(listener);
+            }
 
             //Check for locales
             FCLocaleManager.loadLocale(ecPluginData, true, listener.getClass());
