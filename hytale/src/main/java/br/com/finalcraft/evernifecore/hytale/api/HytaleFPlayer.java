@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import com.hypixel.hytale.builtin.teleport.components.TeleportHistory;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Location;
 import com.hypixel.hytale.math.vector.Rotation3f;
 import com.hypixel.hytale.server.core.Message;
@@ -183,14 +184,16 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         }
 
         Vector3d previousPos = new Vector3d(transformComponent.get().getPosition());
-        Rotation3f previousRotation = headRotationComponent.get() == null
+        Rotation3f previousRotation = headRotationComponent.get() != null
                 ? headRotationComponent.get().getRotation().clone()
                 : new Rotation3f(0, 0, 0);
 
         //Load the chunk if already not loaded, this will prevent the player from be teleported OUTSIDE THE FRICKING WORLD
+        Vector3d targetPos = safeTargetLocation.getPosition();
+        int chunkIndex = ChunkUtil.indexChunkFromBlock((int) targetPos.x(), (int) targetPos.z());
         WorldChunk worldChunk = targetWorld.isInThread()
-                ? targetWorld.getChunk(safeTargetLocation.getPosition().hashCode())
-                : targetWorld.getChunkAsync(safeTargetLocation.getPosition().hashCode()).join();
+                ? targetWorld.getChunk(chunkIndex)
+                : targetWorld.getChunkAsync(chunkIndex).join();
 
         float pitch = safeTargetLocation.getRotation().x();
         float yaw = safeTargetLocation.getRotation().y();
