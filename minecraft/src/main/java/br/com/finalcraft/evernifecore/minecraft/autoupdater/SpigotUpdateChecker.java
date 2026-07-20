@@ -146,14 +146,16 @@ public class SpigotUpdateChecker {
     }
 
     private UpdateResult checkForUpdates(JavaPlugin plugin) {
+        HttpsURLConnection connection = null;
         try {
-            HttpsURLConnection connection = (HttpsURLConnection) new URL(
+            connection = (HttpsURLConnection) new URL(
                     "https://api.spigotmc.org/legacy/update.php?resource=" + resourceId).openConnection();
             int timed_out = 5000;
             connection.setConnectTimeout(timed_out);
             connection.setReadTimeout(timed_out);
-            this.newVersion = new BufferedReader(new InputStreamReader(connection.getInputStream())).readLine();
-            connection.disconnect();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                this.newVersion = reader.readLine(); //may be null on an empty response
+            }
 
             if (this.isNewerOrEqualNextVersion(newVersion)){
                 return UpdateResult.ALREADY_UPDATED;
@@ -164,6 +166,8 @@ public class SpigotUpdateChecker {
             plugin.getLogger().warning("[UpdateChecker] Error while checking for updates:");
             e.printStackTrace();
             return UpdateResult.FAIL_TO_CHECK;
+        } finally {
+            if (connection != null) connection.disconnect();
         }
     }
 
@@ -240,6 +244,9 @@ public class SpigotUpdateChecker {
     }
 
     private boolean isNewerOrEqualNextVersion(String nextVersion) {
+        if (nextVersion == null) {
+            return false; //no known remote version -> not a newer-or-equal version
+        }
         try {
             String[] parts1 = this.currentVersion.split("\\.");
             String[] parts2 = nextVersion.split("\\.");
