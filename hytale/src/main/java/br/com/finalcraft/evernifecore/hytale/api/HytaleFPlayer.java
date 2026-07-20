@@ -190,7 +190,7 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
 
         //Load the chunk if already not loaded, this will prevent the player from be teleported OUTSIDE THE FRICKING WORLD
         Vector3d targetPos = safeTargetLocation.getPosition();
-        int chunkIndex = ChunkUtil.indexChunkFromBlock((int) targetPos.x(), (int) targetPos.z());
+        long chunkIndex = ChunkUtil.indexChunkFromBlock((int) targetPos.x(), (int) targetPos.z());
         WorldChunk worldChunk = targetWorld.isInThread()
                 ? targetWorld.getChunk(chunkIndex)
                 : targetWorld.getChunkAsync(chunkIndex).join();
