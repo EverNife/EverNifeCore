@@ -86,14 +86,14 @@ public class FCHytaleUtil {
     }
 
     /**
-     * Força o console a executar um comando!
+     * Force the console to run a command!
      */
     public static void makeConsoleExecuteCommand(String theCommand) {
         CommandManager.get().handleCommand(ConsoleSender.INSTANCE, theCommand);
     }
 
     /**
-     * Força o console a executar um comando!
+     * Force the console to run a command!
      */
     public static void makeConsoleExecuteCommand(String... theCommands) {
         for (String theCommand : theCommands) {
@@ -102,7 +102,7 @@ public class FCHytaleUtil {
     }
 
     /**
-     * Força o jogador a executar um comando!
+     * Force the player to run a command!
      */
     public static void makePlayerExecuteCommand(FCommandSender player, String theCommand) {
         com.hypixel.hytale.server.core.command.system.CommandSender delegate = player.getDelegate(com.hypixel.hytale.server.core.command.system.CommandSender.class);
@@ -136,10 +136,10 @@ public class FCHytaleUtil {
     }
 
     /**
-     * Coloca itens no inventário de um jogador, casos obre itens, eles serão dropados no chão!
+     * Puts items into a player's inventory; items that overflow are dropped on the ground!
      *
-     * @param player Instancia do jogador que receberá os itens
-     * @param itemStacks Itens que serão entregues.
+     * @param player The player who receives the items
+     * @param itemStacks The items to give
      */
     public static void giveItemsTo(FPlayer player, List<ItemStack> itemStacks) {
         giveItemsTo(player, true, itemStacks);
