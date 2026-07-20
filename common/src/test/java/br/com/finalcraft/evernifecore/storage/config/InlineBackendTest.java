@@ -292,6 +292,23 @@ class InlineBackendTest {
         }
     }
 
+    @Test
+    void openBackendSurfacesAnInitFailureAsAStorageConfigException() throws IOException {
+        // an H2 file backend that refuses to auto-create (IFEXISTS on a database that does not exist)
+        // fails at init() deterministically and offline. join() wraps that in a CompletionException;
+        // openBackend must unwrap it so a caller catching StorageConfigException actually catches it.
+        String missingDb = tempDir.resolve("never_created_db").toString().replace("\\", "/");
+        Config config = configOf(String.join("\n",
+                "storage:",
+                "  h2:",
+                "    url: \"jdbc:h2:file:" + missingDb + ";IFEXISTS=TRUE\"",
+                ""));
+
+        assertThrows(StorageConfigException.class,
+                () -> ECStorage.openBackend(config.getConfigSection("storage")),
+                "a backend whose init() fails must throw StorageConfigException, not a bare CompletionException");
+    }
+
     // ------------------------------------------------------------------
     // format parsing (alias + validation)
     // ------------------------------------------------------------------

@@ -11,6 +11,7 @@ import br.com.finalcraft.everydatabase.log.StorageLogConfig;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -118,11 +119,8 @@ public final class ECStorage {
         }
         Storage storage = backend.createStorage(logConfig);
         try {
-            storage.init().exceptionally(error -> {
-                throw new StorageConfigException("Failed to open the '" + backend.getType().getId()
-                        + "' storage backend declared at '" + section.getPath() + "'!", error);
-            }).join();
-        } catch (RuntimeException initFailure) {
+            storage.init().join();
+        } catch (CompletionException initFailure) {
             // init failed: the storage was created (e.g. a connection pool) but never came up - close it
             // best-effort so a failed open leaves no orphaned pool/handle, then surface the original error.
             try {
@@ -130,7 +128,11 @@ public final class ECStorage {
             } catch (RuntimeException ignored) {
                 // best-effort teardown; the init failure below is the error that matters
             }
-            throw initFailure;
+            // unwrap the CompletionException that join() wraps around the real cause, so a caller doing
+            // catch (StorageConfigException) actually catches it instead of a bare CompletionException
+            Throwable cause = initFailure.getCause() != null ? initFailure.getCause() : initFailure;
+            throw new StorageConfigException("Failed to open the '" + backend.getType().getId()
+                    + "' storage backend declared at '" + section.getPath() + "'!", cause);
         }
         return new OwnedBackend(storage, backend);
     }
