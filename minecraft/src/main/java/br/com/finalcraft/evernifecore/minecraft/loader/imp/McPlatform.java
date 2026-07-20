@@ -13,19 +13,17 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
-import br.com.finalcraft.evernifecore.minecraft.actionbar.McActionBarHelper;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.MinecraftArgParsers;
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.implementation.McFinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.minecraft.integration.placeholders.McPAPIIntegration;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
@@ -218,8 +216,7 @@ public class McPlatform implements IPlatform {
 
     @Override
     public void sendActionBarMessage(FPlayer player, FancyText fancyText) {
-        TextComponent baseTextComponent = new TextComponent(fancyText.getText());
-        McActionBarHelper.spigot_sendMessage(player.getDelegate(Player.class), ChatMessageType.ACTION_BAR, baseTextComponent);
+        FCMinecraftAdventureUtil.sendActionBar(player.getDelegate(Player.class), fancyText.toComponent());
     }
 
     private static final boolean THIS_SERVER_SUPPORTS_ACTIONBAR; static {

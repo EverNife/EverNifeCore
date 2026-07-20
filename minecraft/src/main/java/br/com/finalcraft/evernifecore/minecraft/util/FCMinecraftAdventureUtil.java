@@ -8,6 +8,7 @@ import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import br.com.finalcraft.everylibs.reflection.MethodInvoker;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.Component;
+import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.BaseComponent;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -103,6 +104,31 @@ public class FCMinecraftAdventureUtil {
             EverNifeCore.getLog().severe("Failed to send message via player.spigot().sendMessage(BaseComponent[]); falling back to plain text");
             e.printStackTrace();
             player.sendMessage(FCColorUtil.componentToString(component));
+        }
+    }
+
+    /**
+     * Sends an action bar to a player without ever building a version-qualified {@code CraftPlayer}
+     * class name (the reflection that breaks on Paper 1.20.5+ and on version-misdetecting forks).
+     * <p>
+     * Tries the adventure-platform bridge first, then the public {@code player.spigot().sendMessage(
+     * ChatMessageType.ACTION_BAR, ...)} API (present since ~1.9 and backported by mods such as
+     * NecroTempus), and finally logs once and drops the message - action bars have no plain-text
+     * equivalent, so we never spill one into chat. Both transports are Netty packet writes and are
+     * safe to call off the main thread.
+     */
+    public static void sendActionBar(Player player, Component component) {
+        try {
+            getAdventure().player(player).sendActionBar(component);
+            return;
+        } catch (Throwable adventureFailure) {
+            try {
+                BaseComponent[] baseComponents = FCComponentUtil.toBaseComponents(component);
+                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, baseComponents);
+                return;
+            } catch (Throwable spigotFailure) {
+                EverNifeCore.getLog().severe("Failed to deliver action bar via adventure and player.spigot(); dropping");
+            }
         }
     }
 
