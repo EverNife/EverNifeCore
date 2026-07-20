@@ -73,6 +73,14 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         return getPlayerRef() != null && getPlayerRef().isValid();
     }
 
+    @Override
+    public void kick(@Nonnull String reason) {
+        PlayerRef playerRef = getPlayerRef();
+        if (playerRef == null || !playerRef.isValid()) return; // nothing to kick
+        //Mirror KickCommand: disconnect is a packet write, same category as sendMessage above
+        playerRef.getPacketHandler().disconnect(Message.raw(reason));
+    }
+
     public @Nullable World getWorld() {
         Ref<EntityStore> ref = getPlayerRef().getReference();
 

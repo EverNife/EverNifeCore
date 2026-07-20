@@ -64,6 +64,17 @@ public abstract class MinecraftFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         return getOfflinePlayer().isOnline();
     }
 
+    @Override
+    public void kick(@Nonnull String reason) {
+        Player player = getPlayer();
+        if (player == null || !player.isOnline()) return; // nothing to kick
+        //kickPlayer is a non-thread-safe Bukkit call; run on the main thread and re-check online there
+        EverNifeCore.getPlatform().runOnMainThread(() -> {
+            Player online = getPlayer();
+            if (online != null && online.isOnline()) online.kickPlayer(reason);
+        });
+    }
+
     public @Nullable World getWorld() {
         Player player = getOfflinePlayer().getPlayer();
 
