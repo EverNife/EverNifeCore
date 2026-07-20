@@ -34,13 +34,14 @@ import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 public class HyPlatform implements IPlatform {
 
-    public static Map<ECListener, List<EventRegistration>> MAP_OF_ECLISTENERS = new HashMap<>();
+    public static Map<ECListener, List<EventRegistration>> MAP_OF_ECLISTENERS = new ConcurrentHashMap<>();
 
     private HyPlatformChatAdapter CHAT_ADAPTER = new HyPlatformChatAdapter();
 
@@ -199,8 +200,9 @@ public class HyPlatform implements IPlatform {
 
     @Override
     public void unregisterECListener(ECListener listener) {
-        MAP_OF_ECLISTENERS.getOrDefault(this, new ArrayList<>())
+        MAP_OF_ECLISTENERS.getOrDefault(listener, new ArrayList<>())
                 .forEach(EventRegistration::unregister);
+        MAP_OF_ECLISTENERS.remove(listener);
     }
 
     @Override

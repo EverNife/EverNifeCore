@@ -40,9 +40,8 @@ public class HyPAPIIntegration {
     }
 
     public static String parse(@Nullable FPlayer player, @Nonnull String text){
-        HytaleFPlayer hytaleFPlayer = (HytaleFPlayer) player;
-        PlayerRef playerRef = hytaleFPlayer.getPlayerRef();
-        if (isPresent()){
+        PlayerRef playerRef = player == null ? null : ((HytaleFPlayer) player).getPlayerRef();
+        if (isPresent() && playerRef != null){
             text = PlaceholderAPI.setPlaceholders(playerRef, text);
         }
 

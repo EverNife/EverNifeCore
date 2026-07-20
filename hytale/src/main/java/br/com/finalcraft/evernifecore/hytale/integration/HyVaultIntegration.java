@@ -31,6 +31,7 @@ public class HyVaultIntegration {
         if (!economy.isPresent()){
             throw new IllegalStateException("No Economy plugin found!");
         }
+        econ = economy.get();
     }
 
     public static void ecoGive(UUID playerUuid, double amount){
