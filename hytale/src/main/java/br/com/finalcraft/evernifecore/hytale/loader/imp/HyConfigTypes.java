@@ -122,7 +122,7 @@ public final class HyConfigTypes {
                     return map;
                 }),
                 objectDeserializer(Vector2d.class, node -> new Vector2d(
-                        node.get("x").asInt(), node.get("y").asInt()))
+                        node.get("x").asDouble(), node.get("y").asDouble()))
         ).asCompactElement(
                 v -> v.x() + " " + v.y(),
                 s -> { String[] p = coords(s); return new Vector2d(
@@ -187,7 +187,15 @@ public final class HyConfigTypes {
     /** Parse the compact string form {@code WORLD|x y z xRot yRot zRot}. */
     private static Location fromLegacyString(String serializedLocation) {
         String[] split = serializedLocation.split(Pattern.quote("|"));
-        String[] splitCoords = split[1].split(" ");
+        if (split.length != 2) {
+            throw new IllegalArgumentException("Malformed compact Location '" + serializedLocation
+                    + "': expected WORLD|x y z xRot yRot zRot");
+        }
+        String[] splitCoords = split[1].trim().split(" ");
+        if (splitCoords.length < 6) {
+            throw new IllegalArgumentException("Malformed compact Location '" + serializedLocation
+                    + "': expected 6 space-separated coordinates, got " + splitCoords.length);
+        }
 
         String world = split[0].trim();
         Double x = FCInputReader.parseDouble(splitCoords[0]);
