@@ -4,13 +4,13 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ActionBarAPI {
 
-    private static Map<UUID, PlayerActionBarManager> PLAYER_ACTION_BAR_MAP = new HashMap<>();
+    private static Map<UUID, PlayerActionBarManager> PLAYER_ACTION_BAR_MAP = new ConcurrentHashMap<>();
 
     public static void send(FPlayer player, String message){
         ActionBarMessage.of(message).send(player);
@@ -21,12 +21,11 @@ public class ActionBarAPI {
             return;
         }
 
-        PlayerActionBarManager playerActionBarManager = PLAYER_ACTION_BAR_MAP.get(player.getUniqueId());
-
-        if (playerActionBarManager == null || playerActionBarManager.isTerminated()){
-            playerActionBarManager = new PlayerActionBarManager(player);
-            PLAYER_ACTION_BAR_MAP.put(player.getUniqueId(), playerActionBarManager);
-        }
+        //Atomic get-or-create so concurrent senders never spawn two managers for the same player
+        PlayerActionBarManager playerActionBarManager = PLAYER_ACTION_BAR_MAP.compute(
+                player.getUniqueId(),
+                (uuid, mgr) -> (mgr == null || mgr.isTerminated()) ? new PlayerActionBarManager(player) : mgr
+        );
 
         playerActionBarManager.addMessage(actionBarMessage);
     }
