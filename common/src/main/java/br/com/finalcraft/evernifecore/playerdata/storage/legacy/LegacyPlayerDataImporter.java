@@ -131,8 +131,17 @@ public final class LegacyPlayerDataImporter {
             }
             //the move IS the completion signal: whatever stays in the folder is the pending list,
             //and the boot that finally brings the missing adapter is the one that archives it
-            if (parsedFile.isFullyImported() && moveFile(parsedFile.file, importedFolder)) {
-                archivedFiles++;
+            if (parsedFile.isFullyImported()) {
+                if (moveFile(parsedFile.file, importedFolder)) {
+                    archivedFiles++;
+                } else {
+                    //moveFile already logged the raw IOError; this says what it MEANS: the entities are
+                    //safely in the backend and it is only archiving the source file that failed (a
+                    //filesystem lock/permission), so there is no missing adapter to hunt - it retries next boot
+                    logWarning("Legacy PlayerData file [%s] was fully imported into the backend, but"
+                            + " archiving the source file failed - no data was lost, the archiving will be"
+                            + " retried on the next boot.", parsedFile.file.getName());
+                }
             }
         }
 

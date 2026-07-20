@@ -61,8 +61,12 @@ final class LegacyMigrationConsolidator {
                             File metadataFile, LegacyImportReport report) {
         File target = resolveTargetFolder(legacyFolder.getParentFile());
 
+        //captured before the move (which renames importedFolder away): whether any source file was ever
+        //archived. When false, no PlayerData/ subfolder is produced, so the result log must not promise one.
+        boolean archivedPlayerDataPresent = importedFolder.isDirectory();
+
         //critical piece: the archived originals become <target>/<legacyName> (e.g. __LegacyData_V2/PlayerData)
-        if (importedFolder.isDirectory()) {
+        if (archivedPlayerDataPresent) {
             if (!move(importedFolder, new File(target, legacyFolder.getName()))) {
                 logWarning("Legacy migration consolidation skipped: could not move [%s] into [%s]."
                                 + " The migration itself stands; the archived files remain in place.",
@@ -84,7 +88,7 @@ final class LegacyMigrationConsolidator {
             move(metadataFile, new File(target, metadataFile.getName()));
         }
 
-        writeResultLog(new File(target, RESULT_LOG_NAME), target, report);
+        writeResultLog(new File(target, RESULT_LOG_NAME), target, report, archivedPlayerDataPresent);
 
         //the drained legacy folder is now empty - drop it (a no-op if anything non-.yml lingers there)
         legacyFolder.delete();
@@ -122,16 +126,19 @@ final class LegacyMigrationConsolidator {
         return folder.isDirectory() && entries != null && entries.length == 0;
     }
 
-    private static void writeResultLog(File logFile, File consolidatedFolder, LegacyImportReport report) {
+    private static void writeResultLog(File logFile, File consolidatedFolder, LegacyImportReport report,
+                                       boolean archivedPlayerDataPresent) {
         try {
-            Files.write(logFile.toPath(), buildResultLog(consolidatedFolder, report).getBytes(StandardCharsets.UTF_8));
+            Files.write(logFile.toPath(),
+                    buildResultLog(consolidatedFolder, report, archivedPlayerDataPresent).getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
             logWarning("Failed to write the legacy migration result log [%s]: %s", logFile.getPath(), e.toString());
         }
     }
 
     /** The permanent, human-readable record of the whole migration - the numbers, the sections and their owners. */
-    private static String buildResultLog(File consolidatedFolder, LegacyImportReport report) {
+    private static String buildResultLog(File consolidatedFolder, LegacyImportReport report,
+                                         boolean archivedPlayerDataPresent) {
         Map<String, SectionProgress> sections = report.getSections();
         StringBuilder sb = new StringBuilder();
         sb.append("============================================================\n");
@@ -141,12 +148,20 @@ final class LegacyMigrationConsolidator {
         sb.append(" configured storage backend is COMPLETE. Every artifact it produced was\n");
         sb.append(" consolidated into this folder:\n\n");
         sb.append("   ").append(consolidatedFolder.getPath()).append("/\n");
-        sb.append("     PlayerData/                                (the archived original .yml files)\n");
+        if (archivedPlayerDataPresent) {
+            sb.append("     PlayerData/                                (the archived original .yml files)\n");
+        }
         sb.append("     playerdata-storage-migration-metadata.yml  (the progress file)\n");
         sb.append("     ").append(RESULT_LOG_NAME).append("                       (this file)\n\n");
-        sb.append(" ROLLBACK / DOWNGRADE: an older EverNifeCore reads ONLY the original\n");
-        sb.append(" 'PlayerData/' folder. Move the 'PlayerData/' above back to the plugin\n");
-        sb.append(" folder BEFORE downgrading, or every player is greeted as brand new.\n\n");
+        if (archivedPlayerDataPresent) {
+            sb.append(" ROLLBACK / DOWNGRADE: an older EverNifeCore reads ONLY the original\n");
+            sb.append(" 'PlayerData/' folder. Move the 'PlayerData/' above back to the plugin\n");
+            sb.append(" folder BEFORE downgrading, or every player is greeted as brand new.\n\n");
+        } else {
+            sb.append(" Nothing was archived: every legacy entity was already present in the\n");
+            sb.append(" backend, so no 'PlayerData/' folder was produced and there is nothing\n");
+            sb.append(" to move back on a downgrade.\n\n");
+        }
 
         sb.append("------------------------------------------------------------\n");
         sb.append(" Run summary\n");

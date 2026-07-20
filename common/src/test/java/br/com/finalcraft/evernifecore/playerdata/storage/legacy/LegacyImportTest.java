@@ -595,6 +595,36 @@ class LegacyImportTest {
         assertNotNull(PlayerController.getLoaded(SIMPLE_UUID));
     }
 
+    @Test
+    void theResultLogOmitsThePlayerDataArchiveLineWhenNothingWasArchived() throws IOException {
+        //a completion where every legacy entity was already present: no source file reached
+        //PlayerData-Imported, so the archive has no PlayerData/ subfolder and the result log must not
+        //list one nor tell the admin to move it back on a downgrade
+        File legacy = legacyFolder();
+        legacy.mkdirs();
+        File imported = tempDir.resolve("PlayerData-Imported").toFile();  //deliberately never created
+        File failed = tempDir.resolve("PlayerData-Failed").toFile();
+        File metadata = writeCompleteMetadata();
+
+        LegacyImportReport report = new LegacyImportReport();
+        report.setPaths(legacy, imported, failed, metadata);
+        report.setFiles(2, 0, 0, 0);
+        report.setSections(new LinkedHashMap<>());
+        report.setCompletion(false, true);
+
+        File consolidated = LegacyMigrationConsolidator.consolidate(legacy, imported, failed, metadata, report);
+        assertNotNull(consolidated, "consolidation still runs when nothing was archived");
+
+        String log = new String(Files.readAllBytes(new File(consolidated, "migration-result.log").toPath()),
+                StandardCharsets.UTF_8);
+        assertFalse(log.contains("(the archived original .yml files)"),
+                "no PlayerData/ was archived, so the log must not list it: " + log);
+        assertFalse(log.contains("ROLLBACK"),
+                "no archived folder means no rollback paragraph: " + log);
+        assertTrue(log.contains("Nothing was archived"),
+                "the log must state that nothing was archived because everything was already present: " + log);
+    }
+
     // ------------------------------------------------------------------
     // Completion: only a file whose every root key migrated may leave the folder
     // ------------------------------------------------------------------
