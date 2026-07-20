@@ -66,6 +66,11 @@ public class ECPluginManager {
 
         ecPluginData.setDebugEnabled(null); //By setting to null, will 're-check' the config.yml for the debug value when needed
 
+        //Fire Pre-Reload before the reload runs, so listeners observe the old state
+        EverNifeCore.getProviders()
+                .getEventDispatcher()
+                .post(new ECPluginReloadEvent.Pre(ecPluginData));
+
         //Do the reload
         runnable.run();
         //Reload locales as well
@@ -82,16 +87,12 @@ public class ECPluginManager {
 //            FCSound.LEVEL_UP.playSoundFor((Player) sender);
         }
 
-        EverNifeCore.getProviders()
-                .getEventDispatcher()
-                .post(new ECPluginReloadEvent.Pre(ecPluginData));
-
-        //Some ECPlugins might have subModules or Addons, reload them if necessary
+        //Some ECPlugins might have subModules or Addons that opt to reload after this one; reload them if necessary
         for (ECPluginData ecPlugin : new ArrayList<>(EVERNIFECORE_PLUGINS_MAP.values())) {
             if (ecPlugin.canReload()){
                 for (String pluginName : ecPlugin.getReloadAfter()) {
-                    if (ecPlugin.getMetaInfo().getName().equalsIgnoreCase(pluginName)){
-                        ecPlugin.getLog().info("[ECPlugin] Reloading by demand of ´" + ecPlugin.getMetaInfo().getName() + "´.");
+                    if (ecPluginData.getMetaInfo().getName().equalsIgnoreCase(pluginName)){
+                        ecPlugin.getLog().info("[ECPlugin] Reloading by demand of '" + ecPluginData.getMetaInfo().getName() + "'.");
                         ecPlugin.reloadPlugin();
                     }
                 }
