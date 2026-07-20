@@ -27,8 +27,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
  * ({@link JsonMapper} for JSON, {@link YAMLMapper} for YAML) and layered with, in order:
  * <ol>
  *   <li>{@link JacksonConfig#storageSafe(ObjectMapper)} - the EveryDatabase read contract (ISO-8601 dates,
- *       tolerance of unknown keys) and canonical map-entry ordering, applied LAST so storage bytes stay
- *       deterministic;</li>
+ *       tolerance of unknown keys); it preserves a map's insertion order, so a sequence-carrying map
+ *       (numbered segments, ordered slots) survives a round-trip;</li>
  *   <li>{@link EveryConfigModule} - EveryConfig binding semantics (enum-by-name, {@code @Key} naming);</li>
  *   <li>{@link ConfigFactory#sharedTypeModule()} - the platform type serializers/deserializers.</li>
  * </ol>
@@ -98,12 +98,12 @@ public final class ConfigFactoryCodec<V> implements Codec<V>, ObjectMapperAware 
     }
 
     /**
-     * Layer the storage read contract + canonical map ordering, then EveryConfig's binding semantics, then
-     * the {@link ConfigFactory} platform types onto {@code base}. Mutate-and-return (Jackson is configured
-     * once at construction, then read-only on the hot path).
+     * Layer the storage read contract (ISO dates, unknown-key tolerance, insertion-order-preserving maps),
+     * then EveryConfig's binding semantics, then the {@link ConfigFactory} platform types onto {@code base}.
+     * Mutate-and-return (Jackson is configured once at construction, then read-only on the hot path).
      */
     private static <M extends ObjectMapper> M mapper(final M base) {
-        JacksonConfig.storageSafe(base);                        // EveryDatabase: ISO dates, ORDER_MAP_ENTRIES_BY_KEYS
+        JacksonConfig.storageSafe(base);                        // EveryDatabase: ISO dates, map insertion order kept
         base.registerModule(new EveryConfigModule());           // EveryConfig: enum-by-name + @Key introspector
         base.registerModule(ConfigFactory.sharedTypeModule());  // the platform types the factory owns
         return base;

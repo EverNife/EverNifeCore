@@ -25,11 +25,12 @@ import java.util.Map;
  * on-disk shape (a scalar string, a string-list, an object with text/hover/click, or a numbered formatter
  * object), with a tolerant read of every one of those shapes so old files keep reading.
  *
- * <p><b>Ordering caveat.</b> A {@link FancyFormatter} writes its children as an object whose keys are the
- * child positions {@code "1".."N"}. A storage layer that reorders a map's keys can therefore lose the
- * child order once a formatter has 10 or more children, because {@code "10"} sorts before {@code "2"}
- * lexicographically - so a formatter of 10+ children may not survive a round-trip through such a backend
- * in its original order.</p>
+ * <p><b>Ordering.</b> A {@link FancyFormatter} writes its children as an object whose keys are the child
+ * positions {@code "1".."N"}, so the child order is carried by the key order. The read reconstructs it in
+ * document order ({@code node.fieldNames()}), which relies on the storage layer preserving a map's insertion
+ * order rather than sorting keys (under which {@code "10"} would sort before {@code "2"} and scramble a
+ * formatter of 10+ children). EveryDatabase's storage codec preserves insertion order, so the sequence
+ * survives a round-trip.</p>
  */
 public final class FancyTextConfigCodec {
 

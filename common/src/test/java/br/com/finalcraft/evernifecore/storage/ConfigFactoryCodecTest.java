@@ -2,6 +2,8 @@ package br.com.finalcraft.evernifecore.storage;
 
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
+import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
+import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
 import br.com.finalcraft.evernifecore.playerdata.SectionSchemaStep;
@@ -173,6 +175,63 @@ class ConfigFactoryCodecTest {
     }
 
     // ==================================================================
+    //  map-of-sequence ordering: a FancyFormatter's numbered children ("1".."N") keep insertion order
+    //  through the storage codec even past 10 - the case a lexicographic key sort would scramble
+    // ==================================================================
+
+    @Test
+    void numberedMapFieldKeepsInsertionOrderThroughStorageBeyondTen() {
+        // A plain Map field is serialized by Jackson's MapSerializer, which honours the storage codec's
+        // map-ordering setting. With numbered-string keys inserted 1..12, a key sort would emit "10" before
+        // "2" and corrupt the sequence. This pins that the storage bytes keep insertion order.
+        NumberedMapHolder holder = new NumberedMapHolder(UUID.randomUUID());
+        List<String> expectedKeys = new ArrayList<>();
+        for (int i = 1; i <= 12; i++) {
+            holder.steps.put(String.valueOf(i), "v" + i);
+            expectedKeys.add(String.valueOf(i));
+        }
+
+        NumberedMapHolder viaBridge = roundTrip(
+                ConfigFactoryCodec.json(NumberedMapHolder.class), NumberedMapHolder.class, h -> h.id, holder);
+
+        // decode fills the LinkedHashMap in on-disk order, so its key iteration IS the persisted order
+        assertEquals(expectedKeys, new ArrayList<>(viaBridge.steps.keySet()),
+                "a numbered-key Map must keep insertion order through storage (a key sort puts \"10\" before \"2\")");
+    }
+
+    @Test
+    void fancyFormatterKeepsChildOrderThroughStorageBeyondTenSegments() {
+        // FancyTextConfigCodec serializes a formatter's children as a map keyed "1".."N". A FancyText-bearing
+        // holder takes ConfigFactoryCodec's lifecycle path, which materializes the value into a JsonNode tree
+        // before writing; a JsonNode's fields are immune to a map key-sort (it is not a java.util.Map), so a
+        // formatter survived even the old sorting default. This end-to-end guardrail pins that the chat-segment
+        // sequence round-trips in order past 10 children.
+        int childCount = 12;
+        FancyFormatter formatter = new FancyFormatter();
+        List<String> expected = new ArrayList<>();
+        for (int i = 1; i <= childCount; i++) {
+            String segment = "seg" + i;
+            formatter.append(new FancyText(segment));
+            expected.add(segment);
+        }
+
+        FancyHolder viaBridge = roundTrip(
+                ConfigFactoryCodec.json(FancyHolder.class), FancyHolder.class, h -> h.id,
+                new FancyHolder(UUID.randomUUID(), formatter));
+
+        assertTrue(viaBridge.message instanceof FancyFormatter, "a formatter field must read back as a FancyFormatter");
+        List<String> actual = new ArrayList<>();
+        for (FancyText child : ((FancyFormatter) viaBridge.message).getFancyTextList()) {
+            // the read seeds an empty child (FancyFormatter.of()); only the meaningful segments carry the order
+            if (child.getText() != null && !child.getText().isEmpty()) {
+                actual.add(child.getText());
+            }
+        }
+        assertEquals(expected, actual,
+                "the >= 10 formatter segments must keep insertion order through the storage round-trip");
+    }
+
+    // ==================================================================
     //  versioned + migration + lifecycle: the bridge codec must delegate its decode so the
     //  lifecycle hooks still fire when a payload is read through the migration seam
     // ==================================================================
@@ -312,6 +371,37 @@ class ConfigFactoryCodecTest {
         @Override
         public String toString() {
             return "tier-" + name().toLowerCase();
+        }
+    }
+
+    /** A holder with a plain numbered-key {@link LinkedHashMap} field - the direct MapSerializer path a
+     *  storage-side key sort would scramble. */
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+    static class NumberedMapHolder {
+        public UUID id;
+        public LinkedHashMap<String, String> steps = new LinkedHashMap<>();
+
+        public NumberedMapHolder() {
+        }
+
+        NumberedMapHolder(UUID id) {
+            this.id = id;
+        }
+    }
+
+    /** A holder whose payload is a {@link FancyText}, declared as the base type so a {@link FancyFormatter}
+     *  still reads back as one through the centrally-registered codec. */
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+    static class FancyHolder {
+        public UUID id;
+        public FancyText message;
+
+        public FancyHolder() {
+        }
+
+        FancyHolder(UUID id, FancyText message) {
+            this.id = id;
+            this.message = message;
         }
     }
 
