@@ -61,9 +61,11 @@ public interface IPlayerData extends IDirtyable {
     <T extends PDSection> CompletableFuture<Optional<T>> getPDSectionIfPresent(Class<T> pdSectionClass);
 
     /**
-     * Whether this player has a stored (or cached) row for {@code pdSectionClass}. Async because there
-     * is no synchronous existence check against the backend - the cache is consulted first, then the
-     * backend on a miss. Use {@link #hasPDSectionIfLoaded(Class)} for a sync, cache-only peek.
+     * Whether this player has a STORED row for {@code pdSectionClass}. A cache-only transient default
+     * (the one {@link #getPDSection(Class)} seeds on a miss) counts as ABSENT - only a row that was
+     * actually persisted, or a cached cell that is not a transient default, answers {@code true}.
+     * Async because there is no synchronous existence check against the backend: the cache is consulted
+     * first, then the backend on a miss. Use {@link #hasPDSectionIfLoaded(Class)} for a sync, cache-only peek.
      */
     CompletableFuture<Boolean> hasPDSection(Class<? extends PDSection> pdSectionClass);
 
