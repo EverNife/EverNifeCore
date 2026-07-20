@@ -30,7 +30,8 @@ import java.util.regex.Pattern;
  * </ul>
  *
  * <p>Soft rules become warnings in the result (the caller logs them):
- * {@code format} on a non-localfile backend, an enabled {@code memory} backend.</p>
+ * {@code format} on a backend that is neither localfile nor groupedfile, an enabled
+ * {@code memory} backend.</p>
  *
  * <p>PDSection entries are loaded as raw data - referencing a missing/disabled
  * backend there is NOT a parse error: it becomes a hard error later, at
@@ -174,7 +175,7 @@ public final class StorageYamlParser {
         if (formatRaw != null) {
             if (type != BackendType.LOCALFILE && type != BackendType.GROUPEDFILE) {
                 warnings.add("Backend '" + name + "': 'format' is only valid on type localfile/groupedfile"
-                        + " - ignored (always JSON).");
+                        + " - ignored here.");
             } else if (formatRaw.equalsIgnoreCase("yaml") || formatRaw.equalsIgnoreCase("yml")) {
                 format = BackendDefinition.FileFormat.YAML;
             } else if (formatRaw.equalsIgnoreCase("json")) {

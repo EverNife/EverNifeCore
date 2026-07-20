@@ -26,6 +26,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class StorageRegistry {
 
+    // Insertion-ordered on purpose: getNames() and the get() error list are admin-facing. Mutation
+    // (register) is boot-only and single-threaded; readers see the fully-built map through the
+    // happens-before of the volatile ECStorage.registry publish, so a non-concurrent map is safe here.
     private final Map<String, Storage> storages = new LinkedHashMap<>();
     private final String defaultBackendName;
 

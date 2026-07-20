@@ -22,9 +22,11 @@ import br.com.finalcraft.everydatabase.modules.sql.postgresql.PostgreSqlStorage;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * A logical backend parsed from the {@code backends:} section of storage.yml.
+ * A logical backend parsed from the {@code storage-backends:} section of storage.yml.
  * Immutable; created by {@link StorageYamlParser}.
  *
  * <p>{@link #createStorage(StorageLogConfig)} instantiates the matching EveryDatabase
@@ -34,7 +36,7 @@ import java.util.Optional;
  */
 public final class BackendDefinition {
 
-    /** File format for LOCALFILE backends. JSON in localfile is always pretty. */
+    /** Wire format for the file backends (LOCALFILE and GROUPEDFILE). JSON on a file backend is always pretty. */
     public enum FileFormat { YAML, JSON }
 
     private final String name;
@@ -153,6 +155,9 @@ public final class BackendDefinition {
         } catch (Throwable notOnClasspath) {
             // This backend's deps may not have been downloaded; the storage init() below
             // surfaces a clearer "Failed to initialize backend" error if the driver really is missing.
+            // A FINE trace naming the driver still helps diagnose that later "No suitable driver".
+            Logger.getLogger("EverNifeCore").log(Level.FINE,
+                    "JDBC driver '" + driverClassName + "' is not on the classpath yet", notOnClasspath);
         }
     }
 
