@@ -1,11 +1,21 @@
 package br.com.finalcraft.evernifecore.dynamiccommand;
 
-import java.util.HashMap;
+import br.com.finalcraft.evernifecore.util.collection.SelfExpiringMap;
+
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 public class DynamicCommandManager {
 
-    public static HashMap<UUID, DynamicCommand>  DYNAMIC_COMMANDS = new HashMap<>();
+    // Time an unused dynamic-command link lingers in memory before being purged.
+    // A generous upper bound (well above the intended lifetime of a confirmation link),
+    // decoupled from the DynamicCommand cooldown, which is never started at scheduling
+    // time and so does not describe a real lifetime here. It only bounds memory: the
+    // cooldown still gates execution.
+    private static final long LINK_TTL_MILLIS = TimeUnit.MINUTES.toMillis(30);
+
+    public static Map<UUID, DynamicCommand> DYNAMIC_COMMANDS = new SelfExpiringMap<>(LINK_TTL_MILLIS);
 
     //TODO Register on EverNifeCore Miencraft Version
 //    static {
