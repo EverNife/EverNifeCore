@@ -55,7 +55,7 @@ public class FCDefaultExecutor {
             }
         }
 
-        MultiArgumentos argumentos = new MultiArgumentos(args, false);
+        MultiArgumentos argumentos = new MultiArgumentos(args);
         String subCommandName = argumentos.getStringArg(0);
         CMDMethodInterpreter subCommand = null;
         try {

@@ -21,18 +21,11 @@ public class MultiArgumentos {
     private boolean flagfied = false;
 
     public MultiArgumentos(String[] args) {
-        this(args,false);
-    }
-
-    public MultiArgumentos(String[] args, boolean flagedArgs) {
         for (String arg : args) {
             stringArgs.add(arg);
             argumentos.add(new Argumento(arg));
         }
-
-        if (flagfied == true){ //We must flagify this than!
-            flagify();
-        }
+        //Flagification is always lazy (getFlags()/getFlag() call the idempotent flagify()).
     }
 
     public void flagify(){
