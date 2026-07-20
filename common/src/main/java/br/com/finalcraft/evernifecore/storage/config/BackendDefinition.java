@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.storage.config;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
 import br.com.finalcraft.evernifecore.storage.BackendType;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
@@ -120,6 +122,7 @@ public final class BackendDefinition {
                 // key-major: one file per key holding all its collections; the format follows the codec
                 return new GroupedFileStorage(new GroupedFileConfig(Paths.get(path)), logConfig);
             case SQL:
+                ensureSqlBackendAvailable();
                 ensureJdbcDriver("com.mysql.cj.jdbc.Driver");
                 return new SqlStorage(sqlConfig(), logConfig);
             case POSTGRESQL:
@@ -158,6 +161,31 @@ public final class BackendDefinition {
             // A FINE trace naming the driver still helps diagnose that later "No suitable driver".
             Logger.getLogger("EverNifeCore").log(Level.FINE,
                     "JDBC driver '" + driverClassName + "' is not on the classpath yet", notOnClasspath);
+        }
+    }
+
+    /**
+     * Fail fast on the {@code sql} (MySQL/MariaDB) backend when running on Hytale. The MySQL
+     * connector is GPL-licensed and is NOT bundled in the Hytale jar, and Hytale has no runtime
+     * dependency loader to fetch it - so {@link #ensureJdbcDriver} would only leave a later,
+     * cryptic "No suitable driver". This turns it into a clear config error at open time. The
+     * platform id is resolved defensively (like {@code Accounts.platformProvider}) so a pure-JUnit
+     * runtime - whose platform id is {@code "test"} - never trips it.
+     */
+    private void ensureSqlBackendAvailable() {
+        String platformId = null;
+        try {
+            IPlatform platform = EverNifeCore.getPlatform();
+            if (platform != null) {
+                platformId = platform.getPlatformProviderId();
+            }
+        } catch (Throwable platformNotRegistered) {
+            //early boot / standalone: no platform registered - assume the backend is allowed
+        }
+        if ("hytale".equals(platformId)) {
+            throw new StorageConfigException("The 'sql' (MySQL/MariaDB) storage backend is not available on Hytale: the MySQL JDBC driver "
+                    + "is GPL-licensed and is not bundled in the Hytale jar, and Hytale has no runtime dependency "
+                    + "loader to fetch it. Use one of: postgresql, h2, mongo, groupedfile, localfile or memory.");
         }
     }
 
