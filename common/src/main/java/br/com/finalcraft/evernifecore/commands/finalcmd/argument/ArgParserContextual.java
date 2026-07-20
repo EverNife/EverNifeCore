@@ -16,12 +16,12 @@ public abstract class ArgParserContextual<T extends Object> {
         return argContextualInfo;
     }
 
-    //TODO Renomear isso
+    //TODO Rename this
     public abstract T parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender) throws ArgParseException;
 
     public abstract boolean requiresToBeAPlayer();
 
     public int getPriority(){
-        return 0; //TODO mover isso para manager
+        return 0; //TODO Move this to the manager
     }
 }

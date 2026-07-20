@@ -27,6 +27,6 @@ public class ArgParserContextualPDSection extends ArgParserContextual<PDSection>
 
     @Override
     public int getPriority() {
-        return -100; //Lower priority on PDSection, so specific sections take priority!
+        return -100;
     }
 }

@@ -27,7 +27,7 @@ public class ArgParserFCWorldGuardRegion extends ArgParser<FCWorldGuardRegion> {
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cThere is no region called [§e%region_name%§c]")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cExiste uma arena chamada [§e%region_name%§c] mas ela pertence ao módulo: §b%arena_module%")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cNão existe nenhuma região chamada [§e%region_name%§c]")
     public static LocaleMessage THERE_IS_NO_REGION_FOR_THIS_NAME;
 
     @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cThere is no region at your location!")
