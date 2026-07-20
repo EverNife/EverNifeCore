@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
+import br.com.finalcraft.everylibs.util.numberwrapper.NumberWrapper;
 
 import java.util.Collection;
 

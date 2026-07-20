@@ -32,7 +32,7 @@ import br.com.finalcraft.evernifecore.pageviwer.PageVizualization;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import br.com.finalcraft.everylibs.commons.Tuple;
-import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
+import br.com.finalcraft.everylibs.util.numberwrapper.NumberWrapper;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 

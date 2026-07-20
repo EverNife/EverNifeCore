@@ -11,7 +11,7 @@ import br.com.finalcraft.everylibs.util.FCMathUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
 import br.com.finalcraft.everylibs.commons.Tuple;
-import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
+import br.com.finalcraft.everylibs.util.numberwrapper.NumberWrapper;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 

@@ -11,7 +11,7 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.LocPos;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.time.DayOfToday;
 import br.com.finalcraft.everylibs.util.FCTimeUtil;
-import br.com.finalcraft.evernifecore.util.numberwrapper.NumberWrapper;
+import br.com.finalcraft.everylibs.util.numberwrapper.NumberWrapper;
 import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everyconfig.config.Config;
 import org.junit.jupiter.api.BeforeAll;
