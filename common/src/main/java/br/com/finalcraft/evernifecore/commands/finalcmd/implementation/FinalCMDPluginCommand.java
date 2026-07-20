@@ -39,7 +39,6 @@ public class FinalCMDPluginCommand {
     //   SUB_CMD  ? /sharelag list
     //
 
-    protected String permission;
     protected HelpContext helpContext;// Immutable Context from all HelpLines from all SubCmds (come from list 'helpLineList' bellow)
     protected List<Field> localeMessageFields = new ArrayList<>();
     protected transient IPlatformCMD platformCommand; //The actual command.class inside the platform
@@ -86,25 +85,6 @@ public class FinalCMDPluginCommand {
         Collections.sort(subCommands, Comparator.comparing(cmdMethodInterpreter -> cmdMethodInterpreter.getLabels()[0]));
 
         this.helpContext = new HelpContext(finalCMD.getHelpHeader(), this);
-
-        String calculatedPermission = finalCMD.getPermission();
-        if (mainInterpreter != null && mainInterpreter.getCmdData().getPermission() != null && !mainInterpreter.getCmdData().getPermission().isEmpty()){
-            calculatedPermission = mainInterpreter.getCmdData().getPermission();
-        }else if (subCommands.size() > 0){
-            if (subCommands.stream().map(subCommand -> subCommand.getCmdData().getPermission()).filter(String::isEmpty).findFirst().isPresent()){
-                calculatedPermission = null; //If there is at least one subcommand that has no permission, then the main command will have no permission
-            }else {
-                calculatedPermission = subCommands.stream()
-                        .map(subCommand -> subCommand.getCmdData().getPermission())
-                        .filter(Objects::nonNull)
-                        .filter(permission -> !permission.isEmpty())
-                        .collect(Collectors.joining(";"));
-            }
-        }
-
-        this.permission = calculatedPermission != null && !calculatedPermission.isEmpty()
-                        ? calculatedPermission
-                        : null;
 
         return EverNifeCore.getPlatform().registerCommand(this);
     }
