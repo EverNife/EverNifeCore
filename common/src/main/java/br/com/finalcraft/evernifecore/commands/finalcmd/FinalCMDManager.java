@@ -206,11 +206,13 @@ public class FinalCMDManager {
 
                     //After customization, lets load the Validators locales
                     for (CMDData<?> cmdData : customizeContext.getAllCMDData()) {
-                        //If its not the default validator, lets load its locale
-                        Class validationClass = cmdData.getCmdAccessValidations().getClass();
-                        //Maybe the Validation class is not from this ECPlugin, so lets make sure its loaded on its proper owner
-                        ECPluginData plugin = ECPluginManager.getProvidingPlugin(validationClass);
-                        FCLocaleManager.loadLocale(plugin, true, validationClass);
+                        //If it's not the default validator, lets load its locale
+                        for (CMDAccessValidation cmdAccessValidation : cmdData.getCmdAccessValidations()) {
+                            Class validationClass = cmdAccessValidation.getClass();
+                            //Maybe the Validation class is not from this ECPlugin, so lets make sure its loaded on its proper owner
+                            ECPluginData plugin = ECPluginManager.getProvidingPlugin(validationClass);
+                            FCLocaleManager.loadLocale(plugin, true, validationClass);
+                        }
                     }
 
                     CMDMethodInterpreter mainMethodInterpreter = mainCommandMethod == null ? null : new CMDMethodInterpreter(ecPluginData, customizeContext.getMainMethod(), executor);

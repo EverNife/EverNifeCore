@@ -34,12 +34,15 @@ public class MethodData<T extends CMDData> {
         for (Tuple<Class, Annotation[]> tuple : MethodArgScanner.getArgsAndAnnotationsDeeply(method)) {
             index++;
 
+            boolean recognized = false;
+
             Arg arg = (Arg) Arrays.stream(tuple.getRight())
                     .filter(annotation -> annotation.annotationType() == Arg.class)
                     .findFirst()
                     .orElse(null);
             if (arg != null){
                 argDataMap.put(index, Tuple.of(new ArgData(arg), tuple.getLeft()));
+                recognized = true;
             }
 
             FlagArg flagArg = (FlagArg) Arrays.stream(tuple.getRight())
@@ -48,6 +51,7 @@ public class MethodData<T extends CMDData> {
                     .orElse(null);
             if (flagArg != null){
                 flagArgDataMap.put(index, Tuple.of(new ArgData(flagArg), tuple.getLeft()));
+                recognized = true;
             }
 
             ContextualArg contextualArg = (ContextualArg) Arrays.stream(tuple.getRight())
@@ -56,9 +60,10 @@ public class MethodData<T extends CMDData> {
                     .orElse(null);
             if (contextualArg != null){
                 contextualArgDataMap.put(index, Tuple.of(new ArgContextualData(contextualArg), tuple.getLeft()));
+                recognized = true;
             }
 
-            if (tuple.getRight().length == 0){ //When no annotation at all, assume it's a contextual arg
+            if (!recognized){ //No recognized command annotation (none, or only foreign ones): treat as a contextual arg
                 contextualArgDataMap.put(index, Tuple.of(new ArgContextualData(), tuple.getLeft()));
             }
 
