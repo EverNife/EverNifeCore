@@ -6,4 +6,8 @@ public class ArgParseException extends IllegalArgumentException{
         super();
     }
 
+    public ArgParseException(String message) {
+        super(message);
+    }
+
 }

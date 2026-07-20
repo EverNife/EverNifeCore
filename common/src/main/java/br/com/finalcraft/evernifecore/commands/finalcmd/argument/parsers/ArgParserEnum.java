@@ -38,12 +38,7 @@ public class ArgParserEnum extends ArgParser<Enum> {
             }
             // Transform the enum into something like     VALUE1|VALUE2|VALUE
             context = Arrays.stream(argInfo.getArgumentType().getEnumConstants())
-                    .map(e -> {
-                        Enum enumConstant = (Enum)e;
-                        String nameLowercase = enumConstant.name().toLowerCase();
-                        enumMap.put(nameLowercase, enumConstant);
-                        return StringUtils.capitalize(nameLowercase);
-                    })
+                    .map(e -> StringUtils.capitalize(((Enum) e).name().toLowerCase()))
                     .collect(Collectors.joining("|"));
         }
 
@@ -57,6 +52,16 @@ public class ArgParserEnum extends ArgParser<Enum> {
         possibilities = ImmutableList.copyOf(ArgsParserUtil.parseStringContextSelectional("<" + context + ">"));
 
         Validate.isTrue(possibilities.size() > 0, "Can't create a ArgParserEnum without at least one option! [context=='" + context + "']");
+
+        // Populate the lookup map for every enum constant selected by the possibilities
+        // (works for both the implicit full-enum context and an explicit subset context)
+        for (Object e : argInfo.getArgumentType().getEnumConstants()) {
+            Enum<?> enumConstant = (Enum<?>) e;
+            String nameLowercase = enumConstant.name().toLowerCase();
+            if (possibilities.contains(nameLowercase)) {
+                enumMap.put(nameLowercase, enumConstant);
+            }
+        }
     }
 
     @Override

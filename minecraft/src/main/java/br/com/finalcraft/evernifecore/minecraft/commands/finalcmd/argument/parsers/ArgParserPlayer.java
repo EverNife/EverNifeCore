@@ -27,9 +27,16 @@ public class ArgParserPlayer extends ArgParser<Player> {
     public Player parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
         FPlayer player = argumento.getPlayer();
 
-        if (argInfo.isRequired() && player == null){
-            FCMessageUtil.playerNotOnline(sender, argumento.toString());
-            throw new ArgParseException();
+        if (player == null){
+            if (argInfo.isRequired()){
+                FCMessageUtil.playerNotOnline(sender, argumento.toString());
+                throw new ArgParseException();
+            }
+            return null;
+        }
+
+        if (!(player instanceof MinecraftFPlayer)){
+            throw new ArgParseException("The resolved player is not a MinecraftFPlayer: " + player.getClass().getName());
         }
 
         return ((MinecraftFPlayer) player).getPlayer();

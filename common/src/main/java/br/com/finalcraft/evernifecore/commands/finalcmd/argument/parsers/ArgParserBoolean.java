@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.util.Ar
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
 import jakarta.annotation.Nonnull;
+import org.apache.commons.lang3.Validate;
 
 import java.util.Arrays;
 import java.util.List;
@@ -32,6 +33,9 @@ public class ArgParserBoolean extends ArgParser<Boolean> {
         if (possibilities.size() != 2 && argInfo.getArgData().getContext().isEmpty()){
             possibilities = Arrays.asList("true","false");
         }
+
+        //Fail fast at command registration instead of an IndexOutOfBounds at dispatch time
+        Validate.isTrue(possibilities.size() == 2, "A custom-context ArgParserBoolean must have exactly 2 options! [context=='" + argInfo.getArgData().getContext() + "']");
     }
 
     @Override
