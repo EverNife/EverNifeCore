@@ -3,13 +3,13 @@ package br.com.finalcraft.evernifecore.minecraft.title;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import org.bukkit.entity.Player;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TitleAPI {
 
-    private static Map<UUID, PlayerTitleManager> MANAGER_MAP = new HashMap<>();
+    private static final Map<UUID, PlayerTitleManager> MANAGER_MAP = new ConcurrentHashMap<>();
 
     public static void send(Player player, String title, String subTitle){
         TitleMessage.of(title, subTitle).send(player);
@@ -43,5 +43,10 @@ public class TitleAPI {
 
     public static TitleMessage.Builder message(String title, String subTitle){
         return TitleMessage.of(title, subTitle);
+    }
+
+    // Drop a player's manager so a disconnected player does not leak an entry in MANAGER_MAP.
+    public static void clearReferences(UUID playerUuid){
+        MANAGER_MAP.remove(playerUuid);
     }
 }

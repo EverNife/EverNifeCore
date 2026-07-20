@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.api.events.ECFullyLoggedInEvent;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
+import br.com.finalcraft.evernifecore.minecraft.title.TitleAPI;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import fr.xephi.authme.events.LoginEvent;
 import org.bukkit.Bukkit;
@@ -68,6 +69,7 @@ public class PlayerLoginListener implements ECListener {
             PlayerController.handlePlayerQuit(playerData.getUniqueId());
 
             ActionBarAPI.clearReferences(playerData.getUniqueId());
+            TitleAPI.clearReferences(playerData.getUniqueId());
         }
     }
 
