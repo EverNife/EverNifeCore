@@ -235,6 +235,37 @@ class CooldownSectionsTest {
     }
 
     @Test
+    void networkCooldownReplicatesWithoutExplicitSetPersist() throws IOException {
+        File storageYml = writeStorageYml("srv_net_born_persistent", true);
+        PlayerController.bootstrap(storageYml);
+
+        //no explicit setPersist(true): the server-network handle must be born persistent on its own
+        Cooldown handle = Cooldown.network("global_event");
+        assertTrue(handle.isPersistent(),
+                "a server-network cooldown handle must be born persistent, no external setPersist needed");
+        handle.startWith(300);
+        PlayerController.get().flushAll().join(); //awaits the network cooldown's in-flight writes
+
+        //a fresh controller over the same durable backend stands in for the other server
+        PlayerController.bootstrap(storageYml);
+        assertTrue(Cooldown.network("global_event").isInCooldown(),
+                "the other server must see a network cooldown started without a manual setPersist");
+    }
+
+    @Test
+    void aStoppedServerCooldownStaysFreeEvenAfterAResolveReasserts() throws IOException {
+        File storageYml = writeStorageYml("srv_net_stop_then_resolve", true);
+        PlayerController.bootstrap(storageYml);
+
+        Cooldown.network("global_event").startWith(300);
+        Cooldown.network("global_event").stop();
+        //resolve() re-asserts persist=true on the shared entry; that must not revive a stopped cooldown,
+        //since isInCooldown is gated on timeStart (a stop zeroes it), not on the persist flag
+        assertFalse(Cooldown.network("global_event").isInCooldown(),
+                "a stopped server cooldown must stay free even after resolve re-marks the entry persistent");
+    }
+
+    @Test
     void aServerCooldownRowConvergesByLatestOnAConflict() {
         ServerCooldownRow local = new ServerCooldownRow("vip");
         local.getEntry().setTimeStart(100L);

@@ -190,6 +190,11 @@ public final class ServerCooldowns {
         ServerCooldownRow row = manager.peek(identifier)
                 .orElseGet(() -> manager.resolve(identifier).join()
                         .orElseGet(() -> manager.seedIfAbsent(identifier, new ServerCooldownRow(identifier))));
+        //born PERSISTENT: a network cooldown only means anything if it replicates, and the route to
+        //storage is gated on the entry being persistent - a non-persistent one would silently never
+        //propagate. Set on the entry directly (not through Cooldown.setPersist, which would touch/file
+        //a still-blank row), so the row still only grows once the cooldown is actually started.
+        row.getEntry().setPersist(true);
         return new NetworkCooldown(identifier, row, this);
     }
 

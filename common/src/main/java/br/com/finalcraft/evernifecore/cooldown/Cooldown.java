@@ -255,6 +255,11 @@ public abstract class Cooldown {
      * The SERVER + NETWORK cooldown {@code identifier}: a handle over its row on the shared backend, so
      * every server of the network reads and writes the same state. Synchronous - the collection is warm.
      *
+     * <p>Born PERSISTENT, unlike the local one: a network cooldown only means anything if it replicates,
+     * and the route to storage is gated on the entry being persistent - a non-persistent one would
+     * silently never propagate. The flag is set on the entry directly (not through {@code setPersist}),
+     * so the row still only grows once the cooldown is actually started, never on a bare read.</p>
+     *
      * <p>Collapses to the local {@link #of(String)} when the network storage is not bootstrapped, which
      * is exactly a single-server setup with no shared backend: one server IS the whole network, so a
      * local cooldown already has network reach. (An admin who DECLARED multi-instance intent -
