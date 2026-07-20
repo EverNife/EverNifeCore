@@ -14,7 +14,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-//Samaller Version of BossShopPro ItemDataPart
+// Composable, versioned item-data piece: parses config item-data lines and applies/compares them one part at a time.
 public abstract class ItemDataPart {
 
     public static int
@@ -67,6 +67,7 @@ public abstract class ItemDataPart {
     }
 
     public static ItemStack transformItem(ItemStack item, List<String> itemdata) {
+        itemdata = new ArrayList<>(itemdata); // copy: never sort the caller's list (may be immutable)
         Collections.sort(itemdata, new Comparator<String>() {
             @Override
             public int compare(String s1, String s2) {
