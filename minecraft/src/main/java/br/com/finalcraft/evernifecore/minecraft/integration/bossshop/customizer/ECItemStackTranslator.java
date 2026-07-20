@@ -59,7 +59,7 @@ public class ECItemStackTranslator extends ItemStackTranslator {
         }
 
         if (shop instanceof IECShop){ //IF ECshop, fire last customization!
-            itemStack = ((IECShop) shop).finalizeTranslateItemStack(buy, shop, holder, item, target, final_version);
+            itemStack = ((IECShop) shop).finalizeTranslateItemStack(buy, shop, holder, itemStack, target, final_version);
         }
 
         return itemStack;
