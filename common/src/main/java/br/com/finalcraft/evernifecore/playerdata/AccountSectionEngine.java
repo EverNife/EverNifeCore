@@ -160,6 +160,8 @@ final class AccountSectionEngine {
                         sectionClass.getSimpleName(), pluginName, String.valueOf(flushFailure.getMessage()));
             }
             binding.getManager().clearCache();
+            //drop the manager from the plugin's RefRegistry so its Class object is not retained
+            controller.registries().of(binding.getPluginData()).unregister(binding.getSectionClass());
             controller.registry().releaseCollection(binding.getBackendName(), binding.getCollection());
             PDLog.info("Unregistered AccountSection {%s} of plugin '%s' (collection '%s' released).",
                     sectionClass.getSimpleName(), pluginName, binding.getCollection());

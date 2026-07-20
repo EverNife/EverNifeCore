@@ -32,4 +32,15 @@ public final class ECRegistries {
         }
         return perPlugin.computeIfAbsent(plugin, p -> new RefRegistry(global));
     }
+
+    /**
+     * Drops the plugin's child registry, so a disabled plugin's classes (and its classloader)
+     * are no longer held alive through this map. A {@code null} plugin is a no-op (it never had
+     * a child - it resolves to the global).
+     */
+    public void drop(ECPluginData plugin) {
+        if (plugin != null) {
+            perPlugin.remove(plugin);
+        }
+    }
 }

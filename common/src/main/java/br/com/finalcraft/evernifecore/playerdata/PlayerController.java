@@ -569,6 +569,7 @@ public class PlayerController {
         if (controller != null){
             controller.unbindSections(pluginName, owned);
             controller.accountEngine.unbind(pluginName, ownedAccountSections);
+            controller.ecRegistries.drop(ecPluginData); //release the plugin's child RefRegistry too
         }
     }
 
@@ -586,6 +587,8 @@ public class PlayerController {
                         pdSectionClass.getSimpleName(), pluginName, String.valueOf(flushFailure.getMessage()));
             }
             binding.getManager().clearCache();
+            //drop the manager from the plugin's RefRegistry so its Class object is not retained
+            ecRegistries.of(binding.getConfiguration().getPluginData()).unregister(pdSectionClass);
             registry.releaseCollection(binding.getBackendName(), binding.getCollection());
             PDLog.info("Unregistered PDSection {%s} of plugin '%s' (collection '%s' on backend '%s' released).",
                     pdSectionClass.getSimpleName(), pluginName, binding.getCollection(), binding.getBackendName());

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.Repository;
 import br.com.finalcraft.everydatabase.Storage;
@@ -26,6 +27,10 @@ final class AccountSectionBinding<S extends AccountSection<S>> {
 
     Class<S> getSectionClass() {
         return configuration.getSectionClass();
+    }
+
+    ECPluginData getPluginData() {
+        return configuration.getPluginData();
     }
 
     String getCollection() {
