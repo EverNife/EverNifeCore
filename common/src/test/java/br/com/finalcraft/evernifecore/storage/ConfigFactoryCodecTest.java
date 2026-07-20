@@ -173,18 +173,19 @@ class ConfigFactoryCodecTest {
     }
 
     // ==================================================================
-    //  (versioned + migration + lifecycle) - the case that needs the F1 decode-delegation fix
+    //  versioned + migration + lifecycle: the bridge codec must delegate its decode so the
+    //  lifecycle hooks still fire when a payload is read through the migration seam
     // ==================================================================
 
     @Test
     void versionedSectionKeepsLifecycleAcrossTheMigratedReadSeam() throws Exception {
-        // the migration step is expressed as a SectionSchemaStep over the rich, type-aware ConfigSection
-        // (the F3 surface): read 'label' and derive 'grade' from it.
+        // the migration step is expressed as a SectionSchemaStep over the rich, type-aware ConfigSection:
+        // read 'label' and derive 'grade' from it.
         SectionSchemaStep step = section -> {
             String label = section.getValue("label", String.class);
             section.setValue("grade", label == null ? 0 : label.length());
         };
-        // register the chain through the real F3 builder adapter (SectionSchemaStep -> EntitySchemaStep)
+        // register the chain through the real builder adapter (SectionSchemaStep -> EntitySchemaStep)
         List<EntitySchemaMigrations.Step> chain = PDSectionConfiguration
                 .builder(null, VersionedBag.class)
                 .migration(1, step)
@@ -197,7 +198,7 @@ class ConfigFactoryCodecTest {
             byte[] v1 = ("{\"schemaVersion\":1,\"uuid\":\"" + key + "\",\"label\":\"hello\"}")
                     .getBytes(StandardCharsets.UTF_8);
 
-            // GREEN: the bridge is the inner codec, so lifecycle survives the migrated decode path (F1 fix)
+            // GREEN: the bridge is the inner codec, so lifecycle survives the migrated decode path
             Codec<VersionedBag> bridge = EntitySchemaMigratingCodec.wrap(
                     VersionedBag.class, ConfigFactoryCodec.json(VersionedBag.class), "uuid");
             VersionedBag migrated = bridge.decode(v1);
@@ -208,9 +209,7 @@ class ConfigFactoryCodecTest {
 
             // NEGATIVE: a plain inner codec migrates the tree the same way, but fires no lifecycle, so the
             // hook-populated state is lost even though the migration itself ran. This isolates that the BRIDGE
-            // (not the migration wrapper) is what carries lifecycle through the migrated seam. The stricter
-            // "red without the F1 fix" - where even the bridge inner would be bypassed - is covered by F1's own
-            // verification (the pre-fix jar is not republished), so it is not re-faked here.
+            // (not the migration wrapper) is what carries lifecycle through the migrated seam.
             Codec<VersionedBag> plainInner = EntitySchemaMigratingCodec.wrap(
                     VersionedBag.class, new JacksonJsonCodec<>(VersionedBag.class), "uuid");
             VersionedBag plainMigrated = plainInner.decode(v1);

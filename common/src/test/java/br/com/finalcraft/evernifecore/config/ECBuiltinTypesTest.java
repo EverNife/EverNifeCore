@@ -115,7 +115,7 @@ class ECBuiltinTypesTest {
         cfg.save();
 
         Config reopened = open(dir);
-        // Spec 03: a list whose element type declares a compact element form stores as a string-list (one
+        // a list whose element type declares a compact element form stores as a string-list (one
         // compact line per element), while the SAME type stays a rich map as a solo value.
         assertEquals(Arrays.asList("1|2|3", "-4|5|-6"), reopened.getStringList("spots"));
         assertEquals(positions, reopened.getList("spots", BlockPos.class));
