@@ -3,7 +3,6 @@ package br.com.finalcraft.evernifecore.storage.config;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.storage.BackendType;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
-import br.com.finalcraft.evernifecore.storage.OwnedBackend;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
@@ -22,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -257,7 +257,7 @@ class InlineBackendTest {
     // ------------------------------------------------------------------
 
     @Test
-    void openBackendCreatesConnectsAndServesAOwnedRepository() throws IOException {
+    void openCreatesConnectsAndServesAnOwnedRepository() throws IOException {
         Config config = configOf(String.join("\n",
                 "storage:",
                 "  localfile:",
@@ -265,7 +265,7 @@ class InlineBackendTest {
                 "    format: yaml",
                 ""));
 
-        OwnedBackend backend = ECStorage.openBackend(config.getConfigSection("storage"));
+        ECStorage backend = ECStorage.open(config.getConfigSection("storage")).join();
         try {
             EntityDescriptor<UUID, Widget> descriptor = EntityDescriptor.builder(UUID.class, Widget.class)
                     .collection("inline_widgets")
@@ -293,10 +293,11 @@ class InlineBackendTest {
     }
 
     @Test
-    void openBackendSurfacesAnInitFailureAsAStorageConfigException() throws IOException {
+    void openSurfacesAnInitFailureAsAStorageConfigException() throws IOException {
         // an H2 file backend that refuses to auto-create (IFEXISTS on a database that does not exist)
-        // fails at init() deterministically and offline. join() wraps that in a CompletionException;
-        // openBackend must unwrap it so a caller catching StorageConfigException actually catches it.
+        // fails at init() deterministically and offline. The returned future completes exceptionally with a
+        // StorageConfigException (join() wraps it in a CompletionException) - never a bare CompletionException
+        // carrying the raw driver error.
         String missingDb = tempDir.resolve("never_created_db").toString().replace("\\", "/");
         Config config = configOf(String.join("\n",
                 "storage:",
@@ -304,9 +305,11 @@ class InlineBackendTest {
                 "    url: \"jdbc:h2:file:" + missingDb + ";IFEXISTS=TRUE\"",
                 ""));
 
-        assertThrows(StorageConfigException.class,
-                () -> ECStorage.openBackend(config.getConfigSection("storage")),
-                "a backend whose init() fails must throw StorageConfigException, not a bare CompletionException");
+        CompletionException wrapper = assertThrows(CompletionException.class,
+                () -> ECStorage.open(config.getConfigSection("storage")).join(),
+                "a failed open must complete the future exceptionally");
+        assertTrue(wrapper.getCause() instanceof StorageConfigException,
+                "the init failure must surface as a StorageConfigException, got: " + wrapper.getCause());
     }
 
     // ------------------------------------------------------------------
@@ -393,9 +396,9 @@ class InlineBackendTest {
     }
 
     @Test
-    void openBackendWritesTheContainerFormatTheConfigChose() throws IOException {
+    void openWritesTheContainerFormatTheConfigChose() throws IOException {
         // the whole point of the fix: the on-disk container extension follows the configured format,
-        // end to end through openBackend + the config-driven default codec.
+        // end to end through open + the config-driven default codec.
         assertContainerExtension("json", ".json");
         assertContainerExtension("yaml", ".yml");
     }
@@ -409,7 +412,7 @@ class InlineBackendTest {
                 "    format: " + format,
                 ""));
 
-        OwnedBackend backend = ECStorage.openBackend(config.getConfigSection("storage"));
+        ECStorage backend = ECStorage.open(config.getConfigSection("storage")).join();
         try {
             EntityDescriptor<UUID, Widget> descriptor = EntityDescriptor.builder(UUID.class, Widget.class)
                     .collection("container_widgets")

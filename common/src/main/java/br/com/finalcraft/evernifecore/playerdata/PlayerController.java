@@ -18,7 +18,7 @@ import br.com.finalcraft.evernifecore.playerdata.storage.PDSectionBinding;
 import br.com.finalcraft.evernifecore.playerdata.storage.PlayerDataBinding;
 import br.com.finalcraft.evernifecore.playerdata.storage.SectionCachePolicy;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
-import br.com.finalcraft.evernifecore.storage.ECStorage;
+import br.com.finalcraft.evernifecore.storage.ECStorageRegistries;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
 import br.com.finalcraft.evernifecore.storage.StorageRegistry;
 import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
@@ -31,6 +31,7 @@ import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.everydatabase.log.StorageLogConfig;
 import br.com.finalcraft.everydatabase.log.StorageLogSinks;
 import br.com.finalcraft.everydatabase.manager.CachingManager;
+import br.com.finalcraft.everydatabase.manager.RefRegistry;
 import br.com.finalcraft.everydatabase.query.Cursor;
 import br.com.finalcraft.everydatabase.query.Query;
 import br.com.finalcraft.everydatabase.query.QueryOptions;
@@ -86,6 +87,19 @@ import java.util.function.BiConsumer;
 public class PlayerController {
 
     private static volatile PlayerController INSTANCE;
+
+    static {
+        //let an ECStorage share a plugin's RefRegistry with that plugin's PDSections (so a Ref inside a
+        //PDSection can resolve an entity in the plugin's own ECStorage). The lambda resolves the LIVE
+        //controller instance each call, so it survives a reload swap.
+        ECStorageRegistries.setProvider(PlayerController::sharedRefRegistryFor);
+    }
+
+    /** The current controller instance's child registry for {@code plugin}, or {@code null} if not bootstrapped. */
+    static RefRegistry sharedRefRegistryFor(ECPluginData plugin){
+        PlayerController controller = INSTANCE;
+        return controller == null ? null : controller.ecRegistries.of(plugin);
+    }
 
     /** Section registrations made by devs - survive reloads (plugins register once on enable). */
     private static final Map<Class<? extends PDSection>, PDSectionConfiguration<?>> REGISTERED_SECTIONS = new ConcurrentHashMap<>();
@@ -172,7 +186,6 @@ public class PlayerController {
         }
 
         INSTANCE = fresh;                       //atomic instance swap
-        ECStorage.initialize(fresh.registry);
         if (!importPending){
             fresh.ready.complete(null);         //held until the import on the first boot
             //a registration that raced this bootstrap (arrived after fresh.start() visited the

@@ -245,6 +245,28 @@ public final class StorageYamlDefaults {
     }
 
     /**
+     * Seeds a ready {@link BackendDefinition} as the inline single-backend block at {@code section} - its
+     * EXACT fields (a file backend's own {@code path}, an sql backend's {@code url}/{@code user}/...), keyed
+     * by its own type. This is what {@code ECStorage.open(plugin, section, seedIfAbsent)} writes when the
+     * section is empty, so a plugin's factory-built default lands verbatim. Idempotent like the other
+     * overloads: a section that already declares a backend is left untouched.
+     */
+    public static void writeInlineBackendTemplate(ConfigSection section, BackendDefinition definition,
+                                                  boolean compactComment) {
+        if (!section.getKeys().isEmpty()) {
+            return; //a backend is already declared - keep the admin's choice
+        }
+        seedBackendFieldsFrom(section, definition);
+
+        String path = section.getPath();
+        if (path != null && !path.isEmpty()) {
+            section.getConfig().setDefaultComment(path, compactComment
+                    ? inlineBackendTemplateCommentCompact()
+                    : inlineBackendTemplateComment(fileBaseHint(definition)));
+        }
+    }
+
+    /**
      * Resolves the file format actually written for {@code type}: honoured (defaulting to YAML) for the file
      * backends, and dropped to {@code null} for every other type, which has no file format to pick.
      */
@@ -294,6 +316,54 @@ public final class StorageYamlDefaults {
                 section.setValueIfAbsent(key, new LinkedHashMap<String, Object>());
                 break;
         }
+    }
+
+    /**
+     * Writes the per-type fields of a ready {@link BackendDefinition} under {@code section}, keyed by the
+     * definition's own type - its EXACT values (its own path/url/...), unlike {@link #seedBackendFields}
+     * which derives file paths from a base folder.
+     */
+    private static void seedBackendFieldsFrom(ConfigSection section, BackendDefinition definition) {
+        BackendType type = definition.getType();
+        String key = type.getId();
+        switch (type) {
+            case GROUPEDFILE:
+            case LOCALFILE:
+                BackendDefinition.FileFormat format = definition.getFormat() != null
+                        ? definition.getFormat() : BackendDefinition.FileFormat.YAML;
+                section.setValueIfAbsent(key + ".path", definition.getPath());
+                section.setValueIfAbsent(key + ".format", format.name().toLowerCase(Locale.ROOT));
+                section.setDefaultComment(key + ".format", type == BackendType.GROUPEDFILE
+                        ? "format: yaml | json - groupedfile co-locates a key's whole record in one file"
+                        : "format: yaml | json (json is always pretty/indented)");
+                break;
+            case H2:
+                section.setValueIfAbsent(key + ".url", definition.getUrl());
+                break;
+            case SQL:
+            case POSTGRESQL:
+                section.setValueIfAbsent(key + ".url", definition.getUrl());
+                section.setValueIfAbsent(key + ".user", definition.getUser() != null ? definition.getUser() : "root");
+                section.setValueIfAbsent(key + ".pass", definition.getPass() != null ? definition.getPass() : "");
+                break;
+            case MONGO:
+                section.setValueIfAbsent(key + ".url", definition.getUrl());
+                section.setValueIfAbsent(key + ".db", definition.getDatabase());
+                break;
+            case MEMORY:
+                section.setValueIfAbsent(key, new LinkedHashMap<String, Object>());
+                break;
+        }
+    }
+
+    /** A base-folder hint for the doc comment's example paths: the parent of a file backend's path, else a placeholder. */
+    private static String fileBaseHint(BackendDefinition definition) {
+        String path = definition.getPath();
+        if (path != null && !path.isEmpty()) {
+            int lastSlash = path.replace('\\', '/').lastIndexOf('/');
+            return lastSlash > 0 ? path.substring(0, lastSlash) : path;
+        }
+        return "plugins/YourPlugin/Data";
     }
 
     /** The full inline-backend header: documents every switchable type and its fields. */

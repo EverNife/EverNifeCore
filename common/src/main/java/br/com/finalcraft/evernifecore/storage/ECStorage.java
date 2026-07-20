@@ -1,143 +1,455 @@
 package br.com.finalcraft.evernifecore.storage;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
+import br.com.finalcraft.evernifecore.storage.config.StorageYamlDefaults;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlParser;
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.Repository;
 import br.com.finalcraft.everydatabase.Storage;
+import br.com.finalcraft.everydatabase.codec.Codec;
 import br.com.finalcraft.everydatabase.log.StorageLogConfig;
+import br.com.finalcraft.everydatabase.manager.CachingManager;
+import br.com.finalcraft.everydatabase.manager.RefRegistry;
+import br.com.finalcraft.everydatabase.manager.cache.CacheOptions;
+import br.com.finalcraft.everydatabase.manager.cache.CachePolicy;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Public storage facade for plugins: any plugin that depends on EverNifeCore
- * can persist its own entities in the admin-configured backends, using the same
- * EveryDatabase API that PlayerData uses.
+ * A plugin-OWNED storage handle: one live {@link Storage} plus the {@link BackendDefinition} it was
+ * opened from, the {@link RefRegistry} that scopes its managers, and the {@link CachingManager}s
+ * created on it. A plugin that depends on EverNifeCore opens one to route its OWN entities through a
+ * backend its own config declares - the drivers are already downloaded by the core at boot, so any
+ * type the admin picks just works.
+ *
+ * <p>This REPLACES the old global-facade design (a static {@code ECStorage.repository("name", ...)}
+ * routing by storage.yml backend ids): that shared registry conflated the core's PlayerData routing
+ * with third-party plugin data and confused usage. An {@code ECStorage} is now a self-contained
+ * context you {@link #open} and {@link #close} yourself.</p>
  *
  * <pre>{@code
- * Repository<UUID, Shop> repo = ECStorage.repository(SHOPS_DESCRIPTOR);          // default backend
- * Repository<UUID, Shop> repo = ECStorage.repository("mysql_economy", SHOPS_DESCRIPTOR);
+ * // onEnable - one line: seeds a groupedfile default under the plugin's dataFolder if the section is
+ * // empty, logs through the plugin, connects (async - join() to block):
+ * STORAGE = ECStorage.openOrReload(this.getEcPluginData(), config.getConfigSection("storage"), STORAGE).join();
+ * CachingManager<UUID, Snapshot> snaps = STORAGE.manager(SNAPSHOTS, CachePolicy.always());
+ *
+ * // onReload - the SAME call reuses the live connection when the config still points at the same DB,
+ * // else reconnects; either way every cache (dirty included) is wiped and managers are re-derived.
+ * // flushManagers() first if you must not lose unsaved writes on the reuse path.
+ *
+ * // onDisable:
+ * STORAGE.close().join();
  * }</pre>
  *
- * <p>Collection names are CLAIMED per backend: EveryDatabase caches repositories
- * by collection name, so an accidental reuse across plugins would silently share
- * the first repository - here that becomes a hard error. Convention: prefix your
- * collections with your plugin name ({@code myplugin_...}).</p>
+ * <p>It deliberately does NOT implement {@link Storage}: a delegating wrapper would hide the concrete
+ * storage's own interfaces (e.g. {@code SchemaAwareStorage}/{@code TransactionalStorage}) from an
+ * {@code instanceof} check. Take the raw storage from {@link #storage()} when you need it.</p>
  */
 public final class ECStorage {
 
-    private static volatile StorageRegistry registry;
+    /** The plugin that owns this handle, or {@code null} for a plugin-less open (advanced/tests). Used for logging. */
+    private final ECPluginData plugin;
+    private final Storage storage;
+    private final BackendDefinition definition;
 
-    private ECStorage() {
-    }
+    /**
+     * The registry this handle's managers register in. When opened with an {@link ECPluginData}, this is
+     * that plugin's SHARED child registry (the same one the plugin's PlayerData PDSections resolve through,
+     * via {@link ECStorageRegistries}), so a {@code Ref} inside a PDSection can resolve an entity that lives
+     * here. Opened without a plugin - or before the PlayerData bootstrap wired the bridge - it is a private
+     * registry. Either way {@link #reset()}/{@link #close()} unregister only THIS handle's own types, never
+     * the whole (possibly shared) registry.
+     */
+    private final RefRegistry refRegistry;
 
-    /** Wired by the PlayerController bootstrap; safe to swap (volatile). */
-    public static void initialize(StorageRegistry storageRegistry) {
-        registry = storageRegistry;
-    }
+    /**
+     * Managers created through {@link #manager(EntityDescriptor, CachePolicy)} on the OWNED registry,
+     * memoized by entity type (one manager per type, matching the RefRegistry constraint). Managers
+     * created on a caller-supplied registry are NOT tracked here - that lifecycle is the caller's.
+     */
+    private final Map<Class<?>, CachingManager<?, ?>> managers = new ConcurrentHashMap<>();
 
-    public static Storage backend(String name) {
-        return registry().get(name);
-    }
+    /** Flipped by {@link #close()} so a reload can tell a reusable handle from a dead one. */
+    private volatile boolean open = true;
 
-    public static Storage defaultBackend() {
-        return registry().getDefaultBackend();
-    }
-
-    public static <K, V> Repository<K, V> repository(EntityDescriptor<K, V> descriptor) {
-        return repository(registry().getDefaultBackendName(), descriptor);
-    }
-
-    public static <K, V> Repository<K, V> repository(String backendName, EntityDescriptor<K, V> descriptor) {
-        StorageRegistry registry = registry();
-        Storage storage = registry.get(backendName);
-
-        String owner = "ECStorage:" + descriptor.type().getName();
-        if (!registry.claimCollection(backendName, descriptor.collection(), owner)) {
-            throw new StorageConfigException("Collection '" + descriptor.collection()
-                    + "' on backend '" + backendName + "' is already used by '"
-                    + registry.getCollectionOwner(backendName, descriptor.collection())
-                    + "'! Prefix your collections with your plugin name to avoid clashes.");
-        }
-        return storage.repository(descriptor);
-    }
-
-    private static StorageRegistry registry() {
-        StorageRegistry current = registry;
-        if (current == null) {
-            throw new IllegalStateException("ECStorage is not initialized yet! It becomes available"
-                    + " after EverNifeCore's storage bootstrap (onLoadPre). If you are in onLoad,"
-                    + " move the storage access to onEnable.");
-        }
-        return current;
+    ECStorage(ECPluginData plugin, Storage storage, BackendDefinition definition, RefRegistry refRegistry) {
+        this.plugin = plugin;
+        this.storage = storage;
+        this.definition = definition;
+        this.refRegistry = refRegistry;
     }
 
     // ---------------------------------------------------------------------
-    // Plugin-owned inline backends (a plugin routing its own data elsewhere)
+    // Accessors
+    // ---------------------------------------------------------------------
+
+    /** The plugin that owns this handle, or {@code null} for a plugin-less open. */
+    public ECPluginData plugin() {
+        return plugin;
+    }
+
+    /** The live, initialized storage - use it for raw repositories or a concrete-storage {@code instanceof}. */
+    public Storage storage() {
+        return storage;
+    }
+
+    /** The backend definition this storage was opened from (its type and, for file backends, format). */
+    public BackendDefinition definition() {
+        return definition;
+    }
+
+    /**
+     * The registry this handle's managers register in - the plugin's SHARED child registry when opened with
+     * a plugin (else private). Use it to build a ref-aware codec bound to the SAME registry for a PDSection
+     * that holds a {@code Ref} into this storage: {@code refRegistry().codec(MySection.class)}.
+     */
+    public RefRegistry refRegistry() {
+        return refRegistry;
+    }
+
+    /** {@code false} once {@link #close()} has been called - a closed handle cannot be reused. */
+    public boolean isOpen() {
+        return open;
+    }
+
+    /**
+     * The default codec for {@code type} on this backend, so a plugin's entity honours the configured
+     * format exactly as PlayerData does: a file backend picks YAML or (pretty) JSON from its
+     * {@code format}, every other backend uses compact JSON. See {@link BackendDefinition#defaultCodec(Class)}.
+     */
+    public <V> Codec<V> defaultCodec(Class<V> type) {
+        return definition.defaultCodec(type);
+    }
+
+    // ---------------------------------------------------------------------
+    // Repositories & managers
     // ---------------------------------------------------------------------
 
     /**
-     * Opens a NEW, plugin-OWNED {@link Storage} from an inline single-backend section - the shape
-     * {@link StorageYamlParser#parseInlineBackend} reads, where the SINGLE child key IS the backend
-     * type. The storage is created AND initialized (connected) before returning; a backend that cannot
-     * be reached throws.
-     *
-     * <p>Unlike {@link #backend(String)} / {@link #defaultBackend()}, this does NOT touch the core's
-     * shared registry: the returned storage is YOURS to keep and to {@link Storage#close() close} when
-     * your plugin disables. Every backend's runtime driver is already downloaded by the core at boot, so
-     * whichever type the admin picks in that section just works.</p>
-     *
-     * <p>This is the "store a pointer in PlayerData, the volume elsewhere" pattern: keep the small
-     * per-player index in a PDSection (the core's storage.yml routing) and route the fat payload through
-     * a backend the plugin's own config declares.</p>
-     *
-     * <pre>{@code
-     * // onEnable (your plugin depends on EverNifeCore, so the drivers are already loaded):
-     * OwnedBackend backend = ECStorage.openBackend(config.getConfigSection("storage"));
-     * Repository<UUID, Snapshot> repo = backend.storage().repository(MY_DESCRIPTOR);
-     * Codec<Snapshot> codec = backend.defaultCodec(Snapshot.class); // honours the configured format
-     * // onDisable:
-     * backend.close().join();
-     * }</pre>
+     * A raw, uncached repository for {@code descriptor} - reads and writes go straight to the backend.
+     * The Storage itself memoizes repositories by collection name, so repeat calls return the same one.
+     * Prefer {@link #manager(EntityDescriptor, CachePolicy)} when you want caching / {@code Ref} resolution.
      */
-    public static OwnedBackend openBackend(ConfigSection section) {
-        return openBackend(section, StorageLogConfig.defaults());
+    public <K, V> Repository<K, V> repository(EntityDescriptor<K, V> descriptor) {
+        ensureOpen();
+        return storage.repository(descriptor);
     }
 
-    /** As {@link #openBackend(ConfigSection)}, with an explicit {@link StorageLogConfig}. */
-    public static OwnedBackend openBackend(ConfigSection section, StorageLogConfig logConfig) {
-        List<String> warnings = new ArrayList<>();
-        BackendDefinition backend = StorageYamlParser.parseInlineBackend(section, warnings);
-        for (String warning : warnings) {
-            logWarning(warning);
+    /** {@link #manager(EntityDescriptor, CacheOptions)} with an unbounded cache under the given policy. */
+    public <K, V> CachingManager<K, V> manager(EntityDescriptor<K, V> descriptor, CachePolicy policy) {
+        return manager(descriptor, CacheOptions.of(policy));
+    }
+
+    /**
+     * A {@link CachingManager} for {@code descriptor} on THIS storage, created in this handle's
+     * {@link #refRegistry()} (shared with the plugin's PDSections when opened with a plugin) and tracked for
+     * {@link #reset()}. Memoized by entity type: a second call for the same type returns the same manager (a
+     * distinct one would collide in the registry), so it is safe to call on every access instead of caching
+     * the result in a field - which also survives reloads cleanly, since a stale field would point at a
+     * manager whose cache {@link #reset()} already wiped.
+     */
+    @SuppressWarnings("unchecked")
+    public <K, V> CachingManager<K, V> manager(EntityDescriptor<K, V> descriptor, CacheOptions options) {
+        ensureOpen();
+        return (CachingManager<K, V>) managers.computeIfAbsent(descriptor.type(),
+                type -> refRegistry.manager(descriptor, storage, options));
+    }
+
+    /**
+     * As {@link #manager(EntityDescriptor, CacheOptions)} but registered in a CALLER-supplied registry -
+     * for advanced setups that share one registry across several handles or parent it to a common one.
+     * Such a manager is NOT tracked here and is NOT touched by {@link #reset()}: its lifecycle (including
+     * cache clearing on reload) is yours.
+     */
+    public <K, V> CachingManager<K, V> manager(EntityDescriptor<K, V> descriptor, CacheOptions options,
+                                               RefRegistry customRegistry) {
+        ensureOpen();
+        return customRegistry.manager(descriptor, storage, options);
+    }
+
+    // ---------------------------------------------------------------------
+    // Lifecycle
+    // ---------------------------------------------------------------------
+
+    /**
+     * Flushes every tracked manager's dirty write-back cells to the backend, in parallel. Call it before a
+     * reload that will reuse the connection ({@link #openOrReload}) if you must not lose unsaved writes -
+     * {@link #reset()} discards dirty state. Managers created on a caller-supplied registry are not tracked
+     * here, so flush those yourself.
+     */
+    public CompletableFuture<Void> flushManagers() {
+        List<CompletableFuture<?>> futures = new ArrayList<>(managers.size());
+        for (CachingManager<?, ?> manager : managers.values()) {
+            futures.add(manager.flushDirty());
         }
-        Storage storage = backend.createStorage(logConfig);
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+    }
+
+    /**
+     * Wipes this handle back to a just-opened state WITHOUT reconnecting: every tracked manager's cache is
+     * hard-cleared (dirty write-back cells INCLUDED and DISCARDED - a reload is a fresh open, not a flush),
+     * the managers are dropped, and the owned registry is cleared so the caller can re-{@link #manager}
+     * the same types. The connection stays live. Used by {@link #openOrReload} on the same-definition path.
+     *
+     * <p>Call {@link #flushManagers()} first if you need the dirty data persisted.</p>
+     */
+    public void reset() {
+        for (Map.Entry<Class<?>, CachingManager<?, ?>> entry : managers.entrySet()) {
+            entry.getValue().clearCache();          // hard clear: store.clear(), dirty cells included
+            refRegistry.unregister(entry.getKey()); // only THIS handle's types - never the shared registry wholesale
+        }
+        managers.clear();
+    }
+
+    /** Closes the owned storage and marks this handle unusable; call it when your plugin disables. */
+    public CompletableFuture<Void> close() {
+        open = false;
+        for (Class<?> type : managers.keySet()) {
+            refRegistry.unregister(type); // release only this handle's registrations from the (possibly shared) registry
+        }
+        managers.clear();
+        return storage.close();
+    }
+
+    private void ensureOpen() {
+        if (!open) {
+            throw new IllegalStateException("This ECStorage has been closed and cannot be used -"
+                    + " open a new one (or use openOrReload).");
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Factories - open (plugin-aware: seeds a default under the plugin dataFolder, logs through it)
+    // ---------------------------------------------------------------------
+
+    /**
+     * Opens from the plugin's inline {@code storage} section, seeding a groupedfile (YAML) default under
+     * {@code plugin.dataFolder/StorageData} when the section is empty. The one-line onEnable path.
+     */
+    public static CompletableFuture<ECStorage> open(ECPluginData plugin, ConfigSection section) {
+        return open(plugin, section, defaultSeed(plugin));
+    }
+
+    /** As {@link #open(ECPluginData, ConfigSection)}, but seeding {@code seedIfAbsent} (a factory-built default). */
+    public static CompletableFuture<ECStorage> open(ECPluginData plugin, ConfigSection section,
+                                                    BackendDefinition seedIfAbsent) {
+        return open(plugin, section, seedIfAbsent, StorageLogConfig.defaults());
+    }
+
+    /** As {@link #open(ECPluginData, ConfigSection, BackendDefinition)}, with an explicit {@link StorageLogConfig}. */
+    public static CompletableFuture<ECStorage> open(ECPluginData plugin, ConfigSection section,
+                                                    BackendDefinition seedIfAbsent, StorageLogConfig logConfig) {
+        BackendDefinition definition;
         try {
-            storage.init().join();
-        } catch (CompletionException initFailure) {
-            // init failed: the storage was created (e.g. a connection pool) but never came up - close it
-            // best-effort so a failed open leaves no orphaned pool/handle, then surface the original error.
+            definition = readOrSeed(plugin, section, seedIfAbsent);
+        } catch (RuntimeException failure) {
+            return failedFuture(failure);
+        }
+        return openInternal(plugin, definition, logConfig, section.getPath());
+    }
+
+    // ---------------------------------------------------------------------
+    // Factories - open (plugin-less: advanced / tests; no seeding, core log fallback)
+    // ---------------------------------------------------------------------
+
+    /** Opens a handle from a ready {@link BackendDefinition} (default log config, no owning plugin). */
+    public static CompletableFuture<ECStorage> open(BackendDefinition definition) {
+        return open(definition, StorageLogConfig.defaults());
+    }
+
+    /** As {@link #open(BackendDefinition)}, with an explicit {@link StorageLogConfig}. */
+    public static CompletableFuture<ECStorage> open(BackendDefinition definition, StorageLogConfig logConfig) {
+        return openInternal(null, definition, logConfig, null);
+    }
+
+    /**
+     * Opens a handle from an inline single-backend section - the shape
+     * {@link StorageYamlParser#parseInlineBackend} reads, where the SINGLE child key IS the backend type.
+     * The section must already declare a backend (no seeding here - use the {@link ECPluginData} overload
+     * for that). Async: the returned future completes once connected, or exceptionally with a
+     * {@link StorageConfigException} (wrapped in a {@link CompletionException} on {@code join()}).
+     */
+    public static CompletableFuture<ECStorage> open(ConfigSection section) {
+        return open(section, StorageLogConfig.defaults());
+    }
+
+    /** As {@link #open(ConfigSection)}, with an explicit {@link StorageLogConfig}. */
+    public static CompletableFuture<ECStorage> open(ConfigSection section, StorageLogConfig logConfig) {
+        BackendDefinition definition;
+        try {
+            definition = readDefinition(null, section);
+        } catch (RuntimeException parseFailure) {
+            return failedFuture(parseFailure);
+        }
+        return openInternal(null, definition, logConfig, section.getPath());
+    }
+
+    // ---------------------------------------------------------------------
+    // Factories - openOrReload (reload-aware)
+    // ---------------------------------------------------------------------
+
+    /**
+     * Reload entry point (plugin-aware): reuse {@code existing} when it is still open and its definition
+     * equals the one just parsed, else close it and open fresh. On the reuse path the connection is kept
+     * but the handle is {@link #reset()} (all caches wiped, dirty discarded) - so the result is always a
+     * clean, just-opened handle. Managers obtained from the OLD handle are dead afterwards; re-derive them
+     * from the returned one (see {@link #manager}). Idempotent to pass the SAME handle back:
+     * {@code S = openOrReload(plugin, cfg, S)}. Seeds a groupedfile default under the plugin dataFolder
+     * when the section is empty.
+     *
+     * @param existing the previous handle (may be {@code null} on first open, or already closed)
+     */
+    public static CompletableFuture<ECStorage> openOrReload(ECPluginData plugin, ConfigSection section,
+                                                            ECStorage existing) {
+        return openOrReload(plugin, section, defaultSeed(plugin), existing);
+    }
+
+    /** As {@link #openOrReload(ECPluginData, ConfigSection, ECStorage)}, seeding {@code seedIfAbsent}. */
+    public static CompletableFuture<ECStorage> openOrReload(ECPluginData plugin, ConfigSection section,
+                                                            BackendDefinition seedIfAbsent, ECStorage existing) {
+        BackendDefinition definition;
+        try {
+            definition = readOrSeed(plugin, section, seedIfAbsent);
+        } catch (RuntimeException failure) {
+            return failedFuture(failure);
+        }
+        return openOrReload(plugin, definition, StorageLogConfig.defaults(), existing);
+    }
+
+    /** Plugin-less reload from an inline section (the section must already declare a backend). */
+    public static CompletableFuture<ECStorage> openOrReload(ConfigSection section, ECStorage existing) {
+        ECPluginData plugin = existing != null ? existing.plugin : null;
+        BackendDefinition definition;
+        try {
+            definition = readDefinition(plugin, section);
+        } catch (RuntimeException parseFailure) {
+            return failedFuture(parseFailure);
+        }
+        return openOrReload(plugin, definition, StorageLogConfig.defaults(), existing);
+    }
+
+    /** Plugin-less reload from a ready {@link BackendDefinition} (keeps {@code existing}'s owning plugin). */
+    public static CompletableFuture<ECStorage> openOrReload(BackendDefinition definition, ECStorage existing) {
+        ECPluginData plugin = existing != null ? existing.plugin : null;
+        return openOrReload(plugin, definition, StorageLogConfig.defaults(), existing);
+    }
+
+    private static CompletableFuture<ECStorage> openOrReload(ECPluginData plugin, BackendDefinition definition,
+                                                             StorageLogConfig logConfig, ECStorage existing) {
+        // reuse only when the target AND the shared registry are unchanged: keep the live connection and just
+        // wipe it clean. A core reload can SWAP the plugin's shared registry, and reusing then would leave this
+        // handle registered in the detached old one - so a registry swap forces a reconnect (fresh registration).
+        if (existing != null && existing.isOpen() && existing.definition.equals(definition)
+                && existing.refRegistry == resolveRegistry(plugin, existing.refRegistry)) {
+            existing.reset();
+            return CompletableFuture.completedFuture(existing);
+        }
+        // different target, swapped registry, or a dead handle: drop the old one first, then open fresh
+        if (existing != null && existing.isOpen()) {
+            return existing.close().thenCompose(ignored -> openInternal(plugin, definition, logConfig, null));
+        }
+        return openInternal(plugin, definition, logConfig, null);
+    }
+
+    // ---------------------------------------------------------------------
+    // Internals
+    // ---------------------------------------------------------------------
+
+    /**
+     * Creates the storage, connects it, and wraps a failure as a {@link StorageConfigException} - fully
+     * async: no {@code join()} on the caller's thread. A failed open closes the half-built storage
+     * best-effort so no pool/handle is orphaned, then surfaces the original cause.
+     */
+    private static CompletableFuture<ECStorage> openInternal(ECPluginData plugin, BackendDefinition definition,
+                                                             StorageLogConfig logConfig, String originPath) {
+        final Storage storage;
+        try {
+            storage = definition.createStorage(logConfig); // may fail-fast synchronously (e.g. sql on Hytale)
+        } catch (RuntimeException createFailure) {
+            return failedFuture(createFailure);
+        }
+        // the plugin's shared registry when available, else a fresh private one (plugin-less / bootstrap not up)
+        RefRegistry registry = resolveRegistry(plugin, new RefRegistry());
+        return storage.init().handle((ignored, initFailure) -> {
+            if (initFailure == null) {
+                return new ECStorage(plugin, storage, definition, registry);
+            }
             try {
                 storage.close().join();
-            } catch (RuntimeException ignored) {
+            } catch (RuntimeException ignoredTeardown) {
                 // best-effort teardown; the init failure below is the error that matters
             }
-            // unwrap the CompletionException that join() wraps around the real cause, so a caller doing
-            // catch (StorageConfigException) actually catches it instead of a bare CompletionException
-            Throwable cause = initFailure.getCause() != null ? initFailure.getCause() : initFailure;
-            throw new StorageConfigException("Failed to open the '" + backend.getType().getId()
-                    + "' storage backend declared at '" + section.getPath() + "'!", cause);
-        }
-        return new OwnedBackend(storage, backend);
+            Throwable cause = unwrap(initFailure);
+            throw new CompletionException(new StorageConfigException("Failed to open the '"
+                    + definition.getType().getId() + "' storage backend"
+                    + (originPath != null ? " declared at '" + originPath + "'" : "") + "!", cause));
+        });
     }
 
-    private static void logWarning(String message) {
+    /**
+     * The registry this handle registers its managers in: the plugin's SHARED child registry when available
+     * (so a Ref in one of the plugin's PDSections resolves an entity opened here), else {@code fallback}.
+     */
+    private static RefRegistry resolveRegistry(ECPluginData plugin, RefRegistry fallback) {
+        RefRegistry shared = ECStorageRegistries.of(plugin);
+        return shared != null ? shared : fallback;
+    }
+
+    /** The groupedfile (YAML) default a plugin-aware open seeds when its section is empty. */
+    private static BackendDefinition defaultSeed(ECPluginData plugin) {
+        String base = plugin.getMetaInfo().getDataFolder().toString() + "/StorageData";
+        return BackendDefinition.groupedFile(base, null); // null format = YAML
+    }
+
+    /**
+     * Reads the inline backend, first seeding {@code seedIfAbsent} (and saving) when the section declares
+     * none - so a plugin's onEnable is a single call even on a fresh install.
+     */
+    private static BackendDefinition readOrSeed(ECPluginData plugin, ConfigSection section,
+                                                BackendDefinition seedIfAbsent) {
+        if (seedIfAbsent != null && section.getKeys().isEmpty()) {
+            StorageYamlDefaults.writeInlineBackendTemplate(section, seedIfAbsent, false);
+            section.getConfig().save();
+        }
+        return readDefinition(plugin, section);
+    }
+
+    /** Parses the inline backend and logs any soft warnings through the plugin (or the core). */
+    private static BackendDefinition readDefinition(ECPluginData plugin, ConfigSection section) {
+        List<String> warnings = new ArrayList<>();
+        BackendDefinition definition = StorageYamlParser.parseInlineBackend(section, warnings);
+        for (String warning : warnings) {
+            logWarning(plugin, warning);
+        }
+        return definition;
+    }
+
+    private static CompletableFuture<ECStorage> failedFuture(Throwable cause) {
+        CompletableFuture<ECStorage> future = new CompletableFuture<>();
+        future.completeExceptionally(cause);
+        return future;
+    }
+
+    private static Throwable unwrap(Throwable throwable) {
+        return (throwable instanceof CompletionException && throwable.getCause() != null)
+                ? throwable.getCause() : throwable;
+    }
+
+    private static void logWarning(ECPluginData plugin, String message) {
+        if (plugin != null) {
+            plugin.getLog().warning(message);
+            return;
+        }
         try {
             EverNifeCore.getLog().warning(message);
         } catch (Throwable noPluginRuntime) {

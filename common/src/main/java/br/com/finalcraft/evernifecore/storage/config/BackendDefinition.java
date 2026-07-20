@@ -20,23 +20,36 @@ import br.com.finalcraft.everydatabase.modules.sql.SqlConfig;
 import br.com.finalcraft.everydatabase.modules.sql.SqlStorage;
 import br.com.finalcraft.everydatabase.modules.sql.h2.H2SqlStorage;
 import br.com.finalcraft.everydatabase.modules.sql.postgresql.PostgreSqlStorage;
+import br.com.finalcraft.everyconfig.binding.ConfigLifecycle;
 
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * A logical backend parsed from the {@code storage-backends:} section of storage.yml.
- * Immutable; created by {@link StorageYamlParser}.
+ * A logical backend: the connection target and wire format a {@link Storage} is opened from. Parsed
+ * from a storage.yml {@code storage-backends.<id>} entry or an inline {@code storage.<type>} block by
+ * {@link StorageYamlParser}, or built in code with the {@code groupedFile}/{@code sql}/... factories.
+ * Immutable.
  *
  * <p>{@link #createStorage(StorageLogConfig)} instantiates the matching EveryDatabase
  * {@link Storage} using each backend's TYPED constructor - never the generic
  * {@code Storages.create(StorageConfig)} (which always picks the MySQL dialect for
  * any SqlConfig).</p>
+ *
+ * <p>{@link #equals(Object)} is VALUE equality over the connection target and wire format
+ * ({@code type, url, user, pass, path, format, database} and the pool scalars), so two definitions
+ * that resolve the same physical store compare equal - the check {@code ECStorage.openOrReload} uses to
+ * decide whether a reload can reuse the live connection. The routing metadata {@code name} and
+ * {@code enabled} are deliberately NOT part of identity.</p>
+ *
+ * <p>Implements {@link ConfigLifecycle} so it participates in EveryConfig's read/write hooks when bound
+ * as a config value; the hooks default to no-ops here.</p>
  */
-public final class BackendDefinition {
+public final class BackendDefinition implements ConfigLifecycle {
 
     /** Wire format for the file backends (LOCALFILE and GROUPEDFILE). JSON on a file backend is always pretty. */
     public enum FileFormat { YAML, JSON }
@@ -89,6 +102,82 @@ public final class BackendDefinition {
         return format;
     }
 
+    /** File backends (LOCALFILE/GROUPEDFILE): the data directory; {@code null} otherwise. */
+    public String getPath() {
+        return path;
+    }
+
+    /** SQL/POSTGRESQL/H2/MONGO: the connection URL; {@code null} for file/memory backends. */
+    public String getUrl() {
+        return url;
+    }
+
+    /** SQL/POSTGRESQL/H2: the connection user; {@code null}/empty otherwise. */
+    public String getUser() {
+        return user;
+    }
+
+    /** SQL/POSTGRESQL/H2: the connection password; {@code null}/empty otherwise. */
+    public String getPass() {
+        return pass;
+    }
+
+    /** MONGO: the database name; {@code null} otherwise. */
+    public String getDatabase() {
+        return database;
+    }
+
+    /** SQL/POSTGRESQL/H2: the HikariCP pool tuning, or {@code null} to use the driver defaults. */
+    public PoolTuning getPoolTuning() {
+        return poolTuning;
+    }
+
+    // ---------------------------------------------------------------------
+    // Factories (build a definition in code, e.g. a plugin's standardized default)
+    // ---------------------------------------------------------------------
+
+    /** A GROUPEDFILE backend (one file per key) rooted at {@code path}, {@code null} format = YAML. */
+    public static BackendDefinition groupedFile(String path, FileFormat format) {
+        return of(BackendType.GROUPEDFILE.getId(), true, BackendType.GROUPEDFILE,
+                null, null, null, null, null, null, null, path, format, null);
+    }
+
+    /** A LOCALFILE backend (one file per entity) rooted at {@code path}, {@code null} format = YAML. */
+    public static BackendDefinition localFile(String path, FileFormat format) {
+        return of(BackendType.LOCALFILE.getId(), true, BackendType.LOCALFILE,
+                null, null, null, null, null, null, null, path, format, null);
+    }
+
+    /** An H2 backend at {@code url} (e.g. {@code jdbc:h2:file:./plugins/MyPlugin/Data/h2database}). */
+    public static BackendDefinition h2(String url) {
+        return of(BackendType.H2.getId(), true, BackendType.H2,
+                url, null, null, null, null, null, null, null, null, null);
+    }
+
+    /** A MySQL/MariaDB backend. */
+    public static BackendDefinition sql(String url, String user, String pass) {
+        return of(BackendType.SQL.getId(), true, BackendType.SQL,
+                url, user, pass, null, null, null, null, null, null, null);
+    }
+
+    /** A PostgreSQL backend. */
+    public static BackendDefinition postgresql(String url, String user, String pass) {
+        return of(BackendType.POSTGRESQL.getId(), true, BackendType.POSTGRESQL,
+                url, user, pass, null, null, null, null, null, null, null);
+    }
+
+    /** A MongoDB backend. */
+    public static BackendDefinition mongo(String url, String database) {
+        return of(BackendType.MONGO.getId(), true, BackendType.MONGO,
+                url, null, null, null, null, null, null, null, null, database);
+    }
+
+    /** An ephemeral in-memory backend (tests / throwaway). */
+    public static BackendDefinition memory() {
+        return of(BackendType.MEMORY.getId(), true, BackendType.MEMORY,
+                null, null, null, null, null, null, null, null, null, null);
+    }
+
     /**
      * The default storage codec for {@code type} on this backend. Returns the {@link ConfigFactoryCodec}
      * bridge, so every entity that does not opt out of it carries the ConfigFactory type authority and the
@@ -97,7 +186,7 @@ public final class BackendDefinition {
      * JSON (SQL/Mongo/InMemory parse the payload as JSON).
      *
      * <p>Both PlayerData ({@code BindingResolver}/{@code PlayerDataBinding}/the account layer) and
-     * plugin-owned inline backends ({@link br.com.finalcraft.evernifecore.storage.OwnedBackend}) route
+     * plugin-owned inline backends ({@link br.com.finalcraft.evernifecore.storage.ECStorage}) route
      * through here, so a config's {@code format} maps to the same codec everywhere.</p>
      */
     public <V> Codec<V> defaultCodec(Class<V> type) {
@@ -242,5 +331,58 @@ public final class BackendDefinition {
             throw new StorageConfigException("Backend '" + backendName + "' is missing the required"
                     + " field '" + field + "' in storage.yml!");
         }
+    }
+
+    // ---------------------------------------------------------------------
+    // Value identity (connection target + wire format; NOT name/enabled)
+    // ---------------------------------------------------------------------
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (!(other instanceof BackendDefinition)) {
+            return false;
+        }
+        BackendDefinition that = (BackendDefinition) other;
+        return type == that.type
+                && format == that.format
+                && Objects.equals(url, that.url)
+                && Objects.equals(user, that.user)
+                && Objects.equals(pass, that.pass)
+                && Objects.equals(path, that.path)
+                && Objects.equals(database, that.database)
+                && poolTuningEquals(poolTuning, that.poolTuning);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, format, url, user, pass, path, database, poolTuningHash(poolTuning));
+    }
+
+    /**
+     * {@link PoolTuning} carries no {@code equals}, so compare its scalar fields - two definitions parsed
+     * from the same config build distinct PoolTuning instances that must still compare equal (else the
+     * openOrReload reuse path would never fire for a pooled backend).
+     */
+    private static boolean poolTuningEquals(PoolTuning a, PoolTuning b) {
+        if (a == b) {
+            return true;
+        }
+        if (a == null || b == null) {
+            return false;
+        }
+        return a.minIdle() == b.minIdle()
+                && a.maxSize() == b.maxSize()
+                && Objects.equals(a.connectTimeout(), b.connectTimeout())
+                && Objects.equals(a.idleTimeout(), b.idleTimeout())
+                && Objects.equals(a.maxLifetime(), b.maxLifetime());
+    }
+
+    private static int poolTuningHash(PoolTuning tuning) {
+        return tuning == null ? 0
+                : Objects.hash(tuning.minIdle(), tuning.maxSize(),
+                        tuning.connectTimeout(), tuning.idleTimeout(), tuning.maxLifetime());
     }
 }
