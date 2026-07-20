@@ -16,6 +16,13 @@ public abstract class BaseFPlayer<DELEGATE> implements FPlayer {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof BaseFPlayer)) return false;
+        return Objects.equals(getDelegate(), ((BaseFPlayer<?>) o).getDelegate());
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(getDelegate());
     }
