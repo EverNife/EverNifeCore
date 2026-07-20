@@ -116,7 +116,7 @@ public final class BindingResolver {
         // ---- codec ----
         Codec<S> codec = cfg.getCodec();
         if (codec == null) {
-            codec = defaultCodec(backend, cfg.getPdSectionClass());
+            codec = defaultCodec(backend, cfg.getPdSectionClass(), refRegistry);
         }
         // run the registered entity-schema migration chain on the raw payload before binding (no-op when none);
         // fail-fast here if a custom codec cannot expose an ObjectMapper while a chain is registered
@@ -196,7 +196,7 @@ public final class BindingResolver {
 
         Codec<S> codec = cfg.getCodec();
         if (codec == null) {
-            codec = defaultCodec(backend, cfg.getPdSectionClass());
+            codec = defaultCodec(backend, cfg.getPdSectionClass(), refRegistry);
         }
         codec = EntitySchemaMigratingCodec.wrap(cfg.getPdSectionClass(), codec, "uuid");
 
@@ -240,6 +240,17 @@ public final class BindingResolver {
      * public entry point is kept so the PlayerData resolution and account layer keep a single call site.
      */
     public static <S> Codec<S> defaultCodec(BackendDefinition backend, Class<S> type) {
-        return backend.defaultCodec(type);
+        return defaultCodec(backend, type, null);
+    }
+
+    /**
+     * As {@link #defaultCodec(BackendDefinition, Class)}, but the bridge codec is <b>ref-aware</b>: a
+     * {@code Ref} field of {@code type} resolves against {@code refRegistry} once decoded. Pass the same
+     * registry the resolved {@link CachingManager} is created in (the plugin's child registry), so a ref
+     * inside the section resolves an entity registered in that registry. A {@code null} registry is the
+     * plain bridge - the format/type mapping is unchanged either way.
+     */
+    public static <S> Codec<S> defaultCodec(BackendDefinition backend, Class<S> type, RefRegistry refRegistry) {
+        return backend.defaultCodec(type, refRegistry);
     }
 }

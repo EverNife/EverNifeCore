@@ -12,6 +12,7 @@ import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.Storage;
 import br.com.finalcraft.everydatabase.codec.Codec;
 import br.com.finalcraft.everydatabase.manager.CachingManager;
+import br.com.finalcraft.everydatabase.manager.RefRegistry;
 import br.com.finalcraft.everydatabase.manager.cache.CachePolicy;
 
 import java.util.ArrayList;
@@ -112,8 +113,11 @@ final class AccountSectionEngine {
                     + controller.registry().getCollectionOwner(backendName, collection) + "'!");
         }
 
+        // the plugin's child registry - shared by the codec (so a Ref in an account section resolves) and
+        // the manager below, exactly as the PDSection path pairs them in BindingResolver.resolve
+        RefRegistry accountRegistry = controller.registries().of(cfg.getPluginData());
         Codec<S> codec = EntitySchemaMigratingCodec.wrap(sectionClass,
-                BindingResolver.defaultCodec(backend, sectionClass), "accountId");
+                BindingResolver.defaultCodec(backend, sectionClass, accountRegistry), "accountId");
         EntityDescriptor<UUID, S> descriptor = EntityDescriptor
                 .builder(UUID.class, sectionClass)
                 .collection(collection)
@@ -130,8 +134,7 @@ final class AccountSectionEngine {
             PDLog.warning(warning);
         }
 
-        CachingManager<UUID, S> manager = controller.registries().of(cfg.getPluginData())
-                .manager(descriptor, storage, CachePolicy.always());
+        CachingManager<UUID, S> manager = accountRegistry.manager(descriptor, storage, CachePolicy.always());
         AccountSectionBinding<S> binding = new AccountSectionBinding<>(cfg, backendName, descriptor, manager);
         bindings.put(sectionClass, binding);
         PDLog.info("Bound AccountSection {%s} (collection '%s' on account backend '%s').",

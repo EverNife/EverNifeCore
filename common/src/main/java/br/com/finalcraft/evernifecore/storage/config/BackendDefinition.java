@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.storage.StorageConfigException;
 import br.com.finalcraft.everydatabase.Storage;
 import br.com.finalcraft.everydatabase.codec.Codec;
 import br.com.finalcraft.everydatabase.log.StorageLogConfig;
+import br.com.finalcraft.everydatabase.manager.RefRegistry;
 import br.com.finalcraft.everydatabase.modules.groupedfile.GroupedFileConfig;
 import br.com.finalcraft.everydatabase.modules.groupedfile.GroupedFileStorage;
 import br.com.finalcraft.everydatabase.modules.localfile.LocalFileConfig;
@@ -190,12 +191,22 @@ public final class BackendDefinition implements ConfigLifecycle {
      * through here, so a config's {@code format} maps to the same codec everywhere.</p>
      */
     public <V> Codec<V> defaultCodec(Class<V> type) {
+        return defaultCodec(type, null);
+    }
+
+    /**
+     * As {@link #defaultCodec(Class)}, but the returned bridge codec is <b>ref-aware</b>: a {@code Ref}
+     * field of {@code type} resolves against {@code refRegistry} once decoded (see
+     * {@link ConfigFactoryCodec#json(Class, RefRegistry)}). A {@code null} registry is the plain bridge, so
+     * this overload keeps the format/type mapping identical - only the ref binding is added.
+     */
+    public <V> Codec<V> defaultCodec(Class<V> type, RefRegistry refRegistry) {
         if (this.type == BackendType.LOCALFILE || this.type == BackendType.GROUPEDFILE) {
             return format == FileFormat.YAML
-                    ? ConfigFactoryCodec.yaml(type)
-                    : ConfigFactoryCodec.jsonPretty(type);   // json on a file backend is always pretty
+                    ? ConfigFactoryCodec.yaml(type, refRegistry)
+                    : ConfigFactoryCodec.jsonPretty(type, refRegistry);   // json on a file backend is always pretty
         }
-        return ConfigFactoryCodec.json(type);                // every other backend: compact JSON
+        return ConfigFactoryCodec.json(type, refRegistry);                // every other backend: compact JSON
     }
 
     /**
