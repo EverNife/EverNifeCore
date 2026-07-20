@@ -20,7 +20,7 @@ public class PlayerMoveListener implements ECListener {
     public void onPlayerMove(PlayerMoveEvent event) {
         Chunk from = event.getFrom().getChunk();
         Chunk to = event.getTo().getChunk();
-        if (from != to){
+        if (from.getX() != to.getX() || from.getZ() != to.getZ() || !from.getWorld().equals(to.getWorld())){
             EverNifeCoreBukkitPlugin.instance.getServer().getPluginManager().callEvent(new ECPlayerChangeChunkEvent(event, from, to));
         }
     }
