@@ -967,9 +967,14 @@ public class PlayerController {
             }
             for (AccountSectionBinding<?> binding : accountEngine.bindings()){
                 if (linkedAccount){
-                    PDLog.warning("deletePlayerData(%s): keeping AccountSection {%s} - its row [%s] is"
-                                    + " shared with the other identities linked into the account.",
-                            uuid, binding.getSectionClass().getSimpleName(), accountKey);
+                    //the CANONICAL row under accountKey is shared and must survive; but a member linked
+                    //offline still owns a stale row under its OWN uuid (data written as a singleton BEFORE
+                    //the link, absorbed only by a login that never happened). The reaper never sweeps
+                    //account sections, so drop that former-key row here or it leaks forever.
+                    PDLog.warning("deletePlayerData(%s): keeping the shared AccountSection {%s} row [%s]"
+                                    + " and dropping this identity's former-key row under [%s].",
+                            uuid, binding.getSectionClass().getSimpleName(), accountKey, uuid);
+                    sectionDeletes.add(binding.getManager().deleteAndEvict(uuid));
                     continue;
                 }
                 sectionDeletes.add(binding.getManager().deleteAndEvict(accountKey));

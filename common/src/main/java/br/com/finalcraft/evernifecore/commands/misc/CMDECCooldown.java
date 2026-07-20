@@ -36,7 +36,7 @@ public class CMDECCooldown {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe cooldown §7[§2%cooldown%§7]§c is not in cooldown!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO cooldown §7[§2%cooldown%§7]§c não está em cooldown!")
-    private static LocaleMessage COOLDOWN_NOT_IN_COOLDOWN; //:V
+    private static LocaleMessage COOLDOWN_NOT_IN_COOLDOWN;
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe cooldown §7[§2%cooldown%§7]§c was successfully removed!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO cooldown §7[§2%cooldown%§7]§c foi removido com sucesso!")

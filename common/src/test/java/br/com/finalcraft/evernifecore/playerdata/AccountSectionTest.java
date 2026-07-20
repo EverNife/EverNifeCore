@@ -301,4 +301,31 @@ class AccountSectionTest {
                 "a linked account's shared row must survive one member's deletion");
         assertNull(PlayerController.getLoaded(memberUuid), "the member's base entity is gone");
     }
+
+    @Test
+    void deleteLinkedMemberDropsItsOfflineFormerKeyRow() throws IOException {
+        PlayerController.bootstrap(writeStorageYml("acs_delete_linked_offline", true));
+        registerAchievements();
+
+        //the member logged in and wrote data as a SINGLETON: the account row keys by its own uuid
+        UUID memberUuid = UUID.randomUUID();
+        PlayerData member = PlayerController.handleLogin(memberUuid, "Solo").join();
+        AchievementsSection section = member.getAccountSection(AchievementsSection.class).join();
+        assertEquals(memberUuid, section.getAccountId(), "as a singleton the row keys by the uuid");
+        section.unlocked.add("pre_link_data");
+        section.markDirty();
+        PlayerController.get().flushAll().join();
+
+        //it is now linked into a canonical account but never logs in again, so the former-key row under
+        //its own uuid is never absorbed (absorption only runs at login via migrateAndStamp)
+        persistLinkedAccount(memberUuid, "Solo");
+
+        PlayerController.deletePlayerData(memberUuid).join();
+
+        AccountSectionBinding<AchievementsSection> binding =
+                PlayerController.get().accountEngine().getBinding(AchievementsSection.class);
+        assertFalse(binding.getRepository().find(memberUuid).join().isPresent(),
+                "the linked member's former-key account row must be removed, not left orphaned");
+        assertNull(PlayerController.getLoaded(memberUuid));
+    }
 }
