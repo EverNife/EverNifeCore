@@ -73,9 +73,9 @@ public class FCPlayerInventory implements ConfigLifecycle {
         }
 
         this.helmet = playerInventory.getHelmet() != null ? playerInventory.getHelmet().clone() : null;
-        this.chestplate = playerInventory.getChestplate() != null ? playerInventory.getChestplate() : null;
-        this.leggings = playerInventory.getLeggings() != null ? playerInventory.getLeggings() : null;
-        this.boots = playerInventory.getBoots() != null ? playerInventory.getBoots() : null;
+        this.chestplate = playerInventory.getChestplate() != null ? playerInventory.getChestplate().clone() : null;
+        this.leggings = playerInventory.getLeggings() != null ? playerInventory.getLeggings().clone() : null;
+        this.boots = playerInventory.getBoots() != null ? playerInventory.getBoots().clone() : null;
 
         if (inventoryFactories != null){
             for (IExtraInvFactory<?> factory : inventoryFactories) {
@@ -136,19 +136,21 @@ public class FCPlayerInventory implements ConfigLifecycle {
         }
         playerInventory.setContents(inventoryContent);
 
-        for (IExtraInvFactory factory : inventoryFactories) {
-            // We need to ge all factories, rather than use 'this.getExtraInvs()'
-            // because if there is a factory that is not present on 'this.extraInvs()',
-            // it means that we need to erase that extraInv on the player
-            try {
-                ExtraInv extraInv = this.getExtraInv(factory.getId());
-                if (extraInv == null){
-                    extraInv = factory.createEmptyExtraInv();
+        if (inventoryFactories != null) {
+            for (IExtraInvFactory factory : inventoryFactories) {
+                // We need to ge all factories, rather than use 'this.getExtraInvs()'
+                // because if there is a factory that is not present on 'this.extraInvs()',
+                // it means that we need to erase that extraInv on the player
+                try {
+                    ExtraInv extraInv = this.getExtraInv(factory.getId());
+                    if (extraInv == null){
+                        extraInv = factory.createEmptyExtraInv();
+                    }
+                    factory.applyToPlayer(player, extraInv);
+                }catch (Throwable e){
+                    EverNifeCore.getLog().info("Failed to restore ExtraInv(" + factory.getId() + ") into " + player.getName());
+                    e.printStackTrace();
                 }
-                factory.applyToPlayer(player, extraInv);
-            }catch (Throwable e){
-                EverNifeCore.getLog().info("Failed to restore ExtraInv(" + factory.getId() + ") into " + player.getName());
-                e.printStackTrace();
             }
         }
 
