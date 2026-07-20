@@ -228,6 +228,32 @@ class PlayerControllerOrphanReaperTest {
     }
 
     // ------------------------------------------------------------------
+    // a base live in cache but not yet flushed still shields its section
+    // ------------------------------------------------------------------
+
+    @Test
+    void sectionSurvivesWhenItsBaseIsCacheResidentButNotYetInTheBackend() throws IOException {
+        PDSectionBinding<LootPDSection> binding = boot("d_reap_cached_base");
+
+        UUID cachedBase = UUID.randomUUID();
+        UUID orphan = UUID.randomUUID();
+        //the section rows live in the backend, so the scan sees them both
+        seedSection(binding, cachedBase, 10L);
+        seedSection(binding, orphan, 20L);
+        //cachedBase's base is present only in the cache (seedIfAbsent does no write): the backend
+        //version scan will not see it, so the reaper must fall back to the cache before deleting
+        PlayerController.get().baseManager()
+                .seedIfAbsent(cachedBase, new PlayerData(cachedBase, "Cached"));
+
+        long removed = PlayerController.get().reapOrphanSections().join();
+
+        assertEquals(1L, removed, "only the section with no base anywhere may be reaped");
+        assertTrue(sectionExists(binding, cachedBase),
+                "a section whose base is live in cache must survive even though the backend has no base row");
+        assertFalse(sectionExists(binding, orphan), "a section with no base at all must be reaped");
+    }
+
+    // ------------------------------------------------------------------
     // a poisoned row on its own page does not truncate the scan
     // ------------------------------------------------------------------
 

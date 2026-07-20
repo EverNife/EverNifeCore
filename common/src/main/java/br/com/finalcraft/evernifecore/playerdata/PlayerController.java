@@ -1056,9 +1056,11 @@ public class PlayerController {
         return baseManager().repository().versions(pageKeys).thenCompose(livingBases -> {
             List<CompletableFuture<Boolean>> deletes = new ArrayList<>();
             for (UUID key : pageKeys){
-                if (!livingBases.containsKey(key)){
-                    deletes.add(binding.getManager().deleteAndEvict(key));
-                }
+                if (livingBases.containsKey(key)) continue; //base row still present in the backend
+                //a base live in cache but not yet flushed is NOT an orphan: reaping its section here
+                //would delete data the player still owns before the base reaches the backend
+                if (baseManager().peek(key).isPresent()) continue;
+                deletes.add(binding.getManager().deleteAndEvict(key));
             }
             if (deletes.isEmpty()) return CompletableFuture.completedFuture(0L);
             return CompletableFuture.allOf(deletes.toArray(new CompletableFuture[0]))
