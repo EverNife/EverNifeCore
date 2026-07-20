@@ -389,7 +389,8 @@ public class PlayerController {
         return storageConfig;
     }
 
-    StorageRegistry registry(){
+    /** The live backend + collection-claim registry (read access for the transfer service and tests). */
+    public StorageRegistry registry(){
         return registry;
     }
 

@@ -68,6 +68,11 @@ final class StorageTransferService {
             if (flushError != null) freeze.close();
         }).thenCompose(flushed -> {
             RefRegistry refRegistry = controller.registries().of(binding.getConfiguration().getPluginData());
+            //a claim rebindTo reserves on a target that had none is fresh - THIS transfer created it, so a
+            //failure must release it. A target that already owned the collection (a previous backend kept
+            //as a backup) holds a legitimate claim that must survive a failed transfer.
+            boolean targetClaimWasFresh = controller.registry()
+                    .getCollectionOwner(targetBackend, binding.getCollection()) == null;
             PDSectionBinding<PDSection> rebound;
             try {
                 //the rebound manager registers itself for the same type: release the current
@@ -83,7 +88,7 @@ final class StorageTransferService {
             }
             return executeTransfer(binding.getStorage(), rebound.getStorage(),
                     binding.getDescriptor(), rebound.getDescriptor())
-                    .handle((report, error) -> finishSectionTransfer(pdSectionClass, binding, rebound, targetBackend, freeze, report, error))
+                    .handle((report, error) -> finishSectionTransfer(pdSectionClass, binding, rebound, targetBackend, freeze, targetClaimWasFresh, report, error))
                     .thenCompose(future -> future);
         });
     }
@@ -103,6 +108,10 @@ final class StorageTransferService {
             if (flushError != null) freeze.close();
         }).thenCompose(flushed -> {
             RefRegistry refRegistry = controller.registries().global();
+            //same fresh-claim capture as the section path: only a claim THIS transfer creates on the
+            //target is released on failure; a pre-existing backup claim on the target is left untouched
+            boolean targetClaimWasFresh = controller.registry()
+                    .getCollectionOwner(targetBackend, current.getCollection()) == null;
             PlayerDataBinding rebound;
             try {
                 //same registration swap as the section path: release, rebind, restore on failure
@@ -116,7 +125,7 @@ final class StorageTransferService {
             }
             return executeTransfer(current.getStorage(), rebound.getStorage(),
                     current.getDescriptor(), rebound.getDescriptor())
-                    .handle((report, error) -> finishPlayerDataTransfer(current, rebound, targetBackend, freeze, report, error))
+                    .handle((report, error) -> finishPlayerDataTransfer(current, rebound, targetBackend, freeze, targetClaimWasFresh, report, error))
                     .thenCompose(future -> future);
         });
     }
@@ -126,11 +135,13 @@ final class StorageTransferService {
                                                                     PDSectionBinding<PDSection> rebound,
                                                                     String targetBackend,
                                                                     FreezeHandle freeze,
+                                                                    boolean targetClaimWasFresh,
                                                                     TransferReport report, Throwable error) {
         String what = "PDSection {" + pdSectionClass.getSimpleName() + "}";
         RefRegistry refRegistry = controller.registries().of(current.getConfiguration().getPluginData());
         if (error != null) {
             restoreRegistration(refRegistry, pdSectionClass, current.getManager());
+            releaseFreshTargetClaim(targetBackend, current.getCollection(), targetClaimWasFresh);
             freeze.close();
             PDLog.severe("Unexpected failure while transferring %s to backend '%s':", what, targetBackend);
             error.printStackTrace();
@@ -138,6 +149,7 @@ final class StorageTransferService {
         }
         if (!report.success()) {
             restoreRegistration(refRegistry, pdSectionClass, current.getManager());
+            releaseFreshTargetClaim(targetBackend, current.getCollection(), targetClaimWasFresh);
             freeze.close();
             logTransferFailure(what, targetBackend, current.getBackendName(), report);
             return CompletableFuture.completedFuture(report);
@@ -179,9 +191,11 @@ final class StorageTransferService {
                                                                        PlayerDataBinding rebound,
                                                                        String targetBackend,
                                                                        FreezeHandle freeze,
+                                                                       boolean targetClaimWasFresh,
                                                                        TransferReport report, Throwable error) {
         if (error != null) {
             restoreRegistration(controller.registries().global(), PlayerData.class, current.getManager());
+            releaseFreshTargetClaim(targetBackend, current.getCollection(), targetClaimWasFresh);
             freeze.close();
             PDLog.severe("Unexpected failure while transferring PlayerData to backend '%s':", targetBackend);
             error.printStackTrace();
@@ -189,6 +203,7 @@ final class StorageTransferService {
         }
         if (!report.success()) {
             restoreRegistration(controller.registries().global(), PlayerData.class, current.getManager());
+            releaseFreshTargetClaim(targetBackend, current.getCollection(), targetClaimWasFresh);
             freeze.close();
             logTransferFailure("PlayerData", targetBackend, current.getBackendName(), report);
             return CompletableFuture.completedFuture(report);
@@ -227,6 +242,17 @@ final class StorageTransferService {
     private static void restoreRegistration(RefRegistry refRegistry, Class<?> type, CachingManager<?, ?> oldManager) {
         refRegistry.unregister(type);
         refRegistry.register(type, oldManager);
+    }
+
+    /**
+     * Releases the target-collection claim a FAILED transfer left behind - but only when THIS transfer
+     * created it. A claim the target already held (a previous backend kept as a backup) is legitimate,
+     * so an unconditional release would drop a valid backup's claim.
+     */
+    private void releaseFreshTargetClaim(String targetBackend, String collection, boolean wasFresh) {
+        if (wasFresh) {
+            controller.registry().releaseCollection(targetBackend, collection);
+        }
     }
 
     /** The target must be declared, enabled and different from the source. */

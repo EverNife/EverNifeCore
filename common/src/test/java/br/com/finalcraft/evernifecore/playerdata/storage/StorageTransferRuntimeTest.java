@@ -175,6 +175,13 @@ class StorageTransferRuntimeTest {
                 .transferPDSection(TransferJobsPDSection.class, "test_mem").join();
         assertFalse(backwards.success(), "failIfTargetCollectionNotEmpty must abort the transfer");
 
+        //test_mem already held this collection's claim (it was the original backend, kept as a backup),
+        //so the failed transfer back must NOT release it - only a claim the transfer freshly created is
+        //released on failure. Over-releasing here would drop the legitimate backup claim.
+        String collection = BindingResolver.defaultCollection("UnknownPlugin", "TransferJobsPDSection");
+        assertNotNull(PlayerController.get().registry().getCollectionOwner("test_mem", collection),
+                "a failed transfer must not release the pre-existing backup claim on the target");
+
         //the binding is intact: writes keep going to H2 and survive a reboot
         section.level = 77;
         section.markDirty();
