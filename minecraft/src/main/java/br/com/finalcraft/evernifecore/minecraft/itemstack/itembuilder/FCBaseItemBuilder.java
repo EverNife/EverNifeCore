@@ -159,7 +159,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * Sets the display name of the item using {@link String}
      *
      * @param name The {@link String} name
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B displayName(@Nonnull final String name) {
@@ -171,7 +171,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * Sets the amount of items
      *
      * @param amount the amount of items
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B amount(final int amount) {
@@ -210,7 +210,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * Consumer for freely editing to the lore
      *
      * @param lore A {@link Consumer} with the {@link List} of lore {@link String}
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B lore(@Nonnull final Consumer<List<String>> lore) {
@@ -223,7 +223,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * Function for freely editing to the lore
      *
      * @param lore A {@link Function} with the {@link List} of lore {@link String}
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B lore(@Nonnull final Function<List<String>, List<String>> lore) {
@@ -238,7 +238,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * @param enchantment            The {@link Enchantment} to add
      * @param level                  The level of the {@link Enchantment}
      * @param ignoreLevelRestriction If should or not ignore it
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B addEnchant(@Nonnull final Enchantment enchantment, final int level, final boolean ignoreLevelRestriction) {
@@ -251,7 +251,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      *
      * @param enchantment The {@link Enchantment} to add
      * @param level       The level of the {@link Enchantment}
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B addEnchant(@Nonnull final Enchantment enchantment, final int level) {
@@ -262,7 +262,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * Enchants the {@link ItemStack}
      *
      * @param enchantment The {@link Enchantment} to add
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B addEnchant(@Nonnull final Enchantment enchantment) {
@@ -273,7 +273,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * Disenchants a certain {@link Enchantment} from the {@link ItemStack}
      *
      * @param enchantment The {@link Enchantment} to remove
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B removeEnchantment(@Nonnull final Enchantment enchantment) {
@@ -285,7 +285,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * Add an {@link ItemFlag} to the item
      *
      * @param flags The {@link ItemFlag} to add
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B addItemFlags(@Nonnull final ItemFlag... flags) {
@@ -296,7 +296,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
     /**
      * Makes the {@link ItemStack} unbreakable
      *
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B setUnbreakable() {
@@ -307,7 +307,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * Sets the item as unbreakable
      *
      * @param unbreakable If should or not be unbreakable
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B setUnbreakable(boolean unbreakable) {
@@ -328,7 +328,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
     /**
      * Makes the {@link ItemStack} glow
      *
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B setGlow() {
@@ -339,7 +339,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * Adds or removes the {@link ItemStack} glow
      *
      * @param glow Should the item glow
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B setGlow(boolean glow) {
@@ -366,7 +366,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * This method will only work on versions above 1.14
      *
      * @param consumer The {@link Consumer} with the PDC
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B setPDC(@Nonnull final Consumer<PersistentDataContainer> consumer) {
@@ -379,7 +379,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * Added in 1.13
      *
      * @param modelData The custom model data from the resource pack
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B setCustomModelData(final int modelData) {
@@ -393,7 +393,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
     /**
      * {@inheritDoc}
      * @param color color
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B setColor(@Nonnull final Color color) {
@@ -423,7 +423,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * Consumer for applying {@link NBTCompound} to the item
      *
      * @param consumer The {@link Consumer} with the NBTCompound
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B setNbt(@Nonnull final Consumer<NBTCompound> consumer) {
@@ -438,7 +438,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      * clear the current and merge the new one!
      *
      * @param nbtCompound The {@link NBTCompound}
-     * @return {@link ItemBuilder}
+     * @return this builder
      */
     @Nonnull
     public B setNbt(@Nonnull final NBTCompound nbtCompound) {
@@ -459,11 +459,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
             clone.setItemMeta(meta.clone());
             return clone;
         }else {
-//            System.out.println("FCItemBuilder Compound: " + nbtCompound.toString());
-//            System.out.println("FCItemBuilder Lore: " + Arrays.toString(this.meta.getLore() != null ? this.meta.getLore().toArray() : new String[0]));
-
             NBTItem cloneNBT = new NBTItem(this.itemStack);//NBTItem creates an internal clone
-//            System.out.println("NBTItem Identifier: " + FCItemUtils.getMinecraftIdentifier(cloneNBT.getItem()));
 
 //            cloneNBT.removeKey("display"); //Enforce the removal of the display key, so the 'this.meta' takes priority
 
@@ -476,9 +472,6 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
 
             cloneNBT.getItem().setItemMeta(this.meta.clone());
             cloneNBT.mergeCompound(this.nbtCompound);
-//            System.out.println("NBTItem [AfterMerge] MetaLore: " + Arrays.toString(cloneNBT.getItem().getItemMeta().getLore() != null ? cloneNBT.getItem().getItemMeta().getLore().toArray() : new String[0]));
-//            System.out.println("NBTItem [AfterMerge] cloneNBT.toString(): " + cloneNBT.toString());
-//            System.out.println("NBTItem [AfterMerge] cloneNBT.getItem().getLore(): " + ("CloneNBT Meta Lore AFter Merge: " + Arrays.toString(cloneNBT.getItem().getItemMeta().getLore() != null ? cloneNBT.getItem().getItemMeta().getLore().toArray() : new String[0])));
 
             return cloneNBT.getItem();
         }

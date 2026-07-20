@@ -87,10 +87,10 @@ public class FCBukkitUtil {
     //===========================================================================================
 
     /**
-     * Coloca itens no inventário de um jogador, casos obre itens, eles serão dropados no chão!
+     * Puts items into a player's inventory; any leftover items are dropped on the ground.
      *
-     * @param player Instancia do jogador que receberá os itens
-     * @param itemStacks Itens que serão entregues.
+     * @param player the player who will receive the items
+     * @param itemStacks the items to deliver
      */
     public static void giveItemsTo(Player player, ItemStack... itemStacks) {
         giveItemsTo(player, true, itemStacks);
@@ -179,7 +179,7 @@ public class FCBukkitUtil {
 
         List<Block> blocks = new ArrayList<Block>();
 
-        //Setando as bordas da região que sera "loopada"
+        //Set the bounds of the region to loop over
         final int minX = location.getBlockX() - radius;
         final int minY = location.getBlockY() - radius;
         final int minZ = location.getBlockZ() - radius;
@@ -199,7 +199,7 @@ public class FCBukkitUtil {
     }
 
     /**
-     * Força o console a executar um comando!
+     * Forces the console to execute a command.
      */
     public static boolean makeConsoleExecuteCommand(String theCommand) {
         if (Bukkit.getServer().isPrimaryThread()) {
@@ -212,7 +212,7 @@ public class FCBukkitUtil {
     }
 
     /**
-     * Força o console a executar um comando!
+     * Forces the console to execute a command.
      */
     public static void makeConsoleExecuteCommand(String... theCommands) {
         if (Bukkit.getServer().isPrimaryThread()) {
@@ -226,7 +226,7 @@ public class FCBukkitUtil {
     }
 
     /**
-     * Força o console a executar um comando!
+     * Forces the console to execute a command.
      */
     public static void makeConsoleExecuteCommandFromAsyncThread(String theCommand) {
         new BukkitRunnable() {
@@ -238,7 +238,7 @@ public class FCBukkitUtil {
     }
 
     /**
-     * Força o console a executar um comando!
+     * Forces the console to execute a command.
      */
     public static void makeConsoleExecuteCommandFromAsyncThread(String... theCommands) {
         new BukkitRunnable() {
@@ -252,20 +252,20 @@ public class FCBukkitUtil {
     }
 
     /**
-     * Força o jogador a executar um comando!
+     * Forces the player to execute a command.
      */
     public static boolean makePlayerExecuteCommand(CommandSender player, String theCommand) {
         return Bukkit.dispatchCommand(player, theCommand);
     }
 
     /**
-     * Verifica se um player esta segurando um determinado item!
-     * Esse item deve bater com o itemTypeName dado (exemplo:  minecraft:chest)
-     * Esse item deve bater com o itemDisplayName dado (exemplo: "Bau do milénio")
+     * Checks whether a player is holding a given item.
+     * The item must match the given itemTypeName (example: minecraft:chest)
+     * and the given itemDisplayName (example: "Bau do milenio").
      * <p>
-     * Caso o itemDisplayName for 'empty()' (uma string vazia) ele irá ignorar o DisplayName;
+     * If itemDisplayName is empty (an empty string) the DisplayName is ignored.
      * <p>
-     * Retorna TRUE se o item for o esperado e FALSE caso contrário!
+     * Returns TRUE if the item matches the expectation and FALSE otherwise.
      * <p>
      * Note:  itemTypeName is CaseSensitive
      * itemDisplayName is not CaseSensitive (Ignoring Colors)
