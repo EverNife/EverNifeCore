@@ -1,8 +1,10 @@
 package br.com.finalcraft.evernifecore.minecraft.api;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.BaseFPlayer;
 import br.com.finalcraft.evernifecore.api.platoverride.player.FPlayerAdapter;
+import br.com.finalcraft.evernifecore.integration.LuckPermsIntegration;
 import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import jakarta.annotation.Nonnull;
@@ -47,7 +49,14 @@ public abstract class MinecraftFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
 
     @Override
     public boolean hasPermission(@Nonnull String permission) {
-        return getOfflinePlayer().getPlayer().hasPermission(permission);
+        Player onlinePlayer = getPlayer(); // null when the player is offline
+        if (onlinePlayer != null) {
+            return onlinePlayer.hasPermission(permission);
+        }
+        if (EverNifeCore.getPlatform().isPluginLoaded("LuckPerms")) {
+            return LuckPermsIntegration.hasPermission(getUniqueId(), permission);
+        }
+        return false;
     }
 
     @Override

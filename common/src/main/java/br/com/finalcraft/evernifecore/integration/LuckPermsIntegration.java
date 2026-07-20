@@ -29,13 +29,25 @@ public class LuckPermsIntegration {
     }
 
     public static void setMetaValue(UUID playerUuid, String name, String value){
+        User user = getOrLoadUser(playerUuid);
         if (value == null){
-            // clear any existing meta nodes with the same key - we want to override
-            getOrLoadUser(playerUuid).getData(DataType.NORMAL).clear(node -> node.getKey().equalsIgnoreCase(name));
+            // clear any existing meta nodes with the same key
+            user.getData(DataType.NORMAL).clear(node -> node.getKey().equalsIgnoreCase(name));
         }else {
-            // add the new node
-            getOrLoadUser(playerUuid).getData(DataType.NORMAL).add(MetaNode.builder(name, value).build());
+            // override: drop same-key meta nodes before adding, so values never accumulate
+            user.getData(DataType.NORMAL).clear(node -> node.getKey().equalsIgnoreCase(name));
+            user.getData(DataType.NORMAL).add(MetaNode.builder(name, value).build());
         }
+        // persist the mutation, otherwise the change is only in-memory
+        getApi().getUserManager().saveUser(user).join();
+    }
+
+    public static boolean hasPermission(UUID playerUuid, String permission){
+        return getOrLoadUser(playerUuid)
+                .getCachedData()
+                .getPermissionData(QueryOptions.nonContextual())
+                .checkPermission(permission)
+                .asBoolean();
     }
 
 }
