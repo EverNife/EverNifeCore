@@ -84,7 +84,9 @@ public class ComparableItemComplex extends ComparableItem {
     @Override
     @JsonValue
     public String serialize() {
-        return super.serialize();
+        String base = super.serialize();               // material[:damage]
+        if (FCNBTUtil.isEmpty(nbtCompound)) return base; // no NBT -> compact form (back-compat)
+        return base + " " + nbtCompound.toString();      // material[:damage] {<snbt>}
     }
 
     @Override
@@ -98,7 +100,18 @@ public class ComparableItemComplex extends ComparableItem {
     }
     @JsonCreator
     public static ComparableItemComplex deserialize(String serializedLine){
-        ComparableItem comparableItem = ComparableItem.deserialize(serializedLine);
-        return new ComparableItemComplex(comparableItem.getItemStack(), comparableItem.getMaterial(), comparableItem.getDamageValue());
+        // Peel off the optional NBT suffix ({...}) before ComparableItem.deserialize, which splits on
+        // ':'/' ' and would choke on the SNBT. Configs saved without NBT have no '{' and load as before.
+        String materialPart = serializedLine;
+        NBTCompound nbt = null;
+        int nbtStart = serializedLine.indexOf('{');
+        if (nbtStart >= 0) {
+            materialPart = serializedLine.substring(0, nbtStart).trim();
+            nbt = FCNBTUtil.getFrom(serializedLine.substring(nbtStart).trim());
+        }
+        ComparableItem base = ComparableItem.deserialize(materialPart);
+        return nbt != null
+                ? new ComparableItemComplex(base.getItemStack(), base.getMaterial(), base.getDamageValue(), nbt)
+                : new ComparableItemComplex(base.getItemStack(), base.getMaterial(), base.getDamageValue());
     }
 }
