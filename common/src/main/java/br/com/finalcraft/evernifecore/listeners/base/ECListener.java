@@ -38,8 +38,8 @@ public interface ECListener extends IECBaseListener {
             String[] requiredPlugins = listener.requiredPlugins();
 
             if (requiredPlugins != null && requiredPlugins.length > 0){
-                for (String requiredPlugin : listener.requiredPlugins()) { // Check if all required plugins are present
-                    if (EverNifeCore.getPlatform().isPluginLoaded(requiredPlugin)){
+                for (String requiredPlugin : requiredPlugins) { // Register only when every required plugin is present
+                    if (!EverNifeCore.getPlatform().isPluginLoaded(requiredPlugin)){
                         return false;
                     }
                 }
@@ -68,9 +68,10 @@ public interface ECListener extends IECBaseListener {
             try {
                 listener.onRegister();
             }catch (Throwable e){
-                ecPluginData.getLog().warning("[ECListener] Failed to call [onRegister()] method of the ECListener: " + listener.getClass().getName());
+                //The listener is already registered on the platform; an onRegister() failure is the
+                //listener author's bug and must not unregister it or abort the flow.
+                ecPluginData.getLog().warning("[ECListener] Listener [" + listener.getClass().getName() + "] failed on onRegister() but remains registered");
                 e.printStackTrace();
-                return false;
             }
 
             return true;
