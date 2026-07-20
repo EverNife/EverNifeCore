@@ -19,6 +19,11 @@ public class ECBukkitConsoleFilter extends BaseLog4jFilter {
 		return Result.NEUTRAL;
 	}
 
+	/**
+	 * Activated externally by downstream plugins that want to hide the {@code /ecdcmd} console
+	 * spam; it is not wired anywhere in this core. Keep it - the lack of an internal caller is
+	 * intentional, not dead code.
+	 */
 	public static void applyFilter() {
 		((Logger) LogManager.getRootLogger()).addFilter(new ECBukkitConsoleFilter());
 	}

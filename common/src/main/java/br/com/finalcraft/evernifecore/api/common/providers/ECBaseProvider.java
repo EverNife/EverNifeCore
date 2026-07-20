@@ -21,9 +21,9 @@ public class ECBaseProvider {
     public <T> T register(Class<T> providerType, T something) {
         Object previousProvider = REGISTERED_PROVIDERS.put(providerType, something);
 
-        logger.info(String.format("[ECBaseProvider] Registering ECPorvider#%s with %s",  providerType.getSimpleName(), something.getClass().getName()));
+        logger.info(String.format("[ECBaseProvider] Registering ECProvider#%s with %s",  providerType.getSimpleName(), something.getClass().getName()));
         if (previousProvider != null) {
-            logger.warning(String.format("ECBaseProvider] The previous ECPorvider#%s %s was removed!", providerType.getSimpleName(), previousProvider.getClass().getName()));
+            logger.warning(String.format("[ECBaseProvider] The previous ECProvider#%s %s was removed!", providerType.getSimpleName(), previousProvider.getClass().getName()));
         }
 
         return something;
