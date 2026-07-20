@@ -14,7 +14,6 @@ import br.com.finalcraft.evernifecore.minecraft.nms.data.oredict.OreDictEntry;
 import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import jakarta.annotation.Nonnull;
 import org.bukkit.util.StringUtil;
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.util.Comparator;
 import java.util.HashSet;
@@ -34,7 +33,7 @@ public class ArgParserOreDict extends ArgParser<OreDictEntry> {
     public static LocaleMessage THERE_IS_NO_OREDICT_WITH_THE_NAME;
 
     @Override
-    public OreDictEntry parserArgument(@NonNull ArgParserCommandContext argContext, @NonNull FCommandSender sender, @NonNull Argumento argumento) throws ArgParseException {
+    public OreDictEntry parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
         Set<String> allOreNames = new HashSet<>(NMSUtils.get().getOreRegistry().getAllOreNames());
 
         if (!allOreNames.contains(argumento.toString())){

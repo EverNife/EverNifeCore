@@ -60,6 +60,9 @@ shadowJar {
     dependencies {
         // mysql-connector-j is GPLv2: shipping it inside the jar would impose GPL on the artifact.
         exclude(dependency('com.mysql:mysql-connector-j'))
+        // checker-qual (dragged in by guava/adventure) carries only compile-time annotations - no
+        // reason to ship it; excluding keeps the jar free of org.checkerframework classes.
+        exclude(dependency('org.checkerframework:checker-qual'))
     }
 
     // Jackson pairs come from the single source in the root build (rootProject.jacksonRelocations),
@@ -72,7 +75,6 @@ shadowJar {
     relocate 'org.h2',                           'br.com.finalcraft.everydatabase.libs.h2'
     relocate 'org.postgresql',                   'br.com.finalcraft.everydatabase.libs.postgresql'
     relocate 'com.mysql',                        'br.com.finalcraft.everydatabase.libs.mysql'
-    relocate 'org.checkerframework',             'br.com.finalcraft.everydatabase.libs.checkerframework'
     relocate 'org.yaml.snakeyaml',               'br.com.finalcraft.everydatabase.libs.snakeyaml'
 }
 
