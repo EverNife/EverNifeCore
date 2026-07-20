@@ -201,12 +201,13 @@ public class FCBukkitUtil {
     /**
      * Força o console a executar um comando!
      */
-    public static void makeConsoleExecuteCommand(String theCommand) {
+    public static boolean makeConsoleExecuteCommand(String theCommand) {
         if (Bukkit.getServer().isPrimaryThread()) {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), theCommand);
+            return Bukkit.dispatchCommand(Bukkit.getConsoleSender(), theCommand);
         } else {
             EverNifeCore.getLog().warning("Calling [makeConsoleExecuteCommand(\"" + theCommand + "\")] out of Main Thread... i am fixing it for you, but... you may do your job!");
             makeConsoleExecuteCommandFromAsyncThread(theCommand);
+            return false; // the deferred dispatch result is not known synchronously
         }
     }
 
@@ -253,8 +254,8 @@ public class FCBukkitUtil {
     /**
      * Força o jogador a executar um comando!
      */
-    public static void makePlayerExecuteCommand(CommandSender player, String theCommand) {
-        Bukkit.dispatchCommand(player, theCommand);
+    public static boolean makePlayerExecuteCommand(CommandSender player, String theCommand) {
+        return Bukkit.dispatchCommand(player, theCommand);
     }
 
     /**

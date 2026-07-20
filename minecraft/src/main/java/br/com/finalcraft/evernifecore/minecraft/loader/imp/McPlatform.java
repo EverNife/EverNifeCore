@@ -87,14 +87,12 @@ public class McPlatform implements IPlatform {
 
     @Override
     public boolean makeConsoleExecuteCommand(String command) {
-        FCBukkitUtil.makeConsoleExecuteCommand(command);
-        return true;
+        return FCBukkitUtil.makeConsoleExecuteCommand(command);
     }
 
     @Override
     public boolean makePlayerExecuteCommand(FCommandSender sender, String command) {
-        FCBukkitUtil.makePlayerExecuteCommand(sender.getDelegate(CommandSender.class), command);
-        return false;
+        return FCBukkitUtil.makePlayerExecuteCommand(sender.getDelegate(CommandSender.class), command);
     }
 
     @Override
