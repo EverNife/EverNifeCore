@@ -246,7 +246,8 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
                 String center = "§ePage [" + currentPage + "/" + lastPage + "]";
                 String nextButton = "§a§l>§2>§a§l>";
 
-                //Gerenete the SpaceBorders, by generenating it arround the center and spliting it afterwards
+                //Build the space borders: center the whole line around the middle text, then split it on
+                //the original text to recover the left and right padding as the two borders.
                 String holeLine = previousButton + centerSpace + center + centerSpace + nextButton;
                 String[] borders = EverNifeCore.getPlatform().getChatAdapter().alignCenter(holeLine).split(Pattern.quote(holeLine), -1);
 

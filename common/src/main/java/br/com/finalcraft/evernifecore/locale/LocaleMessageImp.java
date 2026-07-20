@@ -108,6 +108,9 @@ public class LocaleMessageImp implements LocaleMessage {
     public FancyText getFancyText(FCommandSender sender){
         return getDefaultFancyText();
         //TODO Create a PER_PLAYER locale
+        //The per-player route below is not wired: FCLocaleManager.PLAYER_LOCALES is never written
+        //anywhere, so getLangOf(sender) would always resolve to null today. Until that map is
+        //populated, resolving by sender is identical to the default, so the default is returned directly.
         //return fancyTextMap.get(FCLocaleManager.getLangOf(sender));
     }
 

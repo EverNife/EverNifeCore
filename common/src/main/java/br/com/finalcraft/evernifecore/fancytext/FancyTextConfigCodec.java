@@ -24,6 +24,12 @@ import java.util.Map;
  * a plain annotation-free POJO. It replicates the legacy save/load exactly: a bespoke, context-dependent
  * on-disk shape (a scalar string, a string-list, an object with text/hover/click, or a numbered formatter
  * object), with a tolerant read of every one of those shapes so old files keep reading.
+ *
+ * <p><b>Ordering caveat.</b> A {@link FancyFormatter} writes its children as an object whose keys are the
+ * child positions {@code "1".."N"}. A storage layer that reorders a map's keys can therefore lose the
+ * child order once a formatter has 10 or more children, because {@code "10"} sorts before {@code "2"}
+ * lexicographically - so a formatter of 10+ children may not survive a round-trip through such a backend
+ * in its original order.</p>
  */
 public final class FancyTextConfigCodec {
 
