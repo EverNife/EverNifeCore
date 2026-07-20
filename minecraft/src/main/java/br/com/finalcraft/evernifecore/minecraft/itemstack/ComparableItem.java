@@ -54,11 +54,11 @@ public class ComparableItem {
     }
 
     public boolean match(ComparableItem comparableItem) {
-        return this.getMaterial() == comparableItem.getMaterial() && (this.getDamageValue() == null ||  comparableItem.getDamageValue() == null|| this.getDamageValue() == comparableItem.getDamageValue());
+        return this.getMaterial() == comparableItem.getMaterial() && (this.getDamageValue() == null ||  comparableItem.getDamageValue() == null|| this.getDamageValue().shortValue() == comparableItem.getDamageValue().shortValue());
     }
 
     public boolean match(Material material, @Nullable Short damageValue) {
-        return this.getMaterial() == material && (this.getDamageValue() == null ||  damageValue == null || this.getDamageValue() == damageValue);
+        return this.getMaterial() == material && (this.getDamageValue() == null ||  damageValue == null || this.getDamageValue().shortValue() == damageValue.shortValue());
     }
 
     public ItemStack getItemStack() {
@@ -144,17 +144,30 @@ public class ComparableItem {
             }
 
             damagePartString = splitSecondPart[1].trim();
-            damageValue = damagePartString.equals("*") ? -1 : FCInputReader.parseInt(damagePartString).shortValue();
+            damageValue = parseDamageToken(damagePartString);
             return new ComparableItem(itemStack.getType(), damageValue < 0 ? null : damageValue);
         }
 
         if (split.length >= 3){ //Case 5: Pattern is minecraft:identifier:<DamageValue|*|-1>
             damagePartString = split[2].trim();
-            damageValue = damagePartString.equals("*") ? -1 : FCInputReader.parseInt(damagePartString).shortValue();
+            damageValue = parseDamageToken(damagePartString);
             return new ComparableItem(itemStack.getType(), damageValue < 0 ? null : damageValue);
         }
 
         return new ComparableItem(itemStack);
+    }
+
+    // Parses a damage token: '*' means "any" (-1), otherwise a numeric value. A non-numeric token is
+    // rejected loudly instead of throwing an opaque NPE from an unchecked .shortValue().
+    private static short parseDamageToken(String damagePartString) {
+        if (damagePartString.equals("*")){
+            return -1;
+        }
+        Integer parsed = FCInputReader.parseInt(damagePartString);
+        if (parsed == null){
+            throw new IllegalArgumentException("Invalid damage value: " + damagePartString);
+        }
+        return parsed.shortValue();
     }
 
     @Override
