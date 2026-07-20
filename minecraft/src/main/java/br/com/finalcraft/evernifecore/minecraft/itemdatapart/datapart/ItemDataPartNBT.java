@@ -45,6 +45,28 @@ public class ItemDataPartNBT extends ItemDataPart {
         return true; //To expensive to check
     }
 
+    // Opt-in NBT comparison: the 2-arg default stays a cheap no-op (returns true); this path normalizes
+    // both items' NBT the same way read() does (drop display, and on >=1.13 Damage/HideFlags) and compares
+    // them. Two items with no NBT normalize equal, so they are considered similar.
+    public boolean isSimilar(ItemStack base_item, ItemStack other_item, boolean considerNBT) {
+        if (!considerNBT) {
+            return true;
+        }
+        return normalizedNbt(base_item).equals(normalizedNbt(other_item));
+    }
+
+    private String normalizedNbt(ItemStack item) {
+        NBTCompound compound = FCNBTUtil.getFrom(FCNBTUtil.getFrom(item).toString());
+        if (!FCNBTUtil.isEmpty(compound)) {
+            compound.removeKey("display");
+            if (MCVersion.isHigherEquals(MCVersion.v1_13)) {
+                compound.removeKey("Damage");
+                compound.removeKey("HideFlags");
+            }
+        }
+        return compound.toString();
+    }
+
     @Override
     public List<String> read(ItemStack i, List<String> output) {
         NBTCompound compound = FCNBTUtil.getFrom( //Clone it because we may need to remove the "display" tag, and the "Damage" tag as well

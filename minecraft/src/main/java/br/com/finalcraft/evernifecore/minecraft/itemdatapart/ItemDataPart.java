@@ -121,6 +121,10 @@ public abstract class ItemDataPart {
     }
 
     public static boolean isSimilar(ItemStack base_item, ItemStack other_item, ItemDataPart[] exceptions, boolean compare_amount) {
+        return isSimilar(base_item, other_item, exceptions, compare_amount, false);
+    }
+
+    public static boolean isSimilar(ItemStack base_item, ItemStack other_item, ItemDataPart[] exceptions, boolean compare_amount, boolean considerNBT) {
         if (base_item == null || other_item == null) {
             return false;
         }
@@ -132,7 +136,10 @@ public abstract class ItemDataPart {
                 continue;
             }
             try {
-                if (!part.isSimilar(base_item, other_item)) {
+                boolean similar = (considerNBT && part == NBT)
+                        ? ((ItemDataPartNBT) part).isSimilar(base_item, other_item, true)
+                        : part.isSimilar(base_item, other_item);
+                if (!similar) {
                     return false;
                 }
             } catch (Exception e) { //Seems like that ItemDataPart is not supported yet
