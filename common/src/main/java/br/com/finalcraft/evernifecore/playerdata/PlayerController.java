@@ -234,10 +234,10 @@ public class PlayerController {
         }
 
         if (importPending){
-            PDLog.info("Legacy PlayerData YAML files found at [%s] - the one-time import will run on"
-                    + " the first server tick (after every plugin has registered its sections);"
-                    + " player logins are held until it finishes.", legacyFolder.getPath());
-            EverNifeCore.getPlatform().runOnFirstTick(() -> fresh.legacyBootstrap.runImportThenStart(legacyFolder));
+            PDLog.info("Legacy PlayerData YAML files found at [%s] - the one-time import will run once"
+                    + " every plugin has registered its sections (the first server tick); player logins"
+                    + " are held until it finishes.", legacyFolder.getPath());
+            EverNifeCore.getPlatform().runOnMainThread(() -> fresh.legacyBootstrap.runImportThenStart(legacyFolder));
         }else {
             //the reload is published and the fresh instance serves: let each plugin re-run its storage
             //setup so a Ref into a plugin-owned ECStorage reconnects to the fresh per-plugin registry

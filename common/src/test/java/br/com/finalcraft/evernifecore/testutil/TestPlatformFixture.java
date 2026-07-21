@@ -19,6 +19,8 @@ import jakarta.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 /**
  * Registers a no-op {@link IPlatform} in the ECProviders so that common code with
@@ -176,16 +178,17 @@ public final class TestPlatformFixture {
         }
 
         @Override
-        public void runOnFirstTick(Runnable runnable) {
+        public CompletableFuture<Void> runOnMainThread(Runnable task) {
             //inline: makes the first-tick legacy import deterministic in tests
             //(PlayerController.bootstrap blocks until the import + load finish)
-            runnable.run();
+            task.run();
+            return CompletableFuture.completedFuture(null);
         }
 
         @Override
-        public void runOnMainThread(Runnable runnable) {
+        public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task) {
             //inline: tests have no server thread
-            runnable.run();
+            return CompletableFuture.completedFuture(task.get());
         }
     }
 }

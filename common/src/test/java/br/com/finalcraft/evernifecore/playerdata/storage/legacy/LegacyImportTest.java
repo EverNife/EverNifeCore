@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * only once ALL of it migrated - so what stays in the folder is the pending list, and a re-run never
  * duplicates what already reached the backend.
  *
- * <p>The test platform fixture runs {@code runOnFirstTick} inline, so the whole
+ * <p>The test platform fixture runs {@code runOnMainThread} inline, so the whole
  * import + load pipeline completes within {@code PlayerController.bootstrap}.</p>
  */
 class LegacyImportTest {

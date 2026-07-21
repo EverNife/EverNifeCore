@@ -19,6 +19,7 @@ import br.com.finalcraft.evernifecore.hytale.integration.placeholders.HyPAPIInte
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import br.com.finalcraft.everylibs.reflection.MethodInvoker;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import com.hypixel.hytale.event.EventRegistration;
@@ -34,8 +35,10 @@ import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -46,6 +49,13 @@ public class HyPlatform implements IPlatform {
     private HyPlatformChatAdapter CHAT_ADAPTER = new HyPlatformChatAdapter();
 
     private HyPlatformVecAdapter VEC_ADAPTER = new HyPlatformVecAdapter();
+
+    //runOnMainThread tasks submitted before the start phase (every plugin set up, all worlds loaded)
+    //are buffered on a gate here; flushPendingMainThreadTasks() opens them once, then tasks run at once.
+    private static final CompletableFuture<Void> READY_GATE = CompletableFuture.completedFuture(null);
+    private final Object startGateLock = new Object();
+    private boolean serverStarted = false;
+    private final List<CompletableFuture<Void>> pendingStartGates = new ArrayList<>();
 
     @Override
     public String getPlatformProviderId() {
@@ -269,18 +279,47 @@ public class HyPlatform implements IPlatform {
     }
 
     @Override
-    public void runOnFirstTick(Runnable runnable) {
-        //Hytale has no global first-tick hook (schedulers are per-world), so this runs in place,
-        //still inside setup() - it does NOT wait for other plugins or for worlds to load. A faithful
-        //deferral would buffer these until PluginBase.start() (which the server runs after every
-        //plugin's setup() completes) or subscribe them to AllWorldsLoadedEvent.
-        runnable.run();
+    public CompletableFuture<Void> runOnMainThread(Runnable task) {
+        return runOnMainThread(() -> {
+            task.run();
+            return null;
+        });
     }
 
     @Override
-    public void runOnMainThread(Runnable runnable) {
-        //Hytale has no single main thread (each world ticks independently) - run in place.
-        runnable.run();
+    public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task) {
+        //Hytale has no single main thread (schedulers are per-world). Before the start phase we buffer
+        //a gate the flush opens once every plugin has set up and all worlds are loaded; after it, the
+        //gate is already open. Either way the task then runs on a background thread.
+        CompletableFuture<Void> gate;
+        synchronized (startGateLock) {
+            if (serverStarted) {
+                gate = READY_GATE;
+            } else {
+                gate = new CompletableFuture<>();
+                pendingStartGates.add(gate);
+            }
+        }
+        return gate.thenCompose(ignored -> FCScheduler.supplyAsyncFuture(task));
+    }
+
+    /**
+     * Releases every task {@link #runOnMainThread(Runnable)} buffered before the start phase - called
+     * from {@code ECHytalePlugin.start()}, which the server runs once every plugin has finished
+     * {@code setup()} and all worlds are loaded. Idempotent: repeated (or per-plugin) calls find
+     * nothing left to release.
+     */
+    public void flushPendingMainThreadTasks() {
+        List<CompletableFuture<Void>> gates;
+        synchronized (startGateLock) {
+            if (serverStarted) {
+                return;
+            }
+            serverStarted = true;
+            gates = new ArrayList<>(pendingStartGates);
+            pendingStartGates.clear();
+        }
+        gates.forEach(gate -> gate.complete(null));
     }
 
     private final ExecuteOnce registerConfigTypesOnce = ExecuteOnce.of(HyConfigTypes::register);

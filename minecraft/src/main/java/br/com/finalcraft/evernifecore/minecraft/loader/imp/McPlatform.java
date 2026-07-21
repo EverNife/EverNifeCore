@@ -35,6 +35,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -265,15 +267,29 @@ public class McPlatform implements IPlatform {
     }
 
     @Override
-    public void runOnFirstTick(Runnable runnable) {
-        //A task scheduled during onEnable only runs on the server's first tick,
-        //after all plugins have already been enabled
-        FCScheduler.getMinecraftScheduler().runSync(runnable);
+    public CompletableFuture<Void> runOnMainThread(Runnable task) {
+        return runOnMainThread(() -> {
+            task.run();
+            return null;
+        });
     }
 
     @Override
-    public void runOnMainThread(Runnable runnable) {
-        FCScheduler.getMinecraftScheduler().runSync(runnable);
+    public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task) {
+        //Runs on the server main thread: on the next tick when called from enable or another thread,
+        //so a task scheduled during enable fires on the first tick (after every plugin has enabled).
+        //It runs ON that thread and holds the tick until it finishes - the first-boot legacy import
+        //relies on that to freeze the server while it migrates.
+        CompletableFuture<T> future = new CompletableFuture<>();
+        FCScheduler.getMinecraftScheduler().runSync(() -> {
+            try {
+                future.complete(task.get());
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
+                future.completeExceptionally(throwable);
+            }
+        });
+        return future;
     }
 
     private final ExecuteOnce registerConfigTypesOnce = ExecuteOnce.of(McConfigTypes::register);

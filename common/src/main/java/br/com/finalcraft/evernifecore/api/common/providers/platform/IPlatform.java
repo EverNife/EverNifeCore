@@ -14,6 +14,8 @@ import jakarta.annotation.Nullable;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 public interface IPlatform {
 
@@ -61,24 +63,27 @@ public interface IPlatform {
     public IPlatformChatAdapter getChatAdapter();
 
     /**
-     * Runs the task once, as close as each platform allows to "after every plugin has finished
-     * enabling". The guarantee is platform-specific:
+     * Runs the task on the platform's main/server thread and returns a future that completes when it
+     * finishes (exceptionally if it throws). When called from another thread - or during enable - the
+     * task is deferred to the next opportunity rather than run in place. Timing is platform-specific:
      * <ul>
-     *   <li><b>Bukkit:</b> on the server's main thread on the FIRST tick - a task scheduled during
-     *       enable only fires once every plugin is enabled; if the server is already past startup it
-     *       runs on the next tick.</li>
-     *   <li><b>Hytale:</b> there is no global first-tick hook yet (schedulers are per-world), so the
-     *       task currently runs in place, still inside enable - it does NOT wait for other plugins or
-     *       for worlds to load.</li>
+     *   <li><b>Bukkit:</b> the server main thread. On the next tick when called from enable or another
+     *       thread, so a task scheduled during enable fires on the first tick, after every plugin has
+     *       enabled. Running there holds the tick until the task finishes - the first-boot legacy
+     *       import relies on that to freeze the server while it migrates.</li>
+     *   <li><b>Hytale:</b> there is no single main thread (schedulers are per-world), so the task runs
+     *       on a background thread. It still waits for the start phase - once every plugin has finished
+     *       {@code setup()} and all worlds are loaded: tasks submitted before that are buffered and
+     *       released then; tasks submitted afterwards run right away.</li>
      * </ul>
      */
-    public void runOnFirstTick(Runnable runnable);
+    public CompletableFuture<Void> runOnMainThread(Runnable task);
 
     /**
-     * Runs the task on the platform's main/server thread (on the next tick when called from another
-     * thread). The bridge async storage callbacks use to touch game state safely.
+     * The value-returning form of {@link #runOnMainThread(Runnable)}: runs the supplier under the same
+     * per-platform contract and completes the future with its result (exceptionally if it throws).
      */
-    public void runOnMainThread(Runnable runnable);
+    public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task);
 
     /**
      * Registers the platform's config types (Bukkit {@code ItemStack}/{@code Location}, Hytale vectors, ...)

@@ -4,7 +4,9 @@ import br.com.finalcraft.evernifecore.hytale.scheduler.HyFCScheduler;
 import br.com.finalcraft.evernifecore.minecraft.scheduler.McFCScheduler;
 import br.com.finalcraft.everylibs.executors.scheduler.VirtualThreadedScheduledExecutor;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 public class FCScheduler {
 
@@ -49,6 +51,36 @@ public class FCScheduler {
                 throwable.printStackTrace();
             }
         }, delayMillis, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Runs the task on a parallel (virtual) thread and returns a future that completes when it
+     * finishes - or completes exceptionally if it throws. The throwable is also printed, so a failure
+     * stays visible even when the caller ignores the future.
+     */
+    public static CompletableFuture<Void> runAsyncFuture(Runnable runnable){
+        return supplyAsyncFuture(() -> {
+            runnable.run();
+            return null;
+        });
+    }
+
+    /**
+     * Runs the supplier on a parallel (virtual) thread and returns a future that completes with its
+     * result - or completes exceptionally if it throws. The throwable is also printed, so a failure
+     * stays visible even when the caller ignores the future.
+     */
+    public static <T> CompletableFuture<T> supplyAsyncFuture(Supplier<T> supplier){
+        CompletableFuture<T> future = new CompletableFuture<>();
+        scheduler.execute(() -> {
+            try {
+                future.complete(supplier.get());
+            }catch (Throwable throwable){
+                throwable.printStackTrace();
+                future.completeExceptionally(throwable);
+            }
+        });
+        return future;
     }
 
     public static HyFCScheduler getHytaleScheduler() {
