@@ -6,9 +6,8 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.eventhandler.ECEventDispatcher;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
-import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.hytale.commands.HyCommandRegisterer;
-import br.com.finalcraft.evernifecore.hytale.commands.finalcmd.HytaleArgParsers;
+import br.com.finalcraft.evernifecore.hytale.ecplugin.ECHytalePlugin;
 import br.com.finalcraft.evernifecore.hytale.integration.HyVaultIntegration;
 import br.com.finalcraft.evernifecore.hytale.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyECEventDispatcher;
@@ -17,12 +16,17 @@ import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;
 import br.com.finalcraft.evernifecore.integration.placeholders.PAPIIntegration;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
-import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import jakarta.annotation.Nonnull;
 
 
-public class EverNifeCoreHytalePlugin extends JavaPlugin {
+/**
+ * Hytale entry point. It dogfoods the shared {@link ECHytalePlugin} bridge in symmetry with the
+ * Bukkit main: the platform-agnostic wiring runs in {@link #onECPluginEnable()} (delegating to
+ * {@link EverNifeCore}) and the Hytale extras in {@link #onECPluginEnablePost()}. Providers are
+ * registered in the constructor, before any bootstrap hook runs.
+ */
+public class EverNifeCoreHytalePlugin extends ECHytalePlugin {
 
     public static EverNifeCoreHytalePlugin instance;
 
@@ -52,10 +56,14 @@ public class EverNifeCoreHytalePlugin extends JavaPlugin {
     }
 
     @Override
-    protected void setup() {
-        ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(this);
-
+    public void onECPluginEnable() {
+        //Shared wiring both platforms run: config, cooldown and the platform-agnostic commands.
         EverNifeCore.instance.onLoadPre();
+    }
+
+    @Override
+    public void onECPluginEnablePost() {
+        ECPluginData ecPluginData = getPluginData();
 
         HyVaultIntegration.initialize();
 
@@ -67,21 +75,15 @@ public class EverNifeCoreHytalePlugin extends JavaPlugin {
         if (PAPIIntegration.isPresent()){
 //            ECCorePAPIPlaceholders.initialize(ecPluginData);
         }
-
-        EverNifeCore.instance.onLoadPost();
-
-//        if (PAPIIntegration.isPresent()){
-//            ECCorePAPIPlaceholders.initialize(this);
-//        }
     }
 
     @Override
-    public void shutdown() {
+    public void onECPluginShutdown() {
         EverNifeCore.instance.onUnload();
     }
 
-    @ECPlugin.Reload
-    public void onReload(){
+    @Override
+    public void onECPluginReload() {
         EverNifeCore.instance.onReload();
     }
 

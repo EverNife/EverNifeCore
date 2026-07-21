@@ -4,16 +4,15 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.eventhandler.ECEventDispatcher;
-import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.minecraft.commands.McCommandRegisterer;
-import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.MinecraftArgParsers;
 import br.com.finalcraft.evernifecore.minecraft.config.McConfigManager;
 import br.com.finalcraft.evernifecore.minecraft.dependencies.ECoreDependencies;
+import br.com.finalcraft.evernifecore.minecraft.ecplugin.ECBukkitPlugin;
 import br.com.finalcraft.evernifecore.minecraft.integration.VaultIntegration;
 import br.com.finalcraft.evernifecore.minecraft.integration.WorldEditIntegration;
 import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerInteractListener;
@@ -29,14 +28,19 @@ import br.com.finalcraft.evernifecore.minecraft.util.FCTickUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
 import org.bukkit.Bukkit;
-import org.bukkit.event.HandlerList;
-import org.bukkit.plugin.java.JavaPlugin;
 
+/**
+ * Bukkit entry point. It dogfoods the shared {@link ECBukkitPlugin} bridge: the platform-agnostic
+ * wiring runs in {@link #onECPluginEnable()} (delegating to {@link EverNifeCore}) and the Bukkit
+ * extras in {@link #onECPluginEnablePost()}. The provider registration stays in the instance
+ * initializer because other plugins may load EverNifeCore's classes before it and need the platform
+ * providers in place before any bootstrap hook runs.
+ */
 @ECPlugin(
         spigotID = "97739",
         bstatsID = "13351"
 )
-public class EverNifeCoreBukkitPlugin extends JavaPlugin {
+public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
 
     public static EverNifeCoreBukkitPlugin instance;
     static {
@@ -76,23 +80,22 @@ public class EverNifeCoreBukkitPlugin extends JavaPlugin {
     }
 
     @Override
-    public void onEnable() {
-        ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(this);
-
+    public void onECPluginEnable() {
+        //Shared wiring both platforms run: config, cooldown and the platform-agnostic commands.
         EverNifeCore.instance.onLoadPre();
+    }
+
+    @Override
+    public void onECPluginEnablePost() {
+        ECPluginData ecPluginData = getPluginData();
 
         MinecraftVersion.replaceLogger(this.getLogger());//Replace [NBT-API] logger
-
-        EverNifeCore.getLog().info("§aStarting EverNifeCore");
         EverNifeCore.getLog().info("§aServer Minecraft Version " + MCVersion.getCurrent().name() + " !");
 
         logNBTSelfTest(NBTSelfTest.run());
 
         EverNifeCore.getLog().info("§aLoading up Configurations...");
         McConfigManager.initialize(ecPluginData);
-
-        EverNifeCore.getLog().info("§aLoading up Cooldown System!");
-        Cooldown.initialize();
 
         EverNifeCore.getLog().info("§aRegistering Commands!");
         McCommandRegisterer.registerCommands(ecPluginData);
@@ -114,7 +117,6 @@ public class EverNifeCoreBukkitPlugin extends JavaPlugin {
         if (Bukkit.getPluginManager().isPluginEnabled("WorldEdit")) try{WorldEditIntegration.initialize();}catch (Throwable e){e.printStackTrace();}
 
         FCTickUtil.getTickCount();//This will start tickCounting
-        EverNifeCore.getLog().info("§aEverNifeCore successfully started!");
     }
 
     // Prints the NBT-API self-test outcome to the console. A failure here is not
@@ -140,14 +142,15 @@ public class EverNifeCoreBukkitPlugin extends JavaPlugin {
     }
 
     @Override
-    public void onDisable() {
-        HandlerList.unregisterAll(this);
+    public void onECPluginShutdown() {
+        //Listeners were already unregistered by the default onECPluginShutdownPre(), so nothing
+        //fires into the resources torn down here.
         EverNifeCore.instance.onUnload();
         FCMinecraftAdventureUtil.close();
     }
 
-    @ECPlugin.Reload
-    public void onReload(){
+    @Override
+    public void onECPluginReload() {
         EverNifeCore.instance.onReload();
     }
 

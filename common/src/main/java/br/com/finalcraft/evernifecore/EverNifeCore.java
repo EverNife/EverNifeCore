@@ -42,8 +42,8 @@ public class EverNifeCore {
     }
 
     public void onLoadPre() {
-        getLog().info("§aStarting EverNifeCore");
-
+        //The start/enabled banners are the bootstrap orchestrator's job (runECPluginEnable); this
+        //is only the shared wiring both platforms run.
         getLog().info("§aLoading up Configurations...");
         ConfigManager.initialize(getEcPluginData());
 
@@ -52,10 +52,6 @@ public class EverNifeCore {
 
         getLog().info("§aRegistering Commands!");
         CommandRegisterer.registerCommands(this.getEcPluginData());
-    }
-
-    public void onLoadPost() {
-        getLog().info("§aEverNifeCore successfully started!");
     }
 
     public void onUnload() {
