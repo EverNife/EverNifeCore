@@ -50,10 +50,7 @@ public class ECPluginData {
         // -------------------------------------------- //
         //  Handle @ECPlugin.Reload
         // -------------------------------------------- //
-        final Method reloadMethod = Arrays.stream(plugin.getClass().getDeclaredMethods())
-                .filter(method -> method.getAnnotation(ECPlugin.Reload.class) != null)
-                .findFirst()
-                .orElse(null);
+        final Method reloadMethod = findReloadMethod(plugin.getClass());
 
         if (reloadMethod != null){
             final boolean isStatic = Modifier.isStatic(reloadMethod.getModifiers());
@@ -66,6 +63,10 @@ public class ECPluginData {
                 }
             };
             this.reloadAfter = reloadMethod.getAnnotation(ECPlugin.Reload.class).reloadAfter();
+        }else if (plugin instanceof IECPluginBootstrap){
+            //No annotated method: a bootstrap plugin is reloadable through its onECPluginReload hook
+            this.onReload = ((IECPluginBootstrap) plugin)::onECPluginReload;
+            this.reloadAfter = new String[0];
         }else {
             this.onReload = null;
             this.reloadAfter = new String[0];
@@ -303,6 +304,25 @@ public class ECPluginData {
 
     public ECLogger<?> getLog(){
         return ecLogger;
+    }
+
+    /**
+     * Finds the {@code @ECPlugin.Reload} method: the plugin's own declared methods first (any
+     * visibility), then the public view - which also surfaces annotated methods inherited from
+     * superclasses and interface defaults.
+     */
+    private static Method findReloadMethod(Class<?> pluginClass) {
+        for (Method method : pluginClass.getDeclaredMethods()) {
+            if (method.getAnnotation(ECPlugin.Reload.class) != null) {
+                return method;
+            }
+        }
+        for (Method method : pluginClass.getMethods()) {
+            if (method.getAnnotation(ECPlugin.Reload.class) != null) {
+                return method;
+            }
+        }
+        return null;
     }
 
 }

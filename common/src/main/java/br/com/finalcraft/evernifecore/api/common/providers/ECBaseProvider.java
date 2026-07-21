@@ -18,6 +18,11 @@ public class ECBaseProvider {
         return (T) o;
     }
 
+    /** Like {@link #provide(Class)} but returns {@code null} instead of throwing when none is registered. */
+    public <T> T provideOrNull(Class<T> clazz) {
+        return (T) REGISTERED_PROVIDERS.get(clazz);
+    }
+
     public <T> T register(Class<T> providerType, T something) {
         Object previousProvider = REGISTERED_PROVIDERS.put(providerType, something);
 

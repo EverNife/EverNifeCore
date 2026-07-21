@@ -124,7 +124,28 @@ public final class TestPlatformFixture {
 
         @Override
         public ILogAdapter createLogAdapterFor(ECPluginData ecPluginData) {
-            return null;
+            //a stdout-backed adapter so ECLogger works headless (a null adapter NPEs on the first log line)
+            return new ILogAdapter() {
+                @Override
+                public void info(String string) {
+                    System.out.println(string);
+                }
+
+                @Override
+                public void warning(String string) {
+                    System.out.println("[WARN] " + string);
+                }
+
+                @Override
+                public void severe(String string) {
+                    System.out.println("[SEVERE] " + string);
+                }
+
+                @Override
+                public void log(java.util.logging.Level level, String string) {
+                    System.out.println("[" + level + "] " + string);
+                }
+            };
         }
 
         @Override

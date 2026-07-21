@@ -28,4 +28,9 @@ public class ECProviders {
         return BASE_PROVIDER.provide(ECEventDispatcher.class);
     }
 
+    /** Like {@link #getEventDispatcher()} but returns {@code null} instead of throwing when none is registered. */
+    public ECEventDispatcher getEventDispatcherOrNull(){
+        return BASE_PROVIDER.provideOrNull(ECEventDispatcher.class);
+    }
+
 }

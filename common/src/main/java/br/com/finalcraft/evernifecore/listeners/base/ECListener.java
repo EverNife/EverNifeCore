@@ -1,13 +1,16 @@
 package br.com.finalcraft.evernifecore.listeners.base;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.api.eventhandler.ECEventDispatcher;
 import br.com.finalcraft.evernifecore.api.platoverride.eclistener.IECBaseListener;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.util.FCArrayUtil;
 import jakarta.annotation.Nonnull;
 
+import java.util.Collections;
 import java.util.Objects;
+import java.util.Set;
 
 public interface ECListener extends IECBaseListener {
 
@@ -29,9 +32,12 @@ public interface ECListener extends IECBaseListener {
 
     public default void unregisterThis() {
         EverNifeCore.getPlatform().unregisterECListener(this);
-        if (EverNifeCore.getProviders().getEventDispatcher() != null) {
-            EverNifeCore.getProviders().getEventDispatcher().unregister(this);
+        //null when a very early boot (or a test fixture) has no dispatcher yet
+        ECEventDispatcher dispatcher = EverNifeCore.getProviders().getEventDispatcherOrNull();
+        if (dispatcher != null) {
+            dispatcher.unregister(this);
         }
+        ECListenerRegistry.forget(this);
     }
 
     public static boolean register(@Nonnull ECPluginData ecPluginData, ECListener listener){
@@ -65,11 +71,13 @@ public interface ECListener extends IECBaseListener {
             }
 
             EverNifeCore.getPlatform().registerECListener(ecPluginData, listener);
+            ECListenerRegistry.track(ecPluginData.getMetaInfo().getName(), listener);
 
             //Deliver framework-agnostic IECEvents to @ECEventHandler methods of this listener.
             //Guarded because a very early boot (or a test fixture) may not have a dispatcher yet.
-            if (EverNifeCore.getProviders().getEventDispatcher() != null) {
-                EverNifeCore.getProviders().getEventDispatcher().register(listener);
+            ECEventDispatcher dispatcher = EverNifeCore.getProviders().getEventDispatcherOrNull();
+            if (dispatcher != null) {
+                dispatcher.register(listener);
             }
 
             //Check for locales
@@ -99,6 +107,23 @@ public interface ECListener extends IECBaseListener {
             ecPluginData.getLog().warning("[ECListener] Failed to register Listener: [" + clazz.getName() + "] " + t.getClass().getSimpleName() + " [" + t.getMessage() + "]");
         }
         return false;
+    }
+
+    /**
+     * Unregisters every {@link ECListener} this plugin registered through {@link #register}. This is
+     * the default late-shutdown cleanup wired by the bootstrap layer; it is safe to call more than once.
+     */
+    public static void unregisterAll(@Nonnull ECPluginData ecPluginData) {
+        Objects.requireNonNull(ecPluginData, "'ecPluginData' cannot be null when unregistering ECListeners!");
+        for (ECListener listener : ECListenerRegistry.drain(ecPluginData.getMetaInfo().getName())) {
+            listener.unregisterThis();
+        }
+    }
+
+    /** A read-only snapshot of the listeners currently registered by this plugin through {@link #register}. */
+    public static Set<ECListener> getRegistered(@Nonnull ECPluginData ecPluginData) {
+        Objects.requireNonNull(ecPluginData, "'ecPluginData' cannot be null!");
+        return Collections.unmodifiableSet(ECListenerRegistry.snapshot(ecPluginData.getMetaInfo().getName()));
     }
 
 }
