@@ -307,6 +307,12 @@ public final class ECStorage {
      * {@code S = openOrReload(plugin, cfg, S)}. Seeds a groupedfile default under the plugin dataFolder
      * when the section is empty.
      *
+     * <p><b>Core reload:</b> a core storage reload SWAPS the plugin's shared registry, so a plugin that
+     * holds a {@code Ref} into this storage from one of its PDSections MUST re-run this call after each
+     * reload (register it in the {@code PlayerController.onStorageReload(plugin, ...)} callback). This
+     * call detects the swapped registry and reconnects (fresh registration), which is what keeps the Ref
+     * resolvable; the PDSection side rebinds to the fresh registry on its own.</p>
+     *
      * @param existing the previous handle (may be {@code null} on first open, or already closed)
      */
     public static CompletableFuture<ECStorage> openOrReload(ECPluginData plugin, ConfigSection section,

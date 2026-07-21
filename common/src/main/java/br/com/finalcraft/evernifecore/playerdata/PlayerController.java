@@ -51,6 +51,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -106,6 +107,23 @@ public class PlayerController {
 
     /** Account-section registrations - same reload-surviving contract as the per-player sections. */
     private static final Map<Class<?>, AccountSectionConfiguration<?>> REGISTERED_ACCOUNT_SECTIONS = new ConcurrentHashMap<>();
+
+    /**
+     * Storage-reload callbacks - survive reloads like the section registrations. Each runs right AFTER a
+     * reload publishes the fresh controller instance, so a plugin can re-open its own ECStorage onto the
+     * fresh per-plugin registry (see {@link #onStorageReload(ECPluginData, Runnable)}).
+     */
+    private static final List<ReloadHook> STORAGE_RELOAD_HOOKS = new CopyOnWriteArrayList<>();
+
+    /** A storage-reload callback with its owning plugin (nullable) so it can be dropped on disable. */
+    private static final class ReloadHook {
+        final ECPluginData plugin;
+        final Runnable callback;
+        ReloadHook(ECPluginData plugin, Runnable callback){
+            this.plugin = plugin;
+            this.callback = callback;
+        }
+    }
 
     // ---- instance state ----
     private final Config storageYml;
@@ -220,6 +238,11 @@ public class PlayerController {
                     + " the first server tick (after every plugin has registered its sections);"
                     + " player logins are held until it finishes.", legacyFolder.getPath());
             EverNifeCore.getPlatform().runOnFirstTick(() -> fresh.legacyBootstrap.runImportThenStart(legacyFolder));
+        }else {
+            //the reload is published and the fresh instance serves: let each plugin re-run its storage
+            //setup so a Ref into a plugin-owned ECStorage reconnects to the fresh per-plugin registry
+            //(the PDSection side already rebound to it above). Post-swap by construction - never before.
+            fireStorageReloadCallbacks();
         }
     }
 
@@ -514,6 +537,49 @@ public class PlayerController {
         //registrations made before the bootstrap are bound in PlayerController.start()
     }
 
+    // -----------------------------------------------------------------------------------------------------------------------------//
+    // Storage-reload callbacks (a plugin re-opens its own ECStorage after a core reload)
+    // -----------------------------------------------------------------------------------------------------------------------------//
+
+    /**
+     * Registers a callback to run right AFTER a core storage reload ({@link #bootstrap(File)}) has
+     * published the fresh controller instance. A reload builds a new set of per-plugin reference
+     * registries, so a plugin that opened its own {@code ECStorage} (whose managers registered in the
+     * OLD per-plugin registry) must re-open it here for a {@code Ref} inside one of its PDSections to keep
+     * resolving after the reload. The one-line re-setup
+     * {@code STORAGE = ECStorage.openOrReload(plugin, section, STORAGE).join()} reconnects onto the fresh
+     * registry ({@code openOrReload} detects the swapped registry) and re-derives the managers; the
+     * PDSection side heals itself (its binding is rebuilt against the fresh registry on reload).
+     *
+     * <p>Callbacks survive reloads (they are registered once on enable, like the PDSection
+     * registrations) and are dropped by {@link #unregisterPDSections(ECPluginData)} when the owning
+     * plugin disables. A callback that throws is logged and never aborts the reload or the other
+     * callbacks. Fired only AFTER the atomic instance swap - never before, so the re-open resolves the
+     * fresh registry.</p>
+     *
+     * @param plugin   the owning plugin, used to drop the callback on disable (may be {@code null} for
+     *                 a plugin-less/advanced registration that is never auto-dropped)
+     * @param callback the storage re-setup to run after each reload
+     */
+    public static void onStorageReload(ECPluginData plugin, Runnable callback){
+        Objects.requireNonNull(callback, "callback can't be null");
+        STORAGE_RELOAD_HOOKS.add(new ReloadHook(plugin, callback));
+    }
+
+    /** Runs every storage-reload callback (post-swap); a failing one is logged, never fatal to the reload. */
+    static void fireStorageReloadCallbacks(){
+        for (ReloadHook hook : STORAGE_RELOAD_HOOKS){
+            try {
+                hook.callback.run();
+            }catch (Throwable callbackFailure){
+                String owner = hook.plugin != null ? " of plugin '" + hook.plugin.getMetaInfo().getName() + "'" : "";
+                PDLog.severe("A storage-reload callback%s failed - continuing with the rest: %s",
+                        owner, String.valueOf(callbackFailure.getMessage()));
+                callbackFailure.printStackTrace();
+            }
+        }
+    }
+
     /**
      * Seeds the framework's own player-cooldown rows into the section registries the bind loops of
      * {@link #start()} consume: a per-player LOCAL row (loads with the player, evicts a grace after
@@ -555,6 +621,10 @@ public class PlayerController {
      */
     public static void unregisterPDSections(ECPluginData ecPluginData){
         if (ecPluginData == null) return;
+        //drop this plugin's storage-reload callbacks (mirrors ecRegistries.drop below): a disabled plugin
+        //must not keep a callback that re-runs its storage setup and retains its classloader. Done before
+        //the early return, so a plugin that registered a callback but no PDSection is still cleaned up.
+        STORAGE_RELOAD_HOOKS.removeIf(hook -> hook.plugin == ecPluginData);
         String pluginName = ecPluginData.getMetaInfo().getName();
         List<Class<? extends PDSection>> owned = new ArrayList<>();
         for (PDSectionConfiguration<?> configuration : REGISTERED_SECTIONS.values()){
