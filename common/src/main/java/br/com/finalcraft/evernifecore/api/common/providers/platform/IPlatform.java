@@ -61,9 +61,16 @@ public interface IPlatform {
     public IPlatformChatAdapter getChatAdapter();
 
     /**
-     * Runs the task on the server's main thread on the FIRST tick - that is, after every
-     * plugin has finished enabling. If the server is already past startup, the task simply
-     * runs on the next tick.
+     * Runs the task once, as close as each platform allows to "after every plugin has finished
+     * enabling". The guarantee is platform-specific:
+     * <ul>
+     *   <li><b>Bukkit:</b> on the server's main thread on the FIRST tick - a task scheduled during
+     *       enable only fires once every plugin is enabled; if the server is already past startup it
+     *       runs on the next tick.</li>
+     *   <li><b>Hytale:</b> there is no global first-tick hook yet (schedulers are per-world), so the
+     *       task currently runs in place, still inside enable - it does NOT wait for other plugins or
+     *       for worlds to load.</li>
+     * </ul>
      */
     public void runOnFirstTick(Runnable runnable);
 

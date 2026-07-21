@@ -17,13 +17,12 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The bootstrap orchestration: enable runs Early -&gt; main -&gt; Late then schedules the first-tick
- * task; shutdown runs Early -&gt; main -&gt; Late; and the default late-shutdown unregisters every
- * listener the plugin registered.
+ * The bootstrap orchestration: enable runs Pre -&gt; main -&gt; Post then schedules the first-tick
+ * task; shutdown runs Pre -&gt; main -&gt; Post; and the default pre-shutdown unregisters every
+ * listener the plugin registered BEFORE the main teardown runs.
  */
 class IECPluginBootstrapTest {
 
@@ -46,12 +45,12 @@ class IECPluginBootstrapTest {
     }
 
     @Test
-    void enableRunsEarlyMainLateInOrder() {
+    void enableRunsPreMainPostInOrder() {
         RecordingBootstrap boot = new RecordingBootstrap(pluginData("BootEnable"));
 
         boot.runECPluginEnable();
 
-        assertEquals(Arrays.asList("enableEarly", "enable", "enableLate"), boot.order);
+        assertEquals(Arrays.asList("enablePre", "enable", "enablePost"), boot.order);
     }
 
     @Test
@@ -73,20 +72,20 @@ class IECPluginBootstrapTest {
 
         boot.runECPluginEnable();
 
-        assertEquals(Arrays.asList("enableEarly", "enable", "enableLate"), boot.order);
+        assertEquals(Arrays.asList("enablePre", "enable", "enablePost"), boot.order);
     }
 
     @Test
-    void shutdownRunsEarlyMainLateInOrder() {
+    void shutdownRunsPreMainPostInOrder() {
         RecordingBootstrap boot = new RecordingBootstrap(pluginData("BootShutdown"));
 
         boot.runECPluginShutdown();
 
-        assertEquals(Arrays.asList("shutdownEarly", "shutdown", "shutdownLate"), boot.order);
+        assertEquals(Arrays.asList("shutdownPre", "shutdown", "shutdownPost"), boot.order);
     }
 
     @Test
-    void defaultShutdownLateUnregistersEveryListenerOfThePlugin() {
+    void defaultShutdownPreUnregistersListenersBeforeTheMainTeardown() {
         ECPluginData data = pluginData("BootUnregister");
         RecordingBootstrap boot = new RecordingBootstrap(data);
         boot.toRegister.add(new FakeListener());
@@ -96,19 +95,22 @@ class IECPluginBootstrapTest {
         assertEquals(2, ECListener.getRegistered(data).size(), "both listeners must be tracked after enable");
 
         boot.runECPluginShutdown();
-        assertTrue(ECListener.getRegistered(data).isEmpty(), "the default late-shutdown must unregister them all");
+        assertEquals(0, boot.registeredCountAtMainShutdown,
+                "the pre-shutdown must unregister the listeners BEFORE onECPluginShutdown() runs");
+        assertTrue(ECListener.getRegistered(data).isEmpty(), "no listener may remain after shutdown");
     }
 
     // ------------------------------------------------------------------
     // fakes
     // ------------------------------------------------------------------
 
-    /** Records the hook order; keeps the default late-shutdown cleanup by delegating to super. */
+    /** Records the hook order; keeps the default pre-shutdown cleanup by delegating to super. */
     static final class RecordingBootstrap implements IECPluginBootstrap {
         final ECPluginData data;
         final List<String> order = new ArrayList<>();
         final List<ECListener> toRegister = new ArrayList<>();
         Runnable firstTick;
+        int registeredCountAtMainShutdown = -1;
 
         RecordingBootstrap(ECPluginData data) {
             this.data = data;
@@ -120,8 +122,8 @@ class IECPluginBootstrapTest {
         }
 
         @Override
-        public void onECPluginEnableEarly() {
-            order.add("enableEarly");
+        public void onECPluginEnablePre() {
+            order.add("enablePre");
         }
 
         @Override
@@ -133,24 +135,26 @@ class IECPluginBootstrapTest {
         }
 
         @Override
-        public void onECPluginEnableLate() {
-            order.add("enableLate");
+        public void onECPluginEnablePost() {
+            order.add("enablePost");
         }
 
         @Override
-        public void onECPluginShutdownEarly() {
-            order.add("shutdownEarly");
+        public void onECPluginShutdownPre() {
+            order.add("shutdownPre");
+            IECPluginBootstrap.super.onECPluginShutdownPre(); //keep the default listener cleanup
         }
 
         @Override
         public void onECPluginShutdown() {
             order.add("shutdown");
+            //snapshot taken in the main teardown: proves the pre-shutdown already unregistered them
+            registeredCountAtMainShutdown = ECListener.getRegistered(data).size();
         }
 
         @Override
-        public void onECPluginShutdownLate() {
-            order.add("shutdownLate");
-            IECPluginBootstrap.super.onECPluginShutdownLate(); //keep the default listener cleanup
+        public void onECPluginShutdownPost() {
+            order.add("shutdownPost");
         }
 
         @Override

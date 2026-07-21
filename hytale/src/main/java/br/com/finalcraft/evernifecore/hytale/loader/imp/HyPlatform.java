@@ -270,7 +270,10 @@ public class HyPlatform implements IPlatform {
 
     @Override
     public void runOnFirstTick(Runnable runnable) {
-        //Hytale has no global first-tick hook (schedulers are per World).
+        //Hytale has no global first-tick hook (schedulers are per-world), so this runs in place,
+        //still inside setup() - it does NOT wait for other plugins or for worlds to load. A faithful
+        //deferral would buffer these until PluginBase.start() (which the server runs after every
+        //plugin's setup() completes) or subscribe them to AllWorldsLoadedEvent.
         runnable.run();
     }
 
