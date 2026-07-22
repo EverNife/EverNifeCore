@@ -40,6 +40,17 @@ public interface IPlayerData extends IDirtyable {
     }
 
     /**
+     * This player's NETWORK-wide cooldown for {@code identifier}: a handle over the human's
+     * account-shared row, seen by every server of the network - the counterpart of
+     * {@link #getCooldown(String)}, with the same async contract. Unlike the local one it is born
+     * PERSISTENT (a network cooldown only means anything if it replicates); see
+     * {@link PlayerCooldown#network(UUID, String)}.
+     */
+    default CompletableFuture<PlayerCooldown> getNetworkCooldown(String identifier) {
+        return PlayerCooldown.network(getUniqueId(), identifier);
+    }
+
+    /**
      * Resolves one of this player's PDSections, creating a TRANSIENT default when the backend has
      * nothing yet (seeded cache-only, no write - it persists only once {@code markDirty()} is called).
      * Async-only API: the returned future is already completed on the hot path (cached section); call

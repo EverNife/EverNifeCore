@@ -11,7 +11,6 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.cooldown.CooldownBucket;
 import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
-import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldown;
 import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldownsLocal;
 import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldownsNetwork;
 import br.com.finalcraft.evernifecore.cooldown.server.ServerCooldownRow;
@@ -361,7 +360,7 @@ public class CMDECCooldown {
         }
 
         //network handles are born persistent, so a bare startWith already reaches the shared backend
-        PlayerController.whenCompleteOnMainThread(PlayerCooldown.network(playerData.getUniqueId(), argumentos.getStringArg(2)), (cooldown, error) -> {
+        PlayerController.whenCompleteOnMainThread(playerData.getNetworkCooldown(argumentos.getStringArg(2)), (cooldown, error) -> {
             if (error != null){
                 error.printStackTrace();
                 return;
