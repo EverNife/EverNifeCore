@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.cooldown;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
+import br.com.finalcraft.evernifecore.cooldown.server.ServerCooldowns;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
@@ -96,6 +97,16 @@ public abstract class Cooldown {
         entry.setPersist(persist);
         touch(hadStoredRow);
         return this;
+    }
+
+    /**
+     * Marks the entry persistent WITHOUT stamping the mutation clock or notifying the route - the
+     * born-persistent seam of the network routes, whose entries only mean anything if they replicate.
+     * Deliberately not {@link #setPersist(boolean)}, which would file a still-blank entry: this way the
+     * row only grows once the cooldown is actually started, never on a bare read.
+     */
+    protected final void markBornPersistent() {
+        entry.setPersist(true);
     }
 
     public long getTimeLeft(){

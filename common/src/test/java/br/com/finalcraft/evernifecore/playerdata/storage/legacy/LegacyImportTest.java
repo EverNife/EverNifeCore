@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginE
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
-import br.com.finalcraft.evernifecore.cooldown.PlayerCooldownsLocal;
+import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldownsLocal;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.IPluginMetaInfo;

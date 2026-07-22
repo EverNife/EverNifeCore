@@ -1,5 +1,7 @@
-package br.com.finalcraft.evernifecore.cooldown;
+package br.com.finalcraft.evernifecore.cooldown.player;
 
+import br.com.finalcraft.evernifecore.cooldown.Cooldown;
+import br.com.finalcraft.evernifecore.cooldown.CooldownBucket;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.everydatabase.manager.cache.IDirtyable;
@@ -19,13 +21,16 @@ import java.util.concurrent.CompletableFuture;
 public class PlayerCooldown extends Cooldown {
 
     /** The player this cooldown belongs to - runtime wiring, never part of the stored value. */
-    @JsonIgnore private transient UUID uuid;
+    @JsonIgnore
+    private transient UUID uuid;
 
     /** The bucket this cooldown is filed in; null makes the handle memory-only. */
-    @JsonIgnore private transient CooldownBucket bucket;
+    @JsonIgnore
+    private transient CooldownBucket bucket;
 
     /** The row to dirty when this cooldown changes; null when there is no row behind it. */
-    @JsonIgnore private transient IDirtyable ownerRow;
+    @JsonIgnore
+    private transient IDirtyable ownerRow;
 
     public PlayerCooldown(String identifier, UUID uuid) {
         super(identifier);
@@ -102,7 +107,7 @@ public class PlayerCooldown extends Cooldown {
         return PlayerController.getAccountSection(uuid, PlayerCooldownsNetwork.class)
                 .thenApply(section -> {
                     PlayerCooldown handle = section.cooldown(uuid, identifier);
-                    handle.getEntry().setPersist(true);
+                    handle.markBornPersistent();
                     return handle;
                 });
     }

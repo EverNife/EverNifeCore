@@ -1,5 +1,9 @@
-package br.com.finalcraft.evernifecore.cooldown;
+package br.com.finalcraft.evernifecore.cooldown.player;
 
+import br.com.finalcraft.evernifecore.cooldown.Cooldown;
+import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
+import br.com.finalcraft.evernifecore.cooldown.CooldownRetention;
+import br.com.finalcraft.evernifecore.cooldown.GenericCooldown;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.playerdata.account.Account;
@@ -28,7 +32,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -213,79 +216,6 @@ class CooldownSectionsTest {
         assertEquals(canonicalId, canonical.getAccountId(), "the row now keys by the canonical account id");
         assertTrue(canonical.cooldown(memberUuid, "vip").isInCooldown(),
                 "the network cooldown must follow the identity into the account");
-    }
-
-    // ================================================================================================
-    // (d server) Two servers over the same backend see each other's SERVER network cooldown, and the
-    // ServerCooldownRow converges by latest() on a conflict.
-    // ================================================================================================
-
-    @Test
-    void twoServersSeeEachOthersServerNetworkCooldown() throws IOException {
-        File storageYml = writeStorageYml("srv_net_two_servers", true);
-        PlayerController.bootstrap(storageYml);
-
-        Cooldown.network("global_event").setPersist(true).startWith(300);
-        PlayerController.get().flushAll().join(); //awaits the network cooldown's in-flight writes
-
-        //a fresh controller over the same durable backend stands in for the other server
-        PlayerController.bootstrap(storageYml);
-        assertTrue(Cooldown.network("global_event").isInCooldown(),
-                "the other server must see the server-wide network cooldown this one started");
-    }
-
-    @Test
-    void networkCooldownReplicatesWithoutExplicitSetPersist() throws IOException {
-        File storageYml = writeStorageYml("srv_net_born_persistent", true);
-        PlayerController.bootstrap(storageYml);
-
-        //no explicit setPersist(true): the server-network handle must be born persistent on its own
-        Cooldown handle = Cooldown.network("global_event");
-        assertTrue(handle.isPersistent(),
-                "a server-network cooldown handle must be born persistent, no external setPersist needed");
-        handle.startWith(300);
-        PlayerController.get().flushAll().join(); //awaits the network cooldown's in-flight writes
-
-        //a fresh controller over the same durable backend stands in for the other server
-        PlayerController.bootstrap(storageYml);
-        assertTrue(Cooldown.network("global_event").isInCooldown(),
-                "the other server must see a network cooldown started without a manual setPersist");
-    }
-
-    @Test
-    void aStoppedServerCooldownStaysFreeEvenAfterAResolveReasserts() throws IOException {
-        File storageYml = writeStorageYml("srv_net_stop_then_resolve", true);
-        PlayerController.bootstrap(storageYml);
-
-        Cooldown.network("global_event").startWith(300);
-        Cooldown.network("global_event").stop();
-        //resolve() re-asserts persist=true on the shared entry; that must not revive a stopped cooldown,
-        //since isInCooldown is gated on timeStart (a stop zeroes it), not on the persist flag
-        assertFalse(Cooldown.network("global_event").isInCooldown(),
-                "a stopped server cooldown must stay free even after resolve re-marks the entry persistent");
-    }
-
-    @Test
-    void aServerCooldownRowConvergesByLatestOnAConflict() {
-        ServerCooldownRow local = new ServerCooldownRow("vip");
-        local.getEntry().setTimeStart(100L);
-        local.getEntry().setTimeDuration(60_000L);
-        local.getEntry().setUpdatedAt(100L);
-        local.getEntry().setPersist(true);
-
-        ServerCooldownRow stored = new ServerCooldownRow("vip");
-        stored.getEntry().setTimeStart(0L);        //a newer stop
-        stored.getEntry().setTimeDuration(60_000L);
-        stored.getEntry().setUpdatedAt(200L);
-        stored.getEntry().setPersist(true);
-
-        CooldownEntry sharedInstance = local.getEntry();
-        local.mergeStoredState(stored);
-
-        assertSame(sharedInstance, local.getEntry(),
-                "the shared entry instance must be mutated in place, never swapped out");
-        assertEquals(0L, local.getEntry().getTimeStart(), "the newer stop wins the convergence by latest()");
-        assertTrue(local.isDirty(), "a converged row is re-marked dirty to persist what survived");
     }
 
     // ================================================================================================

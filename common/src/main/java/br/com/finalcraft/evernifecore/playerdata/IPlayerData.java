@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.cooldown.PlayerCooldown;
+import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldown;
 import br.com.finalcraft.everydatabase.manager.cache.IDirtyable;
 
 import java.util.Optional;

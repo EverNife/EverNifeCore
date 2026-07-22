@@ -1,5 +1,7 @@
-package br.com.finalcraft.evernifecore.cooldown;
+package br.com.finalcraft.evernifecore.cooldown.server;
 
+import br.com.finalcraft.evernifecore.cooldown.Cooldown;
+import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
 import br.com.finalcraft.everydatabase.manager.cache.IDirtyable;
 import br.com.finalcraft.everydatabase.util.JsonAutoDetectFieldsOnly;
 import br.com.finalcraft.everydatabase.versioned.OptimisticLock;
@@ -89,27 +91,13 @@ public class ServerCooldownRow implements IDirtyable {
 
     /**
      * Resolves a concurrent-write race against the state that won it: the two replicas of this
-     * cooldown settle by {@link CooldownEntry#latest}, the winner's lock version is adopted so the
-     * retry lands, and the row is re-marked dirty to persist whatever survived.
+     * cooldown settle by {@link CooldownEntry#latest} - adopted IN PLACE, because the entry instance
+     * is shared with every live {@link Cooldown} handle over this row - the winner's lock version is
+     * adopted so the retry lands, and the row is re-marked dirty to persist whatever survived.
      */
     void mergeStoredState(ServerCooldownRow stored) {
-        adoptEntryState(CooldownEntry.latest(this.entry, stored.entry));
+        this.entry.adoptState(CooldownEntry.latest(this.entry, stored.entry));
         this.lockVersion = stored.lockVersion;
         markDirty();
-    }
-
-    /**
-     * Takes on {@code winner}'s values IN PLACE, because the entry instance is shared: every
-     * {@link Cooldown} handle over this row reads and writes that exact object, so swapping the field
-     * would leave live handles mutating a state nothing stores any more.
-     */
-    private void adoptEntryState(CooldownEntry winner) {
-        if (winner == this.entry) {
-            return;
-        }
-        this.entry.setTimeStart(winner.getTimeStart());
-        this.entry.setTimeDuration(winner.getTimeDuration());
-        this.entry.setUpdatedAt(winner.getUpdatedAt());
-        this.entry.setPersist(winner.isPersist());
     }
 }

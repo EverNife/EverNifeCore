@@ -1,5 +1,6 @@
-package br.com.finalcraft.evernifecore.cooldown;
+package br.com.finalcraft.evernifecore.cooldown.server;
 
+import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
 import br.com.finalcraft.evernifecore.playerdata.storage.BindingResolver;
 import br.com.finalcraft.evernifecore.playerdata.storage.PdSyncBindGuard;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
@@ -190,11 +191,7 @@ public final class ServerCooldowns {
         ServerCooldownRow row = manager.peek(identifier)
                 .orElseGet(() -> manager.resolve(identifier).join()
                         .orElseGet(() -> manager.seedIfAbsent(identifier, new ServerCooldownRow(identifier))));
-        //born PERSISTENT: a network cooldown only means anything if it replicates, and the route to
-        //storage is gated on the entry being persistent - a non-persistent one would silently never
-        //propagate. Set on the entry directly (not through Cooldown.setPersist, which would touch/file
-        //a still-blank row), so the row still only grows once the cooldown is actually started.
-        row.getEntry().setPersist(true);
+        //the handle marks the shared entry born-persistent by construction - see NetworkCooldown
         return new NetworkCooldown(identifier, row, this);
     }
 

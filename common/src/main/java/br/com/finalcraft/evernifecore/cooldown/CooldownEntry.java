@@ -57,6 +57,22 @@ public class CooldownEntry {
     }
 
     /**
+     * Takes on {@code winner}'s whole state IN PLACE - the replication primitive for an entry instance
+     * that is shared with live {@link Cooldown} handles and must never be swapped out (a swap would
+     * leave those handles mutating a state nothing stores any more). Not a user mutation: it copies
+     * the mutation clock instead of stamping it, so only a converged/merged state belongs here.
+     */
+    public void adoptState(CooldownEntry winner) {
+        if (winner == this) {
+            return;
+        }
+        this.timeStart = winner.timeStart;
+        this.timeDuration = winner.timeDuration;
+        this.updatedAt = winner.updatedAt;
+        this.persist = winner.persist;
+    }
+
+    /**
      * The winning state between two replicas of the SAME cooldown: last write wins on
      * {@link #updatedAt}, and the remaining fields break a tie in a fixed order so that
      * {@code latest(a, b)} and {@code latest(b, a)} always settle on equal states. That symmetry is the

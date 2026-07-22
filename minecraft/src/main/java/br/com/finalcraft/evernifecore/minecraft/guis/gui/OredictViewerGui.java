@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.guis.gui;
 
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
-import br.com.finalcraft.evernifecore.cooldown.PlayerCooldown;
+import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldown;
 import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
 import br.com.finalcraft.evernifecore.minecraft.gui.PlayerGui;
 import br.com.finalcraft.evernifecore.minecraft.gui.custom.PaginatedGuiComplex;

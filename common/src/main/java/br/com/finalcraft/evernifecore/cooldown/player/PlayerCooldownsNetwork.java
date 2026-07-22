@@ -1,5 +1,8 @@
-package br.com.finalcraft.evernifecore.cooldown;
+package br.com.finalcraft.evernifecore.cooldown.player;
 
+import br.com.finalcraft.evernifecore.cooldown.CooldownBucket;
+import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
+import br.com.finalcraft.evernifecore.cooldown.CooldownRetention;
 import br.com.finalcraft.evernifecore.playerdata.AccountSection;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 

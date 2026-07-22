@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
-import br.com.finalcraft.evernifecore.cooldown.ServerCooldowns;
+import br.com.finalcraft.evernifecore.cooldown.server.ServerCooldowns;
 import br.com.finalcraft.evernifecore.playerdata.storage.PDSectionBinding;
 import br.com.finalcraft.evernifecore.playerdata.storage.SectionCachePolicy;
 import br.com.finalcraft.everydatabase.manager.CachingManager;

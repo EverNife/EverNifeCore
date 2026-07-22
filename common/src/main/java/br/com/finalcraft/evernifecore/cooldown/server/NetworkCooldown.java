@@ -1,4 +1,7 @@
-package br.com.finalcraft.evernifecore.cooldown;
+package br.com.finalcraft.evernifecore.cooldown.server;
+
+import br.com.finalcraft.evernifecore.cooldown.Cooldown;
+import br.com.finalcraft.evernifecore.cooldown.GenericCooldown;
 
 /**
  * A cooldown owned by no one in particular but shared by the WHOLE network: it lives as its own row on
@@ -14,6 +17,11 @@ public class NetworkCooldown extends Cooldown {
         super(identifier, row.getEntry());
         this.row = row;
         this.store = store;
+        //born PERSISTENT by construction: a network cooldown only means anything if it replicates, and
+        //the route to storage is gated on the entry being persistent - a non-persistent one would
+        //silently never propagate. Marked directly (not through setPersist, which would file a
+        //still-blank row), so the row still only grows once the cooldown is actually started.
+        markBornPersistent();
     }
 
     /**
