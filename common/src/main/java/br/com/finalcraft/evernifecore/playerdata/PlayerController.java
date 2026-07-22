@@ -348,7 +348,7 @@ public class PlayerController {
 
         //register the framework's own player-cooldown rows before the bind loops pick them up, so a
         //player cooldown has a storage route without every plugin declaring one
-        registerBuiltinCooldownSections();
+        registerBuiltinSections();
 
         //bind + hot-load each registered section (one by one, timed - as before)
         for (PDSectionConfiguration<?> configuration : REGISTERED_SECTIONS.values()){
@@ -591,25 +591,18 @@ public class PlayerController {
      * <p>Also called before the legacy import binds its adapters, so the local row's
      * {@code legacyYaml("Cooldown", ...)} claim is in place when the importer scans a v3 file.</p>
      */
-    void registerBuiltinCooldownSections(){
-        if (!REGISTERED_SECTIONS.containsKey(PlayerCooldownsLocal.class)){
-            PDSectionConfiguration<PlayerCooldownsLocal> local = PDSectionConfiguration
-                    .builder(EverNifeCore.getEcPluginData(), PlayerCooldownsLocal.class)
-                    .cache(SectionCachePolicy.workingSet())
-                    //claim the legacy v3 'Cooldown:' block so a first-boot import migrates it here
-                    //instead of leaving it pending forever (there is no other owner for that root key)
-                    .legacyYaml("Cooldown", PlayerCooldownsLocal::fromLegacyYaml)
-                    .build();
-            EntitySchemaMigrations.registerChain(PlayerCooldownsLocal.class, local.getMigrations());
-            REGISTERED_SECTIONS.put(PlayerCooldownsLocal.class, local);
-        }
-        if (!REGISTERED_ACCOUNT_SECTIONS.containsKey(PlayerCooldownsNetwork.class)){
-            AccountSectionConfiguration<PlayerCooldownsNetwork> network = AccountSectionConfiguration
-                    .builder(EverNifeCore.getEcPluginData(), PlayerCooldownsNetwork.class)
-                    .build();
-            EntitySchemaMigrations.registerChain(PlayerCooldownsNetwork.class, network.getMigrations());
-            REGISTERED_ACCOUNT_SECTIONS.put(PlayerCooldownsNetwork.class, network);
-        }
+    void registerBuiltinSections(){
+
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration
+            .builder(EverNifeCore.getEcPluginData(), PlayerCooldownsLocal.class)
+            .cache(SectionCachePolicy.workingSet())
+            .legacyYaml("Cooldown", PlayerCooldownsLocal::fromLegacyYaml) // Import legacy data from EC v2
+            .build());
+
+        PlayerController.registerAccountSectionCfg(AccountSectionConfiguration
+            .builder(EverNifeCore.getEcPluginData(), PlayerCooldownsNetwork.class)
+            .build());
+
     }
 
     /**

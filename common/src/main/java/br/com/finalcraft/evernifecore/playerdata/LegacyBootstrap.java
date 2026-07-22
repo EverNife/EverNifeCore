@@ -52,7 +52,7 @@ final class LegacyBootstrap {
         try {
             //register the framework's own cooldown rows first, so the local row's legacyYaml("Cooldown")
             //adapter is among the bindings the importer scans - start() runs only AFTER the import here
-            controller.registerBuiltinCooldownSections();
+            controller.registerBuiltinSections();
             for (PDSectionConfiguration<?> configuration : PlayerController.getConfiguredPDSections().values()) {
                 controller.bindSection(configuration); //no player loaded yet -> bind only, no hot-load
             }
