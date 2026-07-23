@@ -94,6 +94,7 @@ public void teleportCommand(
 
 **Features:**
 - Automatic argument parsing and validation
+- `--name value` style flags (`@FlagArg`), independent of argument order
 - Built-in help system generation
 - Permission and context validation
 - Multi-language support
