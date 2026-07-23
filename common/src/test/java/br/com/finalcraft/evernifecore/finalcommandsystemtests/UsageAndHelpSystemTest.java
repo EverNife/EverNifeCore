@@ -18,6 +18,7 @@ import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -89,25 +90,26 @@ class UsageAndHelpSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // D3 - desc() on @SubCMD becomes the help line's hover, in the plugin's default locale
+    // D3 - a subcommand with no locales() and no setDesc() call has NO hover on its help line
+    // (desc() no longer exists on the annotation - locales() is the only declarative path left;
+    // see CustomizeSystemTest#g4 for the runtime-only setDesc() path)
     // ------------------------------------------------------------------
 
     @FinalCMD(aliases = "d3cmd")
     public static class D3_Cmd {
-        @FinalCMD.SubCMD(subcmd = "sub", desc = "A plain description")
+        @FinalCMD.SubCMD(subcmd = "sub")
         public void sub(FCommandSender sender) {}
     }
 
     @Test
-    void d3_descBecomesTheHelpLineHoverInTheDefaultLocale() {
+    void d3_noLocalesAndNoSetDescMeansNoHoverOnTheHelpLine() {
         FinalCMDPluginCommand command = newHarness().register(new D3_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "help");
 
-        String hover = sender.hoverTextOfMessageContaining("d3cmd sub");
-        assertNotNull(hover);
-        assertTrue(hover.contains("A plain description"));
+        sender.assertAnyMessageContains("d3cmd sub");
+        assertNull(sender.hoverTextOfMessageContaining("d3cmd sub"));
     }
 
     // ------------------------------------------------------------------

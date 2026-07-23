@@ -76,17 +76,20 @@ class CustomizeSystemTest {
 
     // ------------------------------------------------------------------
     // G2 - CustomizeContext.replace("%x%", v) affects labels/usage/desc/permission/locales AND
-    // ArgData (name/context/locales)
+    // ArgData (name/context/locales). desc() no longer exists on the annotation, so this instance
+    // sets it at runtime via setDesc() before replace() runs over it - the same runtime-only path
+    // CMDAlias uses.
     // ------------------------------------------------------------------
 
     public static class G2_Cmd implements ICustomFinalCMD {
-        @FinalCMD(aliases = "cmd%suffix%", usage = "usage%suffix%", desc = "desc%suffix%", permission = "perm%suffix%")
+        @FinalCMD(aliases = "cmd%suffix%", usage = "usage%suffix%", permission = "perm%suffix%")
         public void run(FCommandSender sender,
                          @Arg(name = "<val%suffix%>", context = "ctx%suffix%",
                                  locales = {@FCLocale(lang = LocaleType.EN_US, text = "loc%suffix%")}) String value) {}
 
         @Override
         public void customize(@Nonnull CustomizeContext context) {
+            context.getFinalCMDData().setDesc("desc%suffix%");
             context.replace("%suffix%", "REPLACED");
         }
     }
@@ -130,5 +133,31 @@ class CustomizeSystemTest {
         assertFalse(hover1.getHoverText().contains("target2"));
         assertTrue(hover2.getHoverText().contains("target2"));
         assertFalse(hover2.getHoverText().contains("target1"));
+    }
+
+    // ------------------------------------------------------------------
+    // G4 - a plain custom executor calling setDesc() directly inside customize() gets that text as
+    // the help line's hover - desc() no longer exists on the annotation, so this is the only way
+    // left to give a command a runtime-only, per-instance description
+    // ------------------------------------------------------------------
+
+    public static class G4_Cmd implements ICustomFinalCMD {
+        @FinalCMD(aliases = "g4cmd")
+        public void run(FCommandSender sender) {}
+
+        @Override
+        public void customize(@Nonnull CustomizeContext context) {
+            context.getFinalCMDData().setDesc("Set directly via customize");
+        }
+    }
+
+    @Test
+    void g4_setDescInsideCustomizeBecomesTheHelpLineHover() {
+        FinalCMDPluginCommand command = newHarness().register(new G4_Cmd());
+
+        FancyText hover = command.getMainInterpreter().getHelpLine().getLocaleMessage().getFancyText("EN_US");
+
+        assertNotNull(hover);
+        assertTrue(hover.getHoverText().contains("Set directly via customize"));
     }
 }
