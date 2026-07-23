@@ -123,7 +123,6 @@ public interface IECPluginBootstrap {
      */
     public default void runECPluginEnable(){
         IPluginMetaInfo metaInfo = getPluginData().getMetaInfo();
-        getLog().info("§aStarting " + metaInfo.getName() + " v" + metaInfo.getVersion());
 
         onECPluginEnablePre();
         onECPluginEnable();
