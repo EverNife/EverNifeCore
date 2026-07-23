@@ -14,6 +14,12 @@ public class CMDData<T extends CMDData<T>> {
 
     private String[] labels = new String[0]; //This means both command ALIASES or SubCommands names
     private String usage = "";
+    /**
+     * Runtime-only description used as the help hover when the command declares no
+     * {@code locales()}. Dynamic commands (e.g. alias commands built per-instance) set it
+     * during {@code customize()}; annotation-driven commands should use {@code locales()}
+     * instead - it is the only declarative way to describe a command.
+     */
     private String desc = "";
     private String permission = "";
     private String context = "";
@@ -62,6 +68,12 @@ public class CMDData<T extends CMDData<T>> {
         return (T) this;
     }
 
+    /**
+     * Sets the runtime-only description used as the help hover when the command declares no
+     * {@code locales()}. Meant for dynamic commands built per-instance (e.g. {@code CMDAlias}),
+     * set during {@code customize()} - annotation-driven commands should use {@code locales()}
+     * instead.
+     */
     public T setDesc(String desc) {
         this.desc = desc;
         return (T) this;

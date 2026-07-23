@@ -18,7 +18,7 @@ public class FinalCMDData extends CMDData<FinalCMDData> {
     public FinalCMDData(FinalCMD finalCMD) {
         super(finalCMD.aliases(),
                 finalCMD.usage(),
-                finalCMD.desc(),
+                "",
                 finalCMD.permission(),
                 finalCMD.context(),
                 Arrays.stream(finalCMD.validation())

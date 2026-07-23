@@ -16,8 +16,6 @@ public @interface FinalCMD {
 
     String usage() default "";
 
-    String desc() default "";
-
     String permission() default "";
 
     String context() default "";
@@ -36,8 +34,6 @@ public @interface FinalCMD {
         String[] subcmd();
 
         String usage() default "";
-
-        String desc() default "";
 
         String permission() default "";
 

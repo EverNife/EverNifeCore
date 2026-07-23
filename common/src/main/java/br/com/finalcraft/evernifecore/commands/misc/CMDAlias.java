@@ -24,8 +24,7 @@ public class CMDAlias implements ICustomFinalCMD {
     }
 
     @FinalCMD(
-            aliases = "",
-            desc = "Alias for the command: [%the_command%]"
+            aliases = ""
     )
     public void onAliasExecution(FCommandSender sender, MultiArgumentos argumentos) {
         FCServerUtil.makePlayerExecuteCommand(sender,
@@ -36,7 +35,7 @@ public class CMDAlias implements ICustomFinalCMD {
     @Override
     public void customize(@Nonnull CustomizeContext context) {
         context.getFinalCMDData().setLabels(this.aliases);
-        context.replace("%the_command%", theCommand);
+        context.getFinalCMDData().setDesc("Alias for the command: [" + theCommand + "]");
     }
 
 }

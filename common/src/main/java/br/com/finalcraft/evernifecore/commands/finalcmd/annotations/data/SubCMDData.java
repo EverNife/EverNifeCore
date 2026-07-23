@@ -13,7 +13,7 @@ public class SubCMDData extends CMDData<SubCMDData> {
     public SubCMDData(FinalCMD.SubCMD subCMD) {
         super(subCMD.subcmd(),
                 subCMD.usage(),
-                subCMD.desc(),
+                "",
                 subCMD.permission(),
                 subCMD.context(),
                 Arrays.stream(subCMD.validation())
