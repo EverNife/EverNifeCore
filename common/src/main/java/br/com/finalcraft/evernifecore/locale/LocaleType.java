@@ -9,6 +9,7 @@ import java.util.Map;
 public class LocaleType {
     public static final String EN_US = "EN_US";
     public static final String PT_BR = "PT_BR";
+    public static final String ZH_CN = "ZH_CN";
 
     private static Map<String,String> NORMALIZED_LOCALES = new LinkedHashMap<>();
     static {
