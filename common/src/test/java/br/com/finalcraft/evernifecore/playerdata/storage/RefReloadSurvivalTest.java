@@ -20,6 +20,7 @@ import br.com.finalcraft.everydatabase.manager.cache.CachePolicy;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -67,6 +68,13 @@ class RefReloadSurvivalTest {
 
     private ECPluginData plugin;
 
+    @BeforeEach
+    void clearShutdowns() {
+        //a leftover request from an unrelated test class sharing this JVM must not be mistaken for
+        //one fired by the reload below - see aFailedReloadKeepsTheLiveInstanceAndDoesNotFireCallbacks
+        TestPlatformFixture.clearShutdownRequests();
+    }
+
     @AfterEach
     void teardown() {
         if (plugin != null) {
@@ -78,6 +86,7 @@ class RefReloadSurvivalTest {
         EntitySchemaMigrations.clear();
         ECPluginManager.removePluginData(PLUGIN_NAME);
         plugin = null;
+        TestPlatformFixture.clearShutdownRequests(); //the atomicity test below now goes through the boot guard
     }
 
     // ==================================================================
@@ -157,6 +166,8 @@ class RefReloadSurvivalTest {
         assertSame(live, PlayerController.get(), "a failed reload must NOT swap the live instance");
         assertEquals(0, callbackFires.get(),
                 "callbacks fire only after the swap - a pre-swap failure must fire none");
+        assertTrue(TestPlatformFixture.shutdownRequests().isEmpty(),
+                "a failed RELOAD must never stop the server - the live instance is still serving");
     }
 
     // ==================================================================

@@ -95,4 +95,17 @@ public interface IPlatform {
 
     public void registerArgParsers();
 
+    /**
+     * Stops the WHOLE server (not just this plugin), the way the platform's own stop command does -
+     * worlds and data get their normal save path. Used when continuing to run would corrupt state,
+     * e.g. a storage backend that holds player data is unreachable at boot.
+     *
+     * <p>Implementations must be safe to call from the platform's boot/main thread and must NOT
+     * block waiting for the shutdown to finish: the caller is expected to return (and usually
+     * rethrow) so the platform can unwind normally.</p>
+     *
+     * @param reason short, admin-facing text logged next to the shutdown
+     */
+    public void shutdown(String reason);
+
 }

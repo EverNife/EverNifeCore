@@ -147,7 +147,7 @@ public final class StorageYamlParser {
         StorageRegistry registry = new StorageRegistry(parsed.getDefaultBackendName());
         for (BackendDefinition backend : parsed.getBackends().values()) {
             if (backend.isEnabled()) {
-                registry.register(backend.getName(), backend.createStorage(logConfig));
+                registry.register(backend.getName(), backend.createStorage(logConfig), backend);
             }
         }
         return registry;

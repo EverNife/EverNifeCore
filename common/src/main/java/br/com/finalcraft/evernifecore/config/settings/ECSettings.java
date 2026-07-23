@@ -32,6 +32,9 @@ public class ECSettings {
     //Cooldown
     public static int COOLDOWN_RETENTION_DAYS;
 
+    //Storage
+    public static boolean STOP_SERVER_IF_STORAGE_IS_UNREACHABLE = true;
+
     public static void initialize(){
         ZONE_ID_OF_DAY_OF_TODAY = ConfigManager.getMainConfig().getOrSetValueIfAbsent("Settings.Time.ZONE_ID_OF_DAY_OF_TODAY",
                 ZoneId.systemDefault().getId(),
@@ -92,6 +95,20 @@ public class ECSettings {
                     ConfigManager.getMainConfig().getInt("Settings.Cooldown.RETENTION_OVERRIDES." + cooldownId)));
         }
         CooldownRetention.configure(COOLDOWN_RETENTION_DAYS, retentionOverrides);
+
+        STOP_SERVER_IF_STORAGE_IS_UNREACHABLE = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
+                "Settings.Storage.STOP_SERVER_IF_STORAGE_IS_UNREACHABLE", true,
+                "Stop the server if we can't contact any used Storage Database." +
+                        "\n" +
+                        "\nWhen a database declared as 'enabled: true' in storage.yml cannot be reached at" +
+                        "\nboot, EverNifeCore prints a report naming every unreachable backend and stops the" +
+                        "\nserver, so nothing runs on top of missing data." +
+                        "\n" +
+                        "\nKEEP THIS TRUE. Setting it to false does NOT make the server work without a" +
+                        "\ndatabase: EverNifeCore stays DISABLED either way, every plugin that depends on it" +
+                        "\nfails, and the data that IS written diverges from what the database holds." +
+                        "\nThe only safe way out of a boot failure is fixing (or disabling) the backend."
+        );
 
         if (ConfigManager.getMainConfig().hasNewSeededDefaults()){
             ConfigManager.getMainConfig().save();

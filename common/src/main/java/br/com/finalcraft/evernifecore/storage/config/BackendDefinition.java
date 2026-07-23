@@ -210,6 +210,36 @@ public final class BackendDefinition implements ConfigLifecycle {
     }
 
     /**
+     * A one-line, human-readable description of WHERE this backend points, safe to print in a log:
+     * any password - the {@code pass} field or one embedded in the url - is replaced by {@code ****}.
+     */
+    public String describeTarget() {
+        switch (type) {
+            case SQL:
+            case POSTGRESQL:
+            case H2:
+                return redactUrl(url) + (user == null || user.isEmpty() ? "" : " (user '" + user + "')");
+            case MONGO:
+                return redactUrl(url) + " (db '" + database + "')";
+            case LOCALFILE:
+            case GROUPEDFILE:
+                return path + " (" + (format == FileFormat.JSON ? "json" : "yaml") + ")";
+            case MEMORY:
+            default:
+                return "in-memory (ephemeral)";
+        }
+    }
+
+    /** Masks {@code scheme://user:pass@host} credentials and any {@code password=}/{@code pass=} query value. */
+    private static String redactUrl(String url) {
+        if (url == null) {
+            return "(no url)";
+        }
+        String redacted = url.replaceAll("(://[^/:@]+):[^@/]*@", "$1:****@");
+        return redacted.replaceAll("(?i)([?&](?:password|pass)=)[^&]*", "$1****");
+    }
+
+    /**
      * Instantiates the EveryDatabase Storage for this backend. Does NOT connect -
      * connections are opened by {@code storage.init()} (the registry's initAll).
      */

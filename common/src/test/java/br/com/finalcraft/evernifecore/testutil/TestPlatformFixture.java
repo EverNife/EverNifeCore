@@ -16,6 +16,7 @@ import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -53,6 +54,30 @@ public final class TestPlatformFixture {
         }
         EverNifeCore.getProviders().getBaseProvider().register(IPlatform.class, new NoopPlatform());
         installed = true;
+    }
+
+    /**
+     * Unconditionally (re)installs a fresh no-op platform, even when a specialized platform - e.g. a
+     * command-capture test harness registered by another test class sharing this JVM - is currently
+     * active. {@link #ensureInstalled()} is a one-shot no-op once ANY platform has ever been registered,
+     * so a test that needs to observe THIS fixture's own {@link #shutdownRequests()} must call this
+     * instead of relying on the lazy form.
+     */
+    public static synchronized void forceInstallNoop() {
+        System.setProperty("evernifecore.playerdata.periodic-flush", "false");
+        EverNifeCore.getProviders().getBaseProvider().register(IPlatform.class, new NoopPlatform());
+        installed = true;
+    }
+
+    private static final List<String> SHUTDOWN_REQUESTS = Collections.synchronizedList(new ArrayList<>());
+
+    /** Every reason passed to {@code IPlatform.shutdown} since the last {@link #clearShutdownRequests()}. */
+    public static List<String> shutdownRequests() {
+        return new ArrayList<>(SHUTDOWN_REQUESTS);
+    }
+
+    public static void clearShutdownRequests() {
+        SHUTDOWN_REQUESTS.clear();
     }
 
     private static final class NoopPlatform implements IPlatform {
@@ -189,6 +214,11 @@ public final class TestPlatformFixture {
         public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task) {
             //inline: tests have no server thread
             return CompletableFuture.completedFuture(task.get());
+        }
+
+        @Override
+        public void shutdown(String reason) {
+            SHUTDOWN_REQUESTS.add(reason);   //a real shutdown would kill the test JVM
         }
     }
 }

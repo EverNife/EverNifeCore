@@ -25,7 +25,9 @@ import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import com.hypixel.hytale.event.EventRegistration;
 import com.hypixel.hytale.event.ICancellable;
 import com.hypixel.hytale.event.IEvent;
+import com.hypixel.hytale.server.core.HytaleServer;
 import com.hypixel.hytale.server.core.NameMatching;
+import com.hypixel.hytale.server.core.ShutdownReason;
 import com.hypixel.hytale.server.core.command.system.AbstractCommand;
 import com.hypixel.hytale.server.core.command.system.CommandManager;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
@@ -332,6 +334,13 @@ public class HyPlatform implements IPlatform {
     @Override
     public void registerArgParsers() {
         registerArgParsersOnce.run();
+    }
+
+    @Override
+    public void shutdown(String reason) {
+        EverNifeCore.getLog().severe("Shutting the server down: " + reason);
+        //exit code 1 so a wrapper/panel can tell this apart from a clean stop
+        HytaleServer.get().shutdownServer(new ShutdownReason(1, "STORAGE_UNAVAILABLE"));
     }
 
 }
