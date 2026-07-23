@@ -435,7 +435,7 @@ public final class StorageYamlDefaults {
                 "",
                 " Enabling this writes NOTHING by itself - account rows only",
                 " start to exist when identities are actually linked",
-                " (/account link). On a real network the backend below must",
+                " (/ecaccount link). On a real network the backend below must",
                 " be a database SHARED by every instance (MariaDB/Mongo/...),",
                 " never a local file backend.",
                 "============================================================"));

@@ -47,7 +47,7 @@ import java.util.function.Supplier;
  *
  * <p><b>Identity only - data follows lazily.</b> Every operation here writes exclusively to the
  * account collection (one backend). The account-wide DATA stored under a former key is absorbed
- * into the canonical rows at each member's next login (or via {@code /account migrate}).</p>
+ * into the canonical rows at each member's next login (or via {@code /ecaccount migrate}).</p>
  *
  * <p><b>Backend routing.</b> The account collection lives on the backend the admin points
  * {@code multi-platform-accounts.storage-backend-id} at in storage.yml; absent that, it falls back to the
@@ -364,7 +364,7 @@ public final class Accounts {
 
     /**
      * Links two platform identities into one account (the admin fallback behind
-     * {@code /account link}): resolves both accounts and fuses them through
+     * {@code /ecaccount link}): resolves both accounts and fuses them through
      * {@link #mergeAccounts(Account, Account)}. No data moves here.
      */
     public CompletableFuture<Account> link(UUID target, UUID source) {

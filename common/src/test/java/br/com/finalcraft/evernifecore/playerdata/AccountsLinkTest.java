@@ -407,7 +407,7 @@ class AccountsLinkTest {
     }
 
     // ------------------------------------------------------------------
-    // forced offline reconciliation (the /account migrate path)
+    // forced offline reconciliation (the /ecaccount migrate path)
     // ------------------------------------------------------------------
 
     @Test

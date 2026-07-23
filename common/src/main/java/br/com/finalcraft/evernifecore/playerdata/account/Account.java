@@ -18,7 +18,7 @@ import java.util.UUID;
  * identities coalesces their account-wide data.
  *
  * <p>An unlinked platform uuid resolves to its own <b>singleton account</b>: {@code accountId} equals
- * the platform uuid and {@code members} holds the single identity. Only {@code /account link} (see
+ * the platform uuid and {@code members} holds the single identity. Only {@code /ecaccount link} (see
  * {@link Accounts}) merges two accounts, at which point one {@code accountId} becomes canonical.</p>
  *
  * <p>Persisted as a storage entity keyed by {@link #getAccountId()}, in its own collection on the

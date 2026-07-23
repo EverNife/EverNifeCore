@@ -27,17 +27,17 @@ import br.com.finalcraft.evernifecore.util.FCMessageUtil;
  * plugin/bridge, not through this command.</p>
  *
  * <pre>
- * /account info &lt;player&gt;
- * /account link &lt;target&gt; &lt;source&gt;
- * /account unlink &lt;player&gt;
- * /account migrate &lt;player&gt;
+ * /ecaccount info &lt;player&gt;
+ * /ecaccount link &lt;target&gt; &lt;source&gt;
+ * /ecaccount unlink &lt;player&gt;
+ * /ecaccount migrate &lt;player&gt;
  * </pre>
  */
 @FinalCMD(
-        aliases = {"account", "ecaccount"},
+        aliases = {"ecaccount"},
         permission = PermissionNodes.EVERNIFECORE_COMMAND_ACCOUNT
 )
-public class CMDAccount {
+public class CMDECAccount {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe account layer is not ready yet (PlayerController is not bootstrapped).")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cA camada de contas ainda não está pronta (o PlayerController não foi inicializado).")
