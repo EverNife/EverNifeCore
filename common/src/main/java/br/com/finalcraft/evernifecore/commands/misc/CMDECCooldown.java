@@ -3,7 +3,9 @@ package br.com.finalcraft.evernifecore.commands.misc;
 import br.com.finalcraft.evernifecore.PermissionNodes;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
+import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
+import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FlagArg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpLine;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
@@ -11,6 +13,7 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.cooldown.CooldownBucket;
 import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
+import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldown;
 import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldownsLocal;
 import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldownsNetwork;
 import br.com.finalcraft.evernifecore.cooldown.server.ServerCooldownRow;
@@ -233,7 +236,6 @@ public class CMDECCooldown {
         return "§7   - §a" + identifier + " §7» " + status + " §7[" + kind + "§7]";
     }
 
-
     @FCLocale(lang = LocaleType.EN_US, text = "§a§l ▶ §7Set §b%reach% §7cooldown §a%cooldown% §7for §e%time%§7.")
     @FCLocale(lang = LocaleType.PT_BR, text = "§a§l ▶ §7Cooldown §b%reach% §a%cooldown% §7definido por §e%time%§7.")
     private static LocaleMessage COOLDOWN_SET;
@@ -244,129 +246,68 @@ public class CMDECCooldown {
 
     @FinalCMD.SubCMD(
             subcmd = "set",
-            usage = "%name% <CooldownID> <duration>",
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "Start a server cooldown for a given duration!"),
                     @FCLocale(lang = LocaleType.PT_BR, text = "Inicia um cooldown do servidor por uma duração!")
             }
     )
-    public void set(FCommandSender sender, MultiArgumentos argumentos, HelpLine helpLine) {
+    public void set(FCommandSender sender,
+                     @Arg(name = "<CooldownID>") String cooldownId,
+                     @Arg(name = "<duration>") String duration,
+                     @FlagArg(name = "--network", aliases = "-n", def = "false", locales = {
+                             @FCLocale(lang = LocaleType.EN_US, text = "Apply network-wide (follows the account across servers)."),
+                             @FCLocale(lang = LocaleType.PT_BR, text = "Aplica na rede inteira (segue a conta entre servidores).")
+                     })
+                     Boolean network) {
 
-        if (argumentos.emptyArgs(1, 2)){
-            helpLine.sendTo(sender);
-            return;
-        }
-
-        Long millis = parseDurationMillis(argumentos.getStringArg(2));
+        Long millis = parseDurationMillis(duration);
         if (millis == null){
-            COOLDOWN_INVALID_DURATION.addPlaceholder("%input%", argumentos.getStringArg(2)).send(sender);
+            COOLDOWN_INVALID_DURATION.addPlaceholder("%input%", duration).send(sender);
             return;
         }
 
-        Cooldown cooldown = Cooldown.of(argumentos.getStringArg(1));
+        Cooldown cooldown = network ? Cooldown.network(cooldownId) : Cooldown.of(cooldownId);
         cooldown.setPersist(true).startWith(millis, TimeUnit.MILLISECONDS);
-        sendSetConfirmation(sender, "SERVER · LOCAL", cooldown.getIdentifier(), cooldown.getEntry(), "viewserver");
-    }
-
-    @FinalCMD.SubCMD(
-            subcmd = "setnetwork",
-            usage = "%name% <CooldownID> <duration>",
-            locales = {
-                    @FCLocale(lang = LocaleType.EN_US, text = "Start a NETWORK-wide server cooldown!"),
-                    @FCLocale(lang = LocaleType.PT_BR, text = "Inicia um cooldown do servidor válido em toda a rede!")
-            }
-    )
-    public void setNetwork(FCommandSender sender, MultiArgumentos argumentos, HelpLine helpLine) {
-
-        if (argumentos.emptyArgs(1, 2)){
-            helpLine.sendTo(sender);
-            return;
-        }
-
-        Long millis = parseDurationMillis(argumentos.getStringArg(2));
-        if (millis == null){
-            COOLDOWN_INVALID_DURATION.addPlaceholder("%input%", argumentos.getStringArg(2)).send(sender);
-            return;
-        }
-
-        Cooldown cooldown = Cooldown.network(argumentos.getStringArg(1));
-        cooldown.setPersist(true).startWith(millis, TimeUnit.MILLISECONDS);
-        sendSetConfirmation(sender, "SERVER · NETWORK", cooldown.getIdentifier(), cooldown.getEntry(), "viewserver");
+        sendSetConfirmation(sender, network ? "SERVER · NETWORK" : "SERVER · LOCAL", cooldown.getIdentifier(), cooldown.getEntry(), "viewserver");
     }
 
     @FinalCMD.SubCMD(
             subcmd = "setplayer",
-            usage = "%name% <player> <CooldownID> <duration>",
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "Start a player cooldown for a given duration!"),
                     @FCLocale(lang = LocaleType.PT_BR, text = "Inicia um cooldown de um jogador por uma duração!")
             }
     )
-    public void setPlayer(FCommandSender sender, MultiArgumentos argumentos, HelpLine helpLine) {
+    public void setPlayer(FCommandSender sender,
+                           @Arg(name = "<player>") PlayerData playerData,
+                           @Arg(name = "<CooldownID>") String cooldownId,
+                           @Arg(name = "<duration>") String duration,
+                           @FlagArg(name = "--network", aliases = "-n", def = "false", locales = {
+                                   @FCLocale(lang = LocaleType.EN_US, text = "Apply network-wide (follows the account across servers)."),
+                                   @FCLocale(lang = LocaleType.PT_BR, text = "Aplica na rede inteira (segue a conta entre servidores).")
+                           })
+                           Boolean network) {
 
-        if (argumentos.emptyArgs(1, 2, 3)){
-            helpLine.sendTo(sender);
-            return;
-        }
-
-        PlayerData playerData = argumentos.get(1).getPlayerData();
-        if (playerData == null){
-            FCMessageUtil.playerDataNotFound(sender, argumentos.getStringArg(1));
-            return;
-        }
-
-        Long millis = parseDurationMillis(argumentos.getStringArg(3));
+        Long millis = parseDurationMillis(duration);
         if (millis == null){
-            COOLDOWN_INVALID_DURATION.addPlaceholder("%input%", argumentos.getStringArg(3)).send(sender);
+            COOLDOWN_INVALID_DURATION.addPlaceholder("%input%", duration).send(sender);
             return;
         }
 
         //the target may be offline, so the bucket may have to be read from the backend: resolve async
-        PlayerController.whenCompleteOnMainThread(playerData.getCooldown(argumentos.getStringArg(2)), (cooldown, error) -> {
+        CompletableFuture<PlayerCooldown> cooldownFuture = network ? playerData.getNetworkCooldown(cooldownId) : playerData.getCooldown(cooldownId);
+        PlayerController.whenCompleteOnMainThread(cooldownFuture, (cooldown, error) -> {
             if (error != null){
                 error.printStackTrace();
                 return;
             }
-            cooldown.setPersist(true).startWith(millis, TimeUnit.MILLISECONDS);
-            sendSetConfirmation(sender, "PLAYER · LOCAL", cooldown.getIdentifier(), cooldown.getEntry(), "viewplayer " + playerData.getName());
-        });
-    }
-
-    @FinalCMD.SubCMD(
-            subcmd = "setplayernetwork",
-            usage = "%name% <player> <CooldownID> <duration>",
-            locales = {
-                    @FCLocale(lang = LocaleType.EN_US, text = "Start a NETWORK-wide player cooldown (follows the account across servers)!"),
-                    @FCLocale(lang = LocaleType.PT_BR, text = "Inicia um cooldown de jogador válido em toda a rede (segue a conta entre servidores)!")
+            if (network){
+                //network handles are born persistent, so a bare startWith already reaches the shared backend
+                cooldown.startWith(millis, TimeUnit.MILLISECONDS);
+            }else {
+                cooldown.setPersist(true).startWith(millis, TimeUnit.MILLISECONDS);
             }
-    )
-    public void setPlayerNetwork(FCommandSender sender, MultiArgumentos argumentos, HelpLine helpLine) {
-
-        if (argumentos.emptyArgs(1, 2, 3)){
-            helpLine.sendTo(sender);
-            return;
-        }
-
-        PlayerData playerData = argumentos.get(1).getPlayerData();
-        if (playerData == null){
-            FCMessageUtil.playerDataNotFound(sender, argumentos.getStringArg(1));
-            return;
-        }
-
-        Long millis = parseDurationMillis(argumentos.getStringArg(3));
-        if (millis == null){
-            COOLDOWN_INVALID_DURATION.addPlaceholder("%input%", argumentos.getStringArg(3)).send(sender);
-            return;
-        }
-
-        //network handles are born persistent, so a bare startWith already reaches the shared backend
-        PlayerController.whenCompleteOnMainThread(playerData.getNetworkCooldown(argumentos.getStringArg(2)), (cooldown, error) -> {
-            if (error != null){
-                error.printStackTrace();
-                return;
-            }
-            cooldown.startWith(millis, TimeUnit.MILLISECONDS);
-            sendSetConfirmation(sender, "PLAYER · NETWORK", cooldown.getIdentifier(), cooldown.getEntry(), "viewplayer " + playerData.getName());
+            sendSetConfirmation(sender, network ? "PLAYER · NETWORK" : "PLAYER · LOCAL", cooldown.getIdentifier(), cooldown.getEntry(), "viewplayer " + playerData.getName());
         });
     }
 
