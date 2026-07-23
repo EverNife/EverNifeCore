@@ -61,7 +61,7 @@ import java.util.function.BiConsumer;
 
 /**
  * PlayerData controller: a mutable instance behind a static facade.
- * {@link #bootstrap()} builds a new instance (parses storage.yml, initializes
+ * {@link #initialize()} builds a new instance (parses storage.yml, initializes
  * the backends, loads the players) and swaps it in atomically - a reload that fails never
  * affects the running instance.
  *
@@ -159,13 +159,14 @@ public class PlayerController {
     // Bootstrap
     // -----------------------------------------------------------------------------------------------------------------------------//
 
-    public static void bootstrap(){
+    public static void initialize(){
         File dataFolder = EverNifeCore.getEcPluginData().getMetaInfo().getDataFolder();
-        bootstrap(new File(dataFolder, "storage.yml"));
+        initialize(new File(dataFolder, "storage.yml"));
     }
 
-    public static synchronized void bootstrap(File storageYmlFile){
+    public static synchronized void initialize(File storageYmlFile){
         PlayerController old = INSTANCE;
+
         if (old != null){
             //flush the old instance BEFORE the fresh one reads the backend: otherwise the fresh
             //cache would be seeded from pre-flush rows and, on a non-versioned backend, its next
@@ -542,7 +543,7 @@ public class PlayerController {
     // -----------------------------------------------------------------------------------------------------------------------------//
 
     /**
-     * Registers a callback to run right AFTER a core storage reload ({@link #bootstrap(File)}) has
+     * Registers a callback to run right AFTER a core storage reload ({@link #initialize(File)}) has
      * published the fresh controller instance. A reload builds a new set of per-plugin reference
      * registries, so a plugin that opened its own {@code ECStorage} (whose managers registered in the
      * OLD per-plugin registry) must re-open it here for a {@code Ref} inside one of its PDSections to keep

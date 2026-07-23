@@ -46,9 +46,10 @@ public class ConfigManager {
                         ECSettings.PAGEVIEWERS_FULL_LOCALIZATION ? PageViewer.PVExtraMessages.class : null
                 ).stream().filter(Objects::nonNull).toArray(Class[]::new)
         );
+
         FCLocaleManager.updateEverNifeCoreLocale();
 
-        PlayerController.bootstrap();
+        PlayerController.initialize();
     }
 
     public static void reloadCooldownConfig(){

@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
 import br.com.finalcraft.evernifecore.playerdata.account.Account;
-import br.com.finalcraft.evernifecore.playerdata.account.AccountMember;
 import br.com.finalcraft.evernifecore.playerdata.account.Accounts;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
@@ -97,7 +96,7 @@ class AccountsLinkTest {
                 "");
         File file = tempDir.resolve("storage_" + dbName + ".yml").toFile();
         Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
-        PlayerController.bootstrap(file);
+        PlayerController.initialize(file);
     }
 
     private void registerSections() {

@@ -70,7 +70,7 @@ class GroupedFileBackendTest {
 
         PlayerController.registerPDSectionCfg(
                 PDSectionConfiguration.builder(null, JobsPDSection.class).build());
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "Petrus").join();
@@ -89,7 +89,7 @@ class GroupedFileBackendTest {
                 "the section collection co-locates in the SAME key file");
 
         // reboot: the data comes back from the grouped file
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         JobsPDSection reloaded = PlayerController.getPDSection(uuid, JobsPDSection.class).join();
         assertEquals(42, reloaded.level, "the section must reload from the grouped file after a reboot");
         assertEquals("Petrus", PlayerController.getLoaded(uuid).getName(), "the base must reload too");

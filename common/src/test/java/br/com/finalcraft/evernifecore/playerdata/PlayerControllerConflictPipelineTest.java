@@ -100,7 +100,7 @@ class PlayerControllerConflictPipelineTest {
      * before the section registers, so the section manager binds against the decorator.
      */
     private JobsPDSection bootWrappedSectionFor(String name, UUID uuid) throws Exception {
-        PlayerController.bootstrap(writeMemoryStorageYml(name));
+        PlayerController.initialize(writeMemoryStorageYml(name));
         wrapBackend("test_mem");
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, JobsPDSection.class).build());
         PlayerController.handleLogin(uuid, "Worker").join();

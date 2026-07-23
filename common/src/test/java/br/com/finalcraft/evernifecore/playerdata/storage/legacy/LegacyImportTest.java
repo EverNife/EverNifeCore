@@ -367,7 +367,7 @@ class LegacyImportTest {
                 ""));
         registerJobsSectionWithAdapter();
 
-        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage.yml", ""));
 
         //base entity came from the backend (start() loads what the import saved)
         PlayerData petrus = PlayerController.getLoaded(PETRUS_UUID);
@@ -416,7 +416,7 @@ class LegacyImportTest {
         writeLegacyYml("petrus.yml", fullyMappedV3Yaml("Petrus", 42, "miner"));
         registerJobsSectionWithAdapter();
 
-        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage.yml", ""));
 
         assertNotNull(PlayerController.getLoaded(PETRUS_UUID), "the healthy file must import");
         assertEquals(42, PlayerController.getLoaded(PETRUS_UUID).getPDSection(LegacyJobsPDSection.class).join().level);
@@ -444,7 +444,7 @@ class LegacyImportTest {
     void reRunSkipsEntitiesAlreadyOnTheBackend() throws IOException {
         writeLegacyYml("petrus.yml", fullyMappedV3Yaml("Petrus", 42, "miner"));
         registerJobsSectionWithAdapter();
-        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage.yml", ""));
         assertEquals("Petrus", PlayerController.getLoaded(PETRUS_UUID).getName());
 
         //completion consolidated the progress file into __LegacyData_V2, so restoring a legacy .yml is
@@ -463,7 +463,7 @@ class LegacyImportTest {
                 "  job: hacker",
                 ""));
 
-        PlayerController.bootstrap(writeStorageYml("storage_rerun.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage_rerun.yml", ""));
 
         //the backend data is intact (skip by UUID), nothing duplicated
         PlayerData petrus = PlayerController.getLoaded(PETRUS_UUID);
@@ -489,7 +489,7 @@ class LegacyImportTest {
     @Test
     void noImportWhenTheMigrationAlreadyCompleted() throws IOException {
         File storageYml = writeStorageYml("storage.yml", "");
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         PlayerController.handleLogin(UUID.randomUUID(), "Resident").join();
         PlayerController.get().flushAll().join();
 
@@ -502,7 +502,7 @@ class LegacyImportTest {
                 ""));
         writeCompleteMetadata();
 
-        PlayerController.bootstrap(storageYml); //the progress file says there is nothing left to do
+        PlayerController.initialize(storageYml); //the progress file says there is nothing left to do
 
         assertNull(PlayerController.getLoaded(SIMPLE_UUID), "a finished migration must not import a late file");
         assertEquals(1, ymlFiles(legacyFolder()).length, "the file must stay in place");
@@ -521,7 +521,7 @@ class LegacyImportTest {
 
         //the backend is EMPTY: a trigger that counted rows would find 0 and import (that was the old
         //guard). Skipping the import anyway is what proves count()/exists() are never called.
-        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage.yml", ""));
 
         assertNull(PlayerController.getLoaded(PETRUS_UUID), "a complete progress file must skip the import");
         assertEquals(0, PlayerController.getLoadedCount());
@@ -540,12 +540,12 @@ class LegacyImportTest {
         writeCompleteMetadata();
 
         //a complete progress file skips the import (there is no 'force' switch anymore)...
-        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage.yml", ""));
         assertNull(PlayerController.getLoaded(PETRUS_UUID), "a complete progress file must skip the import");
 
         //...and deleting that generated artifact is the supported way to force a re-migration
         assertTrue(metadataFile().delete());
-        PlayerController.bootstrap(writeStorageYml("storage_rerun.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage_rerun.yml", ""));
 
         PlayerData petrus = PlayerController.getLoaded(PETRUS_UUID);
         assertNotNull(petrus, "deleting the progress file must let the import run again");
@@ -563,7 +563,7 @@ class LegacyImportTest {
         writeLegacyYml("simple.yml", fullyMappedV3Yaml(SIMPLE_UUID, "Simple", 7, "farmer"));
         registerJobsSectionWithAdapter();
 
-        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage.yml", ""));
 
         //the plugin root is left clean: no PlayerData, no -Imported, no root metadata file
         assertFalse(legacyFolder().exists(), "the drained legacy folder is deleted");
@@ -633,7 +633,7 @@ class LegacyImportTest {
     void aRootKeyWithoutAnAdapterKeepsItsFileInTheLegacyFolder() throws IOException {
         writeLegacyYml("petrus.yml", petrusV3Yaml()); //no adapter registered at all
 
-        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage.yml", ""));
 
         //the base entity did reach the backend - it is the FILE that is pending, not its data
         assertNotNull(PlayerController.getLoaded(PETRUS_UUID));
@@ -662,13 +662,13 @@ class LegacyImportTest {
         File storageYml = writeStorageYml("storage.yml", "");
 
         //boot 1: the plugin owning FinalJobs is not installed yet, so the file cannot complete
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         assertEquals(1, ymlFiles(legacyFolder()).length, "the file must wait for the missing adapter");
         assertFalse(ConfigFactory.open(metadataFile()).getBoolean("complete"));
 
         //boot 2: the plugin is installed - no 'force', no manual step, no re-copying anything
         registerJobsSectionWithAdapter();
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         PlayerData petrus = PlayerController.getLoaded(PETRUS_UUID);
         assertEquals(42, petrus.getPDSection(LegacyJobsPDSection.class).join().level,
@@ -685,7 +685,7 @@ class LegacyImportTest {
         writeLegacyYml("simple.yml", fullyMappedV3Yaml(SIMPLE_UUID, "Simple", 7, "farmer"));
         registerJobsSectionWithAdapter();
 
-        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage.yml", ""));
 
         File[] remaining = ymlFiles(legacyFolder());
         assertEquals(1, remaining.length);
@@ -727,7 +727,7 @@ class LegacyImportTest {
                 ""));
         registerJobsSectionWithAdapter();
 
-        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage.yml", ""));
 
         assertEquals(0, ymlFiles(legacyFolder()).length,
                 "every root key now has an owner, so the file is drained");
@@ -761,7 +761,7 @@ class LegacyImportTest {
                 "FinalRTP: {}",                //nobody ever registers an adapter for this one
                 ""));
 
-        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage.yml", ""));
 
         assertEquals(0, ymlFiles(legacyFolder()).length, "an empty block has nothing to migrate");
         assertEquals(1, ymlFiles(consolidatedPlayerData()).length);
@@ -789,7 +789,7 @@ class LegacyImportTest {
                 ""));
         registerJobsSectionWithAdapter();
 
-        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage.yml", ""));
 
         assertEquals(42, PlayerController.getLoaded(PETRUS_UUID).getPDSection(LegacyJobsPDSection.class).join().level);
         assertEquals(0, ymlFiles(legacyFolder()).length, "a field nobody reads must not hold a file back");
@@ -807,7 +807,7 @@ class LegacyImportTest {
     void aFailedFileIsCopiedForDiagnosisAndKeptAsPending() throws IOException {
         writeLegacyYml("broken.yml", "JustSomeGarbage:\n  no: playerdata\n");
 
-        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage.yml", ""));
 
         //both exist at once: the copy is for the admin to read, the original is the pending item
         File[] remaining = ymlFiles(legacyFolder());
@@ -833,7 +833,7 @@ class LegacyImportTest {
         ECPluginData owner = realPluginData();
         registerJobsSectionOwnedBy(owner);
 
-        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage.yml", ""));
 
         assertEquals(FAKE_PLUGIN_NAME, owner.getMetaInfo().getName(), "a real ECPluginData, not a null stand-in");
         assertEquals(42, PlayerController.getLoaded(PETRUS_UUID).getPDSection(LegacyJobsPDSection.class).join().level);
@@ -950,7 +950,7 @@ class LegacyImportTest {
                 ""));
         registerJobsSectionOwnedBy(realPluginData());
 
-        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage.yml", ""));
 
         String text = reportOfThePersistedRun().format();
 
@@ -991,7 +991,7 @@ class LegacyImportTest {
                 ""));
         registerJobsSectionWithAdapter();
 
-        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage.yml", ""));
 
         String text = reportOfThePersistedRun().format();
 
@@ -1012,7 +1012,7 @@ class LegacyImportTest {
         writeLegacyYml("petrus.yml", fullyMappedV3Yaml("Petrus", 42, "miner"));
         registerJobsSectionWithAdapter();
 
-        PlayerController.bootstrap(writeStorageYml("storage.yml", ""));
+        PlayerController.initialize(writeStorageYml("storage.yml", ""));
 
         //the header is the admin's only instruction once the server is down and the folder is empty
         String raw = new String(Files.readAllBytes(consolidatedMetadata().toPath()), StandardCharsets.UTF_8);
@@ -1027,14 +1027,14 @@ class LegacyImportTest {
         File storageYml = writeStorageYml("storage.yml", "");
 
         //boot 1: nobody claims FinalJobs yet, so the migration stays open
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         assertFalse(LegacyMigrationMetadata.load(metadataFile()).isComplete(),
                 "a pending key must leave the migration incomplete");
 
         //boot 2: the adapter finally shows up - THIS is the run that drains the folder, and the only
         //one that may warn about a downgrade
         registerJobsSectionWithAdapter();
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         assertTrue(LegacyMigrationMetadata.load(consolidatedMetadata()).isComplete());
         assertEquals(0, ymlFiles(legacyFolder()).length);
     }

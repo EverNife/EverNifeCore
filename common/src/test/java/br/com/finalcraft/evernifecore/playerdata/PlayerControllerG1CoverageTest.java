@@ -86,7 +86,7 @@ class PlayerControllerG1CoverageTest {
     @Test
     void javaTimeAndOptionalFieldsSurviveRoundTrip_onH2() throws IOException {
         File storageYml = writeH2StorageYml("g1_temporal");
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         PlayerController.registerPDSectionCfg(
                 PDSectionConfiguration.builder(null, TemporalPDSection.class).build());
 
@@ -104,7 +104,7 @@ class PlayerControllerG1CoverageTest {
         PlayerController.get().flushAll().join();
 
         //reboot: the section is re-read from the backend through the codec
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         TemporalPDSection reloaded = PlayerController.getLoaded(uuid).getPDSection(TemporalPDSection.class).join();
         assertEquals(rewardAt, reloaded.lastReward, "java.time.Instant must survive the codec round-trip");
@@ -116,7 +116,7 @@ class PlayerControllerG1CoverageTest {
     @Test
     void absentOptionalAndDefaultInstantSurviveRoundTrip_onLocalFileYaml() throws IOException {
         File storageYml = writeLocalFileStorageYml();
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         PlayerController.registerPDSectionCfg(
                 PDSectionConfiguration.builder(null, TemporalPDSection.class).build());
 
@@ -129,7 +129,7 @@ class PlayerControllerG1CoverageTest {
         section.markDirty();
         PlayerController.get().flushAll().join();
 
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         TemporalPDSection reloaded = PlayerController.getLoaded(uuid).getPDSection(TemporalPDSection.class).join();
         assertEquals(Instant.ofEpochSecond(42), reloaded.lastReward);

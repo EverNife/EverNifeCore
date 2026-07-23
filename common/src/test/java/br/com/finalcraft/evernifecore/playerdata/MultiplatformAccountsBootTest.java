@@ -120,7 +120,7 @@ class MultiplatformAccountsBootTest {
 
     @Test
     void disabledBootLeavesIdentityLayerDown_andStampsAccountIdWithUuid() throws IOException {
-        PlayerController.bootstrap(writeStorageYml("mpa_disabled", false));
+        PlayerController.initialize(writeStorageYml("mpa_disabled", false));
         assertFalse(Accounts.isEnabled(), "the identity layer must not bootstrap when disabled");
 
         UUID uuid = UUID.randomUUID();
@@ -135,20 +135,20 @@ class MultiplatformAccountsBootTest {
     @Test
     void enablingThenDisablingWithoutLinksIsHarmless() throws IOException {
         File enabledYml = writeStorageYml("mpa_toggle", true);
-        PlayerController.bootstrap(enabledYml);
+        PlayerController.initialize(enabledYml);
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "Toggler").join();
         PlayerController.shutdown();
 
         //no link was ever made: nothing was written to ec_accounts, so disabling boots cleanly
-        PlayerController.bootstrap(writeStorageYml("mpa_toggle", false));
+        PlayerController.initialize(writeStorageYml("mpa_toggle", false));
         assertFalse(Accounts.isEnabled());
         assertEquals(uuid, PlayerController.handleLogin(uuid, "Toggler").join().getAccountId());
     }
 
     @Test
     void disablingWithStoredLinkedAccountsFailsFast() throws IOException {
-        PlayerController.bootstrap(writeStorageYml("mpa_guard", true));
+        PlayerController.initialize(writeStorageYml("mpa_guard", true));
 
         //simulate a real link: persist a canonical account row
         UUID canonicalId = UUID.randomUUID();
@@ -159,11 +159,11 @@ class MultiplatformAccountsBootTest {
         PlayerController.shutdown();
 
         StorageConfigException error = assertThrows(StorageConfigException.class,
-                () -> PlayerController.bootstrap(writeStorageYml("mpa_guard", false)));
+                () -> PlayerController.initialize(writeStorageYml("mpa_guard", false)));
         assertTrue(error.getMessage().contains("multi-platform-accounts.enabled"), error.getMessage());
 
         //re-enabling boots normally and still sees the stored account
-        PlayerController.bootstrap(writeStorageYml("mpa_guard", true));
+        PlayerController.initialize(writeStorageYml("mpa_guard", true));
         Account reloaded = Accounts.get().account(canonicalId).join();
         assertEquals(canonicalId, reloaded.getAccountId());
         assertEquals(2, reloaded.getMembers().size());
@@ -183,7 +183,7 @@ class MultiplatformAccountsBootTest {
     @Test
     void preAccountRowUpcastsToAccountIdEqualsUuid() throws IOException {
         //bootstrap registers the base v1->v2 chain (accountId absent -> accountId = uuid)
-        PlayerController.bootstrap(writeStorageYml("mpa_upcast", false));
+        PlayerController.initialize(writeStorageYml("mpa_upcast", false));
 
         //a payload written before the account field existed: accountId absent, schemaVersion 1
         UUID uuid = UUID.randomUUID();
@@ -201,7 +201,7 @@ class MultiplatformAccountsBootTest {
 
     @Test
     void loginRestampsAccountIdFromStoredTruth() throws IOException {
-        PlayerController.bootstrap(writeStorageYml("mpa_restamp", true));
+        PlayerController.initialize(writeStorageYml("mpa_restamp", true));
 
         //a link decided elsewhere: canonical account + alias row for the member already stored
         UUID canonicalId = UUID.randomUUID();

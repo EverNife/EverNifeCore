@@ -106,7 +106,7 @@ class AccountSectionTest {
     @Test
     void disabledLayer_sectionKeysByUuid_andRoundTrips() throws IOException {
         File storageYml = writeStorageYml("acs_disabled", false);
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         registerAchievements();
 
         UUID uuid = UUID.randomUUID();
@@ -118,7 +118,7 @@ class AccountSectionTest {
         section.markDirty();
         PlayerController.get().flushAll().join();
 
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         registerAchievements();
         AchievementsSection reloaded = PlayerController
                 .getAccountSectionByAccountId(uuid, AchievementsSection.class).join();
@@ -127,7 +127,7 @@ class AccountSectionTest {
 
     @Test
     void linkedMember_sectionKeysByCanonicalId_andIsSharedAcrossMembers() throws IOException {
-        PlayerController.bootstrap(writeStorageYml("acs_linked", true));
+        PlayerController.initialize(writeStorageYml("acs_linked", true));
         registerAchievements();
 
         UUID memberA = UUID.randomUUID();
@@ -158,7 +158,7 @@ class AccountSectionTest {
 
     @Test
     void loginRefreshesIdleCachedRowFromBackend() throws IOException {
-        PlayerController.bootstrap(writeStorageYml("acs_refresh", true));
+        PlayerController.initialize(writeStorageYml("acs_refresh", true));
         registerAchievements();
 
         UUID uuid = UUID.randomUUID();
@@ -222,7 +222,7 @@ class AccountSectionTest {
 
     @Test
     void transientDefaultReportsAbsentUntilDirtied() throws IOException {
-        PlayerController.bootstrap(writeStorageYml("acs_presence", true));
+        PlayerController.initialize(writeStorageYml("acs_presence", true));
         registerAchievements();
 
         UUID uuid = UUID.randomUUID();
@@ -260,7 +260,7 @@ class AccountSectionTest {
 
     @Test
     void deleteSingletonPlayerRemovesItsAccountRow() throws IOException {
-        PlayerController.bootstrap(writeStorageYml("acs_delete_solo", true));
+        PlayerController.initialize(writeStorageYml("acs_delete_solo", true));
         registerAchievements();
 
         UUID uuid = UUID.randomUUID();
@@ -281,7 +281,7 @@ class AccountSectionTest {
 
     @Test
     void deleteLinkedMemberKeepsTheSharedAccountRow() throws IOException {
-        PlayerController.bootstrap(writeStorageYml("acs_delete_linked", true));
+        PlayerController.initialize(writeStorageYml("acs_delete_linked", true));
         registerAchievements();
 
         UUID memberUuid = UUID.randomUUID();
@@ -304,7 +304,7 @@ class AccountSectionTest {
 
     @Test
     void deleteLinkedMemberDropsItsOfflineFormerKeyRow() throws IOException {
-        PlayerController.bootstrap(writeStorageYml("acs_delete_linked_offline", true));
+        PlayerController.initialize(writeStorageYml("acs_delete_linked_offline", true));
         registerAchievements();
 
         //the member logged in and wrote data as a SINGLETON: the account row keys by its own uuid

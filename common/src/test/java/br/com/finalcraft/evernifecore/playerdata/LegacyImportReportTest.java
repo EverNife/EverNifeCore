@@ -113,7 +113,7 @@ class LegacyImportReportTest {
      */
     private LegacyImportReport bootThenImport() throws IOException {
         registerJobsSection();
-        PlayerController.bootstrap(writeStorageYml());
+        PlayerController.initialize(writeStorageYml());
         writePetrusYml();
         PlayerController controller = PlayerController.get();
         return new LegacyPlayerDataImporter(legacyFolder(), controller.playerDataBinding(),
@@ -162,7 +162,7 @@ class LegacyImportReportTest {
     @Test
     void aRunThatFindsTheMigrationAlreadyCompleteRepeatsNoWarning() throws IOException {
         registerJobsSection();
-        PlayerController.bootstrap(writeStorageYml());
+        PlayerController.initialize(writeStorageYml());
         //the state a finished migration leaves behind: whoever re-runs it (a restored legacy file after
         //deleting the progress file) was already told about the downgrade by the run that drained the folder
         Files.write(metadataFile().toPath(), "complete: true\n".getBytes(StandardCharsets.UTF_8));

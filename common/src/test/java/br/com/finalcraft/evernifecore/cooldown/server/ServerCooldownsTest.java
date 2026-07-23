@@ -53,13 +53,13 @@ class ServerCooldownsTest {
     @Test
     void twoServersSeeEachOthersServerNetworkCooldown() throws IOException {
         File storageYml = writeStorageYml("srv_net_two_servers");
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         Cooldown.network("global_event").setPersist(true).startWith(300);
         PlayerController.get().flushAll().join(); //awaits the network cooldown's in-flight writes
 
         //a fresh controller over the same durable backend stands in for the other server
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         assertTrue(Cooldown.network("global_event").isInCooldown(),
                 "the other server must see the server-wide network cooldown this one started");
     }
@@ -67,7 +67,7 @@ class ServerCooldownsTest {
     @Test
     void networkCooldownReplicatesWithoutExplicitSetPersist() throws IOException {
         File storageYml = writeStorageYml("srv_net_born_persistent");
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         //no explicit setPersist(true): the server-network handle must be born persistent on its own
         Cooldown handle = Cooldown.network("global_event");
@@ -77,7 +77,7 @@ class ServerCooldownsTest {
         PlayerController.get().flushAll().join(); //awaits the network cooldown's in-flight writes
 
         //a fresh controller over the same durable backend stands in for the other server
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         assertTrue(Cooldown.network("global_event").isInCooldown(),
                 "the other server must see a network cooldown started without a manual setPersist");
     }
@@ -85,7 +85,7 @@ class ServerCooldownsTest {
     @Test
     void aStoppedServerCooldownStaysFreeEvenAfterAResolveReasserts() throws IOException {
         File storageYml = writeStorageYml("srv_net_stop_then_resolve");
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         Cooldown.network("global_event").startWith(300);
         Cooldown.network("global_event").stop();

@@ -90,7 +90,7 @@ class RefReloadSurvivalTest {
 
         //core PlayerData on a persistent H2 mem (survives the reload's flush + reopen)
         File storageYml = writeH2StorageYml("ref_reload_pd");
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         //the plugin registers its Ref-carrying PDSection, OWNED by the plugin -> per-plugin shared registry
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(plugin, ProfileSection.class).build());
@@ -124,7 +124,7 @@ class RefReloadSurvivalTest {
         assertResolvesTo(pid, gid, "Alpha");
 
         // ---- reload the core storage (fresh instance, fresh per-plugin registry) ----
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         //re-read the profile fresh from the backend (its codec is now bound to the fresh registry) and
         //resolve: the callback reconnected the Guild manager into that same fresh registry
@@ -141,7 +141,7 @@ class RefReloadSurvivalTest {
     @Test
     void aFailedReloadKeepsTheLiveInstanceAndDoesNotFireCallbacks() throws Exception {
         plugin = realPluginData();
-        PlayerController.bootstrap(writeH2StorageYml("atomic_live"));
+        PlayerController.initialize(writeH2StorageYml("atomic_live"));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(plugin, ProfileSection.class).build());
         PlayerController live = PlayerController.get();
 
@@ -151,7 +151,7 @@ class RefReloadSurvivalTest {
         //a storage.yml whose backend refuses to init (H2 file, IFEXISTS on a db that never existed):
         //the fresh constructor fails before the swap, so the live instance is untouched
         File broken = writeBrokenStorageYml();
-        assertThrows(Throwable.class, () -> PlayerController.bootstrap(broken),
+        assertThrows(Throwable.class, () -> PlayerController.initialize(broken),
                 "a reload whose fresh instance fails to construct must propagate");
 
         assertSame(live, PlayerController.get(), "a failed reload must NOT swap the live instance");
@@ -167,19 +167,19 @@ class RefReloadSurvivalTest {
     void unregisterPdSectionsDropsThePluginsReloadCallback() throws Exception {
         plugin = realPluginData();
         File storageYml = writeH2StorageYml("hook_cleanup");
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(plugin, ProfileSection.class).build());
 
         AtomicInteger fires = new AtomicInteger();
         PlayerController.onStorageReload(plugin, fires::incrementAndGet);
 
         //a reload fires it once (proves the mechanism runs post-swap)
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         assertEquals(1, fires.get(), "a reload must fire the storage-reload callback");
 
         //after the plugin disables its callback is gone: a further reload does not fire it
         PlayerController.unregisterPDSections(plugin);
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         assertEquals(1, fires.get(), "unregisterPDSections must drop the plugin's reload callback");
     }
 

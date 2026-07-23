@@ -112,7 +112,7 @@ class PlayerControllerCutoverTest {
     @Test
     void bootCreateFlushRebootKeepsData_onLocalFileYaml() throws IOException {
         File storageYml = writeLocalFileStorageYml("");
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();
         PlayerData created = PlayerController.handleLogin(uuid, "Petrus").join();
@@ -123,7 +123,7 @@ class PlayerControllerCutoverTest {
         PlayerController.get().flushAll().join();
 
         //second bootstrap on the same file = atomic swap (the old instance flushes and closes)
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         PlayerData reloaded = PlayerController.getLoaded(uuid);
         assertNotNull(reloaded, "PlayerData must be loaded by the new instance (load-mode ALL)");
@@ -138,7 +138,7 @@ class PlayerControllerCutoverTest {
     @Test
     void pdSectionRoundTripWithHotLoad_onH2() throws IOException {
         File storageYml = writeH2StorageYml("cutover_sections", "");
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "Nife").join();
@@ -158,7 +158,7 @@ class PlayerControllerCutoverTest {
         PlayerController.get().flushAll().join();
 
         //reboot: REGISTERED_SECTIONS survives, the hot-load brings back the stored section
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         JobsPDSection reloaded = PlayerController.getLoaded(uuid).getPDSection(JobsPDSection.class).join();
         assertEquals(42, reloaded.level);
@@ -177,7 +177,7 @@ class PlayerControllerCutoverTest {
     @Test
     void renameOnLoginRemapsNameAndMarksDirty() throws IOException {
         File storageYml = writeLocalFileStorageYml("");
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "OldName").join();
@@ -191,7 +191,7 @@ class PlayerControllerCutoverTest {
 
         //the rename survives a flush + reboot
         PlayerController.get().flushAll().join();
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         assertEquals("NewName", PlayerController.getLoaded(uuid).getName());
     }
 
@@ -203,7 +203,7 @@ class PlayerControllerCutoverTest {
     void recentLoadModeSkipsOldPlayersAndLazyLoadsThem_onH2() throws IOException {
         String db = "cutover_recent";
         File allYml = writeH2StorageYml(db, "playerdata:\n  load-mode: ALL");
-        PlayerController.bootstrap(allYml);
+        PlayerController.initialize(allYml);
 
         UUID recentUuid = UUID.randomUUID();
         UUID oldUuid = UUID.randomUUID();
@@ -218,7 +218,7 @@ class PlayerControllerCutoverTest {
         PlayerController.shutdown();
 
         File recentYml = writeH2StorageYml(db, "playerdata:\n  load-mode: RECENT\n  recent-days: 60");
-        PlayerController.bootstrap(recentYml);
+        PlayerController.initialize(recentYml);
 
         assertNotNull(PlayerController.getLoaded(recentUuid), "recently seen player must be eager-loaded");
         assertNull(PlayerController.getLoaded(oldUuid), "old player must NOT be eager-loaded on RECENT");

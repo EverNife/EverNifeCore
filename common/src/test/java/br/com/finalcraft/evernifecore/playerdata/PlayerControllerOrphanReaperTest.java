@@ -85,7 +85,7 @@ class PlayerControllerOrphanReaperTest {
 
     /** Boots the controller with {@code LootPDSection} registered, and returns its binding. */
     private PDSectionBinding<LootPDSection> boot(String dbName) throws IOException {
-        PlayerController.bootstrap(writeH2StorageYml(dbName));
+        PlayerController.initialize(writeH2StorageYml(dbName));
         //hotLoad(false): a login must not auto-seed a section, so each uuid gets exactly the rows this
         //test asks for
         PlayerController.registerPDSectionCfg(

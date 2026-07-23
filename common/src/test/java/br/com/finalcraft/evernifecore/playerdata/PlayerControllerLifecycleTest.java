@@ -101,7 +101,7 @@ class PlayerControllerLifecycleTest {
 
     @Test
     void workingSetEvictsAfterQuitGrace_residentStaysCached() throws Exception {
-        PlayerController.bootstrap(writeH2StorageYml("f_ws"));
+        PlayerController.initialize(writeH2StorageYml("f_ws"));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, ResidentSection.class)
                 .cache(SectionCachePolicy.resident()).build());
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, WorkingSetSection.class)
@@ -139,7 +139,7 @@ class PlayerControllerLifecycleTest {
 
     @Test
     void quitFlushesDirtyState() throws Exception {
-        PlayerController.bootstrap(writeH2StorageYml("f_quitflush"));
+        PlayerController.initialize(writeH2StorageYml("f_quitflush"));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, ResidentSection.class).build());
 
         UUID uuid = UUID.randomUUID();
@@ -165,7 +165,7 @@ class PlayerControllerLifecycleTest {
 
     @Test
     void quitFlushRetriesWhenStorageReturns() throws Exception {
-        PlayerController.bootstrap(writeH2StorageYml("f_retry"));
+        PlayerController.initialize(writeH2StorageYml("f_retry"));
         //wrap the backend's Storage so writes can be made to fail on demand (register AFTER bootstrap,
         //BEFORE the section binds, so the section manager resolves against the failing wrapper)
         wrapBackendWithFailable("test_h2");
@@ -209,7 +209,7 @@ class PlayerControllerLifecycleTest {
 
     @Test
     void setPlayerDoesNotDirtyBase() throws IOException {
-        PlayerController.bootstrap(writeH2StorageYml("f_setplayer"));
+        PlayerController.initialize(writeH2StorageYml("f_setplayer"));
 
         UUID uuid = UUID.randomUUID();
         PlayerData playerData = PlayerController.handleLogin(uuid, "Attach").join();
@@ -228,7 +228,7 @@ class PlayerControllerLifecycleTest {
 
     @Test
     void lruPolicyBoundsCachedSize() throws IOException {
-        PlayerController.bootstrap(writeH2StorageYml("f_lru"));
+        PlayerController.initialize(writeH2StorageYml("f_lru"));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, LruSection.class)
                 .cache(SectionCachePolicy.lru(3)).build());
 
@@ -252,7 +252,7 @@ class PlayerControllerLifecycleTest {
 
     @Test
     void ttlPolicyPurgeReleasesExpiredCells() throws Exception {
-        PlayerController.bootstrap(writeH2StorageYml("f_ttl"));
+        PlayerController.initialize(writeH2StorageYml("f_ttl"));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, TtlSection.class)
                 .cache(SectionCachePolicy.ttl(Duration.ofMillis(50))).build());
 

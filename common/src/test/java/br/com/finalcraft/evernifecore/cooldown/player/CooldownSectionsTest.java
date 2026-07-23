@@ -92,7 +92,7 @@ class CooldownSectionsTest {
     @Test
     void aNetworkStopSurvivesRoundTripMergeAndPrune() throws IOException, InterruptedException {
         File storageYml = writeStorageYml("net_stop_roundtrip", true);
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();
         PlayerData playerData = PlayerController.handleLogin(uuid, "Vip").join();
@@ -101,7 +101,7 @@ class CooldownSectionsTest {
         PlayerController.get().flushAll().join();
 
         //a second server reads the started row back from the backend and stops the cooldown there
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         PlayerCooldownsNetwork peer = PlayerController
                 .getAccountSectionByAccountId(uuid, PlayerCooldownsNetwork.class).join();
         //the stop is a later event than the start; make its mutation clock observably newer even on a
@@ -177,7 +177,7 @@ class CooldownSectionsTest {
     @Test
     void twoServersSeeEachOthersNetworkCooldown() throws IOException {
         File storageYml = writeStorageYml("net_two_servers", true);
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();
         PlayerData playerData = PlayerController.handleLogin(uuid, "Vip").join();
@@ -186,7 +186,7 @@ class CooldownSectionsTest {
         PlayerController.get().flushAll().join();
 
         //a fresh controller over the same durable backend stands in for the other server
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         PlayerCooldownsNetwork serverB = PlayerController
                 .getAccountSectionByAccountId(uuid, PlayerCooldownsNetwork.class).join();
         assertTrue(serverB.cooldown(uuid, "vip").isInCooldown(),
@@ -199,7 +199,7 @@ class CooldownSectionsTest {
 
     @Test
     void linkAbsorbsANetworkCooldownIntoTheAccountRow() throws IOException {
-        PlayerController.bootstrap(writeStorageYml("net_link_absorb", true));
+        PlayerController.initialize(writeStorageYml("net_link_absorb", true));
 
         UUID memberUuid = UUID.randomUUID();
         PlayerData member = PlayerController.handleLogin(memberUuid, "Alt").join();
@@ -225,7 +225,7 @@ class CooldownSectionsTest {
     @Test
     void aColdBucketResolvesTheStoredCooldownInsteadOfAnsweringFree() throws IOException {
         File storageYml = writeStorageYml("local_cold_bucket", true);
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();
         PlayerData player = PlayerController.handleLogin(uuid, "Vip").join();
@@ -234,7 +234,7 @@ class CooldownSectionsTest {
         PlayerController.get().flushAll().join();
 
         //a fresh server with a cold cache over the same backend: the bucket is not loaded
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         PlayerCooldown fromBackend = PlayerCooldown.of(uuid, "kit").join();
         assertTrue(fromBackend.isInCooldown(),
                 "a cold bucket must read the stored cooldown, never report an empty one as free");
@@ -248,7 +248,7 @@ class CooldownSectionsTest {
     @Test
     void getCooldownNoLongerThrowsAndAPersistentPlayerCooldownSurvivesAReboot() throws IOException {
         File storageYml = writeStorageYml("local_reboot", true);
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();
         PlayerData player = PlayerController.handleLogin(uuid, "Vip").join();
@@ -259,7 +259,7 @@ class CooldownSectionsTest {
         PlayerController.get().flushAll().join();
 
         //reboot: a persistent player cooldown must still be in effect
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         PlayerData relogged = PlayerController.handleLogin(uuid, "Vip").join();
         PlayerCooldown afterReboot = relogged.getCooldown("daily").join();
         assertTrue(afterReboot.isInCooldown(), "a persistent player cooldown must survive a reboot");

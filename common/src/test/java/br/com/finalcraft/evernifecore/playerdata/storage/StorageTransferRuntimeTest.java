@@ -4,7 +4,6 @@ import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everydatabase.transfer.TransferReport;
 import org.junit.jupiter.api.AfterEach;
@@ -89,7 +88,7 @@ class StorageTransferRuntimeTest {
                 PDSectionConfiguration.builder(null, TransferJobsPDSection.class)
                         .defaultBackend("test_mem")
                         .build());
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "Petrus").join();
@@ -113,7 +112,7 @@ class StorageTransferRuntimeTest {
         section.markDirty();
         PlayerController.get().flushAll().join();
 
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         TransferJobsPDSection reloaded = PlayerController.getPDSection(uuid, TransferJobsPDSection.class).join();
         assertEquals(99, reloaded.level, "the post-transfer write must come back from H2 after a reboot");
     }
@@ -125,7 +124,7 @@ class StorageTransferRuntimeTest {
     @Test
     void transferPlayerData_localFileYamlToH2Json_withVerifiedCounts() throws IOException {
         File storageYml = writeStorageYml("storage.yml", "test_files", "transfer_base");
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         UUID first = UUID.randomUUID();
         PlayerController.handleLogin(first, "First").join();
@@ -142,7 +141,7 @@ class StorageTransferRuntimeTest {
         assertEquals("test_h2", persistedBackend, "playerdata.storage-backend-id must be persisted in storage.yml");
 
         //reboot: the players come back from H2 (the persisted choice takes precedence over default-backend)
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         assertEquals(3, PlayerController.getLoadedCount());
         assertEquals("First", PlayerController.getLoaded(first).getName());
     }
@@ -158,7 +157,7 @@ class StorageTransferRuntimeTest {
                 PDSectionConfiguration.builder(null, TransferJobsPDSection.class)
                         .defaultBackend("test_mem")
                         .build());
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "Petrus").join();
@@ -187,7 +186,7 @@ class StorageTransferRuntimeTest {
         section.markDirty();
         PlayerController.get().flushAll().join();
 
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         assertEquals(77, PlayerController.getPDSection(uuid, TransferJobsPDSection.class).join().level,
                 "after a failed transfer the section must still live on the previous backend (H2)");
     }
@@ -199,7 +198,7 @@ class StorageTransferRuntimeTest {
     @Test
     void invalidTransferTargetsFailFast() throws IOException {
         File storageYml = writeStorageYml("storage.yml", "test_files", "transfer_invalid");
-        PlayerController.bootstrap(storageYml);
+        PlayerController.initialize(storageYml);
         PlayerController.handleLogin(UUID.randomUUID(), "Someone").join();
 
         CompletionException unknown = assertThrows(CompletionException.class,
