@@ -64,6 +64,10 @@ dependencies {
     // The platoverride stubs are compileOnly in production, so the test runtime needs them back.
     testImplementation project(':api-contracts')
     testRuntimeOnly libs.h2 // H2 backend for the storage integration tests
+    // commons-lang3 is compileOnly in production (the platform is expected to provide it at runtime,
+    // e.g. Bukkit ships it); the FinalCMD framework (Validate/StringUtils, all over argument/) needs
+    // it back on the test runtime classpath for a headless test JVM.
+    testImplementation libs.commons.lang3
 }
 
 // Toolchain (Java 25) and the dual-target compileJava override (modern source syntax -> Java 8
