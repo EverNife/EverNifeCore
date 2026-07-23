@@ -18,15 +18,26 @@ public class ArgParserCommandContext {
     private final MultiArgumentos argumentos;
     private final LinkedHashMap<Class, Object> parsedArgs;
     private final LinkedHashMap<Class, Object> parsedContext;
+    private final boolean flagValue;
     private boolean shouldMoveArgIndex = true;
 
-    public ArgParserCommandContext(HelpContext helpContext, HelpLine helpLine, String label, MultiArgumentos argumentos, LinkedHashMap<Class, Object> parsedArgs, LinkedHashMap<Class, Object> parsedContext) {
+    /**
+     * @param flagValue true when this context is parsing a flag's value (or its def()), so an
+     * {@link ArgParser} can customize its behavior via {@link #isFlag()}; false for a positional
+     * argument or a contextual argument.
+     */
+    public ArgParserCommandContext(HelpContext helpContext, HelpLine helpLine, String label, MultiArgumentos argumentos, LinkedHashMap<Class, Object> parsedArgs, LinkedHashMap<Class, Object> parsedContext, boolean flagValue) {
         this.helpContext = helpContext;
         this.helpLine = helpLine;
         this.label = label;
         this.argumentos = argumentos;
         this.parsedArgs = parsedArgs;
         this.parsedContext = parsedContext;
+        this.flagValue = flagValue;
+    }
+
+    public boolean isFlag() {
+        return flagValue;
     }
 
     public <T> @Nullable T getPreviouslyParsedArg(Class<T> clazz) {
