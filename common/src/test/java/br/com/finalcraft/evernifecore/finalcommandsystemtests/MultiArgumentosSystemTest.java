@@ -5,118 +5,238 @@ import br.com.finalcraft.evernifecore.argumento.FlagedArgumento;
 import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Pins the manual {@code -flag:value} facility (matrix F) as it behaves TODAY: no
- * {@link br.com.finalcraft.evernifecore.commands.finalcmd} harness needed, this is a plain
- * {@link MultiArgumentos} unit-test - the existing test at
- * {@code minecraft/src/test/.../argumento/MultiArgumentosTest.java} stays where it is until F4
- * moves this facility to the new {@code --name value} syntax. Two of the rows below (F6, F7) pin
- * KNOWN bugs on purpose - F4 will fix them and update these tests then, not before.
+ * Pins the {@code --name value} flag tokenizer (matrix F, formerly {@code -name:value}): a plain
+ * {@link MultiArgumentos} unit-test, no {@link br.com.finalcraft.evernifecore.commands.finalcmd}
+ * harness needed.
  */
 class MultiArgumentosSystemTest {
 
     // ------------------------------------------------------------------
-    // F1 - "-name:value" becomes a flag; the token is removed from the positionals after
-    // getFlags(), and positional indices close up
+    // N1 - "--force" with nothing after it is a presence flag: value "true", isSet, token stripped
     // ------------------------------------------------------------------
 
     @Test
-    void f1_nameColonValueBecomesAFlagAndPositionalsCloseUp() {
-        MultiArgumentos args = new MultiArgumentos("hello -nome:valor world".split(" "));
+    void n1_presenceFlagIsTrueAndIsRemovedFromPositionals() {
+        MultiArgumentos args = new MultiArgumentos("cmd --force".split(" "));
 
-        assertEquals("valor", args.getFlag("nome").getFlagValue());
-
-        //Taking the flag rearranges the positionals: the flag token is gone, indices close up
-        assertEquals("hello", args.get(0).toString());
-        assertEquals("world", args.get(1).toString());
-        assertEquals(2, args.getStringArgs().size());
+        FlagedArgumento flag = args.getFlag("force");
+        assertTrue(flag.isSet());
+        assertEquals("true", flag.getFlagValue());
+        assertEquals(List.of("cmd"), args.getStringArgs());
     }
 
     // ------------------------------------------------------------------
-    // F2 - "-msg:'multi word'" spans tokens until the closing quote
+    // N2 - "--page 2" -> "2"; "-p 2" -> "2" too (single dash is still a valid flag marker)
     // ------------------------------------------------------------------
 
     @Test
-    void f2_quotedFlagValueSpansTokensUntilTheClosingQuote() {
-        MultiArgumentos args = new MultiArgumentos("say -msg:'multi word phrase' end".split(" "));
+    void n2_singleTokenValueIsConsumedRegardlessOfDashCount() {
+        MultiArgumentos twoDashes = new MultiArgumentos("cmd --page 2".split(" "));
+        assertEquals("2", twoDashes.getFlag("page").getFlagValue());
 
-        assertEquals("multi word phrase", args.getFlag("msg").getFlagValue());
-        assertEquals("say", args.get(0).toString());
-        assertEquals("end", args.get(1).toString());
+        MultiArgumentos oneDash = new MultiArgumentos("cmd -p 2".split(" "));
+        assertEquals("2", oneDash.getFlag("p").getFlagValue());
     }
 
     // ------------------------------------------------------------------
-    // F3 - "-5" is NOT a flag (negative-number guard)
+    // N3 - Caso A and Caso B, literal from the user's own answer to the study: quoted vs unquoted
+    // multi-word value
     // ------------------------------------------------------------------
 
     @Test
-    void f3_negativeNumberIsNotTreatedAsAFlag() {
-        MultiArgumentos args = new MultiArgumentos("give -5".split(" "));
+    void n3_casoA_quotedMultiWordValueBecomesASingleFlagValue() {
+        MultiArgumentos args = new MultiArgumentos("dbroad Teste My Friend --title 'Title Message'".split(" "));
 
-        assertTrue(args.getFlags().isEmpty());
-        assertEquals("-5", args.get(1).toString());
+        assertEquals("Title Message", args.getFlag("title").getFlagValue());
+        assertEquals(List.of("dbroad", "Teste", "My", "Friend"), args.getStringArgs());
+    }
+
+    @Test
+    void n3_casoB_unquotedMultiWordValueOnlyTakesTheNextTokenAndLeavesTheRestPositional() {
+        MultiArgumentos args = new MultiArgumentos("dbroad Teste My Friend --title Title Message".split(" "));
+
+        assertEquals("Title", args.getFlag("title").getFlagValue());
+        //"Message" was NOT part of the flag value - it remains a positional argument
+        assertEquals(List.of("dbroad", "Teste", "My", "Friend", "Message"), args.getStringArgs());
     }
 
     // ------------------------------------------------------------------
-    // F4 - getFlag("x") == getFlag("-x"), case-insensitive; "--x" and "-x" are DISTINCT flags today
+    // N4 - double quotes also group; an unclosed quote swallows the rest of the line
     // ------------------------------------------------------------------
 
     @Test
-    void f4_flagLookupIsCaseInsensitiveAndAtLeastOneDashIsEnforcedButDoubleDashIsDistinct() {
-        MultiArgumentos args = new MultiArgumentos("cmd -X:1 --x:2".split(" "));
+    void n4_doubleQuotesAlsoGroupMultiWordValues() {
+        MultiArgumentos args = new MultiArgumentos(new String[]{"cmd", "--title", "\"Title", "Message\""});
 
-        assertEquals(args.getFlag("-x").getInteger(), args.getFlag("x").getInteger());
-        assertEquals(1, args.getFlag("x").getInteger());
-        assertEquals(2, args.getFlag("--x").getInteger());
+        assertEquals("Title Message", args.getFlag("title").getFlagValue());
+    }
+
+    @Test
+    void n4_unclosedQuoteConsumesTheRestOfTheLine() {
+        MultiArgumentos args = new MultiArgumentos(new String[]{"cmd", "--msg", "'Hello", "there", "friend"});
+
+        assertEquals("Hello there friend", args.getFlag("msg").getFlagValue());
+        assertEquals(List.of("cmd"), args.getStringArgs());
     }
 
     // ------------------------------------------------------------------
-    // F5 - a missing flag is FlagedArgumento.EMPTY_ARG: isSet() == false, raw value "false"
+    // N5 - presence flag followed by a value flag, and the reverse order too
     // ------------------------------------------------------------------
 
     @Test
-    void f5_missingFlagIsTheEmptyArgWithFalseAsItsRawValue() {
+    void n5_presenceFlagFollowedByValueFlagAndViceVersa() {
+        MultiArgumentos forceFirst = new MultiArgumentos("cmd --force --page 2".split(" "));
+        assertEquals("true", forceFirst.getFlag("force").getFlagValue());
+        assertEquals("2", forceFirst.getFlag("page").getFlagValue());
+
+        MultiArgumentos pageFirst = new MultiArgumentos("cmd --page 2 --force".split(" "));
+        assertEquals("2", pageFirst.getFlag("page").getFlagValue());
+        assertEquals("true", pageFirst.getFlag("force").getFlagValue());
+    }
+
+    // ------------------------------------------------------------------
+    // N6 - "-5" and "--5" are NOT flags (negative-number guard)
+    // ------------------------------------------------------------------
+
+    @Test
+    void n6_negativeNumbersAreNeverTreatedAsFlags() {
+        MultiArgumentos oneDash = new MultiArgumentos("give -5".split(" "));
+        assertTrue(oneDash.getFlags().isEmpty());
+        assertEquals("-5", oneDash.get(1).toString());
+
+        MultiArgumentos twoDashes = new MultiArgumentos("give --5".split(" "));
+        assertTrue(twoDashes.getFlags().isEmpty());
+        assertEquals("--5", twoDashes.get(1).toString());
+    }
+
+    // ------------------------------------------------------------------
+    // N7 - "--" alone ends flag scanning: it is removed, and everything after it stays positional
+    // literally, even a token that looks like a flag
+    // ------------------------------------------------------------------
+
+    @Test
+    void n7_endOfFlagsMarkerStopsScanningAndIsItselfRemoved() {
+        MultiArgumentos args = new MultiArgumentos("cmd --real -- --literal".split(" "));
+
+        //"--" interrupted "--real"'s value consumption, so "real" is a presence flag here
+        assertEquals("true", args.getFlag("real").getFlagValue());
+        assertEquals(List.of("cmd", "--literal"), args.getStringArgs());
+    }
+
+    // ------------------------------------------------------------------
+    // N8 - getFlag("x") == getFlag("-x") == getFlag("--x"), case-insensitive, same flag instance
+    // ------------------------------------------------------------------
+
+    @Test
+    void n8_flagLookupIsDashCountAgnosticAndCaseInsensitive() {
+        MultiArgumentos args = new MultiArgumentos("cmd --Force".split(" "));
+
+        FlagedArgumento byBareName = args.getFlag("force");
+        FlagedArgumento byOneDash = args.getFlag("-FORCE");
+        FlagedArgumento byTwoDashes = args.getFlag("--force");
+
+        assertSame(byBareName, byOneDash);
+        assertSame(byOneDash, byTwoDashes);
+        assertTrue(byBareName.isSet());
+    }
+
+    // ------------------------------------------------------------------
+    // N9 - a missing flag is FlagedArgumento.EMPTY_ARG: isSet() == false, raw value "false"
+    // ------------------------------------------------------------------
+
+    @Test
+    void n9_missingFlagIsTheEmptyArgWithFalseAsItsRawValueAndNotSet() {
         MultiArgumentos args = new MultiArgumentos("cmd".split(" "));
 
         FlagedArgumento flag = args.getFlag("missing");
 
+        assertSame(FlagedArgumento.EMPTY_ARG, flag);
         assertFalse(flag.isSet());
         assertTrue(flag.equals("false"));
     }
 
     // ------------------------------------------------------------------
-    // F6 - "-flag:" (colon with no value) crashes - a KNOWN bug F4 fixes; pinned as-is
+    // N10 - ":" is no longer special: "-name:value" is a flag literally called "name:value" with
+    // value "true" (the legacy splitter/truncation bugs are gone by construction)
     // ------------------------------------------------------------------
 
     @Test
-    void f6_colonWithNoValueCrashesWithArrayIndexOutOfBounds() {
-        MultiArgumentos args = new MultiArgumentos(new String[]{"-flag:"});
+    void n10_colonIsNoLongerSpecialSyntax() {
+        MultiArgumentos args = new MultiArgumentos(new String[]{"-name:value"});
 
-        assertThrows(ArrayIndexOutOfBoundsException.class, args::getFlags);
+        FlagedArgumento flag = args.getFlag("name:value");
+        assertTrue(flag.isSet());
+        assertEquals("true", flag.getFlagValue());
+        //It was NOT parsed as name="name" value="value"
+        assertFalse(args.getFlag("name").isSet());
+
+        //The old "-time:10:30 truncates to 10" bug is gone: the whole thing is the flag's name
+        MultiArgumentos multiColon = new MultiArgumentos(new String[]{"-time:10:30"});
+        assertEquals("true", multiColon.getFlag("time:10:30").getFlagValue());
     }
 
     // ------------------------------------------------------------------
-    // F7 - "-time:10:30" truncates to "10" - a KNOWN bug F4 fixes; pinned as-is
+    // N11 - stripping flag tokens closes positional indices up
     // ------------------------------------------------------------------
 
     @Test
-    void f7_multipleColonsTruncateTheFlagValue() {
-        MultiArgumentos args = new MultiArgumentos(new String[]{"-time:10:30"});
+    void n11_stripClosesPositionalIndices() {
+        MultiArgumentos args = new MultiArgumentos("hello --page 2 world".split(" "));
 
-        assertTrue(args.getFlag("time").equals("10"));
+        args.getFlags(); //force flagify()
+
+        assertEquals(List.of("hello", "world"), args.getStringArgs());
+        assertEquals("hello", args.get(0).toString());
+        assertEquals("world", args.get(1).toString());
     }
 
     // ------------------------------------------------------------------
-    // F8 - emptyArgs(...), getStringArg out of range -> "", get out of range -> EMPTY_ARG
+    // N12 - flagify() is lazy: string accessors called BEFORE getFlags()/getFlag() still see the
+    // raw flag tokens (inherited behavior, pinned on purpose)
     // ------------------------------------------------------------------
 
     @Test
-    void f8_emptyArgsAndOutOfRangeAccessors() {
+    void n12_flagifyIsLazySoStringAccessorsSeeRawTokensBeforeGetFlagsIsCalled() {
+        MultiArgumentos args = new MultiArgumentos("cmd --page 2".split(" "));
+
+        assertEquals(3, args.getStringArgs().size());
+        assertEquals("--page", args.getStringArg(1));
+
+        args.getFlags(); //now it flagifies
+
+        assertEquals(1, args.getStringArgs().size());
+    }
+
+    // ------------------------------------------------------------------
+    // D1 - a quote glued directly onto the flag name (no separating space) is part of the marker
+    // token's name, NOT the start of a quoted value: "--title'X'" is a flag literally called
+    // "title'X'" (decision recorded in SPEC-F4)
+    // ------------------------------------------------------------------
+
+    @Test
+    void d1_quoteGluedDirectlyOntoTheFlagNameIsPartOfTheNameNotAQuotedValue() {
+        MultiArgumentos args = new MultiArgumentos(new String[]{"--title'X'"});
+
+        FlagedArgumento flag = args.getFlag("title'x'");
+        assertTrue(flag.isSet());
+        assertEquals("true", flag.getFlagValue());
+    }
+
+    // ------------------------------------------------------------------
+    // Carried over unchanged from the old matrix F (unrelated to the flag syntax rewrite):
+    // emptyArgs(...), getStringArg/get out-of-range accessors
+    // ------------------------------------------------------------------
+
+    @Test
+    void emptyArgsAndOutOfRangeAccessors() {
         MultiArgumentos args = new MultiArgumentos(new String[]{"only"});
 
         assertFalse(args.emptyArgs(0));
