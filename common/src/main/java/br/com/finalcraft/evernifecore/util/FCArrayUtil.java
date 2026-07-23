@@ -18,7 +18,7 @@ public class FCArrayUtil {
         T[] theArray = (T[]) Array.newInstance(value.getClass(), otherValues.length + 1);
         theArray[0] = value;
         for (int i = 1; i < theArray.length; i++) {
-            theArray[i] = otherValues[i];
+            theArray[i] = otherValues[i - 1];
         }
         return theArray;
     }
@@ -30,7 +30,7 @@ public class FCArrayUtil {
      * @return An array of type T
      */
     public static <T> T[] mergeArray(@Nonnull T[] value, T... otherValues){
-        T[] theArray = (T[]) Array.newInstance(value.getClass(), value.length + otherValues.length);
+        T[] theArray = (T[]) Array.newInstance(value.getClass().getComponentType(), value.length + otherValues.length);
         int index = 0;
 
         for (int i = 0; i < value.length; i++) {
