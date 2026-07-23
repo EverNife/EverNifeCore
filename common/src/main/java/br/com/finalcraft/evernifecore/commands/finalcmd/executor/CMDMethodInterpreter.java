@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.commands.finalcmd.executor;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
+import br.com.finalcraft.evernifecore.argumento.FlagedArgumento;
 import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgContextualData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgData;
@@ -23,6 +24,7 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.locale.scanner.FCLocaleScanner;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
+import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.everylibs.commons.Tuple;
 
 import java.lang.annotation.Annotation;
@@ -46,6 +48,8 @@ public class CMDMethodInterpreter {
     private final Map<Integer, ArgParser> arguments = new LinkedHashMap<>(); // Args with @Arg annotation
     private final Map<Integer, ArgParserContextual> contextualArguments = new LinkedHashMap(); //Args without any annotation or with @ContextualArg
     private final Map<Integer, ITabParser> tabParsers = new LinkedHashMap<>();
+    private final Map<Integer, FlagBinding> flagBindings = new LinkedHashMap<>(); // Args with @FlagArg annotation, keyed by parameter index
+    private final Map<String, MultiArgumentos.FlagBinding> flagExtractionBindings = new LinkedHashMap<>(); //every declared name/alias (normalized) -> its extraction rule, fed to MultiArgumentos#extractDeclaredFlags
 
     private transient HelpLine helpLine;
 
@@ -56,14 +60,6 @@ public class CMDMethodInterpreter {
         this.cmdData = methodData.getData();
         this.labels = cmdData.getLabels();
         this.isSubCommand = cmdData instanceof SubCMDData;
-
-        if (!methodData.getFlagArgDataMap().isEmpty()){
-            //TODO Remove this guard once the declarative @FlagArg pipeline is wired (next iteration) - today
-            //registration would otherwise succeed and every invoke would crash on wrong-number-of-arguments,
-            //because the flags found here are never fed into theArgs[] by invoke().
-            throw new IllegalStateException("@FlagArg is not wired yet - the declarative flag pipeline " +
-                    "lands in the next iteration; remove the annotation or update EverNifeCore");
-        }
 
         if (!method.isAccessible()){
             method.setAccessible(true);
@@ -121,6 +117,80 @@ public class CMDMethodInterpreter {
             arguments.put(index, parserInstance); //Index of the methodOrder eco_give(Player, arg1, PlayerData, arg3, etc...)
             tabParsers.put(flagArgIndex, parserInstance); //Index of the final TabParser (/eco give arg1 arg2)
             flagArgIndex++;
+        }
+
+        Set<String> claimedFlagSpellings = new HashSet<>(); //normalized (dashes stripped, lowercase) name/alias, unique across every @FlagArg on this method
+
+        for (Map.Entry<Integer, Tuple<ArgData, Class>> entry : methodData.getFlagArgDataMap().entrySet()) {
+            Integer index = entry.getKey();
+            ArgData argData = entry.getValue().getLeft();
+            Class parameterClazz = entry.getValue().getRight();
+
+            if (methodData.getArgDataMap().containsKey(index)){
+                throw new ArgMountException("The @FlagArg [" + argData.getName() + "] on the FinalCMD (" + executor.getClass().getName() + ")[" + method.getName() + "] " +
+                        "parameter [index=" + index + "] declares both @Arg and @FlagArg; a parameter can only be one or the other.");
+            }
+
+            if (parameterClazz.isPrimitive()){
+                throw new ArgMountException("The @FlagArg [" + argData.getName() + "] on the FinalCMD (" + executor.getClass().getName() + ")[" + method.getName() + "] " +
+                        "is a primitive (" + parameterClazz.getName() + "); flags are never primitive - use the wrapper type (e.g. Boolean, Integer) so an absent flag can be null.");
+            }
+
+            String rawName = argData.getName();
+            if (!rawName.startsWith("--") || rawName.contains(" ") || rawName.substring(2).trim().isEmpty()){
+                throw new ArgMountException("The @FlagArg name [" + rawName + "] on the FinalCMD (" + executor.getClass().getName() + ")[" + method.getName() + "] " +
+                        "must be in the long form '--name', with no spaces and a non-empty name after the dashes.");
+            }
+            String canonicalName = rawName.substring(2).toLowerCase();
+
+            List<String> spellings = new ArrayList<>();
+            spellings.add(rawName);
+            for (String alias : argData.getAliases()) {
+                if (!alias.startsWith("-")){
+                    throw new ArgMountException("The @FlagArg alias [" + alias + "] on the FinalCMD (" + executor.getClass().getName() + ")[" + method.getName() + "] " +
+                            "parameter [" + rawName + "] must start with at least one '-'.");
+                }
+                spellings.add(alias);
+            }
+
+            for (String spelling : spellings) {
+                String normalizedSpelling = spelling.replaceFirst("^-+", "").toLowerCase();
+                if (!claimedFlagSpellings.add(normalizedSpelling)){
+                    throw new ArgMountException("The @FlagArg spelling [" + spelling + "] on the FinalCMD (" + executor.getClass().getName() + ")[" + method.getName() + "] " +
+                            "is already claimed by a name or alias declared earlier on the same method.");
+                }
+                flagExtractionBindings.put(normalizedSpelling, new MultiArgumentos.FlagBinding(canonicalName, parameterClazz == Boolean.class ? 0 : 1));
+            }
+
+            if (ArgParser.class == argData.getParser()){
+                //This means the DEFAULT parser, so, we look over the ArgParserManager
+                Class<? extends ArgParser> parserClass = ArgParserManager.getParser(owningPlugin, parameterClazz);
+                if (parserClass == null){
+                    throw new IllegalStateException("Failed to found the proper ArgParser on the FinalCMD (" + executor.getClass().getName() +")[" + method.getName() +"] flag {index='" + index + "', name='" + rawName + "'}. The dev should set it manually or register it on the ArgParserManager!");
+                }
+                argData.setParser(parserClass);
+            }
+
+            //Flags never pass through ArgRequirementType.getArgumentType (that needs bracket-quoted names like an @Arg has);
+            //REQUIRED here only makes the shared builtin ArgParsers throw on an unparseable value/def instead of silently
+            //returning null (the behavior they already reserve for a REQUIRED positional) - the flag's own PRESENCE is
+            //still never required, see the absence handling in invoke().
+            ArgInfo flagArgInfo = new ArgInfo(parameterClazz, argData, -1, ArgRequirementType.REQUIRED);
+            ArgParser flagParserInstance;
+            try {
+                Constructor<? extends ArgParser> constructor = argData.getParser().getDeclaredConstructor(ArgInfo.class);
+                constructor.setAccessible(true);
+                flagParserInstance = constructor.newInstance(flagArgInfo);
+            }catch (Exception e){
+                e.printStackTrace();
+                throw new IllegalStateException("Failed to instantiate the ArgParser on the FinalCMD (" + executor.getClass().getName() +")[" + method.getName() +"] flag [index=" + index + ", name=" + rawName + "]");
+            }
+
+            // Load the ArgParser's own @FCLocale static fields
+            ECPluginData flagParserPlugin = ECPluginManager.getProvidingPlugin(argData.getParser());
+            FCLocaleManager.loadLocale(flagParserPlugin, true, argData.getParser());
+
+            flagBindings.put(index, new FlagBinding(index, canonicalName, rawName, parameterClazz == Boolean.class, argData.getDef(), argData.getPermission(), flagParserInstance));
         }
 
         for (Map.Entry<Integer, Tuple<ArgContextualData, Class>> entry : methodData.getContextualArgDataMap().entrySet()) {
@@ -306,9 +376,62 @@ public class CMDMethodInterpreter {
 
         helpContext.setLastLabel(label);
 
-        Object[] theArgs = new Object[contextualArguments.size() + arguments.size()];
+        Object[] theArgs = new Object[contextualArguments.size() + arguments.size() + flagBindings.size()];
         LinkedHashMap<Class, Object> parsedArgs = new LinkedHashMap<>();
         LinkedHashMap<Class, Object> parsedContext = new LinkedHashMap<>();
+
+        if (!flagBindings.isEmpty()){
+            //Extraction happens BEFORE any positional parse below, so the positional loop only ever sees the
+            //already-stripped list - a flag can live anywhere on the command line (before/between/after positionals).
+            List<String> unknownFlags = argumentos.extractDeclaredFlags(flagExtractionBindings);
+
+            if (!unknownFlags.isEmpty()){
+                sendUnknownFlagMessage(sender, unknownFlags.get(0));
+                return;
+            }
+
+            for (FlagBinding binding : flagBindings.values()) {
+                FlagedArgumento matchedFlag = argumentos.getFlag(binding.canonicalName);
+
+                Object parsedValue;
+                if (matchedFlag.isSet()){
+                    if (!binding.permission.isEmpty() && !FCMessageUtil.hasThePermission(sender, binding.permission)){
+                        return;
+                    }
+
+                    if (binding.booleanFlag){
+                        //A Boolean flag never reaches its parser when present: aridade 0 means it never
+                        //consumed a value token, so there is nothing meaningful to parse - presence IS true.
+                        parsedValue = Boolean.TRUE;
+                    }else {
+                        try {
+                            ArgParserCommandContext argContext = new ArgParserCommandContext(helpContext, helpLine, label, argumentos, parsedArgs, parsedContext, true);
+                            //A plain Argumento, not the FlagedArgumento itself: FlagedArgumento overrides
+                            //toString() for display ("--name value"), and several builtin ArgParsers call
+                            //argumento.toString() expecting just the raw value.
+                            parsedValue = binding.parser.parserArgument(argContext, sender, new Argumento(matchedFlag.getFlagValue()));
+                        }catch (ArgParseException argParseException){
+                            //Same contract as a positional: the parser already messaged the sender
+                            return;
+                        }
+                    }
+                }else if (!binding.def.isEmpty()){
+                    try {
+                        ArgParserCommandContext argContext = new ArgParserCommandContext(helpContext, helpLine, label, argumentos, parsedArgs, parsedContext, true);
+                        parsedValue = binding.parser.parserArgument(argContext, sender, new Argumento(binding.def));
+                    }catch (ArgParseException argParseException){
+                        return;
+                    }
+                }else {
+                    parsedValue = null; //absent, no def(): a flag is never required, this is a normal outcome
+                }
+
+                theArgs[binding.paramIndex] = parsedValue;
+                if (parsedValue != null){
+                    parsedArgs.put(parsedValue.getClass(), parsedValue);
+                }
+            }
+        }
 
         int backwardNiddle = 0;//This is used to go backwards on the possibleArgs array when necessary
 
@@ -328,7 +451,7 @@ public class CMDMethodInterpreter {
                 argumento = new Argumento(def);
             }
             try {
-                ArgParserCommandContext argContext = new ArgParserCommandContext(helpContext, helpLine, label, argumentos, parsedArgs, parsedContext);
+                ArgParserCommandContext argContext = new ArgParserCommandContext(helpContext, helpLine, label, argumentos, parsedArgs, parsedContext, false);
                 Object parsedArgument = parser.parserArgument(argContext, sender, argumento);
                 theArgs[index] = parsedArgument;
                 if (parsedArgument != null){
@@ -347,7 +470,7 @@ public class CMDMethodInterpreter {
             Integer index = entry.getKey();
             ArgParserContextual parserContextual = entry.getValue();
             try {
-                ArgParserCommandContext argContext = new ArgParserCommandContext(helpContext, helpLine, label, argumentos, parsedArgs, parsedContext);
+                ArgParserCommandContext argContext = new ArgParserCommandContext(helpContext, helpLine, label, argumentos, parsedArgs, parsedContext, false);
                 Object parsedContextual = parserContextual.parserArgument(argContext, sender);
                 theArgs[index] = parsedContextual;
                 if (parsedContextual != null){
@@ -366,6 +489,39 @@ public class CMDMethodInterpreter {
             System.err.println("Expected args: " + Arrays.toString(method.getParameterTypes()));
             System.err.println("Received args: " + Arrays.toString(Arrays.stream(theArgs).map(arg -> arg == null ? "null" : arg.getClass().getName()).toArray()));
             throw e;
+        }
+    }
+
+    private void sendUnknownFlagMessage(FCommandSender sender, String unknownRawToken){
+        String availableFlags = flagBindings.values().stream()
+                .filter(binding -> binding.permission.isEmpty() || sender.hasPermission(binding.permission))
+                .map(binding -> binding.rawName)
+                .collect(Collectors.joining(", "));
+
+        FCDefaultExecutor.UNKNOWN_FLAG
+                .addPlaceholder("%flag%", unknownRawToken)
+                .addPlaceholder("%available_flags%", availableFlags)
+                .send(sender);
+    }
+
+    /** A single {@code @FlagArg} parameter, bound at registration time (fail-fast) and resolved on every invoke. */
+    private static final class FlagBinding {
+        private final int paramIndex;
+        private final String canonicalName; //dashes stripped, lowercase - matches MultiArgumentos.FlagBinding's canonical name
+        private final String rawName; //as declared, e.g. "--force" - used for error/help display
+        private final boolean booleanFlag; //true when the parameter type is Boolean: aridade 0, presence == TRUE
+        private final String def;
+        private final String permission;
+        private final ArgParser parser;
+
+        private FlagBinding(int paramIndex, String canonicalName, String rawName, boolean booleanFlag, String def, String permission, ArgParser parser) {
+            this.paramIndex = paramIndex;
+            this.canonicalName = canonicalName;
+            this.rawName = rawName;
+            this.booleanFlag = booleanFlag;
+            this.def = def;
+            this.permission = permission;
+            this.parser = parser;
         }
     }
 }
