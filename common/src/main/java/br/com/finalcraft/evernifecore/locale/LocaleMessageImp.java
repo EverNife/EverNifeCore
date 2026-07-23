@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 public class LocaleMessageImp implements LocaleMessage {
@@ -168,6 +169,23 @@ public class LocaleMessageImp implements LocaleMessage {
 
     public HashMap<String, Object> getContextPlaceholders() {
         return contextPlaceholders;
+    }
+
+    /**
+     * Returns a new, unregistered copy of this message with every locale's FancyText cloned and
+     * {@code placeholder} baked in via {@link FancyText#replace(String, String)}. The copy is never
+     * added to the owning plugin's locale cache (unlike {@link br.com.finalcraft.evernifecore.locale.scanner.FCLocaleScanner#scanForLocale})
+     * and is never synced to a lang file, so it carries no key collision risk - this is what lets a
+     * dynamic, per-instance command (e.g. a command alias) derive its OWN copy of a class-level
+     * {@code @FCLocale} template without sharing state (or a hover) with any other instance of the
+     * same class.
+     */
+    public LocaleMessageImp derivePlaceholderResolved(String placeholder, String value) {
+        LocaleMessageImp derived = new LocaleMessageImp(this.plugin, this.key, false);
+        for (Map.Entry<String, FancyText> entry : this.fancyTextMap.entrySet()) {
+            derived.addLocale(entry.getKey(), entry.getValue().clone().replace(placeholder, value));
+        }
+        return derived;
     }
 
 }

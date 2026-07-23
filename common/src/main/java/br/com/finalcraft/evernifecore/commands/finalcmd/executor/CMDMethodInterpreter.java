@@ -250,13 +250,17 @@ public class CMDMethodInterpreter {
 
         if (locales.length > 0){
             localeMessage = FCLocaleScanner.scanForLocale(owningPlugin, localeMessageKey, true, locales);
+        }else if (cmdData.getDescriptionOverride() != null){
+            //Runtime-only, per-instance description (e.g. a command alias): already a fully-formed,
+            //unregistered LocaleMessageImp (see LocaleMessageImp#derivePlaceholderResolved), so every
+            //locale it carries renders - this is what makes a dynamic command's hover multi-language.
+            localeMessage = cmdData.getDescriptionOverride();
         }else {
-            //If no FCLocale is present, use the cmdData desc() to build it, it will be a static locale, will not be reloaded
+            //Neither a declarative locales() nor a runtime override: a single, empty, per-interpreter,
+            //unregistered LocaleMessageImp so the usage line still renders (hover stays absent).
             ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(owningPlugin);
             localeMessage = new LocaleMessageImp(owningPlugin, localeMessageKey, false);
-            FancyText fancyText = new FancyText(null, cmdData.getDesc());
-            //Add to the default locale only
-            localeMessage.addLocale(ecPluginData.getPluginLanguage(), fancyText);
+            localeMessage.addLocale(ecPluginData.getPluginLanguage(), new FancyText(null, null));
         }
 
         HashMap<ArgParser<?>, LocaleMessageImp> argParserToLocale = new HashMap<>(); //This will hold every single @Arg locale message
