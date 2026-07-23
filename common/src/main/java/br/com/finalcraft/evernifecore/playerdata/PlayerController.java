@@ -282,7 +282,7 @@ public class PlayerController {
                         + " collection '" + Accounts.COLLECTION + "' on backend '"
                         + storageConfig.getAccountBackendName() + "' already holds " + storedAccounts
                         + " row(s) of linked accounts. Disabling the layer would make their shared"
-                        + " data unreachable - re-enable it, or undo every link (/account unlink)"
+                        + " data unreachable - re-enable it, or undo every link (/ecaccount unlink)"
                         + " before disabling.");
             }
             Accounts.clear(); //every identity resolves to its own singleton account
@@ -722,7 +722,7 @@ public class PlayerController {
     }
 
     /**
-     * Health snapshot for admin tooling ({@code /ecorestoragetransfer status}): routing plus the
+     * Health snapshot for admin tooling ({@code /ecstorage status}): routing plus the
      * counters that reveal a degrading storage BEFORE data is at risk (retry backlog, adopted
      * conflicts, last failed write).
      */

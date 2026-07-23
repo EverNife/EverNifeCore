@@ -18,7 +18,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Runtime transfer of a collection between backends (the {@code /ecorestoragetransfer} pipeline):
+ * Runtime transfer of a collection between backends (the {@code /ecstorage transfer} pipeline):
  * freeze the manager's writes (dirty accumulates in memory) -> flush everything else -> verified
  * copy via {@link StorageTransfer} -> on success: re-bind, persist the admin's choice into
  * storage.yml and drain the accumulated dirty to the new backend.
