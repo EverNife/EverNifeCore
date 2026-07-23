@@ -75,7 +75,22 @@ dependencies {
 // it compiles and runs on the full Java 25 API.
 
 test {
-    useJUnitPlatform()
+    // Tests tagging a confirmed-but-not-yet-fixed bug ('known-bug') are expected to fail; keeping
+    // them in this task would turn every green run into a false red. They still run - and stay
+    // visible as failing - through the 'knownBugs' task below.
+    useJUnitPlatform {
+        excludeTags 'known-bug'
+    }
+}
+
+tasks.register('knownBugs', Test) {
+    description = 'Runs only the known-bug tests (confirmed bugs with no fix yet) so their failures stay visible.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'known-bug'
+    }
 }
 
 // evernifecore-common-relocated: the same common classes plus EveryDatabase/EveryConfig/EveryLibs
