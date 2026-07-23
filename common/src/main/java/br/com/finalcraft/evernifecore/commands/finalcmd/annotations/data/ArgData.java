@@ -24,6 +24,7 @@ public class ArgData {
     private Class<? extends ArgParser> parser;
     private FCLocaleData[] locales = new FCLocaleData[0];
     private boolean flag = false;
+    private String def = "";
 
     public ArgData(Arg arg) {
         this.name = arg.name();
@@ -33,6 +34,7 @@ public class ArgData {
                 .map(FCLocaleData::new)
                 .collect(Collectors.toList())
                 .toArray(new FCLocaleData[0]);
+        this.def = arg.def();
     }
 
     public ArgData(FlagArg arg) {
@@ -54,6 +56,7 @@ public class ArgData {
     public ArgData replace(String placeholder, String value){
         this.name = this.name.replace(placeholder, value);
         this.context = this.context.replace(placeholder, value);
+        this.def = this.def.replace(placeholder, value);
         for (FCLocaleData locale : this.locales) {
             locale.replace(placeholder, value);
         }
@@ -63,6 +66,7 @@ public class ArgData {
     public ArgData replace(CompoundReplacer replacer){
         this.name = replacer.apply(this.name);
         this.context = replacer.apply(this.context);
+        this.def = replacer.apply(this.def);
         for (FCLocaleData locale : this.locales) {
             locale.replace(replacer);
         }

@@ -90,6 +90,11 @@ public class CMDMethodInterpreter {
                         "ArgData.name() is not Quoted within \'" + possibleReqTypes + "\'");
             }
 
+            if (!argData.getDef().isEmpty() && argRequirementType != ArgRequirementType.OPTIONAL){
+                throw new ArgMountException("The @Arg [" + argData.getName() + "] on the FinalCMD (" + executor.getClass().getName() + ")[" + method.getName() + "] " +
+                        "declares def() but is not [optional]; def() is only legal on [optional] arguments.");
+            }
+
             ArgInfo argInfo = new ArgInfo(parameterClazz, argData, flagArgIndex, argRequirementType); //If subcommand, move arg to the RIGHT 1 slot
             ArgParser parserInstance;
             try {
@@ -307,6 +312,12 @@ public class CMDMethodInterpreter {
             if (argumento.isEmpty() && parser.getArgInfo().isRequired() == true && parser.getArgInfo().isProvidedByContext() == false){
                 helpLine.sendTo(sender);
                 return;
+            }
+            String def = parser.getArgInfo().getArgData().getDef();
+            if (argumento.isEmpty() && !def.isEmpty()){
+                //Optional argument omitted (or given as an explicit empty string) and a def() is declared:
+                //feed the def() text through the same parser, as if the player had typed it themselves.
+                argumento = new Argumento(def);
             }
             try {
                 ArgParserCommandContext argContext = new ArgParserCommandContext(helpContext, helpLine, label, argumentos, parsedArgs, parsedContext);

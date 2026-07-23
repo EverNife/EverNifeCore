@@ -20,4 +20,12 @@ public @interface Arg {
 
     FCLocale[] locales() default {};
 
+    /**
+     * Declarative default for an OPTIONAL argument: when the player omits it, this text is
+     * parsed by the argument's own parser (honoring context bounds/choices) as if typed.
+     * Empty (the default) keeps the current behavior: absent optional -> null.
+     * Setting it on a required or provided-by-context argument fails at registration.
+     */
+    String def() default "";
+
 }
