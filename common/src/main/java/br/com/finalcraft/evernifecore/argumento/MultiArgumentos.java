@@ -2,11 +2,9 @@ package br.com.finalcraft.evernifecore.argumento;
 
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.everylibs.util.FCTimeUtil;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
@@ -28,90 +26,130 @@ public class MultiArgumentos {
         //Flagification is always lazy (getFlags()/getFlag() call the idempotent flagify()).
     }
 
+    /**
+     * Scans the raw tokens for {@code --name value} flags (the industry-standard syntax) and strips
+     * them out of the positional lists, closing the remaining indices up. Lazy and idempotent: only
+     * the first call does any work, so plain positional {@link MultiArgumentos} usages that never
+     * touch {@link #getFlags()}/{@link #getFlag(String)} never pay this cost.
+     * <p>
+     * Tokenization rules:
+     * <ul>
+     *     <li>A token is a FLAG MARKER when it starts with one or more {@code -} and the first char
+     *     after the dashes is not a digit, so negative numbers like {@code -5}/{@code --5} stay
+     *     positional. A token made of dashes only (no name after them) is not a marker either.</li>
+     *     <li>The flag's name is the marker minus its leading dashes, taken verbatim - a quote glued
+     *     directly onto the name (no separating space, e.g. {@code --title'X'}) is part of the name,
+     *     not the start of a quoted value: it becomes a flag literally called {@code title'X'}.</li>
+     *     <li>The value is the next token, unless that token is itself a flag marker or {@code --},
+     *     in which case the flag is a presence flag with value {@code "true"}.</li>
+     *     <li>A value token starting with {@code '} or {@code "} opens a quoted group: tokens are
+     *     joined with a single space until one ENDS with that same quote character (both quotes are
+     *     stripped from the result); an unclosed quote swallows every remaining token verbatim.</li>
+     *     <li>A bare {@code --} token ends flag scanning: it is removed and every token after it stays
+     *     positional literally, even if it looks like a flag.</li>
+     * </ul>
+     * Examples: {@code /dbroad Teste My Friend --title 'Title Message'} -> flag {@code title} =
+     * {@code "Title Message"}. Without quotes, {@code /dbroad Teste My Friend --title Title Message}
+     * -> flag {@code title} = {@code "Title"} and {@code Message} remains a positional argument
+     * (multi-word values need quotes).
+     */
     public void flagify(){
-        if (!flagfied){
-            flagfied = true;
-            List<Integer> allArgsToBeRemoved = new ArrayList<Integer>();
-
-            for (int i = 0; i < stringArgs.size(); i++) {
-
-                String theArg = stringArgs.get(i);
-
-                //FlagedArg:   """    -sub_title:'Hello World'    """
-
-                //FlagArgs always start with a dash
-                if (theArg.isEmpty() || theArg.charAt(0) != '-'){
-                    continue;
-                }
-
-                //The next char after the dash cannot be a digit, because negative numbers are not flags '-'
-                if (theArg.length() >= 2 && Character.isDigit(theArg.charAt(1))){
-                    continue;
-                }
-
-                List<Integer> flagIndexes = new ArrayList<>(Arrays.asList(i)); //All flags this FlagArgument takes, like 'args 3, 4 and 5'
-
-                FlagedArgumento flagedArgumento = new FlagedArgumento(theArg);
-
-                Character QUOTE_AT_START = null;
-                String flagValue = flagedArgumento.getFlagValue();
-                if (flagValue.length() > 0){
-                    char firstChar = flagedArgumento.getFlagValue().charAt(0);
-                    if (firstChar == '\'' || firstChar == '"'){
-                        QUOTE_AT_START = firstChar;
-                    }
-                }
-
-                //If the first char is ' then we need to get the next args until we find the last '
-                boolean foundLastQuote = false;
-                if (QUOTE_AT_START != null){
-
-                    if (flagValue.charAt(flagValue.length() - 1) == QUOTE_AT_START){
-                        //In this case, is probably something like  /command blabla -player:'EverNife'
-                        //So we only need to remove the quote from the flag value
-                        flagedArgumento = new FlagedArgumento(StringUtils.substring(theArg, 1, -1));
-                    }else {
-                        //This case is something like               /command blabla -message:'The night is Dark!'
-                        //Or a similar case like                    /command blabla -message:'The night is Dark     without the ending quote
-
-                        //Remove prefix   '   from the flag value
-                        StringBuilder stringBuilder = new StringBuilder(flagedArgumento.getFlagName() + ":" + StringUtils.substring(flagedArgumento.getFlagValue(), 1));
-
-                        //Then search for the existence of an ending quote
-                        int j = i + 1;
-                        for (; j < stringArgs.size(); j++) {
-                            flagIndexes.add(j);
-                            String arg = stringArgs.get(j);
-                            stringBuilder.append(" ");
-                            if (arg.length() > 0 && arg.charAt(arg.length() - 1) == QUOTE_AT_START){
-                                //Remove suffix   '   from the flag value
-                                stringBuilder.append(StringUtils.substring(arg, 0, -1));
-                                foundLastQuote = true;
-                                break;
-                            }else {
-                                stringBuilder.append(arg);
-                            }
-                        }
-                        if (foundLastQuote){
-                            flagedArgumento = new FlagedArgumento(stringBuilder.toString());
-                            i = j;
-                        }
-                    }
-                }
-
-                if (!foundLastQuote){
-                    allArgsToBeRemoved.add(i);
-                }else {
-                    allArgsToBeRemoved.addAll(flagIndexes);
-                }
-                flags.add(flagedArgumento);
-            }
-            Collections.reverse(allArgsToBeRemoved);//Remove from back to front
-            for (Integer flagIndex : allArgsToBeRemoved) {
-                stringArgs.remove(flagIndex.intValue());
-                argumentos.remove(flagIndex.intValue());
-            }
+        if (flagfied){
+            return;
         }
+        flagfied = true;
+
+        List<Integer> indexesToRemove = new ArrayList<Integer>();
+        boolean endOfFlags = false;
+
+        int i = 0;
+        while (i < stringArgs.size()) {
+            String token = stringArgs.get(i);
+
+            if (!endOfFlags && token.equals("--")){
+                //End-of-flags marker: drop it, everything after stays positional even if it looks like a flag
+                indexesToRemove.add(i);
+                endOfFlags = true;
+                i++;
+                continue;
+            }
+
+            if (endOfFlags || !isFlagMarker(token)){
+                i++;
+                continue;
+            }
+
+            List<Integer> consumed = new ArrayList<Integer>();
+            consumed.add(i);
+
+            String flagName = token.substring(leadingDashCount(token));
+            String value;
+
+            int nextIndex = i + 1;
+            if (nextIndex >= stringArgs.size()){
+                value = "true"; //Nothing follows: presence flag
+            }else {
+                String nextToken = stringArgs.get(nextIndex);
+                if (nextToken.equals("--") || isFlagMarker(nextToken)){
+                    value = "true"; //Next token belongs to something else: presence flag, don't consume it
+                }else if (!nextToken.isEmpty() && isQuoteChar(nextToken.charAt(0))){
+                    char quote = nextToken.charAt(0);
+                    StringBuilder valueBuilder = new StringBuilder();
+                    boolean firstValueToken = true;
+                    int j = nextIndex;
+                    for (; j < stringArgs.size(); j++) {
+                        String part = stringArgs.get(j);
+                        if (firstValueToken){
+                            part = part.substring(1); //strip the opening quote
+                            firstValueToken = false;
+                        }else {
+                            valueBuilder.append(" ");
+                        }
+                        consumed.add(j);
+                        if (part.length() > 0 && part.charAt(part.length() - 1) == quote){
+                            valueBuilder.append(part, 0, part.length() - 1); //strip the closing quote
+                            break;
+                        }else {
+                            valueBuilder.append(part);
+                        }
+                    }
+                    value = valueBuilder.toString();
+                }else {
+                    value = nextToken;
+                    consumed.add(nextIndex);
+                }
+            }
+
+            flags.add(new FlagedArgumento(flagName, value));
+            indexesToRemove.addAll(consumed);
+            i = consumed.get(consumed.size() - 1) + 1;
+        }
+
+        Collections.sort(indexesToRemove, Collections.reverseOrder());//Remove from back to front
+        for (Integer index : indexesToRemove) {
+            stringArgs.remove(index.intValue());
+            argumentos.remove(index.intValue());
+        }
+    }
+
+    private static boolean isFlagMarker(String token){
+        int dashCount = leadingDashCount(token);
+        if (dashCount == 0 || dashCount == token.length()){
+            return false; //no leading dash at all, or the token is dashes only (no name)
+        }
+        return !Character.isDigit(token.charAt(dashCount)); //negative-number guard
+    }
+
+    private static int leadingDashCount(String token){
+        int count = 0;
+        while (count < token.length() && token.charAt(count) == '-'){
+            count++;
+        }
+        return count;
+    }
+
+    private static boolean isQuoteChar(char c){
+        return c == '\'' || c == '"';
     }
 
     public void forEach(Consumer<Argumento> action){
@@ -139,12 +177,10 @@ public class MultiArgumentos {
         flagify();
         if (flags.size() > 0){
             Validate.isTrue(!flagName.isEmpty(), "The flagName cannot be empty");
-            if (!flagName.startsWith("-")){
-                flagName = "-" + flagName; //Enforce AT LEAST ONE LEADING SLASH when getting a flag
-            }
+            String normalizedName = flagName.substring(leadingDashCount(flagName)); //dash-count-agnostic lookup: "x"/"-x"/"--x" all resolve the same flag
 
             for (FlagedArgumento flag : flags) {
-                if (flag.getFlagName().equalsIgnoreCase(flagName)){
+                if (flag.getFlagName().equalsIgnoreCase(normalizedName)){
                     return flag;
                 }
             }

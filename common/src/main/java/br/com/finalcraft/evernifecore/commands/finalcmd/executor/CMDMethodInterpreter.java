@@ -57,6 +57,14 @@ public class CMDMethodInterpreter {
         this.labels = cmdData.getLabels();
         this.isSubCommand = cmdData instanceof SubCMDData;
 
+        if (!methodData.getFlagArgDataMap().isEmpty()){
+            //TODO Remove this guard once the declarative @FlagArg pipeline is wired (next iteration) - today
+            //registration would otherwise succeed and every invoke would crash on wrong-number-of-arguments,
+            //because the flags found here are never fed into theArgs[] by invoke().
+            throw new IllegalStateException("@FlagArg is not wired yet - the declarative flag pipeline " +
+                    "lands in the next iteration; remove the annotation or update EverNifeCore");
+        }
+
         if (!method.isAccessible()){
             method.setAccessible(true);
         }

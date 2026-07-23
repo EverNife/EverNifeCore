@@ -23,7 +23,6 @@ public class ArgData {
     private String context;
     private Class<? extends ArgParser> parser;
     private FCLocaleData[] locales = new FCLocaleData[0];
-    private boolean flag = false;
     private String def = "";
 
     public ArgData(Arg arg) {
