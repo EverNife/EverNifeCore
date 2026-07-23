@@ -21,6 +21,7 @@ import org.apache.commons.lang3.Validate;
 
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Data
@@ -118,6 +119,24 @@ public class FinalCMDPluginCommand {
      * @return a list of possible values
      */
     public List<String> tabComplete(FCommandSender sender, String alias, String[] args) {
+        return tabComplete(sender, alias, args, Collections::emptyList);
+    }
+
+    /**
+     * Same as {@link #tabComplete(FCommandSender, String, String[])}, but lets the caller supply what
+     * to return when no sub-command/main-interpreter matches at all (or the one that matched has no
+     * tab-complete or fails its permission check) - the ONE divergence between platforms:
+     * {@code McFinalCMDPluginCommand} falls back to Bukkit's own player-name completion there, this
+     * class's own zero-arg overload just returns an empty list.
+     *
+     * @param sender sender
+     * @param alias  alias used
+     * @param args   argument of the command
+     * @param noInterpreterFallback supplies the result for the "nothing matched" case (F6)
+     *
+     * @return a list of possible values
+     */
+    public List<String> tabComplete(FCommandSender sender, String alias, String[] args, Supplier<List<String>> noInterpreterFallback) {
         int index = args.length - 1;
 
         boolean isPlayer = sender instanceof FPlayer;
@@ -150,8 +169,7 @@ public class FinalCMDPluginCommand {
         }
 
         if (interpreter == null || !interpreter.hasTabComplete() || (!interpreter.getCmdData().getPermission().isEmpty() && !sender.hasPermission(interpreter.getCmdData().getPermission()))){
-            return new ArrayList<>();
-//            return super.tabComplete(sender, alias, args); //TODO:  Implement this: No SubCommand NOR mainCommand found
+            return noInterpreterFallback.get();
         }
 
         ITabParser tabParser = interpreter.getTabParser(index);

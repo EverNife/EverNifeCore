@@ -1,19 +1,11 @@
 package br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.implementation;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAccessValidation;
-import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.CMDHelpType;
-import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.FinalCMDData;
-import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDMethodInterpreter;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.IPlatformCMD;
-import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser;
-import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFCommandSender;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
-import com.google.common.collect.ImmutableList;
 import jakarta.annotation.Nonnull;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandException;
 import org.bukkit.command.CommandSender;
@@ -24,7 +16,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class McFinalCMDPluginCommand extends Command implements PluginIdentifiableCommand, IPlatformCMD {
 
@@ -104,53 +95,9 @@ public class McFinalCMDPluginCommand extends Command implements PluginIdentifiab
      */
     @Override
     public List<String> tabComplete(CommandSender sender, String alias, String[] args) {
-
-        int index = args.length - 1;
-
-        boolean isPlayer = sender instanceof Player;
-
-        //The TabComplete is based on the FirstArg.
-        CMDMethodInterpreter interpreter = (args.length == 0 || args[0].isEmpty())
-                ? null
-                : this.finalCMDPluginCommand.getSubCommand(args[0]);
-
-        if (interpreter == null && this.finalCMDPluginCommand.getMainInterpreter() != null && ((FinalCMDData)this.finalCMDPluginCommand.getMainInterpreter().getCmdData()).getHelpType() == CMDHelpType.FULL){
-            interpreter = this.finalCMDPluginCommand.getMainInterpreter();
-        }
-
-        if (interpreter == null && this.finalCMDPluginCommand.getSubCommands().size() > 0){
-            return this.finalCMDPluginCommand.getSubCommands().stream()
-                    .filter(subCommand -> subCommand.getCmdData().getPermission().isEmpty() || sender.hasPermission(subCommand.getCmdData().getPermission())) //For the first arg of all sub commands we need ot check each permission
-                    .filter(subCommand -> !subCommand.isPlayerOnly() ? true : isPlayer) //If is the console calling this tab completion, ignore the subCommand if it's a 'playerOnly' subCMD
-                    .filter(subCommand -> {
-                        if (subCommand.getCmdData().getCmdAccessValidations().length == 0){
-                            return true;
-                        }
-                        CMDAccessValidation.AccessContext accessContext = new CMDAccessValidation.AccessContext(subCommand, MinecraftFCommandSender.of(sender));
-                        for (CMDAccessValidation cmdAccessValidation : subCommand.getCmdData().getCmdAccessValidations()) {
-                            if (!cmdAccessValidation.onPreTabValidation(accessContext)){
-                                return false;
-                            }
-                        }
-                        return true;
-                    }) //Apply a final custom filtering, in case this cmd has a custom cmdAccessValidation
-                    .map(subCommand -> subCommand.getLabels()[0])
-                    .filter(s -> StringUtils.startsWithIgnoreCase(s, args[index]))
-                    .collect(Collectors.toList());
-        }
-
-        if (interpreter == null || !interpreter.hasTabComplete() || (!interpreter.getCmdData().getPermission().isEmpty() && !sender.hasPermission(interpreter.getCmdData().getPermission()))){
-            return super.tabComplete(sender, alias, args); //No SubCommand NOR mainCommand found
-        }
-
-        ITabParser tabParser = interpreter.getTabParser(index);
-
-        if (tabParser == null){
-            return ImmutableList.of();
-        }
-
-        ITabParser.TabContext tabContext = new ITabParser.TabContext(FCBukkitUtil.adapt(sender), alias, args, index);
-
-        return tabParser.tabComplete(tabContext);
+        //The shared logic lives in FinalCMDPluginCommand (common); the ONE thing this platform adds is
+        //the fallback when no sub-command/main-interpreter matches at all: Bukkit's own player-name
+        //completion, instead of the common class's own empty-list default.
+        return finalCMDPluginCommand.tabComplete(FCBukkitUtil.adapt(sender), alias, args, () -> super.tabComplete(sender, alias, args));
     }
 }
