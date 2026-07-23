@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.FinalCmdTe
 import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.TestCommandSender;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
@@ -26,7 +27,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class RegistrationSystemTest {
 
-    @TempDir
+    //NEVER: ECPluginData's locale bootstrap fires an async saveAsync() (EveryConfig, virtual-thread
+    //executor) for every hardcoded language file; JUnit's default cleanup can race that in-flight
+    //write and fail to delete the directory (observed on Windows). Leftovers land under the OS temp
+    //folder, not the repo.
+    @TempDir(cleanup = CleanupMode.NEVER)
     Path tempDir;
 
     private FinalCmdTestHarness harness;

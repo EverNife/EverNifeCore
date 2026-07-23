@@ -5,11 +5,15 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
+import br.com.finalcraft.evernifecore.commands.finalcmd.executor.FCDefaultExecutor;
+import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.IPluginMetaInfo;
+import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
+import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -53,6 +57,12 @@ public class FinalCmdTestHarness implements AutoCloseable {
         //EverNifeCore's OWN ecPluginData (EverNifeCore.getLog()), which is otherwise only set by the
         //real bootstrap (onLoaderInstantiate); without it, ArgParserManager.addGlobalParser NPEs.
         EverNifeCore.instance.onLoaderInstantiate(ecPluginData);
+
+        //These core classes carry static @FCLocale fields (permission/help/parameter-error messages)
+        //that the real bootstrap loads through ConfigManager.initialize(); that method also boots
+        //PlayerController/ECSettings, which this command-only harness has no business touching, so
+        //only the classes the dispatch/help path actually reads from are loaded here.
+        FCLocaleManager.loadLocale(ecPluginData, FCMessageUtil.class, HelpContext.class, FCDefaultExecutor.class);
     }
 
     /**
