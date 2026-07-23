@@ -3,7 +3,9 @@ package br.com.finalcraft.evernifecore.finalcommandsystemtests.harness;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -26,6 +28,7 @@ public class TestCommandSender implements FCommandSender {
     private final String name;
     private final Set<String> permissions = new HashSet<>();
     private final List<String> messages = new ArrayList<>();
+    private final List<Component> components = new ArrayList<>();
 
     public TestCommandSender(String name) {
         this.name = name;
@@ -53,6 +56,7 @@ public class TestCommandSender implements FCommandSender {
 
     @Override
     public void sendMessage(@Nonnull Component component) {
+        components.add(component);
         messages.add(FCColorUtil.componentToString(component));
     }
 
@@ -81,5 +85,37 @@ public class TestCommandSender implements FCommandSender {
 
     public void assertNoMessageSent() {
         assertTrue(messages.isEmpty(), "Expected no message to be sent, but got: " + messages);
+    }
+
+    /**
+     * The hover text (plain legacy-formatted, every {@link HoverEvent} found joined by newlines)
+     * attached anywhere in the FIRST sent message whose visible text contains
+     * {@code visibleTextSnippet}, or {@code null} if no such message was sent or it carries no hover
+     * at all. A {@link HoverEvent} isn't part of {@link FCColorUtil#componentToString}'s output
+     * (legacy serialization only covers the visible text), so hover assertions (help-line
+     * descriptions) need this instead of {@link #assertAnyMessageContains}. Searched recursively:
+     * a {@code FancyFormatter} (e.g. an @Arg-built help line) attaches each segment's hover to that
+     * segment's own child {@link Component}, not to the message's root component.
+     */
+    public @Nullable String hoverTextOfMessageContaining(String visibleTextSnippet) {
+        for (int i = 0; i < components.size(); i++) {
+            if (messages.get(i).contains(visibleTextSnippet)) {
+                StringBuilder collected = new StringBuilder();
+                collectHoverText(components.get(i), collected);
+                return collected.length() == 0 ? null : collected.toString();
+            }
+        }
+        return null;
+    }
+
+    private static void collectHoverText(Component component, StringBuilder out) {
+        HoverEvent<?> hoverEvent = component.hoverEvent();
+        if (hoverEvent != null && hoverEvent.value() instanceof Component) {
+            if (out.length() > 0) out.append('\n');
+            out.append(FCColorUtil.componentToString((Component) hoverEvent.value()));
+        }
+        for (Component child : component.children()) {
+            collectHoverText(child, out);
+        }
     }
 }
