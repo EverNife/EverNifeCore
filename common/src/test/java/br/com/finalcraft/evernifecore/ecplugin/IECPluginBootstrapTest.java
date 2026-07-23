@@ -183,7 +183,12 @@ class IECPluginBootstrapTest {
         EverNifeCore.getProviders().getBaseProvider().register(IECPluginExtractor.class,
                 new FakePluginExtractor(pluginName, tempDir.resolve(pluginName).toFile()));
         registeredNames.add(pluginName);
-        return ECPluginManager.getOrCreateECorePluginData(new Object());
+        ECPluginData data = ECPluginManager.getOrCreateECorePluginData(new Object());
+        //The default onECPluginShutdownPre() now also touches FinalCMDManager (unregisterAllCommands),
+        //whose static block logs through EverNifeCore.getEcPluginData() - it must be non-null the FIRST
+        //time any test in the JVM references that class, or its <clinit> fails permanently for the run.
+        EverNifeCore.instance.onLoaderInstantiate(data);
+        return data;
     }
 
     private static final class FakePluginExtractor implements IECPluginExtractor {

@@ -15,7 +15,6 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.util.FCArrayUtil;
 import br.com.finalcraft.everyconfig.config.Config;
 import com.google.common.collect.ImmutableList;
 import jakarta.annotation.Nonnull;
@@ -145,7 +144,12 @@ public class FinalCMDPluginCommand {
                 "Extra labels for this command - the primary label ('" + primaryLabel + "') cannot be changed here.");
 
         if (!Arrays.asList(getExtraLabels()).equals(aliasesOverride)){
-            finalCMD.setLabels(FCArrayUtil.mergeArray(new String[]{primaryLabel}, aliasesOverride.toArray(new String[0])));
+            String[] overriddenLabels = new String[1 + aliasesOverride.size()];
+            overriddenLabels[0] = primaryLabel;
+            for (int i = 0; i < aliasesOverride.size(); i++) {
+                overriddenLabels[i + 1] = aliasesOverride.get(i);
+            }
+            finalCMD.setLabels(overriddenLabels);
         }
 
         if (commandsConfig.hasNewSeededDefaults()){

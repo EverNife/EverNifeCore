@@ -17,7 +17,6 @@ import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -77,28 +76,18 @@ public class FinalCmdTestHarness implements AutoCloseable {
 
     /** Same as {@link #register(Object)} but instantiates {@code cmdClass} through its no-arg constructor first. */
     public FinalCMDPluginCommand register(Class<?> cmdClass) {
-        int before = platform.registrationOrder().size();
-        boolean ok = FinalCMDManager.registerCommand(ecPluginData, cmdClass);
-        return extractLast(before, ok);
+        List<FinalCMDPluginCommand> registered = FinalCMDManager.registerCommand(ecPluginData, cmdClass);
+        return registered.isEmpty() ? null : registered.get(registered.size() - 1);
     }
 
     /** @return every {@link FinalCMDPluginCommand} produced by this registration call, in registration order. */
     public List<FinalCMDPluginCommand> registerAll(Object executor) {
-        int before = platform.registrationOrder().size();
-        boolean ok = FinalCMDManager.registerCommand(ecPluginData, executor);
-        if (!ok) return new ArrayList<>();
-        return new ArrayList<>(platform.registrationOrder().subList(before, platform.registrationOrder().size()));
+        return FinalCMDManager.registerCommand(ecPluginData, executor);
     }
 
     /** @return false if the registration itself failed (e.g. no {@code @FinalCMD} found at all). */
     public boolean registerExpectingFailure(Object executor) {
-        return FinalCMDManager.registerCommand(ecPluginData, executor);
-    }
-
-    private FinalCMDPluginCommand extractLast(int before, boolean ok) {
-        if (!ok) return null;
-        List<FinalCMDPluginCommand> newOnes = platform.registrationOrder().subList(before, platform.registrationOrder().size());
-        return newOnes.isEmpty() ? null : newOnes.get(newOnes.size() - 1);
+        return !FinalCMDManager.registerCommand(ecPluginData, executor).isEmpty();
     }
 
     /** Splits {@code argsLine} on spaces (empty string -&gt; zero args) and dispatches it through the real {@code FCDefaultExecutor}. */

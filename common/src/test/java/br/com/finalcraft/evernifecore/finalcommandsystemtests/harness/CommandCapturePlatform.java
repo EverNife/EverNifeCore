@@ -38,6 +38,13 @@ public class CommandCapturePlatform implements IPlatform {
     private final Map<String, FinalCMDPluginCommand> capturedByLabel = new LinkedHashMap<>();
     private final List<String> unregisteredLabels = new ArrayList<>();
     private final List<FinalCMDPluginCommand> registrationOrder = new ArrayList<>();
+    private final List<String> infoMessages = new ArrayList<>();
+    private boolean forceRegisterFailure = false;
+
+    /** When {@code true}, every subsequent {@link #registerCommand} call rejects (returns false) without capturing anything - simulates a platform-level registration failure (RG8). */
+    public void setForceRegisterFailure(boolean forceRegisterFailure) {
+        this.forceRegisterFailure = forceRegisterFailure;
+    }
 
     public @Nullable FinalCMDPluginCommand getCaptured(String label) {
         return capturedByLabel.get(label);
@@ -52,10 +59,16 @@ public class CommandCapturePlatform implements IPlatform {
         return registrationOrder;
     }
 
+    /** Every {@code info}-level message logged through an {@link ILogAdapter} this platform created. */
+    public List<String> getInfoMessages() {
+        return infoMessages;
+    }
+
     public void reset() {
         capturedByLabel.clear();
         unregisteredLabels.clear();
         registrationOrder.clear();
+        infoMessages.clear();
     }
 
     @Override
@@ -95,6 +108,9 @@ public class CommandCapturePlatform implements IPlatform {
 
     @Override
     public boolean registerCommand(FinalCMDPluginCommand finalCMDPluginCommand) {
+        if (forceRegisterFailure) {
+            return false;
+        }
         capturedByLabel.put(finalCMDPluginCommand.getPrimaryLabel(), finalCMDPluginCommand);
         for (String extraLabel : finalCMDPluginCommand.getExtraLabels()) {
             capturedByLabel.put(extraLabel, finalCMDPluginCommand);
@@ -137,6 +153,7 @@ public class CommandCapturePlatform implements IPlatform {
         return new ILogAdapter() {
             @Override
             public void info(String string) {
+                infoMessages.add(string);
                 System.out.println(string);
             }
 
