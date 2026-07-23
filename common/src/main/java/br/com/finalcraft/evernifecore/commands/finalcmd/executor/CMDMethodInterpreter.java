@@ -26,6 +26,7 @@ import br.com.finalcraft.evernifecore.locale.scanner.FCLocaleScanner;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.everylibs.commons.Tuple;
+import jakarta.annotation.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
@@ -190,7 +191,7 @@ public class CMDMethodInterpreter {
             ECPluginData flagParserPlugin = ECPluginManager.getProvidingPlugin(argData.getParser());
             FCLocaleManager.loadLocale(flagParserPlugin, true, argData.getParser());
 
-            flagBindings.put(index, new FlagBinding(index, canonicalName, rawName, parameterClazz == Boolean.class, argData.getDef(), argData.getPermission(), flagParserInstance));
+            flagBindings.put(index, new FlagBinding(index, canonicalName, rawName, parameterClazz == Boolean.class, argData, flagParserInstance));
         }
 
         for (Map.Entry<Integer, Tuple<ArgContextualData, Class>> entry : methodData.getContextualArgDataMap().entrySet()) {
@@ -266,6 +267,14 @@ public class CMDMethodInterpreter {
             }
         }
 
+        HashMap<FlagBinding, LocaleMessageImp> flagBindingToLocale = new HashMap<>(); //This will hold every single @FlagArg locale message
+        for (FlagBinding binding : flagBindings.values()) {
+            if (binding.argData.getLocales().length > 0){
+                LocaleMessageImp localesForThisFlag = FCLocaleScanner.scanForLocale(owningPlugin, localeMessageKey + "_Flag." + binding.canonicalName, false, binding.argData.getLocales());
+                flagBindingToLocale.put(binding, localesForThisFlag);
+            }
+        }
+
         for (Map.Entry<String, FancyText> entry : new ArrayList<>(localeMessage.getFancyTextMap().entrySet())) {
             String locale = entry.getKey();
             FancyText fancyText = entry.getValue();
@@ -332,7 +341,47 @@ public class CMDMethodInterpreter {
                         });
             }
 
-            if (anyLocalizedArg.get()){
+            //Flags always render as a compact "[--name]" token after the positionals (in declaration
+            //order), regardless of arity - the value's own shape stays in the hover, not the usage line.
+            //Unlike a plain @Arg, a visible flag ALWAYS gets its own hover block (title + aliases), even
+            //without a locale - it is the only place a player can discover a flag's short alias at all.
+            AtomicBoolean anyLocalizedFlag = new AtomicBoolean(false);
+            for (FlagBinding binding : flagBindings.values()) {
+                if (!binding.argData.isShowOnUsage()){
+                    continue; //showOnUsage=false: invisible on usage AND hover, still tab-completable/functional
+                }
+
+                fancyFormatter.append(" [" + binding.rawName + "]");
+                applyDefaultFormatting.accept(fancyFormatter);
+
+                String flagTitle = binding.rawName;
+                if (binding.argData.getAliases().length > 0){
+                    flagTitle += " | " + String.join(" | ", binding.argData.getAliases());
+                }
+
+                LocaleMessage localesForThisFlag = flagBindingToLocale.getOrDefault(binding, null);
+                String extraDescription = null;
+                if (localesForThisFlag != null){
+                    FancyText flagFancyText = localesForThisFlag.getFancyText(locale);
+                    if (flagFancyText == null){
+                        flagFancyText = localesForThisFlag.getDefaultFancyText();
+                    }
+                    if (flagFancyText != null){
+                        extraDescription = flagFancyText.getHoverText() != null && !flagFancyText.getHoverText().isEmpty() ? flagFancyText.getHoverText() : flagFancyText.getText();
+                    }
+                }
+
+                anyLocalizedFlag.set(true);
+                String flagBlock = (description != null ? description : "") +
+                        "\n" +
+                        "\n §d ✯ §7§l[§e" + flagTitle + "§7§l]§r";
+                if (extraDescription != null){
+                    flagBlock += "\n §7● §6" + extraDescription;
+                }
+                fancyFormatter.setHoverText(flagBlock);
+            }
+
+            if (anyLocalizedArg.get() || anyLocalizedFlag.get()){
                 localeMessage.getFancyTextMap().put(locale, fancyFormatter);
             }else {
                 fancyText.setText(fancyFormatter.getFancyTextList().stream().map(FancyText::getText).collect(Collectors.joining()));
@@ -371,6 +420,35 @@ public class CMDMethodInterpreter {
         return tabParsers.get(index);
     }
 
+    /** Whether this method declares any {@code @FlagArg} parameter - gates the flag-aware tab-complete branch (F6). */
+    public boolean hasFlags() {
+        return !flagBindings.isEmpty();
+    }
+
+    /** Every declared {@code @FlagArg} binding, in declaration order - read by help rendering and tab-complete (F6). */
+    public Collection<FlagBinding> getFlagBindings() {
+        return flagBindings.values();
+    }
+
+    public @Nullable FlagBinding getFlagBindingByCanonicalName(String canonicalName) {
+        for (FlagBinding binding : flagBindings.values()) {
+            if (binding.canonicalName.equals(canonicalName)){
+                return binding;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Every declared spelling (name/alias, normalized) mapped to its fixed extraction rule - the same
+     * map fed to {@link MultiArgumentos#extractDeclaredFlags}, exposed so tab-complete (F6) can run its
+     * own read-only scan over {@code args[0..index-1]} through the identical {@code scanFlagMarkers}
+     * core, instead of re-deriving the tokenizer rules.
+     */
+    public Map<String, MultiArgumentos.FlagBinding> getFlagExtractionBindings() {
+        return flagExtractionBindings;
+    }
+
     public void invoke(FCommandSender sender, String label, MultiArgumentos argumentos, HelpContext helpContext, HelpLine helpLine) throws IllegalAccessException, IllegalArgumentException,
             InvocationTargetException {
 
@@ -395,7 +473,8 @@ public class CMDMethodInterpreter {
 
                 Object parsedValue;
                 if (matchedFlag.isSet()){
-                    if (!binding.permission.isEmpty() && !FCMessageUtil.hasThePermission(sender, binding.permission)){
+                    String permission = binding.argData.getPermission();
+                    if (!permission.isEmpty() && !FCMessageUtil.hasThePermission(sender, permission)){
                         return;
                     }
 
@@ -415,10 +494,10 @@ public class CMDMethodInterpreter {
                             return;
                         }
                     }
-                }else if (!binding.def.isEmpty()){
+                }else if (!binding.argData.getDef().isEmpty()){
                     try {
                         ArgParserCommandContext argContext = new ArgParserCommandContext(helpContext, helpLine, label, argumentos, parsedArgs, parsedContext, true);
-                        parsedValue = binding.parser.parserArgument(argContext, sender, new Argumento(binding.def));
+                        parsedValue = binding.parser.parserArgument(argContext, sender, new Argumento(binding.argData.getDef()));
                     }catch (ArgParseException argParseException){
                         return;
                     }
@@ -494,7 +573,7 @@ public class CMDMethodInterpreter {
 
     private void sendUnknownFlagMessage(FCommandSender sender, String unknownRawToken){
         String availableFlags = flagBindings.values().stream()
-                .filter(binding -> binding.permission.isEmpty() || sender.hasPermission(binding.permission))
+                .filter(binding -> binding.argData.getPermission().isEmpty() || sender.hasPermission(binding.argData.getPermission()))
                 .map(binding -> binding.rawName)
                 .collect(Collectors.joining(", "));
 
@@ -504,24 +583,47 @@ public class CMDMethodInterpreter {
                 .send(sender);
     }
 
-    /** A single {@code @FlagArg} parameter, bound at registration time (fail-fast) and resolved on every invoke. */
-    private static final class FlagBinding {
+    /**
+     * A single {@code @FlagArg} parameter, bound at registration time (fail-fast) and resolved on
+     * every invoke. Also read by the help renderer ({@code buildHelpLine}) and by
+     * {@code FinalCMDPluginCommand}'s tab-complete (F6), which is why it is a public nested type
+     * with getters instead of staying invoke()-only.
+     */
+    public static final class FlagBinding {
         private final int paramIndex;
         private final String canonicalName; //dashes stripped, lowercase - matches MultiArgumentos.FlagBinding's canonical name
-        private final String rawName; //as declared, e.g. "--force" - used for error/help display
+        private final String rawName; //as declared, e.g. "--force" - used for error/help/tab display
         private final boolean booleanFlag; //true when the parameter type is Boolean: aridade 0, presence == TRUE
-        private final String def;
-        private final String permission;
+        private final ArgData argData; //carries def/permission/aliases/locales/showOnUsage
         private final ArgParser parser;
 
-        private FlagBinding(int paramIndex, String canonicalName, String rawName, boolean booleanFlag, String def, String permission, ArgParser parser) {
+        private FlagBinding(int paramIndex, String canonicalName, String rawName, boolean booleanFlag, ArgData argData, ArgParser parser) {
             this.paramIndex = paramIndex;
             this.canonicalName = canonicalName;
             this.rawName = rawName;
             this.booleanFlag = booleanFlag;
-            this.def = def;
-            this.permission = permission;
+            this.argData = argData;
             this.parser = parser;
+        }
+
+        public String getCanonicalName() {
+            return canonicalName;
+        }
+
+        public String getRawName() {
+            return rawName;
+        }
+
+        public boolean isBooleanFlag() {
+            return booleanFlag;
+        }
+
+        public ArgData getArgData() {
+            return argData;
+        }
+
+        public ArgParser getParser() {
+            return parser;
         }
     }
 }

@@ -3,6 +3,8 @@ package br.com.finalcraft.evernifecore.commands.finalcmd.implementation;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.argumento.FlagedArgumento;
+import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAccessValidation;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.CMDHelpType;
@@ -172,15 +174,112 @@ public class FinalCMDPluginCommand {
             return noInterpreterFallback.get();
         }
 
-        ITabParser tabParser = interpreter.getTabParser(index);
+        int effectiveIndex = index;
+        if (interpreter.hasFlags()){
+            List<String> flagSuggestions = tabCompleteFlags(interpreter, sender, alias, args, index);
+            if (flagSuggestions != null){
+                return flagSuggestions;
+            }
+            effectiveIndex = effectivePositionalIndex(interpreter, args, index);
+        }
+
+        ITabParser tabParser = interpreter.getTabParser(effectiveIndex);
 
         if (tabParser == null){
             return ImmutableList.of();
         }
 
+        //The word being completed is always args[index] (the real last token) - effectiveIndex only
+        //selects WHICH parser to delegate to, it must never replace index inside the TabContext itself
+        //(TabContext.getLastWord() reads args[index] directly), or a corrected lookup would silently
+        //hand the parser the wrong word to filter against.
         ITabParser.TabContext tabContext = new ITabParser.TabContext(sender, alias, args, index);
 
         return tabParser.tabComplete(tabContext);
+    }
+
+    /**
+     * The flag-aware half of tab-complete (F6): either the word being typed is itself a flag name
+     * (suggest the declared long names, filtered by permission/prefix/already-used), or the PREVIOUS
+     * token is a declared value-flag (delegate to that flag's own value parser) - both scenarios return
+     * their result directly. Everything else (including anything typed after a bare {@code --}, which
+     * always stays positional) returns {@code null} so the caller falls through to the positional flow.
+     */
+    private @Nullable List<String> tabCompleteFlags(CMDMethodInterpreter interpreter, FCommandSender sender, String alias, String[] args, int index){
+        boolean endOfFlagsReached = index > 0 && Arrays.asList(args).subList(0, index).contains("--");
+        if (endOfFlagsReached){
+            return null;
+        }
+
+        String lastWord = args[index];
+        if (looksLikeAFlagBeingTyped(lastWord)){
+            Set<String> alreadyUsed = new HashSet<>();
+            if (index > 0){
+                MultiArgumentos scan = new MultiArgumentos(Arrays.copyOfRange(args, 0, index));
+                scan.extractDeclaredFlags(interpreter.getFlagExtractionBindings());
+                for (FlagedArgumento flag : scan.getFlags()) {
+                    alreadyUsed.add(flag.getFlagName());
+                }
+            }
+
+            return interpreter.getFlagBindings().stream()
+                    .filter(binding -> binding.getArgData().getPermission().isEmpty() || sender.hasPermission(binding.getArgData().getPermission()))
+                    .filter(binding -> !alreadyUsed.contains(binding.getCanonicalName()))
+                    .map(CMDMethodInterpreter.FlagBinding::getRawName)
+                    .filter(rawName -> StringUtils.startsWithIgnoreCase(rawName, lastWord))
+                    .collect(Collectors.toList());
+        }
+
+        if (index > 0){
+            String previousToken = args[index - 1];
+            if (MultiArgumentos.isFlagMarker(previousToken)){
+                String normalized = previousToken.replaceFirst("^-+", "").toLowerCase();
+                MultiArgumentos.FlagBinding extractionBinding = interpreter.getFlagExtractionBindings().get(normalized);
+                if (extractionBinding != null && extractionBinding.getArity() == 1){
+                    CMDMethodInterpreter.FlagBinding flagBinding = interpreter.getFlagBindingByCanonicalName(extractionBinding.getCanonicalName());
+                    if (flagBinding != null){
+                        ITabParser.TabContext tabContext = new ITabParser.TabContext(sender, alias, args, index);
+                        return flagBinding.getParser().tabComplete(tabContext);
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Whether {@code word} looks like a flag name in progress: unlike {@link MultiArgumentos#isFlagMarker},
+     * used for a COMPLETE token, this treats a dashes-only word ("-", "--", "---"...) as still-being-typed
+     * rather than the committed end-of-flags escape - a player who just typed "--" and hit tab is asking
+     * for flag names, not declaring "no more flags" (that reading only applies to a token the player has
+     * moved past). The negative-number guard still applies once a digit follows the dashes.
+     */
+    private static boolean looksLikeAFlagBeingTyped(String word){
+        int dashCount = 0;
+        while (dashCount < word.length() && word.charAt(dashCount) == '-'){
+            dashCount++;
+        }
+        if (dashCount == 0){
+            return false; //no leading dash at all
+        }
+        if (dashCount == word.length()){
+            return true; //dashes-only so far - an open prefix, flags win the tab race over a negative number
+        }
+        return !Character.isDigit(word.charAt(dashCount));
+    }
+
+    /**
+     * Translates a raw {@code args} index into its effective positional index by scanning
+     * {@code args[0..index-1]} through the same declared-flag extraction the real dispatch uses
+     * (F6/TA(f)-(g)): every flag marker and the value/quoted-group it consumes, plus a bare {@code --},
+     * is stripped before counting what remains - the count IS the index the current (still being typed)
+     * token would land on among the positionals.
+     */
+    private int effectivePositionalIndex(CMDMethodInterpreter interpreter, String[] args, int index){
+        MultiArgumentos scan = new MultiArgumentos(Arrays.copyOfRange(args, 0, index));
+        scan.extractDeclaredFlags(interpreter.getFlagExtractionBindings());
+        return scan.getStringArgs().size();
     }
 
 }

@@ -270,7 +270,14 @@ public class MultiArgumentos {
         }
     }
 
-    private static boolean isFlagMarker(String token){
+    /**
+     * Whether {@code token} is a flag marker by the same rule {@link #flagify()}/{@link #extractDeclaredFlags}
+     * use internally: one or more leading {@code -} followed by a non-digit (so negative numbers like
+     * {@code -5} stay positional), and at least one character after the dashes. Exposed for
+     * {@code FinalCMDPluginCommand}'s tab-complete (F6), which needs the same recognition rule outside
+     * a real scan (e.g. to tell whether the word currently being typed is itself a flag name).
+     */
+    public static boolean isFlagMarker(String token){
         int dashCount = leadingDashCount(token);
         if (dashCount == 0 || dashCount == token.length()){
             return false; //no leading dash at all, or the token is dashes only (no name)
