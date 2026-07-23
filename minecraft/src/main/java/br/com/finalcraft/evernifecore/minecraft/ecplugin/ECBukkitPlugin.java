@@ -20,7 +20,7 @@ public abstract class ECBukkitPlugin extends JavaPlugin implements IECPluginBoot
 
     @Override
     public void onDisable() {
-        //listeners are unregistered first by the default onECPluginShutdownPre()
+        //listeners and commands are unregistered first by the default onECPluginShutdownPre()
         runECPluginShutdown();
     }
 

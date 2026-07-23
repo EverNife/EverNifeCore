@@ -143,8 +143,8 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
 
     @Override
     public void onECPluginShutdown() {
-        //Listeners were already unregistered by the default onECPluginShutdownPre(), so nothing
-        //fires into the resources torn down here.
+        //Listeners and commands were already unregistered by the default onECPluginShutdownPre(),
+        //so nothing fires into the resources torn down here.
         EverNifeCore.instance.onUnload();
         FCMinecraftAdventureUtil.close();
     }

@@ -70,7 +70,13 @@ public class FinalCMDManager {
         EverNifeCore.getPlatform().registerArgParsers();
     }
 
-    public static boolean registerCommand(@Nonnull ECPluginData ecPluginData, @Nonnull Class cmdClass) {
+    /**
+     * Registers every {@code @FinalCMD} found on {@code cmdClass} (instantiated through its no-arg
+     * constructor) - see {@link #registerCommand(ECPluginData, Object)} for the full contract.
+     *
+     * @return every {@link FinalCMDPluginCommand} that was actually registered; empty on total failure
+     */
+    public static List<FinalCMDPluginCommand> registerCommand(@Nonnull ECPluginData ecPluginData, @Nonnull Class cmdClass) {
         try {
             Constructor constructor = cmdClass.getDeclaredConstructor();
             Object customExecutor = constructor.newInstance();
@@ -80,10 +86,21 @@ public class FinalCMDManager {
             ecPluginData.getLog().warning("Does the class has a default constructor?");
             e.printStackTrace();
         }
-        return false;
+        return Collections.emptyList();
     }
 
-    public static boolean registerCommand(@Nonnull ECPluginData ecPluginData, @Nonnull Object executor) {
+    /**
+     * Scans {@code executor} for {@code @FinalCMD} methods (or a class-level annotation) and registers
+     * each one found. A class with a SINGLE {@code @FinalCMD} may declare {@code @SubCMD} methods
+     * alongside it (one command, several subcommands); a class with SEVERAL independent
+     * {@code @FinalCMD} methods registers each as its own command (subcommands are not allowed there).
+     *
+     * @return every {@link FinalCMDPluginCommand} that was actually registered, in registration order;
+     *         empty when nothing at all succeeded (a single-command class also returns empty here, even
+     *         though {@code @SubCMD}s of a failed registration are never separately reported) - the
+     *         multi-{@code @FinalCMD} class path may return a PARTIAL list when only some succeed
+     */
+    public static List<FinalCMDPluginCommand> registerCommand(@Nonnull ECPluginData ecPluginData, @Nonnull Object executor) {
         try {
             List<Tuple<FinalCMD, Method>> finalCMDMainMethods = new ArrayList<>();
 
@@ -112,7 +129,7 @@ public class FinalCMDManager {
                 FinalCMD finalCMD = FCReflectionUtil.getAnnotations().getAnnotationDeeply(executor.getClass(), FinalCMD.class);
                 if (finalCMD == null){
                     ecPluginData.getLog().severe("Tried to register a FinalCMD(" + executor.getClass().getName() + ") without any @FinalCMD Annotation!");
-                    return false;
+                    return Collections.emptyList();
                 }
                 finalCMDMainMethods.add(Tuple.of(finalCMD, null));
             }
@@ -183,13 +200,14 @@ public class FinalCMDManager {
                 }
 
                 newCommand.addLocaleMessages(localeMessageFields);
-                newCommand.registerCommand();
+                boolean registered = newCommand.registerCommand();
                 ECPluginManager.getOrCreateECorePluginData(ecPluginData).reloadAllCustomLocales();
-                return true;
+                return registered ? Collections.singletonList(newCommand) : Collections.<FinalCMDPluginCommand>emptyList();
             }
 
             // We have several @FinalCMD annotated methods on this class, lets register all of them.
             // Each one is a different command without any SubCommand
+            List<FinalCMDPluginCommand> registeredCommands = new ArrayList<>();
             for (Tuple<FinalCMD, Method> tuple : finalCMDMainMethods) {
                 try {
                     FinalCMD finalCMD = tuple.getLeft();
@@ -220,7 +238,9 @@ public class FinalCMDManager {
                     FinalCMDPluginCommand newCommand = new FinalCMDPluginCommand(ecPluginData, finalCMDData, mainMethodInterpreter);
 
                     newCommand.addLocaleMessages(localeMessageFields);
-                    newCommand.registerCommand();
+                    if (newCommand.registerCommand()){
+                        registeredCommands.add(newCommand);
+                    }
                 }catch (Throwable e){
                     ecPluginData.getLog().severe("Error registering a FinalCMD on the class [" + executor.getClass().getName() + "] method " + tuple.getRight().getName() + "!");
                     e.printStackTrace();
@@ -236,12 +256,12 @@ public class FinalCMDManager {
             }
 
             ECPluginManager.getOrCreateECorePluginData(ecPluginData).reloadAllCustomLocales();
-            return true;
+            return registeredCommands;
         }catch (Throwable e){
             ecPluginData.getLog().warning("Fail to register FinalCMD Command: " + executor.getClass().getName());
             e.printStackTrace();
         }
-        return false;
+        return Collections.emptyList();
     }
 
     public static void unregisterCommand(String commandName){
@@ -250,6 +270,17 @@ public class FinalCMDManager {
 
     public static void unregisterCommand(String commandName, ECPluginData notifyPlugin){
         EverNifeCore.getPlatform().unregisterCommand(commandName, notifyPlugin);
+    }
+
+    /**
+     * Unregisters every command {@code ecPluginData} has tracked as registered (iterates a copy - see
+     * {@link ECPluginData#getRegisteredCommands()} - so each {@link FinalCMDPluginCommand#unregister()}
+     * call mutating the live list is safe).
+     */
+    public static void unregisterAllCommands(@Nonnull ECPluginData ecPluginData) {
+        for (FinalCMDPluginCommand command : ecPluginData.getRegisteredCommands()) {
+            command.unregister();
+        }
     }
 
 }

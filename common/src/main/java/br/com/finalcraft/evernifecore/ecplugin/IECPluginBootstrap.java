@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.ecplugin;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
 
@@ -25,8 +26,8 @@ import br.com.finalcraft.evernifecore.logger.ECLogger;
  * {@link #onECPluginEnablePost()}; shutdown runs {@link #onECPluginShutdownPre()} -&gt;
  * {@link #onECPluginShutdown()} -&gt; {@link #onECPluginShutdownPost()}. The Pre/Post hooks are
  * optional (no-op by default), except {@link #onECPluginShutdownPre()}, whose default unregisters
- * every listener the plugin registered - so the plugin's entry points are gone before
- * {@link #onECPluginShutdown()} tears down the resources those listeners could touch.</p>
+ * every listener AND every command the plugin registered - so the plugin's entry points are gone
+ * before {@link #onECPluginShutdown()} tears down the resources those listeners/commands could touch.</p>
  */
 public interface IECPluginBootstrap {
 
@@ -66,14 +67,16 @@ public interface IECPluginBootstrap {
 
     /**
      * Optional shutdown extras that run BEFORE the shared teardown. The default unregisters every
-     * listener this plugin registered through {@link ECListener#register}, so the plugin stops
-     * receiving events before {@link #onECPluginShutdown()} closes the resources those events touch.
-     * A class that overrides this replaces that cleanup, so it should call
-     * {@code ECListener.unregisterAll(getPluginData())} (or
+     * listener this plugin registered through {@link ECListener#register}, and every command it
+     * registered through {@link FinalCMDManager}, so the plugin stops receiving events/commands before
+     * {@link #onECPluginShutdown()} closes the resources those touch. A class that overrides this
+     * replaces that cleanup, so it should call {@code ECListener.unregisterAll(getPluginData())} and
+     * {@code FinalCMDManager.unregisterAllCommands(getPluginData())} (or
      * {@code IECPluginBootstrap.super.onECPluginShutdownPre()}) itself if it still wants it.
      */
     public default void onECPluginShutdownPre() {
         ECListener.unregisterAll(getPluginData());
+        FinalCMDManager.unregisterAllCommands(getPluginData());
     }
 
     /** The platform-agnostic shutdown teardown. Mandatory - implemented once in the plugin's common bootstrap. */

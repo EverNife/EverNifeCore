@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
@@ -39,6 +40,9 @@ public class ECPluginData {
     //debug
     private transient IDebugModule[] debugModules = new IDebugModule[0];
     private Boolean debugEnabled = null;
+
+    //commands registered through FinalCMDManager, owned by this plugin
+    private final List<FinalCMDPluginCommand> registeredCommands = new ArrayList<>();
 
     public ECPluginData(Object plugin) {
         EverNifeCore.getProviders().getECPluginExtractor().validateJavaPlugin(plugin);
@@ -304,6 +308,50 @@ public class ECPluginData {
 
     public ECLogger<?> getLog(){
         return ecLogger;
+    }
+
+    /**
+     * Live view of the commands this plugin registered through
+     * {@link br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager}. Returns an immutable
+     * copy - mutating the returned list never affects this plugin's tracked state.
+     */
+    public List<FinalCMDPluginCommand> getRegisteredCommands(){
+        return Collections.unmodifiableList(new ArrayList<>(registeredCommands));
+    }
+
+    /** Finds a registered command by any of its labels - primary or alias - case-insensitive. */
+    public Optional<FinalCMDPluginCommand> findRegisteredCommand(String label){
+        for (FinalCMDPluginCommand command : registeredCommands) {
+            if (command.getPrimaryLabel().equalsIgnoreCase(label)){
+                return Optional.of(command);
+            }
+            for (String alias : command.getExtraLabels()) {
+                if (alias.equalsIgnoreCase(label)){
+                    return Optional.of(command);
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Framework-internal bookkeeping: tracks {@code command} as registered by this plugin, replacing
+     * any previous entry with the same primary label so a reload never leaves a stale/duplicate entry
+     * behind. Called by {@link FinalCMDPluginCommand#registerCommand()} after a successful platform
+     * registration - plugin authors never call this directly.
+     */
+    public void trackRegisteredCommand(FinalCMDPluginCommand command){
+        registeredCommands.removeIf(existing -> existing.getPrimaryLabel().equalsIgnoreCase(command.getPrimaryLabel()));
+        registeredCommands.add(command);
+    }
+
+    /**
+     * Framework-internal bookkeeping: stops tracking {@code command} as registered by this plugin
+     * (no-op if it isn't tracked). Called by {@link FinalCMDPluginCommand#unregister()} - plugin
+     * authors never call this directly.
+     */
+    public void untrackRegisteredCommand(FinalCMDPluginCommand command){
+        registeredCommands.remove(command);
     }
 
     /**

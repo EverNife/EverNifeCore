@@ -13,7 +13,10 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDMethodInterp
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.FCDefaultExecutor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser;
+import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.util.FCArrayUtil;
+import br.com.finalcraft.everyconfig.config.Config;
 import com.google.common.collect.ImmutableList;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -73,15 +76,21 @@ public class FinalCMDPluginCommand {
     }
 
     /**
-     * Unregister all commands that are registered on the server with
-     * the name of this command!
+     * Unregister all commands that are registered on the server with the name of this command, apply
+     * the central {@code commands.yml} overrides ({@code enabled}/{@code aliases}), then register with
+     * the platform (skipped entirely when disabled). On success, tracks this command on its owning
+     * plugin's {@link ECPluginData#getRegisteredCommands() registered-commands list}, replacing any
+     * previous entry with the same primary label - a reload never leaves a duplicate/stale entry.
      *
      * @return true if the command has been successfully registered
      */
     public boolean registerCommand() {
-        FinalCMDManager.unregisterCommand(this.getPrimaryLabel(), this.getOwningPlugin());
-        for (String alias : this.getExtraLabels()) {
-            FinalCMDManager.unregisterCommand(alias, this.getOwningPlugin());
+        boolean enabled = applyCommandsYamlOverrides();
+
+        unregisterFromPlatform();
+
+        if (!enabled){
+            return false;
         }
 
         //Sort all Methods based on the First Label's Name
@@ -89,8 +98,84 @@ public class FinalCMDPluginCommand {
 
         this.helpContext = new HelpContext(finalCMD.getHelpHeader(), this);
 
-        return EverNifeCore.getPlatform().registerCommand(this);
+        boolean registered = EverNifeCore.getPlatform().registerCommand(this);
+        if (registered){
+            owningPlugin.trackRegisteredCommand(this);
+        }
+        return registered;
     }
+
+    /**
+     * Unregisters this command from the platform (primary label + aliases) and removes it from its
+     * owner plugin's registered-commands list. Safe to call twice.
+     */
+    public void unregister() {
+        unregisterFromPlatform();
+        owningPlugin.untrackRegisteredCommand(this);
+    }
+
+    private void unregisterFromPlatform() {
+        FinalCMDManager.unregisterCommand(this.getPrimaryLabel(), this.getOwningPlugin());
+        for (String alias : this.getExtraLabels()) {
+            FinalCMDManager.unregisterCommand(alias, this.getOwningPlugin());
+        }
+    }
+
+    /**
+     * Reads (and, on first sight, seeds) this command's entry in the central {@code commands.yml}: an
+     * {@code enabled} flag and an {@code aliases} override for the extra labels. A non-default aliases
+     * override REPLACES the annotation's extra labels (the primary label is never touched) before this
+     * command reaches the platform, so registration/unregistration/help/tab all see the effective ones.
+     * Applied on every registration call (boot/reload of the owning plugin) - there is no hot rebind.
+     *
+     * @return whether the command is enabled (false means the caller must skip registration entirely)
+     */
+    private boolean applyCommandsYamlOverrides() {
+        String pluginName = owningPlugin.getMetaInfo().getName();
+        String primaryLabel = getPrimaryLabel();
+        String path = "Commands." + pluginName + "." + primaryLabel;
+
+        Config commandsConfig = ConfigFactory.open(EverNifeCore.getEcPluginData(), "commands.yml");
+        commandsConfig.setComment("Commands", COMMANDS_YAML_HEADER);
+
+        boolean enabled = commandsConfig.getOrSetValueIfAbsent(path + ".enabled", true,
+                "Set to 'false' to stop this command from being registered.");
+        List<String> aliasesOverride = commandsConfig.getOrSetValueIfAbsent(path + ".aliases",
+                Arrays.asList(getExtraLabels()),
+                "Extra labels for this command - the primary label ('" + primaryLabel + "') cannot be changed here.");
+
+        if (!Arrays.asList(getExtraLabels()).equals(aliasesOverride)){
+            finalCMD.setLabels(FCArrayUtil.mergeArray(new String[]{primaryLabel}, aliasesOverride.toArray(new String[0])));
+        }
+
+        if (commandsConfig.hasNewSeededDefaults()){
+            commandsConfig.save();
+            commandsConfig.clearNewSeededDefaults();
+        }
+
+        if (!enabled){
+            owningPlugin.getLog().info("Command '" + primaryLabel + "' of plugin '" + pluginName + "' disabled by commands.yml");
+        }
+
+        return enabled;
+    }
+
+    private static final String COMMANDS_YAML_HEADER = String.join("\n",
+            "============================================================",
+            " EverNifeCore - Central command registry",
+            "",
+            " One entry per registered command, from EVERY ECPlugin using this",
+            " framework (not just EverNifeCore's own), keyed by",
+            " <PluginName>.<primaryLabel>. Entries are generated automatically",
+            " on the first registration of each command.",
+            "",
+            " enabled: false stops the command from being registered.",
+            " aliases: overrides the EXTRA labels only - the primary label is",
+            "          the entry's identity and cannot be changed here.",
+            "",
+            " Changes only apply on the owning plugin's next boot/reload -",
+            " there is no hot rebind.",
+            "============================================================");
 
     public CMDMethodInterpreter getSubCommand(String firstArg) {
 
