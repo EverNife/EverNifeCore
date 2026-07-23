@@ -1,0 +1,134 @@
+package br.com.finalcraft.evernifecore.finalcommandsystemtests;
+
+import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
+import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
+import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
+import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgData;
+import br.com.finalcraft.evernifecore.commands.finalcmd.custom.ICustomFinalCMD;
+import br.com.finalcraft.evernifecore.commands.finalcmd.custom.contexts.CustomizeContext;
+import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
+import br.com.finalcraft.evernifecore.commands.misc.CMDAlias;
+import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.FinalCmdTestHarness;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
+import jakarta.annotation.Nonnull;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.CleanupMode;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.nio.file.Path;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * Pins {@link ICustomFinalCMD}/{@link CustomizeContext}/{@code CMDAlias} (matrix G): customization
+ * runs before registration, and its effects (labels, {@code replace(...)}) are per-instance.
+ */
+class CustomizeSystemTest {
+
+    //NEVER: see RegistrationSystemTest - the locale bootstrap's async saveAsync() can race JUnit's
+    //default @TempDir cleanup on Windows.
+    @TempDir(cleanup = CleanupMode.NEVER)
+    Path tempDir;
+
+    private FinalCmdTestHarness harness;
+
+    @AfterEach
+    void teardown() {
+        if (harness != null) harness.close();
+    }
+
+    private FinalCmdTestHarness newHarness() {
+        harness = new FinalCmdTestHarness("Customize", tempDir);
+        return harness;
+    }
+
+    // ------------------------------------------------------------------
+    // G1 - ICustomFinalCMD.customize runs before registration; setLabels changes the registered
+    // alias
+    // ------------------------------------------------------------------
+
+    public static class G1_Cmd implements ICustomFinalCMD {
+        @FinalCMD(aliases = "originalalias")
+        public void run(FCommandSender sender) {}
+
+        @Override
+        public void customize(@Nonnull CustomizeContext context) {
+            context.getFinalCMDData().setLabels("customizedlabel");
+        }
+    }
+
+    @Test
+    void g1_customizeRunsBeforeRegistrationAndSetLabelsChangesTheRegisteredAlias() {
+        FinalCMDPluginCommand command = newHarness().register(new G1_Cmd());
+
+        assertEquals("customizedlabel", command.getPrimaryLabel());
+        assertNull(harness.platform.getCaptured("originalalias"), "the annotation's own alias was never registered");
+        assertEquals(command, harness.platform.getCaptured("customizedlabel"));
+    }
+
+    // ------------------------------------------------------------------
+    // G2 - CustomizeContext.replace("%x%", v) affects labels/usage/desc/permission/locales AND
+    // ArgData (name/context/locales)
+    // ------------------------------------------------------------------
+
+    public static class G2_Cmd implements ICustomFinalCMD {
+        @FinalCMD(aliases = "cmd%suffix%", usage = "usage%suffix%", desc = "desc%suffix%", permission = "perm%suffix%")
+        public void run(FCommandSender sender,
+                         @Arg(name = "<val%suffix%>", context = "ctx%suffix%",
+                                 locales = {@FCLocale(lang = LocaleType.EN_US, text = "loc%suffix%")}) String value) {}
+
+        @Override
+        public void customize(@Nonnull CustomizeContext context) {
+            context.replace("%suffix%", "REPLACED");
+        }
+    }
+
+    @Test
+    void g2_replacePlaceholderAffectsCmdDataAndArgData() {
+        FinalCMDPluginCommand command = newHarness().register(new G2_Cmd());
+
+        assertEquals("cmdREPLACED", command.getPrimaryLabel());
+        assertEquals("usageREPLACED", command.getFinalCMD().getUsage());
+        assertEquals("descREPLACED", command.getFinalCMD().getDesc());
+        assertEquals("permREPLACED", command.getFinalCMD().getPermission());
+
+        ArgParser<?> argParser = command.getMainInterpreter().getCustomArguments().get(1);
+        ArgData argData = argParser.getArgInfo().getArgData();
+        assertEquals("<valREPLACED>", argData.getName());
+        assertEquals("ctxREPLACED", argData.getContext());
+        assertEquals("locREPLACED", argData.getLocales()[0].text());
+    }
+
+    // ------------------------------------------------------------------
+    // G3 - two CMDAlias instances (different aliases, different target commands) each register
+    // with a hover carrying THEIR OWN %the_command% - proof the desc path is per-instance
+    // ------------------------------------------------------------------
+
+    @Test
+    void g3_twoCMDAliasInstancesEachKeepTheirOwnTheCommandInTheHover() {
+        newHarness();
+        FinalCMDPluginCommand cmd1 = harness.register(new CMDAlias("g3one", "target1"));
+        FinalCMDPluginCommand cmd2 = harness.register(new CMDAlias("g3two", "target2"));
+
+        assertNotNull(cmd1.getMainInterpreter());
+        assertNotNull(cmd2.getMainInterpreter());
+
+        FancyText hover1 = cmd1.getMainInterpreter().getHelpLine().getLocaleMessage().getFancyText("EN_US");
+        FancyText hover2 = cmd2.getMainInterpreter().getHelpLine().getLocaleMessage().getFancyText("EN_US");
+
+        assertNotNull(hover1);
+        assertNotNull(hover2);
+        assertTrue(hover1.getHoverText().contains("target1"));
+        assertFalse(hover1.getHoverText().contains("target2"));
+        assertTrue(hover2.getHoverText().contains("target2"));
+        assertFalse(hover2.getHoverText().contains("target1"));
+    }
+}
