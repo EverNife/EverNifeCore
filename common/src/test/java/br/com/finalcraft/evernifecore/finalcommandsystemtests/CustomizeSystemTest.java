@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.commands.misc.CMDAlias;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.AfterEach;
@@ -75,10 +76,10 @@ class CustomizeSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // G2 - CustomizeContext.replace("%x%", v) affects labels/usage/desc/permission/locales AND
-    // ArgData (name/context/locales). desc() no longer exists on the annotation, so this instance
-    // sets it at runtime via setDesc() before replace() runs over it - the same runtime-only path
-    // CMDAlias uses.
+    // G2 - CustomizeContext.replace("%x%", v) affects labels/usage/permission/locales AND ArgData
+    // (name/context/locales). descriptionOverride is a runtime LocaleMessageImp, not a String, and
+    // is deliberately NOT touched by replace(...) (see CMDAlias, which resolves its own placeholder
+    // via LocaleMessageImp#derivePlaceholderResolved before ever handing the override to CMDData).
     // ------------------------------------------------------------------
 
     public static class G2_Cmd implements ICustomFinalCMD {
@@ -89,7 +90,6 @@ class CustomizeSystemTest {
 
         @Override
         public void customize(@Nonnull CustomizeContext context) {
-            context.getFinalCMDData().setDesc("desc%suffix%");
             context.replace("%suffix%", "REPLACED");
         }
     }
@@ -100,7 +100,6 @@ class CustomizeSystemTest {
 
         assertEquals("cmdREPLACED", command.getPrimaryLabel());
         assertEquals("usageREPLACED", command.getFinalCMD().getUsage());
-        assertEquals("descREPLACED", command.getFinalCMD().getDesc());
         assertEquals("permREPLACED", command.getFinalCMD().getPermission());
 
         ArgParser<?> argParser = command.getMainInterpreter().getCustomArguments().get(1);
@@ -112,7 +111,8 @@ class CustomizeSystemTest {
 
     // ------------------------------------------------------------------
     // G3 - two CMDAlias instances (different aliases, different target commands) each register
-    // with a hover carrying THEIR OWN %the_command% - proof the desc path is per-instance
+    // with a hover carrying THEIR OWN %the_command% - proof the derived descriptionOverride is
+    // per-instance, not shared through the class-level @FCLocale template
     // ------------------------------------------------------------------
 
     @Test
@@ -136,28 +136,60 @@ class CustomizeSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // G4 - a plain custom executor calling setDesc() directly inside customize() gets that text as
-    // the help line's hover - desc() no longer exists on the annotation, so this is the only way
-    // left to give a command a runtime-only, per-instance description
+    // G4 - a plain custom executor calling setDescriptionOverride() directly inside customize()
+    // (no placeholder to resolve, unlike CMDAlias) gets that message as the help line's hover -
+    // there is no runtime-only description String left on the annotation, so this is the only way
+    // left to give a command a per-instance description without being a CMDAlias
     // ------------------------------------------------------------------
 
     public static class G4_Cmd implements ICustomFinalCMD {
+        @FCLocale(lang = LocaleType.EN_US, text = "Set directly via customize")
+        static LocaleMessageImp DESCRIPTION;
+
         @FinalCMD(aliases = "g4cmd")
         public void run(FCommandSender sender) {}
 
         @Override
         public void customize(@Nonnull CustomizeContext context) {
-            context.getFinalCMDData().setDesc("Set directly via customize");
+            context.getFinalCMDData().setDescriptionOverride(DESCRIPTION);
         }
     }
 
     @Test
-    void g4_setDescInsideCustomizeBecomesTheHelpLineHover() {
+    void g4_setDescriptionOverrideInsideCustomizeBecomesTheHelpLineHover() {
         FinalCMDPluginCommand command = newHarness().register(new G4_Cmd());
 
         FancyText hover = command.getMainInterpreter().getHelpLine().getLocaleMessage().getFancyText("EN_US");
 
         assertNotNull(hover);
         assertTrue(hover.getHoverText().contains("Set directly via customize"));
+    }
+
+    // ------------------------------------------------------------------
+    // G5 - two CMDAlias instances each keep their own %the_command% in BOTH EN_US and PT_BR
+    // hovers - proof the derived override carries every locale of the class-level @FCLocale
+    // template, not just the plugin's default language
+    // ------------------------------------------------------------------
+
+    @Test
+    void g5_twoCMDAliasInstancesKeepTheirOwnTheCommandInBothEnUsAndPtBrHovers() {
+        newHarness();
+        FinalCMDPluginCommand cmd1 = harness.register(new CMDAlias("g5one", "target1"));
+        FinalCMDPluginCommand cmd2 = harness.register(new CMDAlias("g5two", "target2"));
+
+        FancyText hover1EnUs = cmd1.getMainInterpreter().getHelpLine().getLocaleMessage().getFancyText("EN_US");
+        FancyText hover1PtBr = cmd1.getMainInterpreter().getHelpLine().getLocaleMessage().getFancyText("PT_BR");
+        FancyText hover2EnUs = cmd2.getMainInterpreter().getHelpLine().getLocaleMessage().getFancyText("EN_US");
+        FancyText hover2PtBr = cmd2.getMainInterpreter().getHelpLine().getLocaleMessage().getFancyText("PT_BR");
+
+        assertNotNull(hover1EnUs);
+        assertNotNull(hover1PtBr);
+        assertNotNull(hover2EnUs);
+        assertNotNull(hover2PtBr);
+
+        assertTrue(hover1EnUs.getHoverText().contains("target1"));
+        assertTrue(hover1PtBr.getHoverText().contains("target1"));
+        assertTrue(hover2EnUs.getHoverText().contains("target2"));
+        assertTrue(hover2PtBr.getHoverText().contains("target2"));
     }
 }

@@ -90,9 +90,9 @@ class UsageAndHelpSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // D3 - a subcommand with no locales() and no setDesc() call has NO hover on its help line
-    // (desc() no longer exists on the annotation - locales() is the only declarative path left;
-    // see CustomizeSystemTest#g4 for the runtime-only setDesc() path)
+    // D3 - a subcommand with no locales() and no descriptionOverride has NO hover on its help line
+    // (locales() is the only declarative path left; see CustomizeSystemTest#g4 for the
+    // runtime-only setDescriptionOverride() path)
     // ------------------------------------------------------------------
 
     @FinalCMD(aliases = "d3cmd")
@@ -102,7 +102,7 @@ class UsageAndHelpSystemTest {
     }
 
     @Test
-    void d3_noLocalesAndNoSetDescMeansNoHoverOnTheHelpLine() {
+    void d3_noLocalesAndNoDescriptionOverrideMeansNoHoverOnTheHelpLine() {
         FinalCMDPluginCommand command = newHarness().register(new D3_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
