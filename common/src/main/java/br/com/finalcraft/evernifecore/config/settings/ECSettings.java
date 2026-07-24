@@ -29,6 +29,9 @@ public class ECSettings {
     //PageViewer
     public static boolean PAGEVIEWERS_FULL_LOCALIZATION = false;
 
+    //Locale
+    public static boolean PER_PLAYER_LOCALE = false;
+
     //Cooldown
     public static int COOLDOWN_RETENTION_DAYS;
 
@@ -68,6 +71,15 @@ public class ECSettings {
                         "\nBy default the PageViewers will try to adjust to the content-size, but on non latin" +
                         "\nlanguages this may not work as expected. If you are having issues with the PageViewer" +
                         "\nmessages, enable this and customize the messages to fit your needs."
+        );
+
+        PER_PLAYER_LOCALE = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
+                "Settings.Locale.PER_PLAYER_LOCALE",
+                false,
+                "When enabled, each player may pick their own language with '/eclocale self <lang>'," +
+                        "\nand messages are rendered in that language instead of the plugin's default." +
+                        "\nWhile disabled (the default), no per-player language section is registered and" +
+                        "\nevery message uses the plugin's configured locale, exactly as before."
         );
 
         WARN_PLAYERS_WHEN_RECEIVED_ITEMS_WERE_SEND_TO_THE_GROUND = ConfigManager.getMainConfig().getOrSetValueIfAbsent("Settings.FCBukkitUtil.warnWhenPlayersCannotReceiveItensOnItsInventory",

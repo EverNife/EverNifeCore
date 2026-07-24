@@ -3,11 +3,13 @@ package br.com.finalcraft.evernifecore.playerdata;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldownsLocal;
 import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldownsNetwork;
 import br.com.finalcraft.evernifecore.cooldown.server.ServerCooldowns;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.locale.LocalePDSection;
 import br.com.finalcraft.evernifecore.playerdata.account.Accounts;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import br.com.finalcraft.evernifecore.playerdata.storage.BindingResolver;
@@ -606,6 +608,15 @@ public class PlayerController {
         if (!REGISTERED_ACCOUNT_SECTIONS.containsKey(PlayerCooldownsNetwork.class)){
             PlayerController.registerAccountSectionCfg(AccountSectionConfiguration
                 .builder(EverNifeCore.getEcPluginData(), PlayerCooldownsNetwork.class)
+                .build());
+        }
+
+        //Per-player language is opt-in: without the setting the section is never registered, so
+        //nothing is hot-loaded on login and message rendering stays on the plugin's own language.
+        if (ECSettings.PER_PLAYER_LOCALE && !REGISTERED_SECTIONS.containsKey(LocalePDSection.class)){
+            PlayerController.registerPDSectionCfg(PDSectionConfiguration
+                .builder(EverNifeCore.getEcPluginData(), LocalePDSection.class)
+                .cache(SectionCachePolicy.workingSet())
                 .build());
         }
     }
