@@ -31,6 +31,16 @@ import java.util.Map;
  * order rather than sorting keys (under which {@code "10"} would sort before {@code "2"} and scramble a
  * formatter of 10+ children). EveryDatabase's storage codec preserves insertion order, so the sequence
  * survives a round-trip.</p>
+ *
+ * <p><b>Click type and hover type are both explicit.</b> {@code clickActionType} is written whenever it is
+ * not {@code NONE}, independently of whether there is any {@code clickActionText} to go with it - a segment
+ * built with a click type but no action text (the shape a locale entry with no click text produces) used to
+ * lose its type on every save, which made the type compare unequal to the live value forever after. A hover
+ * value also writes an explicit {@code hoverType}: {@code "text"} for a plain tooltip, or {@code "item"} when
+ * the hover text carries the legacy {@code $show_item$} sentinel (the prefix is stripped from {@code hoverText}
+ * and reattached on read, so the in-memory value is unchanged). Both keys are purely additive: a file written
+ * before they existed has neither, and reads exactly as it always did (hover as literal text, click type
+ * {@code NONE} when absent).</p>
  */
 public final class FancyTextConfigCodec {
 
@@ -40,8 +50,15 @@ public final class FancyTextConfigCodec {
     private static final String FANCY_KEY_FORMATTER = "formatter";
     private static final String FANCY_KEY_TEXT = "text";
     private static final String FANCY_KEY_HOVER = "hoverText";
+    private static final String FANCY_KEY_HOVER_TYPE = "hoverType";
     private static final String FANCY_KEY_ACTION_TEXT = "clickActionText";
     private static final String FANCY_KEY_ACTION_TYPE = "clickActionType";
+
+    private static final String HOVER_TYPE_TEXT = "text";
+    private static final String HOVER_TYPE_ITEM = "item";
+    // Mirrors the one literal key FancySegment.HOVER_HANDLERS holds today; a mutable, plugin-extensible
+    // runtime registry is not something a save-time codec can safely generalize over.
+    private static final String HOVER_ITEM_SENTINEL_PREFIX = "$show_item$";
 
     /**
      * Register {@link FancyText} into {@link ConfigFactory}, plus the same read/write pair again under
@@ -103,13 +120,16 @@ public final class FancyTextConfigCodec {
             return;
         }
 
-        boolean hasHover = fancyText.getHoverText() != null && !fancyText.getHoverText().isEmpty();
-        boolean hasAction = fancyText.getClickActionText() != null && !fancyText.getClickActionText().isEmpty();
+        String hoverText = fancyText.getHoverText();
+        boolean hasHover = hoverText != null && !hoverText.isEmpty();
+        String clickActionText = fancyText.getClickActionText();
+        boolean hasActionText = clickActionText != null && !clickActionText.isEmpty();
+        boolean hasActionType = fancyText.getClickActionType() != ClickActionType.NONE;
 
         String text = fancyText.getText().replace('§', '&');
         Object saveText = asStringOrList(text);
 
-        if (!hasHover && !hasAction) {
+        if (!hasHover && !hasActionText && !hasActionType) {
             gen.writeObject(saveText);
             return;
         }
@@ -117,10 +137,21 @@ public final class FancyTextConfigCodec {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put(FANCY_KEY_TEXT, saveText);
         if (hasHover) {
-            map.put(FANCY_KEY_HOVER, asStringOrList(fancyText.getHoverText().replace('§', '&')));
+            String hoverType = HOVER_TYPE_TEXT;
+            String storedHover = hoverText;
+            if (hoverText.startsWith(HOVER_ITEM_SENTINEL_PREFIX)) {
+                hoverType = HOVER_TYPE_ITEM;
+                storedHover = hoverText.substring(HOVER_ITEM_SENTINEL_PREFIX.length());
+            }
+            map.put(FANCY_KEY_HOVER, asStringOrList(storedHover.replace('§', '&')));
+            map.put(FANCY_KEY_HOVER_TYPE, hoverType);
         }
-        if (hasAction) {
-            map.put(FANCY_KEY_ACTION_TEXT, asStringOrList(fancyText.getClickActionText().replace('§', '&')));
+        if (hasActionText) {
+            map.put(FANCY_KEY_ACTION_TEXT, asStringOrList(clickActionText.replace('§', '&')));
+        }
+        // Written whenever the type itself is meaningful, regardless of whether there is action text to
+        // go with it - see the class javadoc for why that independence is the whole point of this change.
+        if (hasActionType) {
             map.put(FANCY_KEY_ACTION_TYPE, fancyText.getClickActionType().name());
         }
         gen.writeObject(map);
@@ -148,6 +179,12 @@ public final class FancyTextConfigCodec {
         if (node.isObject() && node.has(FANCY_KEY_TEXT)) {
             String text = joinNode(node.get(FANCY_KEY_TEXT));
             String hoverText = joinNode(node.get(FANCY_KEY_HOVER));
+            String hoverTypeName = joinNode(node.get(FANCY_KEY_HOVER_TYPE));
+            if (hoverText != null && HOVER_TYPE_ITEM.equals(hoverTypeName)) {
+                // Absent hoverType (a pre-existing file) means "text" implicitly - the sentinel, if any,
+                // stays embedded in hoverText raw, unchanged from how it always read.
+                hoverText = HOVER_ITEM_SENTINEL_PREFIX + hoverText;
+            }
             String actionText = joinNode(node.get(FANCY_KEY_ACTION_TEXT));
             String actionTypeName = joinNode(node.get(FANCY_KEY_ACTION_TYPE));
             ClickActionType actionType = actionTypeName != null && !actionTypeName.isEmpty()
