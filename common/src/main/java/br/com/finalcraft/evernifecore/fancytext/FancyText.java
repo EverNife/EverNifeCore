@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.fancytext.hover.FancyHover;
 import br.com.finalcraft.evernifecore.fancytext.hover.ItemHover;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
 
@@ -67,6 +68,16 @@ public interface FancyText {
 
     FancyFormatter append(FancyText fancyText);
 
+    /** Appends {@code text} on its own line (a leading newline), so a caller stops spelling the {@code "\n"}. */
+    default FancyFormatter appendLine(String text) {
+        return append("\n" + text);
+    }
+
+    /** {@link #appendLine(String)} of {@code String.format(format, args)}. */
+    default FancyFormatter appendLine(String format, Object... args) {
+        return appendLine(String.format(format, args));
+    }
+
     FancyText hover(String hoverText);
 
     /** Attaches an arbitrary registry-backed hover value - see {@link FancyHover}/{@code FancyHoverRegistry}. */
@@ -111,9 +122,34 @@ public interface FancyText {
 
     Component toComponent(String startingColor, RenderContext context);
 
+    /** The rendered legacy ({@code §}-formatted) string, without sending it. */
+    default String toLegacyString() {
+        return FCColorUtil.componentToString(toComponent());
+    }
+
+    /** The rendered legacy string with {@code ${key}} placeholders resolved for this render, without sending it. */
+    default String toLegacyString(RenderContext context) {
+        return FCColorUtil.componentToString(toComponent(context));
+    }
+
+    /** The rendered text with the colour codes stripped, without sending it. */
+    default String toPlainText() {
+        return FCColorUtil.stripColor(toLegacyString());
+    }
+
+    /** The rendered, placeholder-resolved text with the colour codes stripped, without sending it. */
+    default String toPlainText(RenderContext context) {
+        return FCColorUtil.stripColor(toLegacyString(context));
+    }
+
     String getLastTextColor();
 
     void send(FCommandSender... commandSender);
+
+    /** Sends to every recipient in {@code commandSenders}, mirroring {@code ILocaleMessageBase.send(List)}. */
+    default void send(List<FCommandSender> commandSenders) {
+        send(commandSenders.toArray(new FCommandSender[0]));
+    }
 
     default void broadcast() {
         EverNifeCore.getPlatform().getChatAdapter().broadcast(this);
