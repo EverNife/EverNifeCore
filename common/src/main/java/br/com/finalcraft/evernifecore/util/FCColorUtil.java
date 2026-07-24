@@ -64,10 +64,11 @@ public class FCColorUtil {
 
     public static List<String> stripColor(@Nullable final List<String> text) {
         if (text == null) return null;
-        for (int i = 0; i < text.size(); i++) {
-            text.set(i, stripColor(text.get(i)));
+        List<String> result = new ArrayList<>(text.size());
+        for (String line : text) {
+            result.add(stripColor(line));
         }
-        return text;
+        return result;
     }
 
     public static Component colorfyComponent(@Nullable String text) {

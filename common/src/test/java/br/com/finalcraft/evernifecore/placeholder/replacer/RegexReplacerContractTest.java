@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 
 /**
  * Anti-regression pins for {@link RegexReplacer}'s current, already-correct contract. Escaping of
@@ -34,14 +34,16 @@ public class RegexReplacerContractTest {
     }
 
     @Test
-    void applyOnAListMutatesEachElementInPlaceAndReturnsTheSameList() {
+    void applyOnAListReturnsANewListAndLeavesTheOriginalUntouched() {
         RegexReplacer<Object> replacer = new RegexReplacer<>().addParser("name", o -> "Steve");
         List<String> lines = Arrays.asList("Hello %name%", "Bye %name%");
 
         List<String> result = replacer.apply(lines, new Object());
 
-        assertSame(lines, result, "apply(List, O) returns the very same list instance it was given");
-        assertEquals(Arrays.asList("Hello Steve", "Bye Steve"), lines);
+        assertNotSame(lines, result, "apply(List, O) must return a NEW list, never the one it was given");
+        assertEquals(Arrays.asList("Hello Steve", "Bye Steve"), result);
+        assertEquals(Arrays.asList("Hello %name%", "Bye %name%"), lines,
+                "the original list must be left untouched");
     }
 
     // The regex engine is already match-driven: a parser that is registered but never cited in the

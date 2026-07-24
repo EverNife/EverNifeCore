@@ -52,12 +52,15 @@ public class CompoundReplacer {
     }
 
     public List<String> apply(List<String> texts){
-        if (isEmpty()) return texts; //Early Return to prevent wasted time
+        //Always return a fresh list, never the caller's - a shared source (e.g. a cached data part)
+        //must not be corrupted by a replace pass.
+        if (isEmpty()) return new ArrayList<>(texts); //nothing to replace, but still a copy
 
-        for (int i = 0; i < texts.size(); i++) {
-            texts.set(i, apply(texts.get(i)));
+        List<String> result = new ArrayList<>(texts.size());
+        for (String text : texts) {
+            result.add(apply(text));
         }
-        return texts;
+        return result;
     }
 
     public boolean isEmpty(){
