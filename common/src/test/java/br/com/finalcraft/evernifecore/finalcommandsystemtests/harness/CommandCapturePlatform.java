@@ -209,6 +209,13 @@ public class CommandCapturePlatform implements IPlatform {
             @Override
             public void broadcast(FancyText fancyText) {
             }
+
+            @Override
+            public boolean supportsHover(String typeId) {
+                // Same no-op default as the rest of this fixture: it stands in for "no platform has an
+                // opinion", not for a real platform's actual hover support.
+                return true;
+            }
         };
     }
 
