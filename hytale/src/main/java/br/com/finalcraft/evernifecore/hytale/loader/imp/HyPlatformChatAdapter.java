@@ -39,4 +39,12 @@ public class HyPlatformChatAdapter implements IPlatformChatAdapter {
 
         fancyText.send(senders.toArray(new FCommandSender[0]));
     }
+
+    @Override
+    public boolean supportsHover(String typeId) {
+        // com.hypixel.hytale.server.core.Message has no hover concept at all (bold/italic/monospace/
+        // color/link only, confirmed against the pinned server API) - see FCHytaleAdventureUtil,
+        // whose hover-handling branch has always been commented out. No hover typeId renders here yet.
+        return false;
+    }
 }

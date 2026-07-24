@@ -24,6 +24,11 @@ public class ECProviders {
         return BASE_PROVIDER.provide(IPlatform.class);
     }
 
+    /** Like {@link #getPlatform()} but returns {@code null} instead of throwing when none is registered. */
+    public IPlatform getPlatformOrNull(){
+        return BASE_PROVIDER.provideOrNull(IPlatform.class);
+    }
+
     public ECEventDispatcher getEventDispatcher(){
         return BASE_PROVIDER.provide(ECEventDispatcher.class);
     }

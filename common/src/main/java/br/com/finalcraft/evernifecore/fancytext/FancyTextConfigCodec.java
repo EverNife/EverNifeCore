@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.evernifecore.fancytext.hover.ItemHover;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -56,9 +57,10 @@ public final class FancyTextConfigCodec {
 
     private static final String HOVER_TYPE_TEXT = "text";
     private static final String HOVER_TYPE_ITEM = "item";
-    // Mirrors the one literal key FancySegment.HOVER_HANDLERS holds today; a mutable, plugin-extensible
-    // runtime registry is not something a save-time codec can safely generalize over.
-    private static final String HOVER_ITEM_SENTINEL_PREFIX = "$show_item$";
+    // Matches the sentinel FancyHoverRegistry's built-in item hover type still collapses to for
+    // getHoverText(); a mutable, plugin-extensible runtime registry is not something a save-time
+    // codec can safely generalize over, so custom types are simply not round-tripped here.
+    private static final String HOVER_ITEM_SENTINEL_PREFIX = ItemHover.LEGACY_SENTINEL;
 
     /**
      * Register {@link FancyText} into {@link ConfigFactory}, plus the same read/write pair again under

@@ -41,4 +41,12 @@ public class McPlatformChatAdapter implements IPlatformChatAdapter {
 
         fancyText.send(senders.toArray(new FCommandSender[0]));
     }
+
+    @Override
+    public boolean supportsHover(String typeId) {
+        // Every hover kind renders through Adventure's HoverEvent and crosses to legacy BaseComponents
+        // via FCComponentUtil; that pipeline never restricts which typeId produced the event, so Bukkit
+        // supports whatever hover a registered FancyHoverType is able to build.
+        return true;
+    }
 }

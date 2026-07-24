@@ -1,20 +1,21 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
+import br.com.finalcraft.evernifecore.fancytext.hover.FancyHover;
+import br.com.finalcraft.evernifecore.fancytext.hover.FancyHoverRegistry;
+import br.com.finalcraft.evernifecore.fancytext.hover.ItemHover;
+import br.com.finalcraft.evernifecore.fancytext.hover.TextHover;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.version.FCPlatformType;
-import net.kyori.adventure.key.Key;
-import net.kyori.adventure.nbt.api.BinaryTagHolder;
+import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.ComponentBuilder;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Objects;
-import java.util.function.BiConsumer;
+import java.util.function.UnaryOperator;
 
 /**
  * One styled leaf of the rich-text model: a single run of text plus its own hover and click. See
@@ -23,7 +24,7 @@ import java.util.function.BiConsumer;
 public class FancySegment implements FancyText {
 
     protected String text = "";
-    protected String hoverText = null;
+    protected FancyHover hover = null;
     protected String clickActionText = null;
     protected ClickActionType clickActionType = ClickActionType.NONE;
     protected String lastColor = "";
@@ -31,14 +32,6 @@ public class FancySegment implements FancyText {
     private boolean recentChanged = true;
     private String lastStartingColor = "";
     private transient Component cachedComponent = null;
-
-    public static final Map<String, BiConsumer<ComponentBuilder<?, ?>, String>> HOVER_HANDLERS = new LinkedHashMap<>();
-
-    static {
-        HOVER_HANDLERS.put("$show_item$", (builder, value) -> {
-            builder.hoverEvent(HoverEvent.showItem(Key.key(value), 1, BinaryTagHolder.binaryTagHolder(value)));
-        });
-    }
 
     public FancySegment() {
     }
@@ -49,21 +42,47 @@ public class FancySegment implements FancyText {
 
     public FancySegment(String text, String hoverText) {
         this.text = text;
-        this.hoverText = hoverText;
+        this.hover = legacyHoverOf(hoverText);
     }
 
     public FancySegment(String text, String hoverText, String runCommand) {
         this.text = text;
-        this.hoverText = hoverText;
+        this.hover = legacyHoverOf(hoverText);
         this.clickActionText = runCommand;
         this.clickActionType = ClickActionType.RUN_COMMAND;
     }
 
     public FancySegment(String text, String hoverText, String clickActionText, ClickActionType clickActionType) {
         this.text = text;
-        this.hoverText = hoverText;
+        this.hover = legacyHoverOf(hoverText);
         this.clickActionText = clickActionText;
         this.clickActionType = clickActionType;
+    }
+
+    /** The legacy string form: a plain tooltip, or a {@code "$show_item$"}-prefixed item id/SNBT string. */
+    private static FancyHover legacyHoverOf(@Nullable String hoverText) {
+        if (hoverText == null) {
+            return null;
+        }
+        if (hoverText.startsWith(ItemHover.LEGACY_SENTINEL)) {
+            return new ItemHover(hoverText.substring(ItemHover.LEGACY_SENTINEL.length()));
+        }
+        return new TextHover(hoverText);
+    }
+
+    /**
+     * Only the legacy string-payload hover kinds (plain text, item id) support placeholder
+     * substitution today; a custom registry type's payload is opaque to this class and passes
+     * through untouched.
+     */
+    private static FancyHover replaceHoverPayload(FancyHover hover, UnaryOperator<String> transform) {
+        if (hover instanceof TextHover) {
+            return new TextHover(transform.apply(((TextHover) hover).text()));
+        }
+        if (hover instanceof ItemHover) {
+            return new ItemHover(transform.apply(((ItemHover) hover).rawItem()));
+        }
+        return hover;
     }
 
     @Override
@@ -73,7 +92,12 @@ public class FancySegment implements FancyText {
 
     @Override
     public String getHoverText() {
-        return hoverText;
+        return hover == null ? null : hover.toLegacyPayload();
+    }
+
+    @Override
+    public FancyHover getHover() {
+        return hover;
     }
 
     @Override
@@ -97,7 +121,7 @@ public class FancySegment implements FancyText {
     public FancySegment replace(String placeholder, String value) {
         setRecentChanged();
         this.text = text.replace(placeholder, value);
-        if (this.hoverText != null) this.hoverText = this.hoverText.replace(placeholder, value);
+        this.hover = replaceHoverPayload(this.hover, legacyPayload -> legacyPayload.replace(placeholder, value));
         if (this.clickActionText != null) this.clickActionText = this.clickActionText.replace(placeholder, value);
         return this;
     }
@@ -106,7 +130,7 @@ public class FancySegment implements FancyText {
     public FancySegment replace(CompoundReplacer replacer) {
         setRecentChanged();
         this.text = replacer.apply(this.text);
-        if (this.hoverText != null) this.hoverText = replacer.apply(this.hoverText);
+        this.hover = replaceHoverPayload(this.hover, replacer::apply);
         if (this.clickActionText != null) this.clickActionText = replacer.apply(this.clickActionText);
         return this;
     }
@@ -137,7 +161,14 @@ public class FancySegment implements FancyText {
     @Override
     public FancySegment hover(String hoverText) {
         setRecentChanged();
-        this.hoverText = hoverText;
+        this.hover = legacyHoverOf(hoverText);
+        return this;
+    }
+
+    @Override
+    public FancySegment hover(FancyHover hover) {
+        setRecentChanged();
+        this.hover = hover;
         return this;
     }
 
@@ -189,17 +220,10 @@ public class FancySegment implements FancyText {
         Component textComponent = FCColorUtil.colorfyComponent(fixedText);
         ComponentBuilder<?, ?> builder = textComponent.toBuilder();
 
-        if (this.hoverText != null && !this.hoverText.isEmpty()) {
-            boolean handled = false;
-            for (Map.Entry<String, BiConsumer<ComponentBuilder<?, ?>, String>> entry : HOVER_HANDLERS.entrySet()) {
-                if (this.hoverText.startsWith(entry.getKey())) {
-                    entry.getValue().accept(builder, this.hoverText.substring(entry.getKey().length()));
-                    handled = true;
-                    break;
-                }
-            }
-            if (!handled) {
-                builder.hoverEvent(HoverEvent.showText(FCColorUtil.colorfyComponent(this.hoverText)));
+        if (this.hover != null) {
+            HoverEvent<?> hoverEvent = FancyHoverRegistry.resolve(this.hover);
+            if (hoverEvent != null) {
+                builder.hoverEvent(hoverEvent);
             }
         }
 
@@ -235,7 +259,14 @@ public class FancySegment implements FancyText {
 
     @Override
     public FancySegment clone() {
-        return new FancySegment(text, hoverText, clickActionText, clickActionType);
+        // Copies the hover value by reference rather than round-tripping it through a legacy string:
+        // a custom registry type has no such string form at all, so the round trip would silently
+        // drop it (see FancyHover#toLegacyPayload).
+        FancySegment clone = new FancySegment(text);
+        clone.hover = this.hover;
+        clone.clickActionText = this.clickActionText;
+        clone.clickActionType = this.clickActionType;
+        return clone;
     }
 
     @Override
@@ -246,7 +277,7 @@ public class FancySegment implements FancyText {
         FancySegment fancyText = (FancySegment) o;
 
         if (!Objects.equals(text, fancyText.text)) return false;
-        if (!Objects.equals(hoverText, fancyText.hoverText)) return false;
+        if (!Objects.equals(hover, fancyText.hover)) return false;
         if (!Objects.equals(clickActionText, fancyText.clickActionText)) return false;
 
         return clickActionType == fancyText.clickActionType;
@@ -255,7 +286,7 @@ public class FancySegment implements FancyText {
     @Override
     public int hashCode() {
         int result = text != null ? text.hashCode() : 0;
-        result = 31 * result + (hoverText != null ? hoverText.hashCode() : 0);
+        result = 31 * result + (hover != null ? hover.hashCode() : 0);
         result = 31 * result + (clickActionText != null ? clickActionText.hashCode() : 0);
         result = 31 * result + (clickActionType != null ? clickActionType.hashCode() : 0);
         return result;

@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
+import br.com.finalcraft.evernifecore.fancytext.hover.FancyHover;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import net.kyori.adventure.text.Component;
@@ -140,6 +141,12 @@ public class FancyFormatter implements FancyText {
     }
 
     @Override
+    public FancyHover getHover() {
+        FancyText last = lastOrNull();
+        return last == null ? null : last.getHover();
+    }
+
+    @Override
     public String getClickActionText() {
         FancyText last = lastOrNull();
         return last == null ? null : last.getClickActionText();
@@ -168,6 +175,13 @@ public class FancyFormatter implements FancyText {
     public FancyFormatter hover(String hoverText) {
         FancyText last = lastOrNull();
         if (last != null) last.hover(hoverText);
+        return this;
+    }
+
+    @Override
+    public FancyFormatter hover(FancyHover hover) {
+        FancyText last = lastOrNull();
+        if (last != null) last.hover(hover);
         return this;
     }
 

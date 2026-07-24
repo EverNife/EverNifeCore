@@ -2,7 +2,10 @@ package br.com.finalcraft.evernifecore.fancytext;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
+import br.com.finalcraft.evernifecore.fancytext.hover.FancyHover;
+import br.com.finalcraft.evernifecore.fancytext.hover.ItemHover;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
+import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
 
 import java.util.List;
@@ -16,6 +19,10 @@ public interface FancyText {
     String getText();
 
     String getHoverText();
+
+    /** The structured hover value attached to this piece, or {@code null} if none. */
+    @Nullable
+    FancyHover getHover();
 
     String getClickActionText();
 
@@ -37,12 +44,15 @@ public interface FancyText {
 
     FancyText hover(String hoverText);
 
+    /** Attaches an arbitrary registry-backed hover value - see {@link FancyHover}/{@code FancyHoverRegistry}. */
+    FancyText hover(FancyHover hover);
+
     default FancyText hover(List<String> hoverText) {
         return hover(String.join("\n", hoverText));
     }
 
     default FancyText hoverItem(String serializedItem) {
-        return hover("$show_item$" + serializedItem);
+        return hover(new ItemHover(serializedItem));
     }
 
     FancyText click(ClickActionType actionType);
