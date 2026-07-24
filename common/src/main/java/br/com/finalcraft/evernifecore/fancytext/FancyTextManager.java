@@ -24,7 +24,7 @@ public class FancyTextManager {
         if (fancyFormatter.complexPlaceholder) {
             for (FCommandSender sender : commandSenders) {
                 RenderContext context = RenderContext.of(sender);
-                FancyFormatter formatterClone = fancyFormatter.clone();
+                FancyFormatter formatterClone = fancyFormatter.copy();
 
                 for (Map.Entry<String, Object> entry : formatterClone.mapOfPlaceholders.entrySet()) {
                     String value = context.resolveMappedValue(entry.getValue());
@@ -40,7 +40,7 @@ public class FancyTextManager {
             return;
         }
 
-        FancyFormatter formatterClone = fancyFormatter.clone();
+        FancyFormatter formatterClone = fancyFormatter.copy();
         for (Map.Entry<String, Object> entry : fancyFormatter.mapOfPlaceholders.entrySet()) {
             String placeholder = entry.getKey();
             String value = String.valueOf(entry.getValue());

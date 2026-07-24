@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.placeholder.parser;
 
 import java.util.function.Function;
 
-public class SimpleParser<O extends Object> {
+public class SimpleParser<O> {
 
     private final String id;
     private final String description;

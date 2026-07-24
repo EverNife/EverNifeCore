@@ -211,7 +211,7 @@ public class LocaleMessageImp implements LocaleMessage {
     public LocaleMessageImp derivePlaceholderResolved(String placeholder, String value) {
         LocaleMessageImp derived = new LocaleMessageImp(this.plugin, this.key, false);
         for (Map.Entry<String, FancyText> entry : this.fancyTextMap.entrySet()) {
-            derived.addLocale(entry.getKey(), entry.getValue().clone().replace(placeholder, value));
+            derived.addLocale(entry.getKey(), entry.getValue().copy().replace(placeholder, value));
         }
         return derived;
     }

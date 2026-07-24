@@ -14,7 +14,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O>  {
+public class RegexReplacer<O> implements Replacer<O>, IProvider<O>  {
 
     private final Closures closures;
     private final Pattern pattern;

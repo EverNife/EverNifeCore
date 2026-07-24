@@ -119,7 +119,7 @@ public interface FancyText {
         EverNifeCore.getPlatform().getChatAdapter().broadcast(this);
     }
 
-    FancyText clone();
+    FancyText copy();
 
     static FancyText of() {
         return new FancySegment();

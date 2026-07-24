@@ -10,7 +10,7 @@ import java.util.List;
 
 public class CompoundReplacer {
 
-    private List<Tuple<RegexReplacer, Object>> REGEX_REPLACERS = new ArrayList<>();
+    private List<Tuple<RegexReplacer, Object>> regexReplacers = new ArrayList<>();
     private FPlayer papiUser = null; //If not null, integrate with PlaceholderAPI
 
     public CompoundReplacer() {
@@ -22,12 +22,12 @@ public class CompoundReplacer {
     }
 
     public <O> CompoundReplacer appendReplacer(RegexReplacer<O> regexReplacer, O object){
-        this.REGEX_REPLACERS.add(Tuple.of(regexReplacer, object));
+        this.regexReplacers.add(Tuple.of(regexReplacer, object));
         return this;
     }
 
     public CompoundReplacer appendReplacer(CompoundReplacer other){
-        this.REGEX_REPLACERS.addAll(other.REGEX_REPLACERS);
+        this.regexReplacers.addAll(other.regexReplacers);
         if (this.papiUser == null){
             this.papiUser = other.papiUser;
         }
@@ -40,7 +40,7 @@ public class CompoundReplacer {
     }
 
     public String apply(String text) {
-        for (Tuple<RegexReplacer, Object> tuple : REGEX_REPLACERS) {
+        for (Tuple<RegexReplacer, Object> tuple : regexReplacers) {
             RegexReplacer replacer = tuple.getLeft();
             Object watcher = tuple.getRight();
             text = replacer.apply(text, watcher);
@@ -64,19 +64,19 @@ public class CompoundReplacer {
     }
 
     public boolean isEmpty(){
-        return !hasPAPIUser() && REGEX_REPLACERS.isEmpty();
+        return !hasPAPIUser() && regexReplacers.isEmpty();
     }
 
     public boolean hasPAPIUser(){
         return papiUser != null;
     }
 
-    public CompoundReplacer clone() {
+    public CompoundReplacer copy() {
         return new CompoundReplacer().appendReplacer(this);
     }
 
     public List<Tuple<RegexReplacer, Object>> getRegexReplacers() {
-        return REGEX_REPLACERS;
+        return regexReplacers;
     }
 
     public @Nullable FPlayer getPapiUser() {

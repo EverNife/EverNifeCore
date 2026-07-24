@@ -10,19 +10,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FancyFormatterEdgeCasesTest {
 
-    // clone() must deep-copy the placeholder map: mutating one side never leaks into the other.
+    // copy() must deep-copy the placeholder map: mutating one side never leaks into the other.
     @Test
-    public void cloneIsolatesThePlaceholderMap() {
+    public void copyIsolatesThePlaceholderMap() {
         FancyFormatter original = new FancyFormatter().append("hello");
         original.addPlaceholder("%a%", "1");
 
-        FancyFormatter clone = original.clone();
-        clone.addPlaceholder("%x%", "v");
-        assertFalse(original.mapOfPlaceholders.containsKey("%x%"), "clone leaked into original");
-        assertTrue(clone.mapOfPlaceholders.containsKey("%x%"));
+        FancyFormatter copy = original.copy();
+        copy.addPlaceholder("%x%", "v");
+        assertFalse(original.mapOfPlaceholders.containsKey("%x%"), "copy leaked into original");
+        assertTrue(copy.mapOfPlaceholders.containsKey("%x%"));
 
         original.addPlaceholder("%y%", "2");
-        assertFalse(clone.mapOfPlaceholders.containsKey("%y%"), "original leaked into clone");
+        assertFalse(copy.mapOfPlaceholders.containsKey("%y%"), "original leaked into copy");
     }
 
     // An empty formatter has no segment to delegate to; getters/setters degrade instead of throwing.

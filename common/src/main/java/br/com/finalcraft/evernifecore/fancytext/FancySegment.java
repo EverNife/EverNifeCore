@@ -318,7 +318,7 @@ public class FancySegment implements FancyText {
     }
 
     private FancySegment resolvedCopy(PlaceholderScope scope, RenderContext context) {
-        FancySegment copy = clone();
+        FancySegment copy = copy();
         copy.text = scope.render(this.text, context);
         copy.hover = replaceHoverPayload(this.hover, payload -> scope.render(payload, context));
         copy.clickActionText = scope.render(this.clickActionText, context);
@@ -336,18 +336,18 @@ public class FancySegment implements FancyText {
     }
 
     @Override
-    public FancySegment clone() {
+    public FancySegment copy() {
         // Copies the hover value by reference rather than round-tripping it through a legacy string:
         // a custom registry type has no such string form at all, so the round trip would silently
         // drop it (see FancyHover#toLegacyPayload).
-        FancySegment clone = new FancySegment(text);
-        clone.hover = this.hover;
-        clone.clickActionText = this.clickActionText;
-        clone.clickActionType = this.clickActionType;
+        FancySegment copy = new FancySegment(text);
+        copy.hover = this.hover;
+        copy.clickActionText = this.clickActionText;
+        copy.clickActionType = this.clickActionType;
         if (this.placeholders != null) {
-            clone.placeholders = new LinkedHashMap<>(this.placeholders);
+            copy.placeholders = new LinkedHashMap<>(this.placeholders);
         }
-        return clone;
+        return copy;
     }
 
     @Override

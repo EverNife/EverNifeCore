@@ -46,7 +46,7 @@ public class FancyFormatter implements FancyText {
     public FancyFormatter append(FancyText fancyText) {
         if (fancyText instanceof FancyFormatter other) {
             for (FancyText fancyTextInner : other.fancyTextList) {
-                append(fancyTextInner.clone());
+                append(fancyTextInner.copy());
             }
         } else {
             this.fancyTextList.add(fancyText);
@@ -106,7 +106,7 @@ public class FancyFormatter implements FancyText {
     }
 
     public boolean hasPlaceholders() {
-        return mapOfPlaceholders.size() > 0;
+        return !mapOfPlaceholders.isEmpty();
     }
 
     public List<FancyText> getFancyTextList() {
@@ -163,17 +163,17 @@ public class FancyFormatter implements FancyText {
     }
 
     @Override
-    public FancyFormatter clone() {
-        FancyFormatter clone = new FancyFormatter();
+    public FancyFormatter copy() {
+        FancyFormatter copy = new FancyFormatter();
         for (FancyText fancyText : this.fancyTextList) {
-            clone.append(fancyText.clone());
+            copy.append(fancyText.copy());
         }
-        clone.mapOfPlaceholders = new HashMap<>(this.mapOfPlaceholders);
-        clone.complexPlaceholder = this.complexPlaceholder;
+        copy.mapOfPlaceholders = new HashMap<>(this.mapOfPlaceholders);
+        copy.complexPlaceholder = this.complexPlaceholder;
         if (this.placeholders != null) {
-            clone.placeholders = new LinkedHashMap<>(this.placeholders);
+            copy.placeholders = new LinkedHashMap<>(this.placeholders);
         }
-        return clone;
+        return copy;
     }
 
     // Getters/setters target the last appended segment; an empty formatter has none, so degrade

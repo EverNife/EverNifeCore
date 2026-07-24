@@ -17,16 +17,18 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class FCLocaleScanner {
 
-    public static List<LocaleMessageImp> scanForLocale(ECPluginData plugin, boolean silent, Class localeClass){
+    public static List<LocaleMessageImp> scanForLocale(ECPluginData plugin, boolean silent, Class<?> localeClass){
 
         List<LocaleMessageImp> localeMessageList = new ArrayList<>();
-        List<String> allKeys = new ArrayList<>();
+        Set<String> allKeys = new HashSet<>();
 
         boolean atLeastOneLocaleField = false;
 

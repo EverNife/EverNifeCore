@@ -117,7 +117,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
             }
 
             for (FancyText formatHeaderText : formatHeader) {
-                final FancyText fancyText = formatHeaderText.clone();
+                final FancyText fancyText = formatHeaderText.copy();
                 pageHeaderCache.add(fancyText);
             }
 
@@ -150,7 +150,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
             }
 
             for (FancyText formatFooterText : formatFooter) {
-                final FancyText fancyText = formatFooterText.clone();
+                final FancyText fancyText = formatFooterText.copy();
                 pageFooterCache.add(fancyText);
             }
 
@@ -446,7 +446,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
         @Override
         public BuilderImp<O, C> setFormatLine(FancyText formatLine) {
-            return setFormatLine((o -> formatLine.clone()));//new instance for every call
+            return setFormatLine((o -> formatLine.copy()));//new instance for every call
         }
 
         @Override
@@ -594,7 +594,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
                     ? PVExtraMessages.PREVIOUS_PAGE_WHEN_AVAILABLE.getDefaultFancyText()
                     : PVExtraMessages.PREVIOUS_PAGE_WHEN_UNAVAILABLE.getDefaultFancyText();
 
-            FancyText centerPageButton = PVExtraMessages.CENTER_PAGE_BUTTON.getDefaultFancyText().clone()
+            FancyText centerPageButton = PVExtraMessages.CENTER_PAGE_BUTTON.getDefaultFancyText().copy()
                     .replace("%current_page%", String.valueOf(currentPage))
                     .replace("%last_page%", String.valueOf(lastPage));
 
@@ -603,9 +603,9 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
                     : PVExtraMessages.NEXT_PAGE_WHEN_UNAVAILABLE.getDefaultFancyText();
 
             return FancyFormatter.of() //First Border
-                            .append(previousPageButton.clone()) //First Arrow
-                            .append(centerPageButton.clone()) //First Arrow
-                            .append(nextPageButton.clone()) //First Arrow
+                            .append(previousPageButton.copy()) //First Arrow
+                            .append(centerPageButton.copy()) //First Arrow
+                            .append(nextPageButton.copy()) //First Arrow
                             .replace("%on_previous_page_click%", moveToPage.apply(currentPage - 1))
                             .replace("%on_next_page_click%", moveToPage.apply(currentPage + 1))
                             .replace("%on_refresh_page_click%", moveToPage.apply(currentPage));

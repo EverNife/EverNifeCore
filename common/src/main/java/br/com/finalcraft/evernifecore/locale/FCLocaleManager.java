@@ -17,13 +17,13 @@ public class FCLocaleManager {
         DEFAULT_EVERNIFECORE_LOCALE = EverNifeCore.instance.getEcPluginData().getPluginLanguage();
     }
 
-    public static void loadLocale(ECPluginData plugin, Class... classes){
+    public static void loadLocale(ECPluginData plugin, Class<?>... classes){
         loadLocale(plugin, false, classes);
     }
 
-    public static void loadLocale(ECPluginData plugin, boolean silent, Class... classes){
+    public static void loadLocale(ECPluginData plugin, boolean silent, Class<?>... classes){
 
-        for (Class clazz : classes) {
+        for (Class<?> clazz : classes) {
             //Load all locales on the class
             FCLocaleScanner.scanForLocale(plugin, silent, clazz);
         }

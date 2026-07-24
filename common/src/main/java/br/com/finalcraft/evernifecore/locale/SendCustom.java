@@ -108,7 +108,7 @@ public class SendCustom implements ILocaleMessageBase {
      * so a preview can never describe something else.
      */
     protected FancyText renderFor(@Nullable FCommandSender sender){
-        FancyText fancyText = sender == null ? localeMessage.getDefaultFancyText().clone() : localeMessage.getFancyText(sender).clone();
+        FancyText fancyText = sender == null ? localeMessage.getDefaultFancyText().copy() : localeMessage.getFancyText(sender).copy();
         if (hover != null) fancyText.hover(hover);
         if (action != null) fancyText.clickCommand(action);
         if (suggest != null) fancyText.clickSuggest(suggest);

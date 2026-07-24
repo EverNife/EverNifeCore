@@ -76,7 +76,7 @@ public class FinalCMDManager {
      *
      * @return every {@link FinalCMDPluginCommand} that was actually registered; empty on total failure
      */
-    public static List<FinalCMDPluginCommand> registerCommand(@Nonnull ECPluginData ecPluginData, @Nonnull Class cmdClass) {
+    public static List<FinalCMDPluginCommand> registerCommand(@Nonnull ECPluginData ecPluginData, @Nonnull Class<?> cmdClass) {
         try {
             Constructor constructor = cmdClass.getDeclaredConstructor();
             Object customExecutor = constructor.newInstance();
@@ -106,7 +106,7 @@ public class FinalCMDManager {
 
             //Add all declared-methods from the class and its supper-classes until Object
             HashSet<Method> methods = new HashSet<>();
-            Class father = executor.getClass();
+            Class<?> father = executor.getClass();
             while (father != null && father != Object.class){
                 methods.addAll(Arrays.asList(father.getDeclaredMethods()));
                 father = father.getSuperclass();
@@ -180,7 +180,7 @@ public class FinalCMDManager {
                 for (CMDData<?> cmdData : customizeContext.getAllCMDData()) {
                     //If it's not the default validator, lets load its locale
                     for (CMDAccessValidation cmdAccessValidation : cmdData.getCmdAccessValidations()) {
-                        Class validationClass = cmdAccessValidation.getClass();
+                        Class<?> validationClass = cmdAccessValidation.getClass();
                         //Maybe the Validation class is not from this ECPlugin, so lets make sure its loaded on its proper owner
                         ECPluginData providingPlugin = ECPluginManager.getProvidingPlugin(validationClass);
                         FCLocaleManager.loadLocale(providingPlugin, true, validationClass);
@@ -223,7 +223,7 @@ public class FinalCMDManager {
                     for (CMDData<?> cmdData : customizeContext.getAllCMDData()) {
                         //If it's not the default validator, lets load its locale
                         for (CMDAccessValidation cmdAccessValidation : cmdData.getCmdAccessValidations()) {
-                            Class validationClass = cmdAccessValidation.getClass();
+                            Class<?> validationClass = cmdAccessValidation.getClass();
                             //Maybe the Validation class is not from this ECPlugin, so lets make sure its loaded on its proper owner
                             ECPluginData plugin = ECPluginManager.getProvidingPlugin(validationClass);
                             FCLocaleManager.loadLocale(plugin, true, validationClass);

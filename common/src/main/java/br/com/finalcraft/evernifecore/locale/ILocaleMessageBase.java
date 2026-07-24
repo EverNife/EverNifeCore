@@ -10,32 +10,32 @@ import java.util.function.Function;
 
 public interface ILocaleMessageBase {
 
-    public void send(FCommandSender... commandSenders);
+    void send(FCommandSender... commandSenders);
 
-    public default void send(List<FCommandSender> commandSenders) {
+    default void send(List<FCommandSender> commandSenders) {
         send(commandSenders.toArray(new FCommandSender[0]));
     }
 
-    public void broadcast();
+    void broadcast();
 
-    public SendCustom addReplacer(CompoundReplacer compoundReplacer);
+    SendCustom addReplacer(CompoundReplacer compoundReplacer);
 
-    public SendCustom addPlaceholder(String placeHolder, Object value);
+    SendCustom addPlaceholder(String placeHolder, Object value);
 
-    public SendCustom addPlaceholder(String placeHolder, Function<PlayerData, Object> function);
+    SendCustom addPlaceholder(String placeHolder, Function<PlayerData, Object> function);
 
-    public SendCustom addHover(String hover);
+    SendCustom addHover(String hover);
 
-    public SendCustom addAction(String action);
+    SendCustom addAction(String action);
 
-    public SendCustom addSuggest(String suggest);
+    SendCustom addSuggest(String suggest);
 
-    public SendCustom addLink(String link);
+    SendCustom addLink(String link);
 
-    public SendCustom concat(LocaleMessage localeMessage);
+    SendCustom concat(LocaleMessage localeMessage);
 
-    public SendCustom concat(SendCustom sendCustom);
+    SendCustom concat(SendCustom sendCustom);
 
-    public FancyText getFancyText(FCommandSender sender);
+    FancyText getFancyText(FCommandSender sender);
 
 }

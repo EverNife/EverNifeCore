@@ -7,10 +7,10 @@ import jakarta.annotation.Nullable;
 
 import java.util.function.BiFunction;
 
-public class ManipulatedParser<O extends Object> {
+public class ManipulatedParser<O> {
 
     private final Manipulator manipulator;
-    private final RegexReplacer regexReplacer;
+    private final RegexReplacer<?> regexReplacer;
     private final BiFunction<O, ManipulationContext, Object> parser;
 
     public <C> ManipulatedParser(String id, RegexReplacer<C> regexReplacer, BiFunction<O, ManipulationContext.RContext<C>, Object> parser) {
