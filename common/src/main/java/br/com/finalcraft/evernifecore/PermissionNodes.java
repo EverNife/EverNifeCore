@@ -8,6 +8,7 @@ public class PermissionNodes {
     public static final String EVERNIFECORE_COMMAND_UUIDOF              = "evernifecore.command.uuidof";
     public static final String EVERNIFECORE_COMMAND_COOLDOWN            = "evernifecore.command.cooldown";
     public static final String EVERNIFECORE_COMMAND_FCLOCALE            = "evernifecore.command.fclocale";
+    public static final String EVERNIFECORE_COMMAND_FCLOCALE_SELF       = "evernifecore.command.fclocale.self";
     public static final String EVERNIFECORE_COMMAND_STORAGE_TRANSFER    = "evernifecore.command.storage.transfer";
     public static final String EVERNIFECORE_COMMAND_STORAGE_STATUS      = "evernifecore.command.storage.status";
     public static final String EVERNIFECORE_COMMAND_ACCOUNT             = "evernifecore.command.account";

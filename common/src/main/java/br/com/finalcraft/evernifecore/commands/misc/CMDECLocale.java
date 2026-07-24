@@ -13,6 +13,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocalePDSection;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.util.FCCommandUtil;
 import br.com.finalcraft.evernifecore.util.FCServerUtil;
@@ -21,14 +22,17 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+// No command-wide permission: the admin subcommands (list/set/setall) each carry the admin node,
+// while 'self' carries a separate player-facing node - so granting a player 'self' never grants the
+// plugin-wide reconfiguration the other subcommands do.
 @FinalCMD(
-        aliases = {"eclocale","fclocale"},
-        permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE
+        aliases = {"eclocale","fclocale"}
 )
 public class CMDECLocale {
 
     @FinalCMD.SubCMD(
             subcmd = {"list"},
+            permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE,
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "Show all Locales from all plugins."),
                     @FCLocale(lang = LocaleType.PT_BR, text = "Mostra as Locales de todos os plugins.")
@@ -70,6 +74,7 @@ public class CMDECLocale {
 
     @FinalCMD.SubCMD(
             subcmd = {"set"},
+            permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE,
             usage = "%name% <PluginName> <LocaleName>",
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "Defines a locale to a specific plugin."),
@@ -118,6 +123,7 @@ public class CMDECLocale {
 
     @FinalCMD.SubCMD(
             subcmd = {"setall"},
+            permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE,
             usage = "%name% <LocaleName>",
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "Defines the locale to every single plugin."),
@@ -135,5 +141,39 @@ public class CMDECLocale {
             FCServerUtil.makePlayerExecuteCommand(sender, label + " set " + value.getMetaInfo().getName() + " " + argumentos.get(1));
         }
 
+    }
+
+    @FinalCMD.SubCMD(
+            subcmd = {"self"},
+            permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE_SELF,
+            usage = "%name% <LocaleName>",
+            validation = {PerPlayerLocaleAccessValidation.class},
+            locales = {
+                    @FCLocale(lang = LocaleType.EN_US, text = "Choose the language YOU see messages in."),
+                    @FCLocale(lang = LocaleType.PT_BR, text = "Escolha o idioma em que VOCÊ vê as mensagens.")
+            }
+    )
+    public void self(FCommandSender sender, MultiArgumentos argumentos, HelpLine helpLine, LocalePDSection localeSection) {
+
+        if (argumentos.emptyArgs(1)){
+            helpLine.sendTo(sender);
+            return;
+        }
+
+        String localeType = null;
+        for (String value : LocaleType.values()) {
+            if (argumentos.get(1).equalsIgnoreCase(value)){
+                localeType = value;
+                break;
+            }
+        }
+
+        if (localeType == null){
+            sender.sendMessage("§e§l ▶ §c[" + argumentos.get(1) + "]§c is not a known locale.");
+            return;
+        }
+
+        localeSection.setLang(localeType);
+        sender.sendMessage("§2§l ▶ §aYour language has been set to §b§l[" + localeType + "]§a!");
     }
 }
