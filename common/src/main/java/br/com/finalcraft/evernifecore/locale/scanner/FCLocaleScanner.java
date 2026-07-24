@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.locale.scanner;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
+import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.FCMultiLocales;
@@ -111,7 +112,7 @@ public class FCLocaleScanner {
             String clickActionText = fcLocale.runCommand().isEmpty() ? null : fcLocale.runCommand();
             ClickActionType clickActionType = fcLocale.clickActionType();
             String lang = fcLocale.lang();
-            FancyText fancyText = new FancyText(
+            FancyText fancyText = new FancySegment(
                     FCColorUtil.colorfy(text),
                     FCColorUtil.colorfy(hover),
                     clickActionText,

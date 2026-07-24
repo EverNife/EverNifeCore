@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginE
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.IPluginMetaInfo;
-import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.TestCommandSender;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
@@ -57,10 +57,10 @@ public class LocaleMessageSendContractTest {
         ECPluginData plugin = pluginData("ConcatBugPlugin");
 
         LocaleMessageImp first = new LocaleMessageImp(plugin, "concat.first", false);
-        first.addLocale("EN_US", new FancyText("Hello "));
+        first.addLocale("EN_US", new FancySegment("Hello "));
 
         LocaleMessageImp second = new LocaleMessageImp(plugin, "concat.second", false);
-        second.addLocale("EN_US", new FancyText("World"));
+        second.addLocale("EN_US", new FancySegment("World"));
 
         TestCommandSender console = new TestCommandSender("CONSOLE");
         SendCustom combined = first.concat(second);
@@ -81,7 +81,7 @@ public class LocaleMessageSendContractTest {
     @Tag("known-bug")
     void perPlayerPlaceholderIsNotLeakedAsLambdaToStringForANonPlayerSender() {
         LocaleMessageImp message = new LocaleMessageImp(pluginData("LambdaLeakPlugin"), "lambda.leak", false);
-        message.addLocale("EN_US", new FancyText("Hello {name}"));
+        message.addLocale("EN_US", new FancySegment("Hello {name}"));
 
         TestCommandSender console = new TestCommandSender("CONSOLE");
         Function<PlayerData, Object> perPlayerName = (PlayerData playerData) -> playerData.getUniqueId();

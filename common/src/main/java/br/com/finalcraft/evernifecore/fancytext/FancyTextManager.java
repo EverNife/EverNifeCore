@@ -12,11 +12,6 @@ import java.util.function.Function;
 public class FancyTextManager {
 
     public static void send(FancyText fancyText, FCommandSender... commandSenders) {
-        if (fancyText.fancyFormatter != null) {
-            send(fancyText.fancyFormatter, commandSenders);
-            return;
-        }
-
         Component component = fancyText.toComponent();
 
         for (FCommandSender sender : commandSenders) {

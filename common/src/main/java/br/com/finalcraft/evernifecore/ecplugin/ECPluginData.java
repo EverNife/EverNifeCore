@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDP
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
+import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
@@ -193,7 +194,7 @@ public class ECPluginData {
                     Config hardcodedConfig = entry.getValue();
                     FancyText hardcodedOnConfig = hardcodedConfig.getValue(localeMessage.getKey(), FancyText.class);
                     if (hardcodedOnConfig == null){
-                        hardcodedOnConfig = new FancyText("[LOCALE_NOT_FOUND]");
+                        hardcodedOnConfig = new FancySegment("[LOCALE_NOT_FOUND]");
                     }
 
                     FancyText hardcodedOnCode = localeMessage.getFancyText(entry.getKey());

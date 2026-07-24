@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.dynamiccommand.DynamicCommand;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
+import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
@@ -356,8 +357,8 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
             return String.CASE_INSENSITIVE_ORDER.compare(String.valueOf(value2), String.valueOf(value1));//The order is reversed, to keep the highest value on top
         };
 
-        protected List<FancyText> formatHeader = Arrays.asList(new FancyText("§a§m" + EverNifeCore.getPlatform().getChatAdapter().straightLineOf("-")));
-        protected Function<O, FancyText> formatLine = o -> new FancyText("§7#  %number%:   §e%player%§f - §a%value%");
+        protected List<FancyText> formatHeader = Arrays.asList(new FancySegment("§a§m" + EverNifeCore.getPlatform().getChatAdapter().straightLineOf("-")));
+        protected Function<O, FancyText> formatLine = o -> new FancySegment("§7#  %number%:   §e%player%§f - §a%value%");
         protected List<FancyText> formatFooter = Collections.emptyList();
         protected long cooldown = ECSettings.PAGEVIEWERS_REFRESH_TIME * 1000; //def 5 seconds
         protected int lineStart = 0;
@@ -408,13 +409,13 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
         @Override
         public BuilderImp<O, C> setFormatHeader(String... formatHeader) {
-            this.formatHeader = Arrays.asList(formatHeader).stream().map(FancyText::new).collect(Collectors.toList());
+            this.formatHeader = Arrays.asList(formatHeader).stream().<FancyText>map(FancySegment::new).collect(Collectors.toList());
             return this;
         }
 
         @Override
         public BuilderImp<O, C> setFormatLine(String formatLine) {
-            return setFormatLine((o -> new FancyText(formatLine)));//new instance for every call
+            return setFormatLine((o -> new FancySegment(formatLine)));//new instance for every call
         }
 
         @Override
@@ -442,7 +443,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
         @Override
         public BuilderImp<O, C> setFormatFooter(String... formatFooter) {
-            this.formatFooter = Arrays.asList(formatFooter).stream().map(FancyText::new).collect(Collectors.toList());
+            this.formatFooter = Arrays.asList(formatFooter).stream().<FancyText>map(FancySegment::new).collect(Collectors.toList());
             return this;
         }
 

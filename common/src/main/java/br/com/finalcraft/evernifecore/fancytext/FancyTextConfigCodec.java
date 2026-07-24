@@ -19,9 +19,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The config codec for {@link FancyText} (and its {@link FancyFormatter} subclass), registered centrally into
- * {@link ConfigFactory} by {@link #register()} (the {@code CFPositionFamily} style), so {@link FancyText} stays
- * a plain annotation-free POJO. It replicates the legacy save/load exactly: a bespoke, context-dependent
+ * The config codec for {@link FancyText} (both {@link FancySegment} and {@link FancyFormatter}), registered
+ * centrally into {@link ConfigFactory} by {@link #register()} (the {@code CFPositionFamily} style), so neither
+ * implementation needs an annotation. It replicates the legacy save/load exactly: a bespoke, context-dependent
  * on-disk shape (a scalar string, a string-list, an object with text/hover/click, or a numbered formatter
  * object), with a tolerant read of every one of those shapes so old files keep reading.
  *
@@ -44,27 +44,49 @@ public final class FancyTextConfigCodec {
     private static final String FANCY_KEY_ACTION_TYPE = "clickActionType";
 
     /**
-     * Register {@link FancyText} into {@link ConfigFactory}. A base-class serializer applies to the
-     * {@link FancyFormatter} subclass too, and the deserializer inspects the node so a formatter node still
-     * reads back as a {@code FancyFormatter} through {@code getValue(path, FancyText.class)}.
+     * Register {@link FancyText} into {@link ConfigFactory}, plus the same read/write pair again under
+     * each concrete implementation ({@link FancySegment}, {@link FancyFormatter}).
+     *
+     * <p>The concrete-class registrations exist because of how {@code Config.getValue(path, FancyText.class)}
+     * actually binds: it first constructs a default instance from an empty node (always a {@link FancySegment},
+     * {@link #readFancyText}'s fallback shape) and then asks Jackson to bind the real node "onto" that
+     * default. Jackson resolves that update's deserializer by the DEFAULT INSTANCE'S OWN runtime class, not
+     * by the {@code FancyText} interface that was originally requested - so without an adapter registered
+     * under the concrete class, the update falls back to reflection-based bean binding, which cannot bind a
+     * scalar or map shape and silently keeps the empty default. Registering the same functions again under
+     * each concrete class makes that lookup succeed too.</p>
      */
     public static void register() {
         ConfigFactory.register(FancyText.class).jackson(
-                new JsonSerializer<FancyText>() {
-                    @Override
-                    public void serialize(FancyText value, JsonGenerator gen, SerializerProvider provider)
-                            throws IOException {
-                        writeFancyText(value, gen);
-                    }
-                },
-                new StdDeserializer<FancyText>(FancyText.class) {
-                    @Override
-                    public FancyText deserialize(JsonParser parser, DeserializationContext context)
-                            throws IOException {
-                        return readFancyText(parser.readValueAsTree());
-                    }
-                }
-        );
+                new FancyTextSerializer<FancyText>(), new FancyTextDeserializer<>(FancyText.class));
+        ConfigFactory.register(FancySegment.class).jackson(
+                new FancyTextSerializer<FancySegment>(), new FancyTextDeserializer<>(FancySegment.class));
+        ConfigFactory.register(FancyFormatter.class).jackson(
+                new FancyTextSerializer<FancyFormatter>(), new FancyTextDeserializer<>(FancyFormatter.class));
+    }
+
+    // T is deliberately left with no bound: both members below only ever handle a FancyText value
+    // under the hood, but leaving T raw keeps the cast in deserialize() honest - it is a plain
+    // unchecked erasure cast, never a real check against T's runtime class.
+    private static final class FancyTextSerializer<T> extends JsonSerializer<T> {
+        @Override
+        public void serialize(T value, JsonGenerator gen, SerializerProvider provider) throws IOException {
+            writeFancyText((FancyText) value, gen);
+        }
+    }
+
+    private static final class FancyTextDeserializer<T> extends StdDeserializer<T> {
+        FancyTextDeserializer(Class<T> handledType) {
+            super(handledType);
+        }
+
+        // readFancyText picks the concrete type from the node's own shape, not from T, so this cast
+        // must never actually check the returned object's class - T being unbounded guarantees that.
+        @Override
+        @SuppressWarnings("unchecked")
+        public T deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+            return (T) readFancyText(parser.readValueAsTree());
+        }
     }
 
     private static void writeFancyText(FancyText fancyText, JsonGenerator gen) throws IOException {
@@ -131,7 +153,7 @@ public final class FancyTextConfigCodec {
             ClickActionType actionType = actionTypeName != null && !actionTypeName.isEmpty()
                     ? ClickActionType.valueOf(actionTypeName)
                     : ClickActionType.NONE;
-            return new FancyText(
+            return new FancySegment(
                     FCColorUtil.colorfy(text),
                     FCColorUtil.colorfy(hoverText),
                     FCColorUtil.colorfy(actionText),
@@ -140,7 +162,7 @@ public final class FancyTextConfigCodec {
         }
 
         // Scalar or string-list: a plain text FancyText.
-        return new FancyText(FCColorUtil.colorfy(joinNode(node)));
+        return new FancySegment(FCColorUtil.colorfy(joinNode(node)));
     }
 
     /** Collapse a node into a single string: a string-list joins on newlines, a scalar stays as-is, an

@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.storage;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
+import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
@@ -211,7 +212,7 @@ class ConfigFactoryCodecTest {
         List<String> expected = new ArrayList<>();
         for (int i = 1; i <= childCount; i++) {
             String segment = "seg" + i;
-            formatter.append(new FancyText(segment));
+            formatter.append(new FancySegment(segment));
             expected.add(segment);
         }
 

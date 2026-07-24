@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.cooldown.GenericCooldown;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
+import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
@@ -192,7 +193,7 @@ class ECBuiltinTypesTest {
     void fancyTextPlainRoundTrips(@TempDir Path dir) {
         // A live FancyText holds colorfied text (section sign); save decolorfies to '&', load re-colorfies,
         // so a section-sign source is the round-trip fixed point.
-        FancyText fancyText = new FancyText("§aHello World");
+        FancyText fancyText = new FancySegment("§aHello World");
 
         Config cfg = open(dir);
         cfg.setValue("msg", fancyText);
@@ -205,7 +206,7 @@ class ECBuiltinTypesTest {
 
     @Test
     void fancyTextWithHoverAndClickRoundTrips(@TempDir Path dir) {
-        FancyText fancyText = new FancyText(
+        FancyText fancyText = new FancySegment(
                 "§aClick me",
                 "§7A helpful tooltip",
                 "/say hi",
@@ -223,8 +224,8 @@ class ECBuiltinTypesTest {
 
     @Test
     void fancyFormatterRoundTrips(@TempDir Path dir) {
-        FancyText first = new FancyText("§aFirst");
-        FancyText second = new FancyText("§bSecond", "§7hover");
+        FancyText first = new FancySegment("§aFirst");
+        FancyText second = new FancySegment("§bSecond", "§7hover");
         FancyFormatter formatter = new FancyFormatter().append(first).append(second);
 
         Config cfg = open(dir);

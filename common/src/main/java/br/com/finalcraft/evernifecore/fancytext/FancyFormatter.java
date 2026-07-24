@@ -10,9 +10,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
-public class FancyFormatter extends FancyText {
+/** An ordered chain of {@link FancySegment} pieces, rendered as a single Adventure component. */
+public class FancyFormatter implements FancyText {
 
     protected Map<String, Object> mapOfPlaceholders = new HashMap<>();
     protected boolean complexPlaceholder = false;
@@ -32,7 +34,6 @@ public class FancyFormatter extends FancyText {
     public FancyFormatter append(FancyText... fancyTexts) {
         for (FancyText fancyText : fancyTexts) {
             fancyTextList.add(fancyText);
-            fancyText.fancyFormatter = this;
         }
         return this;
     }
@@ -45,32 +46,25 @@ public class FancyFormatter extends FancyText {
             }
         } else {
             this.fancyTextList.add(fancyText);
-            fancyText.fancyFormatter = this;
         }
         return this;
     }
 
     @Override
     public FancyFormatter append(String text) {
-        FancyText fancyText = new FancyText(text);
-        fancyText.fancyFormatter = this;
-        this.fancyTextList.add(fancyText);
+        this.fancyTextList.add(new FancySegment(text));
         return this;
     }
 
     @Override
     public FancyFormatter append(String text, String hoverText) {
-        FancyText fancyText = new FancyText(text, hoverText);
-        fancyText.fancyFormatter = this;
-        this.fancyTextList.add(fancyText);
+        this.fancyTextList.add(new FancySegment(text, hoverText));
         return this;
     }
 
     @Override
     public FancyFormatter append(String text, String hoverText, String runCommand) {
-        FancyText fancyText = new FancyText(text, hoverText, runCommand);
-        fancyText.fancyFormatter = this;
-        this.fancyTextList.add(fancyText);
+        this.fancyTextList.add(new FancySegment(text, hoverText, runCommand));
         return this;
     }
 
@@ -100,10 +94,15 @@ public class FancyFormatter extends FancyText {
 
     @Override
     public Component toComponent() {
+        return toComponent("");
+    }
+
+    @Override
+    public Component toComponent(String startingColor) {
         TextComponent.Builder builder = Component.text();
         // Legacy chat lets a colour bleed into the following text; Adventure siblings do not inherit
         // one another's colour, so carry each segment's trailing colour into the next as its start.
-        String previousColor = "";
+        String previousColor = startingColor;
         for (FancyText fancyText : fancyTextList) {
             builder.append(fancyText.toComponent(previousColor));
             previousColor = fancyText.getLastTextColor();
@@ -153,6 +152,19 @@ public class FancyFormatter extends FancyText {
     }
 
     @Override
+    public String getLastTextColor() {
+        FancyText last = lastOrNull();
+        return last == null ? "" : last.getLastTextColor();
+    }
+
+    @Override
+    public FancyFormatter setText(String text) {
+        FancyText last = lastOrNull();
+        if (last != null) last.setText(text);
+        return this;
+    }
+
+    @Override
     public FancyFormatter setHoverText(String hoverText) {
         FancyText last = lastOrNull();
         if (last != null) last.setHoverText(hoverText);
@@ -160,7 +172,14 @@ public class FancyFormatter extends FancyText {
     }
 
     @Override
-    public FancyText setClickAction(String actionText, ClickActionType actionType) {
+    public FancyFormatter setClickAction(ClickActionType actionType) {
+        FancyText last = lastOrNull();
+        if (last != null) last.setClickAction(actionType);
+        return this;
+    }
+
+    @Override
+    public FancyFormatter setClickAction(String actionText, ClickActionType actionType) {
         FancyText last = lastOrNull();
         if (last != null) last.setClickAction(actionText, actionType);
         return this;
@@ -192,24 +211,39 @@ public class FancyFormatter extends FancyText {
         FancyTextManager.send(this, commandSenders);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        FancyFormatter other = (FancyFormatter) o;
+
+        return Objects.equals(fancyTextList, other.fancyTextList);
+    }
+
+    @Override
+    public int hashCode() {
+        return fancyTextList != null ? fancyTextList.hashCode() : 0;
+    }
+
     public static FancyFormatter of() {
-        return new FancyText().getOrCreateFormmater();
+        return new FancyFormatter();
     }
 
     public static FancyFormatter of(String text) {
-        return new FancyText(text).getOrCreateFormmater();
+        return new FancyFormatter().append(new FancySegment(text));
     }
 
     public static FancyFormatter of(String text, String hoverText) {
-        return new FancyText(text, hoverText).getOrCreateFormmater();
+        return new FancyFormatter().append(new FancySegment(text, hoverText));
     }
 
     public static FancyFormatter of(String text, String hoverText, String runCommand) {
-        return new FancyText(text, hoverText, runCommand).getOrCreateFormmater();
+        return new FancyFormatter().append(new FancySegment(text, hoverText, runCommand));
     }
 
     public static FancyFormatter of(String text, String hoverText, String clickActionText, ClickActionType clickActionType) {
-        return new FancyText(text, hoverText, clickActionText, clickActionType).getOrCreateFormmater();
+        return new FancyFormatter().append(new FancySegment(text, hoverText, clickActionText, clickActionType));
     }
 
     public static FancyFormatter of(FancyText... fancyTexts) {

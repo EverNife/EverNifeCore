@@ -17,6 +17,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
+import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
@@ -260,7 +261,7 @@ public class CMDMethodInterpreter {
             //unregistered LocaleMessageImp so the usage line still renders (hover stays absent).
             ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(owningPlugin);
             localeMessage = new LocaleMessageImp(owningPlugin, localeMessageKey, false);
-            localeMessage.addLocale(ecPluginData.getPluginLanguage(), new FancyText(null, null));
+            localeMessage.addLocale(ecPluginData.getPluginLanguage(), new FancySegment(null, null));
         }
 
         HashMap<ArgParser<?>, LocaleMessageImp> argParserToLocale = new HashMap<>(); //This will hold every single @Arg locale message

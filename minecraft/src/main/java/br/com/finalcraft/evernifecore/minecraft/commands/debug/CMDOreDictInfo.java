@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
@@ -73,7 +74,7 @@ public class CMDOreDictInfo {
                 .withSuplier(() -> itemStacks)
                 .extracting(itemStack -> FCItemUtils.getMinecraftIdentifier(itemStack))
                 .setFormatLine(itemStack -> {
-                    return new FancyText("§7#  %number%:   §a%value%").setSuggestCommandAction("%value%");
+                    return new FancySegment("§7#  %number%:   §a%value%").setSuggestCommandAction("%value%");
                 })
                 .build()
                 .send(pageVizualization, sender);
@@ -98,7 +99,7 @@ public class CMDOreDictInfo {
                 .withSuplier(() -> filteredEntries)
                 .extracting(oreDict -> oreDict.getOreName())
                 .setFormatLine(
-                        new FancyText("§7#  %number%: (%oredict_amount%)  §a%value%")
+                        new FancySegment("§7#  %number%: (%oredict_amount%)  §a%value%")
                         .setRunCommandAction(OREDICT_INFO.getFancyText(sender).getClickActionText())
                         .setHoverText(OREDICT_INFO.getFancyText(sender).getHoverText())
                 )

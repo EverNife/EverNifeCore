@@ -5,6 +5,7 @@ import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
+import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
@@ -101,7 +102,7 @@ public class FCLayoutScanner {
 
                     for (FCLocaleData fcLocale : localeData) {
                         localeMessage.addLocale(fcLocale.lang(),
-                                new FancyText(
+                                new FancySegment(
                                         fcLocale.text(),
                                         fcLocale.hover()
                                 )
