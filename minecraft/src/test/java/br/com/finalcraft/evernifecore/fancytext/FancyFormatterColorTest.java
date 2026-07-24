@@ -17,7 +17,7 @@ public class FancyFormatterColorTest {
         FancyFormatter formatter = FancyFormatter.of("§d ♦ §bENCTemplate §7")
                 .append(FancyText.of("[EN_US]§7"));
 
-        String legacy = FCColorUtil.componentToString(formatter.toComponent());
+        String legacy = formatter.toLegacyString();
 
         assertFalse(legacy.contains("GRAY"), "enum name leaked into text: " + legacy);
         assertFalse(legacy.contains("RESET"), "enum name leaked into text: " + legacy);
@@ -31,7 +31,7 @@ public class FancyFormatterColorTest {
         FancyFormatter formatter = FancyFormatter.of("§aHello ")
                 .append(FancyText.of("World"));
 
-        String legacy = FCColorUtil.componentToString(formatter.toComponent());
+        String legacy = formatter.toLegacyString();
 
         assertTrue(legacy.contains("World"), "text missing: " + legacy);
         // The colour still active where "World" starts must be green - if propagation failed the

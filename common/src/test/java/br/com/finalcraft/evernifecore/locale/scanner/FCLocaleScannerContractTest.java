@@ -22,7 +22,6 @@ import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
-import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.junit.jupiter.api.AfterEach;
@@ -87,8 +86,7 @@ public class FCLocaleScannerContractTest {
         // the first field registered wins: both fields end up pointing at the very same message...
         assertSame(DuplicateKeyLocales.title, DuplicateKeyLocales.Title,
                 "a case-only key collision must collapse into the SAME LocaleMessage instance");
-        String text = FCColorUtil.componentToString(
-                ((LocaleMessageImp) DuplicateKeyLocales.title).getDefaultFancyText().toComponent());
+        String text = ((LocaleMessageImp) DuplicateKeyLocales.title).getDefaultFancyText().toLegacyString();
         assertEquals("First message", text,
                 "the FIRST field scanned must win; the second field's text must never be used");
 

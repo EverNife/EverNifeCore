@@ -3,7 +3,6 @@ package br.com.finalcraft.evernifecore.fancytext;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
-import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -23,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 public class FancyTextPlaceholderEngineContractTest {
 
     private static String render(FancyText fancyText) {
-        return FCColorUtil.componentToString(fancyText.toComponent(RenderContext.EMPTY));
+        return fancyText.toLegacyString(RenderContext.EMPTY);
     }
 
     @Test
@@ -170,6 +169,6 @@ public class FancyTextPlaceholderEngineContractTest {
                 .placeholder("saldo", "R$10")
                 .replace(papiLike);
 
-        assertEquals("R$10 tem 999", FCColorUtil.componentToString(resolvedByBoth.toComponent(RenderContext.EMPTY)));
+        assertEquals("R$10 tem 999", resolvedByBoth.toLegacyString(RenderContext.EMPTY));
     }
 }

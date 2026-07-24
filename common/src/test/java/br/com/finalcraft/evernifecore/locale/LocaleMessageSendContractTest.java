@@ -9,7 +9,6 @@ import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.TestCommandSender;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
-import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -65,7 +64,7 @@ public class LocaleMessageSendContractTest {
         combined.send(console);
         String actuallySent = console.getMessages().get(0);
 
-        String previewed = FCColorUtil.componentToString(combined.getFancyText(console).toComponent());
+        String previewed = combined.getFancyText(console).toLegacyString();
 
         assertEquals(actuallySent, previewed,
                 "concat(...).getFancyText(sender) must describe exactly what send(sender) delivers");

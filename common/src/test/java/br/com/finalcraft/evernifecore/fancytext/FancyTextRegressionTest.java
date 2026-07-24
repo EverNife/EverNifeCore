@@ -25,7 +25,7 @@ public class FancyTextRegressionTest {
                 .append("§aHello ")
                 .append("World");
 
-        String legacy = FCColorUtil.componentToString(formatter.toComponent());
+        String legacy = formatter.toLegacyString();
 
         String beforeWorld = legacy.substring(0, legacy.indexOf("World"));
         assertEquals("§a", FCColorUtil.getLastColors(beforeWorld),
