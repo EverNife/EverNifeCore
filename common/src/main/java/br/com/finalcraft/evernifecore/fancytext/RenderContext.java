@@ -56,9 +56,7 @@ public final class RenderContext {
         PlayerData playerData = sender instanceof FPlayer
                 ? PlayerController.getLoaded(sender.getUniqueId())
                 : null;
-        // A later phase replaces this constant with a lookup of the command scope that is open on
-        // the current thread.
-        return new RenderContext(sender, playerData, MessageContext.EMPTY);
+        return new RenderContext(sender, playerData, MessageScope.currentOrEmpty());
     }
 
     public @Nullable FCommandSender getSender() {

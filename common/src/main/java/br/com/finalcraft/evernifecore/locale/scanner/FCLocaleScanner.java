@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class FCLocaleScanner {
@@ -55,7 +56,7 @@ public class FCLocaleScanner {
 
                 FCLocale[] fcLocales = multiLocale ? declaredField.getAnnotation(FCMultiLocales.class).value() : declaredField.getAnnotationsByType(FCLocale.class);
 
-                String key = declaredField.getDeclaringClass().getSimpleName() + "." + declaredField.getName().toUpperCase().replace("__",".").toUpperCase();
+                String key = declaredField.getDeclaringClass().getSimpleName() + "." + declaredField.getName().toUpperCase(Locale.ROOT).replace("__",".");
 
                 FCLocaleData[] fcLocaleDatas = Arrays.stream(fcLocales)
                         .map(FCLocaleData::new)
@@ -72,11 +73,11 @@ public class FCLocaleScanner {
                     continue;
                 }
 
-                if (allKeys.contains(localeMessage.getKey().toLowerCase())){
-                    plugin.getLog().warning("[FCLocale] Found an already added {key==" + key + "} at field! Overriding last one! This is an Error! " + getFieldAndClassName(declaredField));
+                if (allKeys.contains(localeMessage.getKey().toLowerCase(Locale.ROOT))){
+                    plugin.getLog().warning("[FCLocale] Found an already added {key==" + key + "} at field! The FIRST one registered wins; this field's own text is ignored. This is an Error! " + getFieldAndClassName(declaredField));
                 }
 
-                allKeys.add(localeMessage.getKey().toLowerCase());
+                allKeys.add(localeMessage.getKey().toLowerCase(Locale.ROOT));
 
                 localeMessageList.add(localeMessage);
             }

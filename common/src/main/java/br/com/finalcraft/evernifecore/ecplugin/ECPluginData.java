@@ -122,6 +122,9 @@ public class ECPluginData {
         if (!hardcodedLocalizations.containsKey(lang)){
             String fileName = "localization/lang_" + lang + ".yml";
             hardcodedLocalizations.put(lang, ConfigFactory.open(this, fileName));
+            // A language that only exists because some plugin declared it still has to show up
+            // wherever the known languages are listed.
+            LocaleType.register(lang);
             markedForLocaleReload = true;
         }
     }

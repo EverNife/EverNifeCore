@@ -245,7 +245,7 @@ public class CMDMethodInterpreter {
     }
 
     private HelpLine buildHelpLine(){
-        String localeMessageKey = method.getDeclaringClass().getSimpleName() + "." + method.getName().toUpperCase();
+        String localeMessageKey = method.getDeclaringClass().getSimpleName() + "." + method.getName().toUpperCase(Locale.ROOT);
         FCLocaleData[] locales = cmdData.getLocales();
         LocaleMessageImp localeMessage;
 

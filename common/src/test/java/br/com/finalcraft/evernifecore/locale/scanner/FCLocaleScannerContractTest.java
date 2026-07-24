@@ -27,7 +27,6 @@ import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -45,10 +44,9 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Proves the confirmed bug in {@link FCLocaleScanner}'s duplicate-key handling: two fields whose
- * names differ only by case collapse into a single registered message (the first one scanned wins,
- * the second is silently discarded) - but the warning logged for it claims the opposite
- * ("Overriding last one!"), describing behaviour that never actually happens.
+ * Pins {@link FCLocaleScanner}'s duplicate-key handling: two fields whose names differ only by case
+ * collapse into a single registered message (the first one scanned wins, the second is discarded),
+ * and the warning logged for it has to describe exactly that.
  */
 public class FCLocaleScannerContractTest {
 
@@ -80,7 +78,6 @@ public class FCLocaleScannerContractTest {
     }
 
     @Test
-    @Tag("known-bug")
     void duplicateKeyWarningDescribesWhatActuallyHappens() {
         List<String> capturedWarnings = new ArrayList<>();
         ECPluginData plugin = pluginDataWithCapturedLog("DuplicateKeyPlugin", capturedWarnings);

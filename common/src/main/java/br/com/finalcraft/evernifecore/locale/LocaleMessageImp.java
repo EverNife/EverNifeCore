@@ -5,10 +5,13 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.fancytext.MessageContext;
+import br.com.finalcraft.evernifecore.fancytext.MessageScope;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -23,9 +26,6 @@ public class LocaleMessageImp implements LocaleMessage {
 
     private transient FancyText defaultFancyText; //Cached FancyText of the DefaultLocale of the plugin
 
-    //For COMMAND LOCALE MESSAGES these placeholders store context like objects, like %label% and other useful placeholders
-    private final transient HashMap<String, Object> contextPlaceholders = new HashMap<>();
-    //
     public LocaleMessageImp(ECPluginData plugin, String key) {
         this.plugin = plugin;
         this.key = key;
@@ -102,7 +102,7 @@ public class LocaleMessageImp implements LocaleMessage {
     @Override
     public FancyText getFancyText(String lang){
         if (lang == null) return null; //getLangOf may yield null when no default lang is resolved
-        return fancyTextMap.get(lang.toUpperCase());
+        return fancyTextMap.get(lang.toUpperCase(Locale.ROOT));
     }
 
     @Override
@@ -152,7 +152,7 @@ public class LocaleMessageImp implements LocaleMessage {
     }
 
     public void addLocale(String lang, FancyText fancyText){
-        fancyTextMap.put(lang.toUpperCase(), fancyText);
+        fancyTextMap.put(lang.toUpperCase(Locale.ROOT), fancyText);
     }
 
     public HashMap<String, FancyText> getFancyTextMap() {
@@ -167,8 +167,22 @@ public class LocaleMessageImp implements LocaleMessage {
         return plugin;
     }
 
-    public HashMap<String, Object> getContextPlaceholders() {
-        return contextPlaceholders;
+    /**
+     * The placeholders that describe the command being executed right now ({@code %label%},
+     * {@code %subcmd%}). Computed per call from the scope of the calling thread: a LocaleMessage
+     * lives in a static field, so anything stored on the instance would be shared by every
+     * concurrent execution of that command.
+     */
+    public Map<String, Object> getContextPlaceholders() {
+        MessageContext context = MessageScope.currentOrEmpty();
+        Map<String, Object> placeholders = new HashMap<>();
+        if (context.getLabel() != null) {
+            placeholders.put("%label%", context.getLabel());
+        }
+        if (context.getSubCommandName() != null) {
+            placeholders.put("%subcmd%", context.getSubCommandName());
+        }
+        return placeholders;
     }
 
     /**
