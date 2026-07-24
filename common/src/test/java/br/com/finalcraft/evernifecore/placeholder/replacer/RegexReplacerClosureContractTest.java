@@ -2,23 +2,19 @@ package br.com.finalcraft.evernifecore.placeholder.replacer;
 
 import br.com.finalcraft.evernifecore.placeholder.manipulation.ManipulationContext;
 import br.com.finalcraft.evernifecore.placeholder.manipulation.Manipulator;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
- * Proves the confirmed bugs where a {@link RegexReplacer} is not treated as owning a single,
- * consistent closure.
+ * Pins that a {@link RegexReplacer} is treated as owning a single, consistent closure.
  */
 public class RegexReplacerClosureContractTest {
 
-    // ManipulationContext.RContext.quoteAndParse hardcodes Closures.PERCENT regardless of which
-    // Closures the wrapped RegexReplacer was actually built with, so a replacer built on '{}' can
-    // never be reached through it.
+    // quoteAndParse must quote with the closure the wrapped RegexReplacer was built with, so a
+    // replacer built on '{}' is reachable through it.
     @Test
-    @Tag("known-bug")
     void quoteAndParseUsesTheReplacersOwnClosureNotAlwaysPercent() {
         RegexReplacer<Object> bracketReplacer = new RegexReplacer<>(Closures.BRACKET.getPattern())
                 .addParser("foo", o -> "bar");
@@ -35,11 +31,10 @@ public class RegexReplacerClosureContractTest {
                 "quoteAndParse must quote using the replacer's own Closures, not hardcode PERCENT");
     }
 
-    // A literal '%' that is not part of a placeholder (e.g. "100%") can be paired by the regex with
-    // the NEXT real placeholder's opening '%', consuming one of its delimiters so it is never
-    // recognised at all.
+    // A literal '%' that is not part of a placeholder (e.g. "100%") must not be paired by the regex
+    // with the NEXT real placeholder's opening '%', which would consume one of its delimiters and
+    // leave it unrecognised.
     @Test
-    @Tag("known-bug")
     void percentLiteralBeforeAPlaceholderDoesNotConsumeItsDelimiter() {
         RegexReplacer<Object> replacer = new RegexReplacer<>().addParser("player", o -> "Steve");
 

@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.fancytext.hover.FancyHoverRegistry;
 import br.com.finalcraft.evernifecore.fancytext.hover.ItemHover;
 import br.com.finalcraft.evernifecore.fancytext.hover.TextHover;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import br.com.finalcraft.evernifecore.version.FCPlatformType;
 import jakarta.annotation.Nullable;
@@ -14,7 +15,11 @@ import net.kyori.adventure.text.ComponentBuilder;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 /**
@@ -28,6 +33,7 @@ public class FancySegment implements FancyText {
     protected String clickActionText = null;
     protected ClickActionType clickActionType = ClickActionType.NONE;
     protected String lastColor = "";
+    protected transient Map<String, PlaceholderValue> placeholders = null;
 
     private boolean recentChanged = true;
     private String lastStartingColor = "";
@@ -132,6 +138,48 @@ public class FancySegment implements FancyText {
         this.text = replacer.apply(this.text);
         this.hover = replaceHoverPayload(this.hover, replacer::apply);
         if (this.clickActionText != null) this.clickActionText = replacer.apply(this.clickActionText);
+        return this;
+    }
+
+    @Override
+    public FancySegment placeholder(String key, Object value) {
+        return declare(key, PlaceholderValue.constant(value));
+    }
+
+    @Override
+    public FancySegment placeholder(String key, Supplier<?> value) {
+        return declare(key, PlaceholderValue.lazy(value));
+    }
+
+    @Override
+    public FancySegment placeholder(String key, Function<PlayerData, ?> value) {
+        return declare(key, PlaceholderValue.perPlayer(value));
+    }
+
+    @Override
+    public FancySegment placeholders(Map<String, ?> values) {
+        for (Map.Entry<String, ?> entry : values.entrySet()) {
+            declare(entry.getKey(), asPlaceholderValue(entry.getValue()));
+        }
+        return this;
+    }
+
+    @SuppressWarnings("unchecked")
+    static PlaceholderValue asPlaceholderValue(Object value) {
+        if (value instanceof Supplier) {
+            return PlaceholderValue.lazy((Supplier<?>) value);
+        }
+        if (value instanceof Function) {
+            return PlaceholderValue.perPlayer((Function<PlayerData, ?>) value);
+        }
+        return PlaceholderValue.constant(value);
+    }
+
+    private FancySegment declare(String key, PlaceholderValue value) {
+        if (placeholders == null) {
+            placeholders = new LinkedHashMap<>();
+        }
+        placeholders.put(PlaceholderScope.normalizeKey(key), value);
         return this;
     }
 
@@ -248,6 +296,36 @@ public class FancySegment implements FancyText {
     }
 
     @Override
+    public Component toComponent(String startingColor, RenderContext context) {
+        PlaceholderScope scope = scopeFor(context);
+        if (scope == null) {
+            return toComponent(startingColor);   // nothing to resolve: the cached component stands
+        }
+
+        FancySegment resolved = resolvedCopy(scope, context);
+        Component component = resolved.toComponent(startingColor);
+        // A chain reads this leaf's trailing colour to start the next one, and the copy is the one
+        // that actually rendered - so the colour it ended on is the one that must carry over.
+        this.lastColor = resolved.lastColor;
+        return component;
+    }
+
+    private @Nullable PlaceholderScope scopeFor(RenderContext context) {
+        if (placeholders == null || placeholders.isEmpty()) {
+            return context.getScope();
+        }
+        return new PlaceholderScope(context.getScope(), placeholders);
+    }
+
+    private FancySegment resolvedCopy(PlaceholderScope scope, RenderContext context) {
+        FancySegment copy = clone();
+        copy.text = scope.render(this.text, context);
+        copy.hover = replaceHoverPayload(this.hover, payload -> scope.render(payload, context));
+        copy.clickActionText = scope.render(this.clickActionText, context);
+        return copy;
+    }
+
+    @Override
     public String getLastTextColor() {
         return lastColor;
     }
@@ -266,6 +344,9 @@ public class FancySegment implements FancyText {
         clone.hover = this.hover;
         clone.clickActionText = this.clickActionText;
         clone.clickActionType = this.clickActionType;
+        if (this.placeholders != null) {
+            clone.placeholders = new LinkedHashMap<>(this.placeholders);
+        }
         return clone;
     }
 

@@ -12,7 +12,6 @@ import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -24,9 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
- * Proves confirmed bugs in the SendCustom/SendCustomComplex pipeline: two independent code paths
- * (getFancyText, used for a preview/inspection, and send, used to actually deliver the message)
- * disagree on what a decorated {@link LocaleMessage} actually contains.
+ * Pins the SendCustom/SendCustomComplex pipeline: getFancyText, used for a preview/inspection, and
+ * send, used to actually deliver the message, must agree on what a decorated {@link LocaleMessage}
+ * contains.
  */
 public class LocaleMessageSendContractTest {
 
@@ -48,11 +47,9 @@ public class LocaleMessageSendContractTest {
         }
     }
 
-    // SendCustomComplex overrides send(...) to render EVERY concatenated LocaleMessage, but inherits
-    // getFancyText(sender) from SendCustom unmodified - which only ever looks at its OWN
-    // localeMessage (the last one concat()-ed in), silently dropping every earlier piece.
+    // A concatenated message renders EVERY piece of the chain, and getFancyText(sender) must report
+    // the same chain instead of only the last message concat()-ed in.
     @Test
-    @Tag("known-bug")
     void concatGetFancyTextMatchesWhatSendActuallyRenders() {
         ECPluginData plugin = pluginData("ConcatBugPlugin");
 
@@ -74,11 +71,10 @@ public class LocaleMessageSendContractTest {
                 "concat(...).getFancyText(sender) must describe exactly what send(sender) delivers");
     }
 
-    // FancyTextManager.send() only evaluates a Function<PlayerData,Object> placeholder when the
-    // recipient IS a player; for any other FCommandSender it falls through to
-    // String.valueOf(theFunctionItself), leaking the lambda's toString() into the sent message.
+    // A Function<PlayerData,Object> placeholder can only be evaluated when the recipient has
+    // PlayerData; for any other FCommandSender the token must stay as written rather than fall
+    // through to String.valueOf(theFunctionItself).
     @Test
-    @Tag("known-bug")
     void perPlayerPlaceholderIsNotLeakedAsLambdaToStringForANonPlayerSender() {
         LocaleMessageImp message = new LocaleMessageImp(pluginData("LambdaLeakPlugin"), "lambda.leak", false);
         message.addLocale("EN_US", new FancySegment("Hello {name}"));

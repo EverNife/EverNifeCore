@@ -1,16 +1,12 @@
 package br.com.finalcraft.evernifecore.locale;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import jakarta.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 
 public class SendCustomComplex extends SendCustom {
 
@@ -43,46 +39,14 @@ public class SendCustomComplex extends SendCustom {
         concatList.add(this);
     }
 
+    // The whole chain, not just the piece this instance happens to carry: send() delivers exactly
+    // this, because it is the inherited send() and there is only one place the text is built.
     @Override
-    public void send(FCommandSender... commandSenders){
-        for (FCommandSender sender : commandSenders) {
-
-            FancyFormatter formatter = new FancyFormatter();
-            for (SendCustom sendCustom : concatList) {
-
-                FancyText fancyText = sendCustom.localeMessage.getFancyText(sender).clone();
-                if (sendCustom.hover != null) fancyText.hover(sendCustom.hover);
-                if (sendCustom.action != null) fancyText.clickCommand(sendCustom.action);
-                if (sendCustom.suggest != null) fancyText.clickSuggest(sendCustom.suggest);
-                if (sendCustom.link != null) fancyText.clickLink(sendCustom.link);
-
-                LocaleMessageImp localeMessageImp = (LocaleMessageImp) sendCustom.localeMessage;
-                List<Map.Entry<String, Object>> allPlaceholdersReplacers = new ArrayList<>();
-                allPlaceholdersReplacers.addAll(sendCustom.mapOfPlaceholders.entrySet()); //Custom placeholders, created by demand
-                allPlaceholdersReplacers.addAll(localeMessageImp.getContextPlaceholders().entrySet()); //Context Placeholders, like %label%
-
-                final PlayerData playerData = sender instanceof FPlayer ? PlayerController.getLoaded(sender.getUniqueId()) : null;
-                for (Map.Entry<String, Object> entry : allPlaceholdersReplacers) {
-                    String placeholder = entry.getKey();
-                    String value;
-                    if (entry.getValue() instanceof Function){
-                        if (sender instanceof FPlayer == false){
-                            continue; //Only evaluate Player placeholders in this case
-                        }
-                        value = String.valueOf(((Function<PlayerData, Object>)entry.getValue()).apply(playerData));
-                    }else {
-                        value = String.valueOf(entry.getValue());
-                    }
-
-                    fancyText.replace(placeholder, value);
-                }
-
-                fancyText.replace(sendCustom.compoundReplacer);
-
-                formatter.append(fancyText);
-            }
-
-            formatter.send(sender);
+    public FancyText getFancyText(@Nullable FCommandSender sender){
+        FancyFormatter formatter = new FancyFormatter();
+        for (SendCustom sendCustom : concatList) {
+            formatter.append(sendCustom.renderFor(sender));
         }
+        return formatter;
     }
 }

@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.placeholder.manipulation;
 
 import br.com.finalcraft.evernifecore.argumento.Argumento;
-import br.com.finalcraft.evernifecore.placeholder.replacer.Closures;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -90,7 +89,7 @@ public abstract class ManipulationContext {
         }
 
         public String quoteAndParse(O object, String unquotedPlaceholder){
-            String quoted = Closures.PERCENT.quote(unquotedPlaceholder);
+            String quoted = this.regexReplacer.getClosures().quote(unquotedPlaceholder);
             String result = this.regexReplacer.apply(quoted, object);
             return quoted.equals(result) ? null : result; //As this is an intern call, it should return null in case of fail
         }

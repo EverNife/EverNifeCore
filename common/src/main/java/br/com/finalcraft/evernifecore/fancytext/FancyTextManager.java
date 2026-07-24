@@ -1,52 +1,40 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import net.kyori.adventure.text.Component;
 
 import java.util.Map;
-import java.util.function.Function;
 
 public class FancyTextManager {
 
     public static void send(FancyText fancyText, FCommandSender... commandSenders) {
-        Component component = fancyText.toComponent();
-
+        // Rendered per recipient because a placeholder may resolve differently for each of them; a
+        // text that declares none falls straight back to the shared, already cached component.
         for (FCommandSender sender : commandSenders) {
-            sender.sendMessage(component);
+            sender.sendMessage(fancyText.toComponent(RenderContext.of(sender)));
         }
     }
 
     public static void send(FancyFormatter fancyFormatter, FCommandSender... commandSenders) {
         if (!fancyFormatter.hasPlaceholders()) {
-            Component component = fancyFormatter.toComponent();
-            
-            for (FCommandSender sender : commandSenders) {
-                sender.sendMessage(component);
-            }
+            send((FancyText) fancyFormatter, commandSenders);
             return;
         }
 
         if (fancyFormatter.complexPlaceholder) {
             for (FCommandSender sender : commandSenders) {
+                RenderContext context = RenderContext.of(sender);
                 FancyFormatter formatterClone = fancyFormatter.clone();
-                final boolean isPlayer = sender instanceof FPlayer;
-                final PlayerData playerData = isPlayer ? PlayerController.getLoaded(sender.getUniqueId()) : null;
-                
+
                 for (Map.Entry<String, Object> entry : formatterClone.mapOfPlaceholders.entrySet()) {
-                    String placeholder = entry.getKey();
-                    String value;
-                    if (isPlayer && entry.getValue() instanceof Function) {
-                        value = String.valueOf(((Function<PlayerData, Object>) entry.getValue()).apply(playerData));
-                    } else {
-                        value = String.valueOf(entry.getValue());
+                    String value = context.resolveMappedValue(entry.getValue());
+                    if (value == null) {
+                        continue;   // per-player value with no PlayerData: the token stays as written
                     }
-                    formatterClone.replace(placeholder, value);
+                    formatterClone.replace(entry.getKey(), value);
                 }
 
-                Component component = formatterClone.toComponent();
+                Component component = formatterClone.toComponent(context);
                 sender.sendMessage(component);
             }
             return;
@@ -59,10 +47,6 @@ public class FancyTextManager {
             formatterClone.replace(placeholder, value);
         }
 
-        Component component = formatterClone.toComponent();
-        
-        for (FCommandSender sender : commandSenders) {
-            sender.sendMessage(component);
-        }
+        send((FancyText) formatterClone, commandSenders);
     }
 }

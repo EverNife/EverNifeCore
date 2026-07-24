@@ -9,10 +9,12 @@ import net.kyori.adventure.text.TextComponent;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /** An ordered chain of {@link FancySegment} pieces, rendered as a single Adventure component. */
 public class FancyFormatter implements FancyText {
@@ -20,6 +22,7 @@ public class FancyFormatter implements FancyText {
     protected Map<String, Object> mapOfPlaceholders = new HashMap<>();
     protected boolean complexPlaceholder = false;
     protected List<FancyText> fancyTextList = new ArrayList<>();
+    protected transient Map<String, PlaceholderValue> placeholders = null;
 
     public FancyFormatter addPlaceholder(String placeHolder, Object value) {
         mapOfPlaceholders.put(placeHolder, value);
@@ -69,6 +72,39 @@ public class FancyFormatter implements FancyText {
         return this;
     }
 
+    // A placeholder declared on the chain is visible to every piece in it; a piece that declares the
+    // same key shadows it, the same way an inner scope shadows an outer one.
+    @Override
+    public FancyFormatter placeholder(String key, Object value) {
+        return declare(key, PlaceholderValue.constant(value));
+    }
+
+    @Override
+    public FancyFormatter placeholder(String key, Supplier<?> value) {
+        return declare(key, PlaceholderValue.lazy(value));
+    }
+
+    @Override
+    public FancyFormatter placeholder(String key, Function<PlayerData, ?> value) {
+        return declare(key, PlaceholderValue.perPlayer(value));
+    }
+
+    @Override
+    public FancyFormatter placeholders(Map<String, ?> values) {
+        for (Map.Entry<String, ?> entry : values.entrySet()) {
+            declare(entry.getKey(), FancySegment.asPlaceholderValue(entry.getValue()));
+        }
+        return this;
+    }
+
+    private FancyFormatter declare(String key, PlaceholderValue value) {
+        if (placeholders == null) {
+            placeholders = new LinkedHashMap<>();
+        }
+        placeholders.put(PlaceholderScope.normalizeKey(key), value);
+        return this;
+    }
+
     public boolean hasPlaceholders() {
         return mapOfPlaceholders.size() > 0;
     }
@@ -112,6 +148,21 @@ public class FancyFormatter implements FancyText {
     }
 
     @Override
+    public Component toComponent(String startingColor, RenderContext context) {
+        RenderContext pieceContext = placeholders == null || placeholders.isEmpty()
+                ? context
+                : context.withScope(new PlaceholderScope(context.getScope(), placeholders));
+
+        TextComponent.Builder builder = Component.text();
+        String previousColor = startingColor;
+        for (FancyText fancyText : fancyTextList) {
+            builder.append(fancyText.toComponent(previousColor, pieceContext));
+            previousColor = fancyText.getLastTextColor();
+        }
+        return builder.build();
+    }
+
+    @Override
     public FancyFormatter clone() {
         FancyFormatter clone = new FancyFormatter();
         for (FancyText fancyText : this.fancyTextList) {
@@ -119,6 +170,9 @@ public class FancyFormatter implements FancyText {
         }
         clone.mapOfPlaceholders = new HashMap<>(this.mapOfPlaceholders);
         clone.complexPlaceholder = this.complexPlaceholder;
+        if (this.placeholders != null) {
+            clone.placeholders = new LinkedHashMap<>(this.placeholders);
+        }
         return clone;
     }
 

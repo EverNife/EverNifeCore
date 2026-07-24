@@ -2,10 +2,9 @@ package br.com.finalcraft.evernifecore.locale;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.fancytext.RenderContext;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import jakarta.annotation.Nullable;
 
@@ -100,6 +99,15 @@ public class SendCustom implements ILocaleMessageBase {
 
     @Override
     public FancyText getFancyText(@Nullable FCommandSender sender){
+        return renderFor(sender);
+    }
+
+    /**
+     * Renders this single piece - its locale text plus the decorations and placeholders declared on
+     * it - for one recipient. Whatever {@link #send(FCommandSender...)} delivers is built from here,
+     * so a preview can never describe something else.
+     */
+    protected FancyText renderFor(@Nullable FCommandSender sender){
         FancyText fancyText = sender == null ? localeMessage.getDefaultFancyText().clone() : localeMessage.getFancyText(sender).clone();
         if (hover != null) fancyText.hover(hover);
         if (action != null) fancyText.clickCommand(action);
@@ -111,18 +119,14 @@ public class SendCustom implements ILocaleMessageBase {
         allPlaceholdersReplacers.addAll(mapOfPlaceholders.entrySet()); //Custom placeholders, created by demand
         allPlaceholdersReplacers.addAll(localeMessageImp.getContextPlaceholders().entrySet()); //Context Placeholders, like %label%
 
-        boolean isPlayer = sender instanceof FPlayer;
-        final PlayerData playerData = isPlayer ? PlayerController.getLoaded(sender.getUniqueId()) : null;
+        RenderContext context = RenderContext.of(sender);
         for (Map.Entry<String, Object> entry : allPlaceholdersReplacers) {
-            String placeholder = entry.getKey();
-            String value;
-            if (isPlayer && entry.getValue() instanceof Function) {
-                value = String.valueOf(((Function<PlayerData, Object>) entry.getValue()).apply(playerData));
-            } else {
-                value = String.valueOf(entry.getValue());
+            String value = context.resolveMappedValue(entry.getValue());
+            if (value == null) {
+                continue;   // per-player value with no PlayerData: the token stays as written
             }
 
-            fancyText.replace(placeholder, value);
+            fancyText.replace(entry.getKey(), value);
         }
 
         fancyText.replace(compoundReplacer);

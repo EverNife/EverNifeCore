@@ -16,12 +16,23 @@ import java.util.regex.Pattern;
 
 public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O>  {
 
+    private final Closures closures;
     private final Pattern pattern;
     private final PlaceholderProvider<O> provider;
     private final List<ManipulatedParser<O>> manipulators = new ArrayList<>();
 
     public RegexReplacer() {
-        this(Closures.PERCENT.getPattern());
+        this(Closures.PERCENT);
+    }
+
+    public RegexReplacer(final Closures closures) {
+        this(closures, new PlaceholderProvider<>());
+    }
+
+    public RegexReplacer(final Closures closures, PlaceholderProvider<O> provider) {
+        this.closures = closures;
+        this.pattern = closures.getPattern();
+        this.provider = provider;
     }
 
     public RegexReplacer(final Pattern pattern) {
@@ -29,8 +40,16 @@ public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O
     }
 
     public RegexReplacer(Pattern pattern, PlaceholderProvider<O> provider) {
+        Closures owner = Closures.ofPattern(pattern);
+        // A replacer must know which delimiters it speaks, not just how to find them: callers that
+        // hand over a raw pattern still get the closure it came from, so quoting a key round-trips.
+        this.closures = owner == null ? Closures.PERCENT : owner;
         this.pattern = pattern;
         this.provider = provider;
+    }
+
+    public Closures getClosures() {
+        return closures;
     }
 
     public Pattern getPattern() {
@@ -107,16 +126,14 @@ public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O
             return text;
         }
 
-        final StringBuffer builder = new StringBuffer();
+        final StringBuilder builder = new StringBuilder();
+        int copiedUpTo = 0;   //everything before this index is already in the builder
+        int searchFrom = 0;
 
-        do {
-            final String identifier = matcher.group("identifier");
-            final String parameters = matcher.group("parameters");
-            final String full_placeholder = (identifier != null ? (identifier + "_") : "") + parameters;
+        while (searchFrom <= text.length() && matcher.find(searchFrom)) {
+            final String full_placeholder = matcher.group("key");
 
-            String requested = null; //Store the result of this placeholder, or null in case there is no match
-
-            requested = this.getProvider().parse(object, full_placeholder); //Default Provider will ignore identifier
+            String requested = this.getProvider().parse(object, full_placeholder);
 
             //Check the Manipulators, for overly complex placeholders
             if (requested == null && this.manipulators.size() > 0){
@@ -131,14 +148,20 @@ public class RegexReplacer<O extends Object> implements Replacer<O>, IProvider<O
             }
 
             if (requested != null){
-                // Both '\' and '$' are special in a replacement string; quoteReplacement escapes both,
-                // so a value like "C:\Users\x" or one ending in '\' is inserted literally.
-                matcher.appendReplacement(builder, Matcher.quoteReplacement(requested));
+                // The value is appended as-is: unlike Matcher.appendReplacement there is no
+                // replacement syntax here, so a value like "C:\Users\x" or "$5 off" stays literal.
+                builder.append(text, copiedUpTo, matcher.start()).append(requested);
+                copiedUpTo = matcher.end();
+                searchFrom = matcher.end();
+            } else {
+                // Nothing resolved this candidate, so its delimiters were not a placeholder pair -
+                // e.g. the '%' of "100%" pairing with the opening '%' of the placeholder that
+                // follows. Resume just after the opening one, so the real pair still gets its turn.
+                searchFrom = matcher.start() + 1;
             }
         }
-        while (matcher.find());
 
-        return matcher.appendTail(builder).toString();
+        return builder.append(text, copiedUpTo, text.length()).toString();
     }
 
     public CompoundReplacer compound(O object){
