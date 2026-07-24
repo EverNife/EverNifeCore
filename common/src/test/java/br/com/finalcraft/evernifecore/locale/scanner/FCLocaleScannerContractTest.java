@@ -182,6 +182,7 @@ public class FCLocaleScannerContractTest {
         @Override public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task) { return delegate.runOnMainThread(task); }
         @Override public void registerConfigTypes() { delegate.registerConfigTypes(); }
         @Override public void registerArgParsers() { delegate.registerArgParsers(); }
+        @Override public void shutdown(String reason) { delegate.shutdown(reason); }
     }
 
     private static final class FakePluginExtractor implements IECPluginExtractor {

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.storage;
 
+import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
 import br.com.finalcraft.everydatabase.Storage;
 
 import java.util.ArrayList;
@@ -10,6 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -30,6 +32,8 @@ public final class StorageRegistry {
     // (register) is boot-only and single-threaded; readers see the fully-built map through the
     // happens-before of the volatile ECStorage.registry publish, so a non-concurrent map is safe here.
     private final Map<String, Storage> storages = new LinkedHashMap<>();
+    // same keys as storages; absent when a backend was registered without a definition (tests)
+    private final Map<String, BackendDefinition> definitions = new LinkedHashMap<>();
     private final String defaultBackendName;
 
     /** backendName -> (collection -> owner) */
@@ -44,6 +48,17 @@ public final class StorageRegistry {
             throw new StorageConfigException("Backend '" + name + "' is already registered!");
         }
         storages.put(name, storage);
+    }
+
+    /** Registers a backend along with the definition it was built from (its type and target for the boot report). */
+    public void register(String name, Storage storage, BackendDefinition definition) {
+        register(name, storage);
+        definitions.put(name, definition);
+    }
+
+    /** The definition a backend was opened from, or {@code null} when registered without one (tests). */
+    public BackendDefinition getDefinition(String name) {
+        return definitions.get(name);
     }
 
     /**
@@ -108,18 +123,58 @@ public final class StorageRegistry {
     }
 
     /**
-     * Calls {@code init()} on each registered Storage. Fail-fast: the returned future
-     * completes exceptionally if ANY backend fails to initialize.
+     * Calls {@code init()} on each registered Storage. Every backend is attempted; the returned
+     * future completes exceptionally with a {@link StorageUnavailableException} listing ALL the ones
+     * that failed - reporting only the first would send the admin through one reboot per broken
+     * database.
      */
     public CompletableFuture<Void> initAll() {
-        List<CompletableFuture<Void>> futures = new ArrayList<>(storages.size());
+        Map<String, CompletableFuture<Void>> started = new LinkedHashMap<>();
         for (Map.Entry<String, Storage> entry : storages.entrySet()) {
-            futures.add(entry.getValue().init().exceptionally(error -> {
-                throw new StorageConfigException("Failed to initialize backend '"
-                        + entry.getKey() + "'!", error);
-            }));
+            started.put(entry.getKey(), entry.getValue().init());
         }
-        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+        return CompletableFuture.allOf(started.values().toArray(new CompletableFuture[0]))
+                .handle((ignored, anyFailure) -> {
+                    if (anyFailure == null) {
+                        return null;
+                    }
+                    List<StorageInitFailure> failures = new ArrayList<>();
+                    for (Map.Entry<String, CompletableFuture<Void>> entry : started.entrySet()) {
+                        try {
+                            entry.getValue().join();
+                        } catch (Throwable failed) {
+                            BackendDefinition definition = definitions.get(entry.getKey());
+                            failures.add(new StorageInitFailure(
+                                    entry.getKey(),
+                                    definition != null ? definition.getType() : null,
+                                    definition != null ? definition.describeTarget() : "(unknown target)",
+                                    unwrap(failed)));
+                        }
+                    }
+                    // no ParsedStorageConfig down here: the usages/file context is attached later by enrich()
+                    throw new StorageUnavailableException(summarize(failures, storages.size()),
+                            failures, Collections.emptyMap(), null);
+                });
+    }
+
+    /** One line, naming every failed backend - the platform log shows THIS, not the banner. */
+    private static String summarize(List<StorageInitFailure> failures, int total) {
+        StringBuilder sb = new StringBuilder("Failed to initialize ")
+                .append(failures.size()).append(" of ").append(total).append(" storage backend(s): ");
+        for (int i = 0; i < failures.size(); i++) {
+            StorageInitFailure failure = failures.get(i);
+            if (i > 0) {
+                sb.append(", ");
+            }
+            sb.append("backend '").append(failure.getBackendName()).append('\'')
+                    .append(" -> ").append(failure.getRootCauseSummary());
+        }
+        return sb.toString();
+    }
+
+    private static Throwable unwrap(Throwable throwable) {
+        return (throwable instanceof CompletionException && throwable.getCause() != null)
+                ? throwable.getCause() : throwable;
     }
 
     /** Closes each registered Storage (best-effort: tries all even if one fails). */

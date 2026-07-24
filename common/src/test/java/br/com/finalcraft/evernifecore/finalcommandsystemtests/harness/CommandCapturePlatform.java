@@ -39,6 +39,7 @@ public class CommandCapturePlatform implements IPlatform {
     private final List<String> unregisteredLabels = new ArrayList<>();
     private final List<FinalCMDPluginCommand> registrationOrder = new ArrayList<>();
     private final List<String> infoMessages = new ArrayList<>();
+    private final List<String> shutdownReasons = new ArrayList<>();
     private boolean forceRegisterFailure = false;
 
     /** When {@code true}, every subsequent {@link #registerCommand} call rejects (returns false) without capturing anything - simulates a platform-level registration failure (RG8). */
@@ -64,11 +65,17 @@ public class CommandCapturePlatform implements IPlatform {
         return infoMessages;
     }
 
+    /** Every reason passed to {@link #shutdown(String)} - a real shutdown would kill the test JVM. */
+    public List<String> getShutdownReasons() {
+        return shutdownReasons;
+    }
+
     public void reset() {
         capturedByLabel.clear();
         unregisteredLabels.clear();
         registrationOrder.clear();
         infoMessages.clear();
+        shutdownReasons.clear();
     }
 
     @Override
@@ -236,5 +243,10 @@ public class CommandCapturePlatform implements IPlatform {
     @Override
     public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task) {
         return CompletableFuture.completedFuture(task.get());
+    }
+
+    @Override
+    public void shutdown(String reason) {
+        shutdownReasons.add(reason);   //a real shutdown would kill the test JVM
     }
 }

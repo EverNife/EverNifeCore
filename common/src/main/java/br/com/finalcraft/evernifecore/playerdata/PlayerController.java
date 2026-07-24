@@ -21,8 +21,11 @@ import br.com.finalcraft.evernifecore.playerdata.storage.PlayerDataBinding;
 import br.com.finalcraft.evernifecore.playerdata.storage.SectionCachePolicy;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.storage.ECStorageRegistries;
+import br.com.finalcraft.evernifecore.storage.StorageBootGuard;
+import br.com.finalcraft.evernifecore.storage.StorageBootReport;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
 import br.com.finalcraft.evernifecore.storage.StorageRegistry;
+import br.com.finalcraft.evernifecore.storage.StorageUnavailableException;
 import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
 import br.com.finalcraft.evernifecore.storage.config.ParsedStorageConfig;
 import br.com.finalcraft.evernifecore.storage.config.PDSectionYamlWriter;
@@ -52,6 +55,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
@@ -186,7 +190,14 @@ public class PlayerController {
         //layer's registry gets closed on failure and must not keep serving account lookups
         Accounts previousAccounts = Accounts.isEnabled() ? Accounts.get() : null;
         ServerCooldowns previousServerCooldowns = ServerCooldowns.get();
-        PlayerController fresh = new PlayerController(storageYmlFile);
+        PlayerController fresh;
+        try {
+            fresh = new PlayerController(storageYmlFile);
+        } catch (StorageUnavailableException storageDown) {
+            //old != null means a live instance is still serving: a failed reload never stops the server
+            StorageBootGuard.onStorageUnavailable(storageDown, old != null);
+            throw storageDown;
+        }
 
         //check the legacy import - when pending, the players are NOT loaded now;
         //the import + the load run on the first tick, after every plugin has registered its adapters
@@ -265,7 +276,17 @@ public class PlayerController {
                 .defaultLevel(storageConfig.getLoggingLevel());
 
         this.registry = StorageYamlParser.buildRegistry(storageConfig, logConfig);
-        this.registry.initAll().join(); //fail-fast: an enabled backend that is down aborts the boot
+        try {
+            this.registry.initAll().join(); //every enabled backend is attempted; a down one aborts the boot
+        } catch (CompletionException wrapped) {
+            //the backends that DID come up must not keep their pools alive behind a failed construction
+            this.registry.closeAll();
+            if (wrapped.getCause() instanceof StorageUnavailableException) {
+                throw StorageBootReport.enrich((StorageUnavailableException) wrapped.getCause(),
+                        storageConfig, storageYmlFile);
+            }
+            throw wrapped;
+        }
         this.playerDataBinding = PlayerDataBinding.resolve(storageConfig, registry, ecRegistries.global());
         for (String warning : playerDataBinding.getResolutionWarnings()){
             PDLog.warning(warning);

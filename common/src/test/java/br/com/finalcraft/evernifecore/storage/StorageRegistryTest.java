@@ -9,8 +9,11 @@ import br.com.finalcraft.everydatabase.log.StorageLogConfig;
 import br.com.finalcraft.everydatabase.modules.memory.InMemoryStorage;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -77,7 +80,7 @@ class StorageRegistryTest {
     }
 
     @Test
-    void initAllFailsFastNamingTheBrokenBackend() {
+    void initAllReportsEveryBrokenBackend() {
         StorageRegistry registry = new StorageRegistry("mem");
         registry.register("mem", Storages.createInMemory());
         registry.register("broken", new FailingStorage());
@@ -86,6 +89,45 @@ class StorageRegistryTest {
                 () -> registry.initAll().join());
         assertTrue(error.getCause() instanceof StorageConfigException);
         assertTrue(error.getCause().getMessage().contains("broken"));
+    }
+
+    @Test
+    void initAllAggregatesEveryBrokenBackendInsteadOfOnlyTheFirst() {
+        StorageRegistry registry = new StorageRegistry("ok");
+        registry.register("ok", Storages.createInMemory());
+        registry.register("broken1", new FailingStorage());
+        registry.register("broken2", new FailingStorage());
+
+        CompletionException error = assertThrows(CompletionException.class,
+                () -> registry.initAll().join());
+        assertTrue(error.getCause() instanceof StorageUnavailableException);
+        StorageUnavailableException unavailable = (StorageUnavailableException) error.getCause();
+
+        assertEquals(2, unavailable.getFailures().size());
+        List<String> brokenNames = unavailable.getFailures().stream()
+                .map(StorageInitFailure::getBackendName).collect(Collectors.toList());
+        assertTrue(brokenNames.contains("broken1"));
+        assertTrue(brokenNames.contains("broken2"));
+        assertTrue(unavailable.getMessage().contains("broken1"));
+        assertTrue(unavailable.getMessage().contains("broken2"));
+    }
+
+    @Test
+    void closeAllClosesEveryRegisteredBackendAfterAPartialInitFailure() {
+        StorageRegistry registry = new StorageRegistry("ok");
+        CountingStorage ok = new CountingStorage(false);
+        CountingStorage broken = new CountingStorage(true);
+        registry.register("ok", ok);
+        registry.register("broken", broken);
+
+        assertThrows(CompletionException.class, () -> registry.initAll().join());
+
+        //mirrors PlayerController's constructor: a construction failure must not leak the backend
+        //that DID come up - closeAll() is called on the whole (partially-initialized) registry
+        registry.closeAll().join();
+
+        assertEquals(1, ok.closeCount.get());
+        assertEquals(1, broken.closeCount.get());
     }
 
     /** Minimal Storage stub whose init() always fails. */
@@ -101,6 +143,54 @@ class StorageRegistryTest {
 
         @Override
         public CompletableFuture<Void> close() {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        public CompletableFuture<HealthStatus> health() {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        public <K, V> Repository<K, V> repository(EntityDescriptor<K, V> descriptor) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public StorageLogConfig getStorageLogConfig() {
+            return logConfig;
+        }
+
+        @Override
+        public Storage setStorageLogConfig(StorageLogConfig logConfig) {
+            this.logConfig = logConfig;
+            return this;
+        }
+    }
+
+    /** Storage stub that counts close() calls; init() fails or succeeds depending on the constructor flag. */
+    private static class CountingStorage implements Storage {
+        private final boolean failsToInit;
+        private StorageLogConfig logConfig = StorageLogConfig.silent();
+        final AtomicInteger closeCount = new AtomicInteger();
+
+        CountingStorage(boolean failsToInit) {
+            this.failsToInit = failsToInit;
+        }
+
+        @Override
+        public CompletableFuture<Void> init() {
+            if (failsToInit) {
+                CompletableFuture<Void> future = new CompletableFuture<>();
+                future.completeExceptionally(new IllegalStateException("connection refused"));
+                return future;
+            }
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        public CompletableFuture<Void> close() {
+            closeCount.incrementAndGet();
             return CompletableFuture.completedFuture(null);
         }
 

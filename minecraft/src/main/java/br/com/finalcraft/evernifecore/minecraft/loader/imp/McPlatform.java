@@ -304,4 +304,12 @@ public class McPlatform implements IPlatform {
         registerArgParsersOnce.run();
     }
 
+    @Override
+    public void shutdown(String reason) {
+        EverNifeCore.getLog().severe("Shutting the server down: " + reason);
+        //direct, no scheduler hop: we are on the main thread during enable, and a plugin that is about
+        //to be disabled has its scheduled tasks cancelled - a deferred task would never fire
+        Bukkit.getServer().shutdown();
+    }
+
 }
