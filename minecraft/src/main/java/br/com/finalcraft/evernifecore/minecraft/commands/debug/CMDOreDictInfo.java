@@ -36,7 +36,7 @@ public class CMDOreDictInfo {
                     "\n§2OredictItems: §e%oredict_amount%" +
                     "\n" +
                     "\n§bClick to open a menu with all items from this OreDict!",
-            runCommand = "/%label% menu %oredict_name%"
+            click = "/%label% menu %oredict_name%"
     )
     private static LocaleMessage OREDICT_INFO;
 
@@ -74,7 +74,7 @@ public class CMDOreDictInfo {
                 .withSuplier(() -> itemStacks)
                 .extracting(itemStack -> FCItemUtils.getMinecraftIdentifier(itemStack))
                 .setFormatLine(itemStack -> {
-                    return new FancySegment("§7#  %number%:   §a%value%").setSuggestCommandAction("%value%");
+                    return new FancySegment("§7#  %number%:   §a%value%").clickSuggest("%value%");
                 })
                 .build()
                 .send(pageVizualization, sender);
@@ -100,8 +100,8 @@ public class CMDOreDictInfo {
                 .extracting(oreDict -> oreDict.getOreName())
                 .setFormatLine(
                         new FancySegment("§7#  %number%: (%oredict_amount%)  §a%value%")
-                        .setRunCommandAction(OREDICT_INFO.getFancyText(sender).getClickActionText())
-                        .setHoverText(OREDICT_INFO.getFancyText(sender).getHoverText())
+                        .clickCommand(OREDICT_INFO.getFancyText(sender).getClickActionText())
+                        .hover(OREDICT_INFO.getFancyText(sender).getHoverText())
                 )
                 .addPlaceholder("%oredict_amount%", entry -> entry.getItemStacks().size())
                 .addPlaceholder("%oredict_name%", entry -> entry.getOreName())

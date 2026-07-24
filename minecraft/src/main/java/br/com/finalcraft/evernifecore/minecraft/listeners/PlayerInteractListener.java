@@ -83,16 +83,16 @@ public class PlayerInteractListener implements ECListener {
                     "\n - §7§oEntity Registry: §b%entity_registry_name%",
             hover = "§7Disable with /entityinfo" +
                     "\nClick to copy the Entity Type",
-            runCommand = "%entity_type%",
-            clickActionType = ClickActionType.SUGGEST_COMMAND,
+            click = "%entity_type%",
+            clickType = ClickActionType.SUGGEST_COMMAND,
 
             children = {
                     @FCLocale.Child(
                             text = "\n - §7§oEntity NBT: §b%entity_nbt%",
                             hover = "§7Disable with /entityinfo" +
                                     "\nClick to copy the Entity NBT",
-                            runCommand = "%entity_nbt%",
-                            clickActionType = ClickActionType.SUGGEST_COMMAND
+                            click = "%entity_nbt%",
+                            clickType = ClickActionType.SUGGEST_COMMAND
                     )
             }
     )

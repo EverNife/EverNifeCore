@@ -102,23 +102,23 @@ public class CMDProtectionTest implements ICustomFinalCMD {
         //Basic Checks
         result = protectionHandler.canBuild(player, playerLocation) ? "§eYes" : "§cNo";
         formatter.append(String.format("\n§2§l ▶ §aCan Build: %s", result))
-                .setHoverText(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bBuild Here: %s\n\n§7 - BlockPos: §7[§6%s§7]", result, blockPos));
+                .hover(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bBuild Here: %s\n\n§7 - BlockPos: §7[§6%s§7]", result, blockPos));
 
         result = protectionHandler.canBreak(player, playerLocation) ? "§eYes" : "§cNo";
         formatter.append(String.format("\n§2§l ▶ §aCan Break: %s", result))
-                .setHoverText(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bBreak Here: %s\n\n§7 - BlockPos: §7[§6%s§7]", result, blockPos));
+                .hover(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bBreak Here: %s\n\n§7 - BlockPos: §7[§6%s§7]", result, blockPos));
 
         result = protectionHandler.canInteract(player, playerLocation) ? "§eYes" : "§cNo";
         formatter.append(String.format("\n§2§l ▶ §aCan Interact: %s", result))
-                .setHoverText(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bInteract Here: %s\n\n§7 - BlockPos: §7[§6%s§7]", result, blockPos));
+                .hover(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bInteract Here: %s\n\n§7 - BlockPos: §7[§6%s§7]", result, blockPos));
 
         result = protectionHandler.canAttack(player, player) ? "§eYes" : "§cNo";
         formatter.append(String.format("\n§2§l ▶ §aCan PvP §7§o(Self Hit)§a: %s", result))
-                .setHoverText(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bHit Yourself (PvP) Here: %s\n\n§7 - BlockPos: §7[§6%s§7]", result, blockPos));
+                .hover(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bHit Yourself (PvP) Here: %s\n\n§7 - BlockPos: §7[§6%s§7]", result, blockPos));
 
         result = protectionHandler.canUseAoE(player, player.getLocation(), 5) ? "§eYes" : "§cNo";
         formatter.append(String.format("\n§2§l ▶ §aCan AOE Use/Break/Build §7§o(radius 5)§a: %s", result))
-                .setHoverText(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bUse Area of Effect Items in Here: %s\n\n§7 - With §6Radius=5\n§7 - BlockPos: §7[§6%s§7]", result, blockPos));
+                .hover(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bUse Area of Effect Items in Here: %s\n\n§7 - With §6Radius=5\n§7 - BlockPos: §7[§6%s§7]", result, blockPos));
 
         //Regional Checks
         CuboidSelection cuboidSelection = new CuboidSelection(
@@ -130,11 +130,11 @@ public class CMDProtectionTest implements ICustomFinalCMD {
 
         result = canBreakOnRegion ? "§eYes" : "§cNo";
         formatter.append(String.format("\n§2§l ▶ §aCan CuboidSelection Break §7§o(radius 10)§a: %s", result))
-                .setHoverText(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bBuild AROUND Here: %s\n\n§7 - With §6Radius=10\n§7 - CuboidSelection: §7[§6%s§7]", result, cuboidSelection));
+                .hover(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bBuild AROUND Here: %s\n\n§7 - With §6Radius=10\n§7 - CuboidSelection: §7[§6%s§7]", result, cuboidSelection));
 
         result = canBuildOnRegion ? "§eYes" : "§cNo";
         formatter.append(String.format("\n§2§l ▶ §aCan CuboidSelection Build §7§o(radius 10)§a: %s", result))
-                .setHoverText(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bBreak AROUND Here: %s\n\n§7 - With §6Radius=10\n§7 - CuboidSelection: §7[§6%s§7]", result, cuboidSelection));
+                .hover(String.format("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bBreak AROUND Here: %s\n\n§7 - With §6Radius=10\n§7 - CuboidSelection: §7[§6%s§7]", result, cuboidSelection));
 
         boolean worldGuardDetected = ProtectionAll.getInstance().getProtectionHandlers()
                 .stream()
@@ -164,12 +164,12 @@ public class CMDProtectionTest implements ICustomFinalCMD {
                 }
 
                 formatter.append(String.format("\n§d§l ▶ §b§l[WG] §6Regions at Your Location:§e %s §7§o(Hover for Flags)", applicableRegions.size()))
-                        .setHoverText(String.format("§7§l [§e   Check Result §dWG Flag   §7§l]" +
+                        .hover(String.format("§7§l [§e   Check Result §dWG Flag   §7§l]" +
                                 "\n" + regionInfos
                         ));
             }catch (Exception e){
                 formatter.append("\n§c§l ▶ §eThere was an error while trying to get the WorldGuard Regions at your location!")
-                        .setHoverText("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bError: " + e.getMessage());
+                        .hover("§7§l [§e   Check Result §2Can You   §7§l]\n§d ◆ §bError: " + e.getMessage());
             }
         }
 
