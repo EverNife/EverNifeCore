@@ -46,7 +46,7 @@ public class CMDECLocale {
                 .collect(Collectors.toList());
 
         for (ECPluginData ecplugin : sortedPlugins) {
-            formatter.append("\n§d ♦ §b" + ecplugin.getMetaInfo().getName() + " §7");
+            formatter.appendLine("§d ♦ §b" + ecplugin.getMetaInfo().getName() + " §7");
 
             for (String localeType : LocaleType.values()) {
                 boolean isThisSelected = ecplugin.getPluginLanguage().equals(localeType);
