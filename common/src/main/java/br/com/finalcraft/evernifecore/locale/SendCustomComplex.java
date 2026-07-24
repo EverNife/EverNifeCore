@@ -51,10 +51,10 @@ public class SendCustomComplex extends SendCustom {
             for (SendCustom sendCustom : concatList) {
 
                 FancyText fancyText = sendCustom.localeMessage.getFancyText(sender).clone();
-                if (sendCustom.hover != null) fancyText.setHoverText(sendCustom.hover);
-                if (sendCustom.action != null) fancyText.setRunCommandAction(sendCustom.action);
-                if (sendCustom.suggest != null) fancyText.setSuggestCommandAction(sendCustom.suggest);
-                if (sendCustom.link != null) fancyText.setOpenLinkAction(sendCustom.link);
+                if (sendCustom.hover != null) fancyText.hover(sendCustom.hover);
+                if (sendCustom.action != null) fancyText.clickCommand(sendCustom.action);
+                if (sendCustom.suggest != null) fancyText.clickSuggest(sendCustom.suggest);
+                if (sendCustom.link != null) fancyText.clickLink(sendCustom.link);
 
                 LocaleMessageImp localeMessageImp = (LocaleMessageImp) sendCustom.localeMessage;
                 List<Map.Entry<String, Object>> allPlaceholdersReplacers = new ArrayList<>();

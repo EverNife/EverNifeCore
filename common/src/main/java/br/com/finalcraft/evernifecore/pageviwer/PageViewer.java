@@ -259,11 +259,11 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
                 nextAndPreviousPage =
                         FancyFormatter.of("\n" + borders[0]) //First Border
-                                .append(previousButton).setHoverText("\n" + previousButton + "\n").setRunCommandAction(moveToPage.apply(currentPage - 1)) //First Arrow
+                                .append(previousButton).hover("\n" + previousButton + "\n").clickCommand(moveToPage.apply(currentPage - 1)) //First Arrow
                                 .append(centerSpace)
-                                .append(center).setHoverText("\n§a Refresh Page [" + currentPage + "] \n").setRunCommandAction(moveToPage.apply(currentPage))
+                                .append(center).hover("\n§a Refresh Page [" + currentPage + "] \n").clickCommand(moveToPage.apply(currentPage))
                                 .append(centerSpace)
-                                .append(nextButton).setHoverText("\n" + nextButton + "\n").setRunCommandAction(moveToPage.apply(currentPage + 1)) //Second Arrow
+                                .append(nextButton).hover("\n" + nextButton + "\n").clickCommand(moveToPage.apply(currentPage + 1)) //Second Arrow
                                 .append(borders[1]); //Second Border
             }
         }
@@ -535,7 +535,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
         @FCLocale(lang = LocaleType.EN_US, children = {
                 @FCLocale.Child(text = "                 &r"),
-                @FCLocale.Child(text = "§a§l<§2<§a§l<&r", hover = "\n§a§l<§2<§a§l<\n", runCommand = "%on_previous_page_click%"),
+                @FCLocale.Child(text = "§a§l<§2<§a§l<&r", hover = "\n§a§l<§2<§a§l<\n", click = "%on_previous_page_click%"),
                 @FCLocale.Child(text = "           &r")
         })
         protected static LocaleMessage PREVIOUS_PAGE_WHEN_AVAILABLE;
@@ -547,12 +547,12 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         })
         protected static LocaleMessage PREVIOUS_PAGE_WHEN_UNAVAILABLE;
 
-        @FCLocale(lang = LocaleType.EN_US, text = "§ePage [%current_page%/%last_page%]§r", hover = "\n§a Refresh Page [%current_page%] \n", runCommand = "%on_refresh_page_click%")
+        @FCLocale(lang = LocaleType.EN_US, text = "§ePage [%current_page%/%last_page%]§r", hover = "\n§a Refresh Page [%current_page%] \n", click = "%on_refresh_page_click%")
         protected static LocaleMessage CENTER_PAGE_BUTTON;
 
         @FCLocale(lang = LocaleType.EN_US, children = {
                 @FCLocale.Child(text = "            &r"),
-                @FCLocale.Child(text = "§a§l>§2>§a§l>", hover = "\n§a§l>§2>§a§l>\n", runCommand = "%on_next_page_click%"),
+                @FCLocale.Child(text = "§a§l>§2>§a§l>", hover = "\n§a§l>§2>§a§l>\n", click = "%on_next_page_click%"),
         })
         protected static LocaleMessage NEXT_PAGE_WHEN_AVAILABLE;
 

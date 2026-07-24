@@ -35,25 +35,31 @@ public interface FancyText {
 
     FancyFormatter append(FancyText fancyText);
 
-    FancyText setHoverText(String hoverText);
+    FancyText hover(String hoverText);
 
-    default FancyText setHoverText(List<String> hoverText) {
-        return setHoverText(String.join("\n", hoverText));
+    default FancyText hover(List<String> hoverText) {
+        return hover(String.join("\n", hoverText));
     }
 
-    default FancyText setHoverItem(String serializedItem) {
-        return setHoverText("$show_item$" + serializedItem);
+    default FancyText hoverItem(String serializedItem) {
+        return hover("$show_item$" + serializedItem);
     }
 
-    FancyText setClickAction(ClickActionType actionType);
+    FancyText click(ClickActionType actionType);
 
-    FancyText setClickAction(String clickActionText, ClickActionType actionType);
+    FancyText click(String clickActionText, ClickActionType actionType);
 
-    FancyText setRunCommandAction(String runCommandAction);
+    default FancyText clickCommand(String command) {
+        return click(command, ClickActionType.RUN_COMMAND);
+    }
 
-    FancyText setSuggestCommandAction(String suggestCommandAction);
+    default FancyText clickSuggest(String suggestion) {
+        return click(suggestion, ClickActionType.SUGGEST_COMMAND);
+    }
 
-    FancyText setOpenLinkAction(String linkToOpen);
+    default FancyText clickLink(String url) {
+        return click(url, ClickActionType.OPEN_URL);
+    }
 
     Component toComponent();
 

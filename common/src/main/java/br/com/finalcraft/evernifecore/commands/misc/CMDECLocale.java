@@ -48,8 +48,8 @@ public class CMDECLocale {
                 boolean isThisSelected = ecplugin.getPluginLanguage().equals(localeType);
                 formatter.append(
                         FancyText.of((isThisSelected ? "§a§l" : "") +  "[" + localeType + "]§7")
-                                .setHoverText(isThisSelected ? "§aThis locale is already selected!" : "Click to Change Locale to: " + localeType)
-                                .setRunCommandAction(isThisSelected ? null : FCCommandUtil.dynamicCommand(() -> {
+                                .hover(isThisSelected ? "§aThis locale is already selected!" : "Click to Change Locale to: " + localeType)
+                                .clickCommand(isThisSelected ? null : FCCommandUtil.dynamicCommand(() -> {
                                     FCServerUtil.makeConsoleExecuteCommand(label + " set " + ecplugin.getMetaInfo().getName() + " " + localeType);
                                     this.list(sender, label); //Send this command again
                                 }))
@@ -60,7 +60,7 @@ public class CMDECLocale {
             if (ecplugin.getCustomLangConfig() != null && !LocaleType.values().contains(ecplugin.getPluginLanguage())){
                 formatter.append(
                         FancyText.of("§a§l[" + ecplugin.getPluginLanguage() + "]§7")
-                                .setHoverText("§aThis locale is already selected!")
+                                .hover("§aThis locale is already selected!")
                 );
             }
         }

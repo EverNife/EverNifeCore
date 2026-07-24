@@ -135,40 +135,25 @@ public class FancySegment implements FancyText {
     }
 
     @Override
-    public FancySegment setHoverText(String hoverText) {
+    public FancySegment hover(String hoverText) {
         setRecentChanged();
         this.hoverText = hoverText;
         return this;
     }
 
     @Override
-    public FancySegment setClickAction(ClickActionType actionType) {
+    public FancySegment click(ClickActionType actionType) {
         this.setRecentChanged();
         this.clickActionType = actionType;
         return this;
     }
 
     @Override
-    public FancySegment setClickAction(String clickActionText, ClickActionType actionType) {
+    public FancySegment click(String clickActionText, ClickActionType actionType) {
         setRecentChanged();
         this.clickActionText = clickActionText;
         this.clickActionType = actionType;
         return this;
-    }
-
-    @Override
-    public FancySegment setRunCommandAction(String runCommandAction) {
-        return setClickAction(runCommandAction, ClickActionType.RUN_COMMAND);
-    }
-
-    @Override
-    public FancySegment setSuggestCommandAction(String suggestCommandAction) {
-        return setClickAction(suggestCommandAction, ClickActionType.SUGGEST_COMMAND);
-    }
-
-    @Override
-    public FancySegment setOpenLinkAction(String linkToOpen) {
-        return setClickAction(linkToOpen, ClickActionType.OPEN_URL);
     }
 
     private void setRecentChanged() {

@@ -109,8 +109,8 @@ public class FCLocaleScanner {
         for (FCLocaleData fcLocale : locales) {
             String text = fcLocale.text();
             String hover = fcLocale.hover().isEmpty() ? null : fcLocale.hover();
-            String clickActionText = fcLocale.runCommand().isEmpty() ? null : fcLocale.runCommand();
-            ClickActionType clickActionType = fcLocale.clickActionType();
+            String clickActionText = fcLocale.click().isEmpty() ? null : fcLocale.click();
+            ClickActionType clickActionType = fcLocale.clickType();
             String lang = fcLocale.lang();
             FancyText fancyText = new FancySegment(
                     FCColorUtil.colorfy(text),
@@ -129,15 +129,15 @@ public class FCLocaleScanner {
                 for (FCLocaleData.Child child : fcLocale.children()) {
                     text = child.text();
                     hover = child.hover().isEmpty() ? null : child.hover();
-                    clickActionText = child.runCommand().isEmpty() ? null : child.runCommand();
-                    clickActionType = child.clickActionType();
+                    clickActionText = child.click().isEmpty() ? null : child.click();
+                    clickActionType = child.clickType();
 
                     fancyText = fancyText.append(
                             FCColorUtil.colorfy(text),
                             FCColorUtil.colorfy(hover),
                             clickActionText
                     );
-                    fancyText.setClickAction(clickActionType);
+                    fancyText.click(clickActionType);
                 }
             }
 

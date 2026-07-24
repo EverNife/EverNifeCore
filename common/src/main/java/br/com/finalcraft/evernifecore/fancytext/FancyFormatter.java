@@ -165,44 +165,23 @@ public class FancyFormatter implements FancyText {
     }
 
     @Override
-    public FancyFormatter setHoverText(String hoverText) {
+    public FancyFormatter hover(String hoverText) {
         FancyText last = lastOrNull();
-        if (last != null) last.setHoverText(hoverText);
+        if (last != null) last.hover(hoverText);
         return this;
     }
 
     @Override
-    public FancyFormatter setClickAction(ClickActionType actionType) {
+    public FancyFormatter click(ClickActionType actionType) {
         FancyText last = lastOrNull();
-        if (last != null) last.setClickAction(actionType);
+        if (last != null) last.click(actionType);
         return this;
     }
 
     @Override
-    public FancyFormatter setClickAction(String actionText, ClickActionType actionType) {
+    public FancyFormatter click(String actionText, ClickActionType actionType) {
         FancyText last = lastOrNull();
-        if (last != null) last.setClickAction(actionText, actionType);
-        return this;
-    }
-
-    @Override
-    public FancyFormatter setRunCommandAction(String runCommandAction) {
-        FancyText last = lastOrNull();
-        if (last != null) last.setRunCommandAction(runCommandAction);
-        return this;
-    }
-
-    @Override
-    public FancyFormatter setSuggestCommandAction(String suggestCommandAction) {
-        FancyText last = lastOrNull();
-        if (last != null) last.setSuggestCommandAction(suggestCommandAction);
-        return this;
-    }
-
-    @Override
-    public FancyFormatter setOpenLinkAction(String linkToOpen) {
-        FancyText last = lastOrNull();
-        if (last != null) last.setOpenLinkAction(linkToOpen);
+        if (last != null) last.click(actionText, actionType);
         return this;
     }
 

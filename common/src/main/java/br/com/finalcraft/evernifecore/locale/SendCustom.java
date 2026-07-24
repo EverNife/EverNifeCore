@@ -101,10 +101,10 @@ public class SendCustom implements ILocaleMessageBase {
     @Override
     public FancyText getFancyText(@Nullable FCommandSender sender){
         FancyText fancyText = sender == null ? localeMessage.getDefaultFancyText().clone() : localeMessage.getFancyText(sender).clone();
-        if (hover != null) fancyText.setHoverText(hover);
-        if (action != null) fancyText.setRunCommandAction(action);
-        if (suggest != null) fancyText.setSuggestCommandAction(suggest);
-        if (link != null) fancyText.setOpenLinkAction(link);
+        if (hover != null) fancyText.hover(hover);
+        if (action != null) fancyText.clickCommand(action);
+        if (suggest != null) fancyText.clickSuggest(suggest);
+        if (link != null) fancyText.clickLink(link);
 
         LocaleMessageImp localeMessageImp = (LocaleMessageImp) localeMessage;
         List<Map.Entry<String, Object>> allPlaceholdersReplacers = new ArrayList<Map.Entry<String, Object>>();

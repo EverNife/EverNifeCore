@@ -32,8 +32,8 @@ public class CoreCommand {
                 .withSuplier(() -> new ArrayList<>(ECPluginManager.getECPluginsMap().values()))
                 .extracting(ecPluginData -> ecPluginData.getMetaInfo().getName())
                 .setFormatLine(
-                        FancyText.of("§7# %number%: §e§l◆ §a %value% §7§o(%version%)").setHoverText("%plugin_info%")
-                                .append("%can_update%").setHoverText("§aClique to go to DownloadLink").setOpenLinkAction("%update_link%")
+                        FancyText.of("§7# %number%: §e§l◆ §a %value% §7§o(%version%)").hover("%plugin_info%")
+                                .append("%can_update%").hover("§aClique to go to DownloadLink").clickLink("%update_link%")
                 )
                 .addPlaceholder("%version%", ecPlugin -> ecPlugin.getMetaInfo().getVersion())
                 .addPlaceholder("%can_update%", ecPlugin -> ecPlugin.hasUpdate() ? "§b  [Update]" : "")
