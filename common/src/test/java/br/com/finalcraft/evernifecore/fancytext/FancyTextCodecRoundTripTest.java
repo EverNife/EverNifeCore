@@ -72,18 +72,18 @@ public class FancyTextCodecRoundTripTest {
         expected.add(new FancySegment("§aChild One"));                                                        // (a) plain
         expected.add(new FancySegment("§bChild Two", "§7Simple hover text"));                                  // (b) plain hover
         FancySegment childThree = new FancySegment("§cChild Three");
-        childThree.setHoverItem("minecraft:diamond_sword");                                                    // (c) hover sentinel
+        childThree.hoverItem("minecraft:diamond_sword");                                                 // (c) hover sentinel
         expected.add(childThree);
         expected.add(new FancySegment("§dChild Four", null, "/say run four", ClickActionType.RUN_COMMAND));    // (d) RUN_COMMAND
         expected.add(new FancySegment("§eChild Five", null, "/suggest five", ClickActionType.SUGGEST_COMMAND));// (d) SUGGEST_COMMAND
         expected.add(new FancySegment("§fChild Six", null, "https://example.com/six", ClickActionType.OPEN_URL)); // (d) OPEN_URL
         expected.add(new FancySegment("§9Child Seven", "§7hover seven", "/say seven", ClickActionType.RUN_COMMAND)); // hover + click together
         FancySegment childEight = new FancySegment("§0Child Eight");
-        childEight.setClickAction(ClickActionType.RUN_COMMAND);                                                // (e) type set, no action text
+        childEight.click(ClickActionType.RUN_COMMAND);                                                // (e) type set, no action text
         expected.add(childEight);
         expected.add(new FancySegment("§1Child Nine", "§2hover nine"));                                        // (b) plain hover again
         FancySegment childTen = new FancySegment("§3Child Ten");
-        childTen.setHoverItem("minecraft:diamond");                                                            // (c) hover sentinel again
+        childTen.hoverItem("minecraft:diamond");                                                            // (c) hover sentinel again
         expected.add(childTen);
         assertTrue(expected.size() >= 10, "the fixture must cover at least 10 children");
 
@@ -124,12 +124,12 @@ public class FancyTextCodecRoundTripTest {
      */
     @Test
     void formatterWithClickTypeButNoActionTextSurvivesEqualsAfterRoundTrip(@TempDir Path dir) {
-        // Mirrors FCLocaleScanner: a root segment plus a child whose runCommand() was never declared -
+        // Mirrors FCLocaleScanner: a root segment plus a child whose click() was never declared -
         // append(text, hover, runCommand) with a null runCommand still forces clickActionType = RUN_COMMAND,
-        // then setClickAction(...) re-applies the annotation's own default, exactly like the scanner does.
+        // then click(...) re-applies the annotation's own default, exactly like the scanner does.
         FancyText root = new FancySegment("§aRoot text", null, null, ClickActionType.RUN_COMMAND);
         FancyText combined = root.append("§bChild text", null, null);
-        combined.setClickAction(ClickActionType.RUN_COMMAND);
+        combined.click(ClickActionType.RUN_COMMAND);
         assertTrue(combined instanceof FancyFormatter, "append() on a leaf must produce a formatter");
         FancyFormatter original = (FancyFormatter) combined;
 

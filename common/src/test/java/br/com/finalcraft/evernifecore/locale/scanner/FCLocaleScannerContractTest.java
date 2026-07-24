@@ -11,6 +11,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDP
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.IPluginMetaInfo;
+import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
+import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
@@ -98,6 +100,33 @@ public class FCLocaleScannerContractTest {
         assertTrue(capturedWarnings.get(0).toLowerCase(Locale.ROOT).contains("first"),
                 "the warning must describe reality (the FIRST message wins, the second is discarded), not: "
                         + capturedWarnings.get(0));
+    }
+
+    /** Root + one child, both using the new click()/clickType() attribute names. */
+    public static class ClickVocabularyLocale {
+        @FCLocale(text = "Click here", hover = "Info", click = "/give {player} diamond", clickType = ClickActionType.OPEN_URL,
+                children = {
+                        @FCLocale.Child(text = "child text", hover = "child hover", click = "/child cmd", clickType = ClickActionType.SUGGEST_COMMAND)
+                })
+        public static LocaleMessage msg;
+    }
+
+    @Test
+    void clickAndClickTypeAttributesProduceTheSameResultAsTheOldRunCommandAndClickActionTypeAttributes() {
+        ECPluginData plugin = pluginDataWithCapturedLog("ClickVocabularyPlugin", new ArrayList<>());
+
+        List<LocaleMessageImp> scanned = FCLocaleScanner.scanForLocale(plugin, true, ClickVocabularyLocale.class);
+        FancyFormatter formatter = (FancyFormatter) scanned.get(0).getDefaultFancyText();
+
+        FancyText root = formatter.getFancyTextList().get(0);
+        FancyText child = formatter.getFancyTextList().get(formatter.getFancyTextList().size() - 1);
+
+        // captured by running the old runCommand()/clickActionType() attributes with the same
+        // literal values before they were renamed - not deduced from reading the scanner's code.
+        assertEquals("/give {player} diamond", root.getClickActionText());
+        assertEquals(ClickActionType.OPEN_URL, root.getClickActionType());
+        assertEquals("/child cmd", child.getClickActionText());
+        assertEquals(ClickActionType.SUGGEST_COMMAND, child.getClickActionType());
     }
 
     private ECPluginData pluginDataWithCapturedLog(String pluginName, List<String> capturedWarnings) {

@@ -33,7 +33,7 @@ public class FancyTextModelContractTest {
     @Test
     void clickTypeAppliesToTheLastAppendedSegment() {
         FancyFormatter formatter = (FancyFormatter) FancyText.of("head").append("child");
-        formatter.setClickAction(ClickActionType.OPEN_URL);
+        formatter.click(ClickActionType.OPEN_URL);
 
         List<FancyText> children = formatter.getFancyTextList();
         assertEquals(ClickActionType.OPEN_URL,
