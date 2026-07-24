@@ -17,8 +17,8 @@ import br.com.finalcraft.evernifecore.minecraft.guis.gui.OredictViewerGui;
 import br.com.finalcraft.evernifecore.minecraft.nms.data.oredict.OreDictEntry;
 import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
-import br.com.finalcraft.evernifecore.pageviwer.PageViewer;
-import br.com.finalcraft.evernifecore.pageviwer.PageVizualization;
+import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
+import br.com.finalcraft.evernifecore.pageviewer.PageVizualization;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
 import org.bukkit.inventory.ItemStack;
 

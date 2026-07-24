@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.pageviwer;
+package br.com.finalcraft.evernifecore.pageviewer;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
@@ -135,9 +135,13 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
                 final FancyText fancyText = formatLine.apply(comparedObject);
 
                 if (placeholders.size() > 0){
-                    //Replace each placeholder on the FancyText
-                    //Usually at least one, the %value%
-                    placeholders.entrySet().forEach(entry -> fancyText.replace(entry.getKey(), String.valueOf(entry.getValue().apply(sortedItem.getObject()))));
+                    //Resolve a placeholder only when the line actually cites its key: a registered
+                    //Function that the line never mentions is never invoked (match-driven).
+                    placeholders.forEach((key, function) -> {
+                        if (citesPlaceholder(fancyText, key)){
+                            fancyText.replace(key, String.valueOf(function.apply(sortedItem.getObject())));
+                        }
+                    });
                 }
 
                 fancyText.replace("%number%", String.valueOf(number + 1));
@@ -166,6 +170,28 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
             lastBuild = System.currentTimeMillis();
         }
+    }
+
+    /**
+     * Whether {@code fancyText} mentions {@code key} anywhere {@code replace} would act on it - visible
+     * text, hover payload or click text - descending into every segment of a {@link FancyFormatter}
+     * (whose own accessors only report the last segment). A key that appears nowhere is skipped, so its
+     * value is never computed.
+     */
+    private static boolean citesPlaceholder(FancyText fancyText, String key){
+        if (fancyText instanceof FancyFormatter){
+            for (FancyText segment : ((FancyFormatter) fancyText).getFancyTextList()){
+                if (citesPlaceholder(segment, key)) return true;
+            }
+            return false;
+        }
+        return contains(fancyText.getText(), key)
+                || contains(fancyText.getHoverText(), key)
+                || contains(fancyText.getClickActionText(), key);
+    }
+
+    private static boolean contains(String haystack, String needle){
+        return haystack != null && haystack.contains(needle);
     }
 
     public void send(@Nonnull FCommandSender... sender){
