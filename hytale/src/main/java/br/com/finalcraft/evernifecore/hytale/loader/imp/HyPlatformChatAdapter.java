@@ -37,7 +37,7 @@ public class HyPlatformChatAdapter implements IPlatformChatAdapter {
 
         senders.add(FCHytaleUtil.getConsoleSender());
 
-        fancyText.send(senders.toArray(new FCommandSender[0]));
+        fancyText.send(senders);
     }
 
     @Override

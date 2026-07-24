@@ -39,7 +39,7 @@ public class McPlatformChatAdapter implements IPlatformChatAdapter {
 
         senders.add(FCBukkitUtil.adapt(Bukkit.getConsoleSender()));
 
-        fancyText.send(senders.toArray(new FCommandSender[0]));
+        fancyText.send(senders);
     }
 
     @Override
