@@ -23,7 +23,6 @@ import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -45,7 +44,6 @@ public class FinalCMDPluginCommand {
     //
 
     protected HelpContext helpContext;// Immutable Context from all HelpLines from all SubCmds (come from list 'helpLineList' bellow)
-    protected List<Field> localeMessageFields = new ArrayList<>();
     protected transient IPlatformCMD platformCommand; //The actual command.class inside the platform
 
     public static final String DEFAULT_USAGE = "§3§l ▶ §a/§e%label% ";
@@ -67,11 +65,6 @@ public class FinalCMDPluginCommand {
 
     public String[] getExtraLabels(){
         return Arrays.copyOfRange(finalCMD.getLabels(), 1, finalCMD.getLabels().length);
-    }
-
-    public void addLocaleMessages(List<Field> localeMessages){
-        localeMessages.forEach(field -> field.setAccessible(true));
-        localeMessageFields.addAll(localeMessages);
     }
 
     /**

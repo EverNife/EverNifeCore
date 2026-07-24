@@ -134,24 +134,22 @@ public class FinalCMDManager {
                 finalCMDMainMethods.add(Tuple.of(finalCMD, null));
             }
 
-            //Identify all LocaleMessages in this class and load it
-            List<Field> localeMessageFields = new ArrayList<>();
+            //Identify whether this class declares any (static) LocaleMessage field, so its locale is loaded
+            boolean hasStaticLocaleField = false;
             for (Field declaredField : executor.getClass().getDeclaredFields()) {
                 if (declaredField.isAnnotationPresent(FCLocale.class) || declaredField.isAnnotationPresent(FCMultiLocales.class)){
                     if (!Modifier.isStatic(declaredField.getModifiers())){
                         ecPluginData.getLog().severe("The LocaleMessage [" + declaredField.getName() + "] found at [" + declaredField.getDeclaringClass().getName() + "] is not static! This is an error, it will be ignored!");
                     }else {
-                        localeMessageFields.add(declaredField);
+                        hasStaticLocaleField = true;
                     }
                 }
             }
 
             //IF we have any method with FCLocale annotation, then load it using the FCLocaleManager
-            if (!localeMessageFields.isEmpty()){
+            if (hasStaticLocaleField){
                 FCLocaleManager.loadLocale(ecPluginData, executor.getClass());
             }
-
-            Collections.sort(localeMessageFields, Comparator.comparing(Field::getName)); //Sort LocaleMessage fields by its name
 
             if (finalCMDMainMethods.size() == 1){ //Check for SubCommands, maybe this @FinalCMD is in the Class
                 Tuple<FinalCMD, Method> tuple = finalCMDMainMethods.get(0);
@@ -199,7 +197,6 @@ public class FinalCMDManager {
                     newCommand.addSubCommand(subCommandInterpreter);
                 }
 
-                newCommand.addLocaleMessages(localeMessageFields);
                 boolean registered = newCommand.registerCommand();
                 ECPluginManager.getOrCreateECorePluginData(ecPluginData).reloadAllCustomLocales();
                 return registered ? Collections.singletonList(newCommand) : Collections.<FinalCMDPluginCommand>emptyList();
@@ -237,7 +234,6 @@ public class FinalCMDManager {
 
                     FinalCMDPluginCommand newCommand = new FinalCMDPluginCommand(ecPluginData, finalCMDData, mainMethodInterpreter);
 
-                    newCommand.addLocaleMessages(localeMessageFields);
                     if (newCommand.registerCommand()){
                         registeredCommands.add(newCommand);
                     }
