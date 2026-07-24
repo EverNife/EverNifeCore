@@ -1,7 +1,10 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.evernifecore.fancytext.hover.FancyHover;
+import br.com.finalcraft.evernifecore.fancytext.hover.FancyHoverRegistry;
 import br.com.finalcraft.evernifecore.fancytext.hover.ItemHover;
+import br.com.finalcraft.evernifecore.fancytext.hover.TextHover;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -18,6 +21,9 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 /**
  * The config codec for {@link FancyText} (both {@link FancySegment} and {@link FancyFormatter}), registered
@@ -56,11 +62,11 @@ public final class FancyTextConfigCodec {
     private static final String FANCY_KEY_ACTION_TYPE = "clickActionType";
 
     private static final String HOVER_TYPE_TEXT = "text";
-    private static final String HOVER_TYPE_ITEM = "item";
-    // Matches the sentinel FancyHoverRegistry's built-in item hover type still collapses to for
-    // getHoverText(); a mutable, plugin-extensible runtime registry is not something a save-time
-    // codec can safely generalize over, so custom types are simply not round-tripped here.
-    private static final String HOVER_ITEM_SENTINEL_PREFIX = ItemHover.LEGACY_SENTINEL;
+
+    private static final Logger LOG = Logger.getLogger("EverNifeCore");
+    // One warning per hover typeId, not per message: a lang file with hundreds of entries of an
+    // unknown/non-persistable type must not flood the console.
+    private static final Set<String> WARNED_HOVER_TYPES = ConcurrentHashMap.newKeySet();
 
     /**
      * Register {@link FancyText} into {@link ConfigFactory}, plus the same read/write pair again under
@@ -122,8 +128,10 @@ public final class FancyTextConfigCodec {
             return;
         }
 
+        FancyHover hover = fancyText.getHover();
         String hoverText = fancyText.getHoverText();
-        boolean hasHover = hoverText != null && !hoverText.isEmpty();
+        boolean hoverIsCodecAware = hover != null && FancyHoverRegistry.isCodecAware(hover.typeId());
+        boolean hasHover = hoverIsCodecAware || (hoverText != null && !hoverText.isEmpty());
         String clickActionText = fancyText.getClickActionText();
         boolean hasActionText = clickActionText != null && !clickActionText.isEmpty();
         boolean hasActionType = fancyText.getClickActionType() != ClickActionType.NONE;
@@ -139,14 +147,18 @@ public final class FancyTextConfigCodec {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put(FANCY_KEY_TEXT, saveText);
         if (hasHover) {
-            String hoverType = HOVER_TYPE_TEXT;
-            String storedHover = hoverText;
-            if (hoverText.startsWith(HOVER_ITEM_SENTINEL_PREFIX)) {
-                hoverType = HOVER_TYPE_ITEM;
-                storedHover = hoverText.substring(HOVER_ITEM_SENTINEL_PREFIX.length());
+            if (hoverIsCodecAware) {
+                // Persist through the registry codec: text/item reproduce their exact historical shape
+                // (payload + "text"/"item"), and a custom type round-trips instead of being dropped.
+                map.put(FANCY_KEY_HOVER, asStringOrList(FancyHoverRegistry.encode(hover).replace('§', '&')));
+                map.put(FANCY_KEY_HOVER_TYPE, hover.typeId());
+            } else {
+                // A hover whose type the registry cannot persist (unknown, or a custom type with no
+                // codec): keep the tooltip visible as plain text and say so once - never drop it silently.
+                warnUnpersistableHover(hover == null ? null : hover.typeId());
+                map.put(FANCY_KEY_HOVER, asStringOrList(hoverText.replace('§', '&')));
+                map.put(FANCY_KEY_HOVER_TYPE, HOVER_TYPE_TEXT);
             }
-            map.put(FANCY_KEY_HOVER, asStringOrList(storedHover.replace('§', '&')));
-            map.put(FANCY_KEY_HOVER_TYPE, hoverType);
         }
         if (hasActionText) {
             map.put(FANCY_KEY_ACTION_TEXT, asStringOrList(clickActionText.replace('§', '&')));
@@ -180,28 +192,63 @@ public final class FancyTextConfigCodec {
 
         if (node.isObject() && node.has(FANCY_KEY_TEXT)) {
             String text = joinNode(node.get(FANCY_KEY_TEXT));
-            String hoverText = joinNode(node.get(FANCY_KEY_HOVER));
+            String hoverPayload = joinNode(node.get(FANCY_KEY_HOVER));
             String hoverTypeName = joinNode(node.get(FANCY_KEY_HOVER_TYPE));
-            if (hoverText != null && HOVER_TYPE_ITEM.equals(hoverTypeName)) {
-                // Absent hoverType (a pre-existing file) means "text" implicitly - the sentinel, if any,
-                // stays embedded in hoverText raw, unchanged from how it always read.
-                hoverText = HOVER_ITEM_SENTINEL_PREFIX + hoverText;
-            }
             String actionText = joinNode(node.get(FANCY_KEY_ACTION_TEXT));
             String actionTypeName = joinNode(node.get(FANCY_KEY_ACTION_TYPE));
             ClickActionType actionType = actionTypeName != null && !actionTypeName.isEmpty()
                     ? ClickActionType.valueOf(actionTypeName)
                     : ClickActionType.NONE;
-            return new FancySegment(
+            FancySegment segment = new FancySegment(
                     FCColorUtil.colorfy(text),
-                    FCColorUtil.colorfy(hoverText),
+                    null,
                     FCColorUtil.colorfy(actionText),
                     actionType
             );
+            FancyHover hover = readHover(hoverPayload, hoverTypeName);
+            if (hover != null) {
+                segment.hover(hover);
+            }
+            return segment;
         }
 
         // Scalar or string-list: a plain text FancyText.
         return new FancySegment(FCColorUtil.colorfy(joinNode(node)));
+    }
+
+    /**
+     * Rebuilds the structured hover from its on-disk payload and type name. A known persistable type
+     * decodes through the registry; an unknown type is shown as plain text (warned once) rather than
+     * dropped; a file without a {@code hoverType} is read the legacy way, with the item sentinel still
+     * embedded in the payload.
+     */
+    private static FancyHover readHover(String hoverPayload, String hoverTypeName) {
+        if (hoverPayload == null) {
+            return null;
+        }
+        String colored = FCColorUtil.colorfy(hoverPayload);
+        if (hoverTypeName != null && !hoverTypeName.isEmpty()) {
+            if (FancyHoverRegistry.isCodecAware(hoverTypeName)) {
+                return FancyHoverRegistry.decode(hoverTypeName, colored);
+            }
+            warnUnknownHoverOnRead(hoverTypeName);
+            return new TextHover(colored);
+        }
+        return colored.startsWith(ItemHover.LEGACY_SENTINEL)
+                ? new ItemHover(colored.substring(ItemHover.LEGACY_SENTINEL.length()))
+                : new TextHover(colored);
+    }
+
+    private static void warnUnpersistableHover(String typeId) {
+        if (WARNED_HOVER_TYPES.add("write:" + typeId)) {
+            LOG.warning("FancyText hover type '" + typeId + "' has no on-disk codec; saving it as a plain text tooltip.");
+        }
+    }
+
+    private static void warnUnknownHoverOnRead(String typeId) {
+        if (WARNED_HOVER_TYPES.add("read:" + typeId)) {
+            LOG.warning("Unknown FancyText hover type '" + typeId + "' on load; showing it as a plain text tooltip.");
+        }
     }
 
     /** Collapse a node into a single string: a string-list joins on newlines, a scalar stays as-is, an

@@ -30,12 +30,35 @@ public final class FancyHoverRegistry {
                 // A null/empty tooltip renders no hover at all, same as before a structured hover value existed.
                 textHover -> textHover.text() == null || textHover.text().isEmpty()
                         ? null
-                        : HoverEvent.showText(FCColorUtil.colorfyComponent(textHover.text()))));
+                        : HoverEvent.showText(FCColorUtil.colorfyComponent(textHover.text())))
+                .withCodec(TextHover::text, TextHover::new));
 
         register(FancyHoverType.<ItemHover>of(ItemHover.TYPE_ID,
                         itemHover -> HoverEvent.showItem(
                                 Key.key(itemHover.rawItem()), 1, BinaryTagHolder.binaryTagHolder(itemHover.rawItem())))
-                .withDegrade(itemHover -> new TextHover(itemHover.rawItem())));
+                .withDegrade(itemHover -> new TextHover(itemHover.rawItem()))
+                .withCodec(ItemHover::rawItem, ItemHover::new));
+    }
+
+    /** Whether the type registered for {@code typeId} can persist itself to and from a single string. */
+    public static boolean isCodecAware(String typeId) {
+        FancyHoverType<?> type = TYPES.get(typeId);
+        return type != null && type.isCodecAware();
+    }
+
+    /** This hover's on-disk string payload, or {@code null} when its type is unknown or non-persistable. */
+    public static String encode(FancyHover hover) {
+        if (hover == null) {
+            return null;
+        }
+        FancyHoverType<FancyHover> type = typeOf(hover);
+        return type != null && type.isCodecAware() ? type.encode(hover) : null;
+    }
+
+    /** Rebuilds a hover of {@code typeId} from its payload, or {@code null} when the type is unknown/non-persistable. */
+    public static FancyHover decode(String typeId, String payload) {
+        FancyHoverType<FancyHover> type = typeById(typeId);
+        return type != null && type.isCodecAware() ? type.decode(payload) : null;
     }
 
     /**
@@ -91,6 +114,11 @@ public final class FancyHoverRegistry {
     @SuppressWarnings("unchecked")
     private static FancyHoverType<FancyHover> typeOf(FancyHover hover) {
         return (FancyHoverType<FancyHover>) TYPES.get(hover.typeId());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static FancyHoverType<FancyHover> typeById(String typeId) {
+        return (FancyHoverType<FancyHover>) TYPES.get(typeId);
     }
 
     /**
