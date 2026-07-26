@@ -26,6 +26,7 @@ public class LocaleMessageImp implements LocaleMessage {
     private final HashMap<String, FancyText> fancyTextMap = new HashMap<>();
     private final boolean shouldSyncToFile;
     private boolean hasBeenSynced = false;
+    private String origin = null;
 
     private transient FancyText defaultFancyText; //Cached FancyText of the DefaultLocale of the plugin
 
@@ -175,6 +176,21 @@ public class LocaleMessageImp implements LocaleMessage {
 
     public String getKey() {
         return key;
+    }
+
+    /**
+     * The annotated field this message was built from, as {@code fully.qualified.Class#fieldName}, or
+     * {@code null} for a message that has no single declaring field (a command's own locales, a derived
+     * copy). The key itself is built from the SIMPLE class name, so two classes with the same simple
+     * name in different packages produce the same key - this is what lets the scanner name both
+     * culprits instead of silently handing the second one the first one's message.
+     */
+    public String getOrigin() {
+        return origin;
+    }
+
+    public void setOrigin(String origin) {
+        this.origin = origin;
     }
 
     public ECPluginData getPlugin() {

@@ -43,9 +43,10 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Pins {@link FCLocaleScanner}'s duplicate-key handling: two fields whose names differ only by case
- * collapse into a single registered message (the first one scanned wins, the second is discarded),
- * and the warning logged for it has to describe exactly that.
+ * Pins {@link FCLocaleScanner}'s duplicate-key handling: colliding fields collapse into a single
+ * registered message (the first one scanned wins, the second is discarded), and the report logged for
+ * it has to describe exactly that and name both culprits - whether the two fields sit in the same
+ * class or in two classes that merely share a simple name.
  */
 public class FCLocaleScannerContractTest {
 
@@ -77,9 +78,9 @@ public class FCLocaleScannerContractTest {
     }
 
     @Test
-    void duplicateKeyWarningDescribesWhatActuallyHappens() {
-        List<String> capturedWarnings = new ArrayList<>();
-        ECPluginData plugin = pluginDataWithCapturedLog("DuplicateKeyPlugin", capturedWarnings);
+    void duplicateKeyReportDescribesWhatActuallyHappensAndNamesBothFields() {
+        List<String> capturedSevere = new ArrayList<>();
+        ECPluginData plugin = pluginDataWithCapturedLog("DuplicateKeyPlugin", new ArrayList<>(), capturedSevere);
 
         List<LocaleMessageImp> scanned = FCLocaleScanner.scanForLocale(plugin, true, DuplicateKeyLocales.class);
 
@@ -90,11 +91,39 @@ public class FCLocaleScannerContractTest {
         assertEquals("First message", text,
                 "the FIRST field scanned must win; the second field's text must never be used");
 
-        // ...but the logged warning has to say so. Today it claims the opposite ("Overriding last one!").
-        assertEquals(1, capturedWarnings.size(), "exactly one duplicate-key warning must be logged");
-        assertTrue(capturedWarnings.get(0).toLowerCase(Locale.ROOT).contains("first"),
-                "the warning must describe reality (the FIRST message wins, the second is discarded), not: "
-                        + capturedWarnings.get(0));
+        // ...and the report has to say so, at a level that is not lost in a boot log, naming BOTH
+        // culprits so the reader does not have to go looking for the other one.
+        assertEquals(1, capturedSevere.size(), "exactly one duplicate-key report must be logged: " + capturedSevere);
+        String report = capturedSevere.get(0);
+        assertTrue(report.toLowerCase(Locale.ROOT).contains("first"),
+                "the report must describe reality (the FIRST message wins, the second is discarded), not: " + report);
+        assertTrue(report.contains(DuplicateKeyLocales.class.getName() + "#title"), "must name the winning field: " + report);
+        assertTrue(report.contains(DuplicateKeyLocales.class.getName() + "#Title"), "must name the losing field: " + report);
+    }
+
+    @Test
+    void twoClassesWithTheSameSimpleNameInDifferentPackagesAreReported() {
+        List<String> capturedSevere = new ArrayList<>();
+        ECPluginData plugin = pluginDataWithCapturedLog("SameSimpleNamePlugin", new ArrayList<>(), capturedSevere);
+
+        // scanned separately, exactly as a plugin registering two unrelated locale holders would
+        FCLocaleScanner.scanForLocale(plugin, true, br.com.finalcraft.evernifecore.locale.scanner.alpha.SharedSimpleName.class);
+        FCLocaleScanner.scanForLocale(plugin, true, br.com.finalcraft.evernifecore.locale.scanner.beta.SharedSimpleName.class);
+
+        assertSame(br.com.finalcraft.evernifecore.locale.scanner.alpha.SharedSimpleName.GREETING,
+                br.com.finalcraft.evernifecore.locale.scanner.beta.SharedSimpleName.GREETING,
+                "the key is built from the SIMPLE class name, so both fields share one message");
+        assertEquals("Greeting from alpha",
+                ((LocaleMessageImp) br.com.finalcraft.evernifecore.locale.scanner.beta.SharedSimpleName.GREETING)
+                        .getDefaultFancyText().toLegacyString(),
+                "the FIRST class scanned must keep winning; only the reporting is new");
+
+        assertEquals(1, capturedSevere.size(), "a cross-class collision must be reported once: " + capturedSevere);
+        String report = capturedSevere.get(0);
+        assertTrue(report.contains("br.com.finalcraft.evernifecore.locale.scanner.alpha.SharedSimpleName#GREETING"),
+                "must name the field that won: " + report);
+        assertTrue(report.contains("br.com.finalcraft.evernifecore.locale.scanner.beta.SharedSimpleName#GREETING"),
+                "must name the field that lost: " + report);
     }
 
     /** Root + one child, both using the new click()/clickType() attribute names. */
@@ -125,9 +154,13 @@ public class FCLocaleScannerContractTest {
     }
 
     private ECPluginData pluginDataWithCapturedLog(String pluginName, List<String> capturedWarnings) {
+        return pluginDataWithCapturedLog(pluginName, capturedWarnings, new ArrayList<>());
+    }
+
+    private ECPluginData pluginDataWithCapturedLog(String pluginName, List<String> capturedWarnings, List<String> capturedSevere) {
         IPlatform original = EverNifeCore.getPlatform();
         EverNifeCore.getProviders().getBaseProvider().register(IPlatform.class,
-                new WarningCapturingPlatform(original, capturedWarnings));
+                new WarningCapturingPlatform(original, capturedWarnings, capturedSevere));
         try {
             EverNifeCore.getProviders().getBaseProvider().register(IECPluginExtractor.class,
                     new FakePluginExtractor(pluginName, tempDir.resolve(pluginName).toFile()));
@@ -144,10 +177,12 @@ public class FCLocaleScannerContractTest {
     private static final class WarningCapturingPlatform implements IPlatform {
         private final IPlatform delegate;
         private final List<String> warnings;
+        private final List<String> severe;
 
-        WarningCapturingPlatform(IPlatform delegate, List<String> warnings) {
+        WarningCapturingPlatform(IPlatform delegate, List<String> warnings, List<String> severe) {
             this.delegate = delegate;
             this.warnings = warnings;
+            this.severe = severe;
         }
 
         @Override
@@ -155,7 +190,7 @@ public class FCLocaleScannerContractTest {
             return new ILogAdapter() {
                 @Override public void info(String string) { }
                 @Override public void warning(String string) { warnings.add(string); }
-                @Override public void severe(String string) { }
+                @Override public void severe(String string) { severe.add(string); }
                 @Override public void log(java.util.logging.Level level, String string) { }
             };
         }

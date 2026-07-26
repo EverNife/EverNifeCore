@@ -17,10 +17,8 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class FCLocaleScanner {
@@ -28,7 +26,6 @@ public class FCLocaleScanner {
     public static List<LocaleMessageImp> scanForLocale(ECPluginData plugin, boolean silent, Class<?> localeClass){
 
         List<LocaleMessageImp> localeMessageList = new ArrayList<>();
-        Set<String> allKeys = new HashSet<>();
 
         boolean atLeastOneLocaleField = false;
 
@@ -65,7 +62,7 @@ public class FCLocaleScanner {
                         .collect(Collectors.toList())
                         .toArray(new FCLocaleData[0]);
 
-                LocaleMessageImp localeMessage = scanForLocale(plugin, key, true, fcLocaleDatas);
+                LocaleMessageImp localeMessage = scanForLocale(plugin, key, true, originOf(declaredField), fcLocaleDatas);
 
                 try {
                     declaredField.set(null, localeMessage);
@@ -74,12 +71,6 @@ public class FCLocaleScanner {
                     e.printStackTrace();
                     continue;
                 }
-
-                if (allKeys.contains(localeMessage.getKey().toLowerCase(Locale.ROOT))){
-                    plugin.getLog().warning("[FCLocale] Found an already added {key==" + key + "} at field! The FIRST one registered wins; this field's own text is ignored. This is an Error! " + getFieldAndClassName(declaredField));
-                }
-
-                allKeys.add(localeMessage.getKey().toLowerCase(Locale.ROOT));
 
                 localeMessageList.add(localeMessage);
             }
@@ -95,17 +86,37 @@ public class FCLocaleScanner {
     }
 
     public static LocaleMessageImp scanForLocale(ECPluginData plugin, String key, boolean shouldSyncToFile, FCLocaleData... locales){
+        return scanForLocale(plugin, key, shouldSyncToFile, null, locales);
+    }
+
+    /**
+     * Registers (or returns) the message stored under {@code key} for this plugin. {@code origin} is the
+     * {@code Class#field} the message is being declared at, or {@code null} when it has none.
+     *
+     * <p>The key is built from the SIMPLE class name, so two classes with the same simple name in
+     * different packages land on the same entry and the second one silently inherits the first one's
+     * text. Comparing origins is what turns that into a reported error: the collision spans the whole
+     * plugin, so it can only be seen here, where every declaration passes through.</p>
+     */
+    public static LocaleMessageImp scanForLocale(ECPluginData plugin, String key, boolean shouldSyncToFile, String origin, FCLocaleData... locales){
 
         ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(plugin);
 
         LocaleMessageImp existingLocale = ecPluginData.getLocalizedMessages().get(key);
 
         if (existingLocale != null){
+            if (origin != null && !origin.equals(existingLocale.getOrigin())){
+                plugin.getLog().severe("[FCLocale] Two different fields produce the same locale key '" + key + "': "
+                        + (existingLocale.getOrigin() == null ? "<unnamed>" : existingLocale.getOrigin())
+                        + " and " + origin
+                        + ". The FIRST one wins and this field's own text is ignored; rename one of the classes or fields.");
+            }
             //This locale is already here
             return existingLocale;
         }
 
         LocaleMessageImp newLocale = new LocaleMessageImp(plugin, key, shouldSyncToFile);
+        newLocale.setOrigin(origin);
 
         ecPluginData.addLocale(newLocale);
 
@@ -153,5 +164,10 @@ public class FCLocaleScanner {
 
     private static String getFieldAndClassName(Field field){
         return "[" + field.getName()  +"] in [" + field.getDeclaringClass().getName() + "]";
+    }
+
+    /** Identifies a declaration well enough to tell two colliding ones apart: package included. */
+    private static String originOf(Field field){
+        return field.getDeclaringClass().getName() + "#" + field.getName();
     }
 }
