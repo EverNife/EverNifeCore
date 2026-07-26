@@ -45,8 +45,9 @@ public final class FancyHoverType<H extends FancyHover> {
 
     /**
      * Opts this type into on-disk persistence: the config codec only saves and loads a value of this
-     * type once BOTH directions are supplied. A type that never calls this is never written to a lang
-     * file - the codec degrades it to a plain text tooltip at save time instead of guessing its shape.
+     * type once BOTH directions are supplied. A type that never calls this cannot be reconstructed from
+     * a file - the codec degrades it to a plain text tooltip when the value has a legacy string form,
+     * and otherwise writes the type name alone so that the loss is reported instead of hidden.
      */
     public FancyHoverType<H> withCodec(Function<H, String> encode, Function<String, H> decode) {
         return new FancyHoverType<>(typeId, render, degrade, encode, decode);

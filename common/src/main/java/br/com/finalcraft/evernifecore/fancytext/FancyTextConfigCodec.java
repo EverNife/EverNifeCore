@@ -49,6 +49,14 @@ import java.util.logging.Logger;
  * before they existed has neither, and reads exactly as it always did (hover as literal text, click type
  * {@code NONE} when absent).</p>
  *
+ * <p><b>A hover is never dropped silently.</b> Which of the three write branches runs is decided by the
+ * presence of the hover VALUE, not by the presence of its legacy string form. A type with a registered
+ * codec is written as payload + {@code hoverType} and comes back identical. A type with no codec but with
+ * a legacy string form is degraded to a plain tooltip, warned once per type id. A type with neither -
+ * a plugin's own hover value that never taught the registry how to persist it - still writes its
+ * {@code hoverType}, with no payload: the read then has something to complain about, which is the whole
+ * point, because the alternative is a file that looks exactly like one that never had a hover.</p>
+ *
  * <p><b>Only visible text carries colour codes.</b> The {@code &}/{@code §} translation is applied to
  * {@code text} and to a plain-text tooltip, and to nothing else. A click action is a command or a URL and an
  * item hover is an id/SNBT string: translating them would turn every {@code &} of a query string into a colour
@@ -137,8 +145,6 @@ public final class FancyTextConfigCodec {
 
         FancyHover hover = fancyText.getHover();
         String hoverText = fancyText.getHoverText();
-        boolean hoverIsCodecAware = hover != null && FancyHoverRegistry.isCodecAware(hover.typeId());
-        boolean hasHover = hoverIsCodecAware || (hoverText != null && !hoverText.isEmpty());
         String clickActionText = fancyText.getClickActionText();
         boolean hasActionText = clickActionText != null && !clickActionText.isEmpty();
         boolean hasActionType = fancyText.getClickActionType() != ClickActionType.NONE;
@@ -146,25 +152,33 @@ public final class FancyTextConfigCodec {
         String text = fancyText.getText().replace('§', '&');
         Object saveText = asStringOrList(text);
 
-        if (!hasHover && !hasActionText && !hasActionType) {
+        // Whether there is a hover to write is decided by the value itself, never by whether it happens
+        // to have a legacy string form: a custom type has none, and keying off the string used to skip
+        // the whole block - dropping the hover with no trace and never reaching the warning below.
+        if (hover == null && !hasActionText && !hasActionType) {
             gen.writeObject(saveText);
             return;
         }
 
         Map<String, Object> map = new LinkedHashMap<>();
         map.put(FANCY_KEY_TEXT, saveText);
-        if (hasHover) {
-            if (hoverIsCodecAware) {
+        if (hover != null) {
+            if (FancyHoverRegistry.isCodecAware(hover.typeId())) {
                 // Persist through the registry codec: text/item reproduce their exact historical shape
                 // (payload + "text"/"item"), and a custom type round-trips instead of being dropped.
                 map.put(FANCY_KEY_HOVER, asStringOrList(encodeHoverPayload(hover)));
                 map.put(FANCY_KEY_HOVER_TYPE, hover.typeId());
-            } else {
-                // A hover whose type the registry cannot persist (unknown, or a custom type with no
-                // codec): keep the tooltip visible as plain text and say so once - never drop it silently.
-                warnUnpersistableHover(hover == null ? null : hover.typeId());
+            } else if (hoverText != null && !hoverText.isEmpty()) {
+                // No codec, but a legacy string form exists: degrade to a plain tooltip and say so once.
+                warnUnpersistableHover(hover.typeId(), "saving it as a plain text tooltip.");
                 map.put(FANCY_KEY_HOVER, asStringOrList(FCColorUtil.decolorfy(hoverText)));
                 map.put(FANCY_KEY_HOVER_TYPE, HOVER_TYPE_TEXT);
+            } else {
+                // Neither a codec nor a string form. The type is recorded without a payload so that the
+                // read can denounce the loss, instead of the file pretending there was never a hover.
+                warnUnpersistableHover(hover.typeId(),
+                        "and no legacy text form either; only its type name is saved, so the tooltip is lost on load.");
+                map.put(FANCY_KEY_HOVER_TYPE, hover.typeId());
             }
         }
         if (hasActionText) {
@@ -226,14 +240,18 @@ public final class FancyTextConfigCodec {
     /**
      * Rebuilds the structured hover from its on-disk payload and type name. A known persistable type
      * decodes through the registry; an unknown type is shown as plain text (warned once) rather than
-     * dropped; a file without a {@code hoverType} is read the legacy way, with the item sentinel still
-     * embedded in the payload.
+     * dropped; a type recorded with no payload at all is reported as the loss it is; a file without a
+     * {@code hoverType} is read the legacy way, with the item sentinel still embedded in the payload.
      */
     private static FancyHover readHover(String hoverPayload, String hoverTypeName) {
+        boolean hasTypeName = hoverTypeName != null && !hoverTypeName.isEmpty();
         if (hoverPayload == null) {
+            if (hasTypeName) {
+                warnHoverWithoutPayloadOnRead(hoverTypeName);
+            }
             return null;
         }
-        if (hoverTypeName != null && !hoverTypeName.isEmpty()) {
+        if (hasTypeName) {
             if (FancyHoverRegistry.isCodecAware(hoverTypeName)) {
                 return FancyHoverRegistry.decode(hoverTypeName, decodeHoverPayload(hoverTypeName, hoverPayload));
             }
@@ -260,15 +278,22 @@ public final class FancyTextConfigCodec {
         return HOVER_TYPE_TEXT.equals(hoverTypeName) ? FCColorUtil.colorfy(payload) : payload;
     }
 
-    private static void warnUnpersistableHover(String typeId) {
+    private static void warnUnpersistableHover(String typeId, String consequence) {
         if (WARNED_HOVER_TYPES.add("write:" + typeId)) {
-            LOG.warning("FancyText hover type '" + typeId + "' has no on-disk codec; saving it as a plain text tooltip.");
+            LOG.warning("FancyText hover type '" + typeId + "' has no on-disk codec; " + consequence);
         }
     }
 
     private static void warnUnknownHoverOnRead(String typeId) {
         if (WARNED_HOVER_TYPES.add("read:" + typeId)) {
             LOG.warning("Unknown FancyText hover type '" + typeId + "' on load; showing it as a plain text tooltip.");
+        }
+    }
+
+    private static void warnHoverWithoutPayloadOnRead(String typeId) {
+        if (WARNED_HOVER_TYPES.add("read-empty:" + typeId)) {
+            LOG.warning("FancyText hover type '" + typeId + "' was saved without a payload, so it cannot be "
+                    + "restored; the tooltip is missing. Register a codec for that type before saving it.");
         }
     }
 
