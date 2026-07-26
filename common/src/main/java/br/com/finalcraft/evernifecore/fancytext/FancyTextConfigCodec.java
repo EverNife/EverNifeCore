@@ -48,6 +48,13 @@ import java.util.logging.Logger;
  * and reattached on read, so the in-memory value is unchanged). Both keys are purely additive: a file written
  * before they existed has neither, and reads exactly as it always did (hover as literal text, click type
  * {@code NONE} when absent).</p>
+ *
+ * <p><b>Only visible text carries colour codes.</b> The {@code &}/{@code §} translation is applied to
+ * {@code text} and to a plain-text tooltip, and to nothing else. A click action is a command or a URL and an
+ * item hover is an id/SNBT string: translating them would turn every {@code &} of a query string into a colour
+ * code, so the value that came back from the file could never equal the value the code declared - which by
+ * itself made the lang file look out of date on every single boot. Those payloads travel literally, in both
+ * directions.</p>
  */
 public final class FancyTextConfigCodec {
 
@@ -61,7 +68,7 @@ public final class FancyTextConfigCodec {
     private static final String FANCY_KEY_ACTION_TEXT = "clickActionText";
     private static final String FANCY_KEY_ACTION_TYPE = "clickActionType";
 
-    private static final String HOVER_TYPE_TEXT = "text";
+    private static final String HOVER_TYPE_TEXT = TextHover.TYPE_ID;
 
     private static final Logger LOG = Logger.getLogger("EverNifeCore");
     // One warning per hover typeId, not per message: a lang file with hundreds of entries of an
@@ -150,18 +157,18 @@ public final class FancyTextConfigCodec {
             if (hoverIsCodecAware) {
                 // Persist through the registry codec: text/item reproduce their exact historical shape
                 // (payload + "text"/"item"), and a custom type round-trips instead of being dropped.
-                map.put(FANCY_KEY_HOVER, asStringOrList(FancyHoverRegistry.encode(hover).replace('§', '&')));
+                map.put(FANCY_KEY_HOVER, asStringOrList(encodeHoverPayload(hover)));
                 map.put(FANCY_KEY_HOVER_TYPE, hover.typeId());
             } else {
                 // A hover whose type the registry cannot persist (unknown, or a custom type with no
                 // codec): keep the tooltip visible as plain text and say so once - never drop it silently.
                 warnUnpersistableHover(hover == null ? null : hover.typeId());
-                map.put(FANCY_KEY_HOVER, asStringOrList(hoverText.replace('§', '&')));
+                map.put(FANCY_KEY_HOVER, asStringOrList(FCColorUtil.decolorfy(hoverText)));
                 map.put(FANCY_KEY_HOVER_TYPE, HOVER_TYPE_TEXT);
             }
         }
         if (hasActionText) {
-            map.put(FANCY_KEY_ACTION_TEXT, asStringOrList(clickActionText.replace('§', '&')));
+            map.put(FANCY_KEY_ACTION_TEXT, asStringOrList(clickActionText));
         }
         // Written whenever the type itself is meaningful, regardless of whether there is action text to
         // go with it - see the class javadoc for why that independence is the whole point of this change.
@@ -202,7 +209,7 @@ public final class FancyTextConfigCodec {
             FancySegment segment = new FancySegment(
                     FCColorUtil.colorfy(text),
                     null,
-                    FCColorUtil.colorfy(actionText),
+                    actionText,
                     actionType
             );
             FancyHover hover = readHover(hoverPayload, hoverTypeName);
@@ -226,17 +233,31 @@ public final class FancyTextConfigCodec {
         if (hoverPayload == null) {
             return null;
         }
-        String colored = FCColorUtil.colorfy(hoverPayload);
         if (hoverTypeName != null && !hoverTypeName.isEmpty()) {
             if (FancyHoverRegistry.isCodecAware(hoverTypeName)) {
-                return FancyHoverRegistry.decode(hoverTypeName, colored);
+                return FancyHoverRegistry.decode(hoverTypeName, decodeHoverPayload(hoverTypeName, hoverPayload));
             }
             warnUnknownHoverOnRead(hoverTypeName);
-            return new TextHover(colored);
+            return new TextHover(FCColorUtil.colorfy(hoverPayload));
         }
-        return colored.startsWith(ItemHover.LEGACY_SENTINEL)
-                ? new ItemHover(colored.substring(ItemHover.LEGACY_SENTINEL.length()))
-                : new TextHover(colored);
+        return hoverPayload.startsWith(ItemHover.LEGACY_SENTINEL)
+                ? new ItemHover(hoverPayload.substring(ItemHover.LEGACY_SENTINEL.length()))
+                : new TextHover(FCColorUtil.colorfy(hoverPayload));
+    }
+
+    /**
+     * A plain-text tooltip is the only hover payload that is really text: it goes to disk with its
+     * colour codes written as {@code &}. Every other payload (an item id/SNBT, a custom type's opaque
+     * string) is written verbatim, so an {@code &} inside it is still an {@code &} when it comes back.
+     */
+    private static String encodeHoverPayload(FancyHover hover) {
+        String payload = FancyHoverRegistry.encode(hover);
+        return HOVER_TYPE_TEXT.equals(hover.typeId()) ? FCColorUtil.decolorfy(payload) : payload;
+    }
+
+    /** The read side of {@link #encodeHoverPayload}. */
+    private static String decodeHoverPayload(String hoverTypeName, String payload) {
+        return HOVER_TYPE_TEXT.equals(hoverTypeName) ? FCColorUtil.colorfy(payload) : payload;
     }
 
     private static void warnUnpersistableHover(String typeId) {
