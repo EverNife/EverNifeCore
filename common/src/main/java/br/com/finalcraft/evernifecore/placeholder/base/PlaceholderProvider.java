@@ -50,8 +50,14 @@ public class PlaceholderProvider<O> implements IProvider<O>{
     }
 
     @Override
-    public IProvider<O> addParser(String name, Object parsedValue) {
+    public PlaceholderProvider<O> addParser(String name, Object parsedValue) {
         register(name, new SimpleParser<>(name, object -> parsedValue));
+        return this;
+    }
+
+    @Override
+    public PlaceholderProvider<O> addParser(String name, String description, Object parsedValue) {
+        register(name, new SimpleParser<>(name, description, object -> parsedValue));
         return this;
     }
 

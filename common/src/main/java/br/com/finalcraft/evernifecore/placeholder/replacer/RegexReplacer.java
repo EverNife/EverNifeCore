@@ -4,11 +4,14 @@ import br.com.finalcraft.evernifecore.placeholder.base.IProvider;
 import br.com.finalcraft.evernifecore.placeholder.base.PlaceholderProvider;
 import br.com.finalcraft.evernifecore.placeholder.manipulation.ManipulationContext;
 import br.com.finalcraft.evernifecore.placeholder.parser.ManipulatedParser;
+import br.com.finalcraft.evernifecore.placeholder.parser.SimpleParser;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -64,6 +67,19 @@ public class RegexReplacer<O> implements Replacer<O>, IProvider<O>  {
         return manipulators;
     }
 
+    /**
+     * Every key this replacer answers for, mapped to its registered description ({@code ""} when
+     * undescribed), in registration order. This is what an integrating plugin reads to list the
+     * placeholders it can offer the user, so a key that is registered but not described still shows up.
+     */
+    public Map<String, String> describeAll() {
+        Map<String, String> described = new LinkedHashMap<>();
+        for (SimpleParser<O> parser : getProvider().getParserMap().values()) {
+            described.put(parser.getId(), parser.getDescription());
+        }
+        return described;
+    }
+
     public RegexReplacer<O> addManipulator(String manipulableString, BiFunction<O, ManipulationContext.SimpleContext, Object> parser){
         this.manipulators.add(
                 new ManipulatedParser<>(
@@ -96,8 +112,14 @@ public class RegexReplacer<O> implements Replacer<O>, IProvider<O>  {
     }
 
     @Override
-    public IProvider<O> addParser(String name, Object parsedValue) {
+    public RegexReplacer<O> addParser(String name, Object parsedValue) {
         getProvider().addParser(name, parsedValue);
+        return this;
+    }
+
+    @Override
+    public RegexReplacer<O> addParser(String name, String description, Object parsedValue) {
+        getProvider().addParser(name, description, parsedValue);
         return this;
     }
 

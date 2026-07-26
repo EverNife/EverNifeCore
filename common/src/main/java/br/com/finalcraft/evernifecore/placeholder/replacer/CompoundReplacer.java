@@ -10,7 +10,10 @@ import java.util.List;
 
 public class CompoundReplacer {
 
-    private List<Tuple<RegexReplacer, Object>> regexReplacers = new ArrayList<>();
+    //Heterogeneous on purpose: each entry pairs a replacer with the one object it was registered
+    //with, and different entries answer to different object types. appendReplacer is the only way in,
+    //and its signature is what guarantees the pairing that apply() then relies on.
+    private List<Tuple<RegexReplacer<?>, Object>> regexReplacers = new ArrayList<>();
     private FPlayer papiUser = null; //If not null, integrate with PlaceholderAPI
 
     public CompoundReplacer() {
@@ -22,7 +25,7 @@ public class CompoundReplacer {
     }
 
     public <O> CompoundReplacer appendReplacer(RegexReplacer<O> regexReplacer, O object){
-        this.regexReplacers.add(Tuple.of(regexReplacer, object));
+        this.regexReplacers.add(Tuple.<RegexReplacer<?>, Object>of(regexReplacer, object));
         return this;
     }
 
@@ -40,10 +43,12 @@ public class CompoundReplacer {
     }
 
     public String apply(String text) {
-        for (Tuple<RegexReplacer, Object> tuple : regexReplacers) {
-            RegexReplacer replacer = tuple.getLeft();
-            Object watcher = tuple.getRight();
-            text = replacer.apply(text, watcher);
+        for (Tuple<RegexReplacer<?>, Object> tuple : regexReplacers) {
+            //The single point where the pairing is taken on trust: the wildcard cannot express "this
+            //replacer's own type", but appendReplacer only ever stores a matching pair.
+            @SuppressWarnings("unchecked")
+            RegexReplacer<Object> replacer = (RegexReplacer<Object>) tuple.getLeft();
+            text = replacer.apply(text, tuple.getRight());
         }
         if (papiUser != null){
             text = PAPIIntegration.parse(papiUser, text);
@@ -75,7 +80,7 @@ public class CompoundReplacer {
         return new CompoundReplacer().appendReplacer(this);
     }
 
-    public List<Tuple<RegexReplacer, Object>> getRegexReplacers() {
+    public List<Tuple<RegexReplacer<?>, Object>> getRegexReplacers() {
         return regexReplacers;
     }
 
