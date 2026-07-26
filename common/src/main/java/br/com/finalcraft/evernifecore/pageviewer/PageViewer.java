@@ -294,18 +294,20 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
             }
         }
 
-        for (FCommandSender commandSender : sender) {
+        //One page per recipient. The loop variable is named for what it is - a single recipient - so
+        //that handing the whole array to a send() inside the loop reads as the mistake it would be.
+        for (FCommandSender recipient : sender) {
             for (FancyText headerLine : pageHeaderCache) {
-                headerLine.send(commandSender);
+                headerLine.send(recipient);
             }
             for (int i = lineStart; i < lines.size() && i < lineEnd; i++) {
-                lines.get(i).send(sender);
+                lines.get(i).send(recipient);
             }
             if (nextAndPreviousPage != null){
-                nextAndPreviousPage.send(sender);
+                nextAndPreviousPage.send(recipient);
             }
-            for (FancyText headerLine : pageFooterCache) {
-                headerLine.send(commandSender);
+            for (FancyText footerLine : pageFooterCache) {
+                footerLine.send(recipient);
             }
         }
     }
