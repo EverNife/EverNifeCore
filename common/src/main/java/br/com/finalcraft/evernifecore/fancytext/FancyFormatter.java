@@ -16,7 +16,15 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-/** An ordered chain of {@link FancySegment} pieces, rendered as a single Adventure component. */
+/**
+ * An ordered chain of {@link FancySegment} pieces, rendered as a single Adventure component.
+ *
+ * <p><b>A formatter never contains another formatter.</b> Appending one splices its pieces in, and
+ * every piece that enters the chain is copied, so the chain owns what it holds outright: two
+ * formatters can never share a piece, {@link #copy()} is structurally identical to its original, and
+ * {@code copy().equals(original)} always holds - which is what stops the locale files from being
+ * rewritten on every reload just because two equal messages compared unequal.</p>
+ */
 public class FancyFormatter implements FancyText {
 
     protected Map<String, Object> mapOfPlaceholders = new HashMap<>();
@@ -37,39 +45,43 @@ public class FancyFormatter implements FancyText {
 
     public FancyFormatter append(FancyText... fancyTexts) {
         for (FancyText fancyText : fancyTexts) {
-            fancyTextList.add(fancyText);
+            append(fancyText);
         }
         return this;
     }
 
+    /**
+     * Appends {@code fancyText} to the end of this chain. A chain never contains another chain: a
+     * formatter is spliced in piece by piece. Every piece is COPIED on the way in, so a caller that
+     * goes on mutating the value it appended never reshapes what is already in here. To decorate what
+     * was just appended, chain on the return value ({@code formatter.append(leaf).setHover(...)}),
+     * which acts on the copy that is actually in the chain.
+     */
     @Override
     public FancyFormatter append(FancyText fancyText) {
         if (fancyText instanceof FancyFormatter other) {
             for (FancyText fancyTextInner : other.fancyTextList) {
-                append(fancyTextInner.copy());
+                this.fancyTextList.add(fancyTextInner.copy());
             }
         } else {
-            this.fancyTextList.add(fancyText);
+            this.fancyTextList.add(fancyText.copy());
         }
         return this;
     }
 
     @Override
     public FancyFormatter append(String text) {
-        this.fancyTextList.add(new FancySegment(text));
-        return this;
+        return append(new FancySegment(text));
     }
 
     @Override
     public FancyFormatter append(String text, String hoverText) {
-        this.fancyTextList.add(new FancySegment(text, hoverText));
-        return this;
+        return append(new FancySegment(text, hoverText));
     }
 
     @Override
     public FancyFormatter append(String text, String hoverText, String runCommand) {
-        this.fancyTextList.add(new FancySegment(text, hoverText, runCommand));
-        return this;
+        return append(new FancySegment(text, hoverText, runCommand));
     }
 
     // A placeholder declared on the chain is visible to every piece in it; a piece that declares the
@@ -165,8 +177,10 @@ public class FancyFormatter implements FancyText {
     @Override
     public FancyFormatter copy() {
         FancyFormatter copy = new FancyFormatter();
+        //Rebuilt straight onto the list rather than through append(), so that copying stays a
+        //structural operation and does not inherit whatever policy append happens to have.
         for (FancyText fancyText : this.fancyTextList) {
-            copy.append(fancyText.copy());
+            copy.fancyTextList.add(fancyText.copy());
         }
         copy.mapOfPlaceholders = new HashMap<>(this.mapOfPlaceholders);
         copy.complexPlaceholder = this.complexPlaceholder;
@@ -180,6 +194,25 @@ public class FancyFormatter implements FancyText {
     // gracefully (null / NONE / no-op) instead of throwing IndexOutOfBounds.
     private FancyText lastOrNull() {
         return fancyTextList.isEmpty() ? null : fancyTextList.get(fancyTextList.size() - 1);
+    }
+
+    /**
+     * The last piece of this chain, or {@code null} when there is none. The single-attribute setters
+     * already act on it implicitly; this is for the caller who would rather say so out loud than rely
+     * on that.
+     */
+    public FancyText last() {
+        return lastOrNull();
+    }
+
+    @Override
+    public boolean isEmpty() {
+        for (FancyText fancyText : fancyTextList) {
+            if (!fancyText.isEmpty()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override

@@ -604,10 +604,12 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
                     ? PVExtraMessages.NEXT_PAGE_WHEN_AVAILABLE.getDefaultFancyText()
                     : PVExtraMessages.NEXT_PAGE_WHEN_UNAVAILABLE.getDefaultFancyText();
 
-            return FancyFormatter.of() //First Border
-                            .append(previousPageButton.copy()) //First Arrow
-                            .append(centerPageButton.copy()) //First Arrow
-                            .append(nextPageButton.copy()) //First Arrow
+            //append copies what it takes in, so the locale's own default text cannot be reached by the
+            //replace() calls below; centerPageButton is copied above because it is replaced directly.
+            return FancyFormatter.of()
+                            .append(previousPageButton)
+                            .append(centerPageButton)
+                            .append(nextPageButton)
                             .replace("%on_previous_page_click%", moveToPage.apply(currentPage - 1))
                             .replace("%on_next_page_click%", moveToPage.apply(currentPage + 1))
                             .replace("%on_refresh_page_click%", moveToPage.apply(currentPage));

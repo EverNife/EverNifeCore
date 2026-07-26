@@ -117,6 +117,11 @@ public class FancySegment implements FancyText {
     }
 
     @Override
+    public boolean isEmpty() {
+        return text == null || text.isEmpty();
+    }
+
+    @Override
     public FancySegment setText(String text) {
         setRecentChanged();
         this.text = text;
@@ -183,9 +188,9 @@ public class FancySegment implements FancyText {
         return this;
     }
 
-    // Unlike the old model, appending never mutates this leaf: it comes back as a brand-new
-    // formatter holding this leaf plus the new content, so a shared leaf reference never changes
-    // shape out from under whoever else is still holding it.
+    // Appending never mutates this leaf: it comes back as a brand-new formatter holding a COPY of
+    // this leaf plus the new content, so a shared leaf reference never changes shape out from under
+    // whoever else is still holding it - and neither does the chain, if this leaf is mutated later.
     @Override
     public FancyFormatter append(String text) {
         return new FancyFormatter().append(this).append(new FancySegment(text));

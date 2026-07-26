@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -32,6 +33,13 @@ public interface FancyText {
     String getClickActionText();
 
     ClickActionType getClickActionType();
+
+    /**
+     * Whether this would render to nothing at all: a leaf with no text, or a chain with no pieces or
+     * whose every piece is itself empty. Decoration does not count - a hover on an empty run of text
+     * has nothing to hover over.
+     */
+    boolean isEmpty();
 
     FancyText setText(String text);
 
@@ -175,5 +183,32 @@ public interface FancyText {
 
     static FancyText of(String text, String hoverText, String clickActionText, ClickActionType clickActionType) {
         return new FancySegment(text, hoverText, clickActionText, clickActionType);
+    }
+
+    /** A chain with one piece per line, so a multi-line block stops being one giant string. */
+    static FancyText of(List<String> lines) {
+        FancyFormatter formatter = new FancyFormatter();
+        for (int i = 0; i < lines.size(); i++) {
+            formatter.append(i == 0 ? lines.get(i) : "\n" + lines.get(i));
+        }
+        return formatter;
+    }
+
+    /**
+     * One piece per item, separated by {@code separator}: the shape of every "comma-separated list of
+     * clickable things" a command output builds. Each piece keeps its own hover and click, which is
+     * exactly what joining the rendered strings instead would throw away.
+     */
+    static <T> FancyFormatter join(String separator, Collection<T> items, Function<T, FancyText> mapper) {
+        FancyFormatter formatter = new FancyFormatter();
+        boolean first = true;
+        for (T item : items) {
+            if (!first) {
+                formatter.append(separator);
+            }
+            formatter.append(mapper.apply(item));
+            first = false;
+        }
+        return formatter;
     }
 }

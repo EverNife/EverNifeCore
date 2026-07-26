@@ -48,17 +48,16 @@ public class CMDECLocale {
         for (ECPluginData ecplugin : sortedPlugins) {
             formatter.appendLine("§d ♦ §b" + ecplugin.getMetaInfo().getName() + " §7");
 
-            for (String localeType : LocaleType.values()) {
+            //Each language is its own clickable piece, so they cannot be flattened into one string.
+            formatter.append(FancyText.join("", LocaleType.values(), localeType -> {
                 boolean isThisSelected = ecplugin.getPluginLanguage().equals(localeType);
-                formatter.append(
-                        FancyText.of((isThisSelected ? "§a§l" : "") +  "[" + localeType + "]§7")
-                                .hover(isThisSelected ? "§aThis locale is already selected!" : "Click to Change Locale to: " + localeType)
-                                .clickCommand(isThisSelected ? null : FCCommandUtil.dynamicCommand(() -> {
-                                    FCServerUtil.makeConsoleExecuteCommand(label + " set " + ecplugin.getMetaInfo().getName() + " " + localeType);
-                                    this.list(sender, label); //Send this command again
-                                }))
-                );
-            }
+                return FancyText.of((isThisSelected ? "§a§l" : "") +  "[" + localeType + "]§7")
+                        .hover(isThisSelected ? "§aThis locale is already selected!" : "Click to Change Locale to: " + localeType)
+                        .clickCommand(isThisSelected ? null : FCCommandUtil.dynamicCommand(() -> {
+                            FCServerUtil.makeConsoleExecuteCommand(label + " set " + ecplugin.getMetaInfo().getName() + " " + localeType);
+                            this.list(sender, label); //Send this command again
+                        }));
+            }));
             // Only add a button for the active language when it is a custom one; a standard locale is
             // already rendered (and highlighted) by the loop above, so re-adding it would duplicate it.
             if (ecplugin.getCustomLangConfig() != null && !LocaleType.values().contains(ecplugin.getPluginLanguage())){
