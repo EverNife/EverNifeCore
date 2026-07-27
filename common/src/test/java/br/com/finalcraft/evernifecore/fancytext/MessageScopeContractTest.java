@@ -102,7 +102,7 @@ public class MessageScopeContractTest {
         FCLocaleScanner.scanForLocale(pluginData("ExplicitContextPlugin"), true, ScopedLocales.class);
 
         TestCommandSender sender = new TestCommandSender("CONSOLE");
-        RenderContext forced = RenderContext.of(sender, MessageContext.of("forced", "sub"));
+        RenderContext forced = RenderContext.of(sender, CommandMessageContext.of("forced", "sub"));
 
         try (MessageScope scope = MessageScope.open("scoped", null)) {
             ScopedLocales.USAGE.send(forced, sender);
@@ -140,14 +140,14 @@ public class MessageScopeContractTest {
 
     @Test
     void aScopeStopsBeingVisibleOnceItIsClosed() {
-        assertSame(MessageContext.EMPTY, MessageScope.currentOrEmpty());
+        assertSame(CommandMessageContext.EMPTY, MessageScope.currentOrEmpty());
 
         try (MessageScope scope = MessageScope.open("mycmd", "sub")) {
             assertEquals("mycmd", MessageScope.currentOrEmpty().getLabel());
             assertEquals("sub", MessageScope.currentOrEmpty().getSubCommandName());
         }
 
-        assertSame(MessageContext.EMPTY, MessageScope.currentOrEmpty(),
+        assertSame(CommandMessageContext.EMPTY, MessageScope.currentOrEmpty(),
                 "the scope must not survive the invocation it was opened for");
     }
 

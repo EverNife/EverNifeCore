@@ -23,7 +23,7 @@ public final class RenderContext {
 
     private final FCommandSender sender;
     private final PlayerData playerData;
-    private final MessageContext messageContext;
+    private final CommandMessageContext commandMessageContext;
     private final List<MessagePlaceholders> inherited;
     // Shared with every context derived from this one: derivation happens WITHIN a render, so the
     // whole render must agree on what a declaration resolved to.
@@ -31,10 +31,10 @@ public final class RenderContext {
 
     public RenderContext(@Nullable FCommandSender sender,
                          @Nullable PlayerData playerData,
-                         MessageContext messageContext) {
+                         CommandMessageContext commandMessageContext) {
         this.sender = sender;
         this.playerData = playerData;
-        this.messageContext = messageContext == null ? MessageContext.EMPTY : messageContext;
+        this.commandMessageContext = commandMessageContext == null ? CommandMessageContext.EMPTY : commandMessageContext;
         this.inherited = Collections.emptyList();
         this.resolvedOnce = new HashMap<>();
     }
@@ -42,7 +42,7 @@ public final class RenderContext {
     private RenderContext(RenderContext parent, List<MessagePlaceholders> inherited) {
         this.sender = parent.sender;
         this.playerData = parent.playerData;
-        this.messageContext = parent.messageContext;
+        this.commandMessageContext = parent.commandMessageContext;
         this.inherited = inherited;
         this.resolvedOnce = parent.resolvedOnce;
     }
@@ -53,7 +53,7 @@ public final class RenderContext {
      * every render would show the previous recipient's values to the next one.
      */
     public static RenderContext empty() {
-        return new RenderContext(null, null, MessageContext.EMPTY);
+        return new RenderContext(null, null, CommandMessageContext.EMPTY);
     }
 
     public static RenderContext of(@Nullable FCommandSender sender) {
@@ -61,18 +61,18 @@ public final class RenderContext {
     }
 
     /**
-     * A context for {@code sender} carrying an explicitly chosen {@link MessageContext} instead of
+     * A context for {@code sender} carrying an explicitly chosen {@link CommandMessageContext} instead of
      * whatever command scope happens to be open on this thread - which is the only way a message
      * delivered from an asynchronous task can still answer for {@code ${label}}.
      */
-    public static RenderContext of(@Nullable FCommandSender sender, @Nullable MessageContext messageContext) {
+    public static RenderContext of(@Nullable FCommandSender sender, @Nullable CommandMessageContext commandMessageContext) {
         if (sender == null) {
-            return new RenderContext(null, null, messageContext);
+            return new RenderContext(null, null, commandMessageContext);
         }
         PlayerData playerData = sender instanceof FPlayer
                 ? PlayerController.getLoaded(sender.getUniqueId())
                 : null;
-        return new RenderContext(sender, playerData, messageContext);
+        return new RenderContext(sender, playerData, commandMessageContext);
     }
 
     /**
@@ -82,7 +82,7 @@ public final class RenderContext {
      * showing any of them another one's values.
      */
     public RenderContext forRecipient(@Nullable FCommandSender recipient) {
-        return of(recipient, messageContext);
+        return of(recipient, commandMessageContext);
     }
 
     // The enclosing placeholder level travels with the render, so a piece can fall back to what the
@@ -107,8 +107,8 @@ public final class RenderContext {
         return playerData;
     }
 
-    public MessageContext getMessageContext() {
-        return messageContext;
+    public CommandMessageContext getMessageContext() {
+        return commandMessageContext;
     }
 
     /**

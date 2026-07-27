@@ -2,11 +2,7 @@ package br.com.finalcraft.evernifecore.locale;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
-import br.com.finalcraft.evernifecore.fancytext.FancyText;
-import br.com.finalcraft.evernifecore.fancytext.MessageContext;
-import br.com.finalcraft.evernifecore.fancytext.MessageScope;
-import br.com.finalcraft.evernifecore.fancytext.RenderContext;
+import br.com.finalcraft.evernifecore.fancytext.*;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import jakarta.annotation.Nullable;
@@ -38,7 +34,7 @@ public class SendCustom implements ILocaleMessageBase {
 
     // Captured here, not at send time: a message built inside a command and delivered from a task
     // later still knows which label produced it, because the task's thread has no scope of its own.
-    protected final MessageContext messageContext;
+    protected final CommandMessageContext commandMessageContext;
 
     protected SendCustom(LocaleMessage localeMessage) {
         this(ChainPiece.of(localeMessage));
@@ -46,7 +42,7 @@ public class SendCustom implements ILocaleMessageBase {
 
     protected SendCustom(ChainPiece source) {
         this.source = source;
-        this.messageContext = MessageScope.currentOrEmpty();
+        this.commandMessageContext = MessageScope.currentOrEmpty();
     }
 
     @Override
@@ -124,7 +120,7 @@ public class SendCustom implements ILocaleMessageBase {
 
     @Override
     public void send(FCommandSender... commandSenders) {
-        send(RenderContext.of(null, messageContext), commandSenders);
+        send(RenderContext.of(null, commandMessageContext), commandSenders);
     }
 
     @Override

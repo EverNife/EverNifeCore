@@ -220,7 +220,7 @@ public interface FancyText {
      * Sends carrying an explicit {@link RenderContext}, for the caller who cannot rely on the command
      * scope of the sending thread - a message delivered from an asynchronous task, typically. Each
      * recipient still gets their own render; what {@code context} contributes is its
-     * {@link MessageContext}, which wins over whatever scope happens to be open here.
+     * {@link CommandMessageContext}, which wins over whatever scope happens to be open here.
      */
     default void send(RenderContext context, FCommandSender... commandSenders) {
         FancyTextManager.send(this, context, commandSenders);

@@ -1,10 +1,7 @@
 package br.com.finalcraft.evernifecore.locale;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
-import br.com.finalcraft.evernifecore.fancytext.FancyText;
-import br.com.finalcraft.evernifecore.fancytext.MessageContext;
-import br.com.finalcraft.evernifecore.fancytext.RenderContext;
+import br.com.finalcraft.evernifecore.fancytext.*;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import jakarta.annotation.Nullable;
@@ -28,7 +25,7 @@ public interface ILocaleMessageBase {
     }
 
     /**
-     * Sends carrying an explicit {@link RenderContext}, whose {@link MessageContext} wins over the
+     * Sends carrying an explicit {@link RenderContext}, whose {@link CommandMessageContext} wins over the
      * command scope of the sending thread. Each recipient still gets their own render.
      */
     default void send(RenderContext context, FCommandSender... commandSenders) {
