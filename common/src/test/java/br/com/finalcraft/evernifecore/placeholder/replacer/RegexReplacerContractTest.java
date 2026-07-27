@@ -64,7 +64,7 @@ public class RegexReplacerContractTest {
     }
 
     // ------------------------------------------------------------------
-    //  absorbed from RegexReplacerClosureContractTest
+    //  the closure syntax
     // ------------------------------------------------------------------
 
     // quoteAndParse must quote with the closure the wrapped RegexReplacer was built with, so a
@@ -97,7 +97,7 @@ public class RegexReplacerContractTest {
     }
 
     // ------------------------------------------------------------------
-    //  absorbed from RegexReplacerEscapeTest
+    //  escaping inside the replacement value
     // ------------------------------------------------------------------
 
     // A replacement value with backslashes (a Windows path) or ending in a lone backslash must be
@@ -117,7 +117,7 @@ public class RegexReplacerContractTest {
     }
 
     // ------------------------------------------------------------------
-    //  absorbed from RegexReplacerFluentApiTest
+    //  the fluent builder
     // ------------------------------------------------------------------
 
     @Test

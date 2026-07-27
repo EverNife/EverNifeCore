@@ -2,7 +2,6 @@ package br.com.finalcraft.evernifecore.fancytext;
 
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;

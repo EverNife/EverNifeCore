@@ -9,7 +9,6 @@ import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.CleanupMode;
@@ -306,7 +305,7 @@ class PageViewerContractTest {
     }
 
     // ------------------------------------------------------------------
-    //  absorbed from PageViewerFanoutTest
+    //  fan-out: every recipient gets every line exactly once
     // ------------------------------------------------------------------
 
     //PageViewer's default header calls getChatAdapter().straightLineOf at build time, which the plain
@@ -348,7 +347,7 @@ class PageViewerContractTest {
     }
 
     // ------------------------------------------------------------------
-    //  absorbed from PageViewerPlaceholderLazinessTest
+    //  placeholder laziness
     // ------------------------------------------------------------------
 
     //A working chat adapter: PageViewer's header calls getChatAdapter().straightLineOf at build time,
@@ -380,7 +379,7 @@ class PageViewerContractTest {
     }
 
     // ------------------------------------------------------------------
-    //  absorbed from PageViewerWeakCacheTest
+    //  the weak line cache
     // ------------------------------------------------------------------
 
     //PageViewer's default header calls getChatAdapter().straightLineOf while the builder is being

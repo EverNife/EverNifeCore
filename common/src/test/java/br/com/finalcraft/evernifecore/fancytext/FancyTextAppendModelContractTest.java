@@ -161,7 +161,7 @@ class FancyTextAppendModelContractTest {
     }
 
     // ------------------------------------------------------------------
-    //  absorbed from FancyTextModelContractTest
+    //  the model itself: factories, equality, emptiness
     // ------------------------------------------------------------------
 
     @Test
@@ -195,7 +195,7 @@ class FancyTextAppendModelContractTest {
     }
 
     // ------------------------------------------------------------------
-    //  absorbed from FancyFormatterEdgeCasesTest
+    //  edge cases of the formatter
     // ------------------------------------------------------------------
 
     // copy() must isolate the declarations: declaring on one side never leaks into the other.

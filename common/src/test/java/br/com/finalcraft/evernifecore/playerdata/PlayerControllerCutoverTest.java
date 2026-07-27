@@ -18,7 +18,6 @@ import br.com.finalcraft.everydatabase.query.ScanRow;
 import br.com.finalcraft.everydatabase.query.Slice;
 import br.com.finalcraft.everydatabase.versioned.OptimisticLockException;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
@@ -529,7 +528,7 @@ class PlayerControllerCutoverTest {
     }
 
     // ------------------------------------------------------------------
-    //  absorbed from PlayerControllerG1CoverageTest
+    //  payloads of java.time and Optional types
     // ------------------------------------------------------------------
 
     /** A section whose persisted state includes a {@code java.time.Instant}, a {@code LocalDateTime} and an {@code Optional<String>}. */

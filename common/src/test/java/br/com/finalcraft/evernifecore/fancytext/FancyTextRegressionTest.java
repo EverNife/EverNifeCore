@@ -78,7 +78,7 @@ public class FancyTextRegressionTest {
     }
 
     // ------------------------------------------------------------------
-    //  absorbed from the minecraft module: these never needed it
+    //  colour carried between segments, and enum names that must not leak
     // ------------------------------------------------------------------
 
     @Test

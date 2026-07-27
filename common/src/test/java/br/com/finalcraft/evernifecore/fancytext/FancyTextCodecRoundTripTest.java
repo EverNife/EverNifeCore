@@ -195,7 +195,7 @@ public class FancyTextCodecRoundTripTest {
     }
 
     // ------------------------------------------------------------------
-    //  absorbed from FancyTextCodecHoverPersistenceTest
+    //  hover persistence: a type with no codec warns once and survives
     // ------------------------------------------------------------------
 
     private static final String UNPERSISTABLE_TYPE = "fx1_unpersistable_hover";
@@ -313,7 +313,7 @@ public class FancyTextCodecRoundTripTest {
     }
 
     // ------------------------------------------------------------------
-    //  absorbed from FancyTextCodecLiteralPayloadTest
+    //  literal payloads the codec must not reinterpret
     // ------------------------------------------------------------------
 
     @Test
@@ -379,7 +379,7 @@ public class FancyTextCodecRoundTripTest {
     }
 
     // ------------------------------------------------------------------
-    //  absorbed from FancyHoverCodecRoundTripTest
+    //  a custom hover type with a codec, end to end
     // ------------------------------------------------------------------
 
     private static final String TYPE_ID = "custom_roundtrip";

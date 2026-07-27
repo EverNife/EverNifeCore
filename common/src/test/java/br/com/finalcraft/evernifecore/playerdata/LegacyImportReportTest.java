@@ -5,7 +5,6 @@ import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.playerdata.storage.legacy.LegacyImportReport;
 import br.com.finalcraft.evernifecore.playerdata.storage.legacy.LegacyPlayerDataImporter;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 

@@ -89,7 +89,7 @@ public class FCComponentUtilTest {
     }
 
     // ------------------------------------------------------------------
-    //  absorbed from FCComponentUtilClickTest
+    //  click events, and how they compose with the rest
     // ------------------------------------------------------------------
 
     @Test
