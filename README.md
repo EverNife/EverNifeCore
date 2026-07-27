@@ -27,7 +27,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'br.com.finalcraft:EverNifeCore:2.0.4'
+    // Bukkit/Spigot/Paper - the fat jar already carries the common API.
+    compileOnly 'br.com.finalcraft:evernifecore-minecraft:3.0.1'
 }
 ```
 
@@ -151,26 +152,32 @@ List<TeleportLocation> warps = config.getLoadableList("warps", TeleportLocation.
 
 ### FancyText & Messaging
 
-Rich text formatting with click/hover events and component chaining.
+Rich text formatting with click/hover events and component chaining. `FancyText` is the interface:
+`FancySegment` is one styled piece, `FancyFormatter` is an ordered chain of pieces.
 
 ```java
-// Simple usage
+// One piece: text + hover tooltip + click action.
 FancyText.of("§aClick here to teleport!")
-    .setHoverText("§7Teleports you to spawn")
-    .setRunCommandAction("/spawn")
+    .setHover("§7Teleports you to spawn")
+    .setClickCommand("/spawn")
     .send(player);
 
-// Complex formatting with chaining
+// A chain - each append(...) adds a piece, and the setters act on the last one.
 FancyFormatter formatter = FancyText.of("§6[Server] ")
     .append("§fWelcome ", "§7You joined the server!")
     .append("§e" + player.getName(), "§7Click to view profile", "/profile " + player.getName())
     .append("§f to our server!");
-    
+
 formatter.send(player);
+
+// Placeholders: declare the bare key, cite it as ${key} in the text.
+FancyText.of("§eBalance: §a${balance}§e coins")
+    .addPlaceholder("balance", () -> economy.getBalance(player))
+    .send(player);
 
 // Item display in hover
 FancyText.of("§6Legendary Sword")
-    .setHoverText(player.getItemInHand())
+    .setHoverItem("minecraft:diamond_sword")
     .send(player);
 ```
 
@@ -229,15 +236,18 @@ PlayerStats stats = connection.findByPrimaryKey(PlayerStats.class, player.getUni
 
 ### Localization System
 
-Multi-language support with automatic message formatting.
+Multi-language support with automatic message formatting. Each message declares its translations
+inline and is synced to an editable language file per plugin.
 
 ```java
-@FCLocale(lang = LocaleType.EN_US, text = "Welcome {player}!")
-@FCLocale(lang = LocaleType.PT_BR, text = "Bem-vindo {player}!")
+@FCLocale(lang = LocaleType.EN_US, text = "Welcome ${player}!")
+@FCLocale(lang = LocaleType.PT_BR, text = "Bem-vindo ${player}!")
 public static LocaleMessage WELCOME_MESSAGE;
 
-// Usage
-WELCOME_MESSAGE.send(player, "{player}", player.getName());
+// Usage - the key is declared bare, and cited as ${key} in the text.
+WELCOME_MESSAGE
+    .addPlaceholder("player", player.getName())
+    .send(player);
 ```
 
 ## 🔧 Utilities
