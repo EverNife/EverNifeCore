@@ -201,11 +201,9 @@ public class FCHytaleUtil {
                     store.addEntity(itemEntityHolder, AddReason.SPAWN);
                 }
 
-                if (ECSettings.WARN_PLAYERS_WHEN_RECEIVED_ITEMS_WERE_SEND_TO_THE_GROUND){
-                    YOU_RECEIVED_EXTRA_ITEMS_THAT_WERE_DROPED
-                        .addPlaceholder("itens_droped", exceededItems.size())
-                        .send(player);
-                }
+                YOU_RECEIVED_EXTRA_ITEMS_THAT_WERE_DROPED
+                    .addPlaceholder("itens_droped", exceededItems.size())
+                    .sendIf(ECSettings.WARN_PLAYERS_WHEN_RECEIVED_ITEMS_WERE_SEND_TO_THE_GROUND, player);
             }
         });
 

@@ -102,10 +102,8 @@ public class FCBukkitUtil {
     public static void giveItemsTo(Player player, boolean dropIfExceeded, ItemStack... itemStacks) {
         HashMap<Integer, ItemStack> exceededItems = player.getInventory().addItem(itemStacks);
         if (exceededItems.size() > 0 && dropIfExceeded) {
-            if (ECSettings.WARN_PLAYERS_WHEN_RECEIVED_ITEMS_WERE_SEND_TO_THE_GROUND){
-                YOU_RECEIVED_EXTRA_ITEMS_THAT_WERE_DROPED
-                        .send(adapt(player));
-            }
+            YOU_RECEIVED_EXTRA_ITEMS_THAT_WERE_DROPED
+                    .sendIf(ECSettings.WARN_PLAYERS_WHEN_RECEIVED_ITEMS_WERE_SEND_TO_THE_GROUND, adapt(player));
 
             final World world = player.getWorld();
             final Location location = player.getLocation();

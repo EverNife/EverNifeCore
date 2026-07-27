@@ -37,6 +37,17 @@ public interface ILocaleMessageBase {
         }
     }
 
+    /**
+     * Sends only when {@code condition} holds, so a guarded send stops needing an {@code if} block.
+     * Only the delivery is conditional: whatever was declared on this message is still evaluated, so
+     * a value that is expensive or unsafe to compute still belongs behind a real {@code if}.
+     */
+    default void sendIf(boolean condition, FCommandSender... commandSenders) {
+        if (condition) {
+            send(commandSenders);
+        }
+    }
+
     /** Sends to every recipient of {@code IPlatformChatAdapter#getBroadcastAudience()}, console included. */
     void broadcast();
 

@@ -129,12 +129,11 @@ public class SpigotUpdateChecker {
                 new BukkitRunnable(){
                     @Override
                     public void run() {
-                        if (event.getPlayer().isOp() || event.getPlayer().hasPermission(PERMISSION)){
-                            UPDATE_IS_AVAILABLE
-                                    .addPlaceholder("plugin", PLUGIN_NAME)
-                                    .setClickLink(SPIGOT_URL)
-                                    .send(FCBukkitUtil.adapt(event.getPlayer()));
-                        }
+                        UPDATE_IS_AVAILABLE
+                                .addPlaceholder("plugin", PLUGIN_NAME)
+                                .setClickLink(SPIGOT_URL)
+                                .sendIf(event.getPlayer().isOp() || event.getPlayer().hasPermission(PERMISSION),
+                                        FCBukkitUtil.adapt(event.getPlayer()));
                     }
                 }.runTaskLater(plugin, 10);
             }
