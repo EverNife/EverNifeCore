@@ -1,11 +1,11 @@
 package br.com.finalcraft.evernifecore.playerdata.storage;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
+import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.storage.StorageUnavailableException;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -27,22 +27,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * {@link RefReloadSurvivalTest#aFailedReloadKeepsTheLiveInstanceAndDoesNotFireCallbacks()} covers the
  * reload side (AC6): a failed reload must never call {@code IPlatform.shutdown}.
  */
+@ECoreTest
 class PlayerControllerStorageBootTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        //force, not ensureInstalled(): this test observes shutdownRequests(), which only the
-        //fixture's own no-op platform records - another test class may have left a different
-        //IPlatform (e.g. a command-capture harness) registered in this shared JVM
-        TestPlatformFixture.forceInstallNoop();
-    }
 
     @TempDir
     Path tempDir;
 
     @BeforeEach
-    void clearShutdowns() {
-        TestPlatformFixture.clearShutdownRequests();
+    void clearShutdowns(TestPlatform platform) {
+        platform.reset();
     }
 
     @AfterEach
@@ -52,24 +46,24 @@ class PlayerControllerStorageBootTest {
     }
 
     @Test
-    void bootWithAnUnreachableBackendAndTheFlagOnStopsTheServerOnce() throws IOException {
+    void bootWithAnUnreachableBackendAndTheFlagOnStopsTheServerOnce(TestPlatform platform) throws IOException {
         ECSettings.STOP_SERVER_IF_STORAGE_IS_UNREACHABLE = true;
         File broken = writeBrokenStorageYml("flag_on");
 
         assertThrows(StorageUnavailableException.class, () -> PlayerController.initialize(broken));
 
-        assertEquals(1, TestPlatformFixture.shutdownRequests().size());
+        assertEquals(1, platform.getShutdownReasons().size());
         assertNull(PlayerController.get(), "a failed BOOT (no previous instance) must leave no live controller");
     }
 
     @Test
-    void bootWithAnUnreachableBackendAndTheFlagOffNeverStopsTheServerButStillFailsTheBoot() throws IOException {
+    void bootWithAnUnreachableBackendAndTheFlagOffNeverStopsTheServerButStillFailsTheBoot(TestPlatform platform) throws IOException {
         ECSettings.STOP_SERVER_IF_STORAGE_IS_UNREACHABLE = false;
         File broken = writeBrokenStorageYml("flag_off");
 
         assertThrows(StorageUnavailableException.class, () -> PlayerController.initialize(broken));
 
-        assertTrue(TestPlatformFixture.shutdownRequests().isEmpty());
+        assertTrue(platform.getShutdownReasons().isEmpty());
         assertNull(PlayerController.get());
     }
 

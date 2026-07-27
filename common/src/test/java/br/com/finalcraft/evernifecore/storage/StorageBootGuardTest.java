@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.storage;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
+import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -16,19 +16,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The 2x2 matrix (boot/reload x flag true/false) that decides whether
  * {@code IPlatform.shutdown} is called - see decisions D2/D3 of the storage boot guard design.
  */
+@ECoreTest
 class StorageBootGuardTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        //force, not ensureInstalled(): this test observes shutdownRequests(), which only the
-        //fixture's own no-op platform records - another test class may have left a different
-        //IPlatform (e.g. a command-capture harness) registered in this shared JVM
-        TestPlatformFixture.forceInstallNoop();
-    }
 
     @BeforeEach
-    void clearShutdowns() {
-        TestPlatformFixture.clearShutdownRequests();
+    void clearShutdowns(TestPlatform platform) {
+        platform.reset();
     }
 
     @AfterEach
@@ -37,33 +31,33 @@ class StorageBootGuardTest {
     }
 
     @Test
-    void bootWithTheFlagOnStopsTheServerExactlyOnce() {
+    void bootWithTheFlagOnStopsTheServerExactlyOnce(TestPlatform platform) {
         ECSettings.STOP_SERVER_IF_STORAGE_IS_UNREACHABLE = true;
 
         StorageBootGuard.onStorageUnavailable(oneFailure(), false);
 
-        assertEquals(1, TestPlatformFixture.shutdownRequests().size());
+        assertEquals(1, platform.getShutdownReasons().size());
     }
 
     @Test
-    void bootWithTheFlagOffNeverStopsTheServer() {
+    void bootWithTheFlagOffNeverStopsTheServer(TestPlatform platform) {
         ECSettings.STOP_SERVER_IF_STORAGE_IS_UNREACHABLE = false;
 
         StorageBootGuard.onStorageUnavailable(oneFailure(), false);
 
-        assertTrue(TestPlatformFixture.shutdownRequests().isEmpty());
+        assertTrue(platform.getShutdownReasons().isEmpty());
     }
 
     @Test
-    void reloadNeverStopsTheServerRegardlessOfTheFlag() {
+    void reloadNeverStopsTheServerRegardlessOfTheFlag(TestPlatform platform) {
         ECSettings.STOP_SERVER_IF_STORAGE_IS_UNREACHABLE = true;
         StorageBootGuard.onStorageUnavailable(oneFailure(), true);
-        assertTrue(TestPlatformFixture.shutdownRequests().isEmpty(),
+        assertTrue(platform.getShutdownReasons().isEmpty(),
                 "a failed reload must never stop the server even with the flag on");
 
         ECSettings.STOP_SERVER_IF_STORAGE_IS_UNREACHABLE = false;
         StorageBootGuard.onStorageUnavailable(oneFailure(), true);
-        assertTrue(TestPlatformFixture.shutdownRequests().isEmpty());
+        assertTrue(platform.getShutdownReasons().isEmpty());
     }
 
     private static StorageUnavailableException oneFailure() {

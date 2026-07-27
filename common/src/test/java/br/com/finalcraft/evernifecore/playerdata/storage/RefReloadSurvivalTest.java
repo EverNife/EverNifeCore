@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.playerdata.storage;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
+import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.Storages;
 import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
@@ -13,7 +15,6 @@ import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.manager.CachingManager;
@@ -22,7 +23,6 @@ import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigratio
 import br.com.finalcraft.everydatabase.manager.cache.CachePolicy;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -57,14 +57,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *   <li><b>cleanup</b> - a reload fires the callback once, and unregistering the plugin drops it.</li>
  * </ul>
  */
+@ECoreTest
 class RefReloadSurvivalTest {
 
     private static final String PLUGIN_NAME = "RefReloadTestPlugin";
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;
@@ -72,21 +69,21 @@ class RefReloadSurvivalTest {
     private ECPluginData plugin;
 
     @BeforeEach
-    void clearShutdowns() {
+    void clearShutdowns(TestPlatform platform) {
         //a leftover request from an unrelated test class sharing this JVM must not be mistaken for
         //one fired by the reload below - see aFailedReloadKeepsTheLiveInstanceAndDoesNotFireCallbacks
-        TestPlatformFixture.clearShutdownRequests();
+        platform.reset();
     }
 
     @AfterEach
-    void teardown() {
+    void teardown(TestPlatform platform) {
         if (plugin != null) {
             PlayerController.unregisterPDSections(plugin); //also drops this plugin's reload callbacks
         }
         PlayerDataWorld.tearDown();
         ECPluginManager.removePluginData(PLUGIN_NAME);
         plugin = null;
-        TestPlatformFixture.clearShutdownRequests(); //the atomicity test below now goes through the boot guard
+        platform.reset(); //the atomicity test below now goes through the boot guard
     }
 
     // ==================================================================
@@ -148,7 +145,7 @@ class RefReloadSurvivalTest {
     // ==================================================================
 
     @Test
-    void aFailedReloadKeepsTheLiveInstanceAndDoesNotFireCallbacks() throws Exception {
+    void aFailedReloadKeepsTheLiveInstanceAndDoesNotFireCallbacks(TestPlatform platform) throws Exception {
         plugin = realPluginData();
         PlayerController.initialize(Storages.h2("atomic_live").writeTo(tempDir));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(plugin, ProfileSection.class).build());
@@ -166,7 +163,7 @@ class RefReloadSurvivalTest {
         assertSame(live, PlayerController.get(), "a failed reload must NOT swap the live instance");
         assertEquals(0, callbackFires.get(),
                 "callbacks fire only after the swap - a pre-swap failure must fire none");
-        assertTrue(TestPlatformFixture.shutdownRequests().isEmpty(),
+        assertTrue(platform.getShutdownReasons().isEmpty(),
                 "a failed RELOAD must never stop the server - the live instance is still serving");
     }
 
