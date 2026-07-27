@@ -55,7 +55,9 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
     protected final boolean nextAndPreviousPageButton;
     protected final HashMap<String, Function<OBJ,Object>> placeholders;
 
-    protected transient WeakReference<List<FancyText>> pageLinesCache = new WeakReference<>(new ArrayList<>());
+    //Weak on purpose: setLineEnd(-1) makes a page unbounded, and a page nobody is reading must be
+    //collectable. It only ever holds a COMPLETED list - see validateCachedLines.
+    protected transient WeakReference<List<FancyText>> pageLinesCache = new WeakReference<>(null);
     protected transient List<FancyText> pageHeaderCache = null;
     protected transient List<FancyText> pageFooterCache = null;
     protected transient long lastBuild = 0L;
@@ -86,12 +88,20 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         return lineEnd;
     }
 
-    private void validateCachedLines(){
+    /**
+     * The page lines, rebuilt if the cache expired or was collected. The list travels out as the
+     * return value and is only published into the {@link WeakReference} once it is complete: while it
+     * is being built nothing but a strong local can reach it, so a collection at any safepoint cannot
+     * leave the build - or the send that follows - holding a null.
+     */
+    private List<FancyText> validateCachedLines(){
 
-        if (pageLinesCache.get() == null || System.currentTimeMillis() - lastBuild >= cooldown){
+        List<FancyText> lines = pageLinesCache.get();
+
+        if (lines == null || System.currentTimeMillis() - lastBuild >= cooldown){
 
             pageHeaderCache = new ArrayList<>();
-            pageLinesCache = new WeakReference<>(new ArrayList<>());
+            lines = new ArrayList<>();
             pageFooterCache = new ArrayList<>();
 
             List<SortedItem<OBJ, COMPARED_VALUE>> sortedList = new ArrayList<>();
@@ -146,7 +156,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
                 fancyText.replace("%number%", String.valueOf(number + 1));
 
-                pageLinesCache.get().add(fancyText);
+                lines.add(fancyText);
             }
 
             for (FancyText formatFooterText : formatFooter) {
@@ -168,8 +178,11 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
                 }
             }
 
+            pageLinesCache = new WeakReference<>(lines);
             lastBuild = System.currentTimeMillis();
         }
+
+        return lines;
     }
 
     /**
@@ -226,10 +239,9 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
     }
 
     public void send(int page, int lineStart, int lineEnd, FCommandSender... sender){
-        validateCachedLines();
-
-        //Pin a strong reference to the weakly-cached lines so GC cannot clear them mid-send.
-        List<FancyText> lines = pageLinesCache.get();
+        //The strong reference comes back from the build itself; reading the weak field again here
+        //would reintroduce the very window the build closes.
+        List<FancyText> lines = validateCachedLines();
 
         //Bound lineEnd to lastLine
         lineEnd = NumberWrapper.of(lineEnd).boundUpper(lines.size()).intValue();
