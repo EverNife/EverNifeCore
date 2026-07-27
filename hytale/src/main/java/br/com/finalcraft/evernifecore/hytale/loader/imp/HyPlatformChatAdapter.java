@@ -28,7 +28,7 @@ public class HyPlatformChatAdapter implements IPlatformChatAdapter {
     }
 
     @Override
-    public void broadcast(FancyText fancyText) {
+    public List<FCommandSender> getBroadcastAudience() {
         List<FCommandSender> senders = new ArrayList<>();
 
         for (FPlayer onlinePlayer : FCServerUtil.getOnlinePlayers()) {
@@ -37,7 +37,7 @@ public class HyPlatformChatAdapter implements IPlatformChatAdapter {
 
         senders.add(FCHytaleUtil.getConsoleSender());
 
-        fancyText.send(senders);
+        return senders;
     }
 
     @Override

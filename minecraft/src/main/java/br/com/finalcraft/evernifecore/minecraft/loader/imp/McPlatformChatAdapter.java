@@ -30,7 +30,7 @@ public class McPlatformChatAdapter implements IPlatformChatAdapter {
     }
 
     @Override
-    public void broadcast(FancyText fancyText) {
+    public List<FCommandSender> getBroadcastAudience() {
         List<FCommandSender> senders = new ArrayList<>();
 
         for (FPlayer onlinePlayer : FCServerUtil.getOnlinePlayers()) {
@@ -39,7 +39,7 @@ public class McPlatformChatAdapter implements IPlatformChatAdapter {
 
         senders.add(FCBukkitUtil.adapt(Bukkit.getConsoleSender()));
 
-        fancyText.send(senders);
+        return senders;
     }
 
     @Override

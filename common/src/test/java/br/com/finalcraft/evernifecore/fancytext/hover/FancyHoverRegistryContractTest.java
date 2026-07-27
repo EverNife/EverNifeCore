@@ -195,7 +195,8 @@ public class FancyHoverRegistryContractTest {
                 }
 
                 @Override
-                public void broadcast(FancyText fancyText) {
+                public List<FCommandSender> getBroadcastAudience() {
+                    return Collections.emptyList();
                 }
 
                 @Override

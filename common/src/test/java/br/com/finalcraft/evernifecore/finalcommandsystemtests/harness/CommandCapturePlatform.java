@@ -214,7 +214,8 @@ public class CommandCapturePlatform implements IPlatform {
             }
 
             @Override
-            public void broadcast(FancyText fancyText) {
+            public List<FCommandSender> getBroadcastAudience() {
+                return Collections.emptyList();
             }
 
             @Override
