@@ -20,6 +20,11 @@ EverNifeCore is a powerful, feature-rich framework designed to accelerate Minecr
 2. Place in your `plugins/` folder
 3. Restart your server (don't reload it)
 
+> If you configure an external database in `storage.yml`, know that a backend marked `enabled: true`
+> which cannot be reached **stops the server at boot**, with a report naming every unreachable one.
+> That is the default (`Settings.Storage.STOP_SERVER_IF_STORAGE_IS_UNREACHABLE`), and it only applies
+> to a boot - a failed reload never stops anything.
+
 ### For Developers
 ```groovy
 repositories {
