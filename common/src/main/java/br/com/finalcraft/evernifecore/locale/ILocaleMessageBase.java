@@ -1,13 +1,23 @@
 package br.com.finalcraft.evernifecore.locale;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.fancytext.RenderContext;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
+import jakarta.annotation.Nullable;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
+/**
+ * What a message about to be sent can say about itself. It speaks the same vocabulary as
+ * {@link FancyText}: {@code setX} replaces an attribute, {@code addX} accumulates, and
+ * {@code append} builds a chain - so knowing one of the two is knowing both.
+ */
 public interface ILocaleMessageBase {
 
     void send(FCommandSender... commandSenders);
@@ -16,26 +26,58 @@ public interface ILocaleMessageBase {
         send(commandSenders.toArray(new FCommandSender[0]));
     }
 
+    /** Sends to every recipient of {@code IPlatformChatAdapter#getBroadcastAudience()}, console included. */
     void broadcast();
 
-    SendCustom addReplacer(CompoundReplacer compoundReplacer);
+    ILocaleMessageBase setHover(String hover);
 
-    SendCustom addPlaceholder(String placeHolder, Object value);
+    default ILocaleMessageBase setHover(List<String> hover) {
+        return setHover(String.join("\n", hover));
+    }
 
-    SendCustom addPlaceholder(String placeHolder, Function<PlayerData, Object> function);
+    ILocaleMessageBase setClick(String clickActionText, ClickActionType actionType);
 
-    SendCustom addHover(String hover);
+    default ILocaleMessageBase setClickCommand(String command) {
+        return setClick(command, ClickActionType.RUN_COMMAND);
+    }
 
-    SendCustom addAction(String action);
+    default ILocaleMessageBase setClickSuggest(String suggestion) {
+        return setClick(suggestion, ClickActionType.SUGGEST_COMMAND);
+    }
 
-    SendCustom addSuggest(String suggest);
+    default ILocaleMessageBase setClickLink(String url) {
+        return setClick(url, ClickActionType.OPEN_URL);
+    }
 
-    SendCustom addLink(String link);
+    /**
+     * Declares the value of {@code ${key}} (case-insensitive) on this message. The key is taken
+     * exactly as written, so it must be the bare name - {@code "saldo"}, never {@code "${saldo}"}.
+     */
+    ILocaleMessageBase addPlaceholder(String key, Object value);
 
-    SendCustom concat(LocaleMessage localeMessage);
+    ILocaleMessageBase addPlaceholder(String key, Supplier<?> value);
 
-    SendCustom concat(SendCustom sendCustom);
+    ILocaleMessageBase addPlaceholder(String key, Function<PlayerData, ?> value);
 
-    FancyText getFancyText(FCommandSender sender);
+    ILocaleMessageBase addPlaceholders(Map<String, ?> values);
+
+    ILocaleMessageBase addParser(String key, String description, Function<RenderContext, ?> parser);
+
+    ILocaleMessageBase addReplacer(CompoundReplacer compoundReplacer);
+
+    ILocaleMessageBase append(LocaleMessage localeMessage);
+
+    ILocaleMessageBase append(SendCustom sendCustom);
+
+    /** Appends a raw {@link FancyText}: the piece is copied on the way in, as everywhere else. */
+    ILocaleMessageBase append(FancyText fancyText);
+
+    ILocaleMessageBase append(String text);
+
+    /**
+     * Exactly what {@link #send(FCommandSender...)} would deliver to {@code sender}, without sending
+     * it - a preview can never describe something else.
+     */
+    FancyText getFancyText(@Nullable FCommandSender sender);
 
 }

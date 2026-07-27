@@ -2,80 +2,117 @@ package br.com.finalcraft.evernifecore.locale;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.fancytext.RenderContext;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
+import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import jakarta.annotation.Nullable;
 
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
+/**
+ * A per-send decoration of a message: the hover, the click and the placeholder declarations that
+ * apply to THIS send and to no other. The message it decorates is never touched - every render
+ * starts from a fresh copy.
+ */
 public class SendCustom implements ILocaleMessageBase {
 
-    protected final LocaleMessage localeMessage;
-    protected CompoundReplacer compoundReplacer = new CompoundReplacer();
-    protected Map<String, Object> declaredPlaceholders = new LinkedHashMap<>();
+    protected final ChainPiece source;
+
+    // Declarations are replayed onto the copy at render time, in the order they were made: the
+    // recipient is only known then, and ${label} and its friends answer for themselves wherever
+    // this text ends up being rendered.
+    protected final List<Consumer<FancyText>> declarations = new ArrayList<>();
 
     protected transient String hover;
-    protected transient String action;
-    protected transient String suggest;
-    protected transient String link;
+    protected transient String clickActionText;
+    protected transient ClickActionType clickActionType;
 
     protected SendCustom(LocaleMessage localeMessage) {
-        this.localeMessage = localeMessage;
+        this(ChainPiece.of(localeMessage));
+    }
+
+    protected SendCustom(ChainPiece source) {
+        this.source = source;
     }
 
     @Override
-    public SendCustom addReplacer(CompoundReplacer compoundReplacer) {
-        this.compoundReplacer.appendReplacer(compoundReplacer);
-        return this;
-    }
-
-    @Override
-    public SendCustom addPlaceholder(String placeHolder, Object value) {
-        declaredPlaceholders.put(placeHolder, value);
-        return this;
-    }
-
-    @Override
-    public SendCustom addPlaceholder(String placeHolder, Function<PlayerData, Object> function) {
-        declaredPlaceholders.put(placeHolder, function);
-        return this;
-    }
-
-    @Override
-    public SendCustom addHover(String hover) {
+    public SendCustom setHover(String hover) {
         this.hover = hover;
         return this;
     }
 
     @Override
-    public SendCustom addAction(String action) {
-        this.action = action;
+    public SendCustom setClick(String clickActionText, ClickActionType actionType) {
+        this.clickActionText = clickActionText;
+        this.clickActionType = actionType;
         return this;
     }
 
     @Override
-    public SendCustom addSuggest(String suggest) {
-        this.suggest = suggest;
+    public SendCustom addPlaceholder(String key, Object value) {
+        declarations.add(fancyText -> fancyText.addPlaceholder(key, value));
         return this;
     }
 
     @Override
-    public SendCustom addLink(String link) {
-        this.link = link;
+    public SendCustom addPlaceholder(String key, Supplier<?> value) {
+        declarations.add(fancyText -> fancyText.addPlaceholder(key, value));
         return this;
     }
 
     @Override
-    public SendCustom concat(LocaleMessage localeMessage) {
-        return new SendCustomComplex(localeMessage, this);
+    public SendCustom addPlaceholder(String key, Function<PlayerData, ?> value) {
+        declarations.add(fancyText -> fancyText.addPlaceholder(key, value));
+        return this;
     }
 
     @Override
-    public SendCustom concat(SendCustom sendCustom) {
-        return new SendCustomComplex(sendCustom, this);
+    public SendCustom addPlaceholders(Map<String, ?> values) {
+        declarations.add(fancyText -> fancyText.addPlaceholders(values));
+        return this;
+    }
+
+    @Override
+    public SendCustom addParser(String key, String description, Function<RenderContext, ?> parser) {
+        declarations.add(fancyText -> fancyText.addParser(key, description, parser));
+        return this;
+    }
+
+    @Override
+    public SendCustom addReplacer(CompoundReplacer compoundReplacer) {
+        declarations.add(fancyText -> fancyText.addReplacer(compoundReplacer));
+        return this;
+    }
+
+    @Override
+    public SendCustom append(LocaleMessage localeMessage) {
+        return new SendCustomComplex(ChainPiece.of(localeMessage), this);
+    }
+
+    @Override
+    public SendCustom append(SendCustom sendCustom) {
+        SendCustomComplex appended = new SendCustomComplex(sendCustom.source, this);
+        appended.adoptDecorationsOf(sendCustom);
+        return appended;
+    }
+
+    @Override
+    public SendCustom append(FancyText fancyText) {
+        // Snapshotted on the way in, the same policy FancyFormatter.append follows: the caller may go
+        // on mutating the value it appended without ever reshaping this chain.
+        return new SendCustomComplex(ChainPiece.of(fancyText.copy()), this);
+    }
+
+    @Override
+    public SendCustom append(String text) {
+        return append(FancyText.of(text));
     }
 
     @Override
@@ -88,10 +125,9 @@ public class SendCustom implements ILocaleMessageBase {
 
     @Override
     public void broadcast(){
-        FCommandSender[] onlinePlayers = EverNifeCore.getProviders().getPlatform()
-                .getOnlinePlayers()
-                .toArray(new FCommandSender[0]);
-        send(onlinePlayers);
+        // The same audience FancyText.broadcast() reaches, console included - asking the chat adapter
+        // instead of listing the online players is what keeps the two routes from diverging.
+        send(EverNifeCore.getPlatform().getChatAdapter().getBroadcastAudience());
     }
 
     @Override
@@ -105,19 +141,23 @@ public class SendCustom implements ILocaleMessageBase {
      * so a preview can never describe something else.
      */
     protected FancyText renderFor(@Nullable FCommandSender sender){
-        FancyText fancyText = sender == null ? localeMessage.getDefaultFancyText().copy() : localeMessage.getFancyText(sender).copy();
+        FancyText fancyText = source.renderFor(sender);
         if (hover != null) fancyText.setHover(hover);
-        if (action != null) fancyText.setClickCommand(action);
-        if (suggest != null) fancyText.setClickSuggest(suggest);
-        if (link != null) fancyText.setClickLink(link);
+        if (clickActionType != null) fancyText.setClick(clickActionText, clickActionType);
 
-        // Declared, not resolved: the recipient is only known at render time, and ${label} and its
-        // friends answer for themselves wherever this text ends up being rendered.
-        fancyText.addPlaceholders(declaredPlaceholders);
-        fancyText.addReplacer(compoundReplacer);
+        for (Consumer<FancyText> declaration : declarations) {
+            declaration.accept(fancyText);
+        }
 
         return fancyText;
     }
 
+    /** Takes over another piece's decorations, for the append that continues decorating it. */
+    void adoptDecorationsOf(SendCustom other) {
+        this.declarations.addAll(other.declarations);
+        this.hover = other.hover;
+        this.clickActionText = other.clickActionText;
+        this.clickActionType = other.clickActionType;
+    }
 
 }

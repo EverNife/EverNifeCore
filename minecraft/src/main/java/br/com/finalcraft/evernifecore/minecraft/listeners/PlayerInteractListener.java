@@ -73,7 +73,7 @@ public class PlayerInteractListener implements ECListener {
                 .addPlaceholder("block_id", MCVersion.isHigherEquals(MCVersion.v1_13) ? "" : block.getType().getId())
                 .addPlaceholder("block_meta", MCVersion.isHigherEquals(MCVersion.v1_13) ? "" : block.getData() == 0 ? "" : ":" + block.getData())
                 .addPlaceholder("biome", block.getBiome().name())
-                .addSuggest(FCItemUtils.getBukkitIdentifier(itemStack))
+                .setClickSuggest(FCItemUtils.getBukkitIdentifier(itemStack))
                 .send(FCBukkitUtil.adapt(player));
     }
 

@@ -132,7 +132,7 @@ public class SpigotUpdateChecker {
                         if (event.getPlayer().isOp() || event.getPlayer().hasPermission(PERMISSION)){
                             UPDATE_IS_AVAILABLE
                                     .addPlaceholder("plugin", PLUGIN_NAME)
-                                    .addLink(SPIGOT_URL)
+                                    .setClickLink(SPIGOT_URL)
                                     .send(FCBukkitUtil.adapt(event.getPlayer()));
                         }
                     }

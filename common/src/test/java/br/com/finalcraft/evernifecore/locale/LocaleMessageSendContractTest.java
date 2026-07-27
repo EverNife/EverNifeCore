@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.IPluginMetaInfo;
 import br.com.finalcraft.evernifecore.fancytext.FancySegment;
+import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.TestCommandSender;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
@@ -46,8 +47,8 @@ public class LocaleMessageSendContractTest {
         }
     }
 
-    // A concatenated message renders EVERY piece of the chain, and getFancyText(sender) must report
-    // the same chain instead of only the last message concat()-ed in.
+    // An appended message renders EVERY piece of the chain, and getFancyText(sender) must report
+    // the same chain instead of only the last message appended.
     @Test
     void concatGetFancyTextMatchesWhatSendActuallyRenders() {
         ECPluginData plugin = pluginData("ConcatBugPlugin");
@@ -59,7 +60,7 @@ public class LocaleMessageSendContractTest {
         second.addLocale("EN_US", new FancySegment("World"));
 
         TestCommandSender console = new TestCommandSender("CONSOLE");
-        SendCustom combined = first.concat(second);
+        ILocaleMessageBase combined = first.append(second);
 
         combined.send(console);
         String actuallySent = console.getMessages().get(0);
@@ -67,7 +68,32 @@ public class LocaleMessageSendContractTest {
         String previewed = combined.getFancyText(console).toLegacyString();
 
         assertEquals(actuallySent, previewed,
-                "concat(...).getFancyText(sender) must describe exactly what send(sender) delivers");
+                "append(...).getFancyText(sender) must describe exactly what send(sender) delivers");
+    }
+
+    // A raw FancyText is a chain piece like any other: appending one renders it as part of the whole
+    // message, and the preview still describes exactly what was delivered.
+    @Test
+    void appendedFancyTextIsRenderedAsPartOfTheChain() {
+        ECPluginData plugin = pluginData("AppendFancyTextPlugin");
+
+        LocaleMessageImp greeting = new LocaleMessageImp(plugin, "append.greeting", false);
+        greeting.addLocale("EN_US", new FancySegment("Hello "));
+
+        TestCommandSender console = new TestCommandSender("CONSOLE");
+        FancyText appended = FancyText.of("World");
+        ILocaleMessageBase combined = greeting.append(appended).append("!");
+
+        // The chain snapshots what it was given, so a later mutation of the caller's own instance
+        // must not show up in what gets sent.
+        appended.setText("MUTATED");
+
+        combined.send(console);
+        String actuallySent = console.getMessages().get(0);
+
+        assertEquals("Hello World!", actuallySent);
+        assertEquals(actuallySent, combined.getFancyText(console).toLegacyString(),
+                "append(fancyText).getFancyText(sender) must describe exactly what send(sender) delivers");
     }
 
     // A Function<PlayerData,Object> placeholder can only be evaluated when the recipient has

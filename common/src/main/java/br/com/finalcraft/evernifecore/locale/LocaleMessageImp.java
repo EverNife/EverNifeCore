@@ -7,7 +7,9 @@ import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.fancytext.RenderContext;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 
 import java.util.ArrayList;
@@ -15,6 +17,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class LocaleMessageImp implements LocaleMessage {
 
@@ -62,43 +65,58 @@ public class LocaleMessageImp implements LocaleMessage {
     }
 
     @Override
-    public SendCustom addPlaceholder(String placeHolder, Object value) {
-        return custom().addPlaceholder(placeHolder, value);
+    public SendCustom addPlaceholder(String key, Object value) {
+        return custom().addPlaceholder(key, value);
     }
 
     @Override
-    public SendCustom addPlaceholder(String placeHolder, Function<PlayerData, Object> function) {
-        return custom().addPlaceholder(placeHolder, function);
+    public SendCustom addPlaceholder(String key, Supplier<?> value) {
+        return custom().addPlaceholder(key, value);
     }
 
     @Override
-    public SendCustom addHover(String hover) {
-        return custom().addHover(hover);
+    public SendCustom addPlaceholder(String key, Function<PlayerData, ?> value) {
+        return custom().addPlaceholder(key, value);
     }
 
     @Override
-    public SendCustom addAction(String action) {
-        return custom().addAction(action);
+    public SendCustom addPlaceholders(Map<String, ?> values) {
+        return custom().addPlaceholders(values);
     }
 
     @Override
-    public SendCustom addSuggest(String suggest) {
-        return custom().addSuggest(suggest);
+    public SendCustom addParser(String key, String description, Function<RenderContext, ?> parser) {
+        return custom().addParser(key, description, parser);
     }
 
     @Override
-    public SendCustom addLink(String link) {
-        return custom().addLink(link);
+    public SendCustom setHover(String hover) {
+        return custom().setHover(hover);
     }
 
     @Override
-    public SendCustom concat(LocaleMessage localeMessage) {
-        return custom().concat(localeMessage);
+    public SendCustom setClick(String clickActionText, ClickActionType actionType) {
+        return custom().setClick(clickActionText, actionType);
     }
 
     @Override
-    public SendCustom concat(SendCustom sendCustom) {
-        return custom().concat(sendCustom);
+    public SendCustom append(LocaleMessage localeMessage) {
+        return custom().append(localeMessage);
+    }
+
+    @Override
+    public SendCustom append(SendCustom sendCustom) {
+        return custom().append(sendCustom);
+    }
+
+    @Override
+    public SendCustom append(FancyText fancyText) {
+        return custom().append(fancyText);
+    }
+
+    @Override
+    public SendCustom append(String text) {
+        return custom().append(text);
     }
 
     @Override

@@ -321,8 +321,8 @@ public class CMDECCooldown {
                 .addPlaceholder("reach", reach)
                 .addPlaceholder("cooldown", identifier)
                 .addPlaceholder("time", discursive)
-                .addHover(hover)
-                .addAction("/eccooldown " + viewCommand)
+                .setHover(hover)
+                .setClickCommand("/eccooldown " + viewCommand)
                 .send(sender);
     }
 

@@ -8,35 +8,23 @@ import jakarta.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A chain of appended pieces. The chain is flat - appending to a chain extends it instead of
+ * nesting - and this instance is always its last piece, so the decoration setters keep acting on
+ * what was just appended.
+ */
 public class SendCustomComplex extends SendCustom {
 
-    private List<SendCustom> concatList = new ArrayList<>();
+    private List<ChainPiece> chain = new ArrayList<>();
 
-    protected SendCustomComplex(LocaleMessage localeMessage, SendCustom previous) {
-        super(localeMessage);
+    protected SendCustomComplex(ChainPiece source, SendCustom previous) {
+        super(source);
         if (previous instanceof SendCustomComplex){
-            concatList = ((SendCustomComplex)previous).concatList;
+            chain = ((SendCustomComplex) previous).chain;
         }else {
-            concatList.add(previous);
+            chain.add(previous::renderFor);
         }
-        concatList.add(this);
-    }
-
-    public SendCustomComplex(SendCustom sendCustom, SendCustom previous) {
-        super(sendCustom.localeMessage);
-        this.declaredPlaceholders = sendCustom.declaredPlaceholders;
-        this.hover = sendCustom.hover;
-        this.action = sendCustom.action;
-        this.suggest = sendCustom.suggest;
-        this.link = sendCustom.link;
-        this.compoundReplacer = sendCustom.compoundReplacer;
-
-        if (previous instanceof SendCustomComplex){
-            concatList = ((SendCustomComplex)previous).concatList;
-        }else {
-            concatList.add(previous);
-        }
-        concatList.add(this);
+        chain.add(this::renderFor);
     }
 
     // The whole chain, not just the piece this instance happens to carry: send() delivers exactly
@@ -44,8 +32,8 @@ public class SendCustomComplex extends SendCustom {
     @Override
     public FancyText getFancyText(@Nullable FCommandSender sender){
         FancyFormatter formatter = new FancyFormatter();
-        for (SendCustom sendCustom : concatList) {
-            formatter.append(sendCustom.renderFor(sender));
+        for (ChainPiece piece : chain) {
+            formatter.append(piece.renderFor(sender));
         }
         return formatter;
     }
