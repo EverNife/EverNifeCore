@@ -4,9 +4,11 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.PermissionNodes;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
+import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAccessValidation;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpLine;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
@@ -22,28 +24,25 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-// No command-wide permission: the admin subcommands (list/set/setall) each carry the admin node,
-// while 'self' carries a separate player-facing node - so granting a player 'self' never grants the
-// plugin-wide reconfiguration the other subcommands do.
 @FinalCMD(
-        aliases = {"eclocale","fclocale"}
+    aliases = {"eclocale","fclocale"}
 )
 public class CMDECLocale {
 
     @FinalCMD.SubCMD(
-            subcmd = {"list"},
-            permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE,
-            locales = {
-                    @FCLocale(lang = LocaleType.EN_US, text = "Show all Locales from all plugins."),
-                    @FCLocale(lang = LocaleType.PT_BR, text = "Mostra as Locales de todos os plugins.")
-            }
+        subcmd = {"list"},
+        permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE,
+        locales = {
+            @FCLocale(lang = LocaleType.EN_US, text = "Show all Locales from all plugins."),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Mostra as Locales de todos os plugins.")
+        }
     )
     public void list(FCommandSender sender, String label) {
         FancyFormatter formatter = FancyFormatter.of(EverNifeCore.getPlatform().getChatAdapter().straightLineOf("§a§m-§r"));
 
         List<ECPluginData> sortedPlugins = ECPluginManager.getECPluginsMap().values().stream()
-                .sorted(Comparator.comparing(ecPlugin -> ecPlugin.getMetaInfo().getName()))
-                .collect(Collectors.toList());
+            .sorted(Comparator.comparing(ecPlugin -> ecPlugin.getMetaInfo().getName()))
+            .collect(Collectors.toList());
 
         for (ECPluginData ecplugin : sortedPlugins) {
             formatter.appendLine("§d ♦ §b" + ecplugin.getMetaInfo().getName() + " §7");
@@ -52,18 +51,18 @@ public class CMDECLocale {
             formatter.append(FancyText.join("", LocaleType.values(), localeType -> {
                 boolean isThisSelected = ecplugin.getPluginLanguage().equals(localeType);
                 return FancyText.of((isThisSelected ? "§a§l" : "") +  "[" + localeType + "]§7")
-                        .setHover(isThisSelected ? "§aThis locale is already selected!" : "Click to Change Locale to: " + localeType)
-                        .setClickCommand(isThisSelected ? null : FCCommandUtil.dynamicCommand(() -> {
-                            FCServerUtil.makeConsoleExecuteCommand(label + " set " + ecplugin.getMetaInfo().getName() + " " + localeType);
-                            this.list(sender, label); //Send this command again
-                        }));
+                    .setHover(isThisSelected ? "§aThis locale is already selected!" : "Click to Change Locale to: " + localeType)
+                    .setClickCommand(isThisSelected ? null : FCCommandUtil.dynamicCommand(() -> {
+                        FCServerUtil.makeConsoleExecuteCommand(label + " set " + ecplugin.getMetaInfo().getName() + " " + localeType);
+                        this.list(sender, label); //Send this command again
+                    }));
             }));
             // Only add a button for the active language when it is a custom one; a standard locale is
             // already rendered (and highlighted) by the loop above, so re-adding it would duplicate it.
             if (ecplugin.getCustomLangConfig() != null && !LocaleType.values().contains(ecplugin.getPluginLanguage())){
                 formatter.append(
-                        FancyText.of("§a§l[" + ecplugin.getPluginLanguage() + "]§7")
-                                .setHover("§aThis locale is already selected!")
+                    FancyText.of("§a§l[" + ecplugin.getPluginLanguage() + "]§7")
+                        .setHover("§aThis locale is already selected!")
                 );
             }
         }
@@ -72,13 +71,13 @@ public class CMDECLocale {
     }
 
     @FinalCMD.SubCMD(
-            subcmd = {"set"},
-            permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE,
-            usage = "%name% <PluginName> <LocaleName>",
-            locales = {
-                    @FCLocale(lang = LocaleType.EN_US, text = "Defines a locale to a specific plugin."),
-                    @FCLocale(lang = LocaleType.PT_BR, text = "Define uma Locale para um plugin específico.")
-            }
+        subcmd = {"set"},
+        permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE,
+        usage = "%name% <PluginName> <LocaleName>",
+        locales = {
+            @FCLocale(lang = LocaleType.EN_US, text = "Defines a locale to a specific plugin."),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Define uma Locale para um plugin específico.")
+        }
     )
     public void set(FCommandSender sender, String label, MultiArgumentos argumentos, HelpLine helpLine) {
 
@@ -90,8 +89,8 @@ public class CMDECLocale {
 
         ECPluginData plugin = argumentos.get(1).getECPluginData();
         ECPluginData ecPluginData = plugin == null
-                ? null
-                : ECPluginManager.getECPluginsMap().get(plugin.getMetaInfo().getName());
+            ? null
+            : ECPluginManager.getECPluginsMap().get(plugin.getMetaInfo().getName());
 
         if (ecPluginData == null){
             sender.sendMessage("§e§l ▶ §cThere is no ECPlugin with the name §e[" + argumentos.get(1) + "]§c found on this server.");
@@ -121,13 +120,13 @@ public class CMDECLocale {
     }
 
     @FinalCMD.SubCMD(
-            subcmd = {"setall"},
-            permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE,
-            usage = "%name% <LocaleName>",
-            locales = {
-                    @FCLocale(lang = LocaleType.EN_US, text = "Defines the locale to every single plugin."),
-                    @FCLocale(lang = LocaleType.PT_BR, text = "Define a Locale de todos os ECPlugin para uma específica.")
-            }
+        subcmd = {"setall"},
+        permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE,
+        usage = "%name% <LocaleName>",
+        locales = {
+            @FCLocale(lang = LocaleType.EN_US, text = "Defines the locale to every single plugin."),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Define a Locale de todos os ECPlugin para uma específica.")
+        }
     )
     public void setall(FCommandSender sender, String label, MultiArgumentos argumentos, HelpLine helpLine) {
 
@@ -143,14 +142,14 @@ public class CMDECLocale {
     }
 
     @FinalCMD.SubCMD(
-            subcmd = {"self"},
-            permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE_SELF,
-            usage = "%name% <LocaleName>",
-            validation = {PerPlayerLocaleAccessValidation.class},
-            locales = {
-                    @FCLocale(lang = LocaleType.EN_US, text = "Choose the language YOU see messages in."),
-                    @FCLocale(lang = LocaleType.PT_BR, text = "Escolha o idioma em que VOCÊ vê as mensagens.")
-            }
+        subcmd = {"self"},
+        permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE_SELF,
+        usage = "%name% <LocaleName>",
+        validation = {PerPlayerLocaleAccessValidation.class},
+        locales = {
+            @FCLocale(lang = LocaleType.EN_US, text = "Choose the language YOU see messages in."),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Escolha o idioma em que VOCÊ vê as mensagens.")
+        }
     )
     public void self(FCommandSender sender, MultiArgumentos argumentos, HelpLine helpLine, LocalePDSection localeSection) {
 
@@ -174,5 +173,23 @@ public class CMDECLocale {
 
         localeSection.setLang(localeType);
         sender.sendMessage("§2§l ▶ §aYour language has been set to §b§l[" + localeType + "]§a!");
+    }
+
+    /**
+     * Gates a subcommand behind {@code ECSettings.PER_PLAYER_LOCALE}: while the feature is off the
+     * subcommand is hidden from tab completion and does nothing if invoked directly. It is the guard
+     * that keeps '/eclocale self' invisible and inert until an admin opts into per-player language.
+     */
+    public static class PerPlayerLocaleAccessValidation extends CMDAccessValidation {
+
+        @Override
+        public boolean onPreCommandValidation(AccessContext accessContext) {
+            return ECSettings.PER_PLAYER_LOCALE;
+        }
+
+        @Override
+        public boolean onPreTabValidation(AccessContext accessContext) {
+            return ECSettings.PER_PLAYER_LOCALE;
+        }
     }
 }

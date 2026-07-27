@@ -5,7 +5,7 @@ package br.com.finalcraft.evernifecore.fancytext;
  * assembled at runtime. Lowest precedence of all: a message that declares its own {@code label}
  * shadows this one, because its own declaration is applied first.
  */
-public final class CoreMessageParsers {
+public final class CoreFancyMessageParsers {
 
     public static final MessagePlaceholders INSTANCE = new MessagePlaceholders();
 
@@ -16,6 +16,6 @@ public final class CoreMessageParsers {
                 context -> context.getMessageContext().getSubCommandName());
     }
 
-    private CoreMessageParsers() {
+    private CoreFancyMessageParsers() {
     }
 }

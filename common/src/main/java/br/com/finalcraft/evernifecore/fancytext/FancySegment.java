@@ -343,7 +343,7 @@ public class FancySegment implements FancyText {
         for (MessagePlaceholders outer : context.getInherited()) {
             resolved = outer.apply(resolved, context);
         }
-        return CoreMessageParsers.INSTANCE.apply(resolved, context);
+        return CoreFancyMessageParsers.INSTANCE.apply(resolved, context);
     }
 
     @Override

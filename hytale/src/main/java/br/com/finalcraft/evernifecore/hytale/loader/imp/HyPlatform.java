@@ -340,7 +340,7 @@ public class HyPlatform implements IPlatform {
     public void shutdown(String reason) {
         EverNifeCore.getLog().severe("Shutting the server down: " + reason);
         //exit code 1 so a wrapper/panel can tell this apart from a clean stop
-        HytaleServer.get().shutdownServer(new ShutdownReason(1, "STORAGE_UNAVAILABLE"));
+        HytaleServer.get().shutdownServer(new ShutdownReason(1, reason));
     }
 
 }
