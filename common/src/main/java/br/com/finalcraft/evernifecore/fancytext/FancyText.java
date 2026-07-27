@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 /**
  * Root of the rich-text model. A {@link FancySegment} is one styled piece (text + hover + click);
@@ -51,6 +52,17 @@ public interface FancyText {
      * it, such as a per-instance command alias or a cached page line.
      */
     FancyText replace(String placeholder, String value);
+
+    /**
+     * Rewrites this message's text, hover payload and click value through {@code transform}, right
+     * now and in place - the general form of {@link #replace(String, String)}. It exists for the
+     * caller who resolves a whole set of keys in one pass, such as a page line baking its values into
+     * the copy it caches: one pass over each payload instead of one pass per key.
+     *
+     * <p>Only the payloads that are text answer to this; a hover kind whose value is opaque to the
+     * string form passes through untouched.</p>
+     */
+    FancyText bake(UnaryOperator<String> transform);
 
     /**
      * Declares the value of {@code ${key}} (case-insensitive) on this message. Nothing is computed

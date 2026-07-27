@@ -55,7 +55,7 @@ class PageViewerFanoutTest {
                 .withSuplier(() -> Arrays.asList("alpha", "beta", "gamma"))
                 .extracting(entry -> entry)
                 .setComparator(null)
-                .setFormatLine("§7#  %number%:   §a%value%")
+                .setFormatLine("§7#  ${number}:   §a${value}")
                 .setNextAndPreviousPageButton(false)
                 .build()
                 .send(first, second);

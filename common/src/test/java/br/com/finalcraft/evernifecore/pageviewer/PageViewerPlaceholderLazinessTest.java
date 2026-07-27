@@ -54,11 +54,11 @@ class PageViewerPlaceholderLazinessTest {
         PageViewer.targeting(String.class)
                 .withSuplier(() -> Arrays.asList("alpha", "beta"))
                 .extracting(entry -> entry)
-                //the format line cites %shown% (and %number%), but NOT %hidden%
-                .setFormatLine("§7#  %number%:   §a%shown%")
+                //the format line cites ${shown} (and ${number}), but NOT ${hidden}
+                .setFormatLine("§7#  ${number}:   §a${shown}")
                 .setNextAndPreviousPageButton(false)
-                .addPlaceholder("%hidden%", entry -> { hiddenCalls.incrementAndGet(); return "hidden"; })
-                .addPlaceholder("%shown%", entry -> { shownCalls.incrementAndGet(); return String.valueOf(entry); })
+                .addPlaceholder("hidden", entry -> { hiddenCalls.incrementAndGet(); return "hidden"; })
+                .addPlaceholder("shown", entry -> { shownCalls.incrementAndGet(); return String.valueOf(entry); })
                 .build()
                 .send(console);
 

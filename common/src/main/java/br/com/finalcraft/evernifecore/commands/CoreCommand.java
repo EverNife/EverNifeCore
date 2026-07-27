@@ -32,13 +32,13 @@ public class CoreCommand {
                 .withSuplier(() -> new ArrayList<>(ECPluginManager.getECPluginsMap().values()))
                 .extracting(ecPluginData -> ecPluginData.getMetaInfo().getName())
                 .setFormatLine(
-                        FancyText.of("§7# %number%: §e§l◆ §a %value% §7§o(%version%)").setHover("%plugin_info%")
-                                .append("%can_update%").setHover("§aClique to go to DownloadLink").setClickLink("%update_link%")
+                        FancyText.of("§7# ${number}: §e§l◆ §a ${value} §7§o(${version})").setHover("${plugin_info}")
+                                .append("${can_update}").setHover("§aClique to go to DownloadLink").setClickLink("${update_link}")
                 )
-                .addPlaceholder("%version%", ecPlugin -> ecPlugin.getMetaInfo().getVersion())
-                .addPlaceholder("%can_update%", ecPlugin -> ecPlugin.hasUpdate() ? "§b  [Update]" : "")
-                .addPlaceholder("%update_link%", ecPlugin -> ecPlugin.hasUpdate() ? ecPlugin.getUpdateLink() : "")
-                .addPlaceholder("%plugin_info%", ecPlugin -> {
+                .addPlaceholder("version", ecPlugin -> ecPlugin.getMetaInfo().getVersion())
+                .addPlaceholder("can_update", ecPlugin -> ecPlugin.hasUpdate() ? "§b  [Update]" : "")
+                .addPlaceholder("update_link", ecPlugin -> ecPlugin.hasUpdate() ? ecPlugin.getUpdateLink() : "")
+                .addPlaceholder("plugin_info", ecPlugin -> {
                     StringBuilder stringBuilder = new StringBuilder();
                     stringBuilder.append("\n§d ▲ Name: §a" + ecPlugin.getMetaInfo().getName());
                     stringBuilder.append("\n§d ▲ Version: §a" + ecPlugin.getMetaInfo().getVersion());

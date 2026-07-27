@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 /**
  * An ordered chain of {@link FancySegment} pieces, rendered as a single Adventure component.
@@ -138,8 +139,13 @@ public class FancyFormatter implements FancyText {
 
     @Override
     public FancyFormatter replace(String placeholder, String value) {
+        return bake(payload -> payload.replace(placeholder, value));
+    }
+
+    @Override
+    public FancyFormatter bake(UnaryOperator<String> transform) {
         for (int i = 0; i < this.fancyTextList.size(); i++) {
-            this.fancyTextList.set(i, this.fancyTextList.get(i).replace(placeholder, value));
+            this.fancyTextList.set(i, this.fancyTextList.get(i).bake(transform));
         }
         return this;
     }

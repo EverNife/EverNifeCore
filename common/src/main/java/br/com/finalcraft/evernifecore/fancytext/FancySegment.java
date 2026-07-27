@@ -125,9 +125,14 @@ public class FancySegment implements FancyText {
 
     @Override
     public FancySegment replace(String placeholder, String value) {
-        this.text = text.replace(placeholder, value);
-        this.hover = replaceHoverPayload(this.hover, legacyPayload -> legacyPayload.replace(placeholder, value));
-        if (this.clickActionText != null) this.clickActionText = this.clickActionText.replace(placeholder, value);
+        return bake(payload -> payload.replace(placeholder, value));
+    }
+
+    @Override
+    public FancySegment bake(UnaryOperator<String> transform) {
+        this.text = transform.apply(this.text);
+        this.hover = replaceHoverPayload(this.hover, transform);
+        if (this.clickActionText != null) this.clickActionText = transform.apply(this.clickActionText);
         return this;
     }
 

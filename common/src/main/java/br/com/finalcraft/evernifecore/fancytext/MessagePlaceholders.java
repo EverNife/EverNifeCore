@@ -106,7 +106,13 @@ public final class MessagePlaceholders {
         return copy;
     }
 
-    private static void warnOnceIfDelimited(String key) {
+    /**
+     * Warns, once per key, that {@code key} was declared with its delimiters and therefore can never
+     * match. Public because it is the single point for this: every declaration surface that takes a
+     * bare key - a message, a page line - has to say the same thing, and share the same dedup set, so
+     * the console is not flooded by the same mistake reported from two engines.
+     */
+    public static void warnOnceIfDelimited(String key) {
         for (Closures closures : Closures.values()) {
             String head = closures.getHead();
             String tail = closures.getTail();

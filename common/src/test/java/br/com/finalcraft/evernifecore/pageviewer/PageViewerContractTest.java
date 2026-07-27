@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.pageviewer;
 
 import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.fancytext.MessageScope;
 import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.TestCommandSender;
 import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
@@ -65,11 +66,11 @@ class PageViewerContractTest {
                 .setComparator(null)
                 .setFormatHeader(Collections.<FancyText>emptyList())
                 .setFormatLine(new FancySegment("§aline")
-                        .setHover("§7tip: %hover_value%")
-                        .setClickSuggest("/say %click_value%"))
+                        .setHover("§7tip: ${hover_value}")
+                        .setClickSuggest("/say ${click_value}"))
                 .setNextAndPreviousPageButton(false)
-                .addPlaceholder("%hover_value%", entry -> "HOVERED-" + entry)
-                .addPlaceholder("%click_value%", entry -> "CLICKED-" + entry)
+                .addPlaceholder("hover_value", entry -> "HOVERED-" + entry)
+                .addPlaceholder("click_value", entry -> "CLICKED-" + entry)
                 .build()
                 .send(console);
 
@@ -91,9 +92,9 @@ class PageViewerContractTest {
                 .extracting(entry -> entry)
                 .setComparator(null)
                 .setFormatHeader(Collections.<FancyText>emptyList())
-                .setFormatLine(FancyText.of("§7first ").append("§asecond %deep%"))
+                .setFormatLine(FancyText.of("§7first ").append("§asecond ${deep}"))
                 .setNextAndPreviousPageButton(false)
-                .addPlaceholder("%deep%", entry -> "DEEP-" + entry)
+                .addPlaceholder("deep", entry -> "DEEP-" + entry)
                 .build()
                 .send(console);
 
@@ -113,7 +114,7 @@ class PageViewerContractTest {
                 .extracting(entry -> entry.toUpperCase(Locale.ROOT))
                 .setComparator(null)
                 .setFormatHeader(Collections.<FancyText>emptyList())
-                .setFormatLine("#%number%:%value%")
+                .setFormatLine("#${number}:${value}")
                 .setNextAndPreviousPageButton(false)
                 .build()
                 .send(console);
@@ -131,9 +132,9 @@ class PageViewerContractTest {
                 .extracting(entry -> entry)
                 .setComparator(null)
                 .setFormatHeader(Collections.<FancyText>emptyList())
-                .setFormatLine("[%raw%]")
+                .setFormatLine("[${raw}]")
                 .setNextAndPreviousPageButton(false)
-                .addPlaceholder("%raw%", entry -> hostile)
+                .addPlaceholder("raw", entry -> hostile)
                 .build()
                 .send(console);
 
@@ -152,9 +153,9 @@ class PageViewerContractTest {
                 .setComparator(null)
                 .setFormatHeader(Collections.<FancyText>emptyList())
                 //cited twice on the same line on purpose: one line still costs one invocation
-                .setFormatLine(new FancySegment("§aline %shared%").setHover("§7tip %shared%"))
+                .setFormatLine(new FancySegment("§aline ${shared}").setHover("§7tip ${shared}"))
                 .setNextAndPreviousPageButton(false)
-                .addPlaceholder("%shared%", entry -> {
+                .addPlaceholder("shared", entry -> {
                     calls.incrementAndGet();
                     return "V-" + entry;
                 })
@@ -172,6 +173,50 @@ class PageViewerContractTest {
     }
 
     @Test
+    void anInjectedValueIsNotScannedAgainForOtherKeys() {
+        TestCommandSender console = new TestCommandSender("CONSOLE");
+
+        PageViewer.targeting(String.class)
+                .withSuplier(() -> Collections.singletonList("alpha"))
+                .extracting(entry -> entry)
+                .setComparator(null)
+                .setFormatHeader(Collections.<FancyText>emptyList())
+                .setFormatLine("[${outer}]")
+                .setNextAndPreviousPageButton(false)
+                //what "outer" resolves to happens to spell another declared key: it is a value, not
+                //text to be substituted again, so it must survive verbatim whatever the key order is
+                .addPlaceholder("outer", entry -> "${inner}")
+                .addPlaceholder("inner", entry -> "SHOULD-NOT-APPEAR")
+                .build()
+                .send(console);
+
+        assertEquals(Collections.singletonList("[${inner}]"), console.getMessages());
+    }
+
+    @Test
+    void aKeyDeclaredOnThePageWinsOverTheFrameworkWideOne() {
+        TestCommandSender console = new TestCommandSender("CONSOLE");
+
+        PageViewer<String, String> viewer = PageViewer.targeting(String.class)
+                .withSuplier(() -> Collections.singletonList("alpha"))
+                .extracting(entry -> entry)
+                .setComparator(null)
+                .setFormatHeader(Collections.<FancyText>emptyList())
+                .setFormatLine("/${label} entry")
+                .setNextAndPreviousPageButton(false)
+                .addPlaceholder("label", entry -> "pagelabel")
+                .build();
+
+        //A page can be re-sent later, from another command's scope, and must still say what it was
+        //built to say - which is why the page's own declaration is baked in before any render.
+        try (MessageScope scope = MessageScope.open("scopelabel", null)) {
+            viewer.send(console);
+        }
+
+        assertEquals(Collections.singletonList("/pagelabel entry"), console.getMessages());
+    }
+
+    @Test
     void pageSizeSlicesThePageAndAnUnboundedLineEndKeepsEveryEntry() {
         TestCommandSender paged = new TestCommandSender("PAGED");
 
@@ -180,7 +225,7 @@ class PageViewerContractTest {
                 .extracting(entry -> entry)
                 .setComparator(null)
                 .setFormatHeader(Collections.<FancyText>emptyList())
-                .setFormatLine("%value%")
+                .setFormatLine("${value}")
                 .setPageSize(2)
                 .setNextAndPreviousPageButton(false)
                 .build()
@@ -201,7 +246,7 @@ class PageViewerContractTest {
                 .extracting(entry -> entry)
                 .setComparator(null)
                 .setFormatHeader(Collections.<FancyText>emptyList())
-                .setFormatLine("%value%")
+                .setFormatLine("${value}")
                 .setPageSize(100)
                 .setNextAndPreviousPageButton(false)
                 .build()
@@ -215,7 +260,7 @@ class PageViewerContractTest {
                 .extracting(entry -> entry)
                 .setComparator(null)
                 .setFormatHeader(Collections.<FancyText>emptyList())
-                .setFormatLine("%value%")
+                .setFormatLine("${value}")
                 .setPageSize(100)
                 .setLineEnd(-1)
                 .setNextAndPreviousPageButton(false)

@@ -21,7 +21,7 @@ public class CMDList {
                 .withSuplier(() -> new ArrayList<>(EverNifeCore.getPlatform().getOnlinePlayers()))
                 .extracting(player -> player.getName())
                 .setFormatLine(
-                        FancyText.of("§7# %number%: §e§l- §a %value%")
+                        FancyText.of("§7# ${number}: §e§l- §a ${value}")
                 )
                 .setIncludeTotalCount(true)
                 .build()

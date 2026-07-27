@@ -74,7 +74,7 @@ public class CMDOreDictInfo {
                 .withSuplier(() -> itemStacks)
                 .extracting(itemStack -> FCItemUtils.getMinecraftIdentifier(itemStack))
                 .setFormatLine(itemStack -> {
-                    return new FancySegment("§7#  %number%:   §a%value%").setClickSuggest("%value%");
+                    return new FancySegment("§7#  ${number}:   §a${value}").setClickSuggest("${value}");
                 })
                 .build()
                 .send(pageVizualization, sender);
@@ -99,13 +99,13 @@ public class CMDOreDictInfo {
                 .withSuplier(() -> filteredEntries)
                 .extracting(oreDict -> oreDict.getOreName())
                 .setFormatLine(
-                        new FancySegment("§7#  %number%: (${oredict_amount})  §a%value%")
+                        new FancySegment("§7#  ${number}: (${oredict_amount})  §a${value}")
                         .setClickCommand(OREDICT_INFO.getFancyText(sender).getClickActionText())
                         .setHover(OREDICT_INFO.getFancyText(sender).getHoverText())
                 )
-                .addPlaceholder("${oredict_amount}", entry -> entry.getItemStacks().size())
-                .addPlaceholder("${oredict_name}", entry -> entry.getOreName())
-                .addPlaceholder("${label}", oreDictEntry -> label)
+                .addPlaceholder("oredict_amount", entry -> entry.getItemStacks().size())
+                .addPlaceholder("oredict_name", entry -> entry.getOreName())
+                .addPlaceholder("label", oreDictEntry -> label)
                 .setIncludeTotalCount(true)
                 .setLineEnd(-1)
                 .build()

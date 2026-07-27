@@ -9,6 +9,9 @@ import br.com.finalcraft.evernifecore.dynamiccommand.DynamicCommand;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
 import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.fancytext.MessagePlaceholders;
+import br.com.finalcraft.evernifecore.placeholder.replacer.Closures;
+import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
@@ -26,6 +29,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class PageViewer<OBJ, COMPARED_VALUE> {
+
+    //Keys every page answers for on its own.
+    private static final String NUMBER_KEY = "number";
+    private static final String VALUE_KEY = "value";
+    private static final String PLAYER_KEY = "player";
 
     @FCLocale(lang = LocaleType.PT_BR, text = "§7Data de hoje: ${date_of_today}")
     @FCLocale(lang = LocaleType.EN_US, text = "§7Date of today: ${date_of_today}")
@@ -77,7 +85,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         this.includeDate = includeDate;
         this.includeTotalCount = includeTotalCount;
         this.nextAndPreviousPageButton = nextAndPreviousPageButton;
-        this.placeholders = new HashMap<>();
+        this.placeholders = new LinkedHashMap<>();
     }
 
     public int getLineStart() {
@@ -117,14 +125,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
             }
 
 
-            if (sortedList.size() > 0){ //Add more default placeholders here, like "%player%" name
-                SortedItem sortedItem = sortedList.get(0);
-                if (sortedItem.object instanceof FPlayer) {
-                    placeholders.put("%player%", obj -> ((FPlayer) obj).getName());
-                } else if (sortedItem.object instanceof IPlayerData) {
-                    placeholders.put("%player%", obj -> ((IPlayerData) obj).getName());
-                }
-            }
+            final RegexReplacer<LineEntry<OBJ>> lineReplacer = buildLineReplacer(sortedList);
 
             for (FancyText formatHeaderText : formatHeader) {
                 final FancyText fancyText = formatHeaderText.copy();
@@ -144,17 +145,10 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
                 final FancyText fancyText = formatLine.apply(comparedObject);
 
-                if (placeholders.size() > 0){
-                    //Resolve a placeholder only when the line actually cites its key: a registered
-                    //Function that the line never mentions is never invoked (match-driven).
-                    placeholders.forEach((key, function) -> {
-                        if (citesPlaceholder(fancyText, key)){
-                            fancyText.replace(key, String.valueOf(function.apply(sortedItem.getObject())));
-                        }
-                    });
-                }
-
-                fancyText.replace("%number%", String.valueOf(number + 1));
+                //Baked into the cached copy, once, against the LINE - so the page a hundred players
+                //are looking at was resolved a hundred times less, and they all read the same values.
+                final LineEntry<OBJ> lineEntry = new LineEntry<>(comparedObject, number + 1);
+                fancyText.bake(payload -> lineReplacer.apply(payload, lineEntry));
 
                 lines.add(fancyText);
             }
@@ -186,25 +180,64 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
     }
 
     /**
-     * Whether {@code fancyText} mentions {@code key} anywhere {@code replace} would act on it - visible
-     * text, hover payload or click text - descending into every segment of a {@link FancyFormatter}
-     * (whose own accessors only report the last segment). A key that appears nowhere is skipped, so its
-     * value is never computed.
+     * The replacer this page's lines are baked with: the caller's own declarations first, then the
+     * keys the framework answers for, added only where the caller left them free.
+     *
+     * <p>Nothing here is match-driven by hand - the replacer walks the tokens the text actually
+     * cites, so a key that is declared but never written is never computed.</p>
      */
-    private static boolean citesPlaceholder(FancyText fancyText, String key){
-        if (fancyText instanceof FancyFormatter){
-            for (FancyText segment : ((FancyFormatter) fancyText).getFancyTextList()){
-                if (citesPlaceholder(segment, key)) return true;
-            }
-            return false;
+    private RegexReplacer<LineEntry<OBJ>> buildLineReplacer(List<SortedItem<OBJ, COMPARED_VALUE>> sortedList){
+        RegexReplacer<LineEntry<OBJ>> replacer = new RegexReplacer<>(Closures.DOLLAR_CURLY);
+
+        for (Map.Entry<String, Function<OBJ, Object>> declaration : placeholders.entrySet()) {
+            Function<OBJ, Object> function = declaration.getValue();
+            declare(replacer, declaration.getKey(), entry -> function.apply(entry.object));
         }
-        return contains(fancyText.getText(), key)
-                || contains(fancyText.getHoverText(), key)
-                || contains(fancyText.getClickActionText(), key);
+
+        declare(replacer, NUMBER_KEY, entry -> entry.number);
+
+        if (sortedList.size() > 0){
+            Object firstObject = sortedList.get(0).getObject();
+            if (firstObject instanceof FPlayer) {
+                declare(replacer, PLAYER_KEY, entry -> ((FPlayer) entry.object).getName());
+            } else if (firstObject instanceof IPlayerData) {
+                declare(replacer, PLAYER_KEY, entry -> ((IPlayerData) entry.object).getName());
+            }
+        }
+
+        return replacer;
     }
 
-    private static boolean contains(String haystack, String needle){
-        return haystack != null && haystack.contains(needle);
+    private static <OBJ> void declare(RegexReplacer<LineEntry<OBJ>> replacer, String key, Function<LineEntry<OBJ>, Object> function){
+        //The memo token is this declaration's own identity, so two pages declaring the same key never
+        //share an answer. String.valueOf keeps a null value visible as text instead of leaving the
+        //token raw, which in a click value would be a broken command rather than an ugly line.
+        final Object declaration = new Object();
+        replacer.addParser(key, entry -> entry.resolveOnce(declaration, () -> String.valueOf(function.apply(entry))));
+    }
+
+    /**
+     * What a line's placeholders resolve against: the object on that line and its 1-based position in
+     * the page, never the recipient. That is what keeps the substitution eager - it is baked into the
+     * cached line once, and every recipient of that page then reads the same values.
+     */
+    protected static final class LineEntry<OBJ> {
+
+        final OBJ object;
+        final int number;
+        // One answer per declaration per line, so a key cited in the text AND in the hover of the
+        // same line still costs a single call into the caller's Function.
+        private final Map<Object, Optional<Object>> resolvedOnce = new HashMap<>();
+
+        LineEntry(OBJ object, int number) {
+            this.object = object;
+            this.number = number;
+        }
+
+        @Nullable Object resolveOnce(Object declaration, Supplier<?> compute) {
+            return resolvedOnce.computeIfAbsent(declaration, ignored -> Optional.ofNullable(compute.get()))
+                    .orElse(null);
+        }
     }
 
     public void send(@Nonnull FCommandSender... sender){
@@ -376,7 +409,18 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
         public IBuilder<O, C> setPageSize(int pageSize);
 
-        public IBuilder<O, C> addPlaceholder(String placeholder, Function<O, Object> function);
+        /**
+         * Declares the value of {@code ${key}} (case-insensitive) on every line of this page. The key
+         * is taken exactly as written, so it must be the bare name - {@code "version"}, never
+         * {@code "%version%"} or {@code "${version}"}; a delimited one is registered like that, never
+         * matches, and says so once in the console.
+         *
+         * <p>Resolved against the line's own object, once per line, while the page is being cached -
+         * so every recipient of that page reads the same values. A key the line never writes is never
+         * computed. {@code number}, {@code value} and {@code player} are answered for
+         * automatically.</p>
+         */
+        public IBuilder<O, C> addPlaceholder(String key, Function<O, Object> function);
 
         public IBuilder<O, C> setNextAndPreviousPageButton(boolean nextAndPreviousPageButton);
 
@@ -398,7 +442,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         };
 
         protected List<FancyText> formatHeader = Arrays.asList(new FancySegment("§a§m" + EverNifeCore.getPlatform().getChatAdapter().straightLineOf("-")));
-        protected Function<O, FancyText> formatLine = o -> new FancySegment("§7#  %number%:   §e%player%§f - §a%value%");
+        protected Function<O, FancyText> formatLine = o -> new FancySegment("§7#  ${number}:   §e${player}§f - §a${value}");
         protected List<FancyText> formatFooter = Collections.emptyList();
         protected long cooldown = ECSettings.PAGEVIEWERS_REFRESH_TIME * 1000; //def 5 seconds
         protected int lineStart = 0;
@@ -408,7 +452,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         protected boolean includeTotalCount = false;
         protected boolean nextAndPreviousPageButton = true;
 
-        protected final HashMap<String, Function<O,Object>> placeholders = new HashMap<>();
+        protected final HashMap<String, Function<O,Object>> placeholders = new LinkedHashMap<>();
 
         protected BuilderImp(Class<O> target, Supplier<List<O>> supplier, Function<O, C> valueExtractor) {
             this.target = target;
@@ -524,8 +568,9 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         }
 
         @Override
-        public BuilderImp<O, C> addPlaceholder(String placeholder, Function<O, Object> function){
-            placeholders.put(placeholder, function);
+        public BuilderImp<O, C> addPlaceholder(String key, Function<O, Object> function){
+            MessagePlaceholders.warnOnceIfDelimited(key);
+            placeholders.put(key, function);
             return this;
         }
 
@@ -539,7 +584,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         public PageViewer<O, C> build(){
 
             if (this.valueExtractor != null){
-                addPlaceholder("%value%", (Function<O, Object>) valueExtractor);
+                addPlaceholder(VALUE_KEY, (Function<O, Object>) valueExtractor);
             }
 
             PageViewer<O, C> pageViewer = new PageViewer<>(
