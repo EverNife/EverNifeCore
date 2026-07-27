@@ -29,8 +29,8 @@ public class ArgParserFCTimeFrame extends ArgParser<FCTimeFrame> {
         super(argInfo);
     }
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe expression '§e%time%§c' is not a valid Time Frame! §3Insert something like: '§e2§6h30§6m§3' or '§e1§6d30§6m50§6s§3'!")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cA expressão '§e%time%§c' não é um Time Frame válido! §3Insira algo como: '§e2§6h30§6m§3' ou '§e1§6d30§6m50§6s§3'!")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe expression '§e${time}§c' is not a valid Time Frame! §3Insert something like: '§e2§6h30§6m§3' or '§e1§6d30§6m50§6s§3'!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cA expressão '§e${time}§c' não é um Time Frame válido! §3Insira algo como: '§e2§6h30§6m§3' ou '§e1§6d30§6m50§6s§3'!")
     public static LocaleMessage THIS_IS_NOT_A_VALID_TIME_FRAME;
 
     @Override
@@ -40,7 +40,7 @@ public class ArgParserFCTimeFrame extends ArgParser<FCTimeFrame> {
 
         if (argInfo.isRequired() && millisConverted == null){
             THIS_IS_NOT_A_VALID_TIME_FRAME
-                    .addPlaceholder("%time%", argumento.toString())
+                    .addPlaceholder("time", argumento.toString())
                     .send(sender);
             throw new ArgParseException();
         }

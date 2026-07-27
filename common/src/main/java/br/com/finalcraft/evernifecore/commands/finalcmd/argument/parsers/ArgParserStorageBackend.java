@@ -28,16 +28,16 @@ public class ArgParserStorageBackend extends ArgParser<String> {
         super(argInfo);
     }
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThere is no enabled storage backend named §e[%backend%]§c.")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cNão existe nenhum backend de armazenamento habilitado chamado §e[%backend%]§c.")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThere is no enabled storage backend named §e[${backend}]§c.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cNão existe nenhum backend de armazenamento habilitado chamado §e[${backend}]§c.")
     private static LocaleMessage NO_SUCH_BACKEND;
 
     @FCLocale(lang = LocaleType.EN_US, text = "§cThere are no enabled storage backends configured in storage.yml.")
     @FCLocale(lang = LocaleType.PT_BR, text = "§cNão há backends de armazenamento habilitados configurados no storage.yml.")
     private static LocaleMessage NO_BACKENDS_AVAILABLE;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§7Enabled backends: §f%backends%")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§7Backends habilitados: §f%backends%")
+    @FCLocale(lang = LocaleType.EN_US, text = "§7Enabled backends: §f${backends}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7Backends habilitados: §f${backends}")
     private static LocaleMessage ENABLED_BACKENDS;
 
     @Override
@@ -50,11 +50,11 @@ public class ArgParserStorageBackend extends ArgParser<String> {
 
         if (argInfo.isRequired()) {
             List<String> backends = PlayerController.getEnabledBackendNames();
-            NO_SUCH_BACKEND.addPlaceholder("%backend%", argumento.toString()).send(sender);
+            NO_SUCH_BACKEND.addPlaceholder("backend", argumento.toString()).send(sender);
             if (backends.isEmpty()) {
                 NO_BACKENDS_AVAILABLE.send(sender);
             } else {
-                ENABLED_BACKENDS.addPlaceholder("%backends%", String.join("§7, §f", backends)).send(sender);
+                ENABLED_BACKENDS.addPlaceholder("backends", String.join("§7, §f", backends)).send(sender);
             }
             throw new ArgParseException();
         }

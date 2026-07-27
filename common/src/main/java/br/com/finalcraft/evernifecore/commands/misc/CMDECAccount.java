@@ -47,37 +47,37 @@ public class CMDECAccount {
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO Multi-Platform Accounts está desativado neste servidor. Ative no storage.yml ('multi-platform-accounts.enabled: true') para vincular identidades.")
     private static LocaleMessage LAYER_DISABLED;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §6Account §e[%account%]§6 has §e%count%§6 linked identity(ies):")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §6A conta §e[%account%]§6 tem §e%count%§6 identidade(s) vinculada(s):")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §6Account §e[${account}]§6 has §e${count}§6 linked identity(ies):")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §6A conta §e[${account}]§6 tem §e${count}§6 identidade(s) vinculada(s):")
     private static LocaleMessage INFO_HEADER;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§7  - §f%provider%§7:§f%uid% §7(%name%)")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§7  - §f%provider%§7:§f%uid% §7(%name%)")
+    @FCLocale(lang = LocaleType.EN_US, text = "§7  - §f${provider}§7:§f${uid} §7(${name})")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7  - §f${provider}§7:§f${uid} §7(${name})")
     private static LocaleMessage INFO_MEMBER;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §aIdentities linked into account §e[%account%]§a. Each member's data is absorbed at their next login.")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §aIdentidades vinculadas na conta §e[%account%]§a. Os dados de cada membro são absorvidos no próximo login dele.")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §aIdentities linked into account §e[${account}]§a. Each member's data is absorbed at their next login.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §aIdentidades vinculadas na conta §e[${account}]§a. Os dados de cada membro são absorvidos no próximo login dele.")
     private static LocaleMessage LINK_DONE;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §a%player% now stands alone and starts fresh at the next login. Account §e[%account%]§a keeps the shared data.")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §a%player% agora está sozinho e começa zerado no próximo login. A conta §e[%account%]§a mantém os dados compartilhados.")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §a${player} now stands alone and starts fresh at the next login. Account §e[${account}]§a keeps the shared data.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §a${player} agora está sozinho e começa zerado no próximo login. A conta §e[${account}]§a mantém os dados compartilhados.")
     private static LocaleMessage UNLINK_DONE;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §aAccount data of %player% migrated to the current account.")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §aDados de conta de %player% migrados para a conta atual.")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §aAccount data of ${player} migrated to the current account.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §aDados de conta de ${player} migrados para a conta atual.")
     private static LocaleMessage MIGRATE_DONE;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §6Nothing to migrate: %player% is already on its current account key.")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §6Nada a migrar: %player% já está na chave de conta atual.")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §6Nothing to migrate: ${player} is already on its current account key.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §6Nada a migrar: ${player} já está na chave de conta atual.")
     private static LocaleMessage MIGRATE_NOTHING;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cAccount operation failed: %error%")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cOperação de conta falhou: %error%")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cAccount operation failed: ${error}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cOperação de conta falhou: ${error}")
     private static LocaleMessage OPERATION_FAILED;
 
     @FinalCMD.SubCMD(
             subcmd = "info",
-            usage = "%name% <player>",
+            usage = "${name} <player>",
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "Show the account a player belongs to."),
                     @FCLocale(lang = LocaleType.PT_BR, text = "Mostra a conta a que um jogador pertence.")
@@ -112,21 +112,21 @@ public class CMDECAccount {
 
     private void sendAccountInfo(FCommandSender sender, Account account) {
         INFO_HEADER
-                .addPlaceholder("%account%", account.getAccountId())
-                .addPlaceholder("%count%", account.getMembers().size())
+                .addPlaceholder("account", account.getAccountId())
+                .addPlaceholder("count", account.getMembers().size())
                 .send(sender);
         for (AccountMember member : account.getMembers()) {
             INFO_MEMBER
-                    .addPlaceholder("%provider%", member.getProvider())
-                    .addPlaceholder("%uid%", member.getProviderUid())
-                    .addPlaceholder("%name%", member.getName() != null ? member.getName() : "?")
+                    .addPlaceholder("provider", member.getProvider())
+                    .addPlaceholder("uid", member.getProviderUid())
+                    .addPlaceholder("name", member.getName() != null ? member.getName() : "?")
                     .send(sender);
         }
     }
 
     @FinalCMD.SubCMD(
             subcmd = "link",
-            usage = "%name% <target> <source>",
+            usage = "${name} <target> <source>",
             //own permission node: an irreversible cross-player data merge must never ride the same
             //node as the read-only 'info'
             permission = PermissionNodes.EVERNIFECORE_COMMAND_ACCOUNT_LINK,
@@ -161,13 +161,13 @@ public class CMDECAccount {
                         sendFailure(sender, error);
                         return;
                     }
-                    LINK_DONE.addPlaceholder("%account%", account.getAccountId()).send(sender);
+                    LINK_DONE.addPlaceholder("account", account.getAccountId()).send(sender);
                 });
     }
 
     @FinalCMD.SubCMD(
             subcmd = "unlink",
-            usage = "%name% <player>",
+            usage = "${name} <player>",
             permission = PermissionNodes.EVERNIFECORE_COMMAND_ACCOUNT_LINK,
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "Unlink a member from its account (the member starts fresh; the account keeps the data)."),
@@ -196,15 +196,15 @@ public class CMDECAccount {
                         return;
                     }
                     UNLINK_DONE
-                            .addPlaceholder("%player%", playerData.getName())
-                            .addPlaceholder("%account%", account.getAccountId())
+                            .addPlaceholder("player", playerData.getName())
+                            .addPlaceholder("account", account.getAccountId())
                             .send(sender);
                 });
     }
 
     @FinalCMD.SubCMD(
             subcmd = "migrate",
-            usage = "%name% <player>",
+            usage = "${name} <player>",
             permission = PermissionNodes.EVERNIFECORE_COMMAND_ACCOUNT_LINK,
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "Force the account-data reconciliation of an offline player (it runs at login otherwise)."),
@@ -233,7 +233,7 @@ public class CMDECAccount {
                         return;
                     }
                     LocaleMessage message = migrated ? MIGRATE_DONE : MIGRATE_NOTHING;
-                    message.addPlaceholder("%player%", playerData.getName()).send(sender);
+                    message.addPlaceholder("player", playerData.getName()).send(sender);
                 });
     }
 
@@ -252,6 +252,6 @@ public class CMDECAccount {
 
     private static void sendFailure(FCommandSender sender, Throwable error) {
         Throwable cause = error.getCause() != null ? error.getCause() : error;
-        OPERATION_FAILED.addPlaceholder("%error%", String.valueOf(cause.getMessage())).send(sender);
+        OPERATION_FAILED.addPlaceholder("error", String.valueOf(cause.getMessage())).send(sender);
     }
 }

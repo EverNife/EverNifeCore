@@ -27,7 +27,7 @@ import org.bukkit.inventory.ItemStack;
 public class PlayerInteractListener implements ECListener {
 
     @FCLocale(lang = LocaleType.EN_US,
-            text = "§7§o[INFO] (%x%, %y%, %z%) §b%block_type%%block_meta% §a§l[%block_id%%block_meta%] &7&o(%biome%)",
+            text = "§7§o[INFO] (${x}, ${y}, ${z}) §b${block_type}${block_meta} §a§l[${block_id}${block_meta}] &7&o(${biome})",
             hover = "§7Disable with /blockinfo" +
                     "\nClick to copy the Material Name"
     )
@@ -66,32 +66,32 @@ public class PlayerInteractListener implements ECListener {
         }
 
         BLOCK_DEBUG
-                .addPlaceholder("%x%", location.getBlockX())
-                .addPlaceholder("%y%", location.getBlockY())
-                .addPlaceholder("%z%", location.getBlockZ())
-                .addPlaceholder("%block_type%", block.getType().name())
-                .addPlaceholder("%block_id%", MCVersion.isHigherEquals(MCVersion.v1_13) ? "" : block.getType().getId())
-                .addPlaceholder("%block_meta%", MCVersion.isHigherEquals(MCVersion.v1_13) ? "" : block.getData() == 0 ? "" : ":" + block.getData())
-                .addPlaceholder("%biome%", block.getBiome().name())
+                .addPlaceholder("x", location.getBlockX())
+                .addPlaceholder("y", location.getBlockY())
+                .addPlaceholder("z", location.getBlockZ())
+                .addPlaceholder("block_type", block.getType().name())
+                .addPlaceholder("block_id", MCVersion.isHigherEquals(MCVersion.v1_13) ? "" : block.getType().getId())
+                .addPlaceholder("block_meta", MCVersion.isHigherEquals(MCVersion.v1_13) ? "" : block.getData() == 0 ? "" : ":" + block.getData())
+                .addPlaceholder("biome", block.getBiome().name())
                 .addSuggest(FCItemUtils.getBukkitIdentifier(itemStack))
                 .send(FCBukkitUtil.adapt(player));
     }
 
     @FCLocale(lang = LocaleType.EN_US,
-            text = "§7§o[INFO] (%x%, %y%, %z%) §b%entity_type% &7&o(%entity_name%)" +
-                    "\n - §7§oEntity ToString: §b%entity_tostring%" +
-                    "\n - §7§oEntity Registry: §b%entity_registry_name%",
+            text = "§7§o[INFO] (${x}, ${y}, ${z}) §b${entity_type} &7&o(${entity_name})" +
+                    "\n - §7§oEntity ToString: §b${entity_tostring}" +
+                    "\n - §7§oEntity Registry: §b${entity_registry_name}",
             hover = "§7Disable with /entityinfo" +
                     "\nClick to copy the Entity Type",
-            click = "%entity_type%",
+            click = "${entity_type}",
             clickType = ClickActionType.SUGGEST_COMMAND,
 
             children = {
                     @FCLocale.Child(
-                            text = "\n - §7§oEntity NBT: §b%entity_nbt%",
+                            text = "\n - §7§oEntity NBT: §b${entity_nbt}",
                             hover = "§7Disable with /entityinfo" +
                                     "\nClick to copy the Entity NBT",
-                            click = "%entity_nbt%",
+                            click = "${entity_nbt}",
                             clickType = ClickActionType.SUGGEST_COMMAND
                     )
             }
@@ -123,14 +123,14 @@ public class PlayerInteractListener implements ECListener {
         }
 
         ENTITY_INFO
-                .addPlaceholder("%x%", location.getBlockX())
-                .addPlaceholder("%y%", location.getBlockY())
-                .addPlaceholder("%z%", location.getBlockZ())
-                .addPlaceholder("%entity_type%", rightClicked.getType().name())
-                .addPlaceholder("%entity_name%", entityName)
-                .addPlaceholder("%entity_registry_name%", NMSUtils.get().getEntityRegistryName(rightClicked))
-                .addPlaceholder("%entity_tostring%", NMSUtils.get().asMinecraftEntity(rightClicked).toString())
-                .addPlaceholder("%entity_nbt%", includeNBT ? FCNBTUtil.getFrom(rightClicked).toString() : "(Hold Shift to Scan)")
+                .addPlaceholder("x", location.getBlockX())
+                .addPlaceholder("y", location.getBlockY())
+                .addPlaceholder("z", location.getBlockZ())
+                .addPlaceholder("entity_type", rightClicked.getType().name())
+                .addPlaceholder("entity_name", entityName)
+                .addPlaceholder("entity_registry_name", NMSUtils.get().getEntityRegistryName(rightClicked))
+                .addPlaceholder("entity_tostring", NMSUtils.get().asMinecraftEntity(rightClicked).toString())
+                .addPlaceholder("entity_nbt", includeNBT ? FCNBTUtil.getFrom(rightClicked).toString() : "(Hold Shift to Scan)")
                 .send(FCBukkitUtil.adapt(player));
 
     }

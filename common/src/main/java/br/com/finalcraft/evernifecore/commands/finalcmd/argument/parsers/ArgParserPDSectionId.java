@@ -56,16 +56,16 @@ public class ArgParserPDSectionId extends ArgParser<Class<? extends PDSection>> 
         return null;
     }
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThere is no registered PDSection with the id §e[%id%]§c.")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cNão existe nenhuma PDSection registrada com o id §e[%id%]§c.")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThere is no registered PDSection with the id §e[${id}]§c.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cNão existe nenhuma PDSection registrada com o id §e[${id}]§c.")
     private static LocaleMessage NO_SUCH_PDSECTION;
 
     @FCLocale(lang = LocaleType.EN_US, text = "§cThere are no registered PDSections on this server.")
     @FCLocale(lang = LocaleType.PT_BR, text = "§cNão há PDSections registradas neste servidor.")
     private static LocaleMessage NO_PDSECTIONS_AVAILABLE;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§7Available: §f%ids%")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§7Disponíveis: §f%ids%")
+    @FCLocale(lang = LocaleType.EN_US, text = "§7Available: §f${ids}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7Disponíveis: §f${ids}")
     private static LocaleMessage AVAILABLE_PDSECTIONS;
 
     @Override
@@ -76,7 +76,7 @@ public class ArgParserPDSectionId extends ArgParser<Class<? extends PDSection>> 
             if (argInfo.isRequired()) {
 
                 NO_SUCH_PDSECTION
-                    .addPlaceholder("%id%", argumento.toString())
+                    .addPlaceholder("id", argumento.toString())
                     .send(sender);
 
                 List<String> ids = registeredIds();
@@ -85,7 +85,7 @@ public class ArgParserPDSectionId extends ArgParser<Class<? extends PDSection>> 
                         .send(sender);
                 } else {
                     AVAILABLE_PDSECTIONS
-                        .addPlaceholder("%ids%", String.join("§7, §f", ids))
+                        .addPlaceholder("ids", String.join("§7, §f", ids))
                         .send(sender);
                 }
                 throw new ArgParseException();

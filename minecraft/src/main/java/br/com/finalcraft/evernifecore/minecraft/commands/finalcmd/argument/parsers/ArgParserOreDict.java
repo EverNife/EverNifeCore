@@ -28,8 +28,8 @@ public class ArgParserOreDict extends ArgParser<OreDictEntry> {
         super(argInfo);
     }
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThere is no OreDict with the name: §e%oredict_name%")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cNão existe nenhum OreDict com o nome: §e%oredict_name%")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThere is no OreDict with the name: §e${oredict_name}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cNão existe nenhum OreDict com o nome: §e${oredict_name}")
     public static LocaleMessage THERE_IS_NO_OREDICT_WITH_THE_NAME;
 
     @Override
@@ -39,7 +39,7 @@ public class ArgParserOreDict extends ArgParser<OreDictEntry> {
         if (!allOreNames.contains(argumento.toString())){
             if (argInfo.isRequired()){
                 THERE_IS_NO_OREDICT_WITH_THE_NAME
-                        .addPlaceholder("%oredict_name%", argumento.toString())
+                        .addPlaceholder("oredict_name", argumento.toString())
                         .send(sender);
                 throw new ArgParseException();
             }else {

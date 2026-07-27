@@ -25,16 +25,16 @@ public class ArgParserFCWorldGuardRegion extends ArgParser<FCWorldGuardRegion> {
         super(argInfo);
     }
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cThere is no region called [§e%region_name%§c]")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cNão existe nenhuma região chamada [§e%region_name%§c]")
+    @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cThere is no region called [§e${region_name}§c]")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cNão existe nenhuma região chamada [§e${region_name}§c]")
     public static LocaleMessage THERE_IS_NO_REGION_FOR_THIS_NAME;
 
     @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cThere is no region at your location!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cNão existe nenhuma região na sua localização!")
     public static LocaleMessage THERE_IS_NO_REGION_AT_YOUR_LOCATION;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cThere is more than one region at your location! §7§o%region_list%")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cExiste mais de uma região na sua localização! §7§o%region_list%")
+    @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cThere is more than one region at your location! §7§o${region_list}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cExiste mais de uma região na sua localização! §7§o${region_list}")
     public static LocaleMessage THERE_IS_MORE_THAN_ONE_REGION_AT_YOUR_LOCATION;
 
     @Override
@@ -60,7 +60,7 @@ public class ArgParserFCWorldGuardRegion extends ArgParser<FCWorldGuardRegion> {
             if (regionAtPlayer.size() > 1){
                 String regionList = regionAtPlayer.stream().map(region -> region.getId()).collect(Collectors.joining(", "));
                 THERE_IS_MORE_THAN_ONE_REGION_AT_YOUR_LOCATION
-                        .addPlaceholder("%region_list%", regionList)
+                        .addPlaceholder("region_list", regionList)
                         .send(sender);
                 throw new ArgParseException();
             }
@@ -70,7 +70,7 @@ public class ArgParserFCWorldGuardRegion extends ArgParser<FCWorldGuardRegion> {
 
         if (fcWorldGuardRegion == null && this.getArgInfo().isRequired()){
             THERE_IS_NO_REGION_FOR_THIS_NAME
-                    .addPlaceholder("%region_name%", argumento.toString())
+                    .addPlaceholder("region_name", argumento.toString())
                     .send(sender);
             throw new ArgParseException();
         }

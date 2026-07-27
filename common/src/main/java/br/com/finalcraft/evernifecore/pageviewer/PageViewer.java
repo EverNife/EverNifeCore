@@ -27,16 +27,16 @@ import java.util.stream.Collectors;
 
 public class PageViewer<OBJ, COMPARED_VALUE> {
 
-    @FCLocale(lang = LocaleType.PT_BR, text = "§7Data de hoje: %date_of_today%")
-    @FCLocale(lang = LocaleType.EN_US, text = "§7Date of today: %date_of_today%")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7Data de hoje: ${date_of_today}")
+    @FCLocale(lang = LocaleType.EN_US, text = "§7Date of today: ${date_of_today}")
     private static LocaleMessage DATE_OF_TODAY_IS;
 
-    @FCLocale(lang = LocaleType.PT_BR, text = "§7De um total de %total_players% jogadores...")
-    @FCLocale(lang = LocaleType.EN_US, text = "§7From a total of %total_players% players...")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7De um total de ${total_players} jogadores...")
+    @FCLocale(lang = LocaleType.EN_US, text = "§7From a total of ${total_players} players...")
     private static LocaleMessage OF_A_TOTAL_OF_X_PLAYERS;
 
-    @FCLocale(lang = LocaleType.PT_BR, text = "§7De um total de %total_entries%...")
-    @FCLocale(lang = LocaleType.EN_US, text = "§7From a total of %total_entries%...")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7De um total de ${total_entries}...")
+    @FCLocale(lang = LocaleType.EN_US, text = "§7From a total of ${total_entries}...")
     private static LocaleMessage OF_A_TOTAL_OF_X_ENTRIES;
 
     protected final @Nullable Class<OBJ> target; //Compared Class, can be null
@@ -123,7 +123,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
             if (includeDate){
                 pageHeaderCache.add(DATE_OF_TODAY_IS
-                        .addPlaceholder("%date_of_today%", ECTimeFormat.getFormattedNoHours(System.currentTimeMillis()))
+                        .addPlaceholder("date_of_today", ECTimeFormat.getFormattedNoHours(System.currentTimeMillis()))
                         .getFancyText(null)
                 );
             }
@@ -157,12 +157,12 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
             if (includeTotalCount){
                 if (target != null && (FPlayer.class.isAssignableFrom(target) || IPlayerData.class.isAssignableFrom(target))){
                     pageHeaderCache.add(OF_A_TOTAL_OF_X_PLAYERS
-                            .addPlaceholder("%total_players%", sortedList.size())
+                            .addPlaceholder("total_players", sortedList.size())
                             .getFancyText(null)
                     );
                 }else {
                     pageHeaderCache.add(OF_A_TOTAL_OF_X_ENTRIES
-                            .addPlaceholder("%total_entries%", sortedList.size())
+                            .addPlaceholder("total_entries", sortedList.size())
                             .getFancyText(null)
                     );
                 }

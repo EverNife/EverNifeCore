@@ -22,36 +22,36 @@ import java.util.stream.Collectors;
 
 public class CMDItemInfo {
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§d ● §eLocalizedName: §a%localized_name%",
-            hover = "§7Click to copy: \n\n§7 ✯ §a%uncolorfied_localized_name%§r",
-            click = "%uncolorfied_localized_name%",
+    @FCLocale(lang = LocaleType.EN_US, text = "§d ● §eLocalizedName: §a${localized_name}",
+            hover = "§7Click to copy: \n\n§7 ✯ §a${uncolorfied_localized_name}§r",
+            click = "${uncolorfied_localized_name}",
             clickType = ClickActionType.SUGGEST_COMMAND
     )
     private static LocaleMessage LOCALIZED_NAME;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§d ● §eDisplayName: §r%display_name%",
-            hover = "§7Click to copy: \n\n§7 ✯ §a%uncolorfied_display_name%§r",
-            click = "%uncolorfied_display_name%",
+    @FCLocale(lang = LocaleType.EN_US, text = "§d ● §eDisplayName: §r${display_name}",
+            hover = "§7Click to copy: \n\n§7 ✯ §a${uncolorfied_display_name}§r",
+            click = "${uncolorfied_display_name}",
             clickType = ClickActionType.SUGGEST_COMMAND
     )
     private static LocaleMessage DISPLAY_NAME;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "\n§d ● §eMCIdentifier: §a%mc_identifier%",
-            hover = "§7Click to copy: \n\n§7 ✯ §a%mc_identifier%§r",
-            click = "%mc_identifier%",
+    @FCLocale(lang = LocaleType.EN_US, text = "\n§d ● §eMCIdentifier: §a${mc_identifier}",
+            hover = "§7Click to copy: \n\n§7 ✯ §a${mc_identifier}§r",
+            click = "${mc_identifier}",
             clickType = ClickActionType.SUGGEST_COMMAND
     )
     private static LocaleMessage MC_IDENTIFIER;
 
     @FCLocale(lang = LocaleType.EN_US, text = "\n§7§l(§b▼§7§l)",
-            hover = "§7Click to copy: \n§7 ✯ §a%bukkit_identifier%§r",
-            click = "%bukkit_identifier%",
+            hover = "§7Click to copy: \n§7 ✯ §a${bukkit_identifier}§r",
+            click = "${bukkit_identifier}",
             clickType = ClickActionType.SUGGEST_COMMAND,
             children = {
                     @FCLocale.Child(
-                            text = "§b%item_data_part%",
-                            hover = "§7Click to copy: \n§b%item_data_part%",
-                            click = "%item_data_part%",
+                            text = "§b${item_data_part}",
+                            hover = "§7Click to copy: \n§b${item_data_part}",
+                            click = "${item_data_part}",
                             clickType = ClickActionType.SUGGEST_COMMAND
                     )
             }
@@ -76,8 +76,8 @@ public class CMDItemInfo {
             String localizedName = FCItemUtils.getLocalizedName(heldItem);
             String uncolorfiedLocalizedName = FCColorUtil.decolorfy(localizedName);
             LOCALIZED_NAME
-                    .addPlaceholder("%localized_name%", localizedName)
-                    .addPlaceholder("%uncolorfied_localized_name%", uncolorfiedLocalizedName)
+                    .addPlaceholder("localized_name", localizedName)
+                    .addPlaceholder("uncolorfied_localized_name", uncolorfiedLocalizedName)
                     .send(player);
         }
 
@@ -85,14 +85,14 @@ public class CMDItemInfo {
         if (displayName != null){
             String uncolorfiedDisplayName = FCColorUtil.decolorfy(displayName);
             DISPLAY_NAME
-                    .addPlaceholder("%display_name%", displayName)
-                    .addPlaceholder("%uncolorfied_display_name%", uncolorfiedDisplayName)
+                    .addPlaceholder("display_name", displayName)
+                    .addPlaceholder("uncolorfied_display_name", uncolorfiedDisplayName)
                     .send(player);
         }
 
         if (NMSUtils.get() != null){
             MC_IDENTIFIER
-                    .addPlaceholder("%mc_identifier%", FCItemUtils.getMinecraftIdentifier(heldItem))
+                    .addPlaceholder("mc_identifier", FCItemUtils.getMinecraftIdentifier(heldItem))
                     .send(player);
         }
 
@@ -100,8 +100,8 @@ public class CMDItemInfo {
                 .collect(Collectors.joining("\n - ","\n - ",""));
 
         BUKKIT_IDENTIFIER
-                .addPlaceholder("%bukkit_identifier%", FCItemUtils.getBukkitIdentifier(heldItem))
-                .addPlaceholder("%item_data_part%", itemDataPart)
+                .addPlaceholder("bukkit_identifier", FCItemUtils.getBukkitIdentifier(heldItem))
+                .addPlaceholder("item_data_part", itemDataPart)
                 .send(player);
 
     }

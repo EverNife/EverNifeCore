@@ -52,8 +52,8 @@ public class CMDProtectionTest implements ICustomFinalCMD {
     @FCLocale(lang = LocaleType.PT_BR, text = "§c§l ▶ §eO EverNifeCore não detectou nenhum plugin de proteção!")
     private static LocaleMessage NO_PROTECTIONS_DETECTED;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§c§l ▶ §eThere is no ProtectionPlugin called %protection_plugin% detected by EverNifeCore's API!")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§c§l ▶ §eO EverNifeCore não detectou nenhum plugin de proteção chamado %protection_plugin%!")
+    @FCLocale(lang = LocaleType.EN_US, text = "§c§l ▶ §eThere is no ProtectionPlugin called ${protection_plugin} detected by EverNifeCore's API!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§c§l ▶ §eO EverNifeCore não detectou nenhum plugin de proteção chamado ${protection_plugin}!")
     private static LocaleMessage PROTECTION_PLUGIN_NOT_FOUND;
 
     @FinalCMD(
@@ -78,7 +78,7 @@ public class CMDProtectionTest implements ICustomFinalCMD {
                     .orElse(null);
             if (protectionHandler == null){
                 PROTECTION_PLUGIN_NOT_FOUND
-                        .addPlaceholder("%protection_plugin%", procteionHandlerName)
+                        .addPlaceholder("protection_plugin", procteionHandlerName)
                         .send(fPlayer);
                 return;
             }

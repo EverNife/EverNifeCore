@@ -18,36 +18,36 @@ import java.util.stream.Collectors;
 
 public class CMDItemInfo {
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§d ● §eLocalizedName: §a%localized_name%",
-            hover = "§7Click to copy: \n\n§7 ✯ §a%uncolorfied_localized_name%§r",
-            click = "%uncolorfied_localized_name%",
+    @FCLocale(lang = LocaleType.EN_US, text = "§d ● §eLocalizedName: §a${localized_name}",
+            hover = "§7Click to copy: \n\n§7 ✯ §a${uncolorfied_localized_name}§r",
+            click = "${uncolorfied_localized_name}",
             clickType = ClickActionType.SUGGEST_COMMAND
     )
     private static LocaleMessage LOCALIZED_NAME;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§d ● §eDisplayName: §r%display_name%",
-            hover = "§7Click to copy: \n\n§7 ✯ §a%uncolorfied_display_name%§r",
-            click = "%uncolorfied_display_name%",
+    @FCLocale(lang = LocaleType.EN_US, text = "§d ● §eDisplayName: §r${display_name}",
+            hover = "§7Click to copy: \n\n§7 ✯ §a${uncolorfied_display_name}§r",
+            click = "${uncolorfied_display_name}",
             clickType = ClickActionType.SUGGEST_COMMAND
     )
     private static LocaleMessage DISPLAY_NAME;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§d ● §eHyIdentifier: §a%item_id%",
-            hover = "§7Click to copy: \n\n§7 ✯ §a%item_id%§r",
-            click = "%item_id%",
+    @FCLocale(lang = LocaleType.EN_US, text = "§d ● §eHyIdentifier: §a${item_id}",
+            hover = "§7Click to copy: \n\n§7 ✯ §a${item_id}§r",
+            click = "${item_id}",
             clickType = ClickActionType.SUGGEST_COMMAND
     )
     private static LocaleMessage ITEM_ID;
 
     @FCLocale(lang = LocaleType.EN_US, text = "\n§7§l(§b▼§7§l)",
-            hover = "§7Click to copy: \n§7 ✯ §a%hy_identifier%§r",
+            hover = "§7Click to copy: \n§7 ✯ §a${hy_identifier}§r",
             click = "%bukkit_identifier%",
             clickType = ClickActionType.SUGGEST_COMMAND,
             children = {
                     @FCLocale.Child(
-                            text = "§b%item_data_part%",
-                            hover = "§7Click to copy: \n§b%item_data_part%",
-                            click = "%item_data_part%",
+                            text = "§b${item_data_part}",
+                            hover = "§7Click to copy: \n§b${item_data_part}",
+                            click = "${item_data_part}",
                             clickType = ClickActionType.SUGGEST_COMMAND
                     )
             }
@@ -65,28 +65,28 @@ public class CMDItemInfo {
         String localizedName = FCItemUtils.getLocalizedName(heldItem);
         String uncolorfiedLocalizedName = FCColorUtil.decolorfy(localizedName);
         LOCALIZED_NAME
-                .addPlaceholder("%localized_name%", localizedName)
-                .addPlaceholder("%uncolorfied_localized_name%", uncolorfiedLocalizedName)
+                .addPlaceholder("localized_name", localizedName)
+                .addPlaceholder("uncolorfied_localized_name", uncolorfiedLocalizedName)
                 .send(player);
 
 //        if (displayName != null){
 //            String uncolorfiedDisplayName = FCColorUtil.decolorfy(displayName);
 //            DISPLAY_NAME
-//                    .addPlaceholder("%display_name%", displayName)
-//                    .addPlaceholder("%uncolorfied_display_name%", uncolorfiedDisplayName)
+//                    .addPlaceholder("display_name", displayName)
+//                    .addPlaceholder("uncolorfied_display_name", uncolorfiedDisplayName)
 //                    .send(player);
 //        }
 
         ITEM_ID
-                .addPlaceholder("%item_id%", heldItem.getItemId())
+                .addPlaceholder("item_id", heldItem.getItemId())
                 .send(player);
 
         String itemDataPart = ItemDataPart.readItem(heldItem).stream()
                 .collect(Collectors.joining("\n - ","\n - ",""));
 
         ITEM_DATA_PART
-                .addPlaceholder("%hy_identifier%", heldItem.getItemId())
-                .addPlaceholder("%item_data_part%", itemDataPart)
+                .addPlaceholder("hy_identifier", heldItem.getItemId())
+                .addPlaceholder("item_data_part", itemDataPart)
                 .send(player);
 
     }

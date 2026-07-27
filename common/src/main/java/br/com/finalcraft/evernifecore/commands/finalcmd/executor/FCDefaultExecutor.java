@@ -22,8 +22,8 @@ public class FCDefaultExecutor {
     @FCLocale(lang = LocaleType.PT_BR, text = "§cErro de parâmetros, por favor use /${label} help")
     public static LocaleMessage PARAMETER_ERROR;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cUnknown flag §6[§e%flag%§6]§c! Available flags: §b%available_flags%")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cFlag desconhecida §6[§e%flag%§6]§c! Flags disponíveis: §b%available_flags%")
+    @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cUnknown flag §6[§e${flag}§6]§c! Available flags: §b${available_flags}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cFlag desconhecida §6[§e${flag}§6]§c! Flags disponíveis: §b${available_flags}")
     public static LocaleMessage UNKNOWN_FLAG;
 
     private final @Nonnull FinalCMDPluginCommand finalCommand;

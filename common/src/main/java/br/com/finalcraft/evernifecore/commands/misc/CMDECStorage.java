@@ -45,36 +45,36 @@ public class CMDECStorage {
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §6Status do armazenamento:")
     private static LocaleMessage STATUS_HEADER;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§7%line%")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§7%line%")
+    @FCLocale(lang = LocaleType.EN_US, text = "§7${line}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7${line}")
     private static LocaleMessage STATUS_LINE;
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe storage is not ready yet (PlayerController is not bootstrapped). Try again after the server finishes loading.")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO armazenamento ainda não está pronto (o PlayerController não foi inicializado). Tente novamente após o servidor terminar de carregar.")
     private static LocaleMessage STORAGE_NOT_READY;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §6Starting the storage transfer of PDSection §e[%section%]§6 to backend §e[%backend%]§6.")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §6Iniciando a transferência de armazenamento da PDSection §e[%section%]§6 para o backend §e[%backend%]§6.")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §6Starting the storage transfer of PDSection §e[${section}]§6 to backend §e[${backend}]§6.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §6Iniciando a transferência de armazenamento da PDSection §e[${section}]§6 para o backend §e[${backend}]§6.")
     private static LocaleMessage TRANSFER_STARTING;
 
     @FCLocale(lang = LocaleType.EN_US, text = "§7This runs asynchronously and the source collection is kept as a backup. A maintenance window is recommended.")
     @FCLocale(lang = LocaleType.PT_BR, text = "§7Isso roda de forma assíncrona e a coleção de origem é mantida como backup. Recomenda-se uma janela de manutenção.")
     private static LocaleMessage TRANSFER_ASYNC_NOTE;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§a§l ▶ §aTransfer complete: §e%count%§a entities in §e%time%ms§a. The source collection was kept as a backup.")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§a§l ▶ §aTransferência concluída: §e%count%§a entidades em §e%time%ms§a. A coleção de origem foi mantida como backup.")
+    @FCLocale(lang = LocaleType.EN_US, text = "§a§l ▶ §aTransfer complete: §e${count}§a entities in §e${time}ms§a. The source collection was kept as a backup.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§a§l ▶ §aTransferência concluída: §e${count}§a entidades em §e${time}ms§a. A coleção de origem foi mantida como backup.")
     private static LocaleMessage TRANSFER_COMPLETE;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cTransfer failed: §f%error%")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cFalha na transferência: §f%error%")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cTransfer failed: §f${error}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cFalha na transferência: §f${error}")
     private static LocaleMessage TRANSFER_FAILED;
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cTransfer FAILED (binding unchanged):")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cFalha na transferência (vínculo inalterado):")
     private static LocaleMessage TRANSFER_FAILED_HEADER;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§7  - [%collection%] §f%cause%")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§7  - [%collection%] §f%cause%")
+    @FCLocale(lang = LocaleType.EN_US, text = "§7  - [${collection}] §f${cause}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7  - [${collection}] §f${cause}")
     private static LocaleMessage TRANSFER_FAILED_LINE;
 
     @FinalCMD.SubCMD(
@@ -90,7 +90,7 @@ public class CMDECStorage {
         for (String line : PlayerController.storageStatus().split("\n")) {
             //one chat line per routing entry keeps it readable in-game and in console
             for (String piece : line.split(" \\| ")) {
-                STATUS_LINE.addPlaceholder("%line%", piece).send(sender);
+                STATUS_LINE.addPlaceholder("line", piece).send(sender);
             }
         }
     }
@@ -116,8 +116,8 @@ public class CMDECStorage {
         String sectionName = pdSectionClass.getSimpleName();
 
         TRANSFER_STARTING
-            .addPlaceholder("%section%", sectionName)
-            .addPlaceholder("%backend%", targetBackend)
+            .addPlaceholder("section", sectionName)
+            .addPlaceholder("backend", targetBackend)
             .send(sender);
 
         TRANSFER_ASYNC_NOTE.send(sender);
@@ -134,7 +134,7 @@ public class CMDECStorage {
             if (error != null) {
                 String message = error.getMessage() != null ? error.getMessage() : error.toString();
                 EverNifeCore.getLog().severe("Storage transfer of PDSection [" + sectionName + "] to backend [" + targetBackend + "] failed: " + message);
-                if (target != null) TRANSFER_FAILED.addPlaceholder("%error%", message).send(target);
+                if (target != null) TRANSFER_FAILED.addPlaceholder("error", message).send(target);
                 return;
             }
 
@@ -143,8 +143,8 @@ public class CMDECStorage {
                         + "] completed: " + report.totalEntities() + " entities in " + report.durationMs() + "ms.");
                 if (target != null) {
                     TRANSFER_COMPLETE
-                            .addPlaceholder("%count%", report.totalEntities())
-                            .addPlaceholder("%time%", report.durationMs())
+                            .addPlaceholder("count", report.totalEntities())
+                            .addPlaceholder("time", report.durationMs())
                             .send(target);
                 }
             } else {
@@ -155,8 +155,8 @@ public class CMDECStorage {
                     for (TransferError transferError : report.errors()) {
                         String cause = transferError.cause() != null ? transferError.cause().getMessage() : "unknown error";
                         TRANSFER_FAILED_LINE
-                                .addPlaceholder("%collection%", transferError.collection())
-                                .addPlaceholder("%cause%", cause)
+                                .addPlaceholder("collection", transferError.collection())
+                                .addPlaceholder("cause", cause)
                                 .send(target);
                     }
                 }

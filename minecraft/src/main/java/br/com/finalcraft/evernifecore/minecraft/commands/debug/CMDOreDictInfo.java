@@ -31,12 +31,12 @@ import java.util.List;
 public class CMDOreDictInfo {
 
     @FCLocale(lang = LocaleType.EN_US,
-            text = "§2§l ▶ §b[OredictINFO]§e - %oredict_name%   §7§o(has %oredict_amount% items)",
-            hover = "\n§2OredictName: §e%oredict_name%" +
-                    "\n§2OredictItems: §e%oredict_amount%" +
+            text = "§2§l ▶ §b[OredictINFO]§e - ${oredict_name}   §7§o(has ${oredict_amount} items)",
+            hover = "\n§2OredictName: §e${oredict_name}" +
+                    "\n§2OredictItems: §e${oredict_amount}" +
                     "\n" +
                     "\n§bClick to open a menu with all items from this OreDict!",
-            click = "/%label% menu %oredict_name%"
+            click = "/${label} menu ${oredict_name}"
     )
     private static LocaleMessage OREDICT_INFO;
 
@@ -99,13 +99,13 @@ public class CMDOreDictInfo {
                 .withSuplier(() -> filteredEntries)
                 .extracting(oreDict -> oreDict.getOreName())
                 .setFormatLine(
-                        new FancySegment("§7#  %number%: (%oredict_amount%)  §a%value%")
+                        new FancySegment("§7#  %number%: (${oredict_amount})  §a%value%")
                         .clickCommand(OREDICT_INFO.getFancyText(sender).getClickActionText())
                         .hover(OREDICT_INFO.getFancyText(sender).getHoverText())
                 )
-                .addPlaceholder("%oredict_amount%", entry -> entry.getItemStacks().size())
-                .addPlaceholder("%oredict_name%", entry -> entry.getOreName())
-                .addPlaceholder("%label%", oreDictEntry -> label)
+                .addPlaceholder("${oredict_amount}", entry -> entry.getItemStacks().size())
+                .addPlaceholder("${oredict_name}", entry -> entry.getOreName())
+                .addPlaceholder("${label}", oreDictEntry -> label)
                 .setIncludeTotalCount(true)
                 .setLineEnd(-1)
                 .build()
@@ -130,9 +130,9 @@ public class CMDOreDictInfo {
         oreNamesFrom.forEach(oreName -> {
             List<ItemStack> itemStacks = NMSUtils.get().getOreRegistry().getOreItemStacks(oreName);
             OREDICT_INFO
-                    .addPlaceholder("%oredict_name%", oreName)
-                    .addPlaceholder("%oredict_amount%", itemStacks.size())
-                    .addPlaceholder("%label%", label)
+                    .addPlaceholder("oredict_name", oreName)
+                    .addPlaceholder("oredict_amount", itemStacks.size())
+                    .addPlaceholder("label", label)
                     .send(player);
         });
 

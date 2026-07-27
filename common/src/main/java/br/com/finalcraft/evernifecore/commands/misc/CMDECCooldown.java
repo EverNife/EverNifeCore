@@ -36,12 +36,12 @@ import java.util.concurrent.TimeUnit;
 )
 public class CMDECCooldown {
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe cooldown §7[§2%cooldown%§7]§c is not in cooldown!")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO cooldown §7[§2%cooldown%§7]§c não está em cooldown!")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe cooldown §7[§2${cooldown}§7]§c is not in cooldown!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO cooldown §7[§2${cooldown}§7]§c não está em cooldown!")
     private static LocaleMessage COOLDOWN_NOT_IN_COOLDOWN;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe cooldown §7[§2%cooldown%§7]§c was successfully removed!")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO cooldown §7[§2%cooldown%§7]§c foi removido com sucesso!")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe cooldown §7[§2${cooldown}§7]§c was successfully removed!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO cooldown §7[§2${cooldown}§7]§c foi removido com sucesso!")
     private static LocaleMessage COOLDOWN_REMOVED;
 
     @FinalCMD.SubCMD(
@@ -61,12 +61,12 @@ public class CMDECCooldown {
 
         Cooldown cooldown = Cooldown.of(argumentos.getStringArg(1));
         if (!cooldown.isInCooldown()){
-            COOLDOWN_NOT_IN_COOLDOWN.addPlaceholder("%cooldown%", cooldown.getIdentifier()).send(sender);
+            COOLDOWN_NOT_IN_COOLDOWN.addPlaceholder("cooldown", cooldown.getIdentifier()).send(sender);
             return;
         }
 
         cooldown.stop();
-        COOLDOWN_REMOVED.addPlaceholder("%cooldown%", cooldown.getIdentifier()).send(sender);
+        COOLDOWN_REMOVED.addPlaceholder("cooldown", cooldown.getIdentifier()).send(sender);
     }
 
     @FinalCMD.SubCMD(
@@ -99,11 +99,11 @@ public class CMDECCooldown {
                 return;
             }
             if (!cooldown.isInCooldown()){
-                COOLDOWN_NOT_IN_COOLDOWN.addPlaceholder("%cooldown%", cooldown.getIdentifier()).send(sender);
+                COOLDOWN_NOT_IN_COOLDOWN.addPlaceholder("cooldown", cooldown.getIdentifier()).send(sender);
                 return;
             }
             cooldown.stop();
-            COOLDOWN_REMOVED.addPlaceholder("%cooldown%", cooldown.getIdentifier()).send(sender);
+            COOLDOWN_REMOVED.addPlaceholder("cooldown", cooldown.getIdentifier()).send(sender);
         });
     }
 
@@ -125,8 +125,8 @@ public class CMDECCooldown {
     }
 
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §7Cooldowns of §a%player%§7:")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §7Cooldowns de §a%player%§7:")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §7Cooldowns of §a${player}§7:")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §7Cooldowns de §a${player}§7:")
     private static LocaleMessage COOLDOWN_VIEW_PLAYER_HEADER;
 
     @FinalCMD.SubCMD(
@@ -163,7 +163,7 @@ public class CMDECCooldown {
                         error.printStackTrace();
                         return;
                     }
-                    COOLDOWN_VIEW_PLAYER_HEADER.addPlaceholder("%player%", playerData.getName()).send(sender);
+                    COOLDOWN_VIEW_PLAYER_HEADER.addPlaceholder("player", playerData.getName()).send(sender);
                     sendBucketLines(sender, "LOCAL", buckets.getKey());
                     sendBucketLines(sender, "NETWORK", buckets.getValue());
                 });
@@ -236,12 +236,12 @@ public class CMDECCooldown {
         return "§7   - §a" + identifier + " §7» " + status + " §7[" + kind + "§7]";
     }
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§a§l ▶ §7Set §b%reach% §7cooldown §a%cooldown% §7for §e%time%§7.")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§a§l ▶ §7Cooldown §b%reach% §a%cooldown% §7definido por §e%time%§7.")
+    @FCLocale(lang = LocaleType.EN_US, text = "§a§l ▶ §7Set §b${reach} §7cooldown §a${cooldown} §7for §e${time}§7.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§a§l ▶ §7Cooldown §b${reach} §a${cooldown} §7definido por §e${time}§7.")
     private static LocaleMessage COOLDOWN_SET;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cInvalid duration §7'%input%'§c. Use e.g. §a5d§7, §a3h30m§7, §a90s §7or a plain number of seconds.")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cDuração inválida §7'%input%'§c. Use ex.: §a5d§7, §a3h30m§7, §a90s §7ou um número de segundos.")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cInvalid duration §7'${input}'§c. Use e.g. §a5d§7, §a3h30m§7, §a90s §7or a plain number of seconds.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cDuração inválida §7'${input}'§c. Use ex.: §a5d§7, §a3h30m§7, §a90s §7ou um número de segundos.")
     private static LocaleMessage COOLDOWN_INVALID_DURATION;
 
     @FinalCMD.SubCMD(
@@ -262,7 +262,7 @@ public class CMDECCooldown {
 
         Long millis = parseDurationMillis(duration);
         if (millis == null){
-            COOLDOWN_INVALID_DURATION.addPlaceholder("%input%", duration).send(sender);
+            COOLDOWN_INVALID_DURATION.addPlaceholder("input", duration).send(sender);
             return;
         }
 
@@ -290,7 +290,7 @@ public class CMDECCooldown {
 
         Long millis = parseDurationMillis(duration);
         if (millis == null){
-            COOLDOWN_INVALID_DURATION.addPlaceholder("%input%", duration).send(sender);
+            COOLDOWN_INVALID_DURATION.addPlaceholder("input", duration).send(sender);
             return;
         }
 
@@ -318,9 +318,9 @@ public class CMDECCooldown {
                 .getFormattedDiscursive("§6", "§e");
         String hover = "§b" + reach + "\n§7» §e" + discursive + "\n§8/eccooldown " + viewCommand;
         COOLDOWN_SET
-                .addPlaceholder("%reach%", reach)
-                .addPlaceholder("%cooldown%", identifier)
-                .addPlaceholder("%time%", discursive)
+                .addPlaceholder("reach", reach)
+                .addPlaceholder("cooldown", identifier)
+                .addPlaceholder("time", discursive)
                 .addHover(hover)
                 .addAction("/eccooldown " + viewCommand)
                 .send(sender);

@@ -583,8 +583,8 @@ public class CMDMethodInterpreter {
                 .collect(Collectors.joining(", "));
 
         FCDefaultExecutor.UNKNOWN_FLAG
-                .addPlaceholder("%flag%", unknownRawToken)
-                .addPlaceholder("%available_flags%", availableFlags)
+                .addPlaceholder("flag", unknownRawToken)
+                .addPlaceholder("available_flags", availableFlags)
                 .send(sender);
     }
 
