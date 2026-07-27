@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.testing.Storages;
+import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.playerdata.storage.PDSectionBinding;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
@@ -50,9 +52,7 @@ class PlayerControllerOrphanReaperTest {
 
     @AfterEach
     void teardown() {
-        PlayerController.shutdown();
-        PlayerController.getConfiguredPDSections().clear();
-        EntitySchemaMigrations.clear();
+        PlayerDataWorld.tearDown();
     }
 
     public static class LootPDSection extends PDSection {
@@ -65,24 +65,12 @@ class PlayerControllerOrphanReaperTest {
 
     private String url;
 
-    private File writeH2StorageYml(String dbName) throws IOException {
-        url = "jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1";
-        String yml = String.join("\n",
-                "storage-backends:",
-                "  test_h2:",
-                "    enabled: true",
-                "    type: h2",
-                "    url: \"" + url + "\"",
-                "default-backend: test_h2",
-                "");
-        File file = tempDir.resolve("storage_" + dbName + ".yml").toFile();
-        Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
-        return file;
-    }
 
     /** Boots the controller with {@code LootPDSection} registered, and returns its binding. */
     private PDSectionBinding<LootPDSection> boot(String dbName) throws IOException {
-        PlayerController.initialize(writeH2StorageYml(dbName));
+        Storages storages = Storages.h2(dbName);
+        url = storages.jdbcUrl();
+        PlayerController.initialize(storages.writeTo(tempDir));
         //hotLoad(false): a login must not auto-seed a section, so each uuid gets exactly the rows this
         //test asks for
         PlayerController.registerPDSectionCfg(

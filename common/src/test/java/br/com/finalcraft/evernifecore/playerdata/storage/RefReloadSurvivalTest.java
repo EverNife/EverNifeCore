@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.playerdata.storage;
 
+import br.com.finalcraft.evernifecore.testing.Storages;
+import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
@@ -80,10 +82,7 @@ class RefReloadSurvivalTest {
         if (plugin != null) {
             PlayerController.unregisterPDSections(plugin); //also drops this plugin's reload callbacks
         }
-        PlayerController.shutdown();
-        PlayerController.getConfiguredPDSections().clear();
-        PlayerController.getConfiguredAccountSections().clear();
-        EntitySchemaMigrations.clear();
+        PlayerDataWorld.tearDown();
         ECPluginManager.removePluginData(PLUGIN_NAME);
         plugin = null;
         TestPlatformFixture.clearShutdownRequests(); //the atomicity test below now goes through the boot guard
@@ -98,7 +97,7 @@ class RefReloadSurvivalTest {
         plugin = realPluginData();
 
         //core PlayerData on a persistent H2 mem (survives the reload's flush + reopen)
-        File storageYml = writeH2StorageYml("ref_reload_pd");
+        File storageYml = Storages.h2("ref_reload_pd").writeTo(tempDir);
         PlayerController.initialize(storageYml);
 
         //the plugin registers its Ref-carrying PDSection, OWNED by the plugin -> per-plugin shared registry
@@ -150,7 +149,7 @@ class RefReloadSurvivalTest {
     @Test
     void aFailedReloadKeepsTheLiveInstanceAndDoesNotFireCallbacks() throws Exception {
         plugin = realPluginData();
-        PlayerController.initialize(writeH2StorageYml("atomic_live"));
+        PlayerController.initialize(Storages.h2("atomic_live").writeTo(tempDir));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(plugin, ProfileSection.class).build());
         PlayerController live = PlayerController.get();
 
@@ -177,7 +176,7 @@ class RefReloadSurvivalTest {
     @Test
     void unregisterPdSectionsDropsThePluginsReloadCallback() throws Exception {
         plugin = realPluginData();
-        File storageYml = writeH2StorageYml("hook_cleanup");
+        File storageYml = Storages.h2("hook_cleanup").writeTo(tempDir);
         PlayerController.initialize(storageYml);
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(plugin, ProfileSection.class).build());
 
@@ -217,19 +216,6 @@ class RefReloadSurvivalTest {
         return storage.manager(descriptor, CachePolicy.always());
     }
 
-    private File writeH2StorageYml(String dbName) throws IOException {
-        String yml = String.join("\n",
-                "storage-backends:",
-                "  test_h2:",
-                "    enabled: true",
-                "    type: h2",
-                "    url: \"jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1\"",
-                "default-backend: test_h2",
-                "");
-        File file = tempDir.resolve("storage_" + dbName + ".yml").toFile();
-        Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
-        return file;
-    }
 
     /** An H2 FILE backend with IFEXISTS on a db that was never created: init() fails deterministically, offline. */
     private File writeBrokenStorageYml() throws IOException {

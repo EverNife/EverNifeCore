@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata.storage;
 
+import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
@@ -39,8 +40,7 @@ class StorageTransferRuntimeTest {
 
     @AfterEach
     void teardown() {
-        PlayerController.shutdown();
-        PlayerController.getConfiguredPDSections().clear();
+        PlayerDataWorld.tearDown();
     }
 
     public static class TransferJobsPDSection extends PDSection {

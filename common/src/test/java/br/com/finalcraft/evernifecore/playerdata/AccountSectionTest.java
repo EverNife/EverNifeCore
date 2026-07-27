@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.playerdata.account.Account;
 import br.com.finalcraft.evernifecore.playerdata.account.AccountMember;
@@ -43,10 +44,7 @@ class AccountSectionTest {
 
     @AfterEach
     void teardown() {
-        PlayerController.shutdown();
-        PlayerController.getConfiguredPDSections().clear();
-        PlayerController.getConfiguredAccountSections().clear();
-        EntitySchemaMigrations.clear();
+        PlayerDataWorld.tearDown();
     }
 
     /** Network-wide achievements: merge = set union (associative, commutative, idempotent). */

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.finalcommandsystemtests;
 
+import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.PermissionNodes;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
@@ -60,10 +61,7 @@ class CMDECCooldownDogfoodTest {
     @AfterEach
     void teardown() {
         if (harness != null) harness.close();
-        PlayerController.shutdown();
-        PlayerController.getConfiguredPDSections().clear();
-        PlayerController.getConfiguredAccountSections().clear();
-        EntitySchemaMigrations.clear();
+        PlayerDataWorld.tearDown();
     }
 
     private FinalCmdTestHarness newHarness() {

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata.storage;
 
+import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
@@ -33,8 +34,7 @@ class GroupedFileBackendTest {
 
     @AfterEach
     void teardown() {
-        PlayerController.shutdown();
-        PlayerController.getConfiguredPDSections().clear();
+        PlayerDataWorld.tearDown();
     }
 
     public static class JobsPDSection extends PDSection {

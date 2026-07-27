@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.cooldown.player;
 
+import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
@@ -49,10 +50,7 @@ class CooldownSectionsTest {
 
     @AfterEach
     void teardown() {
-        PlayerController.shutdown();
-        PlayerController.getConfiguredPDSections().clear();
-        PlayerController.getConfiguredAccountSections().clear();
-        EntitySchemaMigrations.clear();
+        PlayerDataWorld.tearDown();
     }
 
     // ================================================================================================

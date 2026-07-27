@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.testing.Storages;
+import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -35,8 +37,7 @@ class PlayerControllerG1CoverageTest {
 
     @AfterEach
     void teardown() {
-        PlayerController.shutdown();
-        PlayerController.getConfiguredPDSections().clear();
+        PlayerDataWorld.tearDown();
     }
 
     /** A section whose persisted state includes a {@code java.time.Instant}, a {@code LocalDateTime} and an {@code Optional<String>}. */
@@ -46,35 +47,6 @@ class PlayerControllerG1CoverageTest {
         public Optional<String> nickname = Optional.empty();
     }
 
-    private File writeLocalFileStorageYml() throws IOException {
-        String dataPath = tempDir.resolve("storagedata").toString().replace("\\", "/");
-        String yml = String.join("\n",
-                "storage-backends:",
-                "  test_files:",
-                "    enabled: true",
-                "    type: localfile",
-                "    path: \"" + dataPath + "\"",
-                "    format: yaml",
-                "default-backend: test_files",
-                "");
-        File file = tempDir.resolve("storage_localfile.yml").toFile();
-        Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
-        return file;
-    }
-
-    private File writeH2StorageYml(String dbName) throws IOException {
-        String yml = String.join("\n",
-                "storage-backends:",
-                "  test_h2:",
-                "    enabled: true",
-                "    type: h2",
-                "    url: \"jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1\"",
-                "default-backend: test_h2",
-                "");
-        File file = tempDir.resolve("storage_" + dbName + ".yml").toFile();
-        Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
-        return file;
-    }
 
     // ------------------------------------------------------------------
     // java.time / Optional round-trip on a real backend (jsr310 + jdk8 modules)
@@ -82,7 +54,7 @@ class PlayerControllerG1CoverageTest {
 
     @Test
     void javaTimeAndOptionalFieldsSurviveRoundTrip_onH2() throws IOException {
-        File storageYml = writeH2StorageYml("g1_temporal");
+        File storageYml = Storages.h2("g1_temporal").writeTo(tempDir);
         PlayerController.initialize(storageYml);
         PlayerController.registerPDSectionCfg(
                 PDSectionConfiguration.builder(null, TemporalPDSection.class).build());
@@ -112,7 +84,7 @@ class PlayerControllerG1CoverageTest {
 
     @Test
     void absentOptionalAndDefaultInstantSurviveRoundTrip_onLocalFileYaml() throws IOException {
-        File storageYml = writeLocalFileStorageYml();
+        File storageYml = Storages.localFile().writeTo(tempDir);
         PlayerController.initialize(storageYml);
         PlayerController.registerPDSectionCfg(
                 PDSectionConfiguration.builder(null, TemporalPDSection.class).build());

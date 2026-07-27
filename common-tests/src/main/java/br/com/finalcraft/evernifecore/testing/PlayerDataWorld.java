@@ -76,8 +76,20 @@ public final class PlayerDataWorld implements AutoCloseable {
         }
         closed = true;
 
+        tearDown();
+    }
+
+    /**
+     * The whole teardown, for a test that boots the controller by hand: shut it down, drop the
+     * configured player and account sections, and clear the schema migrations.
+     *
+     * <p>All four, always. Every class used to do the subset it happened to need, and whatever it
+     * skipped reached the next class in the JVM.</p>
+     */
+    public static void tearDown() {
         PlayerController.shutdown();
         PlayerController.getConfiguredPDSections().clear();
+        PlayerController.getConfiguredAccountSections().clear();
         EntitySchemaMigrations.clear();
     }
 

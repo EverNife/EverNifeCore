@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.testing.Storages;
+import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrationMode;
@@ -57,9 +59,7 @@ class PlayerControllerIntegrityTest {
 
     @AfterEach
     void teardown() {
-        PlayerController.shutdown();
-        PlayerController.getConfiguredPDSections().clear();
-        EntitySchemaMigrations.clear();
+        PlayerDataWorld.tearDown();
     }
 
     /** A plain (uuid-keyed) section with an indexed field for the aggregate test. */
@@ -69,20 +69,6 @@ class PlayerControllerIntegrityTest {
         public String note = "";
     }
 
-    private File writeH2StorageYml(String dbName, String extraBlock) throws IOException {
-        String yml = String.join("\n",
-                "storage-backends:",
-                "  test_h2:",
-                "    enabled: true",
-                "    type: h2",
-                "    url: \"jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1\"",
-                "default-backend: test_h2",
-                extraBlock,
-                "");
-        File file = tempDir.resolve("storage_" + dbName + ".yml").toFile();
-        Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
-        return file;
-    }
 
     // ------------------------------------------------------------------
     // getPDSection seeds a TRANSIENT default (no row until markDirty)
@@ -90,7 +76,7 @@ class PlayerControllerIntegrityTest {
 
     @Test
     void getPDSectionSeedsTransientDefault_noRowUntilMarkDirty() throws IOException {
-        PlayerController.initialize(writeH2StorageYml("d_transient", ""));
+        PlayerController.initialize(Storages.h2("d_transient").writeTo(tempDir));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, BalancePDSection.class).build());
 
         UUID uuid = UUID.randomUUID();
@@ -119,7 +105,7 @@ class PlayerControllerIntegrityTest {
 
     @Test
     void getPDSectionIfPresentAndHasPDSection_distinguishAbsenceFromPresence() throws IOException {
-        PlayerController.initialize(writeH2StorageYml("d_present", ""));
+        PlayerController.initialize(Storages.h2("d_present").writeTo(tempDir));
         //hotLoad(false): login does NOT auto-seed a transient default, so "absent" means a true miss
         PlayerController.registerPDSectionCfg(
                 PDSectionConfiguration.builder(null, BalancePDSection.class).hotLoad(false).build());
@@ -160,7 +146,7 @@ class PlayerControllerIntegrityTest {
 
     @Test
     void deletePlayerDataCascadesOverSections() throws IOException {
-        PlayerController.initialize(writeH2StorageYml("d_delete", ""));
+        PlayerController.initialize(Storages.h2("d_delete").writeTo(tempDir));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, BalancePDSection.class).build());
 
         UUID uuid = UUID.randomUUID();
@@ -182,7 +168,7 @@ class PlayerControllerIntegrityTest {
 
     @Test
     void orphanReaperRemovesSectionRowsWithNoBase() throws IOException {
-        PlayerController.initialize(writeH2StorageYml("d_orphan", ""));
+        PlayerController.initialize(Storages.h2("d_orphan").writeTo(tempDir));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, BalancePDSection.class).build());
 
         UUID uuid = UUID.randomUUID();
@@ -207,7 +193,7 @@ class PlayerControllerIntegrityTest {
 
     @Test
     void querySectionReturnsTopNOverIndexedFieldWithoutLoadingAll() throws IOException {
-        PlayerController.initialize(writeH2StorageYml("d_query", ""));
+        PlayerController.initialize(Storages.h2("d_query").writeTo(tempDir));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, BalancePDSection.class).build());
 
         //10 players, each with a distinct balance; only 3 are online/cached at query time
@@ -251,7 +237,7 @@ class PlayerControllerIntegrityTest {
         EntitySchemaMigrations.register(BalancePDSection.class, 1, node -> node.put("note", "upcast-v2"));
         assertEquals(2, EntitySchemaMigrations.currentVersion(BalancePDSection.class));
 
-        File storageYml = writeH2StorageYml("d_schema", "");
+        File storageYml = Storages.h2("d_schema").writeTo(tempDir);
         PlayerController.initialize(storageYml);
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, BalancePDSection.class).build());
 
@@ -286,7 +272,7 @@ class PlayerControllerIntegrityTest {
 
     @Test
     void presenceWithDefaultHotLoad_seededDefaultReportsAbsentUntilDirtied() throws IOException {
-        PlayerController.initialize(writeH2StorageYml("d_presence_hot", ""));
+        PlayerController.initialize(Storages.h2("d_presence_hot").writeTo(tempDir));
         //default hotLoad(true): login auto-seeds a transient default into the cache
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, BalancePDSection.class).build());
 
@@ -322,7 +308,7 @@ class PlayerControllerIntegrityTest {
 
     @Test
     void aheadSchemaSectionIsRefusedByFlush_rowNotWritten() throws IOException {
-        PlayerController.initialize(writeH2StorageYml("d_ahead", ""));
+        PlayerController.initialize(Storages.h2("d_ahead").writeTo(tempDir));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, BalancePDSection.class).build());
 
         UUID uuid = UUID.randomUUID();
@@ -370,7 +356,7 @@ class PlayerControllerIntegrityTest {
     @Test
     void eagerSweepMigratesEveryStoredRow_andReRunIsOThe1() throws IOException {
         EntitySchemaMigrations.register(BalancePDSection.class, 1, EntitySchemaMigrationMode.EAGER, node -> node.put("note", "swept-v2"));
-        PlayerController.initialize(writeH2StorageYml("d_eager", "schema:\n  eager-sweep-enabled: false"));
+        PlayerController.initialize(Storages.h2("d_eager").rawLines("schema:", "  eager-sweep-enabled: false").writeTo(tempDir));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, BalancePDSection.class).build());
 
         PDSectionBinding<BalancePDSection> binding = PlayerController.get().getBinding(BalancePDSection.class);
@@ -395,7 +381,7 @@ class PlayerControllerIntegrityTest {
     @Test
     void interruptedSweepResumesAndIsIdempotent() throws IOException {
         EntitySchemaMigrations.register(BalancePDSection.class, 1, EntitySchemaMigrationMode.EAGER, node -> node.put("note", "swept-v2"));
-        PlayerController.initialize(writeH2StorageYml("d_eager_resume", "schema:\n  eager-sweep-enabled: false"));
+        PlayerController.initialize(Storages.h2("d_eager_resume").rawLines("schema:", "  eager-sweep-enabled: false").writeTo(tempDir));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, BalancePDSection.class).build());
         PDSectionBinding<BalancePDSection> binding = PlayerController.get().getBinding(BalancePDSection.class);
         UUID u = seedStaleV1Rows(binding, 1).get(0);
@@ -421,7 +407,7 @@ class PlayerControllerIntegrityTest {
     @Test
     void markerIsHint_deletingItReVerifiesWithoutRewriting() throws IOException {
         EntitySchemaMigrations.register(BalancePDSection.class, 1, EntitySchemaMigrationMode.EAGER, node -> node.put("note", "swept-v2"));
-        PlayerController.initialize(writeH2StorageYml("d_eager_hint", "schema:\n  eager-sweep-enabled: false"));
+        PlayerController.initialize(Storages.h2("d_eager_hint").rawLines("schema:", "  eager-sweep-enabled: false").writeTo(tempDir));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, BalancePDSection.class).build());
         PDSectionBinding<BalancePDSection> binding = PlayerController.get().getBinding(BalancePDSection.class);
         seedStaleV1Rows(binding, 3);
@@ -438,7 +424,7 @@ class PlayerControllerIntegrityTest {
 
     @Test
     void updateOnlyWriteNeverResurrectsADeletedRow() throws IOException {
-        PlayerController.initialize(writeH2StorageYml("d_update_only", ""));
+        PlayerController.initialize(Storages.h2("d_update_only").writeTo(tempDir));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, BalancePDSection.class).build());
         PDSectionBinding<BalancePDSection> binding = PlayerController.get().getBinding(BalancePDSection.class);
         UUID u = UUID.randomUUID();
@@ -462,7 +448,7 @@ class PlayerControllerIntegrityTest {
 
     @Test
     void deletePlayerDataRefusedWhileOnline() throws IOException {
-        PlayerController.initialize(writeH2StorageYml("d_delete_online", ""));
+        PlayerController.initialize(Storages.h2("d_delete_online").writeTo(tempDir));
 
         UUID uuid = UUID.randomUUID();
         PlayerData playerData = PlayerController.handleLogin(uuid, "Online").join();
@@ -487,7 +473,7 @@ class PlayerControllerIntegrityTest {
     @Test
     void staticGetPDSectionLazyLoadsThePlayerFromBackend() throws IOException {
         String db = "d_static_lazy";
-        File allYml = writeH2StorageYml(db, "playerdata:\n  load-mode: ALL");
+        File allYml = Storages.h2(db).loadModeAll().fileName("storage_all.yml").writeTo(tempDir);
         PlayerController.initialize(allYml);
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, BalancePDSection.class).build());
 
@@ -504,7 +490,7 @@ class PlayerControllerIntegrityTest {
         PlayerController.shutdown();
 
         //reboot in RECENT mode with a short window so the aged player is NOT eager-loaded
-        File recentYml = writeH2StorageYml(db, "playerdata:\n  load-mode: RECENT\n  recent-days: 1");
+        File recentYml = Storages.h2(db).loadModeRecent(1).fileName("storage_recent.yml").writeTo(tempDir);
         PlayerController.initialize(recentYml);
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, BalancePDSection.class).build());
         assertFalse(PlayerController.getAllLoaded().stream().anyMatch(p -> p.getUniqueId().equals(uuid)),
@@ -522,7 +508,7 @@ class PlayerControllerIntegrityTest {
 
     @Test
     void querySectionOnNonIndexedFieldFailsExceptionally() throws IOException {
-        PlayerController.initialize(writeH2StorageYml("d_query_nonindexed", ""));
+        PlayerController.initialize(Storages.h2("d_query_nonindexed").writeTo(tempDir));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, BalancePDSection.class).build());
 
         UUID uuid = UUID.randomUUID();

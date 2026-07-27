@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.testing.Storages;
+import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
@@ -57,8 +59,7 @@ class PlayerControllerCutoverTest {
 
     @AfterEach
     void teardown() {
-        PlayerController.shutdown();
-        PlayerController.getConfiguredPDSections().clear();
+        PlayerDataWorld.tearDown();
     }
 
     public static class JobsPDSection extends PDSection {
@@ -70,37 +71,7 @@ class PlayerControllerCutoverTest {
     // helpers
     // ------------------------------------------------------------------
 
-    private File writeLocalFileStorageYml(String loadModeBlock) throws IOException {
-        String dataPath = tempDir.resolve("storagedata").toString().replace("\\", "/");
-        String yml = String.join("\n",
-                "storage-backends:",
-                "  test_files:",
-                "    enabled: true",
-                "    type: localfile",
-                "    path: \"" + dataPath + "\"",
-                "    format: yaml",
-                "default-backend: test_files",
-                loadModeBlock,
-                "");
-        File file = tempDir.resolve("storage_localfile.yml").toFile();
-        Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
-        return file;
-    }
 
-    private File writeH2StorageYml(String dbName, String loadModeBlock) throws IOException {
-        String yml = String.join("\n",
-                "storage-backends:",
-                "  test_h2:",
-                "    enabled: true",
-                "    type: h2",
-                "    url: \"jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1\"",
-                "default-backend: test_h2",
-                loadModeBlock,
-                "");
-        File file = tempDir.resolve("storage_h2_" + loadModeBlock.hashCode() + ".yml").toFile();
-        Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
-        return file;
-    }
 
     // ------------------------------------------------------------------
     // boot -> create -> dirty -> flush -> new instance -> data intact
@@ -108,7 +79,7 @@ class PlayerControllerCutoverTest {
 
     @Test
     void bootCreateFlushRebootKeepsData_onLocalFileYaml() throws IOException {
-        File storageYml = writeLocalFileStorageYml("");
+        File storageYml = Storages.localFile().writeTo(tempDir);
         PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();
@@ -134,7 +105,7 @@ class PlayerControllerCutoverTest {
 
     @Test
     void pdSectionRoundTripWithHotLoad_onH2() throws IOException {
-        File storageYml = writeH2StorageYml("cutover_sections", "");
+        File storageYml = Storages.h2("cutover_sections").writeTo(tempDir);
         PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();
@@ -173,7 +144,7 @@ class PlayerControllerCutoverTest {
 
     @Test
     void renameOnLoginRemapsNameAndMarksDirty() throws IOException {
-        File storageYml = writeLocalFileStorageYml("");
+        File storageYml = Storages.localFile().writeTo(tempDir);
         PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();
@@ -199,7 +170,7 @@ class PlayerControllerCutoverTest {
     @Test
     void recentLoadModeSkipsOldPlayersAndLazyLoadsThem_onH2() throws IOException {
         String db = "cutover_recent";
-        File allYml = writeH2StorageYml(db, "playerdata:\n  load-mode: ALL");
+        File allYml = Storages.h2(db).loadModeAll().fileName("storage_all.yml").writeTo(tempDir);
         PlayerController.initialize(allYml);
 
         UUID recentUuid = UUID.randomUUID();
@@ -214,7 +185,7 @@ class PlayerControllerCutoverTest {
         PlayerController.get().flushAll().join();
         PlayerController.shutdown();
 
-        File recentYml = writeH2StorageYml(db, "playerdata:\n  load-mode: RECENT\n  recent-days: 60");
+        File recentYml = Storages.h2(db).loadModeRecent(60).fileName("storage_recent.yml").writeTo(tempDir);
         PlayerController.initialize(recentYml);
 
         assertNotNull(PlayerController.getLoaded(recentUuid), "recently seen player must be eager-loaded");

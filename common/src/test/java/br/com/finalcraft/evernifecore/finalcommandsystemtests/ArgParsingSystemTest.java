@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.finalcommandsystemtests;
 
+import br.com.finalcraft.evernifecore.testing.Storages;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
@@ -285,7 +286,7 @@ class ArgParsingSystemTest {
         //in-memory backend keeps it headless and fast.
         UUID uuid = UUID.randomUUID();
         try {
-            PlayerController.initialize(writeH2StorageYml("c3uuid"));
+            PlayerController.initialize(Storages.h2("c3uuid").writeTo(tempDir));
             PlayerController.handleLogin(uuid, "C3UuidPlayer").join();
             assertNotNull(PlayerController.getLoaded(uuid), "fixture setup: the player should be loaded");
 
@@ -300,19 +301,6 @@ class ArgParsingSystemTest {
         }
     }
 
-    private File writeH2StorageYml(String dbName) throws IOException {
-        String yml = String.join("\n",
-                "storage-backends:",
-                "  test_h2:",
-                "    enabled: true",
-                "    type: h2",
-                "    url: \"jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1\"",
-                "default-backend: test_h2",
-                "");
-        File file = tempDir.resolve("storage_" + dbName + ".yml").toFile();
-        Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
-        return file;
-    }
 
     // ------------------------------------------------------------------
     // C4 - an invalid Integer sends the parser's error message, does not invoke, does not throw

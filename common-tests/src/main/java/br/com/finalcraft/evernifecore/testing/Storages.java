@@ -27,7 +27,9 @@ public final class Storages {
     private final String backendId;
     private final List<String> backendLines = new ArrayList<String>();
     private final List<String> playerdataLines = new ArrayList<String>();
+    private final List<String> rawTopLevelLines = new ArrayList<String>();
     private String fileName = "storage.yml";
+    private String jdbcUrl;
     private String pathPlaceholder;
 
     private Storages(String backendId) {
@@ -64,8 +66,9 @@ public final class Storages {
     public static Storages h2(String dbName) {
         Storages storages = new Storages("test_h2");
         storages.fileName = "storage_h2_" + dbName + ".yml";
+        storages.jdbcUrl = "jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1";
         storages.backendLines.add("    type: h2");
-        storages.backendLines.add("    url: \"jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1\"");
+        storages.backendLines.add("    url: \"" + storages.jdbcUrl + "\"");
         return storages;
     }
 
@@ -81,8 +84,10 @@ public final class Storages {
         Storages renamed = new Storages(backendId);
         renamed.backendLines.addAll(backendLines);
         renamed.playerdataLines.addAll(playerdataLines);
+        renamed.rawTopLevelLines.addAll(rawTopLevelLines);
         renamed.fileName = fileName;
         renamed.pathPlaceholder = pathPlaceholder;
+        renamed.jdbcUrl = jdbcUrl;
         return renamed;
     }
 
@@ -105,10 +110,25 @@ public final class Storages {
         return this;
     }
 
+    /** Raw top-level YAML lines, for a section this class does not model (e.g. {@code schema:}). */
+    public Storages rawLines(String... lines) {
+        Collections.addAll(rawTopLevelLines, lines);
+        return this;
+    }
+
     /** The file this configuration writes to inside the target directory. */
     public Storages fileName(String fileName) {
         this.fileName = fileName;
         return this;
+    }
+
+    /**
+     * The JDBC url this configuration points at, or {@code null} for a backend that has none. A
+     * test that reaches into the database directly - to corrupt a row, say - needs the same url
+     * the boot used.
+     */
+    public String jdbcUrl() {
+        return jdbcUrl;
     }
 
     /** The YAML text, with any data path resolved against {@code baseDir}. */
@@ -121,6 +141,9 @@ public final class Storages {
             yaml.append(resolvePath(line, baseDir)).append('\n');
         }
         yaml.append("default-backend: ").append(backendId).append('\n');
+        for (String line : rawTopLevelLines) {
+            yaml.append(line).append('\n');
+        }
         if (!playerdataLines.isEmpty()) {
             yaml.append("playerdata:\n");
             for (String line : playerdataLines) {

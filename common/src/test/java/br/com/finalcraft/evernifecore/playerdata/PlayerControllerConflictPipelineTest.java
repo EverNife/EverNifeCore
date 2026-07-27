@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.everydatabase.manager.writeback.OptimisticConflictException;
 import br.com.finalcraft.everydatabase.manager.writeback.StorageWriteException;
@@ -67,8 +68,7 @@ class PlayerControllerConflictPipelineTest {
         //stop injecting failures BEFORE shutdown so its final flush runs against the clean backend
         //(a lingering gated find could otherwise block a storage thread)
         ConflictInjectingStorage.reset();
-        PlayerController.shutdown();
-        PlayerController.getConfiguredPDSections().clear();
+        PlayerDataWorld.tearDown();
     }
 
     public static class JobsPDSection extends PDSection {

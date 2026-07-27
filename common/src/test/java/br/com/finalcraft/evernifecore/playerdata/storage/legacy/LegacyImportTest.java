@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata.storage.legacy;
 
+import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
@@ -59,8 +60,7 @@ class LegacyImportTest {
 
     @AfterEach
     void teardown() {
-        PlayerController.shutdown();
-        PlayerController.getConfiguredPDSections().clear();
+        PlayerDataWorld.tearDown();
         //the ECPluginData cache is static and keyed by name: dropping it keeps a stale one, pointing
         //at a @TempDir that no longer exists, from reaching the next test in this JVM
         ECPluginManager.removePluginData(FAKE_PLUGIN_NAME);

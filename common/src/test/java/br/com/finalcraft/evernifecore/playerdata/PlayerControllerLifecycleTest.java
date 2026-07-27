@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.testing.Storages;
+import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import br.com.finalcraft.evernifecore.playerdata.storage.SectionCachePolicy;
@@ -56,9 +58,7 @@ class PlayerControllerLifecycleTest {
 
     @AfterEach
     void teardown() {
-        PlayerController.shutdown();
-        PlayerController.getConfiguredPDSections().clear();
-        EntitySchemaMigrations.clear();
+        PlayerDataWorld.tearDown();
         FailableStorage.FAIL_WRITES.set(false);
     }
 
@@ -78,19 +78,6 @@ class PlayerControllerLifecycleTest {
         public long value;
     }
 
-    private File writeH2StorageYml(String dbName) throws IOException {
-        String yml = String.join("\n",
-                "storage-backends:",
-                "  test_h2:",
-                "    enabled: true",
-                "    type: h2",
-                "    url: \"jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1\"",
-                "default-backend: test_h2",
-                "");
-        File file = tempDir.resolve("storage_" + dbName + ".yml").toFile();
-        Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
-        return file;
-    }
 
     // ------------------------------------------------------------------
     // workingSet evicts after quit + grace; resident (default) stays cached
@@ -98,7 +85,7 @@ class PlayerControllerLifecycleTest {
 
     @Test
     void workingSetEvictsAfterQuitGrace_residentStaysCached() throws Exception {
-        PlayerController.initialize(writeH2StorageYml("f_ws"));
+        PlayerController.initialize(Storages.h2("f_ws").writeTo(tempDir));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, ResidentSection.class)
                 .cache(SectionCachePolicy.resident()).build());
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, WorkingSetSection.class)
@@ -136,7 +123,7 @@ class PlayerControllerLifecycleTest {
 
     @Test
     void quitFlushesDirtyState() throws Exception {
-        PlayerController.initialize(writeH2StorageYml("f_quitflush"));
+        PlayerController.initialize(Storages.h2("f_quitflush").writeTo(tempDir));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, ResidentSection.class).build());
 
         UUID uuid = UUID.randomUUID();
@@ -162,7 +149,7 @@ class PlayerControllerLifecycleTest {
 
     @Test
     void quitFlushRetriesWhenStorageReturns() throws Exception {
-        PlayerController.initialize(writeH2StorageYml("f_retry"));
+        PlayerController.initialize(Storages.h2("f_retry").writeTo(tempDir));
         //wrap the backend's Storage so writes can be made to fail on demand (register AFTER bootstrap,
         //BEFORE the section binds, so the section manager resolves against the failing wrapper)
         wrapBackendWithFailable("test_h2");
@@ -206,7 +193,7 @@ class PlayerControllerLifecycleTest {
 
     @Test
     void setPlayerDoesNotDirtyBase() throws IOException {
-        PlayerController.initialize(writeH2StorageYml("f_setplayer"));
+        PlayerController.initialize(Storages.h2("f_setplayer").writeTo(tempDir));
 
         UUID uuid = UUID.randomUUID();
         PlayerData playerData = PlayerController.handleLogin(uuid, "Attach").join();
@@ -225,7 +212,7 @@ class PlayerControllerLifecycleTest {
 
     @Test
     void lruPolicyBoundsCachedSize() throws IOException {
-        PlayerController.initialize(writeH2StorageYml("f_lru"));
+        PlayerController.initialize(Storages.h2("f_lru").writeTo(tempDir));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, LruSection.class)
                 .cache(SectionCachePolicy.lru(3)).build());
 
@@ -249,7 +236,7 @@ class PlayerControllerLifecycleTest {
 
     @Test
     void ttlPolicyPurgeReleasesExpiredCells() throws Exception {
-        PlayerController.initialize(writeH2StorageYml("f_ttl"));
+        PlayerController.initialize(Storages.h2("f_ttl").writeTo(tempDir));
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, TtlSection.class)
                 .cache(SectionCachePolicy.ttl(Duration.ofMillis(50))).build());
 

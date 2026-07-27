@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.locale;
 
+import br.com.finalcraft.evernifecore.testing.Storages;
+import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import br.com.finalcraft.evernifecore.EverNifeCore;
@@ -56,9 +58,7 @@ class PlayerLocaleResolveContractTest {
     void teardown() {
         //A static flag on a shared test JVM: restore it so no later test class observes it flipped.
         ECSettings.PER_PLAYER_LOCALE = originalPerPlayerLocale;
-        PlayerController.shutdown();
-        PlayerController.getConfiguredPDSections().clear();
-        EntitySchemaMigrations.clear();
+        PlayerDataWorld.tearDown();
         if (registeredPluginName != null) {
             ECPluginManager.removePluginData(registeredPluginName);
             registeredPluginName = null;
@@ -69,7 +69,7 @@ class PlayerLocaleResolveContractTest {
     @Test
     void settingOffRegistersNoSectionAndResolvesToDefaultForEveryone() throws IOException {
         ECSettings.PER_PLAYER_LOCALE = false;
-        PlayerController.initialize(writeH2StorageYml("f_locale_off"));
+        PlayerController.initialize(Storages.h2("f_locale_off").writeTo(tempDir));
 
         assertFalse(PlayerController.getConfiguredPDSections().containsKey(LocalePDSection.class),
                 "with PER_PLAYER_LOCALE off, no LocalePDSection may be registered");
@@ -90,7 +90,7 @@ class PlayerLocaleResolveContractTest {
     @Test
     void settingOnResolvesPerPlayerLanguageWithDefaultFallback() throws Exception {
         ECSettings.PER_PLAYER_LOCALE = true;
-        PlayerController.initialize(writeH2StorageYml("f_locale_on"));
+        PlayerController.initialize(Storages.h2("f_locale_on").writeTo(tempDir));
 
         LocaleMessageImp message = twoLanguageMessage("LocaleOnPlugin", "en_greeting");
         FancyText defaultText = message.getDefaultFancyText();
@@ -134,19 +134,6 @@ class PlayerLocaleResolveContractTest {
         }
     }
 
-    private File writeH2StorageYml(String dbName) throws IOException {
-        String yml = String.join("\n",
-                "storage-backends:",
-                "  test_h2:",
-                "    enabled: true",
-                "    type: h2",
-                "    url: \"jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1\"",
-                "default-backend: test_h2",
-                "");
-        File file = tempDir.resolve("storage_" + dbName + ".yml").toFile();
-        Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
-        return file;
-    }
 
     private ECPluginData pluginData(String pluginName) {
         EverNifeCore.getProviders().getBaseProvider().register(IECPluginExtractor.class,
