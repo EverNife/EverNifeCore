@@ -102,16 +102,18 @@ public class LocaleMessageSendContractTest {
     @Test
     void perPlayerPlaceholderIsNotLeakedAsLambdaToStringForANonPlayerSender() {
         LocaleMessageImp message = new LocaleMessageImp(pluginData("LambdaLeakPlugin"), "lambda.leak", false);
-        message.addLocale("EN_US", new FancySegment("Hello {name}"));
+        message.addLocale("EN_US", new FancySegment("Hello ${name}"));
 
         TestCommandSender console = new TestCommandSender("CONSOLE");
         Function<PlayerData, Object> perPlayerName = (PlayerData playerData) -> playerData.getUniqueId();
 
-        message.addPlaceholder("{name}", perPlayerName).send(console);
+        message.addPlaceholder("name", perPlayerName).send(console);
 
         assertFalse(console.getMessages().get(0).contains("Lambda"),
                 "a Function placeholder must not leak its own toString() to a non-player recipient: "
                         + console.getMessages().get(0));
+        assertEquals("Hello ${name}", console.getMessages().get(0),
+                "with no PlayerData to resolve against, the token stays exactly as written");
     }
 
     private ECPluginData pluginData(String pluginName) {
