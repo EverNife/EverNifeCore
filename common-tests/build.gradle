@@ -5,6 +5,10 @@
 // Java 8 bytecode like `common`, because a consumer may compile its tests against a 1.7.10 server's
 // toolchain. The Jabel/options.release pair is applied centrally in the root build.
 
+repositories {
+    maven { url = 'https://repo.alessiodp.com/releases/' } // libby-core, reached transitively through common
+}
+
 dependencies {
     // api, not implementation: every one of these types shows up in this module's public signatures.
     api project(':common')
