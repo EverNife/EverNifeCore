@@ -1,14 +1,15 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
 import org.junit.jupiter.api.Test;
-
 import java.util.Arrays;
 import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * The one model invariant the chain now guarantees: <b>a chain never contains another chain, and it
@@ -157,5 +158,78 @@ class FancyTextAppendModelContractTest {
 
         assertTrue(FancyText.join("§7, ", Arrays.<String>asList(), item -> new FancySegment(item)).isEmpty(),
                 "joining nothing yields an empty chain, not a stray separator");
+    }
+
+    // ------------------------------------------------------------------
+    //  absorbed from FancyTextModelContractTest
+    // ------------------------------------------------------------------
+
+    @Test
+    void bothImplementationsAreFancyTextAndTheEmptyFactoryStartsWithNoSegment() {
+        assertTrue(FancyText.of() instanceof FancySegment, "FancyText.of() must produce a segment");
+        assertTrue(FancyFormatter.of() instanceof FancyText, "a FancyFormatter is a FancyText");
+        assertEquals(0, FancyFormatter.of().getFancyTextList().size(),
+                "FancyFormatter.of() must start with no segments, exactly like new FancyFormatter()");
+    }
+
+    @Test
+    void formatterFactoryAndConstructorAgreeOnChildCount() {
+        assertEquals(new FancyFormatter().getFancyTextList().size(),
+                FancyFormatter.of().getFancyTextList().size(),
+                "of() and the constructor must start with the same number of segments");
+    }
+
+    @Test
+    void clickTypeAppliesToTheLastAppendedSegment() {
+        FancyFormatter formatter = (FancyFormatter) FancyText.of("head").append("child");
+        formatter.setClickType(ClickActionType.OPEN_URL);
+
+        List<FancyText> children = formatter.getFancyTextList();
+        assertEquals(ClickActionType.OPEN_URL,
+                children.get(children.size() - 1).getClickActionType());
+    }
+
+    @Test
+    void formattersWithDifferentContentAreNotEqual() {
+        assertNotEquals(FancyFormatter.of("&aone"), FancyFormatter.of("&btwo"));
+    }
+
+    // ------------------------------------------------------------------
+    //  absorbed from FancyFormatterEdgeCasesTest
+    // ------------------------------------------------------------------
+
+    // copy() must isolate the declarations: declaring on one side never leaks into the other.
+    @Test
+    public void copyIsolatesThePlaceholderMap() {
+        FancyFormatter original = new FancyFormatter().append("${x} ${y}");
+        original.addPlaceholder("a", "1");
+
+        FancyFormatter copy = original.copy();
+        copy.addPlaceholder("x", "onlyInTheCopy");
+        assertFalse(original.getPlaceholderProvider().getParserMap().containsKey("x"), "copy leaked into original");
+        assertTrue(copy.getPlaceholderProvider().getParserMap().containsKey("x"));
+
+        original.addPlaceholder("y", "onlyInTheOriginal");
+        assertFalse(copy.getPlaceholderProvider().getParserMap().containsKey("y"), "original leaked into copy");
+
+        assertEquals("${x} onlyInTheOriginal", original.toLegacyString(RenderContext.empty()));
+        assertEquals("onlyInTheCopy ${y}", copy.toLegacyString(RenderContext.empty()));
+    }
+
+    // An empty formatter has no segment to delegate to; getters/setters degrade instead of throwing.
+    @Test
+    public void emptyFormatterGettersAndSettersDoNotThrow() {
+        FancyFormatter empty = new FancyFormatter();
+
+        assertNull(empty.getText());
+        assertNull(empty.getHoverText());
+        assertNull(empty.getClickActionText());
+        assertEquals(ClickActionType.NONE, empty.getClickActionType());
+
+        assertDoesNotThrow(() -> empty.setHover("hover"));
+        assertDoesNotThrow(() -> empty.setClick("cmd", ClickActionType.RUN_COMMAND));
+        assertDoesNotThrow(() -> empty.setClickCommand("cmd"));
+        assertDoesNotThrow(() -> empty.setClickSuggest("suggest"));
+        assertDoesNotThrow(() -> empty.setClickLink("https://example.com"));
     }
 }

@@ -6,17 +6,27 @@ import br.com.finalcraft.everyconfig.config.Config;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-
+import br.com.finalcraft.evernifecore.fancytext.hover.FancyHover;
+import br.com.finalcraft.evernifecore.fancytext.hover.FancyHoverRegistry;
+import br.com.finalcraft.evernifecore.fancytext.hover.FancyHoverType;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+import br.com.finalcraft.evernifecore.fancytext.hover.ItemHover;
+import java.util.Objects;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * The codec's round-trip contract for {@link FancyText}: content survives, not just segment count.
@@ -182,5 +192,252 @@ public class FancyTextCodecRoundTripTest {
         assertEquals("$show_item$minecraft:diamond_sword", withItemHoverSentinel.getHoverText());
         assertNull(withItemHoverSentinel.getClickActionText());
         assertEquals(ClickActionType.NONE, withItemHoverSentinel.getClickActionType());
+    }
+
+    // ------------------------------------------------------------------
+    //  absorbed from FancyTextCodecHoverPersistenceTest
+    // ------------------------------------------------------------------
+
+    private static final String UNPERSISTABLE_TYPE = "fx1_unpersistable_hover";
+    private static final String ORPHAN_TYPE = "fx1_orphan_hover_type";
+
+
+    @BeforeAll
+    static void registerTheHoverTypesTheseCasesPersist() {
+        registerCodecless(UNPERSISTABLE_TYPE);
+        if (!FancyHoverRegistry.registeredIds().contains(TYPE_ID)) {
+            FancyHoverRegistry.register(FancyHoverType.<CustomHover>of(TYPE_ID,
+                            custom -> HoverEvent.showText(Component.text(custom.payload())))
+                    .withCodec(CustomHover::payload, CustomHover::new));
+        }
+    }
+
+    private static void registerCodecless(String typeId) {
+        if (!FancyHoverRegistry.registeredIds().contains(typeId)) {
+            FancyHoverRegistry.register(FancyHoverType.<CodeclessHover>of(typeId,
+                    hover -> HoverEvent.showText(Component.text(hover.payload))));
+        }
+    }
+
+    private Config open(Path dir, String fileName) {
+        return ConfigFactory.open(dir.resolve(fileName));
+    }
+
+    @Test
+    void savingACodeclessHoverWarnsOnceAndStillRecordsItsType(@TempDir Path dir) throws IOException {
+        List<String> warnings = captureCoreWarnings();
+        try {
+            FancySegment first = new FancySegment("§aone");
+            first.setHover(new CodeclessHover(UNPERSISTABLE_TYPE, "payload-one"));
+            Config firstCfg = open(dir, "first.yml");
+            firstCfg.setValue("msg", first);
+            firstCfg.save();
+
+            FancySegment second = new FancySegment("§btwo");
+            second.setHover(new CodeclessHover(UNPERSISTABLE_TYPE, "payload-two"));
+            Config secondCfg = open(dir, "second.yml");
+            secondCfg.setValue("msg", second);
+            secondCfg.save();
+
+            List<String> aboutThisType = new ArrayList<>();
+            for (String warning : warnings) {
+                if (warning.contains(UNPERSISTABLE_TYPE)) {
+                    aboutThisType.add(warning);
+                }
+            }
+            assertEquals(1, aboutThisType.size(),
+                    "a lang file with hundreds of entries of the same type must warn once, not once per entry: "
+                            + aboutThisType);
+
+            String written = new String(Files.readAllBytes(dir.resolve("first.yml")), StandardCharsets.UTF_8);
+            assertTrue(written.contains("hoverType"),
+                    "the type must be recorded even with no payload, or the file is indistinguishable "
+                            + "from one that never had a hover: " + written);
+            assertTrue(written.contains(UNPERSISTABLE_TYPE),
+                    "the recorded type must be the value's own type id: " + written);
+        } finally {
+            warnings.clear();
+        }
+    }
+
+    @Test
+    void readingATypeWithNoPayloadYieldsNoHoverAndReportsTheLoss(@TempDir Path dir) throws IOException {
+        Path file = dir.resolve("orphan.yml");
+        Files.write(file, ("msg:\n"
+                + "  text: '&aSome text'\n"
+                + "  hoverType: " + ORPHAN_TYPE + "\n").getBytes(StandardCharsets.UTF_8));
+
+        List<String> warnings = captureCoreWarnings();
+        FancyText read = ConfigFactory.open(file).getValue("msg", FancyText.class);
+
+        assertEquals("§aSome text", read.getText(), "the rest of the node must still read normally");
+        assertNull(read.getHover(), "a type with no payload cannot be rebuilt, so there is no hover");
+
+        List<String> aboutThisType = new ArrayList<>();
+        for (String warning : warnings) {
+            if (warning.contains(ORPHAN_TYPE)) {
+                aboutThisType.add(warning);
+            }
+        }
+        assertEquals(1, aboutThisType.size(), "the load must denounce the missing payload exactly once: " + warnings);
+    }
+
+    /**
+     * Captures what the codec logs for the duration of the current test. The handler stays attached to
+     * the shared logger - harmless, since every assertion filters by this test's own unique type id.
+     */
+    private static List<String> captureCoreWarnings() {
+        List<String> captured = new ArrayList<>();
+        Logger.getLogger("EverNifeCore").addHandler(new Handler() {
+            @Override public void publish(LogRecord record) { captured.add(record.getMessage()); }
+            @Override public void flush() { }
+            @Override public void close() { }
+        });
+        return captured;
+    }
+
+    /** A plugin-owned hover value whose type was registered without {@code withCodec}. */
+    static final class CodeclessHover implements FancyHover {
+        private final String typeId;
+        private final String payload;
+
+        CodeclessHover(String typeId, String payload) {
+            this.typeId = typeId;
+            this.payload = payload;
+        }
+
+        @Override
+        public String typeId() {
+            return typeId;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    //  absorbed from FancyTextCodecLiteralPayloadTest
+    // ------------------------------------------------------------------
+
+    @Test
+    void aClickUrlWithQueryParametersSurvivesTheRoundTripUntouched(@TempDir Path dir) {
+        String url = "https://x.com/a?b=1&c=2";
+        FancySegment original = new FancySegment("§aOpen it");
+        original.setClickLink(url);
+
+        Config cfg = open(dir);
+        cfg.setValue("msg", original);
+        cfg.save();
+
+        FancyText firstRead = open(dir).getValue("msg", FancyText.class);
+        assertEquals(url, firstRead.getClickActionText(), "the '&' of a query string is not a colour code");
+        assertEquals(ClickActionType.OPEN_URL, firstRead.getClickActionType());
+        assertEquals("§aOpen it", firstRead.getText(), "visible text still carries its colour codes");
+
+        // a second save->load cycle must be a fixed point: the value that came back is the value that
+        // goes out, or the lang file would keep changing shape on every boot.
+        Config reopened = open(dir);
+        reopened.setValue("msg", firstRead);
+        reopened.save();
+        assertEquals(url, open(dir).getValue("msg", FancyText.class).getClickActionText(),
+                "the click text must survive a read->write->read cycle unchanged");
+    }
+
+    @Test
+    void anItemHoverPayloadWithAnAmpersandSurvivesTheRoundTripUntouched(@TempDir Path dir) {
+        String rawItem = "{id:\"minecraft:diamond\",tag:{display:{Name:\"Salt & Pepper\"}}}";
+        FancySegment original = new FancySegment("§bHover me");
+        original.setHoverItem(rawItem);
+
+        Config cfg = open(dir);
+        cfg.setValue("msg", original);
+        cfg.save();
+
+        FancyText firstRead = open(dir).getValue("msg", FancyText.class);
+        FancyHover hover = firstRead.getHover();
+        assertNotNull(hover, "the item hover must survive the read");
+        assertInstanceOf(ItemHover.class, hover, "an 'item' hoverType must decode back to an ItemHover");
+        assertEquals(rawItem, ((ItemHover) hover).rawItem(), "an item id/SNBT payload is not colour-coded text");
+        assertEquals(ItemHover.LEGACY_SENTINEL + rawItem, firstRead.getHoverText());
+
+        Config reopened = open(dir);
+        reopened.setValue("msg", firstRead);
+        reopened.save();
+        FancyHover secondHover = open(dir).getValue("msg", FancyText.class).getHover();
+        assertEquals(rawItem, ((ItemHover) secondHover).rawItem(),
+                "the item payload must survive a read->write->read cycle unchanged");
+    }
+
+    @Test
+    void aPlainTooltipStillCarriesItsColourCodesBothWays(@TempDir Path dir) {
+        FancySegment original = new FancySegment("§cDanger", "§7line one\n§7line two");
+
+        Config cfg = open(dir);
+        cfg.setValue("msg", original);
+        cfg.save();
+
+        FancyText read = open(dir).getValue("msg", FancyText.class);
+        assertEquals("§7line one\n§7line two", read.getHoverText(),
+                "a text tooltip is the one hover payload that IS text, so it keeps the colour translation");
+    }
+
+    // ------------------------------------------------------------------
+    //  absorbed from FancyHoverCodecRoundTripTest
+    // ------------------------------------------------------------------
+
+    private static final String TYPE_ID = "custom_roundtrip";
+
+
+    @Test
+    void customHoverTypeRoundTripsThroughTheCodec(@TempDir Path dir) {
+        FancySegment original = new FancySegment("§aHover me");
+        original.setHover(new CustomHover("secret-payload-42"));
+
+        Config cfg = open(dir);
+        cfg.setValue("msg", original);
+        cfg.save();
+
+        Config reopened = open(dir);
+        FancyText firstRead = reopened.getValue("msg", FancyText.class);
+        FancyHover firstHover = firstRead.getHover();
+        assertNotNull(firstHover, "the custom hover must survive the first read, not be dropped");
+        assertEquals(TYPE_ID, firstHover.typeId(), "the hover type id must survive");
+        assertInstanceOf(CustomHover.class, firstHover, "the hover must decode back to its own type");
+        assertEquals("secret-payload-42", ((CustomHover) firstHover).payload(), "the payload must survive");
+
+        // write back what was read, read again: a second cycle must keep the same value.
+        reopened.setValue("msg", firstRead);
+        reopened.save();
+        FancyHover secondHover = open(dir).getValue("msg", FancyText.class).getHover();
+        assertEquals(TYPE_ID, secondHover.typeId());
+        assertEquals("secret-payload-42", ((CustomHover) secondHover).payload(),
+                "the payload must survive a second save->load cycle");
+    }
+
+    /** A plugin-owned hover value: opaque payload, its own type id, reconstructed by the codec. */
+    static final class CustomHover implements FancyHover {
+        private final String payload;
+
+        CustomHover(String payload) {
+            this.payload = payload;
+        }
+
+        String payload() {
+            return payload;
+        }
+
+        @Override
+        public String typeId() {
+            return TYPE_ID;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof CustomHover)) return false;
+            return Objects.equals(payload, ((CustomHover) o).payload);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(payload);
+        }
     }
 }

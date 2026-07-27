@@ -14,7 +14,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
-
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,7 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -304,5 +303,114 @@ class PageViewerContractTest {
 
         assertEquals(60, unbounded.getMessages().size(), "setLineEnd(-1) keeps every entry");
         assertEquals("e60", unbounded.getMessages().get(59));
+    }
+
+    // ------------------------------------------------------------------
+    //  absorbed from PageViewerFanoutTest
+    // ------------------------------------------------------------------
+
+    //PageViewer's default header calls getChatAdapter().straightLineOf at build time, which the plain
+    //no-op fixture answers with null; the harness installs a working chat adapter.
+
+
+
+    @Test
+    void eachRecipientReceivesEveryLineExactlyOnce() {
+        TestCommandSender first = new TestCommandSender("FIRST");
+        TestCommandSender second = new TestCommandSender("SECOND");
+
+        PageViewer.targeting(String.class)
+                .withSuplier(() -> Arrays.asList("alpha", "beta", "gamma"))
+                .extracting(entry -> entry)
+                .setComparator(null)
+                .setFormatLine("§7#  ${number}:   §a${value}")
+                .setNextAndPreviousPageButton(false)
+                .build()
+                .send(first, second);
+
+        for (TestCommandSender recipient : Arrays.asList(first, second)) {
+            String who = recipient.getName();
+            assertEquals(1, occurrences(recipient.getMessages(), "alpha"), "line 'alpha' for " + who);
+            assertEquals(1, occurrences(recipient.getMessages(), "beta"), "line 'beta' for " + who);
+            assertEquals(1, occurrences(recipient.getMessages(), "gamma"), "line 'gamma' for " + who);
+            // one header line plus the three entries: nothing else, and nothing twice
+            assertEquals(4, recipient.getMessages().size(),
+                    "unexpected message count for " + who + ": " + recipient.getMessages());
+        }
+    }
+
+    private static int occurrences(List<String> messages, String snippet) {
+        int count = 0;
+        for (String message : messages) {
+            if (message.contains(snippet)) count++;
+        }
+        return count;
+    }
+
+    // ------------------------------------------------------------------
+    //  absorbed from PageViewerPlaceholderLazinessTest
+    // ------------------------------------------------------------------
+
+    //A working chat adapter: PageViewer's header calls getChatAdapter().straightLineOf at build time,
+    //which the no-op fixture returns null for.
+
+
+
+    @Test
+    void aRegisteredButUnreferencedPlaceholderFunctionIsNeverInvoked() {
+        AtomicInteger hiddenCalls = new AtomicInteger();
+        AtomicInteger shownCalls = new AtomicInteger();
+        TestCommandSender console = new TestCommandSender("CONSOLE");
+
+        PageViewer.targeting(String.class)
+                .withSuplier(() -> Arrays.asList("alpha", "beta"))
+                .extracting(entry -> entry)
+                //the format line cites ${shown} (and ${number}), but NOT ${hidden}
+                .setFormatLine("§7#  ${number}:   §a${shown}")
+                .setNextAndPreviousPageButton(false)
+                .addPlaceholder("hidden", entry -> { hiddenCalls.incrementAndGet(); return "hidden"; })
+                .addPlaceholder("shown", entry -> { shownCalls.incrementAndGet(); return String.valueOf(entry); })
+                .build()
+                .send(console);
+
+        assertEquals(0, hiddenCalls.get(),
+                "a placeholder Function the line never cites must never be invoked");
+        assertTrue(shownCalls.get() >= 1,
+                "a placeholder Function the line does cite must be invoked");
+    }
+
+    // ------------------------------------------------------------------
+    //  absorbed from PageViewerWeakCacheTest
+    // ------------------------------------------------------------------
+
+    //PageViewer's default header calls getChatAdapter().straightLineOf while the builder is being
+    //constructed, which the plain no-op fixture answers with null; the harness installs a real one.
+
+
+
+    @Test
+    void theWholePageIsDeliveredEvenIfTheWeakCacheIsClearedWhileItIsBeingBuilt() {
+        TestCommandSender console = new TestCommandSender("CONSOLE");
+        AtomicReference<PageViewer<String, String>> viewerRef = new AtomicReference<>();
+        AtomicInteger produced = new AtomicInteger();
+
+        PageViewer<String, String> viewer = PageViewer.targeting(String.class)
+                .withSuplier(() -> Arrays.asList("alpha", "beta", "gamma"))
+                .extracting(entry -> entry)
+                .setComparator(null)
+                .setFormatHeader(Collections.<FancyText>emptyList())
+                .setFormatLine(entry -> {
+                    if (produced.incrementAndGet() == 2) {
+                        viewerRef.get().pageLinesCache.clear();
+                    }
+                    return new FancySegment("§a" + entry);
+                })
+                .setNextAndPreviousPageButton(false)
+                .build();
+        viewerRef.set(viewer);
+
+        viewer.send(console);
+
+        assertEquals(Arrays.asList("§aalpha", "§abeta", "§agamma"), console.getMessages());
     }
 }

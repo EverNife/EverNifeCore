@@ -21,7 +21,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -36,7 +35,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
-
+import java.time.Instant;
+import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -526,5 +526,74 @@ class PlayerControllerCutoverTest {
         @Override public CompletableFuture<Slice<JobsPDSection>> queryAfter(Query query, Cursor cursor, int limit) {
             throw new UnsupportedOperationException();
         }
+    }
+
+    // ------------------------------------------------------------------
+    //  absorbed from PlayerControllerG1CoverageTest
+    // ------------------------------------------------------------------
+
+    /** A section whose persisted state includes a {@code java.time.Instant}, a {@code LocalDateTime} and an {@code Optional<String>}. */
+    public static class TemporalPDSection extends PDSection {
+        public Instant lastReward = Instant.EPOCH;
+        public LocalDateTime joinedAt;
+        public Optional<String> nickname = Optional.empty();
+    }
+
+
+    // ------------------------------------------------------------------
+    // java.time / Optional round-trip on a real backend (jsr310 + jdk8 modules)
+    // ------------------------------------------------------------------
+
+    @Test
+    void javaTimeAndOptionalFieldsSurviveRoundTrip_onH2() throws IOException {
+        File storageYml = Storages.h2("g1_temporal").writeTo(tempDir);
+        PlayerController.initialize(storageYml);
+        PlayerController.registerPDSectionCfg(
+                PDSectionConfiguration.builder(null, TemporalPDSection.class).build());
+
+        UUID uuid = UUID.randomUUID();
+        PlayerController.handleLogin(uuid, "Chronos").join();
+
+        Instant rewardAt = Instant.ofEpochMilli(1_700_000_123_456L);
+        LocalDateTime joined = LocalDateTime.of(2023, 11, 14, 8, 55, 23, 456_000_000);
+
+        TemporalPDSection section = PlayerController.getLoaded(uuid).getPDSection(TemporalPDSection.class).join();
+        section.lastReward = rewardAt;
+        section.joinedAt = joined;
+        section.nickname = Optional.of("The Timekeeper");
+        section.markDirty();
+        PlayerController.get().flushAll().join();
+
+        //reboot: the section is re-read from the backend through the codec
+        PlayerController.initialize(storageYml);
+
+        TemporalPDSection reloaded = PlayerController.getLoaded(uuid).getPDSection(TemporalPDSection.class).join();
+        assertEquals(rewardAt, reloaded.lastReward, "java.time.Instant must survive the codec round-trip");
+        assertEquals(joined, reloaded.joinedAt, "LocalDateTime must survive the codec round-trip");
+        assertTrue(reloaded.nickname.isPresent(), "a present Optional must survive the codec round-trip");
+        assertEquals("The Timekeeper", reloaded.nickname.get());
+    }
+
+    @Test
+    void absentOptionalAndDefaultInstantSurviveRoundTrip_onLocalFileYaml() throws IOException {
+        File storageYml = Storages.localFile().writeTo(tempDir);
+        PlayerController.initialize(storageYml);
+        PlayerController.registerPDSectionCfg(
+                PDSectionConfiguration.builder(null, TemporalPDSection.class).build());
+
+        UUID uuid = UUID.randomUUID();
+        PlayerController.handleLogin(uuid, "Blank").join();
+
+        //leave nickname absent and joinedAt null, mutate only the Instant so a row is written
+        TemporalPDSection section = PlayerController.getLoaded(uuid).getPDSection(TemporalPDSection.class).join();
+        section.lastReward = Instant.ofEpochSecond(42);
+        section.markDirty();
+        PlayerController.get().flushAll().join();
+
+        PlayerController.initialize(storageYml);
+
+        TemporalPDSection reloaded = PlayerController.getLoaded(uuid).getPDSection(TemporalPDSection.class).join();
+        assertEquals(Instant.ofEpochSecond(42), reloaded.lastReward);
+        assertFalse(reloaded.nickname.isPresent(), "an absent Optional must round-trip as Optional.empty(), not null");
     }
 }

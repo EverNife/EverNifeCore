@@ -5,11 +5,12 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import org.junit.jupiter.api.Test;
-
 import java.util.List;
-
+import net.md_5.bungee.api.chat.BaseComponent;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 
 public class FCComponentUtilTest {
 
@@ -81,6 +82,51 @@ public class FCComponentUtilTest {
         }
         for (Component child : component.children()) {
             if (hasHover(child)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // ------------------------------------------------------------------
+    //  absorbed from FCComponentUtilClickTest
+    // ------------------------------------------------------------------
+
+    @Test
+    public void toBaseComponentsPopulatesTheClickEvent() {
+        Component button = Component.text("[EN_US]")
+                .clickEvent(ClickEvent.runCommand("/ec dyn 123"))
+                .hoverEvent(HoverEvent.showText(Component.text("Click to change")));
+
+        BaseComponent[] md5 = FCComponentUtil.toBaseComponents(button);
+
+        // A real md_5 TextComponent, not adventure's opaque AdapterComponent (whose getters are null).
+        assertEquals("net.md_5.bungee.api.chat.TextComponent", md5[0].getClass().getName());
+        assertNotNull(md5[0].getClickEvent(), "click event dropped");
+        assertNotNull(md5[0].getHoverEvent(), "hover event dropped");
+        assertEquals("/ec dyn 123", md5[0].getClickEvent().getValue());
+    }
+
+    @Test
+    public void clickSurvivesTheFullSplitAndSerializePath() {
+        // Two clickable lines separated by a newline (the /fclocale list shape).
+        Component message = Component.text("btn1")
+                .clickEvent(ClickEvent.runCommand("/one"))
+                .append(Component.newline())
+                .append(Component.text("btn2").clickEvent(ClickEvent.suggestCommand("/two")));
+
+        for (Component line : FCComponentUtil.splitNewlines(message)) {
+            BaseComponent[] md5 = FCComponentUtil.toBaseComponents(line);
+            assertTrue(anyHasClick(md5), "a line reached the wire without its click event");
+        }
+    }
+
+    private static boolean anyHasClick(BaseComponent[] components) {
+        for (BaseComponent c : components) {
+            if (c.getClickEvent() != null) {
+                return true;
+            }
+            if (c.getExtra() != null && anyHasClick(c.getExtra().toArray(new BaseComponent[0]))) {
                 return true;
             }
         }
