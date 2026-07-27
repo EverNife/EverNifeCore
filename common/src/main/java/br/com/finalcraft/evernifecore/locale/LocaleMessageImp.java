@@ -19,6 +19,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class LocaleMessageImp implements LocaleMessage {
 
@@ -158,8 +160,7 @@ public class LocaleMessageImp implements LocaleMessage {
             defaultFancyText = getFancyText(FCLocaleManager.getLangOf(this.plugin));
             if (defaultFancyText == null){ //There is no set message for this lang, take first available
                 if (fancyTextMap.isEmpty()){
-                    EverNifeCore.getLog().warning("LocaleMessage '" + key + "' of plugin '"
-                            + plugin.getMetaInfo().getName() + "' has no registered locale text.");
+                    warnHasNoLocaleText();
                     //Visible on purpose: a message that silently renders as nothing is a bug that
                     //reaches production; one that renders its own key is reported by the first
                     //player who sees it. Not cached either - registering a locale later fixes it.
@@ -169,6 +170,19 @@ public class LocaleMessageImp implements LocaleMessage {
             }
         }
         return defaultFancyText;
+    }
+
+    // The plugin's own log adapter when there is one, JUL otherwise: a message can be asked for its
+    // text before the core holds a plugin data to log through, and asking for the text of a message
+    // nobody defined must never be the thing that throws.
+    private void warnHasNoLocaleText() {
+        String message = "LocaleMessage '" + key + "' of plugin '" + plugin.getMetaInfo().getName()
+                + "' has no registered locale text.";
+        try {
+            EverNifeCore.getLog().warning(message);
+        } catch (Throwable noPluginRuntime) {
+            Logger.getLogger("EverNifeCore").log(Level.WARNING, message);
+        }
     }
 
     public boolean needToBeSynced() {

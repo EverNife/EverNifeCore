@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.ecplugin.IPluginMetaInfo;
 import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.TestCommandSender;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
+import br.com.finalcraft.evernifecore.locale.SendCustom;
 import br.com.finalcraft.evernifecore.locale.scanner.FCLocaleScanner;
 import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
@@ -72,6 +73,44 @@ public class MessageScopeContractTest {
 
         assertEquals("use /alpha help", alphaSender.getMessages().get(0));
         assertEquals("use /beta help", betaSender.getMessages().get(0));
+    }
+
+    // The scope belongs to the thread that ran the command; the message is often delivered by
+    // another one. What travels with the message is the context it was BUILT with.
+    @Test
+    void aMessageBuiltInsideACommandStillAnswersForItsLabelWhenDeliveredFromAnotherThread() throws Exception {
+        FCLocaleScanner.scanForLocale(pluginData("AsyncDeliveryPlugin"), true, ScopedLocales.class);
+
+        TestCommandSender sender = new TestCommandSender("CONSOLE");
+
+        SendCustom builtInsideTheCommand;
+        try (MessageScope scope = MessageScope.open("mycmd", null)) {
+            builtInsideTheCommand = ScopedLocales.USAGE.custom();
+        }
+
+        Thread deliverer = new Thread(() -> builtInsideTheCommand.send(sender), "async-delivery");
+        deliverer.start();
+        deliverer.join();
+
+        assertEquals("use /mycmd help", sender.getMessages().get(0),
+                "a task delivering a message built inside a command must not lose its label");
+    }
+
+    // The caller who says which context to render with wins over the one the thread happens to be in.
+    @Test
+    void anExplicitRenderContextBeatsTheScopeOfTheSendingThread() {
+        FCLocaleScanner.scanForLocale(pluginData("ExplicitContextPlugin"), true, ScopedLocales.class);
+
+        TestCommandSender sender = new TestCommandSender("CONSOLE");
+        RenderContext forced = RenderContext.of(sender, MessageContext.of("forced", "sub"));
+
+        try (MessageScope scope = MessageScope.open("scoped", null)) {
+            ScopedLocales.USAGE.send(forced, sender);
+            FancyText.of("plain /${label} ${subcmd}").send(forced, sender);
+        }
+
+        assertEquals("use /forced help", sender.getMessages().get(0));
+        assertEquals("plain /forced sub", sender.getMessages().get(1));
     }
 
     // ${label} answers for itself in ANY message, not only in one built from a locale file.

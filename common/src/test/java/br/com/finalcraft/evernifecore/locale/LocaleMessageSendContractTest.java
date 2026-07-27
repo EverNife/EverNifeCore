@@ -19,8 +19,10 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.function.Function;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Pins the SendCustom/SendCustomComplex pipeline: getFancyText, used for a preview/inspection, and
@@ -114,6 +116,32 @@ public class LocaleMessageSendContractTest {
                         + console.getMessages().get(0));
         assertEquals("Hello ${name}", console.getMessages().get(0),
                 "with no PlayerData to resolve against, the token stays exactly as written");
+    }
+
+    // A message nobody registered a language for used to answer null, which the send path then
+    // copy()'d - so the message that was merely undefined took the command down with it.
+    @Test
+    void aLocaleWithNoRegisteredLanguageRendersItsOwnKeyInsteadOfFailing() {
+        LocaleMessageImp undefined = new LocaleMessageImp(pluginData("UndefinedLocalePlugin"), "undefined.key", false);
+
+        FancyText fallback = assertDoesNotThrow(undefined::getDefaultFancyText);
+        assertTrue(fallback.toPlainText().contains("undefined.key"),
+                "the fallback must name the key it stands for: " + fallback.toPlainText());
+        assertFalse(undefined.isDefined(), "a message with no registered language is not defined");
+
+        TestCommandSender console = new TestCommandSender("CONSOLE");
+        assertDoesNotThrow(() -> undefined.send(console));
+        assertTrue(console.getMessages().get(0).contains("undefined.key"),
+                "the recipient must see which message was left undefined: " + console.getMessages());
+    }
+
+    @Test
+    void aLocaleWithARegisteredLanguageIsDefined() {
+        LocaleMessageImp defined = new LocaleMessageImp(pluginData("DefinedLocalePlugin"), "defined.key", false);
+        defined.addLocale("EN_US", new FancySegment("Hello"));
+
+        assertTrue(defined.isDefined());
+        assertEquals("Hello", defined.getDefaultFancyText().toPlainText());
     }
 
     private ECPluginData pluginData(String pluginName) {
