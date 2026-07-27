@@ -223,7 +223,7 @@ class ConfigFactoryCodecTest {
         assertTrue(viaBridge.message instanceof FancyFormatter, "a formatter field must read back as a FancyFormatter");
         List<String> actual = new ArrayList<>();
         for (FancyText child : ((FancyFormatter) viaBridge.message).getFancyTextList()) {
-            // the read seeds an empty child (FancyFormatter.of()); only the meaningful segments carry the order
+            // a piece with no text carries no ordering information, so only the meaningful ones are compared
             if (child.getText() != null && !child.getText().isEmpty()) {
                 actual.add(child.getText());
             }

@@ -216,9 +216,8 @@ class MultiArgumentosSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // D1 - a quote glued directly onto the flag name (no separating space) is part of the marker
-    // token's name, NOT the start of a quoted value: "--title'X'" is a flag literally called
-    // "title'X'" (decision recorded in SPEC-F4)
+    // A quote glued directly onto the flag name (no separating space) is part of the marker token's
+    // name, NOT the start of a quoted value: "--title'X'" is a flag literally called "title'X'".
     // ------------------------------------------------------------------
 
     @Test

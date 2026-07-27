@@ -9,7 +9,7 @@ import java.util.logging.Logger;
 /**
  * Turns a storage-unavailable boot into an admin-readable stop. It is the ONLY place that reads the
  * stop-the-server setting, so the policy has one home for the core, for a reload, and for any plugin
- * that opts in later (see {@code specs/002-stop-server-on-storage-failure.md} section 8).
+ * that opts in later.
  */
 public final class StorageBootGuard {
 
