@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 
 import java.util.ArrayList;
@@ -104,6 +105,33 @@ public class TestCommandSender implements FCommandSender {
                 collectHoverText(components.get(i), collected);
                 return collected.length() == 0 ? null : collected.toString();
             }
+        }
+        return null;
+    }
+
+    /**
+     * The click value attached anywhere in the FIRST sent message whose visible text contains
+     * {@code visibleTextSnippet}, or {@code null} when there is none. A {@link ClickEvent} is no more
+     * part of the legacy serialization than a hover is - see
+     * {@link #hoverTextOfMessageContaining(String)} - and the value travels raw, uncoloured.
+     */
+    public @Nullable String clickValueOfMessageContaining(String visibleTextSnippet) {
+        for (int i = 0; i < components.size(); i++) {
+            if (messages.get(i).contains(visibleTextSnippet)) {
+                return firstClickValue(components.get(i));
+            }
+        }
+        return null;
+    }
+
+    private static @Nullable String firstClickValue(Component component) {
+        ClickEvent clickEvent = component.clickEvent();
+        if (clickEvent != null) {
+            return clickEvent.value();
+        }
+        for (Component child : component.children()) {
+            String found = firstClickValue(child);
+            if (found != null) return found;
         }
         return null;
     }
