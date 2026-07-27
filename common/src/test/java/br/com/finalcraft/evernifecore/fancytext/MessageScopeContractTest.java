@@ -74,6 +74,31 @@ public class MessageScopeContractTest {
         assertEquals("use /beta help", betaSender.getMessages().get(0));
     }
 
+    // ${label} answers for itself in ANY message, not only in one built from a locale file.
+    @Test
+    void theCommandLabelResolvesInAPlainMessageInsideAScopeAndStaysRawOutsideOne() {
+        TestCommandSender sender = new TestCommandSender("CONSOLE");
+
+        try (MessageScope scope = MessageScope.open("mycmd", "sub")) {
+            assertEquals("use /mycmd sub", FancyText.of("use /${label} ${subcmd}").toLegacyString(RenderContext.of(sender)));
+        }
+
+        assertEquals("use /${label} ${subcmd}", FancyText.of("use /${label} ${subcmd}").toLegacyString(RenderContext.of(sender)),
+                "outside a command scope there is no label to answer with, so the token stays as written");
+    }
+
+    // A message that declares its own label wins over the framework-wide one.
+    @Test
+    void aMessageThatDeclaresLabelItselfShadowsTheFrameworkWideOne() {
+        TestCommandSender sender = new TestCommandSender("CONSOLE");
+
+        try (MessageScope scope = MessageScope.open("mycmd", null)) {
+            assertEquals("use /mine", FancyText.of("use /${label}")
+                    .addPlaceholder("label", "mine")
+                    .toLegacyString(RenderContext.of(sender)));
+        }
+    }
+
     @Test
     void aScopeStopsBeingVisibleOnceItIsClosed() {
         assertSame(MessageContext.EMPTY, MessageScope.currentOrEmpty());

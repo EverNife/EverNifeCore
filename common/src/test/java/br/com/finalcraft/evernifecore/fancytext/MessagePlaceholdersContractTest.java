@@ -27,6 +27,7 @@ import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -78,6 +79,30 @@ public class MessagePlaceholdersContractTest {
         RenderContext oneRender = RenderContext.empty();
         assertEquals("1 1", placeholders.apply("${saldo} ${SALDO}", oneRender));
         assertEquals(1, calls.get(), "the same key in one render must cost exactly one resolution");
+    }
+
+    // The percent form is PlaceholderAPI's, and the engine stopped reading it: a message declaring
+    // "saldo" resolves ${saldo} and leaves %saldo% for whoever owns that closure.
+    @Test
+    void thePercentFormIsNoLongerResolvedByTheMessageEngine() {
+        assertEquals("10 e %saldo%", FancyText.of("${saldo} e %saldo%")
+                .addPlaceholder("saldo", 10)
+                .toLegacyString(RenderContext.empty()));
+    }
+
+    // The description is what an integrating plugin lists back to the user, so it has to survive the
+    // trip from the message down to its provider.
+    @Test
+    void describeAllOfAMessageListsEveryDescribedParser() {
+        FancyText message = FancyText.of("${saldo} ${banco}")
+                .addParser("saldo", "The player's balance", context -> 10)
+                .addParser("banco", "The player's bank balance", context -> 20);
+
+        Map<String, String> described = message.getPlaceholderProvider().describeAll();
+
+        assertEquals(2, described.size(), "both parsers must be listed: " + described);
+        assertEquals("The player's balance", described.get("saldo"));
+        assertEquals("The player's bank balance", described.get("banco"));
     }
 
     @Test

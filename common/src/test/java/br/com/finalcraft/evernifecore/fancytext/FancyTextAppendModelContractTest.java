@@ -118,6 +118,31 @@ class FancyTextAppendModelContractTest {
         assertEquals("\nthird", pieces.get(2).getText());
     }
 
+    // Splicing dissolves the appended chain as a declaration level, so what it declared has to reach
+    // its pieces - otherwise concatenating two messages would silently drop their placeholders.
+    @Test
+    void appendingAChainCarriesItsDeclarationsOntoThePiecesItSplicesIn() {
+        FancyFormatter declaring = FancyFormatter.of("hi ${who}").append(" and ${who}");
+        declaring.addPlaceholder("who", "Steve");
+
+        FancyFormatter spliced = new FancyFormatter().append("[").append(declaring);
+
+        assertEquals("[hi Steve and Steve", spliced.toLegacyString(RenderContext.empty()));
+    }
+
+    @Test
+    void aPieceKeepsItsOwnValueWhenTheChainAroundItIsSplicedElsewhere() {
+        FancySegment own = new FancySegment(" then ${who}");
+        own.addPlaceholder("who", "Alex");
+
+        FancyFormatter declaring = FancyFormatter.of("first ${who}").append(own);
+        declaring.addPlaceholder("who", "Steve");
+
+        FancyFormatter spliced = new FancyFormatter().append(declaring);
+
+        assertEquals("first Steve then Alex", spliced.toLegacyString(RenderContext.empty()));
+    }
+
     @Test
     void joinPutsTheSeparatorBetweenItemsAndKeepsEachPieceDecorated() {
         FancyFormatter joined = FancyText.join("§7, ", Arrays.asList("alpha", "beta"),
