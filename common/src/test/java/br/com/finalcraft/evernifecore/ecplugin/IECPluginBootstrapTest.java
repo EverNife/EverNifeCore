@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -24,12 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * task; shutdown runs Pre -&gt; main -&gt; Post; and the default pre-shutdown unregisters every
  * listener the plugin registered BEFORE the main teardown runs.
  */
+@ECoreTest
 class IECPluginBootstrapTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

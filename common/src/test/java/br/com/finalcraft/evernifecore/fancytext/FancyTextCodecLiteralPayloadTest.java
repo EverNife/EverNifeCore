@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.fancytext.hover.FancyHover;
 import br.com.finalcraft.evernifecore.fancytext.hover.ItemHover;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everyconfig.config.Config;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -22,12 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * field by field, because EveryConfig's binder swallows a decode failure and would let a silently
  * emptied value pass a "did not throw" assertion.
  */
+@ECoreTest
 public class FancyTextCodecLiteralPayloadTest {
 
-    @BeforeAll
-    static void setUp() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     private Config open(Path dir) {
         return ConfigFactory.open(dir.resolve("data.yml"));

@@ -1,10 +1,10 @@
 package br.com.finalcraft.evernifecore.playerdata.storage;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.storage.StorageRegistry;
 import br.com.finalcraft.evernifecore.storage.config.ParsedStorageConfig;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlParser;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.codec.JacksonJsonCodec;
 import br.com.finalcraft.everydatabase.log.StorageLogConfig;
@@ -34,12 +34,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * DELIBERATELY silent no-op (no nag - a backend with no feed and no redis simply has no coherence,
  * which is fine on a single server). Runs over a groupedfile backend - feedless, no Docker.
  */
+@ECoreTest
 class CacheSyncWiringTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

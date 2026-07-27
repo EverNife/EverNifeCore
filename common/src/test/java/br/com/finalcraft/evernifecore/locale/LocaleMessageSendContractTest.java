@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.locale;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -9,7 +10,6 @@ import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -29,12 +29,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * send, used to actually deliver the message, must agree on what a decorated {@link LocaleMessage}
  * contains.
  */
+@ECoreTest
 public class LocaleMessageSendContractTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

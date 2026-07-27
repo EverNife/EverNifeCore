@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.locale;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
@@ -18,7 +19,6 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.junit.jupiter.api.AfterEach;
@@ -43,12 +43,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * message broadcast through a {@link LocaleMessage} must reach exactly the same recipients, and the
  * console has to be among them.
  */
+@ECoreTest
 public class BroadcastAudienceContractTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
@@ -15,7 +16,6 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.junit.jupiter.api.BeforeAll;
@@ -41,12 +41,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * literally - so it never matches anything - and is warned about once, which is the only thing
  * standing between a caller who did not migrate and a message that silently stops resolving.
  */
+@ECoreTest
 public class MessagePlaceholdersContractTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

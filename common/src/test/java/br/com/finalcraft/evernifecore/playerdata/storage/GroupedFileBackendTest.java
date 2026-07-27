@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.playerdata.storage;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -24,12 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * End-to-end of the GROUPEDFILE backend in EverNifeCore: a player's base PlayerData and a PDSection
  * (both keyed by the player UUID) co-locate in ONE yaml file per player, and survive a reboot.
  */
+@ECoreTest
 class GroupedFileBackendTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

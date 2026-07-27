@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.storage;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
 import br.com.finalcraft.evernifecore.fancytext.FancyFormatter;
@@ -8,7 +9,6 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
 import br.com.finalcraft.evernifecore.playerdata.SectionSchemaStep;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everyconfig.binding.ConfigContext;
 import br.com.finalcraft.everyconfig.binding.ConfigLifecycle;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
@@ -55,12 +55,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *       lifecycle across the migrated read seam - the case that needs the EveryDatabase decode-delegation fix.</li>
  * </ul>
  */
+@ECoreTest
 class ConfigFactoryCodecTest {
 
     @BeforeAll
     static void setUp() {
-        // ConfigFactory's static init calls getPlatform().registerConfigTypes(); seed a no-op platform first.
-        TestPlatformFixture.ensureInstalled();
         // Teach the factory a type plain Jackson cannot serialize on its own (no getters, no no-arg ctor).
         ConfigFactory.register(Pos.class).asString(Pos::serialize, Pos::parse);
     }

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrationMode;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
@@ -7,7 +8,6 @@ import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaSweepMar
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaSweeper;
 import br.com.finalcraft.everydatabase.manager.entityschema.SweepOptions;
 import br.com.finalcraft.evernifecore.playerdata.storage.PDSectionBinding;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everydatabase.Repository;
 import br.com.finalcraft.everydatabase.WriteMode;
 import br.com.finalcraft.everydatabase.query.IndexHint;
@@ -48,12 +48,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * {@code getPDSection} lazy-loading the player, and lazy schema upcasting on read. Runs on H2 mem -
  * no Docker.
  */
+@ECoreTest
 class PlayerControllerIntegrityTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

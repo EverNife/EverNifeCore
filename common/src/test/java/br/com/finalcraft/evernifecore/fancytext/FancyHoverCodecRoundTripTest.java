@@ -1,10 +1,10 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.fancytext.hover.FancyHover;
 import br.com.finalcraft.evernifecore.fancytext.hover.FancyHoverRegistry;
 import br.com.finalcraft.evernifecore.fancytext.hover.FancyHoverType;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everyconfig.config.Config;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -25,13 +25,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * dropping it. Compared field by field through the {@link FancyHover} interface, because
  * EveryConfig's binder swallows a decode exception and would let a silent data loss pass otherwise.
  */
+@ECoreTest
 public class FancyHoverCodecRoundTripTest {
 
     private static final String TYPE_ID = "custom_roundtrip";
 
     @BeforeAll
     static void setUp() {
-        TestPlatformFixture.ensureInstalled();
         if (!FancyHoverRegistry.registeredIds().contains(TYPE_ID)) {
             FancyHoverRegistry.register(FancyHoverType.<CustomHover>of(TYPE_ID,
                             custom -> HoverEvent.showText(Component.text(custom.payload())))

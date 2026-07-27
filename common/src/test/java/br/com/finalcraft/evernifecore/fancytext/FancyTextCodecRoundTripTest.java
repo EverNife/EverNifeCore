@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everyconfig.config.Config;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -21,13 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * The codec's round-trip contract for {@link FancyText}: content survives, not just segment count.
  */
+@ECoreTest
 public class FancyTextCodecRoundTripTest {
 
-    @BeforeAll
-    static void setUp() {
-        // ConfigFactory's static init calls getPlatform().registerConfigTypes(); seed a no-op platform first.
-        TestPlatformFixture.ensureInstalled();
-    }
 
     private Config open(Path dir) {
         return ConfigFactory.open(dir.resolve("data.yml"));

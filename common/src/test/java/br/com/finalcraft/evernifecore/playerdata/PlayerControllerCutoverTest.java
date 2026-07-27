@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.Repository;
 import br.com.finalcraft.everydatabase.WriteMode;
@@ -48,12 +48,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * conflict handler.
  * Runs on LocalFile (yaml) and H2 mem - no Docker or external services.
  */
+@ECoreTest
 class PlayerControllerCutoverTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

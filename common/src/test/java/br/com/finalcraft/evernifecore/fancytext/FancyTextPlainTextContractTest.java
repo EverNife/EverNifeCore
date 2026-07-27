@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -13,12 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
  * C20 - obtaining a message's final text WITHOUT sending it: {@code toLegacyString(...)} (with
  * {@code §} colours and {@code ${key}} resolved) and {@code toPlainText(...)} (colours stripped).
  */
+@ECoreTest
 public class FancyTextPlainTextContractTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @Test
     void toLegacyStringEqualsSerializingTheComponent() {

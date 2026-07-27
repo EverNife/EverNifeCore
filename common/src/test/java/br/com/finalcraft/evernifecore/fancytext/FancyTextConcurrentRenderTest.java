@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -22,14 +22,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  * routinely rendered from two threads. Rendering must therefore write nothing onto the message: no
  * trailing colour, no cached component, no resolved value.
  */
+@ECoreTest
 public class FancyTextConcurrentRenderTest {
 
     private static final int ITERATIONS = 200;
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @Test
     void twoThreadsRenderingTheSameChainEachGetTheirOwnRecipientsValues() throws Exception {

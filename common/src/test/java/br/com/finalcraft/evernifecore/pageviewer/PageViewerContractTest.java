@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.pageviewer;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
@@ -7,7 +8,6 @@ import br.com.finalcraft.evernifecore.fancytext.MessageScope;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,12 +34,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * descends into every piece of a chain, it is computed once per line and shared by every recipient,
  * and a value carrying regex or closure characters lands literally.
  */
+@ECoreTest
 class PageViewerContractTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     //PageViewer's default header calls getChatAdapter().straightLineOf while the builder is being
     //constructed, which the plain no-op fixture answers with null; the harness installs a real one.

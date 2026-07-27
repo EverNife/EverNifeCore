@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.pageviewer;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,12 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * per-line send inside the per-recipient loop, so every line arrived N times for N recipients - which
  * is invisible with the single recipient of the ordinary command path.
  */
+@ECoreTest
 class PageViewerFanoutTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     //PageViewer's default header calls getChatAdapter().straightLineOf at build time, which the plain
     //no-op fixture answers with null; the harness installs a working chat adapter.

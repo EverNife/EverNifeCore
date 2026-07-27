@@ -1,10 +1,10 @@
 package br.com.finalcraft.evernifecore.playerdata.storage;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everydatabase.transfer.TransferReport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -30,12 +30,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * (InMemory -> H2) and of the base PlayerData (LocalFile yaml -> H2 json) with verified
  * counts; a failed transfer never changes the binding.
  */
+@ECoreTest
 class StorageTransferRuntimeTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

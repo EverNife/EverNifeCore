@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.finalcommandsystemtests;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
@@ -13,7 +14,6 @@ import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.everylibs.util.numberwrapper.NumberWrapper;
 import org.junit.jupiter.api.AfterEach;
@@ -40,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * custom parsers, {@link br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgRequirementType},
  * sub-command positional offsets, and repeated-type args.
  */
+@ECoreTest
 class ArgParsingSystemTest {
 
     //NEVER: see RegistrationSystemTest - the locale bootstrap's async saveAsync() can race JUnit's
@@ -282,7 +283,6 @@ class ArgParsingSystemTest {
         //ArgParserUUID.parserArgument requires PlayerController.getLoaded(uuid) != null - the only
         //builtin type in this matrix row that needs live PlayerController/storage state (D3); an H2
         //in-memory backend keeps it headless and fast.
-        TestPlatformFixture.ensureInstalled();
         UUID uuid = UUID.randomUUID();
         try {
             PlayerController.initialize(writeH2StorageYml("c3uuid"));

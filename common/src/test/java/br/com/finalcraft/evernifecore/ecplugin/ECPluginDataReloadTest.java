@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -25,16 +25,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * reloadable through its mandatory {@code onECPluginReload()}. A plain plugin (no bootstrap, no
  * annotation) is not reloadable.
  */
+@ECoreTest
 class ECPluginDataReloadTest {
 
     private static final AtomicInteger ANNOTATED_RELOADS = new AtomicInteger();
     private static final AtomicInteger TRAIT_RELOADS = new AtomicInteger();
     private static final AtomicInteger BASE_RELOADS = new AtomicInteger();
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

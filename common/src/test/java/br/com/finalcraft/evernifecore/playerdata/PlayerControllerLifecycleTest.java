@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import br.com.finalcraft.evernifecore.playerdata.storage.SectionCachePolicy;
 import br.com.finalcraft.evernifecore.storage.StorageRegistry;
@@ -14,7 +15,6 @@ import br.com.finalcraft.everydatabase.query.Query;
 import br.com.finalcraft.everydatabase.query.QueryOptions;
 import br.com.finalcraft.everydatabase.query.ScanRow;
 import br.com.finalcraft.everydatabase.query.Slice;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -47,12 +47,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * durable flush-on-quit with a storage-down retry, and {@code setPlayer} no longer dirtying the base.
  * Runs on H2 mem - no Docker.
  */
+@ECoreTest
 class PlayerControllerLifecycleTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

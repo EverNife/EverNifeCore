@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.pageviewer;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,12 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The first coverage of {@link PageViewer}: a placeholder registered but never cited by the format
  * line must never have its Function invoked (match-driven), while a cited one is.
  */
+@ECoreTest
 class PageViewerPlaceholderLazinessTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     //A working chat adapter: PageViewer's header calls getChatAdapter().straightLineOf at build time,
     //which the no-op fixture returns null for.

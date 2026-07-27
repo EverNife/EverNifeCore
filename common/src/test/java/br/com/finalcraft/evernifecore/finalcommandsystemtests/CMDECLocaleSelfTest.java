@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.finalcommandsystemtests;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import br.com.finalcraft.evernifecore.PermissionNodes;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
@@ -9,7 +10,6 @@ import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import br.com.finalcraft.evernifecore.locale.LocalePDSection;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,12 +33,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Pins '/eclocale self' (C17 command side): while PER_PLAYER_LOCALE is off the subcommand is hidden
  * and inert; while it is on, it stores the executor's chosen (normalized) language.
  */
+@ECoreTest
 class CMDECLocaleSelfTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir(cleanup = CleanupMode.NEVER)
     Path tempDir;

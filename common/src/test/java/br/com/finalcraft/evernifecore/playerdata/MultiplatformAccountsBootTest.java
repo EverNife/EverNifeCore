@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.playerdata.account.Account;
 import br.com.finalcraft.evernifecore.playerdata.account.AccountMember;
 import br.com.finalcraft.evernifecore.playerdata.account.Accounts;
@@ -10,7 +11,6 @@ import br.com.finalcraft.everydatabase.codec.Codec;
 import br.com.finalcraft.everydatabase.codec.JacksonJsonCodec;
 import br.com.finalcraft.evernifecore.storage.config.ParsedStorageConfig;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlParser;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -34,12 +34,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * boot guard against disabling while linked accounts exist, and the stamped accountId on the base
  * entity (creation default, lazy upcast of pre-account rows, and login re-stamp).
  */
+@ECoreTest
 class MultiplatformAccountsBootTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

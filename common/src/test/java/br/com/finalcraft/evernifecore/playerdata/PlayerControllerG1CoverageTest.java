@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -26,12 +26,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * codec registers - a serialization failure would surface here).
  * Runs on LocalFile (yaml) and H2 mem - no Docker or external services.
  */
+@ECoreTest
 class PlayerControllerG1CoverageTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

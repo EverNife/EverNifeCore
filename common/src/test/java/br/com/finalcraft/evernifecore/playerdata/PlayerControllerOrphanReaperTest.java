@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.playerdata.storage.PDSectionBinding;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,15 +38,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * than implied by the fixture - which is what lets a single collection carry orphans and non-orphans
  * side by side.</p>
  */
+@ECoreTest
 class PlayerControllerOrphanReaperTest {
 
     /** Rows per reaper page - mirrors the production constant, so the tests can straddle a page edge. */
     private static final int PAGE = 256;
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

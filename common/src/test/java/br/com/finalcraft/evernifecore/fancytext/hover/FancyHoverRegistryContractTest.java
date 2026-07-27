@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.fancytext.hover;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
@@ -14,7 +15,6 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
@@ -43,12 +43,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  * rendered for real, and an unsupported type degrades - or, absent a degrade, is silently omitted -
  * instead of ever throwing.
  */
+@ECoreTest
 public class FancyHoverRegistryContractTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     private IPlatform installedBeforeTest;
 

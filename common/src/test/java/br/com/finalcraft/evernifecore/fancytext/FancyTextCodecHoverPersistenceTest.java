@@ -1,10 +1,10 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.fancytext.hover.FancyHover;
 import br.com.finalcraft.evernifecore.fancytext.hover.FancyHoverRegistry;
 import br.com.finalcraft.evernifecore.fancytext.hover.FancyHoverType;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everyconfig.config.Config;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>Every type id here is unique to its own test, because the codec's "warn once" bookkeeping is
  * static and outlives a test class in a shared JVM.</p>
  */
+@ECoreTest
 public class FancyTextCodecHoverPersistenceTest {
 
     private static final String UNPERSISTABLE_TYPE = "fx1_unpersistable_hover";
@@ -41,7 +42,6 @@ public class FancyTextCodecHoverPersistenceTest {
 
     @BeforeAll
     static void setUp() {
-        TestPlatformFixture.ensureInstalled();
         registerCodecless(UNPERSISTABLE_TYPE);
     }
 

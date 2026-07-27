@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.locale.scanner;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
@@ -21,7 +22,6 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.junit.jupiter.api.AfterEach;
@@ -48,12 +48,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * it has to describe exactly that and name both culprits - whether the two fields sit in the same
  * class or in two classes that merely share a simple name.
  */
+@ECoreTest
 public class FCLocaleScannerContractTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

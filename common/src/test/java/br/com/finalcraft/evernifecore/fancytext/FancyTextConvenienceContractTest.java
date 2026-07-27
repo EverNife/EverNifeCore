@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -14,12 +14,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * The FancyText convenience shortcuts: {@code appendLine} equals the {@code append("\n"+...)} it
  * replaces, and {@code send(List)} delivers the same as the varargs form.
  */
+@ECoreTest
 public class FancyTextConvenienceContractTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @Test
     void appendLineEqualsAppendingANewlinePrefixedText() {

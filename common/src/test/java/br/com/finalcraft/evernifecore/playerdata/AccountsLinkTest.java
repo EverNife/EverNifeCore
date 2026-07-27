@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.playerdata.account.Account;
 import br.com.finalcraft.evernifecore.playerdata.account.Accounts;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -35,12 +35,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * re-absorption for a NON-idempotent merge), unlink semantics (the member starts fresh, the account
  * keeps the data) and the forced offline reconciliation.
  */
+@ECoreTest
 class AccountsLinkTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

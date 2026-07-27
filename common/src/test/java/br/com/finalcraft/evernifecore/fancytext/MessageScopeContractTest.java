@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -10,7 +11,6 @@ import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.SendCustom;
 import br.com.finalcraft.evernifecore.locale.scanner.FCLocaleScanner;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -28,12 +28,9 @@ import static org.junit.jupiter.api.Assertions.assertSame;
  * A LocaleMessage lives in a static field, so the command context it renders with cannot live on
  * the message. These pin that two executions - even simultaneous ones - each see their own label.
  */
+@ECoreTest
 public class MessageScopeContractTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

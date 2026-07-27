@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata.storage;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
@@ -9,7 +10,6 @@ import br.com.finalcraft.evernifecore.storage.StorageRegistry;
 import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
 import br.com.finalcraft.evernifecore.storage.config.ParsedStorageConfig;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlParser;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everyconfig.binding.ConfigContext;
 import br.com.finalcraft.everyconfig.binding.ConfigLifecycle;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
@@ -57,12 +57,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *       decoded to an unbound ref.</li>
  * </ul>
  */
+@ECoreTest
 class RefInPDSectionTest {
 
     @BeforeAll
     static void setUp() {
-        // ConfigFactory's static init calls getPlatform().registerConfigTypes(); seed a no-op platform first.
-        TestPlatformFixture.ensureInstalled();
         // a platform type the factory owns, opaque to plain Jackson - used by the no-regression case
         ConfigFactory.register(Coord.class).asString(Coord::serialize, Coord::parse);
     }

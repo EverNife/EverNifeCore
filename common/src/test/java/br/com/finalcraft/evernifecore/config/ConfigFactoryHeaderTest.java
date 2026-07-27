@@ -1,11 +1,11 @@
 package br.com.finalcraft.evernifecore.config;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.IPluginMetaInfo;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everyconfig.config.Config;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * banner every plugin-scoped config gets, while a {@code null} plugin (a headless runtime with no
  * {@link ECPluginData} registered) seeds none.
  */
+@ECoreTest
 class ConfigFactoryHeaderTest {
 
     private static final String PLUGIN_NAME = "HeaderTestPlugin";
@@ -34,10 +35,6 @@ class ConfigFactoryHeaderTest {
     /** A stable line of the banner {@link ConfigFactory#standardHeader} emits. */
     private static final String BANNER_MARKER = "EverNife's Config Manager";
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

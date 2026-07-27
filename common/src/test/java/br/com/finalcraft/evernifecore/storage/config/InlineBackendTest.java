@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.storage.config;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.storage.BackendType;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
@@ -9,7 +10,6 @@ import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.Repository;
 import br.com.finalcraft.everydatabase.codec.JacksonJsonCodec;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -35,12 +35,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * implicit - the "declare one and use it directly" shape, distinct from storage.yml's "declare many,
  * pick by id".
  */
+@ECoreTest
 class InlineBackendTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

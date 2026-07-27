@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata.storage.legacy;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
@@ -15,7 +16,6 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.playerdata.storage.legacy.LegacyMigrationMetadata.SectionProgress;
 import br.com.finalcraft.evernifecore.playerdata.storage.legacy.LegacyMigrationMetadata.SectionStatus;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -46,16 +46,13 @@ import static org.junit.jupiter.api.Assertions.fail;
  * <p>The test platform fixture runs {@code runOnMainThread} inline, so the whole
  * import + load pipeline completes within {@code PlayerController.bootstrap}.</p>
  */
+@ECoreTest
 class LegacyImportTest {
 
     private static final UUID PETRUS_UUID = UUID.fromString("068117bc-0000-4000-8000-000000000001");
     private static final UUID SIMPLE_UUID = UUID.fromString("068117bc-0000-4000-8000-000000000002");
     private static final String FAKE_PLUGIN_NAME = "LegacyTestPlugin";
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

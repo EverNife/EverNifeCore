@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.finalcommandsystemtests;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.PermissionNodes;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.commands.misc.CMDECCooldown;
@@ -10,7 +11,6 @@ import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import org.junit.jupiter.api.AfterEach;
@@ -41,15 +41,12 @@ import static org.junit.jupiter.api.Assertions.fail;
  * (the two now-deleted labels gone) and both the local and network dispatch paths, up to what the
  * headless harness can reach.
  */
+@ECoreTest
 class CMDECCooldownDogfoodTest {
 
     //Must run before ANY PlayerController.initialize() call in this class: ConfigFactory's static
     //init (triggered by PlayerController's constructor) reads EverNifeCore.getPlatform() exactly
     //once per JVM, and a class-init failure sticks (NoClassDefFoundError) for every later test.
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     private static final AtomicInteger UNIQUE_SUFFIX = new AtomicInteger();
 

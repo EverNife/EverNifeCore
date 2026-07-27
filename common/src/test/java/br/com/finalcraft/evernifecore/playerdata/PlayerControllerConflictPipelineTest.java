@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.everydatabase.manager.writeback.OptimisticConflictException;
 import br.com.finalcraft.everydatabase.manager.writeback.StorageWriteException;
 import br.com.finalcraft.evernifecore.storage.StorageRegistry;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.HealthStatus;
 import br.com.finalcraft.everydatabase.Repository;
@@ -55,12 +55,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * through {@code PlayerController.flushSection}/{@code flushPlayer}, not a reproduction of it. Runs on
  * H2 mem with the section backend wrapped - no Docker.
  */
+@ECoreTest
 class PlayerControllerConflictPipelineTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.config;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.cooldown.GenericCooldown;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
@@ -13,7 +14,6 @@ import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.evernifecore.time.DayOfToday;
 import br.com.finalcraft.everylibs.util.FCTimeUtil;
 import br.com.finalcraft.everylibs.util.numberwrapper.NumberWrapper;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everyconfig.config.Config;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -34,13 +34,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Verifies the built-in {@code ECBuiltinTypes} registrations: canonical round-trips plus the legacy
  * READ-compat contract (a position stored as a legacy map OR a legacy string must still read).
  */
+@ECoreTest
 class ECBuiltinTypesTest {
 
-    @BeforeAll
-    static void setUp() {
-        // ConfigFactory's static init calls getPlatform().registerConfigTypes(); seed a no-op platform first.
-        TestPlatformFixture.ensureInstalled();
-    }
 
     /** Open a fresh Config over a brand-new file using the framework's type-aware YAML codec. */
     private Config open(Path dir) {

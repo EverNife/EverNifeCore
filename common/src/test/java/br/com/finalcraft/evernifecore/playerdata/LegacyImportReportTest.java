@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.playerdata.storage.legacy.LegacyImportReport;
 import br.com.finalcraft.evernifecore.playerdata.storage.legacy.LegacyPlayerDataImporter;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -28,14 +28,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * only way to prove that the run's numbers really reach the report, instead of the progress file
  * alone.</p>
  */
+@ECoreTest
 class LegacyImportReportTest {
 
     private static final UUID PETRUS_UUID = UUID.fromString("068117bc-0000-4000-8000-000000000011");
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

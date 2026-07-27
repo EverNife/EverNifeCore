@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.storage;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.storage.config.ParsedStorageConfig;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlParser;
 import org.junit.jupiter.api.BeforeAll;
@@ -22,12 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@ECoreTest
 class StorageBootReportTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        br.com.finalcraft.evernifecore.testutil.TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

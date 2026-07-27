@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.storage.config;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.storage.BackendType;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
 import br.com.finalcraft.evernifecore.storage.StorageRegistry;
@@ -21,12 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@ECoreTest
 class StorageYamlParserTest {
 
-    @org.junit.jupiter.api.BeforeAll
-    static void installTestPlatform() {
-        br.com.finalcraft.evernifecore.testutil.TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

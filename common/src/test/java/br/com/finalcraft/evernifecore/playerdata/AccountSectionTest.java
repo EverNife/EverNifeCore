@@ -1,10 +1,10 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.playerdata.account.Account;
 import br.com.finalcraft.evernifecore.playerdata.account.AccountMember;
 import br.com.finalcraft.evernifecore.playerdata.account.Accounts;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -34,12 +34,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * merge-based conflict resolution, presence semantics of the transient default, and the delete
  * rule (a singleton's rows cascade; a linked account's rows survive one member's deletion).
  */
+@ECoreTest
 class AccountSectionTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;

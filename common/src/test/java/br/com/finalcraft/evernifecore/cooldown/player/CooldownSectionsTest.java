@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.cooldown.player;
 
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
 import br.com.finalcraft.evernifecore.cooldown.CooldownRetention;
@@ -9,7 +10,6 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.playerdata.account.Account;
 import br.com.finalcraft.evernifecore.playerdata.account.AccountMember;
 import br.com.finalcraft.evernifecore.playerdata.account.Accounts;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -40,12 +40,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * tombstone carve-out, and the account absorption a link triggers. Backend: H2 in-memory (the same
  * durable DB across two bootstraps stands in for two servers).
  */
+@ECoreTest
 class CooldownSectionsTest {
 
-    @BeforeAll
-    static void installTestPlatform() {
-        TestPlatformFixture.ensureInstalled();
-    }
 
     @TempDir
     Path tempDir;
