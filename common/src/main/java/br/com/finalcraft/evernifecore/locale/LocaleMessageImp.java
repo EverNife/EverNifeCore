@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
+import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.fancytext.RenderContext;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
@@ -147,6 +148,11 @@ public class LocaleMessageImp implements LocaleMessage {
     }
 
     @Override
+    public boolean isDefined() {
+        return !fancyTextMap.isEmpty();
+    }
+
+    @Override
     public FancyText getDefaultFancyText() {
         if (defaultFancyText == null){
             defaultFancyText = getFancyText(FCLocaleManager.getLangOf(this.plugin));
@@ -154,7 +160,10 @@ public class LocaleMessageImp implements LocaleMessage {
                 if (fancyTextMap.isEmpty()){
                     EverNifeCore.getLog().warning("LocaleMessage '" + key + "' of plugin '"
                             + plugin.getMetaInfo().getName() + "' has no registered locale text.");
-                    return null;
+                    //Visible on purpose: a message that silently renders as nothing is a bug that
+                    //reaches production; one that renders its own key is reported by the first
+                    //player who sees it. Not cached either - registering a locale later fixes it.
+                    return new FancySegment("[LOCALE_NOT_DEFINED:" + key + "]");
                 }
                 defaultFancyText = new ArrayList<>(fancyTextMap.values()).get(0);
             }

@@ -329,9 +329,7 @@ public class CMDMethodInterpreter {
                                 if (argFancyText == null){
                                     argFancyText = localesForThisArg.getDefaultFancyText();
                                 }
-                                if (argFancyText != null){//I think this will never be null, but whatever
-                                    extraDescription = argFancyText.getHoverText() != null && !argFancyText.getHoverText().isEmpty() ? argFancyText.getHoverText() : argFancyText.getText();
-                                }
+                                extraDescription = argFancyText.getHoverText() != null && !argFancyText.getHoverText().isEmpty() ? argFancyText.getHoverText() : argFancyText.getText();
                             }
 
                             fancyFormatter.append(" " + argParser.getArgInfo().getArgData().getName());
@@ -371,9 +369,7 @@ public class CMDMethodInterpreter {
                     if (flagFancyText == null){
                         flagFancyText = localesForThisFlag.getDefaultFancyText();
                     }
-                    if (flagFancyText != null){
-                        extraDescription = flagFancyText.getHoverText() != null && !flagFancyText.getHoverText().isEmpty() ? flagFancyText.getHoverText() : flagFancyText.getText();
-                    }
+                    extraDescription = flagFancyText.getHoverText() != null && !flagFancyText.getHoverText().isEmpty() ? flagFancyText.getHoverText() : flagFancyText.getText();
                 }
 
                 anyLocalizedFlag.set(true);
