@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.config;
 
+import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
@@ -82,7 +83,7 @@ class ConfigFactoryHeaderTest {
 
     private ECPluginData fakePluginData() {
         EverNifeCore.getProviders().getBaseProvider().register(IECPluginExtractor.class,
-                new FakePluginExtractor(tempDir.resolve(PLUGIN_NAME).toFile()));
+                Plugins.fake(PLUGIN_NAME, tempDir.resolve(PLUGIN_NAME).toFile()));
         return ECPluginManager.getOrCreateECorePluginData(new FakePlugin());
     }
 
@@ -90,71 +91,5 @@ class ConfigFactoryHeaderTest {
     public static final class FakePlugin {
     }
 
-    private static final class FakePluginExtractor implements IECPluginExtractor {
-        private final File dataFolder;
 
-        FakePluginExtractor(File dataFolder) {
-            this.dataFolder = dataFolder;
-        }
-
-        @Override
-        public String getPluginName(Object javaPlugin) {
-            return PLUGIN_NAME;
-        }
-
-        @Override
-        public boolean isJavaPlugin(Object plugin) {
-            return plugin instanceof FakePlugin;
-        }
-
-        @Override
-        public Object getProvidingPlugin(Class<?> clazz) {
-            return null;
-        }
-
-        @Override
-        public IPluginMetaInfo getPluginMetaInfo(Object javaPlugin) {
-            return new FakeMetaInfo(javaPlugin, dataFolder);
-        }
-    }
-
-    private static final class FakeMetaInfo implements IPluginMetaInfo {
-        private final Object plugin;
-        private final File dataFolder;
-
-        FakeMetaInfo(Object plugin, File dataFolder) {
-            this.plugin = plugin;
-            this.dataFolder = dataFolder;
-        }
-
-        @Override
-        public String getName() {
-            return PLUGIN_NAME;
-        }
-
-        @Override
-        public String getVersion() {
-            return "1.0.0";
-        }
-
-        @Override
-        public String getAuthor() {
-            return PLUGIN_AUTHOR;
-        }
-
-        @Override
-        public String getGroup() {
-            return "br.com.finalcraft";
-        }
-
-        @Override
-        public File getDataFolder() {
-            return dataFolder;
-        }
-
-        @Override
-        public Object getDelegate() {
-            return plugin;
-        }
-    }
 }

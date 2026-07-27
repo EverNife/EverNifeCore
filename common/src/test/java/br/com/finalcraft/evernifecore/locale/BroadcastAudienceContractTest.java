@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.locale;
 
+import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
@@ -109,7 +110,7 @@ public class BroadcastAudienceContractTest {
 
     private ECPluginData pluginData(String pluginName) {
         EverNifeCore.getProviders().getBaseProvider().register(IECPluginExtractor.class,
-                new FakePluginExtractor(pluginName, tempDir.resolve(pluginName).toFile()));
+                Plugins.fake(pluginName, tempDir.resolve(pluginName).toFile()));
         registeredPluginName = pluginName;
         return ECPluginManager.getOrCreateECorePluginData(new Object());
     }
@@ -179,75 +180,5 @@ public class BroadcastAudienceContractTest {
         @Override public void shutdown(String reason) { delegate.shutdown(reason); }
     }
 
-    private static final class FakePluginExtractor implements IECPluginExtractor {
-        private final String pluginName;
-        private final File dataFolder;
 
-        FakePluginExtractor(String pluginName, File dataFolder) {
-            this.pluginName = pluginName;
-            this.dataFolder = dataFolder;
-        }
-
-        @Override
-        public String getPluginName(Object javaPlugin) {
-            return pluginName;
-        }
-
-        @Override
-        public boolean isJavaPlugin(Object plugin) {
-            return true;
-        }
-
-        @Override
-        public Object getProvidingPlugin(Class<?> clazz) {
-            return null;
-        }
-
-        @Override
-        public IPluginMetaInfo getPluginMetaInfo(Object javaPlugin) {
-            return new FakeMetaInfo(javaPlugin, pluginName, dataFolder);
-        }
-    }
-
-    private static final class FakeMetaInfo implements IPluginMetaInfo {
-        private final Object plugin;
-        private final String pluginName;
-        private final File dataFolder;
-
-        FakeMetaInfo(Object plugin, String pluginName, File dataFolder) {
-            this.plugin = plugin;
-            this.pluginName = pluginName;
-            this.dataFolder = dataFolder;
-        }
-
-        @Override
-        public String getName() {
-            return pluginName;
-        }
-
-        @Override
-        public String getVersion() {
-            return "1.0.0";
-        }
-
-        @Override
-        public String getAuthor() {
-            return "Petrus";
-        }
-
-        @Override
-        public String getGroup() {
-            return "br.com.finalcraft";
-        }
-
-        @Override
-        public File getDataFolder() {
-            return dataFolder;
-        }
-
-        @Override
-        public Object getDelegate() {
-            return plugin;
-        }
-    }
 }

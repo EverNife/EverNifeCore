@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata.storage.legacy;
 
+import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
@@ -210,7 +211,7 @@ class LegacyImportTest {
     private ECPluginData realPluginData() {
         Object plugin = new FakePlugin();
         EverNifeCore.getProviders().getBaseProvider().register(IECPluginExtractor.class,
-                new FakePluginExtractor(tempDir.resolve(FAKE_PLUGIN_NAME).toFile()));
+                Plugins.fake(FAKE_PLUGIN_NAME, tempDir.resolve(FAKE_PLUGIN_NAME).toFile()));
         return ECPluginManager.getOrCreateECorePluginData(plugin);
     }
 
@@ -218,73 +219,7 @@ class LegacyImportTest {
     public static final class FakePlugin {
     }
 
-    private static final class FakePluginExtractor implements IECPluginExtractor {
-        private final File dataFolder;
 
-        FakePluginExtractor(File dataFolder) {
-            this.dataFolder = dataFolder;
-        }
-
-        @Override
-        public String getPluginName(Object javaPlugin) {
-            return FAKE_PLUGIN_NAME;
-        }
-
-        @Override
-        public boolean isJavaPlugin(Object plugin) {
-            return plugin instanceof FakePlugin;
-        }
-
-        @Override
-        public Object getProvidingPlugin(Class<?> clazz) {
-            return null;
-        }
-
-        @Override
-        public IPluginMetaInfo getPluginMetaInfo(Object javaPlugin) {
-            return new FakeMetaInfo(javaPlugin, dataFolder);
-        }
-    }
-
-    private static final class FakeMetaInfo implements IPluginMetaInfo {
-        private final Object plugin;
-        private final File dataFolder;
-
-        FakeMetaInfo(Object plugin, File dataFolder) {
-            this.plugin = plugin;
-            this.dataFolder = dataFolder;
-        }
-
-        @Override
-        public String getName() {
-            return FAKE_PLUGIN_NAME;
-        }
-
-        @Override
-        public String getVersion() {
-            return "1.0.0";
-        }
-
-        @Override
-        public String getAuthor() {
-            return "Petrus";
-        }
-
-        @Override
-        public String getGroup() {
-            return "br.com.finalcraft";
-        }
-
-        @Override
-        public File getDataFolder() {
-            return dataFolder;
-        }
-
-        @Override
-        public Object getDelegate() {
-            return plugin;
-        }
-    }
 
     private static File[] ymlFiles(File folder) {
         File[] files = folder.listFiles((dir, name) -> name.endsWith(".yml"));
