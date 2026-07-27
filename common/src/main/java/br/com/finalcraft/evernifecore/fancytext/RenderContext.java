@@ -6,7 +6,11 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import jakarta.annotation.Nullable;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Everything the placeholder engine needs for a single render: who is receiving the message, their
@@ -21,6 +25,7 @@ public final class RenderContext {
     private final PlayerData playerData;
     private final MessageContext messageContext;
     private final PlaceholderScope scope;
+    private final Map<Object, Optional<Object>> resolvedOnce = new HashMap<>();
 
     public RenderContext(@Nullable FCommandSender sender,
                          @Nullable PlayerData playerData,
@@ -69,6 +74,19 @@ public final class RenderContext {
 
     public MessageContext getMessageContext() {
         return messageContext;
+    }
+
+    /**
+     * The value of one declaration in this render, computed at most once. {@code token} is the
+     * identity of the declaration, so the same key declared by two different messages keeps two
+     * answers.
+     *
+     * <p>Resolving to {@code null} is itself an answer worth remembering - otherwise the key would be
+     * recomputed on every mention - which is what the {@link Optional} carrier is for.</p>
+     */
+    public @Nullable Object resolveOnce(Object token, Supplier<?> compute) {
+        return resolvedOnce.computeIfAbsent(token, ignored -> Optional.ofNullable(compute.get()))
+                .orElse(null);
     }
 
     /**

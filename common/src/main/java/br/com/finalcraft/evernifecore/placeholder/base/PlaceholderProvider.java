@@ -45,6 +45,32 @@ public class PlaceholderProvider<O> implements IProvider<O>{
         return parserMap;
     }
 
+    /**
+     * A provider with the same registrations, in the same order, but its own map: registering on the
+     * copy never reaches the original. The {@link SimpleParser} entries themselves are shared, which is
+     * safe because they are immutable - and it keeps a parser's identity stable across a copy, so
+     * anything keyed by that identity (a per-render memo, for one) still recognises it.
+     */
+    public PlaceholderProvider<O> copy() {
+        PlaceholderProvider<O> copy = new PlaceholderProvider<>();
+        copy.parserMap.putAll(this.parserMap);
+        copy.defaultParser = this.defaultParser;
+        return copy;
+    }
+
+    /**
+     * Every key this provider answers for, mapped to its registered description ({@code ""} when
+     * undescribed), in registration order. This is what an integrating plugin reads to list the
+     * placeholders it can offer the user, so a key that is registered but not described still shows up.
+     */
+    public Map<String, String> describeAll() {
+        Map<String, String> described = new LinkedHashMap<>();
+        for (SimpleParser<O> parser : parserMap.values()) {
+            described.put(parser.getId(), parser.getDescription());
+        }
+        return described;
+    }
+
     public BiFunction<O, String, Object> getDefaultParser() {
         return defaultParser;
     }
