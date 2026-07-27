@@ -10,7 +10,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.custom.contexts.Customiz
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.commands.misc.CMDAlias;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
-import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.FinalCmdTestHarness;
+import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.LocaleType;

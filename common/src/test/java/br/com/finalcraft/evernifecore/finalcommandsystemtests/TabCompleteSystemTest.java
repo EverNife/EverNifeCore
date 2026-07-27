@@ -6,9 +6,9 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAcce
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
-import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.FinalCmdTestHarness;
-import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.TestCommandSender;
-import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.TestFPlayerSender;
+import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
+import br.com.finalcraft.evernifecore.testing.TestCommandSender;
+import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.CleanupMode;

@@ -5,8 +5,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDMethodInterp
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.commands.misc.CMDECAccount;
 import br.com.finalcraft.evernifecore.commands.misc.CMDECStorage;
-import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.FinalCmdTestHarness;
-import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.TestCommandSender;
+import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
+import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.CleanupMode;

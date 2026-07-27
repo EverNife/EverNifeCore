@@ -24,6 +24,6 @@ class ECoreTestExtensionTest {
         platform.shutdown("a reason");
 
         assertNotNull(platform.getPlatformProviderId());
-        assertTrue(platform.shutdownReasons().contains("a reason"));
+        assertTrue(platform.getShutdownReasons().contains("a reason"));
     }
 }

@@ -7,7 +7,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDP
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.IECPluginBootstrap;
-import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.FinalCmdTestHarness;
+import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.everyconfig.config.Config;
 import org.junit.jupiter.api.AfterEach;

@@ -7,7 +7,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.IPluginMetaInfo;
 import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
-import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.TestCommandSender;
+import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;

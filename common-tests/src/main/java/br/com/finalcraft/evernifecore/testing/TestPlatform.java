@@ -66,7 +66,7 @@ public class TestPlatform extends AbstractTestPlatform {
     // ------------------------------------------------------------------
 
     /** The command captured under {@code label} (primary or extra), or {@code null}. */
-    public FinalCMDPluginCommand capturedCommand(String label) {
+    public FinalCMDPluginCommand getCaptured(String label) {
         return capturedByLabel.get(label);
     }
 
@@ -75,17 +75,17 @@ public class TestPlatform extends AbstractTestPlatform {
         return registrationOrder;
     }
 
-    public List<String> unregisteredLabels() {
+    public List<String> getUnregisteredLabels() {
         return unregisteredLabels;
     }
 
     /** Every {@code info}-level line logged through an adapter this platform created. */
-    public List<String> infoMessages() {
+    public List<String> getInfoMessages() {
         return infoMessages;
     }
 
     /** Every reason passed to {@code shutdown} - a real shutdown would kill the test JVM. */
-    public List<String> shutdownReasons() {
+    public List<String> getShutdownReasons() {
         return shutdownReasons;
     }
 

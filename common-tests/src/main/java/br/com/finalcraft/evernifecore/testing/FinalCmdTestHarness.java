@@ -1,21 +1,16 @@
-package br.com.finalcraft.evernifecore.finalcommandsystemtests.harness;
+package br.com.finalcraft.evernifecore.testing;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
-import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.FCDefaultExecutor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
-import br.com.finalcraft.evernifecore.ecplugin.IPluginMetaInfo;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
-import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -24,31 +19,31 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Headless end-to-end harness for the FinalCMD framework: registration -&gt; dispatch -&gt; parse -&gt;
  * invoke -&gt; message, without a real Bukkit/Hytale server.
  * <p>
- * Every instance owns its own {@link CommandCapturePlatform} and a uniquely-named
+ * Every instance owns its own command-capturing platform and a uniquely-named
  * {@link ECPluginData} (backed by the caller-supplied {@code @TempDir}), so tests never leak
  * registered commands or locale state into one another. Create one per test (or per test class, if
  * the tests within it are fine sharing the same fake plugin) and {@link #close()} it in
- * {@code @AfterEach}/{@code @AfterAll}.
+ * {@code @AfterEach}/{@code @AfterAll} - closing puts the previous platform and plugin extractor
+ * back, so the isolation this javadoc promises also holds for the global providers.
  */
 public class FinalCmdTestHarness implements AutoCloseable {
 
     private static final AtomicInteger UNIQUE_SUFFIX = new AtomicInteger();
 
     public final String pluginName;
-    public final CommandCapturePlatform platform;
+    public final TestPlatform platform;
     public final ECPluginData ecPluginData;
 
+    private final ECoreTestWorld world;
+
     public FinalCmdTestHarness(String namePrefix, Path dataFolder) {
-        //guarantees SOME platform is registered before FinalCMDManager's static block ever runs,
-        //no matter which test in the JVM touches it first
-        TestPlatformFixture.ensureInstalled();
-
         this.pluginName = namePrefix + "_" + UNIQUE_SUFFIX.incrementAndGet();
-        this.platform = new CommandCapturePlatform();
 
-        EverNifeCore.getProviders().getBaseProvider().register(IPlatform.class, platform);
-        EverNifeCore.getProviders().getBaseProvider().register(IECPluginExtractor.class,
-                new FakePluginExtractor(pluginName, dataFolder.toFile()));
+        //a platform has to be registered before FinalCMDManager's static block ever runs, no matter
+        //which test in the JVM touches it first
+        this.world = Platforms.commandCapture().install()
+                .withPluginExtractor(Plugins.fake(pluginName, dataFolder.toFile()));
+        this.platform = world.platform();
 
         this.ecPluginData = ECPluginManager.getOrCreateECorePluginData(new Object());
 
@@ -103,81 +98,6 @@ public class FinalCmdTestHarness implements AutoCloseable {
     @Override
     public void close() {
         ECPluginManager.removePluginData(pluginName);
-    }
-
-    // ------------------------------------------------------------------
-    // Fake plugin plumbing (same shape as ECPluginDataReloadTest's)
-    // ------------------------------------------------------------------
-
-    private static final class FakePluginExtractor implements IECPluginExtractor {
-        private final String pluginName;
-        private final File dataFolder;
-
-        FakePluginExtractor(String pluginName, File dataFolder) {
-            this.pluginName = pluginName;
-            this.dataFolder = dataFolder;
-        }
-
-        @Override
-        public String getPluginName(Object javaPlugin) {
-            return pluginName;
-        }
-
-        @Override
-        public boolean isJavaPlugin(Object plugin) {
-            return true;
-        }
-
-        @Override
-        public Object getProvidingPlugin(Class<?> clazz) {
-            return null;
-        }
-
-        @Override
-        public IPluginMetaInfo getPluginMetaInfo(Object javaPlugin) {
-            return new FakeMetaInfo(javaPlugin, pluginName, dataFolder);
-        }
-    }
-
-    private static final class FakeMetaInfo implements IPluginMetaInfo {
-        private final Object plugin;
-        private final String pluginName;
-        private final File dataFolder;
-
-        FakeMetaInfo(Object plugin, String pluginName, File dataFolder) {
-            this.plugin = plugin;
-            this.pluginName = pluginName;
-            this.dataFolder = dataFolder;
-        }
-
-        @Override
-        public String getName() {
-            return pluginName;
-        }
-
-        @Override
-        public String getVersion() {
-            return "1.0.0";
-        }
-
-        @Override
-        public String getAuthor() {
-            return "Petrus";
-        }
-
-        @Override
-        public String getGroup() {
-            return "br.com.finalcraft";
-        }
-
-        @Override
-        public File getDataFolder() {
-            return dataFolder;
-        }
-
-        @Override
-        public Object getDelegate() {
-            return plugin;
-        }
+        world.close();
     }
 }

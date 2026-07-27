@@ -81,8 +81,8 @@ class PlatformsTest {
 
         platform.shutdown("storage is unreachable");
 
-        assertEquals(1, platform.shutdownReasons().size());
-        assertEquals("storage is unreachable", platform.shutdownReasons().get(0));
+        assertEquals(1, platform.getShutdownReasons().size());
+        assertEquals("storage is unreachable", platform.getShutdownReasons().get(0));
     }
 
     @Test
@@ -117,6 +117,6 @@ class PlatformsTest {
 
         assertNotNull(platform.getChatAdapter());
         assertTrue(platform.registrationOrder().isEmpty());
-        assertNull(platform.capturedCommand("nothing-registered-yet"));
+        assertNull(platform.getCaptured("nothing-registered-yet"));
     }
 }

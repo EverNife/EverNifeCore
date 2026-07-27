@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.finalcommandsystemtests.harness;
+package br.com.finalcraft.evernifecore.testing;
 
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;

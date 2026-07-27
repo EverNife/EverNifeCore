@@ -5,8 +5,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDP
 import br.com.finalcraft.evernifecore.commands.misc.CMDECCooldown;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
-import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.FinalCmdTestHarness;
-import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.TestCommandSender;
+import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
+import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;

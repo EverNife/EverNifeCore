@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginE
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.IPluginMetaInfo;
-import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.TestCommandSender;
+import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.SendCustom;

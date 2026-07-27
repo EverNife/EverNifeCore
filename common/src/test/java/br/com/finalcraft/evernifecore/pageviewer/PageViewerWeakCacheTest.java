@@ -2,8 +2,8 @@ package br.com.finalcraft.evernifecore.pageviewer;
 
 import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
-import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.FinalCmdTestHarness;
-import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.TestCommandSender;
+import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
+import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;

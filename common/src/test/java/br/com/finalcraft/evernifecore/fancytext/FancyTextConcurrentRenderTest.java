@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
-import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.TestCommandSender;
+import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
