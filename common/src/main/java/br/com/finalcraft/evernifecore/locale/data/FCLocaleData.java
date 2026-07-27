@@ -12,6 +12,13 @@ import lombok.experimental.Accessors;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
+/**
+ * The mutable form of one {@link FCLocale} declaration. The accessors are fluent on purpose: this
+ * type mirrors the annotation element for element, so {@code data.hover()} reads exactly like the
+ * {@code hover()} of the annotation it was built from, and a call site can be moved between the two
+ * without rewording. That is also why these names cannot be "fixed" independently - the annotation's
+ * element names are public contract of every {@code @FCLocale} ever written.
+ */
 @Getter
 @Setter
 @Accessors(fluent = true, chain = true)

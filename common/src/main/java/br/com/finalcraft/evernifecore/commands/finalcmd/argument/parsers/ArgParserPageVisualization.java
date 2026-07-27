@@ -7,17 +7,17 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
-import br.com.finalcraft.evernifecore.pageviewer.PageVizualization;
+import br.com.finalcraft.evernifecore.pageviewer.PageVisualization;
 import com.google.common.collect.ImmutableList;
 import jakarta.annotation.Nonnull;
 
 import java.util.List;
 
-public class ArgParserPageVizualization extends ArgParser<PageVizualization> {
+public class ArgParserPageVisualization extends ArgParser<PageVisualization> {
 
     protected final ArgParserNumber argParserNumber;
 
-    public ArgParserPageVizualization(ArgInfo argInfo) {
+    public ArgParserPageVisualization(ArgInfo argInfo) {
         super(argInfo);
         if (argInfo.getArgData().getContext().isEmpty()){
             argInfo.getArgData().setContext("[1:*]");//By default, the context start at 1 and goes to infinity
@@ -31,10 +31,10 @@ public class ArgParserPageVizualization extends ArgParser<PageVizualization> {
     }
 
     @Override
-    public PageVizualization parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
+    public PageVisualization parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
 
         if (argumento.equalsIgnoreCase("all") && sender.hasPermission(PermissionNodes.EVERNIFECORE_PAGEVIEWER_ALL)){
-            return new PageVizualization(0, 0, true);
+            return new PageVisualization(0, 0, true);
         }
 
         if (argumento.toString().contains("-") && sender.hasPermission(PermissionNodes.EVERNIFECORE_PAGEVIEWER_INTERVAL)){
@@ -43,7 +43,7 @@ public class ArgParserPageVizualization extends ArgParser<PageVizualization> {
             if (split.length == 2){
                 int page1 = argParserNumber.parserArgument(argContext, sender, new Argumento(split[0])).intValue();
                 int page2 = argParserNumber.parserArgument(argContext, sender, new Argumento(split[1])).intValue();
-                return new PageVizualization(Math.min(page1, page2), Math.max(page1, page2), false);
+                return new PageVisualization(Math.min(page1, page2), Math.max(page1, page2), false);
             }
             //If the split is not 2, then it's not an interval, so it will be parsed as a single page
         }
@@ -54,7 +54,7 @@ public class ArgParserPageVizualization extends ArgParser<PageVizualization> {
             return null;
         }
 
-        return new PageVizualization(
+        return new PageVisualization(
                 page,
                 page,
                 false

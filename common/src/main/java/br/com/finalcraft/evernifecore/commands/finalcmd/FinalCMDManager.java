@@ -28,7 +28,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.FCMultiLocales;
-import br.com.finalcraft.evernifecore.pageviewer.PageVizualization;
+import br.com.finalcraft.evernifecore.pageviewer.PageVisualization;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import br.com.finalcraft.everylibs.commons.Tuple;
@@ -54,7 +54,7 @@ public class FinalCMDManager {
         ArgParserManager.addGlobalParser(Boolean.class, ArgParserBoolean.class);
         ArgParserManager.addGlobalParser(Enum.class, ArgParserEnum.class);
         ArgParserManager.addGlobalParser(UUID.class, ArgParserUUID.class);
-        ArgParserManager.addGlobalParser(PageVizualization.class, ArgParserPageVizualization.class);
+        ArgParserManager.addGlobalParser(PageVisualization.class, ArgParserPageVisualization.class);
         ArgParserManager.addGlobalParser(FCTimeFrame.class, ArgParserFCTimeFrame.class);
         ArgParserManager.addGlobalParser(FPlayer.class, ArgParserFPlayer.class);
 

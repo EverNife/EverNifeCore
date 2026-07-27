@@ -71,7 +71,7 @@ public class WorldEditIntegration {
             worldEditPlugin.getLogger().warning("exceeded the block limit while restoring schematic, limit in exception: " + e.getBlockLimit() + ", limit passed by EverNifeCore: -1");
             return false;
         } catch(IOException e) {
-            worldEditPlugin.getLogger().warning("An error occured while restoring schematic, enable debug to see the complete stacktrace");
+            worldEditPlugin.getLogger().warning("An error occurred while restoring schematic, enable debug to see the complete stacktrace");
             return false;
         }
         editSession.flushQueue();

@@ -49,7 +49,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
     protected final @Nullable Class<OBJ> target; //Compared Class, can be null
     protected final Supplier<List<OBJ>> supplier;
-    protected final @Nullable Function<OBJ, COMPARED_VALUE> valueExtrator;
+    protected final @Nullable Function<OBJ, COMPARED_VALUE> valueExtractor;
     protected final @Nullable Comparator<SortedItem<OBJ, COMPARED_VALUE>> comparator;
     protected final List<FancyText> formatHeader;
     protected final Function<OBJ, FancyText> formatLine;
@@ -70,10 +70,10 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
     protected transient List<FancyText> pageFooterCache = null;
     protected transient long lastBuild = 0L;
 
-    public PageViewer(Class<OBJ> target, Supplier<List<OBJ>> supplier, @Nullable Function<OBJ, COMPARED_VALUE> valueExtrator, @Nullable Comparator<SortedItem<OBJ, COMPARED_VALUE>> comparator, List<FancyText> formatHeader, Function<OBJ, FancyText> formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, int pageSize, boolean includeDate, boolean includeTotalCount, boolean nextAndPreviousPageButton) {
+    public PageViewer(Class<OBJ> target, Supplier<List<OBJ>> supplier, @Nullable Function<OBJ, COMPARED_VALUE> valueExtractor, @Nullable Comparator<SortedItem<OBJ, COMPARED_VALUE>> comparator, List<FancyText> formatHeader, Function<OBJ, FancyText> formatLine, List<FancyText> formatFooter, long cooldown, int lineStart, int lineEnd, int pageSize, boolean includeDate, boolean includeTotalCount, boolean nextAndPreviousPageButton) {
         this.target = target;
         this.supplier = supplier;
-        this.valueExtrator = valueExtrator;
+        this.valueExtractor = valueExtractor;
         this.comparator = comparator;
         this.formatHeader = formatHeader;
         this.formatLine = formatLine;
@@ -115,7 +115,7 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
             List<SortedItem<OBJ, COMPARED_VALUE>> sortedList = new ArrayList<>();
 
             for (OBJ item : supplier.get()) {
-                COMPARED_VALUE comparedValue = valueExtrator != null ? valueExtrator.apply(item) : null;
+                COMPARED_VALUE comparedValue = valueExtractor != null ? valueExtractor.apply(item) : null;
                 sortedList.add(new SortedItem(item, comparedValue));
             }
 
@@ -265,19 +265,19 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         send(page, start, end, sender);
     }
 
-    public void send(@Nullable PageVizualization pageVizualization, @Nonnull FCommandSender... sender){
-        if (pageVizualization == null){
+    public void send(@Nullable PageVisualization pageVisualization, @Nonnull FCommandSender... sender){
+        if (pageVisualization == null){
             send(1, sender);
             return;
         }
 
-        if (pageVizualization.isShowAll()){
+        if (pageVisualization.isShowAll()){
             send(1, 0, Integer.MAX_VALUE, sender);
             return;
         }
 
-        int page = pageVizualization.getPageStart();
-        int pageEnd = pageVizualization.getPageEnd();
+        int page = pageVisualization.getPageStart();
+        int pageEnd = pageVisualization.getPageEnd();
         int diff = pageEnd - page;
 
         int start = NumberWrapper.of((page - 1) * pageSize).boundUpper(lineEnd - pageSize).intValue();
