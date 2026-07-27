@@ -71,9 +71,9 @@ class FancyTextAppendModelContractTest {
         FancyFormatter viaVarargs = new FancyFormatter().append(first, second);
 
         leaf.setText("§4MUTATED");
-        leaf.hover("§4MUTATED HOVER");
+        leaf.setHover("§4MUTATED HOVER");
         first.setText("§4MUTATED");
-        second.clickCommand("/mutated");
+        second.setClickCommand("/mutated");
 
         assertEquals("§aoriginal", viaSingle.getFancyTextList().get(0).getText());
         assertEquals(null, viaSingle.getFancyTextList().get(0).getHoverText());

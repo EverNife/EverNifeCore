@@ -106,10 +106,10 @@ public class SendCustom implements ILocaleMessageBase {
      */
     protected FancyText renderFor(@Nullable FCommandSender sender){
         FancyText fancyText = sender == null ? localeMessage.getDefaultFancyText().copy() : localeMessage.getFancyText(sender).copy();
-        if (hover != null) fancyText.hover(hover);
-        if (action != null) fancyText.clickCommand(action);
-        if (suggest != null) fancyText.clickSuggest(suggest);
-        if (link != null) fancyText.clickLink(link);
+        if (hover != null) fancyText.setHover(hover);
+        if (action != null) fancyText.setClickCommand(action);
+        if (suggest != null) fancyText.setClickSuggest(suggest);
+        if (link != null) fancyText.setClickLink(link);
 
         // Declared, not resolved: the recipient is only known at render time, and ${label} and its
         // friends answer for themselves wherever this text ends up being rendered.

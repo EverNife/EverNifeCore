@@ -46,7 +46,7 @@ public class FancyHoverCodecRoundTripTest {
     @Test
     void customHoverTypeRoundTripsThroughTheCodec(@TempDir Path dir) {
         FancySegment original = new FancySegment("§aHover me");
-        original.hover(new CustomHover("secret-payload-42"));
+        original.setHover(new CustomHover("secret-payload-42"));
 
         Config cfg = open(dir);
         cfg.setValue("msg", original);

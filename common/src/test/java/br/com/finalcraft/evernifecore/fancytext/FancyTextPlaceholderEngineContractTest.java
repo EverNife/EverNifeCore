@@ -40,8 +40,8 @@ public class FancyTextPlaceholderEngineContractTest {
     @Test
     void thePlaceholdersAreResolvedInTheHoverAndInTheClickValueToo() {
         FancyText fancyText = FancyText.of("hi ${name}")
-                .hover("hovering ${name}")
-                .clickCommand("/msg ${name}")
+                .setHover("hovering ${name}")
+                .setClickCommand("/msg ${name}")
                 .addPlaceholder("name", "Steve");
 
         FancySegment resolved = (FancySegment) fancyText;

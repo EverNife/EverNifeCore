@@ -37,7 +37,7 @@ public class FancyTextCodecLiteralPayloadTest {
     void aClickUrlWithQueryParametersSurvivesTheRoundTripUntouched(@TempDir Path dir) {
         String url = "https://x.com/a?b=1&c=2";
         FancySegment original = new FancySegment("§aOpen it");
-        original.clickLink(url);
+        original.setClickLink(url);
 
         Config cfg = open(dir);
         cfg.setValue("msg", original);
@@ -61,7 +61,7 @@ public class FancyTextCodecLiteralPayloadTest {
     void anItemHoverPayloadWithAnAmpersandSurvivesTheRoundTripUntouched(@TempDir Path dir) {
         String rawItem = "{id:\"minecraft:diamond\",tag:{display:{Name:\"Salt & Pepper\"}}}";
         FancySegment original = new FancySegment("§bHover me");
-        original.hoverItem(rawItem);
+        original.setHoverItem(rawItem);
 
         Config cfg = open(dir);
         cfg.setValue("msg", original);

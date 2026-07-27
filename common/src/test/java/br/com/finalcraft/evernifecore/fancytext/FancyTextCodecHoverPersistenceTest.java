@@ -61,13 +61,13 @@ public class FancyTextCodecHoverPersistenceTest {
         List<String> warnings = captureCoreWarnings();
         try {
             FancySegment first = new FancySegment("§aone");
-            first.hover(new CodeclessHover(UNPERSISTABLE_TYPE, "payload-one"));
+            first.setHover(new CodeclessHover(UNPERSISTABLE_TYPE, "payload-one"));
             Config firstCfg = open(dir, "first.yml");
             firstCfg.setValue("msg", first);
             firstCfg.save();
 
             FancySegment second = new FancySegment("§btwo");
-            second.hover(new CodeclessHover(UNPERSISTABLE_TYPE, "payload-two"));
+            second.setHover(new CodeclessHover(UNPERSISTABLE_TYPE, "payload-two"));
             Config secondCfg = open(dir, "second.yml");
             secondCfg.setValue("msg", second);
             secondCfg.save();

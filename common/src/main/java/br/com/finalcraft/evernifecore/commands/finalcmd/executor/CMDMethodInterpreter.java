@@ -295,8 +295,8 @@ public class CMDMethodInterpreter {
             // or we have annotated @Args, in this case, we have a priority on the construction of the usage using these args
 
             Consumer<FancyText> applyDefaultFormatting = fancyTextOrFormatter -> {
-                fancyTextOrFormatter.hover(description);
-                fancyTextOrFormatter.clickSuggest("/${label} ${subcmd}");
+                fancyTextOrFormatter.setHover(description);
+                fancyTextOrFormatter.setClickSuggest("/${label} ${subcmd}");
             };
 
             FancyFormatter fancyFormatter = FancyFormatter.of("§3§l ▶ §a/§e${label}" + (isSubCommand ? " ${subcmd}" : ""));
@@ -338,7 +338,7 @@ public class CMDMethodInterpreter {
                             applyDefaultFormatting.accept(fancyFormatter);
                             if (extraDescription != null){
                                 anyLocalizedArg.set(true);
-                                fancyFormatter.hover(description + "" +
+                                fancyFormatter.setHover(description + "" +
                                         "\n" +
                                         "\n §d ✯ §7§l[§e" + argParser.getArgInfo().getArgData().getName() + "§7§l]§r" +
                                         "\n §7● §6" + extraDescription);
@@ -383,7 +383,7 @@ public class CMDMethodInterpreter {
                 if (extraDescription != null){
                     flagBlock += "\n §7● §6" + extraDescription;
                 }
-                fancyFormatter.hover(flagBlock);
+                fancyFormatter.setHover(flagBlock);
             }
 
             if (anyLocalizedArg.get() || anyLocalizedFlag.get()){

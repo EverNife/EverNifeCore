@@ -51,7 +51,7 @@ public class FancyFormatter implements FancyText {
                 // The chain being spliced in stops existing as a level, so what it declared has to
                 // travel with its pieces - or the values would be lost the moment it is appended.
                 if (other.placeholders != null && piece instanceof FancySegment) {
-                    ((FancySegment) piece).placeholders().inheritMissing(other.placeholders);
+                    ((FancySegment) piece).messagePlaceholders().inheritMissing(other.placeholders);
                 }
                 this.fancyTextList.add(piece);
             }
@@ -110,22 +110,22 @@ public class FancyFormatter implements FancyText {
 
     @Override
     public FancyFormatter addParser(String key, String description, Function<RenderContext, ?> parser) {
-        placeholders().declare(key, description, parser::apply);
+        messagePlaceholders().declare(key, description, parser::apply);
         return this;
     }
 
     @Override
     public FancyFormatter addReplacer(CompoundReplacer replacer) {
-        placeholders().addReplacer(replacer);
+        messagePlaceholders().addReplacer(replacer);
         return this;
     }
 
     @Override
     public PlaceholderProvider<RenderContext> getPlaceholderProvider() {
-        return placeholders().getProvider();
+        return messagePlaceholders().getProvider();
     }
 
-    private MessagePlaceholders placeholders() {
+    private MessagePlaceholders messagePlaceholders() {
         if (placeholders == null) {
             placeholders = new MessagePlaceholders();
         }
@@ -260,30 +260,30 @@ public class FancyFormatter implements FancyText {
     }
 
     @Override
-    public FancyFormatter hover(String hoverText) {
+    public FancyFormatter setHover(String hoverText) {
         FancyText last = lastOrNull();
-        if (last != null) last.hover(hoverText);
+        if (last != null) last.setHover(hoverText);
         return this;
     }
 
     @Override
-    public FancyFormatter hover(FancyHover hover) {
+    public FancyFormatter setHover(FancyHover hover) {
         FancyText last = lastOrNull();
-        if (last != null) last.hover(hover);
+        if (last != null) last.setHover(hover);
         return this;
     }
 
     @Override
-    public FancyFormatter click(ClickActionType actionType) {
+    public FancyFormatter setClickType(ClickActionType actionType) {
         FancyText last = lastOrNull();
-        if (last != null) last.click(actionType);
+        if (last != null) last.setClickType(actionType);
         return this;
     }
 
     @Override
-    public FancyFormatter click(String actionText, ClickActionType actionType) {
+    public FancyFormatter setClick(String actionText, ClickActionType actionType) {
         FancyText last = lastOrNull();
-        if (last != null) last.click(actionText, actionType);
+        if (last != null) last.setClick(actionText, actionType);
         return this;
     }
 

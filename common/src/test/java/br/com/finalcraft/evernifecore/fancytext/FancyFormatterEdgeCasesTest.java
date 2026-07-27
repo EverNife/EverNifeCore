@@ -38,10 +38,10 @@ public class FancyFormatterEdgeCasesTest {
         assertNull(empty.getClickActionText());
         assertEquals(ClickActionType.NONE, empty.getClickActionType());
 
-        assertDoesNotThrow(() -> empty.hover("hover"));
-        assertDoesNotThrow(() -> empty.click("cmd", ClickActionType.RUN_COMMAND));
-        assertDoesNotThrow(() -> empty.clickCommand("cmd"));
-        assertDoesNotThrow(() -> empty.clickSuggest("suggest"));
-        assertDoesNotThrow(() -> empty.clickLink("https://example.com"));
+        assertDoesNotThrow(() -> empty.setHover("hover"));
+        assertDoesNotThrow(() -> empty.setClick("cmd", ClickActionType.RUN_COMMAND));
+        assertDoesNotThrow(() -> empty.setClickCommand("cmd"));
+        assertDoesNotThrow(() -> empty.setClickSuggest("suggest"));
+        assertDoesNotThrow(() -> empty.setClickLink("https://example.com"));
     }
 }

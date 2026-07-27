@@ -182,22 +182,22 @@ public class FancySegment implements FancyText {
 
     @Override
     public FancySegment addParser(String key, String description, Function<RenderContext, ?> parser) {
-        placeholders().declare(key, description, parser::apply);
+        messagePlaceholders().declare(key, description, parser::apply);
         return this;
     }
 
     @Override
     public FancySegment addReplacer(CompoundReplacer replacer) {
-        placeholders().addReplacer(replacer);
+        messagePlaceholders().addReplacer(replacer);
         return this;
     }
 
     @Override
     public PlaceholderProvider<RenderContext> getPlaceholderProvider() {
-        return placeholders().getProvider();
+        return messagePlaceholders().getProvider();
     }
 
-    MessagePlaceholders placeholders() {
+    MessagePlaceholders messagePlaceholders() {
         if (placeholders == null) {
             placeholders = new MessagePlaceholders();
         }
@@ -228,28 +228,28 @@ public class FancySegment implements FancyText {
     }
 
     @Override
-    public FancySegment hover(String hoverText) {
+    public FancySegment setHover(String hoverText) {
         setRecentChanged();
         this.hover = legacyHoverOf(hoverText);
         return this;
     }
 
     @Override
-    public FancySegment hover(FancyHover hover) {
+    public FancySegment setHover(FancyHover hover) {
         setRecentChanged();
         this.hover = hover;
         return this;
     }
 
     @Override
-    public FancySegment click(ClickActionType actionType) {
+    public FancySegment setClickType(ClickActionType actionType) {
         this.setRecentChanged();
         this.clickActionType = actionType;
         return this;
     }
 
     @Override
-    public FancySegment click(String clickActionText, ClickActionType actionType) {
+    public FancySegment setClick(String clickActionText, ClickActionType actionType) {
         setRecentChanged();
         this.clickActionText = clickActionText;
         this.clickActionType = actionType;

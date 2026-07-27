@@ -120,7 +120,7 @@ public class FancyHoverRegistryContractTest {
     @Test
     void customHoverTypeRegisteredAtRuntimeIsActuallyRendered() {
         CoordinatesHover coordinates = new CoordinatesHover(10, 64, -30);
-        Component component = new FancySegment("waypoint").hover(coordinates).toComponent();
+        Component component = new FancySegment("waypoint").setHover(coordinates).toComponent();
 
         HoverEvent<?> hoverEvent = component.hoverEvent();
         assertNotNull(hoverEvent, "a runtime-registered hover type must actually be rendered");
@@ -133,7 +133,7 @@ public class FancyHoverRegistryContractTest {
     void unsupportedHoverTypeWithNoDegradeOmitsTheHoverInsteadOfThrowing() {
         withUnsupportedHoverTypes(Collections.singleton("test-coordinates"));
 
-        FancySegment segment = new FancySegment("waypoint").hover(new CoordinatesHover(1, 2, 3));
+        FancySegment segment = new FancySegment("waypoint").setHover(new CoordinatesHover(1, 2, 3));
 
         Component component = assertDoesNotThrow(() -> {
             return segment.toComponent();
@@ -146,7 +146,7 @@ public class FancyHoverRegistryContractTest {
     void unsupportedBuiltinItemTypeDegradesToItsDeclaredTextFallback() {
         withUnsupportedHoverTypes(Collections.singleton(ItemHover.TYPE_ID));
 
-        Component component = new FancySegment("head").hoverItem("minecraft:diamond").toComponent();
+        Component component = new FancySegment("head").setHoverItem("minecraft:diamond").toComponent();
 
         HoverEvent<?> hoverEvent = component.hoverEvent();
         assertNotNull(hoverEvent, "the item type declares a degrade, so the hover must survive as its fallback");
@@ -160,7 +160,7 @@ public class FancyHoverRegistryContractTest {
         withUnsupportedHoverTypes(new HashSet<>(Arrays.asList("test-hop-a", "test-hop-b")));
 
         Component component = assertDoesNotThrow(() -> {
-            return new FancySegment("waypoint").hover(new HopAHover()).toComponent();
+            return new FancySegment("waypoint").setHover(new HopAHover()).toComponent();
         }, "a cycle of unsupported degrades must never throw or hang");
         assertNull(component.hoverEvent(),
                 "capped at one hop: the degraded type is also unsupported, so the hover is omitted");

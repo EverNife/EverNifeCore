@@ -108,33 +108,49 @@ public interface FancyText {
         return appendLine(String.format(format, args));
     }
 
-    FancyText hover(String hoverText);
+    /**
+     * Replaces whatever hover this piece had with a plain tooltip. A message carries at most one
+     * hover, so this never accumulates - calling it twice leaves only the second value.
+     */
+    FancyText setHover(String hoverText);
 
-    /** Attaches an arbitrary registry-backed hover value - see {@link FancyHover}/{@code FancyHoverRegistry}. */
-    FancyText hover(FancyHover hover);
+    /**
+     * Replaces the hover with an arbitrary registry-backed value - see
+     * {@link FancyHover}/{@code FancyHoverRegistry}.
+     */
+    FancyText setHover(FancyHover hover);
 
-    default FancyText hover(List<String> hoverText) {
-        return hover(String.join("\n", hoverText));
+    /** {@link #setHover(String)} of the lines joined by a newline. */
+    default FancyText setHover(List<String> hoverText) {
+        return setHover(String.join("\n", hoverText));
     }
 
-    default FancyText hoverItem(String serializedItem) {
-        return hover(new ItemHover(serializedItem));
+    /** {@link #setHover(String)} of the lines joined by a newline. */
+    default FancyText setHover(String... hoverText) {
+        return setHover(String.join("\n", hoverText));
     }
 
-    FancyText click(ClickActionType actionType);
-
-    FancyText click(String clickActionText, ClickActionType actionType);
-
-    default FancyText clickCommand(String command) {
-        return click(command, ClickActionType.RUN_COMMAND);
+    /** {@link #setHover(FancyHover)} of the item form, from an item id or a serialized item. */
+    default FancyText setHoverItem(String serializedItem) {
+        return setHover(new ItemHover(serializedItem));
     }
 
-    default FancyText clickSuggest(String suggestion) {
-        return click(suggestion, ClickActionType.SUGGEST_COMMAND);
+    /** Replaces the click type, keeping whatever value the click already carried. */
+    FancyText setClickType(ClickActionType actionType);
+
+    /** Replaces both the click value and its type. A message carries at most one click. */
+    FancyText setClick(String clickActionText, ClickActionType actionType);
+
+    default FancyText setClickCommand(String command) {
+        return setClick(command, ClickActionType.RUN_COMMAND);
     }
 
-    default FancyText clickLink(String url) {
-        return click(url, ClickActionType.OPEN_URL);
+    default FancyText setClickSuggest(String suggestion) {
+        return setClick(suggestion, ClickActionType.SUGGEST_COMMAND);
+    }
+
+    default FancyText setClickLink(String url) {
+        return setClick(url, ClickActionType.OPEN_URL);
     }
 
     Component toComponent();

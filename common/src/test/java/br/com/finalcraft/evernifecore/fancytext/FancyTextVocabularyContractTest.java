@@ -36,36 +36,36 @@ public class FancyTextVocabularyContractTest {
     @Test
     void hoverStringMatchesTheOldSetHoverTextOnASegment() {
         Component expected = captured("{\"hover_event\":{\"action\":\"show_text\",\"value\":\"Tooltip line\"},\"text\":\"head\"}");
-        Component actual = new FancySegment("head").hover("Tooltip line").toComponent();
+        Component actual = new FancySegment("head").setHover("Tooltip line").toComponent();
         assertEquals(expected, roundTrip(actual));
     }
 
     @Test
     void hoverListMatchesTheOldSetHoverTextOfListOnASegment() {
         Component expected = captured("{\"hover_event\":{\"action\":\"show_text\",\"value\":\"line1\\nline2\"},\"text\":\"head\"}");
-        Component actual = new FancySegment("head").hover(Arrays.asList("line1", "line2")).toComponent();
+        Component actual = new FancySegment("head").setHover(Arrays.asList("line1", "line2")).toComponent();
         assertEquals(expected, roundTrip(actual));
     }
 
     @Test
     void hoverItemMatchesTheOldSetHoverItemOnASegment() {
         Component expected = captured("{\"hover_event\":{\"action\":\"show_item\",\"id\":\"minecraft:diamond\",\"count\":1},\"text\":\"head\"}");
-        Component actual = new FancySegment("head").hoverItem("minecraft:diamond").toComponent();
+        Component actual = new FancySegment("head").setHoverItem("minecraft:diamond").toComponent();
         assertEquals(expected, roundTrip(actual));
     }
 
     @Test
     void clickWithValueAndTypeMatchesTheOldSetClickActionOnASegment() {
         Component expectedRun = captured("{\"click_event\":{\"action\":\"run_command\",\"command\":\"/cmd\"},\"text\":\"head\"}");
-        Component actualRun = new FancySegment("head").click("/cmd", ClickActionType.RUN_COMMAND).toComponent();
+        Component actualRun = new FancySegment("head").setClick("/cmd", ClickActionType.RUN_COMMAND).toComponent();
         assertEquals(expectedRun, roundTrip(actualRun));
 
         Component expectedUrl = captured("{\"click_event\":{\"action\":\"open_url\",\"url\":\"https://example.com\"},\"text\":\"head\"}");
-        Component actualUrl = new FancySegment("head").click("https://example.com", ClickActionType.OPEN_URL).toComponent();
+        Component actualUrl = new FancySegment("head").setClick("https://example.com", ClickActionType.OPEN_URL).toComponent();
         assertEquals(expectedUrl, roundTrip(actualUrl));
 
         Component expectedSuggest = captured("{\"click_event\":{\"action\":\"suggest_command\",\"command\":\"/suggest \"},\"text\":\"head\"}");
-        Component actualSuggest = new FancySegment("head").click("/suggest ", ClickActionType.SUGGEST_COMMAND).toComponent();
+        Component actualSuggest = new FancySegment("head").setClick("/suggest ", ClickActionType.SUGGEST_COMMAND).toComponent();
         assertEquals(expectedSuggest, roundTrip(actualSuggest));
     }
 
@@ -76,7 +76,7 @@ public class FancyTextVocabularyContractTest {
         // "/cmd" as an open_url action.
         Component expected = captured("{\"click_event\":{\"action\":\"open_url\",\"url\":\"https:///cmd\"},\"text\":\"head\"}");
         Component actual = new FancySegment("head", null, "/cmd", ClickActionType.RUN_COMMAND)
-                .click(ClickActionType.OPEN_URL)
+                .setClickType(ClickActionType.OPEN_URL)
                 .toComponent();
         assertEquals(expected, roundTrip(actual));
     }
@@ -84,21 +84,21 @@ public class FancyTextVocabularyContractTest {
     @Test
     void clickCommandMatchesTheOldSetRunCommandActionOnASegment() {
         Component expected = captured("{\"click_event\":{\"action\":\"run_command\",\"command\":\"/cmd\"},\"text\":\"head\"}");
-        Component actual = new FancySegment("head").clickCommand("/cmd").toComponent();
+        Component actual = new FancySegment("head").setClickCommand("/cmd").toComponent();
         assertEquals(expected, roundTrip(actual));
     }
 
     @Test
     void clickSuggestMatchesTheOldSetSuggestCommandActionOnASegment() {
         Component expected = captured("{\"click_event\":{\"action\":\"suggest_command\",\"command\":\"/suggest \"},\"text\":\"head\"}");
-        Component actual = new FancySegment("head").clickSuggest("/suggest ").toComponent();
+        Component actual = new FancySegment("head").setClickSuggest("/suggest ").toComponent();
         assertEquals(expected, roundTrip(actual));
     }
 
     @Test
     void clickLinkMatchesTheOldSetOpenLinkActionOnASegment() {
         Component expected = captured("{\"click_event\":{\"action\":\"open_url\",\"url\":\"https://example.com\"},\"text\":\"head\"}");
-        Component actual = new FancySegment("head").clickLink("https://example.com").toComponent();
+        Component actual = new FancySegment("head").setClickLink("https://example.com").toComponent();
         assertEquals(expected, roundTrip(actual));
     }
 
@@ -108,7 +108,7 @@ public class FancyTextVocabularyContractTest {
     void hoverStringMatchesTheOldSetHoverTextOnAFormatter() {
         Component expected = captured("{\"extra\":[\"first\",{\"hover_event\":{\"action\":\"show_text\",\"value\":\"Tooltip line\"},\"text\":\"head\"}],\"text\":\"\"}");
         FancyFormatter actual = new FancyFormatter().append("first").append("head");
-        actual.hover("Tooltip line");
+        actual.setHover("Tooltip line");
         assertEquals(expected, roundTrip(actual.toComponent()));
     }
 
@@ -116,7 +116,7 @@ public class FancyTextVocabularyContractTest {
     void hoverListMatchesTheOldSetHoverTextOfListOnAFormatter() {
         Component expected = captured("{\"extra\":[\"first\",{\"hover_event\":{\"action\":\"show_text\",\"value\":\"line1\\nline2\"},\"text\":\"head\"}],\"text\":\"\"}");
         FancyFormatter actual = new FancyFormatter().append("first").append("head");
-        actual.hover(Arrays.asList("line1", "line2"));
+        actual.setHover(Arrays.asList("line1", "line2"));
         assertEquals(expected, roundTrip(actual.toComponent()));
     }
 
@@ -124,7 +124,7 @@ public class FancyTextVocabularyContractTest {
     void hoverItemMatchesTheOldSetHoverItemOnAFormatter() {
         Component expected = captured("{\"extra\":[\"first\",{\"hover_event\":{\"action\":\"show_item\",\"id\":\"minecraft:diamond\",\"count\":1},\"text\":\"head\"}],\"text\":\"\"}");
         FancyFormatter actual = new FancyFormatter().append("first").append("head");
-        actual.hoverItem("minecraft:diamond");
+        actual.setHoverItem("minecraft:diamond");
         assertEquals(expected, roundTrip(actual.toComponent()));
     }
 
@@ -132,7 +132,7 @@ public class FancyTextVocabularyContractTest {
     void clickWithValueAndTypeMatchesTheOldSetClickActionOnAFormatter() {
         Component expected = captured("{\"extra\":[\"first\",{\"click_event\":{\"action\":\"run_command\",\"command\":\"/cmd\"},\"text\":\"head\"}],\"text\":\"\"}");
         FancyFormatter actual = new FancyFormatter().append("first").append("head");
-        actual.click("/cmd", ClickActionType.RUN_COMMAND);
+        actual.setClick("/cmd", ClickActionType.RUN_COMMAND);
         assertEquals(expected, roundTrip(actual.toComponent()));
     }
 
@@ -141,7 +141,7 @@ public class FancyTextVocabularyContractTest {
         Component expected = captured("{\"extra\":[\"first\",{\"click_event\":{\"action\":\"open_url\",\"url\":\"https:///cmd\"},\"text\":\"head\"}],\"text\":\"\"}");
         FancyFormatter actual = new FancyFormatter().append("first")
                 .append(new FancySegment("head", null, "/cmd", ClickActionType.RUN_COMMAND));
-        actual.click(ClickActionType.OPEN_URL);
+        actual.setClickType(ClickActionType.OPEN_URL);
         assertEquals(expected, roundTrip(actual.toComponent()));
     }
 
@@ -149,7 +149,7 @@ public class FancyTextVocabularyContractTest {
     void clickCommandMatchesTheOldSetRunCommandActionOnAFormatter() {
         Component expected = captured("{\"extra\":[\"first\",{\"click_event\":{\"action\":\"run_command\",\"command\":\"/cmd\"},\"text\":\"head\"}],\"text\":\"\"}");
         FancyFormatter actual = new FancyFormatter().append("first").append("head");
-        actual.clickCommand("/cmd");
+        actual.setClickCommand("/cmd");
         assertEquals(expected, roundTrip(actual.toComponent()));
     }
 
@@ -157,7 +157,7 @@ public class FancyTextVocabularyContractTest {
     void clickSuggestMatchesTheOldSetSuggestCommandActionOnAFormatter() {
         Component expected = captured("{\"extra\":[\"first\",{\"click_event\":{\"action\":\"suggest_command\",\"command\":\"/suggest \"},\"text\":\"head\"}],\"text\":\"\"}");
         FancyFormatter actual = new FancyFormatter().append("first").append("head");
-        actual.clickSuggest("/suggest ");
+        actual.setClickSuggest("/suggest ");
         assertEquals(expected, roundTrip(actual.toComponent()));
     }
 
@@ -165,7 +165,7 @@ public class FancyTextVocabularyContractTest {
     void clickLinkMatchesTheOldSetOpenLinkActionOnAFormatter() {
         Component expected = captured("{\"extra\":[\"first\",{\"click_event\":{\"action\":\"open_url\",\"url\":\"https://example.com\"},\"text\":\"head\"}],\"text\":\"\"}");
         FancyFormatter actual = new FancyFormatter().append("first").append("head");
-        actual.clickLink("https://example.com");
+        actual.setClickLink("https://example.com");
         assertEquals(expected, roundTrip(actual.toComponent()));
     }
 }

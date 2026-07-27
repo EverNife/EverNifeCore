@@ -285,11 +285,11 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
 
                 nextAndPreviousPage =
                         FancyFormatter.of("\n" + borders[0]) //First Border
-                                .append(previousButton).hover("\n" + previousButton + "\n").clickCommand(moveToPage.apply(currentPage - 1)) //First Arrow
+                                .append(previousButton).setHover("\n" + previousButton + "\n").setClickCommand(moveToPage.apply(currentPage - 1)) //First Arrow
                                 .append(centerSpace)
-                                .append(center).hover("\n§a Refresh Page [" + currentPage + "] \n").clickCommand(moveToPage.apply(currentPage))
+                                .append(center).setHover("\n§a Refresh Page [" + currentPage + "] \n").setClickCommand(moveToPage.apply(currentPage))
                                 .append(centerSpace)
-                                .append(nextButton).hover("\n" + nextButton + "\n").clickCommand(moveToPage.apply(currentPage + 1)) //Second Arrow
+                                .append(nextButton).setHover("\n" + nextButton + "\n").setClickCommand(moveToPage.apply(currentPage + 1)) //Second Arrow
                                 .append(borders[1]); //Second Border
             }
         }

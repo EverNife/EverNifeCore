@@ -228,7 +228,7 @@ public final class FancyTextConfigCodec {
             );
             FancyHover hover = readHover(hoverPayload, hoverTypeName);
             if (hover != null) {
-                segment.hover(hover);
+                segment.setHover(hover);
             }
             return segment;
         }

@@ -151,7 +151,7 @@ public class FCLocaleScanner {
                             FCColorUtil.colorfy(hover),
                             clickActionText
                     );
-                    fancyText.click(clickActionType);
+                    fancyText.setClickType(clickActionType);
                 }
             }
 
