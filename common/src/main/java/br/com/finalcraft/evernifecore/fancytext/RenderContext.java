@@ -6,62 +6,78 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import jakarta.annotation.Nullable;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
  * Everything the placeholder engine needs for a single render: who is receiving the message, their
- * resolved {@link PlayerData} (looked up once, not once per placeholder key) and the command-scope
- * context that is open, if any.
+ * resolved {@link PlayerData} (looked up once, not once per placeholder key), the command-scope
+ * context that is open, and what each declaration has already resolved to in this render.
  */
 public final class RenderContext {
-
-    public static final RenderContext EMPTY = new RenderContext(null, null, MessageContext.EMPTY);
 
     private final FCommandSender sender;
     private final PlayerData playerData;
     private final MessageContext messageContext;
-    private final PlaceholderScope scope;
-    private final Map<Object, Optional<Object>> resolvedOnce = new HashMap<>();
+    private final List<MessagePlaceholders> inherited;
+    // Shared with every context derived from this one: derivation happens WITHIN a render, so the
+    // whole render must agree on what a declaration resolved to.
+    private final Map<Object, Optional<Object>> resolvedOnce;
 
     public RenderContext(@Nullable FCommandSender sender,
                          @Nullable PlayerData playerData,
                          MessageContext messageContext) {
-        this(sender, playerData, messageContext, null);
-    }
-
-    private RenderContext(@Nullable FCommandSender sender,
-                          @Nullable PlayerData playerData,
-                          MessageContext messageContext,
-                          @Nullable PlaceholderScope scope) {
         this.sender = sender;
         this.playerData = playerData;
         this.messageContext = messageContext == null ? MessageContext.EMPTY : messageContext;
-        this.scope = scope;
+        this.inherited = Collections.emptyList();
+        this.resolvedOnce = new HashMap<>();
     }
 
-    // The enclosing placeholder level travels with the render, so a leaf can fall back to the
-    // values declared by the chain that contains it. Deriving instead of mutating keeps the shared
-    // EMPTY constant free of any single render's state.
-    RenderContext withScope(PlaceholderScope scope) {
-        return new RenderContext(sender, playerData, messageContext, scope);
+    private RenderContext(RenderContext parent, List<MessagePlaceholders> inherited) {
+        this.sender = parent.sender;
+        this.playerData = parent.playerData;
+        this.messageContext = parent.messageContext;
+        this.inherited = inherited;
+        this.resolvedOnce = parent.resolvedOnce;
     }
 
-    @Nullable PlaceholderScope getScope() {
-        return scope;
+    /**
+     * A context of its own, for a render with no recipient. This is a factory and not a shared
+     * constant on purpose: a context now remembers what it resolved, and one instance handed to
+     * every render would show the previous recipient's values to the next one.
+     */
+    public static RenderContext empty() {
+        return new RenderContext(null, null, MessageContext.EMPTY);
     }
 
     public static RenderContext of(@Nullable FCommandSender sender) {
         if (sender == null) {
-            return EMPTY;
+            return empty();
         }
         PlayerData playerData = sender instanceof FPlayer
                 ? PlayerController.getLoaded(sender.getUniqueId())
                 : null;
         return new RenderContext(sender, playerData, MessageScope.currentOrEmpty());
+    }
+
+    // The enclosing placeholder level travels with the render, so a piece can fall back to what the
+    // chain containing it declared. Innermost first: the closer level shadows the further one.
+    RenderContext inheriting(MessagePlaceholders placeholders) {
+        List<MessagePlaceholders> derived = new ArrayList<>(inherited.size() + 1);
+        derived.add(placeholders);
+        derived.addAll(inherited);
+        return new RenderContext(this, Collections.unmodifiableList(derived));
+    }
+
+    /** The enclosing declaration levels, nearest first; empty for a piece that stands on its own. */
+    List<MessagePlaceholders> getInherited() {
+        return inherited;
     }
 
     public @Nullable FCommandSender getSender() {
@@ -87,21 +103,5 @@ public final class RenderContext {
     public @Nullable Object resolveOnce(Object token, Supplier<?> compute) {
         return resolvedOnce.computeIfAbsent(token, ignored -> Optional.ofNullable(compute.get()))
                 .orElse(null);
-    }
-
-    /**
-     * Resolves one entry of the untyped {@code placeholder -> Object} maps: a plain value renders as
-     * itself, a {@link Function} renders against this render's PlayerData. Returns {@code null} when
-     * a per-player value has no PlayerData to apply to, so the caller leaves the token untouched
-     * rather than printing the function itself.
-     */
-    @SuppressWarnings("unchecked")
-    public @Nullable String resolveMappedValue(@Nullable Object rawValue) {
-        if (rawValue instanceof Function) {
-            return playerData == null
-                    ? null
-                    : String.valueOf(((Function<PlayerData, Object>) rawValue).apply(playerData));
-        }
-        return String.valueOf(rawValue);
     }
 }

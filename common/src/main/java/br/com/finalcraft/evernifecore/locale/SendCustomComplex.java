@@ -24,7 +24,7 @@ public class SendCustomComplex extends SendCustom {
 
     public SendCustomComplex(SendCustom sendCustom, SendCustom previous) {
         super(sendCustom.localeMessage);
-        this.mapOfPlaceholders = sendCustom.mapOfPlaceholders;
+        this.declaredPlaceholders = sendCustom.declaredPlaceholders;
         this.hover = sendCustom.hover;
         this.action = sendCustom.action;
         this.suggest = sendCustom.suggest;

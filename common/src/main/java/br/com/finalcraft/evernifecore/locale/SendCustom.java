@@ -4,13 +4,10 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
-import br.com.finalcraft.evernifecore.fancytext.RenderContext;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import jakarta.annotation.Nullable;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -18,7 +15,7 @@ public class SendCustom implements ILocaleMessageBase {
 
     protected final LocaleMessage localeMessage;
     protected CompoundReplacer compoundReplacer = new CompoundReplacer();
-    protected Map<String, Object> mapOfPlaceholders = new HashMap<String, Object>();
+    protected Map<String, Object> declaredPlaceholders = new LinkedHashMap<>();
 
     protected transient String hover;
     protected transient String action;
@@ -37,13 +34,13 @@ public class SendCustom implements ILocaleMessageBase {
 
     @Override
     public SendCustom addPlaceholder(String placeHolder, Object value) {
-        mapOfPlaceholders.put(placeHolder, value);
+        declaredPlaceholders.put(placeHolder, value);
         return this;
     }
 
     @Override
     public SendCustom addPlaceholder(String placeHolder, Function<PlayerData, Object> function) {
-        mapOfPlaceholders.put(placeHolder, function);
+        declaredPlaceholders.put(placeHolder, function);
         return this;
     }
 
@@ -114,22 +111,10 @@ public class SendCustom implements ILocaleMessageBase {
         if (suggest != null) fancyText.clickSuggest(suggest);
         if (link != null) fancyText.clickLink(link);
 
-        LocaleMessageImp localeMessageImp = (LocaleMessageImp) localeMessage;
-        List<Map.Entry<String, Object>> allPlaceholdersReplacers = new ArrayList<Map.Entry<String, Object>>();
-        allPlaceholdersReplacers.addAll(mapOfPlaceholders.entrySet()); //Custom placeholders, created by demand
-        allPlaceholdersReplacers.addAll(localeMessageImp.getContextPlaceholders().entrySet()); //Context Placeholders, like ${label}
-
-        RenderContext context = RenderContext.of(sender);
-        for (Map.Entry<String, Object> entry : allPlaceholdersReplacers) {
-            String value = context.resolveMappedValue(entry.getValue());
-            if (value == null) {
-                continue;   // per-player value with no PlayerData: the token stays as written
-            }
-
-            fancyText.replace(entry.getKey(), value);
-        }
-
-        fancyText.replace(compoundReplacer);
+        // Declared, not resolved: the recipient is only known at render time, and ${label} and its
+        // friends answer for themselves wherever this text ends up being rendered.
+        fancyText.addPlaceholders(declaredPlaceholders);
+        fancyText.addReplacer(compoundReplacer);
 
         return fancyText;
     }

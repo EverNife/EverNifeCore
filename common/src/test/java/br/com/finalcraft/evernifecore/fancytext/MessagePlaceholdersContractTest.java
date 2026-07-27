@@ -57,7 +57,7 @@ public class MessagePlaceholdersContractTest {
 
         assertTrue(placeholders.getProvider().getParserMap().containsKey("%saldo%"),
                 "the key must be registered exactly as written: " + placeholders.getProvider().getParserMap().keySet());
-        assertEquals("${saldo}", placeholders.apply("${saldo}", RenderContext.EMPTY),
+        assertEquals("${saldo}", placeholders.apply("${saldo}", RenderContext.empty()),
                 "a delimited key must not answer for the bare one");
     }
 
@@ -66,7 +66,7 @@ public class MessagePlaceholdersContractTest {
         MessagePlaceholders placeholders = new MessagePlaceholders();
         placeholders.declare("saldo", "", context -> 10);
 
-        assertEquals("10 and %saldo%", placeholders.apply("${saldo} and %saldo%", RenderContext.EMPTY));
+        assertEquals("10 and %saldo%", placeholders.apply("${saldo} and %saldo%", RenderContext.empty()));
     }
 
     @Test
@@ -75,7 +75,7 @@ public class MessagePlaceholdersContractTest {
         MessagePlaceholders placeholders = new MessagePlaceholders();
         placeholders.declare("saldo", "", context -> calls.incrementAndGet());
 
-        RenderContext oneRender = RenderContext.EMPTY;
+        RenderContext oneRender = RenderContext.empty();
         assertEquals("1 1", placeholders.apply("${saldo} ${SALDO}", oneRender));
         assertEquals(1, calls.get(), "the same key in one render must cost exactly one resolution");
     }

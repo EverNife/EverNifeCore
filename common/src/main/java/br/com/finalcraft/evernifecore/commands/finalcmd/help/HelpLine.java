@@ -28,8 +28,8 @@ public class HelpLine {
 
     public void sendTo(FCommandSender sender){
         this.localeMessage
-                .addPlaceholder("${label}", label)
-                .addPlaceholder("${subcmd}", subCMDLabel)
+                .addPlaceholder("label", label)
+                .addPlaceholder("subcmd", subCMDLabel)
                 .send(sender);
     }
 

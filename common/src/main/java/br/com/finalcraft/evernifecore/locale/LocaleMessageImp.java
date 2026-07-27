@@ -8,8 +8,6 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
-import br.com.finalcraft.evernifecore.fancytext.MessageContext;
-import br.com.finalcraft.evernifecore.fancytext.MessageScope;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 
 import java.util.ArrayList;
@@ -195,24 +193,6 @@ public class LocaleMessageImp implements LocaleMessage {
 
     public ECPluginData getPlugin() {
         return plugin;
-    }
-
-    /**
-     * The placeholders that describe the command being executed right now ({@code ${label}},
-     * {@code ${subcmd}}). Computed per call from the scope of the calling thread: a LocaleMessage
-     * lives in a static field, so anything stored on the instance would be shared by every
-     * concurrent execution of that command.
-     */
-    public Map<String, Object> getContextPlaceholders() {
-        MessageContext context = MessageScope.currentOrEmpty();
-        Map<String, Object> placeholders = new HashMap<>();
-        if (context.getLabel() != null) {
-            placeholders.put("${label}", context.getLabel());
-        }
-        if (context.getSubCommandName() != null) {
-            placeholders.put("${subcmd}", context.getSubCommandName());
-        }
-        return placeholders;
     }
 
     /**

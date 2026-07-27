@@ -91,7 +91,7 @@ public class FCDefaultExecutor {
 
                 try (MessageScope scope = MessageScope.open(label, null)) {
                     if (finalCommand.getMainInterpreter() == null){
-                        PARAMETER_ERROR.addPlaceholder("${label}", label).send(sender);
+                        PARAMETER_ERROR.addPlaceholder("label", label).send(sender);
                     }else {
 
                         if (finalCommand.getMainInterpreter().getCmdData().getCmdAccessValidations().length > 0){

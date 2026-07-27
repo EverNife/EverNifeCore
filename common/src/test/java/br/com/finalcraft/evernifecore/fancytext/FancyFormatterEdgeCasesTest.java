@@ -10,19 +10,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FancyFormatterEdgeCasesTest {
 
-    // copy() must deep-copy the placeholder map: mutating one side never leaks into the other.
+    // copy() must isolate the declarations: declaring on one side never leaks into the other.
     @Test
     public void copyIsolatesThePlaceholderMap() {
-        FancyFormatter original = new FancyFormatter().append("hello");
-        original.addPlaceholder("%a%", "1");
+        FancyFormatter original = new FancyFormatter().append("${x} ${y}");
+        original.addPlaceholder("a", "1");
 
         FancyFormatter copy = original.copy();
-        copy.addPlaceholder("%x%", "v");
-        assertFalse(original.mapOfPlaceholders.containsKey("%x%"), "copy leaked into original");
-        assertTrue(copy.mapOfPlaceholders.containsKey("%x%"));
+        copy.addPlaceholder("x", "onlyInTheCopy");
+        assertFalse(original.getPlaceholderProvider().getParserMap().containsKey("x"), "copy leaked into original");
+        assertTrue(copy.getPlaceholderProvider().getParserMap().containsKey("x"));
 
-        original.addPlaceholder("%y%", "2");
-        assertFalse(copy.mapOfPlaceholders.containsKey("%y%"), "original leaked into copy");
+        original.addPlaceholder("y", "onlyInTheOriginal");
+        assertFalse(copy.getPlaceholderProvider().getParserMap().containsKey("y"), "original leaked into copy");
+
+        assertEquals("${x} onlyInTheOriginal", original.toLegacyString(RenderContext.empty()));
+        assertEquals("onlyInTheCopy ${y}", copy.toLegacyString(RenderContext.empty()));
     }
 
     // An empty formatter has no segment to delegate to; getters/setters degrade instead of throwing.

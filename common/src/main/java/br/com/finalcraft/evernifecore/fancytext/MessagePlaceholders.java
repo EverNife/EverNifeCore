@@ -70,6 +70,11 @@ public final class MessagePlaceholders {
         this.compoundReplacer.appendReplacer(replacer);
     }
 
+    /** Whether a replacer is attached - what it would rewrite is opaque to the {@code ${key}} pass. */
+    boolean hasReplacer() {
+        return compoundReplacer != null && !compoundReplacer.isEmpty();
+    }
+
     /**
      * Adds every declaration of {@code outer} this does not already answer for, plus its replacers.
      * Splicing a chain into another chain has to push what the chain declared down onto the pieces

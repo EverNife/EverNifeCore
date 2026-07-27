@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.fancytext.hover.FancyHover;
 import br.com.finalcraft.evernifecore.fancytext.hover.ItemHover;
+import br.com.finalcraft.evernifecore.placeholder.base.PlaceholderProvider;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
@@ -43,30 +44,51 @@ public interface FancyText {
 
     FancyText setText(String text);
 
+    /**
+     * Bakes {@code value} into this message's text, hover payload and click value, right now and
+     * literally ({@link String#replace}). This is NOT the placeholder engine - it mutates the object -
+     * and it exists for the derived copy: a message that has to carry an already-resolved value with
+     * it, such as a per-instance command alias or a cached page line.
+     */
     FancyText replace(String placeholder, String value);
 
-    FancyText replace(CompoundReplacer replacer);
-
     /**
-     * Declares the value of {@code ${key}} (case-insensitive). Nothing is computed here: a key the
-     * rendered text never cites is never resolved, and a key cited twice is resolved once.
+     * Declares the value of {@code ${key}} (case-insensitive) on this message. Nothing is computed
+     * here: a key the rendered text never cites is never resolved, and a key cited twice is resolved
+     * once. The key is taken exactly as written, so it must be the bare name - {@code "saldo"}, never
+     * {@code "%saldo%"} or {@code "${saldo}"}.
      */
-    FancyText placeholder(String key, Object value);
+    FancyText addPlaceholder(String key, Object value);
 
-    /** Same as {@link #placeholder(String, Object)}, computing the value only if the text cites it. */
-    FancyText placeholder(String key, Supplier<?> value);
+    /** Same as {@link #addPlaceholder(String, Object)}, computing the value only if the text cites it. */
+    FancyText addPlaceholder(String key, Supplier<?> value);
 
     /**
-     * Same as {@link #placeholder(String, Object)}, resolved against the recipient's PlayerData.
+     * Same as {@link #addPlaceholder(String, Object)}, resolved against the recipient's PlayerData.
      * A recipient with no PlayerData (the console, for one) leaves the token as written.
      */
-    FancyText placeholder(String key, Function<PlayerData, ?> value);
+    FancyText addPlaceholder(String key, Function<PlayerData, ?> value);
 
     /**
      * Declares several keys at once. A {@link Supplier} or {@link Function} value behaves as if it
-     * had been passed to the matching {@code placeholder} overload.
+     * had been passed to the matching {@code addPlaceholder} overload.
      */
-    FancyText placeholders(Map<String, ?> values);
+    FancyText addPlaceholders(Map<String, ?> values);
+
+    /** Same as {@link #addParser(String, String, Function)} with no description. */
+    FancyText addParser(String key, Function<RenderContext, ?> parser);
+
+    /**
+     * Declares a key whose value is computed from the whole render context, with a description that
+     * an integrating plugin can list back to the user through {@link #getPlaceholderProvider()}.
+     */
+    FancyText addParser(String key, String description, Function<RenderContext, ?> parser);
+
+    /** Attaches a replacer applied to this message on top of its own {@code ${key}} declarations. */
+    FancyText addReplacer(CompoundReplacer replacer);
+
+    /** The keys this message answers for, for listing them - see {@code PlaceholderProvider#describeAll}. */
+    PlaceholderProvider<RenderContext> getPlaceholderProvider();
 
     FancyFormatter append(String text);
 

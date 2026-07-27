@@ -5,6 +5,8 @@ import br.com.finalcraft.evernifecore.fancytext.hover.FancyHover;
 import br.com.finalcraft.evernifecore.fancytext.hover.FancyHoverRegistry;
 import br.com.finalcraft.evernifecore.fancytext.hover.ItemHover;
 import br.com.finalcraft.evernifecore.fancytext.hover.TextHover;
+import br.com.finalcraft.evernifecore.placeholder.base.PlaceholderProvider;
+import br.com.finalcraft.evernifecore.placeholder.replacer.Closures;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
@@ -15,7 +17,6 @@ import net.kyori.adventure.text.ComponentBuilder;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -33,7 +34,7 @@ public class FancySegment implements FancyText {
     protected String clickActionText = null;
     protected ClickActionType clickActionType = ClickActionType.NONE;
     protected String lastColor = "";
-    protected transient Map<String, PlaceholderValue> placeholders = null;
+    protected transient MessagePlaceholders placeholders = null;
 
     private boolean recentChanged = true;
     private String lastStartingColor = "";
@@ -138,54 +139,69 @@ public class FancySegment implements FancyText {
     }
 
     @Override
-    public FancySegment replace(CompoundReplacer replacer) {
-        setRecentChanged();
-        this.text = replacer.apply(this.text);
-        this.hover = replaceHoverPayload(this.hover, replacer::apply);
-        if (this.clickActionText != null) this.clickActionText = replacer.apply(this.clickActionText);
-        return this;
+    public FancySegment addPlaceholder(String key, Object value) {
+        return addParser(key, context -> value);
     }
 
     @Override
-    public FancySegment placeholder(String key, Object value) {
-        return declare(key, PlaceholderValue.constant(value));
+    public FancySegment addPlaceholder(String key, Supplier<?> value) {
+        return addParser(key, context -> value.get());
     }
 
     @Override
-    public FancySegment placeholder(String key, Supplier<?> value) {
-        return declare(key, PlaceholderValue.lazy(value));
+    public FancySegment addPlaceholder(String key, Function<PlayerData, ?> value) {
+        return addParser(key, context -> context.getPlayerData() == null
+                ? null                              // no PlayerData: the token is left as written
+                : value.apply(context.getPlayerData()));
     }
 
     @Override
-    public FancySegment placeholder(String key, Function<PlayerData, ?> value) {
-        return declare(key, PlaceholderValue.perPlayer(value));
-    }
-
-    @Override
-    public FancySegment placeholders(Map<String, ?> values) {
+    public FancySegment addPlaceholders(Map<String, ?> values) {
         for (Map.Entry<String, ?> entry : values.entrySet()) {
-            declare(entry.getKey(), asPlaceholderValue(entry.getValue()));
+            declareByValueKind(this, entry.getKey(), entry.getValue());
         }
         return this;
     }
 
+    // A map is untyped by nature, so the kind of value decides which overload it would have picked.
     @SuppressWarnings("unchecked")
-    static PlaceholderValue asPlaceholderValue(Object value) {
+    static void declareByValueKind(FancyText fancyText, String key, Object value) {
         if (value instanceof Supplier) {
-            return PlaceholderValue.lazy((Supplier<?>) value);
+            fancyText.addPlaceholder(key, (Supplier<?>) value);
+        } else if (value instanceof Function) {
+            fancyText.addPlaceholder(key, (Function<PlayerData, ?>) value);
+        } else {
+            fancyText.addPlaceholder(key, value);
         }
-        if (value instanceof Function) {
-            return PlaceholderValue.perPlayer((Function<PlayerData, ?>) value);
-        }
-        return PlaceholderValue.constant(value);
     }
 
-    private FancySegment declare(String key, PlaceholderValue value) {
-        if (placeholders == null) {
-            placeholders = new LinkedHashMap<>();
-        }
-        placeholders.put(PlaceholderScope.normalizeKey(key), value);
+    @Override
+    public FancySegment addParser(String key, Function<RenderContext, ?> parser) {
+        return addParser(key, "", parser);
+    }
+
+    @Override
+    public FancySegment addParser(String key, String description, Function<RenderContext, ?> parser) {
+        placeholders().declare(key, description, parser::apply);
         return this;
+    }
+
+    @Override
+    public FancySegment addReplacer(CompoundReplacer replacer) {
+        placeholders().addReplacer(replacer);
+        return this;
+    }
+
+    @Override
+    public PlaceholderProvider<RenderContext> getPlaceholderProvider() {
+        return placeholders().getProvider();
+    }
+
+    MessagePlaceholders placeholders() {
+        if (placeholders == null) {
+            placeholders = new MessagePlaceholders();
+        }
+        return placeholders;
     }
 
     // Appending never mutates this leaf: it comes back as a brand-new formatter holding a COPY of
@@ -302,12 +318,11 @@ public class FancySegment implements FancyText {
 
     @Override
     public Component toComponent(String startingColor, RenderContext context) {
-        PlaceholderScope scope = scopeFor(context);
-        if (scope == null) {
+        if (!needsResolving(context)) {
             return toComponent(startingColor);   // nothing to resolve: the cached component stands
         }
 
-        FancySegment resolved = resolvedCopy(scope, context);
+        FancySegment resolved = resolvedCopy(context);
         Component component = resolved.toComponent(startingColor);
         // A chain reads this leaf's trailing colour to start the next one, and the copy is the one
         // that actually rendered - so the colour it ended on is the one that must carry over.
@@ -315,19 +330,54 @@ public class FancySegment implements FancyText {
         return component;
     }
 
-    private @Nullable PlaceholderScope scopeFor(RenderContext context) {
-        if (placeholders == null || placeholders.isEmpty()) {
-            return context.getScope();
+    // What forces a per-recipient render is the TEXT citing a key, not the message owning one, so
+    // the gate is a cheap search for the closure head. A replacer speaks its own delimiters and is
+    // opaque here, so its mere presence is enough to give up on the cached component.
+    private boolean needsResolving(RenderContext context) {
+        if (citesClosure(text) || citesClosure(clickActionText) || citesClosure(hoverPayload())) {
+            return true;
         }
-        return new PlaceholderScope(context.getScope(), placeholders);
+        if (placeholders != null && placeholders.hasReplacer()) {
+            return true;
+        }
+        for (MessagePlaceholders outer : context.getInherited()) {
+            if (outer.hasReplacer()) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    private FancySegment resolvedCopy(PlaceholderScope scope, RenderContext context) {
+    private static boolean citesClosure(@Nullable String text) {
+        return text != null && text.contains(Closures.DOLLAR_CURLY.getHead());
+    }
+
+    private @Nullable String hoverPayload() {
+        if (hover instanceof TextHover) return ((TextHover) hover).text();
+        if (hover instanceof ItemHover) return ((ItemHover) hover).rawItem();
+        return null;
+    }
+
+    private FancySegment resolvedCopy(RenderContext context) {
         FancySegment copy = copy();
-        copy.text = scope.render(this.text, context);
-        copy.hover = replaceHoverPayload(this.hover, payload -> scope.render(payload, context));
-        copy.clickActionText = scope.render(this.clickActionText, context);
+        copy.text = resolve(this.text, context);
+        copy.hover = replaceHoverPayload(this.hover, payload -> resolve(payload, context));
+        copy.clickActionText = resolve(this.clickActionText, context);
         return copy;
+    }
+
+    // Own declarations first, then the levels containing this piece, and the framework-wide keys
+    // last: whatever a nearer level resolved is no longer a token by the time the next one runs,
+    // which is exactly what shadowing means here.
+    private @Nullable String resolve(@Nullable String value, RenderContext context) {
+        if (value == null) {
+            return null;
+        }
+        String resolved = placeholders == null ? value : placeholders.apply(value, context);
+        for (MessagePlaceholders outer : context.getInherited()) {
+            resolved = outer.apply(resolved, context);
+        }
+        return CoreMessageParsers.INSTANCE.apply(resolved, context);
     }
 
     @Override
@@ -350,7 +400,7 @@ public class FancySegment implements FancyText {
         copy.clickActionText = this.clickActionText;
         copy.clickActionType = this.clickActionType;
         if (this.placeholders != null) {
-            copy.placeholders = new LinkedHashMap<>(this.placeholders);
+            copy.placeholders = this.placeholders.copy();
         }
         return copy;
     }

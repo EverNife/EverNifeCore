@@ -30,7 +30,7 @@ public class FancyTextPlainTextContractTest {
     @Test
     void toLegacyStringWithContextResolvesPlaceholdersLikeSendWould() {
         FancySegment segment = new FancySegment("§aHello ${name}");
-        segment.placeholder("name", "World");
+        segment.addPlaceholder("name", "World");
 
         TestCommandSender sender = new TestCommandSender("preview");
         segment.send(sender);
@@ -38,7 +38,7 @@ public class FancyTextPlainTextContractTest {
 
         assertEquals(delivered, segment.toLegacyString(RenderContext.of(sender)),
                 "toLegacyString(context) must equal what send() actually delivers");
-        assertEquals("§aHello World", segment.toLegacyString(RenderContext.EMPTY),
+        assertEquals("§aHello World", segment.toLegacyString(RenderContext.empty()),
                 "the ${name} placeholder must be resolved in the preview");
     }
 
@@ -53,9 +53,9 @@ public class FancyTextPlainTextContractTest {
     @Test
     void toPlainTextWithContextStripsColourAndResolvesPlaceholder() {
         FancySegment segment = new FancySegment("§aHi ${name}");
-        segment.placeholder("name", "Bob");
+        segment.addPlaceholder("name", "Bob");
 
-        assertEquals("Hi Bob", segment.toPlainText(RenderContext.EMPTY),
+        assertEquals("Hi Bob", segment.toPlainText(RenderContext.empty()),
                 "toPlainText(context) must both strip colour and resolve the placeholder");
     }
 }

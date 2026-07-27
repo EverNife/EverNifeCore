@@ -22,19 +22,19 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 public class FancyTextPlaceholderEngineContractTest {
 
     private static String render(FancyText fancyText) {
-        return fancyText.toLegacyString(RenderContext.EMPTY);
+        return fancyText.toLegacyString(RenderContext.empty());
     }
 
     @Test
     void aPlaceholderResolvesRegardlessOfHowTheKeyIsCased() {
-        assertEquals("you have 42", render(FancyText.of("you have ${saldo}").placeholder("saldo", 42)));
-        assertEquals("you have 42", render(FancyText.of("you have ${SALDO}").placeholder("saldo", 42)));
-        assertEquals("you have 42", render(FancyText.of("you have ${SaLdO}").placeholder("SALDO", 42)));
+        assertEquals("you have 42", render(FancyText.of("you have ${saldo}").addPlaceholder("saldo", 42)));
+        assertEquals("you have 42", render(FancyText.of("you have ${SALDO}").addPlaceholder("saldo", 42)));
+        assertEquals("you have 42", render(FancyText.of("you have ${SaLdO}").addPlaceholder("SALDO", 42)));
     }
 
     @Test
     void anUndeclaredKeyIsLeftExactlyAsWritten() {
-        assertEquals("you have ${saldo}", render(FancyText.of("you have ${saldo}").placeholder("other", 1)));
+        assertEquals("you have ${saldo}", render(FancyText.of("you have ${saldo}").addPlaceholder("other", 1)));
     }
 
     @Test
@@ -42,7 +42,7 @@ public class FancyTextPlaceholderEngineContractTest {
         FancyText fancyText = FancyText.of("hi ${name}")
                 .hover("hovering ${name}")
                 .clickCommand("/msg ${name}")
-                .placeholder("name", "Steve");
+                .addPlaceholder("name", "Steve");
 
         FancySegment resolved = (FancySegment) fancyText;
         assertEquals("hi Steve", render(fancyText));
@@ -56,7 +56,7 @@ public class FancyTextPlaceholderEngineContractTest {
     void aSupplierIsNeverInvokedWhenTheTextDoesNotCiteItsKey() {
         AtomicInteger calls = new AtomicInteger();
         FancyText fancyText = FancyText.of("nothing to resolve here")
-                .placeholder("expensive", () -> {
+                .addPlaceholder("expensive", () -> {
                     calls.incrementAndGet();
                     return "computed";
                 });
@@ -69,7 +69,7 @@ public class FancyTextPlaceholderEngineContractTest {
     void aKeyCitedTwiceInTheSameRenderIsResolvedOnce() {
         AtomicInteger calls = new AtomicInteger();
         FancyText fancyText = FancyText.of("${saldo} and again ${SALDO} and ${saldo}")
-                .placeholder("saldo", () -> {
+                .addPlaceholder("saldo", () -> {
                     calls.incrementAndGet();
                     return "100";
                 });
@@ -82,7 +82,7 @@ public class FancyTextPlaceholderEngineContractTest {
     void aSupplierIsResolvedAgainOnTheNextRender() {
         AtomicInteger calls = new AtomicInteger();
         FancyText fancyText = FancyText.of("${counter}")
-                .placeholder("counter", () -> String.valueOf(calls.incrementAndGet()));
+                .addPlaceholder("counter", () -> String.valueOf(calls.incrementAndGet()));
 
         assertEquals("1", render(fancyText));
         assertEquals("2", render(fancyText), "memoisation lasts one render, not forever");
@@ -92,7 +92,7 @@ public class FancyTextPlaceholderEngineContractTest {
     void aSupplierThatResolvesToNullIsNotInvokedAgainInTheSameRender() {
         AtomicInteger calls = new AtomicInteger();
         FancyText fancyText = FancyText.of("${nothing} ${nothing} ${nothing}")
-                .placeholder("nothing", () -> {
+                .addPlaceholder("nothing", () -> {
                     calls.incrementAndGet();
                     return null;
                 });
@@ -105,7 +105,7 @@ public class FancyTextPlaceholderEngineContractTest {
     @Test
     void aPerPlayerPlaceholderLeavesTheTokenAloneForARecipientWithoutPlayerData() {
         Function<PlayerData, Object> perPlayer = playerData -> playerData.getUniqueId();
-        FancyText fancyText = FancyText.of("hello ${who}").placeholder("who", perPlayer);
+        FancyText fancyText = FancyText.of("hello ${who}").addPlaceholder("who", perPlayer);
 
         assertEquals("hello ${who}", render(fancyText));
     }
@@ -117,7 +117,7 @@ public class FancyTextPlaceholderEngineContractTest {
         Supplier<String> supplier = () -> "computed";
         Object supplierAsObject = supplier;
 
-        String rendered = render(FancyText.of("${x}").placeholder("x", supplierAsObject));
+        String rendered = render(FancyText.of("${x}").addPlaceholder("x", supplierAsObject));
 
         assertNotEquals("computed", rendered, "the Object overload does not unwrap a Supplier");
         assertEquals(String.valueOf(supplierAsObject), rendered);
@@ -127,7 +127,7 @@ public class FancyTextPlaceholderEngineContractTest {
     void aPlaceholderDeclaredOnTheChainIsVisibleToEveryPieceOfIt() {
         FancyFormatter formatter = FancyFormatter.of("first ${who}")
                 .append(" then ${who}")
-                .placeholder("who", "Steve");
+                .addPlaceholder("who", "Steve");
 
         assertEquals("first Steve then Steve", render(formatter));
     }
@@ -135,11 +135,11 @@ public class FancyTextPlaceholderEngineContractTest {
     @Test
     void aPieceThatDeclaresTheSameKeyShadowsTheChain() {
         FancySegment own = new FancySegment(" then ${who}");
-        own.placeholder("who", "Alex");
+        own.addPlaceholder("who", "Alex");
 
         FancyFormatter formatter = FancyFormatter.of("first ${who}")
                 .append(own)
-                .placeholder("who", "Steve");
+                .addPlaceholder("who", "Steve");
 
         assertEquals("first Steve then Alex", render(formatter));
     }
@@ -150,14 +150,14 @@ public class FancyTextPlaceholderEngineContractTest {
         values.put("plain", "A");
         values.put("lazy", (Supplier<String>) () -> "B");
 
-        assertEquals("A B", render(FancyText.of("${plain} ${lazy}").placeholders(values)));
+        assertEquals("A B", render(FancyText.of("${plain} ${lazy}").addPlaceholders(values)));
     }
 
     // PlaceholderAPI owns '%key%'; the engine must not touch those tokens, so both closures can sit
     // in the same text and each be resolved by the machinery that owns it.
     @Test
     void papiTokensAreLeftForTheCompoundReplacerAndNotTouchedByTheEngine() {
-        FancyText fancyText = FancyText.of("${saldo} tem %papi_vault_balance%").placeholder("saldo", "R$10");
+        FancyText fancyText = FancyText.of("${saldo} tem %papi_vault_balance%").addPlaceholder("saldo", "R$10");
 
         assertEquals("R$10 tem %papi_vault_balance%", render(fancyText),
                 "the ${} engine must leave every %...% token untouched");
@@ -166,9 +166,9 @@ public class FancyTextPlaceholderEngineContractTest {
                 new RegexReplacer<Object>().addParser("papi_vault_balance", o -> "999"), new Object());
 
         FancyText resolvedByBoth = FancyText.of("${saldo} tem %papi_vault_balance%")
-                .placeholder("saldo", "R$10")
-                .replace(papiLike);
+                .addPlaceholder("saldo", "R$10")
+                .addReplacer(papiLike);
 
-        assertEquals("R$10 tem 999", resolvedByBoth.toLegacyString(RenderContext.EMPTY));
+        assertEquals("R$10 tem 999", resolvedByBoth.toLegacyString(RenderContext.empty()));
     }
 }

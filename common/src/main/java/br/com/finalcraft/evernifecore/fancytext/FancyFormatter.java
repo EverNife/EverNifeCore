@@ -3,13 +3,12 @@ package br.com.finalcraft.evernifecore.fancytext;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.fancytext.hover.FancyHover;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
+import br.com.finalcraft.evernifecore.placeholder.base.PlaceholderProvider;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -27,21 +26,8 @@ import java.util.function.Supplier;
  */
 public class FancyFormatter implements FancyText {
 
-    protected Map<String, Object> mapOfPlaceholders = new HashMap<>();
-    protected boolean complexPlaceholder = false;
     protected List<FancyText> fancyTextList = new ArrayList<>();
-    protected transient Map<String, PlaceholderValue> placeholders = null;
-
-    public FancyFormatter addPlaceholder(String placeHolder, Object value) {
-        mapOfPlaceholders.put(placeHolder, value);
-        return this;
-    }
-
-    public FancyFormatter addPlaceholder(String placeHolder, Function<PlayerData, Object> function) {
-        mapOfPlaceholders.put(placeHolder, function);
-        complexPlaceholder = true;
-        return this;
-    }
+    protected transient MessagePlaceholders placeholders = null;
 
     public FancyFormatter append(FancyText... fancyTexts) {
         for (FancyText fancyText : fancyTexts) {
@@ -61,7 +47,13 @@ public class FancyFormatter implements FancyText {
     public FancyFormatter append(FancyText fancyText) {
         if (fancyText instanceof FancyFormatter other) {
             for (FancyText fancyTextInner : other.fancyTextList) {
-                this.fancyTextList.add(fancyTextInner.copy());
+                FancyText piece = fancyTextInner.copy();
+                // The chain being spliced in stops existing as a level, so what it declared has to
+                // travel with its pieces - or the values would be lost the moment it is appended.
+                if (other.placeholders != null && piece instanceof FancySegment) {
+                    ((FancySegment) piece).placeholders().inheritMissing(other.placeholders);
+                }
+                this.fancyTextList.add(piece);
             }
         } else {
             this.fancyTextList.add(fancyText.copy());
@@ -87,38 +79,57 @@ public class FancyFormatter implements FancyText {
     // A placeholder declared on the chain is visible to every piece in it; a piece that declares the
     // same key shadows it, the same way an inner scope shadows an outer one.
     @Override
-    public FancyFormatter placeholder(String key, Object value) {
-        return declare(key, PlaceholderValue.constant(value));
+    public FancyFormatter addPlaceholder(String key, Object value) {
+        return addParser(key, context -> value);
     }
 
     @Override
-    public FancyFormatter placeholder(String key, Supplier<?> value) {
-        return declare(key, PlaceholderValue.lazy(value));
+    public FancyFormatter addPlaceholder(String key, Supplier<?> value) {
+        return addParser(key, context -> value.get());
     }
 
     @Override
-    public FancyFormatter placeholder(String key, Function<PlayerData, ?> value) {
-        return declare(key, PlaceholderValue.perPlayer(value));
+    public FancyFormatter addPlaceholder(String key, Function<PlayerData, ?> value) {
+        return addParser(key, context -> context.getPlayerData() == null
+                ? null                              // no PlayerData: the token is left as written
+                : value.apply(context.getPlayerData()));
     }
 
     @Override
-    public FancyFormatter placeholders(Map<String, ?> values) {
+    public FancyFormatter addPlaceholders(Map<String, ?> values) {
         for (Map.Entry<String, ?> entry : values.entrySet()) {
-            declare(entry.getKey(), FancySegment.asPlaceholderValue(entry.getValue()));
+            FancySegment.declareByValueKind(this, entry.getKey(), entry.getValue());
         }
         return this;
     }
 
-    private FancyFormatter declare(String key, PlaceholderValue value) {
+    @Override
+    public FancyFormatter addParser(String key, Function<RenderContext, ?> parser) {
+        return addParser(key, "", parser);
+    }
+
+    @Override
+    public FancyFormatter addParser(String key, String description, Function<RenderContext, ?> parser) {
+        placeholders().declare(key, description, parser::apply);
+        return this;
+    }
+
+    @Override
+    public FancyFormatter addReplacer(CompoundReplacer replacer) {
+        placeholders().addReplacer(replacer);
+        return this;
+    }
+
+    @Override
+    public PlaceholderProvider<RenderContext> getPlaceholderProvider() {
+        return placeholders().getProvider();
+    }
+
+    private MessagePlaceholders placeholders() {
         if (placeholders == null) {
-            placeholders = new LinkedHashMap<>();
+            placeholders = new MessagePlaceholders();
         }
-        placeholders.put(PlaceholderScope.normalizeKey(key), value);
-        return this;
-    }
-
-    public boolean hasPlaceholders() {
-        return !mapOfPlaceholders.isEmpty();
+        return placeholders;
     }
 
     public List<FancyText> getFancyTextList() {
@@ -129,14 +140,6 @@ public class FancyFormatter implements FancyText {
     public FancyFormatter replace(String placeholder, String value) {
         for (int i = 0; i < this.fancyTextList.size(); i++) {
             this.fancyTextList.set(i, this.fancyTextList.get(i).replace(placeholder, value));
-        }
-        return this;
-    }
-
-    @Override
-    public FancyText replace(CompoundReplacer replacer) {
-        for (int i = 0; i < this.fancyTextList.size(); i++) {
-            this.fancyTextList.set(i, this.fancyTextList.get(i).replace(replacer));
         }
         return this;
     }
@@ -163,7 +166,7 @@ public class FancyFormatter implements FancyText {
     public Component toComponent(String startingColor, RenderContext context) {
         RenderContext pieceContext = placeholders == null || placeholders.isEmpty()
                 ? context
-                : context.withScope(new PlaceholderScope(context.getScope(), placeholders));
+                : context.inheriting(placeholders);
 
         TextComponent.Builder builder = Component.text();
         String previousColor = startingColor;
@@ -182,10 +185,8 @@ public class FancyFormatter implements FancyText {
         for (FancyText fancyText : this.fancyTextList) {
             copy.fancyTextList.add(fancyText.copy());
         }
-        copy.mapOfPlaceholders = new HashMap<>(this.mapOfPlaceholders);
-        copy.complexPlaceholder = this.complexPlaceholder;
         if (this.placeholders != null) {
-            copy.placeholders = new LinkedHashMap<>(this.placeholders);
+            copy.placeholders = this.placeholders.copy();
         }
         return copy;
     }
