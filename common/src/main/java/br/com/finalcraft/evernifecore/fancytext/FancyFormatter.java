@@ -145,36 +145,21 @@ public class FancyFormatter implements FancyText {
     }
 
     @Override
-    public Component toComponent() {
-        return toComponent("");
-    }
-
-    @Override
-    public Component toComponent(String startingColor) {
-        TextComponent.Builder builder = Component.text();
-        // Legacy chat lets a colour bleed into the following text; Adventure siblings do not inherit
-        // one another's colour, so carry each segment's trailing colour into the next as its start.
-        String previousColor = startingColor;
-        for (FancyText fancyText : fancyTextList) {
-            builder.append(fancyText.toComponent(previousColor));
-            previousColor = fancyText.getLastTextColor();
-        }
-        return builder.build();
-    }
-
-    @Override
-    public Component toComponent(String startingColor, RenderContext context) {
+    public RenderedText render(String startingColor, RenderContext context) {
         RenderContext pieceContext = placeholders == null || placeholders.isEmpty()
                 ? context
                 : context.inheriting(placeholders);
 
         TextComponent.Builder builder = Component.text();
+        // Legacy chat lets a colour bleed into the following text; Adventure siblings do not inherit
+        // one another's colour, so carry each piece's trailing colour into the next as its start.
         String previousColor = startingColor;
         for (FancyText fancyText : fancyTextList) {
-            builder.append(fancyText.toComponent(previousColor, pieceContext));
-            previousColor = fancyText.getLastTextColor();
+            RenderedText rendered = fancyText.render(previousColor, pieceContext);
+            builder.append(rendered.getComponent());
+            previousColor = rendered.getTrailingColor();
         }
-        return builder.build();
+        return new RenderedText(builder.build(), previousColor);
     }
 
     @Override
@@ -244,12 +229,6 @@ public class FancyFormatter implements FancyText {
     public ClickActionType getClickActionType() {
         FancyText last = lastOrNull();
         return last == null ? ClickActionType.NONE : last.getClickActionType();
-    }
-
-    @Override
-    public String getLastTextColor() {
-        FancyText last = lastOrNull();
-        return last == null ? "" : last.getLastTextColor();
     }
 
     @Override

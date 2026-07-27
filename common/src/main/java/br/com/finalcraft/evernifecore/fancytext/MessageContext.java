@@ -20,6 +20,14 @@ public final class MessageContext {
         this.subCommandName = subCommandName;
     }
 
+    /**
+     * A context built by hand, for the caller who has to say which command a message belongs to
+     * because the thread delivering it is not the one that ran the command.
+     */
+    public static MessageContext of(@Nullable String label, @Nullable String subCommandName) {
+        return new MessageContext(label, subCommandName);
+    }
+
     public @Nullable String getLabel() {
         return label;
     }

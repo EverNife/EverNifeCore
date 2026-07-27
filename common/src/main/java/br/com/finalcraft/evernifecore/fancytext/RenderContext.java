@@ -57,13 +57,32 @@ public final class RenderContext {
     }
 
     public static RenderContext of(@Nullable FCommandSender sender) {
+        return of(sender, MessageScope.currentOrEmpty());
+    }
+
+    /**
+     * A context for {@code sender} carrying an explicitly chosen {@link MessageContext} instead of
+     * whatever command scope happens to be open on this thread - which is the only way a message
+     * delivered from an asynchronous task can still answer for {@code ${label}}.
+     */
+    public static RenderContext of(@Nullable FCommandSender sender, @Nullable MessageContext messageContext) {
         if (sender == null) {
-            return empty();
+            return new RenderContext(null, null, messageContext);
         }
         PlayerData playerData = sender instanceof FPlayer
                 ? PlayerController.getLoaded(sender.getUniqueId())
                 : null;
-        return new RenderContext(sender, playerData, MessageScope.currentOrEmpty());
+        return new RenderContext(sender, playerData, messageContext);
+    }
+
+    /**
+     * This context aimed at one recipient: the command context is kept, everything that is specific
+     * to who is reading (their PlayerData, and what this render has already resolved) is theirs
+     * alone. This is how one explicitly built context serves a send to several recipients without
+     * showing any of them another one's values.
+     */
+    public RenderContext forRecipient(@Nullable FCommandSender recipient) {
+        return of(recipient, messageContext);
     }
 
     // The enclosing placeholder level travels with the render, so a piece can fall back to what the

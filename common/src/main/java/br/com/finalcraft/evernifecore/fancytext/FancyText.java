@@ -153,20 +153,29 @@ public interface FancyText {
         return setClick(url, ClickActionType.OPEN_URL);
     }
 
-    Component toComponent();
+    /**
+     * The one operation every other render form is written in terms of: produces the component for
+     * {@code context} and reports the colour the text ended on, so the next piece of a chain can
+     * start with it. Nothing is written back onto this instance, which is what makes rendering the
+     * same message for two recipients at the same time safe.
+     *
+     * @param startingColor the legacy colour codes already active where this render begins
+     */
+    RenderedText render(String startingColor, RenderContext context);
 
-    Component toComponent(String startingColor);
+    /** The component with no recipient, so a {@code ${key}} nobody can answer for stays as written. */
+    default Component toComponent() {
+        return render("", RenderContext.empty()).getComponent();
+    }
 
     /**
      * Renders for one recipient, resolving the {@code ${key}} placeholders declared on this text.
-     * The plain {@link #toComponent()} overloads resolve nothing, which is why a message with
-     * placeholders has to be rendered per recipient.
+     * The plain {@link #toComponent()} overload has no recipient to resolve against, which is why a
+     * message with placeholders has to be rendered per recipient.
      */
     default Component toComponent(RenderContext context) {
-        return toComponent("", context);
+        return render("", context).getComponent();
     }
-
-    Component toComponent(String startingColor, RenderContext context);
 
     /** The rendered legacy ({@code §}-formatted) string, without sending it. */
     default String toLegacyString() {
@@ -188,13 +197,21 @@ public interface FancyText {
         return FCColorUtil.stripColor(toLegacyString(context));
     }
 
-    String getLastTextColor();
-
     void send(FCommandSender... commandSender);
 
     /** Sends to every recipient in {@code commandSenders}, mirroring {@code ILocaleMessageBase.send(List)}. */
     default void send(List<FCommandSender> commandSenders) {
         send(commandSenders.toArray(new FCommandSender[0]));
+    }
+
+    /**
+     * Sends carrying an explicit {@link RenderContext}, for the caller who cannot rely on the command
+     * scope of the sending thread - a message delivered from an asynchronous task, typically. Each
+     * recipient still gets their own render; what {@code context} contributes is its
+     * {@link MessageContext}, which wins over whatever scope happens to be open here.
+     */
+    default void send(RenderContext context, FCommandSender... commandSenders) {
+        FancyTextManager.send(this, context, commandSenders);
     }
 
     default void broadcast() {

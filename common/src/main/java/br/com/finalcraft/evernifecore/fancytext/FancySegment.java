@@ -33,12 +33,7 @@ public class FancySegment implements FancyText {
     protected FancyHover hover = null;
     protected String clickActionText = null;
     protected ClickActionType clickActionType = ClickActionType.NONE;
-    protected String lastColor = "";
     protected transient MessagePlaceholders placeholders = null;
-
-    private boolean recentChanged = true;
-    private String lastStartingColor = "";
-    private transient Component cachedComponent = null;
 
     public FancySegment() {
     }
@@ -124,14 +119,12 @@ public class FancySegment implements FancyText {
 
     @Override
     public FancySegment setText(String text) {
-        setRecentChanged();
         this.text = text;
         return this;
     }
 
     @Override
     public FancySegment replace(String placeholder, String value) {
-        setRecentChanged();
         this.text = text.replace(placeholder, value);
         this.hover = replaceHoverPayload(this.hover, legacyPayload -> legacyPayload.replace(placeholder, value));
         if (this.clickActionText != null) this.clickActionText = this.clickActionText.replace(placeholder, value);
@@ -229,62 +222,45 @@ public class FancySegment implements FancyText {
 
     @Override
     public FancySegment setHover(String hoverText) {
-        setRecentChanged();
         this.hover = legacyHoverOf(hoverText);
         return this;
     }
 
     @Override
     public FancySegment setHover(FancyHover hover) {
-        setRecentChanged();
         this.hover = hover;
         return this;
     }
 
     @Override
     public FancySegment setClickType(ClickActionType actionType) {
-        this.setRecentChanged();
         this.clickActionType = actionType;
         return this;
     }
 
     @Override
     public FancySegment setClick(String clickActionText, ClickActionType actionType) {
-        setRecentChanged();
         this.clickActionText = clickActionText;
         this.clickActionType = actionType;
         return this;
     }
 
-    private void setRecentChanged() {
-        recentChanged = true;
-        cachedComponent = null;
+    @Override
+    public RenderedText render(String startingColor, RenderContext context) {
+        // The resolved copy is what actually renders, so the colour it ends on is the one that
+        // carries over - and it travels out as a value instead of being written back onto a field
+        // that another thread's render is reading at the same time.
+        FancySegment rendered = needsResolving(context) ? resolvedCopy(context) : this;
+        return rendered.renderLiteral(startingColor);
     }
 
-    @Override
-    public Component toComponent() {
-        return toComponent("");
-    }
-
-    @Override
-    public Component toComponent(String startingColor) {
-        if (!startingColor.equals(lastStartingColor)) {
-            setRecentChanged();
-        }
-        if (cachedComponent != null && !recentChanged) {
-            return cachedComponent;
-        }
-
-        recentChanged = false;
-        this.lastStartingColor = startingColor;
-
+    // No placeholder left to resolve: everything here reads this leaf and writes nothing.
+    private RenderedText renderLiteral(String startingColor) {
         String fixedText = startingColor + (
                 FCPlatformType.isHytale()
                         ? this.text.replace("●", "•").replace("▶", "•")
                         : this.text
         );
-
-        this.lastColor = FCColorUtil.getLastColors(fixedText);
 
         Component textComponent = FCColorUtil.colorfyComponent(fixedText);
         ComponentBuilder<?, ?> builder = textComponent.toBuilder();
@@ -312,22 +288,7 @@ public class FancySegment implements FancyText {
             }
         }
 
-        cachedComponent = builder.build();
-        return cachedComponent;
-    }
-
-    @Override
-    public Component toComponent(String startingColor, RenderContext context) {
-        if (!needsResolving(context)) {
-            return toComponent(startingColor);   // nothing to resolve: the cached component stands
-        }
-
-        FancySegment resolved = resolvedCopy(context);
-        Component component = resolved.toComponent(startingColor);
-        // A chain reads this leaf's trailing colour to start the next one, and the copy is the one
-        // that actually rendered - so the colour it ended on is the one that must carry over.
-        this.lastColor = resolved.lastColor;
-        return component;
+        return new RenderedText(builder.build(), FCColorUtil.getLastColors(fixedText));
     }
 
     // What forces a per-recipient render is the TEXT citing a key, not the message owning one, so
@@ -378,11 +339,6 @@ public class FancySegment implements FancyText {
             resolved = outer.apply(resolved, context);
         }
         return CoreMessageParsers.INSTANCE.apply(resolved, context);
-    }
-
-    @Override
-    public String getLastTextColor() {
-        return lastColor;
     }
 
     @Override

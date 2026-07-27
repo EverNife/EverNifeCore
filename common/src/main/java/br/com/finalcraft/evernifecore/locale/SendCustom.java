@@ -4,6 +4,8 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.fancytext.MessageContext;
+import br.com.finalcraft.evernifecore.fancytext.MessageScope;
 import br.com.finalcraft.evernifecore.fancytext.RenderContext;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
@@ -34,12 +36,17 @@ public class SendCustom implements ILocaleMessageBase {
     protected transient String clickActionText;
     protected transient ClickActionType clickActionType;
 
+    // Captured here, not at send time: a message built inside a command and delivered from a task
+    // later still knows which label produced it, because the task's thread has no scope of its own.
+    protected final MessageContext messageContext;
+
     protected SendCustom(LocaleMessage localeMessage) {
         this(ChainPiece.of(localeMessage));
     }
 
     protected SendCustom(ChainPiece source) {
         this.source = source;
+        this.messageContext = MessageScope.currentOrEmpty();
     }
 
     @Override
@@ -117,10 +124,7 @@ public class SendCustom implements ILocaleMessageBase {
 
     @Override
     public void send(FCommandSender... commandSenders) {
-        for (FCommandSender sender : commandSenders) {
-            FancyText fancyText = getFancyText(sender);
-            fancyText.send(sender);
-        }
+        send(RenderContext.of(null, messageContext), commandSenders);
     }
 
     @Override
