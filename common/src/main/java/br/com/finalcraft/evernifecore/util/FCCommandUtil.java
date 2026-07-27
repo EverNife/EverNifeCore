@@ -11,7 +11,7 @@ public class FCCommandUtil {
      *
      * @param runnable The runnable for this command
      *
-     * @return The Command link to this runnable, like "/%label% UUID"
+     * @return The Command link to this runnable, like "/${label} UUID"
      */
     public static String dynamicCommand(Runnable runnable){
         return dynamicCommand(runnable, 1200);
@@ -24,7 +24,7 @@ public class FCCommandUtil {
      * @param runnable The runnable for this command
      * @param maxTimeInSeconds The max amount of time this command can be run
      *
-     * @return The Command link to this runnable, like "/%label% UUID"
+     * @return The Command link to this runnable, like "/${label} UUID"
      */
     public static String dynamicCommand(Runnable runnable, long maxTimeInSeconds){
         return dynamicCommand(runnable, maxTimeInSeconds, false);
@@ -37,7 +37,7 @@ public class FCCommandUtil {
      * @param runnable The runnable for this command
      * @param maxTimeInSeconds The max amount of time this command can be run
      *
-     * @return The Command link to this runnable, like "/%label% UUID"
+     * @return The Command link to this runnable, like "/${label} UUID"
      */
     public static String dynamicCommand(Runnable runnable, long maxTimeInSeconds, boolean runOnlyOnce){
         return DynamicCommand.builder()

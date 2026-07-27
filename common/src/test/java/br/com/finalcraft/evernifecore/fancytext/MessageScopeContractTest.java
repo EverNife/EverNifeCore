@@ -48,7 +48,7 @@ public class MessageScopeContractTest {
     }
 
     public static class ScopedLocales {
-        @FCLocale(text = "use /%label% help")
+        @FCLocale(text = "use /${label} help")
         public static LocaleMessage USAGE;
     }
 

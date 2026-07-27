@@ -29,7 +29,7 @@ public class DynamicCommandManager {
      *
      * @param dynamicCommand The dynamicCommand
      *
-     * @return The Command link to this dynamicCommand, like "/%label% UUID"
+     * @return The Command link to this dynamicCommand, like "/${label} UUID"
      */
     public static String scheduleDynamicCommand(DynamicCommand dynamicCommand){
         DYNAMIC_COMMANDS.put(

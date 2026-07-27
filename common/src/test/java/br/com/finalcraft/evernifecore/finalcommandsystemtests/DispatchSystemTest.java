@@ -243,7 +243,7 @@ class DispatchSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // B7 - unknown subcommand, no main interpreter -> PARAMETER_ERROR with %label% resolved
+    // B7 - unknown subcommand, no main interpreter -> PARAMETER_ERROR with ${label} resolved
     // ------------------------------------------------------------------
 
     @FinalCMD(aliases = "b7cmd")

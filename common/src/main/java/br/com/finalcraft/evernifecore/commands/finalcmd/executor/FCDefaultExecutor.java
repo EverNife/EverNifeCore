@@ -18,8 +18,8 @@ import java.util.Arrays;
 
 public class FCDefaultExecutor {
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§cParameters error, please use /%label% help")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§cErro de parâmetros, por favor use /%label% help")
+    @FCLocale(lang = LocaleType.EN_US, text = "§cParameters error, please use /${label} help")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§cErro de parâmetros, por favor use /${label} help")
     public static LocaleMessage PARAMETER_ERROR;
 
     @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cUnknown flag §6[§e%flag%§6]§c! Available flags: §b%available_flags%")
@@ -91,7 +91,7 @@ public class FCDefaultExecutor {
 
                 try (MessageScope scope = MessageScope.open(label, null)) {
                     if (finalCommand.getMainInterpreter() == null){
-                        PARAMETER_ERROR.addPlaceholder("%label%", label).send(sender);
+                        PARAMETER_ERROR.addPlaceholder("${label}", label).send(sender);
                     }else {
 
                         if (finalCommand.getMainInterpreter().getCmdData().getCmdAccessValidations().length > 0){

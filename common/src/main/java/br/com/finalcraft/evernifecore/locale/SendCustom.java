@@ -117,7 +117,7 @@ public class SendCustom implements ILocaleMessageBase {
         LocaleMessageImp localeMessageImp = (LocaleMessageImp) localeMessage;
         List<Map.Entry<String, Object>> allPlaceholdersReplacers = new ArrayList<Map.Entry<String, Object>>();
         allPlaceholdersReplacers.addAll(mapOfPlaceholders.entrySet()); //Custom placeholders, created by demand
-        allPlaceholdersReplacers.addAll(localeMessageImp.getContextPlaceholders().entrySet()); //Context Placeholders, like %label%
+        allPlaceholdersReplacers.addAll(localeMessageImp.getContextPlaceholders().entrySet()); //Context Placeholders, like ${label}
 
         RenderContext context = RenderContext.of(sender);
         for (Map.Entry<String, Object> entry : allPlaceholdersReplacers) {

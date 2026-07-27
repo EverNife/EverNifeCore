@@ -210,12 +210,12 @@ class UsageAndHelpSystemTest {
 
     // ------------------------------------------------------------------
     // D7 - a class's own @FCLocale static LocaleMessage fields are loaded at registration, and
-    // %label% is resolved at dispatch time (prepareClassLocales)
+    // ${label} is resolved at dispatch time (prepareClassLocales)
     // ------------------------------------------------------------------
 
     @FinalCMD(aliases = "d7cmd")
     public static class D7_Cmd {
-        @FCLocale(lang = LocaleType.EN_US, text = "You used %label%!")
+        @FCLocale(lang = LocaleType.EN_US, text = "You used ${label}!")
         static LocaleMessage GREETING;
 
         @FinalCMD.SubCMD(subcmd = "sub")

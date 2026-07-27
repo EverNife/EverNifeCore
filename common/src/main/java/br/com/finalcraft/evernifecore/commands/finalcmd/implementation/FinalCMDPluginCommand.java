@@ -46,7 +46,7 @@ public class FinalCMDPluginCommand {
     protected HelpContext helpContext;// Immutable Context from all HelpLines from all SubCmds (come from list 'helpLineList' bellow)
     protected transient IPlatformCMD platformCommand; //The actual command.class inside the platform
 
-    public static final String DEFAULT_USAGE = "§3§l ▶ §a/§e%label% ";
+    public static final String DEFAULT_USAGE = "§3§l ▶ §a/§e${label} ";
 
     public FinalCMDPluginCommand(@Nonnull ECPluginData owningPlugin, @Nonnull FinalCMDData finalCMD, @Nullable CMDMethodInterpreter mainInterpreter) {
         Validate.notNull(owningPlugin, "OwningPlugin is null!");

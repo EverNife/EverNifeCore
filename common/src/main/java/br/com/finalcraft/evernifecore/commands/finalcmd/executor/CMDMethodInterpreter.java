@@ -296,10 +296,10 @@ public class CMDMethodInterpreter {
 
             Consumer<FancyText> applyDefaultFormatting = fancyTextOrFormatter -> {
                 fancyTextOrFormatter.hover(description);
-                fancyTextOrFormatter.clickSuggest("/%label% %subcmd%");
+                fancyTextOrFormatter.clickSuggest("/${label} ${subcmd}");
             };
 
-            FancyFormatter fancyFormatter = FancyFormatter.of("§3§l ▶ §a/§e%label%" + (isSubCommand ? " %subcmd%" : ""));
+            FancyFormatter fancyFormatter = FancyFormatter.of("§3§l ▶ §a/§e${label}" + (isSubCommand ? " ${subcmd}" : ""));
             applyDefaultFormatting.accept(fancyFormatter);
 
             AtomicBoolean anyLocalizedArg = new AtomicBoolean(false);
