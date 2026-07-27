@@ -34,12 +34,22 @@ public enum FCPlatformType {
         return getCurrent() == HYTALE;
     }
 
+    //The resource path a Bukkit server is recognized by. It MUST carry the .class suffix: a jar
+    //holds no entry for the bare binary name, so a suffix-less probe never matches and every
+    //server, Bukkit included, gets detected as Hytale.
+    static final String BUKKIT_MARKER = "org/bukkit/Bukkit.class";
+
     private static FCPlatformType detectCurrentPlatform() {
-        if (ClassLoader.getSystemResource("org/bukkit/Bukkit") != null){
-            return MINECRAFT;
-        }else {
-            return HYTALE;
-        }
+        return detectPlatform(FCPlatformType.class.getClassLoader());
+    }
+
+    static FCPlatformType detectPlatform(ClassLoader loader) {
+        //Our own loader is asked first: it delegates up to whichever loader holds the server
+        //classes, which a server booted through a custom launcher keeps off the system classpath.
+        boolean bukkitPresent = (loader != null && loader.getResource(BUKKIT_MARKER) != null)
+                || ClassLoader.getSystemResource(BUKKIT_MARKER) != null;
+
+        return bukkitPresent ? MINECRAFT : HYTALE;
     }
 
 }
