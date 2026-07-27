@@ -2,6 +2,7 @@ rootProject.name = 'EverNifeCore'
 
 include 'minecraft'
 include 'common'
+include 'common-tests'
 include 'api-contracts'
 include 'libby'
 include 'hytale'

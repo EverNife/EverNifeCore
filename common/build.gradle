@@ -61,6 +61,8 @@ dependencies {
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter
     testRuntimeOnly libs.junit.platform.launcher
+    // The test engine this repository publishes and dogfoods: no fixture lives in src/test anymore.
+    testImplementation project(':common-tests')
     // The platoverride stubs are compileOnly in production, so the test runtime needs them back.
     testImplementation project(':api-contracts')
     testRuntimeOnly libs.h2 // H2 backend for the storage integration tests

@@ -34,4 +34,23 @@ public class ECBaseProvider {
         return something;
     }
 
+    /**
+     * Removes the provider registered for {@code providerType}.
+     *
+     * <p>Exists so a caller that installed a provider can put the previous world back - a test
+     * fixture that never uninstalls turns the registry into shared state between test classes,
+     * which shows up as order-dependent failures.</p>
+     *
+     * @return the provider that was registered, or {@code null} if there was none.
+     */
+    public <T> T unregister(Class<T> providerType) {
+        Object previousProvider = REGISTERED_PROVIDERS.remove(providerType);
+
+        if (previousProvider != null) {
+            logger.info(String.format("[ECBaseProvider] Unregistering ECProvider#%s (%s)", providerType.getSimpleName(), previousProvider.getClass().getName()));
+        }
+
+        return (T) previousProvider;
+    }
+
 }

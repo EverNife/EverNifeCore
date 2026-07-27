@@ -112,6 +112,7 @@ subprojects {
 // ======================================================================
 configure([project(':api-contracts'),
            project(':common'),
+           project(':common-tests'),
            project(':libby'),
            project(':minecraft')]) {
     dependencies {
