@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 public class PageViewer<OBJ, COMPARED_VALUE> {
 
-    //Keys every page answers for on its own.
+    //Keys every page answers for on its own, unless the caller declared one of them itself.
     private static final String NUMBER_KEY = "number";
     private static final String VALUE_KEY = "value";
     private static final String PLAYER_KEY = "player";
@@ -194,14 +194,14 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
             declare(replacer, declaration.getKey(), entry -> function.apply(entry.object));
         }
 
-        declare(replacer, NUMBER_KEY, entry -> entry.number);
+        declareIfAbsent(replacer, NUMBER_KEY, entry -> entry.number);
 
         if (sortedList.size() > 0){
             Object firstObject = sortedList.get(0).getObject();
             if (firstObject instanceof FPlayer) {
-                declare(replacer, PLAYER_KEY, entry -> ((FPlayer) entry.object).getName());
+                declareIfAbsent(replacer, PLAYER_KEY, entry -> ((FPlayer) entry.object).getName());
             } else if (firstObject instanceof IPlayerData) {
-                declare(replacer, PLAYER_KEY, entry -> ((IPlayerData) entry.object).getName());
+                declareIfAbsent(replacer, PLAYER_KEY, entry -> ((IPlayerData) entry.object).getName());
             }
         }
 
@@ -214,6 +214,20 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         //token raw, which in a click value would be a broken command rather than an ugly line.
         final Object declaration = new Object();
         replacer.addParser(key, entry -> entry.resolveOnce(declaration, () -> String.valueOf(function.apply(entry))));
+    }
+
+    /**
+     * Declares one of the framework's own keys only where the caller left it free: a page that
+     * declared {@code value} (or {@code player}, or {@code number}) meant it, and the automatic answer
+     * is the default, not an override of a more specific one.
+     */
+    private static <OBJ> void declareIfAbsent(RegexReplacer<LineEntry<OBJ>> replacer, String key, Function<LineEntry<OBJ>, Object> function){
+        //The provider indexes its keys lower-cased and these names are already lower case, so this
+        //also catches a caller who declared the same key spelled with another case.
+        if (replacer.getProvider().getParserMap().containsKey(key)){
+            return;
+        }
+        declare(replacer, key, function);
     }
 
     /**
@@ -417,8 +431,8 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
          *
          * <p>Resolved against the line's own object, once per line, while the page is being cached -
          * so every recipient of that page reads the same values. A key the line never writes is never
-         * computed. {@code number}, {@code value} and {@code player} are answered for
-         * automatically.</p>
+         * computed. {@code number}, {@code value} and {@code player} are answered for automatically,
+         * unless declared here, in which case this wins.</p>
          */
         public IBuilder<O, C> addPlaceholder(String key, Function<O, Object> function);
 
@@ -574,6 +588,15 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
             return this;
         }
 
+        //Whether the caller already speaks for this key, whatever case it spelled it in - the
+        //provider indexes keys lower-cased, so two spellings of one name are the same key to it.
+        private boolean declares(String key){
+            for (String declared : placeholders.keySet()) {
+                if (declared.equalsIgnoreCase(key)) return true;
+            }
+            return false;
+        }
+
         @Override
         public BuilderImp<O, C> setNextAndPreviousPageButton(boolean nextAndPreviousPageButton) {
             this.nextAndPreviousPageButton = nextAndPreviousPageButton;
@@ -583,7 +606,9 @@ public class PageViewer<OBJ, COMPARED_VALUE> {
         @Override
         public PageViewer<O, C> build(){
 
-            if (this.valueExtractor != null){
+            //Conditional for the same reason declareIfAbsent is: the extractor is this key's default
+            //answer, not an override of a caller that meant something else by it.
+            if (this.valueExtractor != null && !declares(VALUE_KEY)){
                 addPlaceholder(VALUE_KEY, (Function<O, Object>) valueExtractor);
             }
 

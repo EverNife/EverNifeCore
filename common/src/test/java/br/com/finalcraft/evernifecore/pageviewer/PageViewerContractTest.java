@@ -1,10 +1,12 @@
 package br.com.finalcraft.evernifecore.pageviewer;
 
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.fancytext.MessageScope;
 import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.TestCommandSender;
+import br.com.finalcraft.evernifecore.finalcommandsystemtests.harness.TestFPlayerSender;
 import br.com.finalcraft.evernifecore.testutil.TestPlatformFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -214,6 +216,42 @@ class PageViewerContractTest {
         }
 
         assertEquals(Collections.singletonList("/pagelabel entry"), console.getMessages());
+    }
+
+    @Test
+    void aValueKeyTheCallerDeclaredWinsOverTheExtractor() {
+        TestCommandSender console = new TestCommandSender("CONSOLE");
+
+        PageViewer.targeting(String.class)
+                .withSuplier(() -> Collections.singletonList("alpha"))
+                .extracting(entry -> "FROM-EXTRACTOR")
+                .setComparator(null)
+                .setFormatHeader(Collections.<FancyText>emptyList())
+                .setFormatLine("${value}")
+                .setNextAndPreviousPageButton(false)
+                .addPlaceholder("value", entry -> "FROM-CALLER")
+                .build()
+                .send(console);
+
+        assertEquals(Collections.singletonList("FROM-CALLER"), console.getMessages());
+    }
+
+    @Test
+    void aPlayerKeyTheCallerDeclaredWinsOverTheAutomaticOne() {
+        TestCommandSender console = new TestCommandSender("CONSOLE");
+
+        PageViewer.targeting(FPlayer.class)
+                .withSuplier(() -> Collections.<FPlayer>singletonList(new TestFPlayerSender("Steve")))
+                .extracting(player -> player.getName())
+                .setComparator(null)
+                .setFormatHeader(Collections.<FancyText>emptyList())
+                .setFormatLine("${player}")
+                .setNextAndPreviousPageButton(false)
+                .addPlaceholder("player", entry -> "FROM-CALLER")
+                .build()
+                .send(console);
+
+        assertEquals(Collections.singletonList("FROM-CALLER"), console.getMessages());
     }
 
     @Test
