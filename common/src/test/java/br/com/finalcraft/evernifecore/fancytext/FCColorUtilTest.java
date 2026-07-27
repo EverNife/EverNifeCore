@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-public class FancyFormatterColorTest {
+public class FCColorUtilTest {
 
     // ColorEnum has no toString() override, so getLastColors() used to return the enum name
     // (GRAY, RESET) instead of the code chars. Those names then leaked into the rendered text once
