@@ -160,8 +160,8 @@ public class FCMessageUtil {
         NEEDS_TO_BE_TIME_FRAME.addPlaceholder("argumento", argumento).send(sender);
     }
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou do not have enough money! §7§o(${current_money}§l/§7§o${needed_money})")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê não tem dinheiro suficiente! §7§o(${current_money}§l/§7§o${needed_money})")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou do not have enough money! §7§o(Money: ${current_money}§l/§7§o${needed_money})")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê não tem money suficiente! §7§o(Money: ${current_money}§l/§7§o${needed_money})")
     private static LocaleMessage ECO_NOT_ENOUGHT;
     public static void ecoNotEnough(FPlayer sender, double amountNeeded){
         ecoNotEnough(sender, FCEcoUtil.ecoGetInBigDecimal(sender), BigDecimal.valueOf(amountNeeded));

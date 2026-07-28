@@ -18,8 +18,7 @@ import java.util.UUID;
  * with {@code compareTo} only.</p>
  *
  * <p>With no economy on the server every method throws {@link IllegalStateException} with an
- * actionable message. That is deliberate: a shop that charges nothing is worse than a shop that
- * fails loudly. Use {@link #isEcoAvailable()} to feature-gate instead of catching.</p>
+ * actionable message. Use {@link #isEcoAvailable()} to feature-gate instead of catching.</p>
  */
 public class FCEcoUtil {
 

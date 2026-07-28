@@ -7,10 +7,6 @@ import java.math.BigDecimal;
 
 /**
  * The outcome of an economy mutation.
- *
- * <p>It exists because a boolean cannot tell "the target balance was already what was asked for" from
- * "the provider refused the transaction": both used to collapse into {@code false}, and each economy
- * implementation picked a different meaning for it.</p>
  */
 public final class EcoResponse {
 
