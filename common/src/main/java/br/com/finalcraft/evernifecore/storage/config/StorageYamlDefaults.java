@@ -120,9 +120,10 @@ public final class StorageYamlDefaults {
                 "============================================================"));
         config.setComment("playerdata.storage-backend-id",
                 "Must be an enabled storage backend id from 'storage-backends'");
-        config.setComment("playerdata.load-mode",
-                "ALL = load every player at startup (default) | RECENT = only players seen in the last"
-                        + " 'recent-days' (older players lazy-load on demand)");
+        config.setComment("playerdata.load-mode", String.join("\n",
+                "ALL    = load every player at startup (default)",
+                "RECENT = only players seen in the last 'recent-days'",
+                "         (older players lazy-load on demand)"));
         config.setComment("playerdata.login-timeout-seconds", String.join("\n",
                 "How long a login may wait on storage before being denied (storage down).",
                 "The login resolves the player row plus every section that loads at login,",
@@ -134,9 +135,10 @@ public final class StorageYamlDefaults {
                 "or one specific database. 0 turns the report off."));
         config.setComment("playerdata.default-idle-grace-seconds", String.join("\n",
                 "How long a player's section stays in memory after that player goes offline.",
-                "Applies to every section whose developer did not ask for a specific value;",
-                "lower it to reclaim memory sooner (0 = release as soon as the player leaves),",
-                "raise it so a reconnect does not have to read from the database again.",
+                "Applies to every section whose developer did not ask for a specific value.",
+                "Raise it so a reconnect does not have to read from the database again;",
+                "lower it to reclaim memory sooner - going under 300 (5 min) is not advised,",
+                "since a short grace turns every reconnect into a fresh backend read.",
                 "One section alone is tuned under 'pdsections.<plugin>.<section>.idle-grace-seconds'."));
 
         // ---- accountsections ----
