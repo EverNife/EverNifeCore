@@ -88,6 +88,11 @@ dependencies {
     testRuntimeOnly libs.junit.platform.launcher
     // A real server provides commons-lang3 to the code under test; the test JVM has to supply it.
     testRuntimeOnly libs.commons.lang3.legacy
+    // Both are compileOnly in production - the server ships them - so the test JVM has to bring them
+    // back to exercise the Vault bridges against a fake economy.
+    testImplementation libs.spigot.api
+    testImplementation libs.vaultunlocked
+    testImplementation project(':common-tests')
 }
 
 shadowJar {

@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.ECBaseProvider;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
 
 /**
  * A platform installed in the global provider registry, plus the way to undo it.
@@ -25,13 +26,17 @@ public final class ECoreTestWorld implements AutoCloseable {
     private final IPlatform previousPlatform;
     private final IECPluginExtractor previousExtractor;
     private final boolean hadExtractor;
+    private final IEconomyProvider previousEconomy;
+    private final boolean hadEconomy;
     private boolean closed = false;
 
-    private ECoreTestWorld(TestPlatform platform, IPlatform previousPlatform, IECPluginExtractor previousExtractor) {
+    private ECoreTestWorld(TestPlatform platform, IPlatform previousPlatform, IECPluginExtractor previousExtractor, IEconomyProvider previousEconomy) {
         this.platform = platform;
         this.previousPlatform = previousPlatform;
         this.previousExtractor = previousExtractor;
         this.hadExtractor = previousExtractor != null;
+        this.previousEconomy = previousEconomy;
+        this.hadEconomy = previousEconomy != null;
     }
 
     static ECoreTestWorld install(TestPlatform platform) {
@@ -41,7 +46,8 @@ public final class ECoreTestWorld implements AutoCloseable {
         ECoreTestWorld world = new ECoreTestWorld(
                 platform,
                 providers.provideOrNull(IPlatform.class),
-                providers.provideOrNull(IECPluginExtractor.class)
+                providers.provideOrNull(IECPluginExtractor.class),
+                providers.provideOrNull(IEconomyProvider.class)
         );
 
         providers.register(IPlatform.class, platform);
@@ -62,6 +68,15 @@ public final class ECoreTestWorld implements AutoCloseable {
         return this;
     }
 
+    /**
+     * Installs an economy for the lifetime of this world - {@link Economies} builds the usual ones.
+     * Without this call there is no economy at all, and every {@code FCEcoUtil} call throws.
+     */
+    public ECoreTestWorld withEconomy(IEconomyProvider economy) {
+        EverNifeCore.getProviders().getBaseProvider().register(IEconomyProvider.class, economy);
+        return this;
+    }
+
     @Override
     public void close() {
         if (closed) {
@@ -72,6 +87,7 @@ public final class ECoreTestWorld implements AutoCloseable {
         ECBaseProvider providers = EverNifeCore.getProviders().getBaseProvider();
         restore(providers, IPlatform.class, previousPlatform, previousPlatform != null);
         restore(providers, IECPluginExtractor.class, previousExtractor, hadExtractor);
+        restore(providers, IEconomyProvider.class, previousEconomy, hadEconomy);
     }
 
     private static <T> void restore(ECBaseProvider providers, Class<T> type, T previous, boolean hadPrevious) {
