@@ -36,6 +36,8 @@ public class AccountSectionConfiguration<T extends AccountSection<T>> {
     private final String sectionId;
     /** Nullable - the default collection name ({@code acs_<plugin>_<id>}) is derived. */
     private final String collection;
+    /** Nullable - a one-line human description; becomes a comment on the generated storage.yml entry. */
+    private final String description;
     /**
      * Whether a re-registration drops this section's unflushed rows instead of flushing them first.
      * Off by default - see {@code PDSectionConfiguration#isDiscardDirtyOnReload()}. Weigh it harder
@@ -51,12 +53,13 @@ public class AccountSectionConfiguration<T extends AccountSection<T>> {
     private final List<EntitySchemaMigrations.Step> migrations;
 
     private AccountSectionConfiguration(ECPluginData pluginData, Class<T> sectionClass, String sectionId,
-                                        String collection, boolean discardDirtyOnReload,
+                                        String collection, String description, boolean discardDirtyOnReload,
                                         List<EntitySchemaMigrations.Step> migrations) {
         this.pluginData = pluginData;
         this.sectionClass = sectionClass;
         this.sectionId = sectionId;
         this.collection = collection;
+        this.description = description;
         this.discardDirtyOnReload = discardDirtyOnReload;
         this.migrations = Collections.unmodifiableList(migrations);
     }
@@ -78,6 +81,7 @@ public class AccountSectionConfiguration<T extends AccountSection<T>> {
         private final Class<T> sectionClass;
         private final String sectionId;
         private String collection;
+        private String description;
         private boolean discardDirtyOnReload = false;
         private final List<EntitySchemaMigrations.Step> migrations = new ArrayList<>();
 
@@ -89,6 +93,15 @@ public class AccountSectionConfiguration<T extends AccountSection<T>> {
 
         public Builder<T> collection(String collection) {
             this.collection = collection;
+            return this;
+        }
+
+        /**
+         * One line saying what this section holds. It becomes the comment above the generated
+         * storage.yml entry, which is the only place an admin ever finds out this section exists.
+         */
+        public Builder<T> description(String description) {
+            this.description = description;
             return this;
         }
 
@@ -132,7 +145,7 @@ public class AccountSectionConfiguration<T extends AccountSection<T>> {
 
         public AccountSectionConfiguration<T> build() {
             return new AccountSectionConfiguration<>(pluginData, sectionClass, sectionId, collection,
-                    discardDirtyOnReload, migrations);
+                    description, discardDirtyOnReload, migrations);
         }
     }
 }

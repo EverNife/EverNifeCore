@@ -30,6 +30,7 @@ import br.com.finalcraft.evernifecore.storage.StorageUnavailableException;
 import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
 import br.com.finalcraft.evernifecore.storage.config.ParsedStorageConfig;
 import br.com.finalcraft.evernifecore.storage.config.PDSectionAdminConfig;
+import br.com.finalcraft.evernifecore.storage.config.SectionFamily;
 import br.com.finalcraft.evernifecore.storage.config.PDSectionYamlWriter;
 import br.com.finalcraft.evernifecore.storage.config.PlayerDataAdminConfig;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlDefaults;
@@ -832,20 +833,34 @@ public class PlayerController {
      */
     void reportOrphanSectionEntries() {
         if (!orphanEntriesReported.compareAndSet(false, true)) return;
-        Set<String> claimed = new HashSet<>();
+
+        Set<String> claimedPlayer = new HashSet<>();
         for (PDSectionBinding<? extends PDSection> binding : bindings.values()) {
             PDSectionConfiguration<?> cfg = binding.getConfiguration();
-            claimed.add(SectionIds.sanitizePlugin(pluginNameOf(cfg.getPluginData())) + "." + cfg.getSectionId());
+            claimedPlayer.add(SectionIds.sanitizePlugin(pluginNameOf(cfg.getPluginData())) + "." + cfg.getSectionId());
         }
-        for (Map.Entry<String, Map<String, PDSectionAdminConfig>> ofPlugin : storageConfig.getPDSections().entrySet()) {
+        reportOrphansOf(SectionFamily.PLAYER, claimedPlayer);
+
+        Set<String> claimedAccount = new HashSet<>();
+        for (AccountSectionBinding<?> binding : accountEngine.bindings()) {
+            AccountSectionConfiguration<?> cfg = binding.getConfiguration();
+            claimedAccount.add(SectionIds.sanitizePlugin(pluginNameOf(cfg.getPluginData())) + "." + cfg.getSectionId());
+        }
+        reportOrphansOf(SectionFamily.ACCOUNT, claimedAccount);
+    }
+
+    private void reportOrphansOf(SectionFamily family, Set<String> claimed) {
+        for (Map.Entry<String, Map<String, PDSectionAdminConfig>> ofPlugin
+                : storageConfig.getSections(family).entrySet()) {
             for (String sectionId : ofPlugin.getValue().keySet()) {
                 String entry = ofPlugin.getKey() + "." + sectionId;
                 if (claimed.contains(entry)) continue;
-                PDLog.warning("storage.yml has an entry 'pdsections.%s' that no registered PDSection claims."
+                PDLog.warning("storage.yml has an entry '%s.%s' that no registered %s claims."
                                 + " Either the plugin that owned it is not installed, or its section id changed -"
                                 + " in which case the rows of the OLD collection are no longer reachable."
                                 + " Nothing was moved or deleted; check collection '%s' before removing the entry.",
-                        entry, BindingResolver.collectionName("pd", ofPlugin.getKey(), sectionId));
+                        family.getYamlBlock(), entry, family.getLabel(),
+                        BindingResolver.collectionName(family.getCollectionPrefix(), ofPlugin.getKey(), sectionId));
             }
         }
     }

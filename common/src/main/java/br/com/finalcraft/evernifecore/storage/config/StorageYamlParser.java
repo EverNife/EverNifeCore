@@ -84,17 +84,9 @@ public final class StorageYamlParser {
                     + " (0 releases an account row as soon as its last member quits)!");
         }
 
-        // ---- pdsections (raw, validated at section registration time) ----
-        Map<String, Map<String, PDSectionAdminConfig>> pdSections = new LinkedHashMap<>();
-        for (String pluginName : config.getKeys("pdsections")) {
-            //keyed lowercase: the generated keys already are, and a hand-edited entry must be
-            //obeyed whatever case the admin typed (ParsedStorageConfig lowercases the lookup too)
-            Map<String, PDSectionAdminConfig> ofPlugin = new LinkedHashMap<>();
-            for (String sectionName : config.getKeys("pdsections." + pluginName)) {
-                ofPlugin.put(sectionName.toLowerCase(Locale.ROOT), parsePDSection(config, pluginName, sectionName));
-            }
-            pdSections.put(pluginName.toLowerCase(Locale.ROOT), ofPlugin);
-        }
+        // ---- section entries, per family (raw, validated at section registration time) ----
+        Map<String, Map<String, PDSectionAdminConfig>> pdSections = parseSectionBlock(config, SectionFamily.PLAYER);
+        Map<String, Map<String, PDSectionAdminConfig>> accountSections = parseSectionBlock(config, SectionFamily.ACCOUNT);
 
         // ---- logging ----
         StorageLogLevel loggingLevel = parseLogLevel(config.getString("logging.level", "warn"), warnings);
@@ -106,8 +98,8 @@ public final class StorageYamlParser {
         RedisSyncConfig redisSync = parseRedis(config);   // null unless the redis block is enabled
 
         return new ParsedStorageConfig(backends, defaultBackendName, multiplatformAccountsEnabled,
-                accountBackendName, accountIdleGrace, playerData, pdSections, loggingLevel, enableSync,
-                transportMode, redisSync, warnings);
+                accountBackendName, accountIdleGrace, playerData, pdSections, accountSections,
+                loggingLevel, enableSync, transportMode, redisSync, warnings);
     }
 
     /** Parses the {@code multi-server-cache-sync.redis} block; {@code null} unless it is enabled. */
@@ -314,12 +306,29 @@ public final class StorageYamlParser {
                 defaultIdleGrace);
     }
 
-    private static PDSectionAdminConfig parsePDSection(Config config, String pluginName, String sectionName) {
-        String base = "pdsections." + pluginName + "." + sectionName + ".";
+    private static Map<String, Map<String, PDSectionAdminConfig>> parseSectionBlock(Config config,
+                                                                                    SectionFamily family) {
+        Map<String, Map<String, PDSectionAdminConfig>> entries = new LinkedHashMap<>();
+        for (String pluginName : config.getKeys(family.getYamlBlock())) {
+            //keyed lowercase: the generated keys already are, and a hand-edited entry must be
+            //obeyed whatever case the admin typed (ParsedStorageConfig lowercases the lookup too)
+            Map<String, PDSectionAdminConfig> ofPlugin = new LinkedHashMap<>();
+            for (String sectionName : config.getKeys(family.getYamlBlock() + "." + pluginName)) {
+                ofPlugin.put(sectionName.toLowerCase(Locale.ROOT),
+                        parseSectionEntry(config, family, pluginName, sectionName));
+            }
+            entries.put(pluginName.toLowerCase(Locale.ROOT), ofPlugin);
+        }
+        return entries;
+    }
+
+    private static PDSectionAdminConfig parseSectionEntry(Config config, SectionFamily family,
+                                                          String pluginName, String sectionName) {
+        String base = family.getYamlBlock() + "." + pluginName + "." + sectionName + ".";
 
         String collection = config.getString(base + "collection", null);
         if (collection != null) {
-            requireValidCollection(collection, "'pdsections." + pluginName + "." + sectionName + ".collection'");
+            requireValidCollection(collection, "'" + base + "collection'");
         }
 
         Integer idleGraceSeconds = getIntOrNull(config, base + "idle-grace-seconds");
@@ -328,10 +337,16 @@ public final class StorageYamlParser {
                     + " (0 releases a cell as soon as its owner goes offline)!");
         }
 
+        //an account section has no per-section backend: the whole family lives on the one account
+        //backend, which is what lets the link absorb its rows without coordinating across backends
+        String backendName = family == SectionFamily.PLAYER
+                ? config.getString(base + "storage-backend-id", null)
+                : null;
+
         return new PDSectionAdminConfig(
                 pluginName,
                 sectionName,
-                config.getString(base + "storage-backend-id", null),
+                backendName,
                 collection,
                 config.getString(base + "cache.policy", null),
                 getIntOrNull(config, base + "cache.ttlSeconds"),

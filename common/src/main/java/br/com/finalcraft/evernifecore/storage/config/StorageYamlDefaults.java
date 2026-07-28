@@ -139,6 +139,25 @@ public final class StorageYamlDefaults {
                 "raise it so a reconnect does not have to read from the database again.",
                 "One section alone is tuned under 'pdsections.<plugin>.<section>.idle-grace-seconds'."));
 
+        // ---- accountsections ----
+        config.setValue("accountsections", new java.util.LinkedHashMap<String, Object>());
+        config.setComment("accountsections", String.join("\n",
+                "============================================================",
+                " AccountSections registered by plugins, keyed by <plugin>.<section-id>.",
+                " One row per ACCOUNT, shared by every identity linked to it.",
+                " Entries are generated automatically on the first registration.",
+                " Per entry you may set:",
+                "",
+                "   collection: acs_myplugin_mysection",
+                "   cache: { policy: TTL, ttlSeconds: 300 }",
+                "",
+                " There is no per-section backend here on purpose: the whole account",
+                " family lives on the backend set under 'multi-platform-accounts',",
+                " which is what lets a link absorb its rows in one place.",
+                " 'cache.policy: TTL' bounds how stale another instance's write may",
+                " look on this server when the backend has no change feed.",
+                "============================================================"));
+
         // ---- pdsections ----
         config.setValue("pdsections", new java.util.LinkedHashMap<String, Object>());
         config.setComment("pdsections", String.join("\n",

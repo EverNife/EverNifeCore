@@ -5,9 +5,13 @@ import br.com.finalcraft.evernifecore.playerdata.storage.BindingResolver;
 import br.com.finalcraft.everydatabase.manager.writeback.OptimisticConflictException;
 import br.com.finalcraft.evernifecore.playerdata.storage.PdSyncBindGuard;
 import br.com.finalcraft.evernifecore.playerdata.storage.SectionIds;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
 import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
 import br.com.finalcraft.evernifecore.storage.config.ParsedStorageConfig;
+import br.com.finalcraft.evernifecore.storage.config.PDSectionAdminConfig;
+import br.com.finalcraft.evernifecore.storage.config.PDSectionYamlWriter;
+import br.com.finalcraft.evernifecore.storage.config.SectionFamily;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlParser;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.Storage;
@@ -118,11 +122,21 @@ final class AccountSectionEngine {
         Storage storage = controller.registry().get(backendName);
 
         String pluginName = PlayerController.pluginNameOf(cfg.getPluginData());
-        String sectionId = SectionIds.sanitizePlugin(pluginName) + ":" + cfg.getSectionId();
+        String pluginKey = SectionIds.sanitizePlugin(pluginName);
+        String sectionId = pluginKey + ":" + cfg.getSectionId();
 
-        String collection = cfg.getCollection() != null
-                ? cfg.getCollection()
-                : BindingResolver.collectionName("acs", pluginName, cfg.getSectionId());
+        String derivedCollection = BindingResolver.collectionName(
+                SectionFamily.ACCOUNT.getCollectionPrefix(), pluginName, cfg.getSectionId());
+        //generate the admin's entry when missing - without it nothing in storage.yml ever says this
+        //section exists, in which collection it lives, or offers a knob to change either
+        PDSectionYamlWriter.ensureAccountEntry(controller.storageYml(), pluginKey, pluginName,
+                pluginAuthorOf(cfg.getPluginData()), cfg.getSectionId(), cfg.getDescription(),
+                cfg.getCollection() != null ? cfg.getCollection() : derivedCollection);
+
+        PDSectionAdminConfig admin = parsed.getAccountSection(pluginKey, cfg.getSectionId()).orElse(null);
+        String collection = admin != null && admin.getCollection() != null
+                ? admin.getCollection()
+                : cfg.getCollection() != null ? cfg.getCollection() : derivedCollection;
         if (!StorageYamlParser.VALID_COLLECTION.matcher(collection).matches()) {
             throw new StorageConfigException("AccountSection '" + sectionId + "' resolved to invalid"
                     + " collection name '" + collection + "' - must match "
@@ -155,7 +169,7 @@ final class AccountSectionEngine {
             PDLog.warning(warning);
         }
 
-        CachingManager<UUID, S> manager = accountRegistry.manager(descriptor, storage, CachePolicy.always());
+        CachingManager<UUID, S> manager = accountRegistry.manager(descriptor, storage, freshnessOf(sectionId, admin));
         AccountSectionBinding<S> binding = new AccountSectionBinding<>(cfg, backendName, descriptor, manager);
         bindings.put(sectionClass, binding);
         PDLog.info("Bound AccountSection {%s} (collection '%s' on account backend '%s').",
@@ -170,6 +184,38 @@ final class AccountSectionEngine {
 
         //eager schema sweep of this account section (async, post-ready, O(1) when nothing eager is pending)
         controller.maybeSweepAccountSection(binding);
+    }
+
+    private static String pluginAuthorOf(ECPluginData pluginData) {
+        if (pluginData == null || pluginData.getMetaInfo() == null) return "Unknown";
+        String author = pluginData.getMetaInfo().getAuthor();
+        return author == null || author.isEmpty() ? "Unknown" : author;
+    }
+
+    /**
+     * The freshness the account rows are cached with. Default is {@code always()} - the lifecycle owns
+     * releasing, not the cache policy - but an account row is written by every instance of the network,
+     * and on a backend with no change feed the login refresh is the only moment another instance's write
+     * becomes visible. A {@code TTL} here is the admin's way to bound that staleness without Redis.
+     */
+    private static CachePolicy freshnessOf(String sectionId, PDSectionAdminConfig admin) {
+        if (admin == null || admin.getCachePolicyName() == null) {
+            return CachePolicy.always();
+        }
+        //NOCACHE never serves nor populates the cache, and the flush pipeline only ever sees CACHED
+        //rows - an account section on it would take every write to the grave, silently
+        if ("NOCACHE".equalsIgnoreCase(admin.getCachePolicyName().trim())) {
+            throw new StorageConfigException("AccountSection '" + sectionId + "' is configured with"
+                    + " 'cache.policy: NOCACHE', which an account section cannot use: its cached row IS"
+                    + " the live instance the flush pipeline persists, so bypassing the cache would lose"
+                    + " every write. Use ALWAYS, or TTL to bound how stale another instance's write may be.");
+        }
+        try {
+            return CachePolicy.fromAdminConfig(admin.getCachePolicyName(), admin.getCacheTtlSeconds());
+        } catch (IllegalArgumentException invalidPolicy) {
+            throw new StorageConfigException("AccountSection '" + sectionId + "': " + invalidPolicy.getMessage(),
+                    invalidPolicy);
+        }
     }
 
     /**

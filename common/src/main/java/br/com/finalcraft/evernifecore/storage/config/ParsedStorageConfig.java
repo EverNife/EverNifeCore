@@ -26,6 +26,7 @@ public final class ParsedStorageConfig {
     private final Integer accountIdleGraceSeconds;                  // nullable -> playerdata default
     private final PlayerDataAdminConfig playerData;
     private final Map<String, Map<String, PDSectionAdminConfig>> pdSections; // plugin -> section -> cfg
+    private final Map<String, Map<String, PDSectionAdminConfig>> accountSections; // idem, account family
     private final StorageLogLevel loggingLevel;
     private final boolean enableSync;
     private final SyncTransportMode transportMode;
@@ -36,6 +37,7 @@ public final class ParsedStorageConfig {
                         boolean multiplatformAccountsEnabled, String accountBackendName,
                         Integer accountIdleGraceSeconds, PlayerDataAdminConfig playerData,
                         Map<String, Map<String, PDSectionAdminConfig>> pdSections,
+                        Map<String, Map<String, PDSectionAdminConfig>> accountSections,
                         StorageLogLevel loggingLevel, boolean enableSync, SyncTransportMode transportMode,
                         RedisSyncConfig redisSync, List<String> warnings) {
         this.backends = Collections.unmodifiableMap(new LinkedHashMap<>(backends));
@@ -45,6 +47,7 @@ public final class ParsedStorageConfig {
         this.accountIdleGraceSeconds = accountIdleGraceSeconds;
         this.playerData = playerData;
         this.pdSections = Collections.unmodifiableMap(pdSections);
+        this.accountSections = Collections.unmodifiableMap(accountSections);
         this.loggingLevel = loggingLevel;
         this.enableSync = enableSync;
         this.transportMode = transportMode;
@@ -113,6 +116,23 @@ public final class ParsedStorageConfig {
 
     public Map<String, Map<String, PDSectionAdminConfig>> getPDSections() {
         return pdSections;
+    }
+
+    /** @see #getPDSection(String, String) - same lookup, over the {@code accountsections} block. */
+    public Optional<PDSectionAdminConfig> getAccountSection(String pluginName, String sectionId) {
+        if (pluginName == null || sectionId == null) return Optional.empty();
+        Map<String, PDSectionAdminConfig> ofPlugin = accountSections.get(pluginName.toLowerCase(Locale.ROOT));
+        return ofPlugin == null ? Optional.empty()
+                : Optional.ofNullable(ofPlugin.get(sectionId.toLowerCase(Locale.ROOT)));
+    }
+
+    public Map<String, Map<String, PDSectionAdminConfig>> getAccountSections() {
+        return accountSections;
+    }
+
+    /** The entries of one family, so a caller that already knows the family does not branch. */
+    public Map<String, Map<String, PDSectionAdminConfig>> getSections(SectionFamily family) {
+        return family == SectionFamily.ACCOUNT ? accountSections : pdSections;
     }
 
     public StorageLogLevel getLoggingLevel() {

@@ -70,4 +70,50 @@ public final class PDSectionYamlWriter {
         storageYml.save();
         return true;
     }
+
+    /**
+     * Writes the {@code accountsections.<plugin>.<sectionId>} entry if absent. It carries no
+     * {@code storage-backend-id}: the whole account family lives on the one backend configured under
+     * {@code multi-platform-accounts}, and offering a per-section choice that cannot be honoured is
+     * exactly the kind of knob that misleads an admin.
+     *
+     * <pre>
+     * accountsections:
+     *   # AccountSection created by the Plugin [FinalGuilds] authored by: EverNife
+     *   finalguilds:
+     *     achievements:
+     *       # Achievements shared by every linked identity
+     *       collection: acs_finalguilds_achievements
+     * </pre>
+     *
+     * @return true when the entry was written (file saved); false when it already existed
+     */
+    public static boolean ensureAccountEntry(Config storageYml,
+                                             String pluginKey, String pluginName, String pluginAuthor,
+                                             String sectionId, String description,
+                                             String collectionValue) {
+        String pluginPath = SectionFamily.ACCOUNT.getYamlBlock() + "." + pluginKey;
+        String sectionPath = pluginPath + "." + sectionId;
+
+        if (storageYml.contains(sectionPath + ".collection")) {
+            return false;
+        }
+
+        boolean newPluginEntry = !storageYml.contains(pluginPath);
+
+        storageYml.setValue(sectionPath + ".collection", collectionValue);
+        if (newPluginEntry) {
+            storageYml.setComment(pluginPath, SectionFamily.ACCOUNT.getLabel()
+                    + " created by the Plugin [" + pluginName + "] authored by: " + pluginAuthor);
+        }
+        String shared = "Shared by every identity linked to the account."
+                + " Optional: cache: { policy: TTL, ttlSeconds: 300 }";
+        storageYml.setComment(sectionPath + ".collection",
+                description == null || description.isEmpty()
+                        ? shared
+                        : description + "\n" + shared);
+
+        storageYml.save();
+        return true;
+    }
 }
