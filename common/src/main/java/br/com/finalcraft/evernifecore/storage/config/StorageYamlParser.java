@@ -82,11 +82,13 @@ public final class StorageYamlParser {
         // ---- pdsections (raw, validated at section registration time) ----
         Map<String, Map<String, PDSectionAdminConfig>> pdSections = new LinkedHashMap<>();
         for (String pluginName : config.getKeys("pdsections")) {
+            //keyed lowercase: the generated keys already are, and a hand-edited entry must be
+            //obeyed whatever case the admin typed (ParsedStorageConfig lowercases the lookup too)
             Map<String, PDSectionAdminConfig> ofPlugin = new LinkedHashMap<>();
             for (String sectionName : config.getKeys("pdsections." + pluginName)) {
-                ofPlugin.put(sectionName, parsePDSection(config, pluginName, sectionName));
+                ofPlugin.put(sectionName.toLowerCase(Locale.ROOT), parsePDSection(config, pluginName, sectionName));
             }
-            pdSections.put(pluginName, ofPlugin);
+            pdSections.put(pluginName.toLowerCase(Locale.ROOT), ofPlugin);
         }
 
         // ---- logging ----

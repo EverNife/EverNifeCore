@@ -4,6 +4,7 @@ import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigratin
 import br.com.finalcraft.evernifecore.playerdata.storage.BindingResolver;
 import br.com.finalcraft.everydatabase.manager.writeback.OptimisticConflictException;
 import br.com.finalcraft.evernifecore.playerdata.storage.PdSyncBindGuard;
+import br.com.finalcraft.evernifecore.playerdata.storage.SectionIds;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
 import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
 import br.com.finalcraft.evernifecore.storage.config.ParsedStorageConfig;
@@ -95,13 +96,12 @@ final class AccountSectionEngine {
                 new StorageConfigException("Account backend '" + backendName + "' is not declared/enabled!"));
         Storage storage = controller.registry().get(backendName);
 
-        String pluginName = cfg.getPluginData() != null
-                ? cfg.getPluginData().getMetaInfo().getName() : "UnknownPlugin";
-        String sectionId = pluginName + ":" + sectionClass.getSimpleName();
+        String pluginName = PlayerController.pluginNameOf(cfg.getPluginData());
+        String sectionId = SectionIds.sanitizePlugin(pluginName) + ":" + cfg.getSectionId();
 
         String collection = cfg.getCollection() != null
                 ? cfg.getCollection()
-                : BindingResolver.collectionName("acs", pluginName, sectionClass.getSimpleName());
+                : BindingResolver.collectionName("acs", pluginName, cfg.getSectionId());
         if (!StorageYamlParser.VALID_COLLECTION.matcher(collection).matches()) {
             throw new StorageConfigException("AccountSection '" + sectionId + "' resolved to invalid"
                     + " collection name '" + collection + "' - must match "

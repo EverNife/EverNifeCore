@@ -152,6 +152,8 @@ final class LifecycleEngine {
                         + " down?) - re-marked dirty and retried next tick. Per-key detail is logged at DEBUG.");
             }
             controller.maybeReapOrphans(); //no-op unless enabled and its interval elapsed (async)
+            //first tick: every plugin has enabled by now, so an unclaimed storage.yml entry is real
+            controller.reportOrphanSectionEntries();
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             return; //stop() interrupted the bounded wait - do not reschedule

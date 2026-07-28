@@ -18,6 +18,7 @@ import br.com.finalcraft.evernifecore.playerdata.storage.ECRegistries;
 import br.com.finalcraft.everydatabase.manager.writeback.OptimisticConflictException;
 import br.com.finalcraft.evernifecore.playerdata.storage.PDSectionBinding;
 import br.com.finalcraft.evernifecore.playerdata.storage.PlayerDataBinding;
+import br.com.finalcraft.evernifecore.playerdata.storage.SectionIds;
 import br.com.finalcraft.evernifecore.playerdata.storage.SectionLifecycle;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.storage.ECStorageRegistries;
@@ -28,6 +29,7 @@ import br.com.finalcraft.evernifecore.storage.StorageRegistry;
 import br.com.finalcraft.evernifecore.storage.StorageUnavailableException;
 import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
 import br.com.finalcraft.evernifecore.storage.config.ParsedStorageConfig;
+import br.com.finalcraft.evernifecore.storage.config.PDSectionAdminConfig;
 import br.com.finalcraft.evernifecore.storage.config.PDSectionYamlWriter;
 import br.com.finalcraft.evernifecore.storage.config.PlayerDataAdminConfig;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlDefaults;
@@ -48,11 +50,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -150,6 +154,9 @@ public class PlayerController {
 
     // ---- cross-instance cache coherence (null unless a shared transport actually starts) ----
     private volatile CacheSyncWiring.Handle cacheSync;
+
+    /** Guards the one-shot orphan-entry diagnostic (see {@link #reportOrphanSectionEntries()}). */
+    private final AtomicBoolean orphanEntriesReported = new AtomicBoolean(false);
 
     // ---- orphan reaper throttle (last run epoch millis; 0 = never) ----
     private volatile long lastOrphanReapAt = 0L;
@@ -527,11 +534,17 @@ public class PlayerController {
     // PDSection registration / unregistration
     // -----------------------------------------------------------------------------------------------------------------------------//
 
-    public static void registerPDSectionCfg(ECPluginData ecPluginData, Class<? extends PDSection> pdSectionClass){
-        registerPDSectionCfg(PDSectionConfiguration.builder(ecPluginData, pdSectionClass).build());
+    /**
+     * Registers a section with the framework defaults, under the stable {@code sectionId} that names
+     * its collection and its storage.yml entry (see {@link PDSectionConfiguration#getSectionId()}).
+     */
+    public static void registerPDSectionCfg(ECPluginData ecPluginData, Class<? extends PDSection> pdSectionClass,
+                                            String sectionId){
+        registerPDSectionCfg(PDSectionConfiguration.builder(ecPluginData, pdSectionClass, sectionId).build());
     }
 
     public static void registerPDSectionCfg(PDSectionConfiguration<?> pdSectionConfiguration){
+        requireFreeSectionId(pdSectionConfiguration);
         //install the schema-migration chain FIRST, before the section can bind/decode any row: the
         //register-before-load ordering (EntitySchemaMigrations) becomes structural (the chain travels with
         //the config). registerChain replaces wholesale, so a plugin re-enable reinstalls cleanly.
@@ -545,12 +558,15 @@ public class PlayerController {
         //registrations made before the bootstrap are bound in PlayerController.start()
     }
 
+    /** @see #registerPDSectionCfg(ECPluginData, Class, String) */
     public static <T extends AccountSection<T>> void registerAccountSectionCfg(ECPluginData ecPluginData,
-                                                                               Class<T> sectionClass){
-        registerAccountSectionCfg(AccountSectionConfiguration.builder(ecPluginData, sectionClass).build());
+                                                                               Class<T> sectionClass,
+                                                                               String sectionId){
+        registerAccountSectionCfg(AccountSectionConfiguration.builder(ecPluginData, sectionClass, sectionId).build());
     }
 
     public static void registerAccountSectionCfg(AccountSectionConfiguration<?> configuration){
+        requireFreeAccountSectionId(configuration);
         //install the schema-migration chain FIRST (see registerPDSectionCfg)
         EntitySchemaMigrations.registerChain(configuration.getSectionClass(), configuration.getMigrations());
         REGISTERED_ACCOUNT_SECTIONS.put(configuration.getSectionClass(), configuration);
@@ -559,6 +575,39 @@ public class PlayerController {
             controller.accountEngine.bindUnchecked(configuration);
         }
         //registrations made before the bootstrap are bound in PlayerController.start()
+    }
+
+    /**
+     * Refuses a second section of the same plugin claiming an id another CLASS already holds. Without
+     * this the two would resolve to the same collection and only surface as a claim collision, whose
+     * message says nothing about the duplicated id that caused it.
+     */
+    private static void requireFreeSectionId(PDSectionConfiguration<?> configuration){
+        for (PDSectionConfiguration<?> registered : REGISTERED_SECTIONS.values()){
+            if (registered.getPdSectionClass() == configuration.getPdSectionClass()) continue;
+            if (!registered.getSectionId().equals(configuration.getSectionId())) continue;
+            if (!samePlugin(registered.getPluginData(), configuration.getPluginData())) continue;
+            throw new IllegalStateException("PDSection [" + configuration.getPdSectionClass().getName()
+                    + "] claims the section id '" + configuration.getSectionId() + "', already used by ["
+                    + registered.getPdSectionClass().getName() + "] of the same plugin. Section ids must be"
+                    + " unique per plugin - they name the collection and the storage.yml entry.");
+        }
+    }
+
+    private static void requireFreeAccountSectionId(AccountSectionConfiguration<?> configuration){
+        for (AccountSectionConfiguration<?> registered : REGISTERED_ACCOUNT_SECTIONS.values()){
+            if (registered.getSectionClass() == configuration.getSectionClass()) continue;
+            if (!registered.getSectionId().equals(configuration.getSectionId())) continue;
+            if (!samePlugin(registered.getPluginData(), configuration.getPluginData())) continue;
+            throw new IllegalStateException("AccountSection [" + configuration.getSectionClass().getName()
+                    + "] claims the section id '" + configuration.getSectionId() + "', already used by ["
+                    + registered.getSectionClass().getName() + "] of the same plugin.");
+        }
+    }
+
+    private static boolean samePlugin(ECPluginData left, ECPluginData right){
+        if (left == null || right == null) return left == right;
+        return left.getMetaInfo().getName().equals(right.getMetaInfo().getName());
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------//
@@ -622,7 +671,7 @@ public class PlayerController {
             //LAZY (the default): most sessions never start a cooldown, so loading a row per login
             //would be pure I/O for nothing
             PlayerController.registerPDSectionCfg(PDSectionConfiguration
-                .builder(EverNifeCore.getEcPluginData(), PlayerCooldownsLocal.class)
+                .builder(EverNifeCore.getEcPluginData(), PlayerCooldownsLocal.class, "cooldowns")
                 .description("Per-player cooldowns scoped to THIS server")
                 .legacyYaml("Cooldown", PlayerCooldownsLocal::fromLegacyYaml) // Import legacy data from EC v2
                 .build());
@@ -630,7 +679,7 @@ public class PlayerController {
 
         if (!REGISTERED_ACCOUNT_SECTIONS.containsKey(PlayerCooldownsNetwork.class)){
             PlayerController.registerAccountSectionCfg(AccountSectionConfiguration
-                .builder(EverNifeCore.getEcPluginData(), PlayerCooldownsNetwork.class)
+                .builder(EverNifeCore.getEcPluginData(), PlayerCooldownsNetwork.class, "cooldowns")
                 .build());
         }
 
@@ -638,7 +687,7 @@ public class PlayerController {
         //nothing is hot-loaded on login and message rendering stays on the plugin's own language.
         if (ECSettings.PER_PLAYER_LOCALE && !REGISTERED_SECTIONS.containsKey(LocalePDSection.class)){
             PlayerController.registerPDSectionCfg(PDSectionConfiguration
-                .builder(EverNifeCore.getEcPluginData(), LocalePDSection.class)
+                .builder(EverNifeCore.getEcPluginData(), LocalePDSection.class, "locale")
                 .description("Per-player language override")
                 .build());
         }
@@ -714,6 +763,38 @@ public class PlayerController {
         }
     }
 
+    /** The plugin name a configuration belongs to, or {@code UnknownPlugin} for a plugin-less registration. */
+    public static String pluginNameOf(ECPluginData pluginData) {
+        return pluginData != null ? pluginData.getMetaInfo().getName() : "UnknownPlugin";
+    }
+
+    /**
+     * One-shot diagnostic, run on the first flush tick - by then every plugin has enabled and
+     * registered what it has. A {@code pdsections.<plugin>.<id>} entry that no bound section claims is
+     * named in a warning: that is what a changed section id, an uninstalled plugin or a typo look like
+     * from the outside, and the rows under the old collection would otherwise sit there unreachable
+     * with nothing ever saying so. Nothing is deleted or moved - the admin decides.
+     */
+    void reportOrphanSectionEntries() {
+        if (!orphanEntriesReported.compareAndSet(false, true)) return;
+        Set<String> claimed = new HashSet<>();
+        for (PDSectionBinding<? extends PDSection> binding : bindings.values()) {
+            PDSectionConfiguration<?> cfg = binding.getConfiguration();
+            claimed.add(SectionIds.sanitizePlugin(pluginNameOf(cfg.getPluginData())) + "." + cfg.getSectionId());
+        }
+        for (Map.Entry<String, Map<String, PDSectionAdminConfig>> ofPlugin : storageConfig.getPDSections().entrySet()) {
+            for (String sectionId : ofPlugin.getValue().keySet()) {
+                String entry = ofPlugin.getKey() + "." + sectionId;
+                if (claimed.contains(entry)) continue;
+                PDLog.warning("storage.yml has an entry 'pdsections.%s' that no registered PDSection claims."
+                                + " Either the plugin that owned it is not installed, or its section id changed -"
+                                + " in which case the rows of the OLD collection are no longer reachable."
+                                + " Nothing was moved or deleted; check collection '%s' before removing the entry.",
+                        entry, BindingResolver.collectionName("pd", ofPlugin.getKey(), sectionId));
+            }
+        }
+    }
+
     public static Map<Class<? extends PDSection>, PDSectionConfiguration<?>> getConfiguredPDSections() {
         return REGISTERED_SECTIONS;
     }
@@ -784,12 +865,12 @@ public class PlayerController {
             String pluginName = cfg.getPluginData() != null ? cfg.getPluginData().getMetaInfo().getName() : "UnknownPlugin";
             String pluginAuthor = cfg.getPluginData() != null ? cfg.getPluginData().getMetaInfo().getAuthor() : "Unknown";
 
-            //auto-generate the pdsections.<Plugin>.<Section> entry when missing.
+            //auto-generate the pdsections.<plugin>.<sectionId> entry when missing.
             //A freshly generated entry matches the dev defaults the resolver
             //falls back to, so it doesn't need a re-parse on the first registration.
             String backendValue = cfg.getDefaultBackend() != null ? cfg.getDefaultBackend() : storageConfig.getDefaultBackendName();
-            PDSectionYamlWriter.ensureEntry(storageYml, pluginName, pluginAuthor,
-                    cfg.getPdSectionClass().getSimpleName(), backendValue,
+            PDSectionYamlWriter.ensureEntry(storageYml, SectionIds.sanitizePlugin(pluginName), pluginName,
+                    pluginAuthor, cfg.getSectionId(), cfg.getDescription(), backendValue,
                     cfg.getSuggestedBackends(), storageConfig.getBackends().keySet());
 
             //resolve backend/collection/codec/cache + claim + caching manager

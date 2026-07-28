@@ -19,7 +19,6 @@ import br.com.finalcraft.everydatabase.manager.cache.CachePolicy;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,10 +26,10 @@ import java.util.UUID;
  * Resolves the dev configuration against the admin's storage.yml into a {@link PDSectionBinding}:
  *
  * <pre>
- * backend  = pdsections[plugin][section].backend ?? cfg.defaultBackend ?? default-backend
+ * backend  = pdsections[plugin][sectionId].backend ?? cfg.defaultBackend ?? default-backend
  *            (must be declared AND enabled - otherwise, fatal error)
  *            (outside cfg.suggestedBackends -> warning; the admin has the final say)
- * collection = yml.collection ?? cfg.collection ?? "pd_&lt;plugin&gt;_&lt;section&gt;"
+ * collection = yml.collection ?? cfg.collection ?? "pd_&lt;plugin&gt;_&lt;sectionId&gt;"
  *            (reserved in the registry - a collision is a fatal error)
  * codec    = cfg.codec ?? ConfigFactoryCodec (bridge) - file(yaml->yaml | json->jsonPretty)
  *            ?? compact json  (carries the ConfigFactory type authority + ConfigLifecycle into storage)
@@ -61,8 +60,8 @@ public final class BindingResolver {
                                                                     ParsedStorageConfig parsed,
                                                                     StorageRegistry registry,
                                                                     RefRegistry refRegistry) {
-        String sectionName = cfg.getPdSectionClass().getSimpleName();
-        String sectionId = pluginName + ":" + sectionName;
+        String sectionName = cfg.getSectionId();
+        String sectionId = SectionIds.sanitizePlugin(pluginName) + ":" + sectionName;
         List<String> warnings = new ArrayList<>();
 
         Optional<PDSectionAdminConfig> admin = parsed.getPDSection(pluginName, sectionName);
@@ -86,8 +85,9 @@ public final class BindingResolver {
         if (!cfg.getAllowedBackendTypes().isEmpty() && !cfg.getAllowedBackendTypes().contains(backend.getType())) {
             throw new StorageConfigException("PDSection '" + sectionId + "' is restricted to backend type(s) "
                     + cfg.getAllowedBackendTypes() + " by the developer, but is configured on backend '"
-                    + backendName + "' of type " + backend.getType() + ". Point 'pdsections." + pluginName
-                    + "." + sectionName + ".storage-backend-id' at a backend of an allowed type.");
+                    + backendName + "' of type " + backend.getType() + ". Point 'pdsections."
+                    + SectionIds.sanitizePlugin(pluginName) + "." + sectionName
+                    + ".storage-backend-id' at a backend of an allowed type.");
         }
         Storage storage = registry.get(backendName);
 
@@ -221,18 +221,17 @@ public final class BindingResolver {
         return new PDSectionBinding<>(cfg, targetBackendName, storage, descriptor, manager, warnings);
     }
 
-    /** A sanitized, backend-safe collection name: {@code <prefix>_<plugin>_<section>}. */
-    public static String collectionName(String prefix, String pluginName, String sectionName) {
-        return prefix + "_" + sanitize(pluginName) + "_" + sanitize(sectionName);
+    /**
+     * A backend-safe collection name: {@code <prefix>_<plugin>_<sectionId>}. The section id is already
+     * validated and lowercase ({@link SectionIds}); only the plugin name is sanitized.
+     */
+    public static String collectionName(String prefix, String pluginName, String sectionId) {
+        return prefix + "_" + SectionIds.sanitizePlugin(pluginName) + "_" + sectionId;
     }
 
-    /** Default collection name of a PDSection: {@code pd_<plugin>_<section>}, sanitized. */
-    public static String defaultCollection(String pluginName, String sectionName) {
-        return collectionName("pd", pluginName, sectionName);
-    }
-
-    private static String sanitize(String value) {
-        return value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_]", "");
+    /** Default collection name of a PDSection: {@code pd_<plugin>_<sectionId>}. */
+    public static String defaultCollection(String pluginName, String sectionId) {
+        return collectionName("pd", pluginName, sectionId);
     }
 
     /**

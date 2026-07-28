@@ -7,6 +7,7 @@ import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchema;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrationMode;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaStep;
+import br.com.finalcraft.evernifecore.playerdata.storage.SectionIds;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -27,7 +28,13 @@ public class AccountSectionConfiguration<T extends AccountSection<T>> {
 
     private final ECPluginData pluginData;
     private final Class<T> sectionClass;
-    /** Nullable - the default collection name ({@code acs_<plugin>_<section>}) is derived. */
+    /**
+     * The section's stable storage identity, lowercase and validated (see {@link SectionIds}). Required
+     * at registration, exactly like a PDSection's: the collection is derived from it, so the class can
+     * be renamed without moving a row.
+     */
+    private final String sectionId;
+    /** Nullable - the default collection name ({@code acs_<plugin>_<id>}) is derived. */
     private final String collection;
     /**
      * The schema-migration chain for this account section (never null; may be empty). Ordered: entry i
@@ -36,16 +43,22 @@ public class AccountSectionConfiguration<T extends AccountSection<T>> {
      */
     private final List<EntitySchemaMigrations.Step> migrations;
 
-    private AccountSectionConfiguration(ECPluginData pluginData, Class<T> sectionClass, String collection,
-                                        List<EntitySchemaMigrations.Step> migrations) {
+    private AccountSectionConfiguration(ECPluginData pluginData, Class<T> sectionClass, String sectionId,
+                                        String collection, List<EntitySchemaMigrations.Step> migrations) {
         this.pluginData = pluginData;
         this.sectionClass = sectionClass;
+        this.sectionId = sectionId;
         this.collection = collection;
         this.migrations = Collections.unmodifiableList(migrations);
     }
 
-    public static <T extends AccountSection<T>> Builder<T> builder(ECPluginData pluginData, Class<T> sectionClass) {
-        return new Builder<>(pluginData, sectionClass);
+    /**
+     * @param sectionId the section's stable storage identity (see {@link #getSectionId()}); a
+     *                  positional argument on purpose - it must not be forgettable
+     */
+    public static <T extends AccountSection<T>> Builder<T> builder(ECPluginData pluginData, Class<T> sectionClass,
+                                                                   String sectionId) {
+        return new Builder<>(pluginData, sectionClass, sectionId);
     }
 
     // ---------------------------------------------------------------------
@@ -54,12 +67,14 @@ public class AccountSectionConfiguration<T extends AccountSection<T>> {
 
         private final ECPluginData pluginData;
         private final Class<T> sectionClass;
+        private final String sectionId;
         private String collection;
         private final List<EntitySchemaMigrations.Step> migrations = new ArrayList<>();
 
-        private Builder(ECPluginData pluginData, Class<T> sectionClass) {
+        private Builder(ECPluginData pluginData, Class<T> sectionClass, String sectionId) {
             this.pluginData = pluginData;
             this.sectionClass = sectionClass;
+            this.sectionId = SectionIds.requireValid(sectionId, sectionClass);
         }
 
         public Builder<T> collection(String collection) {
@@ -96,7 +111,7 @@ public class AccountSectionConfiguration<T extends AccountSection<T>> {
         }
 
         public AccountSectionConfiguration<T> build() {
-            return new AccountSectionConfiguration<>(pluginData, sectionClass, collection, migrations);
+            return new AccountSectionConfiguration<>(pluginData, sectionClass, sectionId, collection, migrations);
         }
     }
 }

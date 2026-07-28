@@ -7,9 +7,9 @@ import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * The PlayerData layer, booted and torn down as one thing.
@@ -27,7 +27,8 @@ import java.util.List;
 public final class PlayerDataWorld implements AutoCloseable {
 
     private final Storages storages;
-    private final List<Class<? extends PDSection>> sections = new ArrayList<Class<? extends PDSection>>();
+    private final Map<Class<? extends PDSection>, String> sections =
+            new LinkedHashMap<Class<? extends PDSection>, String>();
     private File storageYml;
     private boolean closed = false;
 
@@ -39,19 +40,37 @@ public final class PlayerDataWorld implements AutoCloseable {
         return new PlayerDataWorld(storages);
     }
 
-    /** Sections registered before the boot, so the first load already knows about them. */
+    /**
+     * Sections registered before the boot, so the first load already knows about them. Each one gets
+     * its section id derived from the class simple name - a test convenience, and the only place that
+     * derives it: production registration always states the id (see {@link #section(String, Class)}).
+     */
     @SafeVarargs
     public final PlayerDataWorld sections(Class<? extends PDSection>... sectionClasses) {
-        Collections.addAll(sections, sectionClasses);
+        for (Class<? extends PDSection> sectionClass : sectionClasses) {
+            sections.put(sectionClass, defaultIdOf(sectionClass));
+        }
         return this;
+    }
+
+    /** A section registered under an explicit id - for a test that asserts on the storage identity. */
+    public PlayerDataWorld section(String sectionId, Class<? extends PDSection> sectionClass) {
+        sections.put(sectionClass, sectionId);
+        return this;
+    }
+
+    /** The test-only id derivation: the class simple name, lowercased. */
+    public static String defaultIdOf(Class<? extends PDSection> sectionClass) {
+        return sectionClass.getSimpleName().toLowerCase(Locale.ROOT);
     }
 
     /** Writes the storage.yml into {@code baseDir} and initializes the controller against it. */
     public PlayerDataWorld boot(Path baseDir) {
         storageYml = storages.writeTo(baseDir);
 
-        for (Class<? extends PDSection> sectionClass : sections) {
-            PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, sectionClass).build());
+        for (Map.Entry<Class<? extends PDSection>, String> section : sections.entrySet()) {
+            PlayerController.registerPDSectionCfg(
+                    PDSectionConfiguration.builder(null, section.getKey(), section.getValue()).build());
         }
 
         PlayerController.initialize(storageYml);

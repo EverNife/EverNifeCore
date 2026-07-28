@@ -7,6 +7,7 @@ import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchema;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrationMode;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaStep;
+import br.com.finalcraft.evernifecore.playerdata.storage.SectionIds;
 import br.com.finalcraft.evernifecore.playerdata.storage.SectionLifecycle;
 import br.com.finalcraft.evernifecore.storage.BackendType;
 import br.com.finalcraft.everydatabase.codec.Codec;
@@ -34,9 +35,15 @@ public class PDSectionConfiguration<S extends PDSection> {
 
     private final ECPluginData pluginData;
     private final Class<S> pdSectionClass;
+    /**
+     * The section's stable storage identity, lowercase and validated (see {@link SectionIds}). Required
+     * at registration: the collection, the storage.yml entry and the admin command id are all derived
+     * from it, so the class can be renamed without moving a single row.
+     */
+    private final String sectionId;
 
     // storage guidance (all optional - nullable means "use the default from the resolution chain")
-    /** Nullable - the default collection name is derived. */
+    /** Nullable - the default collection name is derived from the plugin name and the section id. */
     private final String collection;
     /** Nullable - falls back to the 'default-backend' from storage.yml. */
     private final String defaultBackend;
@@ -79,7 +86,7 @@ public class PDSectionConfiguration<S extends PDSection> {
      */
     private final List<EntitySchemaMigrations.Step> migrations;
 
-    private PDSectionConfiguration(ECPluginData pluginData, Class<S> pdSectionClass,
+    private PDSectionConfiguration(ECPluginData pluginData, Class<S> pdSectionClass, String sectionId,
                                    String collection, String defaultBackend, List<String> suggestedBackends,
                                    List<BackendType> allowedBackendTypes, Codec<S> codec, String description,
                                    SectionLifecycle lifecycle, Duration idleGrace, int maxCached,
@@ -88,6 +95,7 @@ public class PDSectionConfiguration<S extends PDSection> {
                                    List<EntitySchemaMigrations.Step> migrations) {
         this.pluginData = pluginData;
         this.pdSectionClass = pdSectionClass;
+        this.sectionId = sectionId;
         this.collection = collection;
         this.defaultBackend = defaultBackend;
         this.suggestedBackends = Collections.unmodifiableList(suggestedBackends);
@@ -103,8 +111,13 @@ public class PDSectionConfiguration<S extends PDSection> {
         this.migrations = Collections.unmodifiableList(migrations);
     }
 
-    public static <S extends PDSection> Builder<S> builder(ECPluginData pluginData, Class<S> pdSectionClass) {
-        return new Builder<>(pluginData, pdSectionClass);
+    /**
+     * @param sectionId the section's stable storage identity (see {@link #getSectionId()}); a
+     *                  positional argument on purpose - it must not be forgettable
+     */
+    public static <S extends PDSection> Builder<S> builder(ECPluginData pluginData, Class<S> pdSectionClass,
+                                                           String sectionId) {
+        return new Builder<>(pluginData, pdSectionClass, sectionId);
     }
 
     // ---------------------------------------------------------------------
@@ -113,6 +126,7 @@ public class PDSectionConfiguration<S extends PDSection> {
 
         private final ECPluginData pluginData;
         private final Class<S> pdSectionClass;
+        private final String sectionId;
         private String collection;
         private String defaultBackend;
         private List<String> suggestedBackends = Collections.emptyList();
@@ -127,9 +141,10 @@ public class PDSectionConfiguration<S extends PDSection> {
         private Function<ConfigSection, S> legacyYamlAdapter;
         private final List<EntitySchemaMigrations.Step> migrations = new ArrayList<>();
 
-        private Builder(ECPluginData pluginData, Class<S> pdSectionClass) {
+        private Builder(ECPluginData pluginData, Class<S> pdSectionClass, String sectionId) {
             this.pluginData = pluginData;
             this.pdSectionClass = pdSectionClass;
+            this.sectionId = SectionIds.requireValid(sectionId, pdSectionClass);
         }
 
         public Builder<S> collection(String collection) {
@@ -255,7 +270,7 @@ public class PDSectionConfiguration<S extends PDSection> {
         }
 
         public PDSectionConfiguration<S> build() {
-            return new PDSectionConfiguration<>(pluginData, pdSectionClass,
+            return new PDSectionConfiguration<>(pluginData, pdSectionClass, sectionId,
                     collection, defaultBackend, suggestedBackends, allowedBackendTypes, codec, description,
                     lifecycle, idleGrace, maxCached, discardDirtyOnReload,
                     legacyYamlRootKey, legacyYamlAdapter, migrations);

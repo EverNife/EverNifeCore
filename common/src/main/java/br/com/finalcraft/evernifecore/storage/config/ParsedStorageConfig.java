@@ -5,6 +5,7 @@ import br.com.finalcraft.everydatabase.log.StorageLogLevel;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -85,9 +86,15 @@ public final class ParsedStorageConfig {
         return playerData;
     }
 
-    public Optional<PDSectionAdminConfig> getPDSection(String pluginName, String sectionName) {
-        Map<String, PDSectionAdminConfig> ofPlugin = pdSections.get(pluginName);
-        return ofPlugin == null ? Optional.empty() : Optional.ofNullable(ofPlugin.get(sectionName));
+    /**
+     * The admin entry of a section, looked up case-insensitively: the generated keys are lowercase,
+     * but an admin editing the file by hand should not have to match the case to be obeyed.
+     */
+    public Optional<PDSectionAdminConfig> getPDSection(String pluginName, String sectionId) {
+        if (pluginName == null || sectionId == null) return Optional.empty();
+        Map<String, PDSectionAdminConfig> ofPlugin = pdSections.get(pluginName.toLowerCase(Locale.ROOT));
+        return ofPlugin == null ? Optional.empty()
+                : Optional.ofNullable(ofPlugin.get(sectionId.toLowerCase(Locale.ROOT)));
     }
 
     public Map<String, Map<String, PDSectionAdminConfig>> getPDSections() {

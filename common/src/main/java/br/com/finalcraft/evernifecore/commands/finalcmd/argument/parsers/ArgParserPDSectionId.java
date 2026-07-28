@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.playerdata.storage.SectionIds;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
 import jakarta.annotation.Nonnull;
 
@@ -20,10 +21,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Resolves a registered {@link PDSection} from its {@code PluginName:SectionSimpleName}
- * identifier (e.g. {@code FinalJobs:PointsPlayerData}). Both halves match case-insensitively.
- * The plugin name comes from each section's owning {@code ECPluginData} (or {@code UnknownPlugin}
- * for sections registered via the no-plugin path), the section name is the class simple name.
+ * Resolves a registered {@link PDSection} from its {@code plugin:sectionId} identifier (e.g.
+ * {@code finaljobs:points}). Both halves match case-insensitively. The plugin half comes from each
+ * section's owning {@code ECPluginData} (or {@code UnknownPlugin} for sections registered via the
+ * no-plugin path), the second half is the stable section id declared at registration - the same
+ * identifier that names the collection and the storage.yml entry.
  */
 public class ArgParserPDSectionId extends ArgParser<Class<? extends PDSection>> {
 
@@ -32,10 +34,8 @@ public class ArgParserPDSectionId extends ArgParser<Class<? extends PDSection>> 
     }
 
     public static String idOf(PDSectionConfiguration<?> cfg) {
-        String pluginName = cfg.getPluginData() != null
-                ? cfg.getPluginData().getMetaInfo().getName()
-                : "UnknownPlugin";
-        return pluginName + ":" + cfg.getPdSectionClass().getSimpleName();
+        return SectionIds.sanitizePlugin(PlayerController.pluginNameOf(cfg.getPluginData()))
+                + ":" + cfg.getSectionId();
     }
 
     /** Every registered section id, sorted - used by the command and the tab-completion. */
