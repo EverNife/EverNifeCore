@@ -146,7 +146,29 @@ public final class BindingResolver {
         CachingManager<UUID, S> manager = refRegistry.manager(descriptor, storage, cacheOptions);
 
         return new PDSectionBinding<>(cfg, backendName, storage, descriptor, manager,
+                resolveLifecycle(sectionId, cfg, admin.orElse(null)),
                 resolveIdleGrace(cfg, parsed, admin.orElse(null)), warnings);
+    }
+
+    /**
+     * The lifecycle a section actually runs with: {@code pdsections[..].lifecycle ?? cfg.lifecycle}.
+     * The developer knows what the data is for; the admin knows what this server can afford on the
+     * login path, and gets the last word - the same shape as the backend and the idle grace.
+     */
+    private static SectionLifecycle resolveLifecycle(String sectionId, PDSectionConfiguration<?> cfg,
+                                                     PDSectionAdminConfig admin) {
+        if (admin == null || admin.getLifecycleName() == null) {
+            return cfg.getLifecycle();
+        }
+        String declared = admin.getLifecycleName().trim();
+        for (SectionLifecycle lifecycle : SectionLifecycle.values()) {
+            if (lifecycle.name().equalsIgnoreCase(declared)) {
+                return lifecycle;
+            }
+        }
+        throw new StorageConfigException("PDSection '" + sectionId + "' is configured with"
+                + " 'lifecycle: " + declared + "', which is not a lifecycle. Valid values are"
+                + " LAZY, ONLINE, RESIDENT and PRELOADED.");
     }
 
     /**
@@ -246,7 +268,7 @@ public final class BindingResolver {
                 resolveCacheOptions(cfg.getPdSectionClass().getSimpleName(), cfg.getMaxCached(), null));
 
         return new PDSectionBinding<>(cfg, targetBackendName, storage, descriptor, manager,
-                current.getIdleGrace(), warnings);
+                current.getLifecycle(), current.getIdleGrace(), warnings);
     }
 
     /**

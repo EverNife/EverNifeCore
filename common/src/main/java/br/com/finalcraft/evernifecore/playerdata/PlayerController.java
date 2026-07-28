@@ -1037,7 +1037,7 @@ public class PlayerController {
      * <p>Best-effort: a failure here never aborts the bind.</p>
      */
     private <S extends PDSection> void loadAtBind(PDSectionConfiguration<S> cfg, PDSectionBinding<S> binding){
-        SectionLifecycle lifecycle = cfg.getLifecycle();
+        SectionLifecycle lifecycle = binding.getLifecycle(); //resolved: the admin's choice beats the developer's
         if (lifecycle == SectionLifecycle.LAZY) return;
 
         long start = System.currentTimeMillis();

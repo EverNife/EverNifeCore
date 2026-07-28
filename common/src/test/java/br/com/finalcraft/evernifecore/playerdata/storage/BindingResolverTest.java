@@ -202,6 +202,31 @@ class BindingResolverTest {
     }
 
     @Test
+    void adminLifecycleBeatsTheDeveloperDeclaration() throws IOException {
+        setup("pdsections:",
+                "  finaljobs:",
+                "    jobs:",
+                "      lifecycle: LAZY");
+        PDSectionBinding<JobsPDSection> binding = BindingResolver.resolve("FinalJobs",
+                jobsCfg().lifecycle(SectionLifecycle.ONLINE).build(), parsed, registry, refRegistry);
+
+        assertEquals(SectionLifecycle.LAZY, binding.getLifecycle(),
+                "the admin decides what this server pays for on the login path");
+    }
+
+    @Test
+    void anUnknownAdminLifecycleIsRefusedByName() throws IOException {
+        setup("pdsections:",
+                "  finaljobs:",
+                "    jobs:",
+                "      lifecycle: WHENEVER");
+        StorageConfigException error = assertThrows(StorageConfigException.class,
+                () -> BindingResolver.resolve("FinalJobs", jobsCfg().build(), parsed, registry, refRegistry));
+        assertTrue(error.getMessage().contains("WHENEVER"), error.getMessage());
+        assertTrue(error.getMessage().contains("PRELOADED"), "the message must list what IS valid");
+    }
+
+    @Test
     void adminNoCacheIsRefused() throws IOException {
         setup("pdsections:",
                 "  finaljobs:",

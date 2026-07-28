@@ -17,17 +17,19 @@ public final class PDSectionAdminConfig {
     private final String collection;      // nullable
     private final String cachePolicyName; // nullable (ALWAYS | TTL | NOCACHE)
     private final Integer cacheTtlSeconds; // nullable
+    private final String lifecycleName;   // nullable (LAZY | ONLINE | RESIDENT | PRELOADED)
     private final Integer idleGraceSeconds; // nullable (wins over the developer's advice)
 
     PDSectionAdminConfig(String pluginName, String sectionName, String backendName,
                          String collection, String cachePolicyName, Integer cacheTtlSeconds,
-                         Integer idleGraceSeconds) {
+                         String lifecycleName, Integer idleGraceSeconds) {
         this.pluginName = pluginName;
         this.sectionName = sectionName;
         this.backendName = backendName;
         this.collection = collection;
         this.cachePolicyName = cachePolicyName;
         this.cacheTtlSeconds = cacheTtlSeconds;
+        this.lifecycleName = lifecycleName;
         this.idleGraceSeconds = idleGraceSeconds;
     }
 
@@ -53,6 +55,14 @@ public final class PDSectionAdminConfig {
 
     public Integer getCacheTtlSeconds() {
         return cacheTtlSeconds;
+    }
+
+    /**
+     * Nullable - the admin's per-section lifecycle, which beats the developer's declaration. The way
+     * out when a third-party section is heavy enough that the admin does not want it on the login path.
+     */
+    public String getLifecycleName() {
+        return lifecycleName;
     }
 
     /** Nullable - the admin's per-section idle grace, which beats the developer's advice. */

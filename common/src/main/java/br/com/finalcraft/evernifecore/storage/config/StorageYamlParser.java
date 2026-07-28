@@ -337,11 +337,12 @@ public final class StorageYamlParser {
                     + " (0 releases a cell as soon as its owner goes offline)!");
         }
 
-        //an account section has no per-section backend: the whole family lives on the one account
-        //backend, which is what lets the link absorb its rows without coordinating across backends
-        String backendName = family == SectionFamily.PLAYER
-                ? config.getString(base + "storage-backend-id", null)
-                : null;
+        //an account section has neither a per-section backend nor a per-section lifecycle: the whole
+        //family lives on the one account backend (which is what lets the link absorb its rows without
+        //coordinating across backends) and shares one cycle, driven by who of the account is online
+        boolean player = family == SectionFamily.PLAYER;
+        String backendName = player ? config.getString(base + "storage-backend-id", null) : null;
+        String lifecycleName = player ? config.getString(base + "lifecycle", null) : null;
 
         return new PDSectionAdminConfig(
                 pluginName,
@@ -350,6 +351,7 @@ public final class StorageYamlParser {
                 collection,
                 config.getString(base + "cache.policy", null),
                 getIntOrNull(config, base + "cache.ttlSeconds"),
+                lifecycleName,
                 idleGraceSeconds
         );
     }
