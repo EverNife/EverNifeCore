@@ -8,6 +8,7 @@ import br.com.finalcraft.everydatabase.Storage;
 import br.com.finalcraft.everydatabase.manager.CachingManager;
 import lombok.Getter;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -29,25 +30,32 @@ public final class PDSectionBinding<S extends PDSection> {
     private final EntityDescriptor<UUID, S> descriptor;
     /** The per-class cache + repository façade backing this section. */
     private final CachingManager<UUID, S> manager;
-    /** The section's resolved cache lifecycle (drives evict-on-quit, ttl purge, resident-size warning). */
-    private final SectionCachePolicy sectionCachePolicy;
     /** Minor issues found during resolution (e.g. admin outside the suggested backends). */
     private final List<String> resolutionWarnings;
 
     PDSectionBinding(PDSectionConfiguration<S> configuration, String backendName, Storage storage,
                      EntityDescriptor<UUID, S> descriptor, CachingManager<UUID, S> manager,
-                     SectionCachePolicy sectionCachePolicy, List<String> resolutionWarnings) {
+                     List<String> resolutionWarnings) {
         this.configuration = configuration;
         this.backendName = backendName;
         this.storage = storage;
         this.descriptor = descriptor;
         this.manager = manager;
-        this.sectionCachePolicy = sectionCachePolicy;
         this.resolutionWarnings = Collections.unmodifiableList(resolutionWarnings);
     }
 
     public Class<S> getPdSectionClass() {
         return configuration.getPdSectionClass();
+    }
+
+    /** When this section's cells enter and leave memory (the developer's declaration). */
+    public SectionLifecycle getLifecycle() {
+        return configuration.getLifecycle();
+    }
+
+    /** How long a cell survives after its owner stops being online. */
+    public Duration getIdleGrace() {
+        return configuration.getIdleGrace();
     }
 
     public String getCollection() {

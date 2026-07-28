@@ -18,7 +18,7 @@ import br.com.finalcraft.evernifecore.playerdata.storage.ECRegistries;
 import br.com.finalcraft.everydatabase.manager.writeback.OptimisticConflictException;
 import br.com.finalcraft.evernifecore.playerdata.storage.PDSectionBinding;
 import br.com.finalcraft.evernifecore.playerdata.storage.PlayerDataBinding;
-import br.com.finalcraft.evernifecore.playerdata.storage.SectionCachePolicy;
+import br.com.finalcraft.evernifecore.playerdata.storage.SectionLifecycle;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.storage.ECStorageRegistries;
 import br.com.finalcraft.evernifecore.storage.StorageBootGuard;
@@ -387,7 +387,7 @@ public class PlayerController {
         ServerCooldowns.bootstrap(storageConfig, registry, ecRegistries.global(), PDLog::log);
 
         startCacheSync();
-        lifecycleEngine.schedulePurgeForTtlManagers();
+        lifecycleEngine.scheduleIdleSweep();
         lifecycleEngine.startPeriodicFlush();
 
         //eager schema sweep of the base entity (async, post-ready, O(1) when nothing eager is pending)
@@ -483,7 +483,7 @@ public class PlayerController {
     /** Rebuilds the manager-set-dependent wiring after a transfer cutover swapped a binding. */
     void onBindingsChanged(){
         startCacheSync();
-        lifecycleEngine.schedulePurgeForTtlManagers();
+        lifecycleEngine.scheduleIdleSweep();
     }
 
     void completeReady(){
@@ -619,9 +619,11 @@ public class PlayerController {
         //guarded: start() runs BEFORE the fresh instance is published, so on a reload an unguarded
         //re-register would bind (and synchronously hot-load) on the still-current OLD controller
         if (!REGISTERED_SECTIONS.containsKey(PlayerCooldownsLocal.class)){
+            //LAZY (the default): most sessions never start a cooldown, so loading a row per login
+            //would be pure I/O for nothing
             PlayerController.registerPDSectionCfg(PDSectionConfiguration
                 .builder(EverNifeCore.getEcPluginData(), PlayerCooldownsLocal.class)
-                .cache(SectionCachePolicy.workingSet())
+                .description("Per-player cooldowns scoped to THIS server")
                 .legacyYaml("Cooldown", PlayerCooldownsLocal::fromLegacyYaml) // Import legacy data from EC v2
                 .build());
         }
@@ -637,7 +639,7 @@ public class PlayerController {
         if (ECSettings.PER_PLAYER_LOCALE && !REGISTERED_SECTIONS.containsKey(LocalePDSection.class)){
             PlayerController.registerPDSectionCfg(PDSectionConfiguration
                 .builder(EverNifeCore.getEcPluginData(), LocalePDSection.class)
-                .cache(SectionCachePolicy.workingSet())
+                .description("Per-player language override")
                 .build());
         }
     }
@@ -801,44 +803,8 @@ public class PlayerController {
         }
         //re-entrant on purpose: a section bound before the players are loaded
         //(registered between a bootstrap with a pending import and the first tick) gets its
-        //hot-load done when start() visits it again
-
-        //hot-load over the already-loaded players (in batch through the manager)
-        List<PlayerData> loadedPlayers = baseManager().cachedValues();
-        if (cfg.shouldHotLoad() && !loadedPlayers.isEmpty()){
-            long start = System.currentTimeMillis();
-            CachingManager<UUID, S> manager = binding.getManager();
-            Class<S> sectionClass = cfg.getPdSectionClass();
-            List<UUID> keys = new ArrayList<>(loadedPlayers.size());
-            for (PlayerData playerData : loadedPlayers){
-                keys.add(playerData.getUniqueId());
-            }
-            //getAll never overwrites an unflushed dirty cell (dirty-wins), so the old
-            //"skip recentChanged" guard is automatic
-            manager.getAll(keys).join();
-            for (PlayerData playerData : loadedPlayers){
-                UUID key = playerData.getUniqueId();
-                S stored = manager.peek(key).orElse(null);
-                S section;
-                if (stored != null){
-                    try {
-                        StoredSection.upcastOrEvict(manager, key, stored); //lazy upcast before it reaches the plugin
-                    }catch (RuntimeException migrationFailure){
-                        continue; //already logged + evicted: skip this player, never abort the whole bind
-                    }
-                    section = stored;
-                }else {
-                    section = manager.seedIfAbsent(key, StoredSection.newDefault(sectionClass));
-                }
-                section.attachPlayerData(playerData);
-            }
-            long end = System.currentTimeMillis();
-            PDLog.info("Finished Loading PDSection {%s} of %s players! (%s)",
-                    cfg.getPdSectionClass().getSimpleName(), loadedPlayers.size(),
-                    formatDuration(end - start));
-        }
-
-        warmup(cfg, binding);
+        //bind-time load done when start() visits it again
+        loadAtBind(cfg, binding);
 
         //eager schema sweep of this section (async, post-ready, O(1) when nothing eager is pending); this
         //hook covers boot binds AND late registerPDSectionCfg calls from dependent plugins
@@ -846,19 +812,65 @@ public class PlayerController {
     }
 
     /**
-     * Warms a section's cache at bind time per {@link SectionCachePolicy.Warmup}: NONE is lazy (nothing
-     * pre-loaded, the default); ALL pre-loads the whole collection ({@code preloadAll}). Best-effort -
-     * a warmup failure never aborts the bind.
+     * Populates a freshly bound section per its {@link SectionLifecycle}: {@code PRELOADED} pulls the
+     * whole collection; {@code ONLINE}/{@code RESIDENT} pull the players that are ONLINE right now (a
+     * hot reload, or a plugin registering after the boot) - never the offline ones, whose cells would
+     * then sit in memory with no quit to release them; {@code LAZY} pulls nothing.
+     *
+     * <p>Best-effort: a failure here never aborts the bind.</p>
      */
-    private <S extends PDSection> void warmup(PDSectionConfiguration<S> cfg, PDSectionBinding<S> binding){
-        SectionCachePolicy.Warmup warmupMode = cfg.getWarmup();
-        if (warmupMode == null || warmupMode == SectionCachePolicy.Warmup.NONE) return;
+    private <S extends PDSection> void loadAtBind(PDSectionConfiguration<S> cfg, PDSectionBinding<S> binding){
+        SectionLifecycle lifecycle = cfg.getLifecycle();
+        if (lifecycle == SectionLifecycle.LAZY) return;
+
+        long start = System.currentTimeMillis();
+        CachingManager<UUID, S> manager = binding.getManager();
         try {
-            binding.getManager().preloadAll().join();
-        }catch (Throwable warmupFailure){
-            PDLog.warning("Warmup (%s) of PDSection {%s} failed - continuing lazily: %s",
-                    warmupMode, cfg.getPdSectionClass().getSimpleName(), String.valueOf(warmupFailure.getMessage()));
+            if (lifecycle.preloadsAtBind()){
+                manager.preloadAll().join();
+            }
+        }catch (Throwable preloadFailure){
+            PDLog.warning("Preload of PDSection {%s} failed - continuing lazily: %s",
+                    cfg.getPdSectionClass().getSimpleName(), String.valueOf(preloadFailure.getMessage()));
         }
+
+        //attach the live PlayerData to the cells of the players this instance already knows: a
+        //preloaded cell is a bare decode until it is attached, and a section handed out detached
+        //answers null for the player it belongs to
+        List<PlayerData> attachTo = new ArrayList<>();
+        for (PlayerData playerData : baseManager().cachedValues()){
+            if (lifecycle.preloadsAtBind() || playerData.isPlayerOnline()){
+                attachTo.add(playerData);
+            }
+        }
+        if (attachTo.isEmpty()) return;
+
+        List<UUID> keys = new ArrayList<>(attachTo.size());
+        for (PlayerData playerData : attachTo){
+            keys.add(playerData.getUniqueId());
+        }
+        //getAll never overwrites an unflushed dirty cell (dirty-wins), so the old
+        //"skip recentChanged" guard is automatic
+        manager.getAll(keys).join();
+        for (PlayerData playerData : attachTo){
+            UUID key = playerData.getUniqueId();
+            S stored = manager.peek(key).orElse(null);
+            S section;
+            if (stored != null){
+                try {
+                    StoredSection.upcastOrEvict(manager, key, stored); //lazy upcast before it reaches the plugin
+                }catch (RuntimeException migrationFailure){
+                    continue; //already logged + evicted: skip this player, never abort the whole bind
+                }
+                section = stored;
+            }else {
+                section = manager.seedIfAbsent(key, StoredSection.newDefault(cfg.getPdSectionClass()));
+            }
+            section.attachPlayerData(playerData);
+        }
+        PDLog.info("Finished Loading PDSection {%s} (%s) of %s players! (%s)",
+                cfg.getPdSectionClass().getSimpleName(), lifecycle, attachTo.size(),
+                formatDuration(System.currentTimeMillis() - start));
     }
 
     <T extends PDSection> PDSectionBinding<T> getBinding(Class<T> pdSectionClass){
@@ -1390,11 +1402,15 @@ public class PlayerController {
         });
     }
 
-    /** Loads each hotLoad section of a freshly loaded player (the lazy-load and create paths). */
+    /**
+     * Loads the sections a freshly resolved player must have in memory - every binding whose
+     * {@link SectionLifecycle} loads on login. A {@code LAZY} section is skipped: it enters memory
+     * only when someone actually resolves it.
+     */
     private CompletableFuture<Void> hotLoadSectionsFor(PlayerData playerData){
         List<CompletableFuture<?>> futures = new ArrayList<>();
         for (PDSectionBinding<? extends PDSection> binding : bindings.values()){
-            if (binding.getConfiguration().shouldHotLoad()){
+            if (binding.getLifecycle().loadsOnLogin()){
                 futures.add(attachThroughManager(playerData, binding));
             }
         }
@@ -1645,9 +1661,13 @@ public class PlayerController {
         lifecycleEngine.drainFlushRetryQueue();
     }
 
-    /** Releases expired cells from every ttl section manager; best-effort, never propagates. */
-    void purgeTtlManagers(){
-        lifecycleEngine.purgeTtlManagers();
+    /**
+     * Runs one idle sweep over the sections that release when idle, releasing the cells whose owner
+     * has been offline past the grace. The periodic pass calls this on a timer; tests drive it
+     * directly. Best-effort, never propagates.
+     */
+    public void sweepIdleSections(){
+        lifecycleEngine.sweepIdleSections();
     }
 
     /** Moves a PDSection's collection to another enabled backend at runtime (see {@link StorageTransferService}). */

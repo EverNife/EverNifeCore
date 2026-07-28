@@ -34,7 +34,8 @@ import java.util.UUID;
  *            (reserved in the registry - a collision is a fatal error)
  * codec    = cfg.codec ?? ConfigFactoryCodec (bridge) - file(yaml->yaml | json->jsonPretty)
  *            ?? compact json  (carries the ConfigFactory type authority + ConfigLifecycle into storage)
- * cache    = yml.cache ?? cfg.sectionCachePolicy (default resident)
+ * cache    = always() ?? yml.cache (freshness only) + cfg.maxCached (hard bound, optional)
+ *            (WHEN a cell enters/leaves memory is cfg.lifecycle, driven by the controller)
  * lock     = always active via @OptimisticLock on the PDSection base
  *            (detected by the annotation scan in EntityDescriptor.build())
  * </pre>
@@ -122,29 +123,11 @@ public final class BindingResolver {
         // fail-fast here if a custom codec cannot expose an ObjectMapper while a chain is registered
         codec = EntitySchemaMigratingCodec.wrap(cfg.getPdSectionClass(), codec, "uuid");
 
-        // ---- cache (admin override > dev SectionCachePolicy, default resident) ----
-        // The dev SectionCachePolicy carries both the store options (freshness + LRU bound) AND the
-        // framework-only lifecycle (workingSet evict-on-quit, ttl purge timer). An admin cache: override
-        // in storage.yml still wins for freshness, but keeps the dev's framework lifecycle intent.
-        SectionCachePolicy sectionCachePolicy = cfg.getSectionCachePolicy() != null
-                ? cfg.getSectionCachePolicy()
-                : SectionCachePolicy.resident();
-        CacheOptions cacheOptions;
-        if (admin.isPresent() && admin.get().getCachePolicyName() != null) {
-            try {
-                CachePolicy adminPolicy = CachePolicy.fromAdminConfig(
-                        admin.get().getCachePolicyName(), admin.get().getCacheTtlSeconds());
-                //preserve the dev's LRU bound (capacity is not expressible in the admin cache: knob)
-                cacheOptions = CacheOptions.builder()
-                        .policy(adminPolicy)
-                        .maxSize(sectionCachePolicy.toCacheOptions().maxSize())
-                        .build();
-            } catch (IllegalArgumentException e) {
-                throw new StorageConfigException("PDSection '" + sectionId + "': " + e.getMessage(), e);
-            }
-        } else {
-            cacheOptions = sectionCachePolicy.toCacheOptions();
-        }
+        // ---- cache options ----
+        // The dev declares the LIFECYCLE (when a cell enters and leaves memory), which the controller and
+        // the LifecycleEngine drive; the store only needs freshness plus the optional hard bound. An admin
+        // cache: override in storage.yml decides freshness alone - it never changes the lifecycle.
+        CacheOptions cacheOptions = resolveCacheOptions(sectionId, cfg.getMaxCached(), admin.orElse(null));
 
         // ---- descriptor + caching manager ----
         EntityDescriptor<UUID, S> descriptor = EntityDescriptor
@@ -161,7 +144,27 @@ public final class BindingResolver {
 
         CachingManager<UUID, S> manager = refRegistry.manager(descriptor, storage, cacheOptions);
 
-        return new PDSectionBinding<>(cfg, backendName, storage, descriptor, manager, sectionCachePolicy, warnings);
+        return new PDSectionBinding<>(cfg, backendName, storage, descriptor, manager, warnings);
+    }
+
+    /**
+     * The store options a section binds with: {@code always()} freshness (the lifecycle owns
+     * releasing, not the cache policy) plus the optional hard {@code maxCached} bound. An admin
+     * {@code cache:} entry replaces the freshness policy only.
+     */
+    private static CacheOptions resolveCacheOptions(String sectionId, int maxCached, PDSectionAdminConfig admin) {
+        CachePolicy policy = CachePolicy.always();
+        if (admin != null && admin.getCachePolicyName() != null) {
+            try {
+                policy = CachePolicy.fromAdminConfig(admin.getCachePolicyName(), admin.getCacheTtlSeconds());
+            } catch (IllegalArgumentException e) {
+                throw new StorageConfigException("PDSection '" + sectionId + "': " + e.getMessage(), e);
+            }
+        }
+        return CacheOptions.builder()
+                .policy(policy)
+                .maxSize(maxCached > 0 ? maxCached : CacheOptions.UNBOUNDED)
+                .build();
     }
 
     /**
@@ -211,13 +214,11 @@ public final class BindingResolver {
         List<String> warnings = new ArrayList<>();
         PdSyncBindGuard.check(cfg.getPdSectionClass().getSimpleName() + " (transfer target)",
                 descriptor, storage, parsed, false, warnings);
-        //the runtime transfer keeps the section's declared cache lifecycle across the cutover
-        SectionCachePolicy sectionCachePolicy = current.getSectionCachePolicy();
+        //the runtime transfer keeps the section's declared lifecycle and bound across the cutover
         CachingManager<UUID, S> manager = refRegistry.manager(descriptor, storage,
-                sectionCachePolicy.toCacheOptions());
+                resolveCacheOptions(cfg.getPdSectionClass().getSimpleName(), cfg.getMaxCached(), null));
 
-        return new PDSectionBinding<>(cfg, targetBackendName, storage, descriptor, manager,
-                sectionCachePolicy, warnings);
+        return new PDSectionBinding<>(cfg, targetBackendName, storage, descriptor, manager, warnings);
     }
 
     /** A sanitized, backend-safe collection name: {@code <prefix>_<plugin>_<section>}. */

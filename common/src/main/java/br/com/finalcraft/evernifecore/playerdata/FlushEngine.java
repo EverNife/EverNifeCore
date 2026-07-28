@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.playerdata;
 
 import br.com.finalcraft.evernifecore.cooldown.server.ServerCooldowns;
 import br.com.finalcraft.evernifecore.playerdata.storage.PDSectionBinding;
-import br.com.finalcraft.evernifecore.playerdata.storage.SectionCachePolicy;
+import br.com.finalcraft.evernifecore.playerdata.storage.SectionLifecycle;
 import br.com.finalcraft.everydatabase.manager.CachingManager;
 import br.com.finalcraft.everydatabase.manager.log.ManagerLog;
 import br.com.finalcraft.everydatabase.manager.writeback.ConflictHooks;
@@ -307,23 +307,24 @@ final class FlushEngine {
     // -----------------------------------------------------------------------------------------------------------------------------//
 
     /**
-     * Safety net for the HARD "PDSections are small" rule: a {@code resident} manager whose cached size
-     * crossed {@link SectionCachePolicy#RESIDENT_WARN_THRESHOLD} logs a DEBUG warning (it never cuts) -
+     * Safety net for the HARD "PDSections are small" rule: a section that NEVER releases its cells
+     * ({@code RESIDENT}/{@code PRELOADED}) and crossed
+     * {@link SectionLifecycle#NEVER_RELEASED_WARN_THRESHOLD} logs a DEBUG warning (it never cuts) -
      * either the section carries data it shouldn't (externalize it to its own collection and keep only
-     * the id here) or it should declare {@code lru(...)}/{@code ttl(...)}. Throttled to once per manager
-     * until it drops back below the threshold.
+     * the id here) or it should release when idle. Throttled to once per manager until it drops back
+     * below the threshold.
      */
     private void warnIfResidentTooLarge(PDSectionBinding<? extends PDSection> binding) {
-        SectionCachePolicy policy = binding.getSectionCachePolicy();
-        if (policy == null || !policy.isResident()) return;
+        if (binding.getLifecycle().releasesWhenIdle()) return;
         String sectionName = binding.getPdSectionClass().getSimpleName();
         int size = binding.getManager().cachedSize();
-        if (size >= SectionCachePolicy.RESIDENT_WARN_THRESHOLD) {
+        if (size >= SectionLifecycle.NEVER_RELEASED_WARN_THRESHOLD) {
             if (residentWarned.add(sectionName)) {
-                PDLog.debug("PDSection {%s} is 'resident' and holds %s cached cells (>= %s). PDSections are"
-                        + " meant to be small: externalize large data to its own collection and keep only the"
-                        + " id here, or declare .cache(SectionCachePolicy.lru(...)/ttl(...)).",
-                        sectionName, size, SectionCachePolicy.RESIDENT_WARN_THRESHOLD);
+                PDLog.debug("PDSection {%s} is '%s' (never released) and holds %s cached cells (>= %s)."
+                        + " PDSections are meant to be small: externalize large data to its own collection"
+                        + " and keep only the id here, declare a lifecycle that releases when idle"
+                        + " (LAZY/ONLINE), or bound it with .maxCached(...).",
+                        sectionName, binding.getLifecycle(), size, SectionLifecycle.NEVER_RELEASED_WARN_THRESHOLD);
             }
         } else {
             residentWarned.remove(sectionName); //re-arm once it drops back under the threshold

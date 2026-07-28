@@ -7,12 +7,12 @@ import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchema;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrationMode;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaStep;
-import br.com.finalcraft.evernifecore.playerdata.storage.SectionCachePolicy;
+import br.com.finalcraft.evernifecore.playerdata.storage.SectionLifecycle;
 import br.com.finalcraft.evernifecore.storage.BackendType;
 import br.com.finalcraft.everydatabase.codec.Codec;
-import lombok.AccessLevel;
 import lombok.Getter;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -22,11 +22,10 @@ import java.util.function.Function;
 /**
  * Developer-side configuration of a PDSection.
  *
- * <p>The developer ADVISES (default/suggested backends, default cache policy,
- * legacy adapter); the admin DECIDES through storage.yml
- * (resolution chain). The one HARD constraint the developer can impose is
- * {@link Builder#allowedBackendTypes(BackendType...)} - e.g. an ephemeral section
- * that must never be persisted to a database, only an in-memory backend.</p>
+ * <p>The developer ADVISES (default/suggested backends, cache lifecycle, legacy adapter); the admin
+ * DECIDES through storage.yml (resolution chain). The one HARD constraint the developer can impose
+ * is {@link Builder#allowedBackendTypes(BackendType...)} - e.g. an ephemeral section that must never
+ * be persisted to a database, only an in-memory backend.</p>
  *
  * <p>Always built through {@link #builder(ECPluginData, Class)}.</p>
  */
@@ -35,9 +34,6 @@ public class PDSectionConfiguration<S extends PDSection> {
 
     private final ECPluginData pluginData;
     private final Class<S> pdSectionClass;
-    /** Exposed through {@link #shouldHotLoad()} (not a {@code get}-prefixed accessor). */
-    @Getter(AccessLevel.NONE)
-    private final boolean shouldHotLoad;
 
     // storage guidance (all optional - nullable means "use the default from the resolution chain")
     /** Nullable - the default collection name is derived. */
@@ -53,14 +49,26 @@ public class PDSectionConfiguration<S extends PDSection> {
     private final List<BackendType> allowedBackendTypes;
     /** Nullable - developer override of the codec resolution. */
     private final Codec<S> codec;
+    /** Nullable - a one-line human description; becomes a comment on the generated storage.yml entry. */
+    private final String description;
     /**
-     * The developer-declared cache lifecycle ({@link SectionCachePolicy}) - never null; defaults to
-     * {@link SectionCachePolicy#resident()}. An admin {@code cache:} override in storage.yml still
-     * wins over it.
+     * When this section's cells enter and leave memory - never null; defaults to
+     * {@link SectionLifecycle#LAZY}.
      */
-    private final SectionCachePolicy sectionCachePolicy;
-    /** How eagerly this section's cache is warmed at bind time. Never null; defaults to {@link SectionCachePolicy.Warmup#NONE}. */
-    private final SectionCachePolicy.Warmup warmup;
+    private final SectionLifecycle lifecycle;
+    /**
+     * How long a cell survives after its owner stops being online, for a lifecycle that releases
+     * when idle. Never null; defaults to {@link SectionLifecycle#DEFAULT_IDLE_GRACE}.
+     */
+    private final Duration idleGrace;
+    /** Hard ceiling of cached cells (LRU, dirty cells pinned); {@code 0} = unbounded. */
+    private final int maxCached;
+    /**
+     * Whether a re-registration drops this section's unflushed changes instead of flushing them
+     * first. Off by default: a re-register flushes, then clears (see
+     * {@code PlayerController.registerPDSectionCfg}).
+     */
+    private final boolean discardDirtyOnReload;
     /** Nullable - when absent, there is no legacy YAML migration for this section. */
     private final String legacyYamlRootKey;
     private final Function<ConfigSection, S> legacyYamlAdapter;
@@ -71,22 +79,25 @@ public class PDSectionConfiguration<S extends PDSection> {
      */
     private final List<EntitySchemaMigrations.Step> migrations;
 
-    private PDSectionConfiguration(ECPluginData pluginData, Class<S> pdSectionClass, boolean shouldHotLoad,
+    private PDSectionConfiguration(ECPluginData pluginData, Class<S> pdSectionClass,
                                    String collection, String defaultBackend, List<String> suggestedBackends,
-                                   List<BackendType> allowedBackendTypes, Codec<S> codec,
-                                   SectionCachePolicy sectionCachePolicy, SectionCachePolicy.Warmup warmup,
+                                   List<BackendType> allowedBackendTypes, Codec<S> codec, String description,
+                                   SectionLifecycle lifecycle, Duration idleGrace, int maxCached,
+                                   boolean discardDirtyOnReload,
                                    String legacyYamlRootKey, Function<ConfigSection, S> legacyYamlAdapter,
                                    List<EntitySchemaMigrations.Step> migrations) {
         this.pluginData = pluginData;
         this.pdSectionClass = pdSectionClass;
-        this.shouldHotLoad = shouldHotLoad;
         this.collection = collection;
         this.defaultBackend = defaultBackend;
         this.suggestedBackends = Collections.unmodifiableList(suggestedBackends);
         this.allowedBackendTypes = Collections.unmodifiableList(allowedBackendTypes);
         this.codec = codec;
-        this.sectionCachePolicy = sectionCachePolicy;
-        this.warmup = warmup;
+        this.description = description;
+        this.lifecycle = lifecycle;
+        this.idleGrace = idleGrace;
+        this.maxCached = maxCached;
+        this.discardDirtyOnReload = discardDirtyOnReload;
         this.legacyYamlRootKey = legacyYamlRootKey;
         this.legacyYamlAdapter = legacyYamlAdapter;
         this.migrations = Collections.unmodifiableList(migrations);
@@ -96,24 +107,22 @@ public class PDSectionConfiguration<S extends PDSection> {
         return new Builder<>(pluginData, pdSectionClass);
     }
 
-    public boolean shouldHotLoad() {
-        return shouldHotLoad;
-    }
-
     // ---------------------------------------------------------------------
 
     public static class Builder<S extends PDSection> {
 
         private final ECPluginData pluginData;
         private final Class<S> pdSectionClass;
-        private boolean hotLoad = true;
         private String collection;
         private String defaultBackend;
         private List<String> suggestedBackends = Collections.emptyList();
         private List<BackendType> allowedBackendTypes = Collections.emptyList();
         private Codec<S> codec;
-        private SectionCachePolicy sectionCachePolicy = SectionCachePolicy.resident();
-        private SectionCachePolicy.Warmup warmup = SectionCachePolicy.Warmup.NONE;
+        private String description;
+        private SectionLifecycle lifecycle = SectionLifecycle.LAZY;
+        private Duration idleGrace = SectionLifecycle.DEFAULT_IDLE_GRACE;
+        private int maxCached = 0;
+        private boolean discardDirtyOnReload = false;
         private String legacyYamlRootKey;
         private Function<ConfigSection, S> legacyYamlAdapter;
         private final List<EntitySchemaMigrations.Step> migrations = new ArrayList<>();
@@ -121,11 +130,6 @@ public class PDSectionConfiguration<S extends PDSection> {
         private Builder(ECPluginData pluginData, Class<S> pdSectionClass) {
             this.pluginData = pluginData;
             this.pdSectionClass = pdSectionClass;
-        }
-
-        public Builder<S> hotLoad(boolean hotLoad) {
-            this.hotLoad = hotLoad;
-            return this;
         }
 
         public Builder<S> collection(String collection) {
@@ -159,24 +163,54 @@ public class PDSectionConfiguration<S extends PDSection> {
             return this;
         }
 
-        /**
-         * The section's cache lifecycle (default {@link SectionCachePolicy#resident()}):
-         * {@code resident()} (unbounded, stays cached), {@code lru(maxSize)} (bounded LRU),
-         * {@code ttl(duration)} (freshness + scheduled purge), or {@code workingSet()}
-         * (resident while online, evicted a short grace after quit). An admin {@code cache:}
-         * override in storage.yml still wins over it.
-         */
-        public Builder<S> cache(SectionCachePolicy sectionCachePolicy) {
-            this.sectionCachePolicy = sectionCachePolicy == null ? SectionCachePolicy.resident() : sectionCachePolicy;
+        /** A one-line description of what this section holds; becomes a comment on its storage.yml entry. */
+        public Builder<S> description(String description) {
+            this.description = description;
             return this;
         }
 
         /**
-         * How eagerly this section's cache is warmed at bind time (default
-         * {@link SectionCachePolicy.Warmup#NONE} = lazy). {@code ALL} pre-loads the whole collection.
+         * When this section's cells enter and leave memory (default {@link SectionLifecycle#LAZY}):
+         * {@code LAZY} (first access), {@code ONLINE} (at login), {@code RESIDENT} (at login, never
+         * released) or {@code PRELOADED} (whole collection at bind, never released).
          */
-        public Builder<S> warmup(SectionCachePolicy.Warmup warmup) {
-            this.warmup = warmup == null ? SectionCachePolicy.Warmup.NONE : warmup;
+        public Builder<S> lifecycle(SectionLifecycle lifecycle) {
+            this.lifecycle = lifecycle == null ? SectionLifecycle.LAZY : lifecycle;
+            return this;
+        }
+
+        /**
+         * How long a cell survives after its owner stops being online (default
+         * {@link SectionLifecycle#DEFAULT_IDLE_GRACE}). Ignored by a lifecycle that never releases.
+         */
+        public Builder<S> idleGrace(Duration idleGrace) {
+            if (idleGrace != null && idleGrace.isNegative()) {
+                throw new IllegalArgumentException("idleGrace must not be negative, got " + idleGrace);
+            }
+            this.idleGrace = idleGrace == null ? SectionLifecycle.DEFAULT_IDLE_GRACE : idleGrace;
+            return this;
+        }
+
+        /**
+         * A hard ceiling of cached cells (bounded LRU; a dirty cell is pinned and never dropped by
+         * the bound). Off by default - the lifecycle's release rule is what normally bounds memory;
+         * this is the safety net for a section that legitimately spans more players than fit.
+         */
+        public Builder<S> maxCached(int maxCached) {
+            if (maxCached < 0) {
+                throw new IllegalArgumentException("maxCached must not be negative, got " + maxCached);
+            }
+            this.maxCached = maxCached;
+            return this;
+        }
+
+        /**
+         * Makes a re-registration DROP this section's unflushed changes instead of flushing them
+         * first. Only for a section whose in-memory state is derived/ephemeral and must not survive a
+         * plugin reload; anything durable belongs to the default (flush, then clear).
+         */
+        public Builder<S> discardDirtyOnReload() {
+            this.discardDirtyOnReload = true;
             return this;
         }
 
@@ -221,9 +255,10 @@ public class PDSectionConfiguration<S extends PDSection> {
         }
 
         public PDSectionConfiguration<S> build() {
-            return new PDSectionConfiguration<>(pluginData, pdSectionClass, hotLoad,
-                    collection, defaultBackend, suggestedBackends, allowedBackendTypes, codec,
-                    sectionCachePolicy, warmup, legacyYamlRootKey, legacyYamlAdapter, migrations);
+            return new PDSectionConfiguration<>(pluginData, pdSectionClass,
+                    collection, defaultBackend, suggestedBackends, allowedBackendTypes, codec, description,
+                    lifecycle, idleGrace, maxCached, discardDirtyOnReload,
+                    legacyYamlRootKey, legacyYamlAdapter, migrations);
         }
     }
 }

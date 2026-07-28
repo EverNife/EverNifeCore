@@ -2,11 +2,12 @@ package br.com.finalcraft.evernifecore.playerdata;
 
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import br.com.finalcraft.evernifecore.playerdata.storage.PDSectionBinding;
-import br.com.finalcraft.evernifecore.playerdata.storage.SectionCachePolicy;
 import br.com.finalcraft.everydatabase.manager.CachingManager;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,7 +27,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * The runtime lifecycle of a {@link PlayerController} instance: the periodic flush tick
  * (jittered, with a stuck-flush guard), the durable quit-flush (bounded async pool +
- * storage-down retry queue), the working-set eviction after quit and the ttl purge timer.
+ * storage-down retry queue), the post-quit release of idle section cells and the periodic idle
+ * sweep that covers the cells no quit ever reaches.
  */
 final class LifecycleEngine {
 
@@ -48,7 +50,7 @@ final class LifecycleEngine {
     private final ExecutorService quitFlushExecutor = Executors.newFixedThreadPool(
             Math.max(2, Math.min(4, Runtime.getRuntime().availableProcessors())),
             daemonFactory("ec-playerdata-quit-flush"));
-    /** Single-thread timer for the deferred working-set eviction (post-quit grace), ttl purge and login timeout. */
+    /** Single-thread timer for the deferred idle eviction (post-quit grace), the idle sweep and the login timeout. */
     private final ScheduledExecutorService lifecycleScheduler = Executors.newSingleThreadScheduledExecutor(
             daemonFactory("ec-playerdata-lifecycle"));
     /** Dedicated tick thread: the tick BLOCKS on the flush (bounded), which must never stall the scheduler above. */
@@ -61,7 +63,12 @@ final class LifecycleEngine {
     /** One backlog warning per outage: re-armed when the retry queue fully drains. */
     private final AtomicBoolean retryBacklogWarned = new AtomicBoolean(false);
 
-    private volatile ScheduledFuture<?> ttlPurgeTask;
+    private volatile ScheduledFuture<?> idleSweepTask;
+    /**
+     * Per section class, when each cached key was FIRST seen with its owner offline - the clock the
+     * idle sweep measures the grace against (a cell whose owner never logs in gets no quit event).
+     */
+    private final Map<Class<? extends PDSection>, Map<UUID, Long>> idleSince = new ConcurrentHashMap<>();
     /** The flush pass that exceeded the stuck bound and is still running; no new pass starts over it. */
     private volatile CompletableFuture<Void> stuckFlush;
     private volatile boolean stopped;
@@ -167,7 +174,7 @@ final class LifecycleEngine {
         playerData.materializeSessionEnd(); //the one durable write per session: stamp lastSeen + dirty
         //flush off the quit thread; on a storage outage enqueue for a later retry instead of dropping
         quitFlushExecutor.execute(() -> flushPlayerWithRetry(uuid));
-        scheduleWorkingSetEviction(uuid);
+        scheduleIdleEviction(uuid);
         controller.accountEngine().scheduleQuitRelease(playerData);
     }
 
@@ -261,22 +268,24 @@ final class LifecycleEngine {
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------//
-    // Working-set eviction + ttl purge
+    // Idle release (post-quit eviction + the sweep that covers cells whose owner never was online)
     // -----------------------------------------------------------------------------------------------------------------------------//
 
     /**
-     * Schedules eviction of a quit player's cell from every {@code workingSet} section manager (and the
-     * base is left resident by default) after that policy's grace - a resident cache scoped to online
-     * players, without dropping in-flight saves or a reconnect that lands inside the grace. {@code resident}
-     * sections are NOT evicted on quit.
+     * Schedules the release of a quitting player's cell from every section that releases when idle,
+     * after that section's grace - without dropping in-flight saves or a reconnect that lands inside
+     * the grace. A {@code RESIDENT}/{@code PRELOADED} section is never released here.
+     *
+     * <p>This is the FAST path, driven by the quit event. A cell can also be loaded for a player who
+     * is not online at all (an admin lookup, a bulk read), and that one never gets a quit - it is
+     * {@link #sweepIdleSections()} that releases those.</p>
      */
-    private void scheduleWorkingSetEviction(UUID uuid) {
+    private void scheduleIdleEviction(UUID uuid) {
         for (PDSectionBinding<? extends PDSection> binding : controller.sectionBindings()) {
-            SectionCachePolicy policy = binding.getSectionCachePolicy();
-            if (policy == null || !policy.isWorkingSet()) continue;
-            long graceMillis = policy.getWorkingSetGrace().toMillis();
+            if (!binding.getLifecycle().releasesWhenIdle()) continue;
+            long graceMillis = binding.getIdleGrace().toMillis();
             CachingManager<UUID, ? extends PDSection> manager = binding.getManager();
-            Runnable evict = () -> evictWorkingSetCell(uuid, manager, uuid, graceMillis);
+            Runnable evict = () -> evictIdleCell(uuid, manager, graceMillis);
             if (graceMillis <= 0) {
                 evict.run();
             } else {
@@ -285,73 +294,118 @@ final class LifecycleEngine {
         }
     }
 
-    /** Evicts a working-set section cell unless the player came back online or the cell is still dirty. */
-    private void evictWorkingSetCell(UUID uuid, CachingManager<UUID, ? extends PDSection> manager,
-                                     UUID sectionKey, long graceMillis) {
+    /** Evicts an idle section cell unless the player came back online or the cell is still dirty. */
+    private void evictIdleCell(UUID uuid, CachingManager<UUID, ? extends PDSection> manager, long graceMillis) {
         PlayerData playerData = controller.baseManager().peek(uuid).orElse(null);
         if (playerData != null && playerData.isPlayerOnline()) return; //reconnected inside the grace - keep it
-        PDSection cell = manager.peek(sectionKey).orElse(null);
+        PDSection cell = manager.peek(uuid).orElse(null);
         if (cell != null && cell.isDirty()) {
             //an unflushed write is still pending: don't drop it - flush then re-check after the
             //section's OWN configured grace (not the factory default)
             quitFlushExecutor.execute(() -> flushPlayerWithRetry(uuid));
             lifecycleScheduler.schedule(
-                    () -> evictWorkingSetCell(uuid, manager, sectionKey, graceMillis),
+                    () -> evictIdleCell(uuid, manager, graceMillis),
                     Math.max(graceMillis, 1000L), TimeUnit.MILLISECONDS);
             return;
         }
-        manager.evict(sectionKey);
+        manager.evict(uuid);
     }
 
     /**
-     * Schedules a periodic {@code purgeExpired()} for every {@code ttl(...)} section manager (a ttl
-     * policy bounds freshness, not memory - the framework must release expired cells). Re-callable: it
-     * cancels/reschedules on the fly (single-thread scheduler, tolerant of a rebind). No-op for managers
-     * that are not ttl. Runs at the shorter of the ttl or 60s so an expired cell is released promptly.
+     * Schedules the periodic idle sweep. Re-callable: it cancels/reschedules on the fly (single-thread
+     * scheduler, tolerant of a rebind). A no-op while no bound section releases when idle. The cadence
+     * is the shortest configured grace, clamped to [10s, 60s], so a released cell does not linger far
+     * past its grace.
      */
-    void schedulePurgeForTtlManagers() {
-        ScheduledFuture<?> previous = ttlPurgeTask;
+    void scheduleIdleSweep() {
+        ScheduledFuture<?> previous = idleSweepTask;
         if (previous != null) previous.cancel(false);
 
-        //shortest ttl across the section managers drives the purge cadence (clamped to [10s, 60s])
         long periodSeconds = 60L;
-        boolean anyTtl = false;
+        boolean anyReleases = false;
         for (PDSectionBinding<? extends PDSection> binding : controller.sectionBindings()) {
-            SectionCachePolicy policy = binding.getSectionCachePolicy();
-            if (policy != null && policy.isTtl() && policy.getTtl() != null) {
-                anyTtl = true;
-                periodSeconds = Math.min(periodSeconds, Math.max(10L, policy.getTtl().getSeconds()));
-            }
+            if (!binding.getLifecycle().releasesWhenIdle()) continue;
+            anyReleases = true;
+            periodSeconds = Math.min(periodSeconds, Math.max(10L, binding.getIdleGrace().getSeconds()));
         }
-        if (!anyTtl) return;
+        if (!anyReleases) return;
         final long period = periodSeconds;
-        ttlPurgeTask = lifecycleScheduler.scheduleWithFixedDelay(this::purgeTtlManagers, period, period, TimeUnit.SECONDS);
+        idleSweepTask = lifecycleScheduler.scheduleWithFixedDelay(
+                this::sweepIdleSections, period, period, TimeUnit.SECONDS);
     }
 
-    /** Releases expired cells from every ttl section manager; best-effort, never propagates. */
-    void purgeTtlManagers() {
+    /**
+     * Releases every cached cell of a releasing section whose owner has been offline for longer than
+     * that section's grace. The quit path already covers the player who just left; this covers the
+     * cell that was loaded for someone who was never online here (an offline lookup, a bulk read) and
+     * therefore has no quit event to key off.
+     *
+     * <p>A dirty cell is never dropped: it is queued for a flush and re-checked on the next sweep.
+     * Best-effort - a failure is logged and never propagates.</p>
+     */
+    void sweepIdleSections() {
+        long now = System.currentTimeMillis();
         for (PDSectionBinding<? extends PDSection> binding : controller.sectionBindings()) {
-            SectionCachePolicy policy = binding.getSectionCachePolicy();
-            if (policy != null && policy.isTtl()) {
-                try {
-                    binding.getManager().purgeExpired();
-                } catch (Throwable purgeFailure) {
-                    PDLog.warning("Failed to purge expired cells of PDSection {%s}: %s",
-                            binding.getPdSectionClass().getSimpleName(), String.valueOf(purgeFailure.getMessage()));
-                }
+            if (!binding.getLifecycle().releasesWhenIdle()) continue;
+            try {
+                sweepBinding(binding, now);
+            } catch (Throwable sweepFailure) {
+                PDLog.warning("Idle sweep of PDSection {%s} failed: %s",
+                        binding.getPdSectionClass().getSimpleName(), String.valueOf(sweepFailure.getMessage()));
             }
         }
+        idleSince.keySet().retainAll(boundSectionClasses());
+    }
+
+    private void sweepBinding(PDSectionBinding<? extends PDSection> binding, long now) {
+        CachingManager<UUID, ? extends PDSection> manager = binding.getManager();
+        long graceMillis = binding.getIdleGrace().toMillis();
+        Map<UUID, Long> offlineSince = idleSince.computeIfAbsent(
+                binding.getPdSectionClass(), key -> new ConcurrentHashMap<>());
+
+        List<UUID> release = new ArrayList<>();
+        Set<UUID> cached = manager.cachedKeys();
+        for (UUID key : cached) {
+            PlayerData playerData = controller.baseManager().peek(key).orElse(null);
+            if (playerData != null && playerData.isPlayerOnline()) {
+                offlineSince.remove(key);
+                continue;
+            }
+            PDSection cell = manager.peek(key).orElse(null);
+            if (cell != null && cell.isDirty()) {
+                //never drop an unflushed write - persist it and re-check on the next sweep
+                quitFlushExecutor.execute(() -> flushPlayerWithRetry(key));
+                continue;
+            }
+            Long since = offlineSince.putIfAbsent(key, now);
+            if (since != null && now - since >= graceMillis) {
+                release.add(key);
+            }
+        }
+        offlineSince.keySet().retainAll(cached);
+        if (!release.isEmpty()) {
+            manager.evictAll(release);
+            offlineSince.keySet().removeAll(release);
+        }
+    }
+
+    private Set<Class<? extends PDSection>> boundSectionClasses() {
+        Set<Class<? extends PDSection>> classes = new HashSet<>();
+        for (PDSectionBinding<? extends PDSection> binding : controller.sectionBindings()) {
+            classes.add(binding.getPdSectionClass());
+        }
+        return classes;
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------//
     // Shutdown
     // -----------------------------------------------------------------------------------------------------------------------------//
 
-    /** Stops the flush tick, the quit-flush pool and the lifecycle scheduler (ttl purge / eviction). */
+    /** Stops the flush tick, the quit-flush pool and the lifecycle scheduler (idle sweep / eviction). */
     void stop() {
         stopped = true;
-        ScheduledFuture<?> purge = ttlPurgeTask;
-        if (purge != null) purge.cancel(false);
+        ScheduledFuture<?> sweep = idleSweepTask;
+        if (sweep != null) sweep.cancel(false);
         flushTickExecutor.shutdownNow();
         lifecycleScheduler.shutdownNow();
         quitFlushExecutor.shutdown();
