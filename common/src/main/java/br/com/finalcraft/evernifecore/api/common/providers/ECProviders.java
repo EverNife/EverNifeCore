@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.api.common.providers;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.eventhandler.ECEventDispatcher;
+import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
 
 public class ECProviders {
 
@@ -27,6 +28,15 @@ public class ECProviders {
     /** Like {@link #getPlatform()} but returns {@code null} instead of throwing when none is registered. */
     public IPlatform getPlatformOrNull(){
         return BASE_PROVIDER.provideOrNull(IPlatform.class);
+    }
+
+    public IEconomyProvider getEconomy(){
+        return BASE_PROVIDER.provide(IEconomyProvider.class);
+    }
+
+    /** Like {@link #getEconomy()} but returns {@code null} instead of throwing when none is registered. */
+    public IEconomyProvider getEconomyOrNull(){
+        return BASE_PROVIDER.provideOrNull(IEconomyProvider.class);
     }
 
     public ECEventDispatcher getEventDispatcher(){

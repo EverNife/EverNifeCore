@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.everylibs.util.numberwrapper.NumberWrapper;
 
+import java.math.BigDecimal;
 import java.util.Collection;
 
 public class FCMessageUtil {
@@ -159,15 +160,19 @@ public class FCMessageUtil {
         NEEDS_TO_BE_TIME_FRAME.addPlaceholder("argumento", argumento).send(sender);
     }
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou do not have enough money! §7§o(Money: ${current_money}§l/§7§o${needed_money})")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê não tem money suficiente! §7§o(Money: ${current_money}§l/§7§o${needed_money})")
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou do not have enough money! §7§o(${current_money}§l/§7§o${needed_money})")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê não tem dinheiro suficiente! §7§o(${current_money}§l/§7§o${needed_money})")
     private static LocaleMessage ECO_NOT_ENOUGHT;
     public static void ecoNotEnough(FPlayer sender, double amountNeeded){
-        NumberWrapper<Double> currentMoney = NumberWrapper.of(FCEcoUtil.ecoGet(sender));
-        NumberWrapper<Double> neededMoney = NumberWrapper.of(amountNeeded);
+        ecoNotEnough(sender, FCEcoUtil.ecoGetInBigDecimal(sender), BigDecimal.valueOf(amountNeeded));
+    }
+
+    //The amounts are rendered by the economy plugin itself, so the currency name comes from there
+    //instead of being hardcoded in the message.
+    public static void ecoNotEnough(FPlayer sender, BigDecimal currentMoney, BigDecimal neededMoney){
         ECO_NOT_ENOUGHT
-                .addPlaceholder("current_money", currentMoney)
-                .addPlaceholder("needed_money", neededMoney)
+                .addPlaceholder("current_money", FCEcoUtil.ecoFormat(currentMoney))
+                .addPlaceholder("needed_money", FCEcoUtil.ecoFormat(neededMoney))
                 .send(sender);
     }
 

@@ -1,81 +1,65 @@
 package br.com.finalcraft.evernifecore.hytale.integration;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
+import br.com.finalcraft.evernifecore.economy.LazyEconomyProvider;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import net.cfh.vault.VaultUnlockedServicesManager;
 import net.milkbowl.vault2.economy.Economy;
 
-import java.math.BigDecimal;
 import java.util.Optional;
-import java.util.UUID;
 
+/**
+ * Finds the Hytale economy and puts it behind the platform-agnostic contract.
+ *
+ * <p>VaultUnlocked is an optional dependency of this plugin ({@code manifest.json}), so its classes may
+ * simply not be there - which is why the lookup is guarded by a classpath probe.</p>
+ */
 public class HyVaultIntegration {
 
-    public static Economy econ = null;
+    private static final HyLazyEconomy ECONOMY = new HyLazyEconomy();
 
-    public static void initialize() {
-        if (!FCReflectionUtil.getClasses().isClassLoaded("net.cfh.vault.VaultUnlocked")){
-            EverNifeCore.getLog().warning("VaultUnlocked plugin was not found! EverNifeCore need Vault to manage economy transactions!");
-            return;
-        }
-        try {
-            setupEconomy();
-        }catch (Throwable e){
-            EverNifeCore.getLog().warning("Vault seems to be present but there is no Economic plugin present!");
-            e.printStackTrace();
-        }
+    /** Registers the economy provider, from the constructor, next to the other providers. */
+    public static void register() {
+        EverNifeCore.getProviders().getBaseProvider().register(IEconomyProvider.class, ECONOMY);
     }
 
-    private static void setupEconomy() {
+    /**
+     * @return the economy that is up right now, or null when there is none. Asked again on every call
+     * while it stays null, because an economy plugin may register after EverNifeCore.
+     */
+    static IEconomyProvider detect() {
+        if (!isVaultUnlockedPresent()) {
+            return null;
+        }
+
         Optional<Economy> economy = VaultUnlockedServicesManager.get().economy();
-        if (!economy.isPresent()){
-            throw new IllegalStateException("No Economy plugin found!");
-        }
-        econ = economy.get();
+        return economy.<IEconomyProvider>map(HyVaultEconomy::new).orElse(null);
     }
 
-    public static void ecoGive(UUID playerUuid, double amount){
-        getEcon().deposit("", playerUuid, BigDecimal.valueOf(amount));
+    private static boolean isVaultUnlockedPresent() {
+        return FCReflectionUtil.getClasses().isClassLoaded("net.cfh.vault.VaultUnlocked");
     }
 
-    public static void ecoSet(UUID playerUuid, double amount){
-        double current = econ.getBalance("", playerUuid).doubleValue();
-        double needed = amount - current;
-        if (needed == 0) return;
-        if (needed > 0){
-            ecoGive(playerUuid,needed);
-        }else {
-            ecoTake(playerUuid,-needed);
-        }
-    }
+    static class HyLazyEconomy extends LazyEconomyProvider {
 
-    public static boolean ecoTake(UUID playerUuid, double amount){
-        if (amount <= 0){
-            return true;
-        }
-        if (!ecoHasEnough(playerUuid,amount)){
-            return false;
-        }
-        getEcon().withdraw("", playerUuid, BigDecimal.valueOf(amount));
-        return true;
-    }
-
-    public static boolean ecoHasEnough(UUID playerUuid, double amount){
-        if (amount <= 0){
-            return true;
-        }
-        return getEcon().has("", playerUuid, BigDecimal.valueOf(amount));
-    }
-
-    public static double ecoGet(UUID playerUuid){
-        return getEcon().balance("", playerUuid).doubleValue();
-    }
-
-    public static Economy getEcon() {
-        if (econ == null) {
-            initialize();
+        @Override
+        protected IEconomyProvider resolve() {
+            return detect();
         }
 
-        return econ;
+        //Two different problems with two different fixes: either VaultUnlocked itself is missing, or it
+        //is there and no economy plugin registered a service behind it.
+        @Override
+        protected void logMissingEconomy() {
+            if (!isVaultUnlockedPresent()) {
+                EverNifeCore.getLog().warning("VaultUnlocked was not found! EverNifeCore needs it to manage economy transactions.");
+                EverNifeCore.getLog().warning("It is declared as an optional dependency (TheNewEconomy:VaultUnlocked) - install it to enable economy.");
+                return;
+            }
+
+            EverNifeCore.getLog().warning("VaultUnlocked is present but no Economy plugin registered an economy service!");
+        }
     }
+
 }

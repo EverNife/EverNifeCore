@@ -50,6 +50,10 @@ public class EverNifeCoreHytalePlugin extends ECHytalePlugin {
                 new HyECEventDispatcher()
         );
 
+        //Economy resolves lazily, so registering it this early costs nothing and covers a plugin that
+        //sets up before EverNifeCore and charges during its own setup.
+        HyVaultIntegration.register();
+
         RegionGridOptions.setCurrent(RegionGridOptions.HYTALE);
 
         EverNifeCore.instance.onLoaderInstantiate(ECPluginManager.getOrCreateECorePluginData(this));
@@ -64,8 +68,6 @@ public class EverNifeCoreHytalePlugin extends ECHytalePlugin {
     @Override
     public void onECPluginEnablePost() {
         ECPluginData ecPluginData = getPluginData();
-
-        HyVaultIntegration.initialize();
 
         HyCommandRegisterer.registerCommands(ecPluginData);
 

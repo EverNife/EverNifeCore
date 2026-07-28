@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.commands.CommandRegisterer;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
+import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
@@ -52,6 +53,27 @@ public class EverNifeCore {
 
         getLog().info("§aRegistering Commands!");
         CommandRegisterer.registerCommands(this.getEcPluginData());
+
+        checkEconomyOnFirstTick();
+    }
+
+    /**
+     * Reports on economy once every plugin has enabled, which is the only moment the answer is
+     * trustworthy: an economy plugin that registers later than EverNifeCore is normal, and complaining
+     * during enable would be a false alarm.
+     */
+    private void checkEconomyOnFirstTick() {
+        getPlatform().runOnMainThread(() -> {
+            IEconomyProvider economy = getProviders().getEconomyOrNull();
+            if (economy == null) {
+                //Nobody registered one. This is a wiring bug in the platform module, NOT a server
+                //without an economy plugin - the two used to look identical from the console, which is
+                //how the economy contract stayed orphan for releases.
+                getLog().warning("§cNo economy provider registered - this is an EverNifeCore platform wiring bug");
+                return;
+            }
+            economy.warmUp();
+        });
     }
 
     public void onUnload() {

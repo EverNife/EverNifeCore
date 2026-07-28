@@ -70,6 +70,10 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
                 new McECEventDispatcher()
         );
 
+        //Economy resolves lazily, so registering it this early costs nothing and covers the plugins
+        //that load before EverNifeCore and charge during their own enable.
+        VaultIntegration.register();
+
         if (MCVersion.isHigherEquals(MCVersion.v1_19)){
             RegionGridOptions.setCurrent(RegionGridOptions.MINECRAFT);
         }
@@ -99,9 +103,6 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
 
         EverNifeCore.getLog().info("§aRegistering Commands!");
         McCommandRegisterer.registerCommands(ecPluginData);
-
-        EverNifeCore.getLog().info("§aHooking into Vault (Economy)");
-        VaultIntegration.initialize();
 
         EverNifeCore.getLog().info("§aRegistering Listeners");
         ECListener.register(ecPluginData, PlayerLoginListener.class);
