@@ -2,16 +2,31 @@ package br.com.finalcraft.evernifecore.api.common.providers.platform;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.text.ITextMetrics;
+import br.com.finalcraft.evernifecore.util.FCTextUtil;
 
 import java.util.List;
 
 public interface IPlatformChatAdapter {
 
-    public String alignCenter(String stringToAlign);
+    /**
+     * How this platform measures chat text. The line layout below is shared across platforms and
+     * reads everything it needs from here, so a platform only has to answer this to get centring
+     * and filled rules that match its own font.
+     */
+    public ITextMetrics getTextMetrics();
 
-    public String alignCenter(String stringToAlign, String borderFill);
+    default String alignCenter(String stringToAlign) {
+        return FCTextUtil.alignCenter(getTextMetrics(), stringToAlign);
+    }
 
-    public String straightLineOf(String string);
+    default String alignCenter(String stringToAlign, String borderFill) {
+        return FCTextUtil.alignCenter(getTextMetrics(), stringToAlign, borderFill);
+    }
+
+    default String straightLineOf(String string) {
+        return FCTextUtil.straightLineOf(getTextMetrics(), string);
+    }
 
     /**
      * Every recipient a broadcast reaches: the online players AND the console. This is the single

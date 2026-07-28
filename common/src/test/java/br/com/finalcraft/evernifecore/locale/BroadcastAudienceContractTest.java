@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
+import br.com.finalcraft.evernifecore.text.ITextMetrics;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -126,18 +127,8 @@ public class BroadcastAudienceContractTest {
         public IPlatformChatAdapter getChatAdapter() {
             return new IPlatformChatAdapter() {
                 @Override
-                public String alignCenter(String stringToAlign) {
-                    return stringToAlign;
-                }
-
-                @Override
-                public String alignCenter(String stringToAlign, String borderFill) {
-                    return stringToAlign;
-                }
-
-                @Override
-                public String straightLineOf(String string) {
-                    return string;
+                public ITextMetrics getTextMetrics() {
+                    return ITextMetrics.UNMEASURED;
                 }
 
                 @Override

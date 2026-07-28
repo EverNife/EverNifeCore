@@ -5,7 +5,8 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
-import br.com.finalcraft.evernifecore.minecraft.util.FCTextUtil;
+import br.com.finalcraft.evernifecore.minecraft.util.McTextMetrics;
+import br.com.finalcraft.evernifecore.text.ITextMetrics;
 import br.com.finalcraft.evernifecore.util.FCServerUtil;
 import org.bukkit.Bukkit;
 
@@ -15,18 +16,8 @@ import java.util.List;
 public class McPlatformChatAdapter implements IPlatformChatAdapter {
 
     @Override
-    public String alignCenter(String stringToAlign) {
-        return FCTextUtil.alignCenter(stringToAlign);
-    }
-
-    @Override
-    public String alignCenter(String stringToAlign, String borderFill) {
-        return FCTextUtil.alignCenter(stringToAlign, borderFill);
-    }
-
-    @Override
-    public String straightLineOf(String string) {
-        return FCTextUtil.straightLineOf(string);
+    public ITextMetrics getTextMetrics() {
+        return McTextMetrics.INSTANCE;
     }
 
     @Override
