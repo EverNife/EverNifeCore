@@ -18,8 +18,18 @@ public final class PlayerDataAdminConfig {
     /** Default cadence of the orphan reaper when it is enabled (6 hours). */
     public static final int DEFAULT_ORPHAN_REAPER_INTERVAL_MINUTES = 360;
 
-    /** Default bound on login-time storage resolution before the login is denied. */
-    public static final int DEFAULT_LOGIN_TIMEOUT_SECONDS = 5;
+    /**
+     * Default bound on login-time storage resolution before the login is denied. The login resolves
+     * the base row plus every section that loads at login, so this has to cover the slowest backend
+     * in the worst case, not the common one - a denied login is worse than a slow one.
+     */
+    public static final int DEFAULT_LOGIN_TIMEOUT_SECONDS = 15;
+
+    /**
+     * Default duration a login may take before the per-section breakdown is printed. Low enough that
+     * a login anyone would call slow gets explained, high enough that a healthy server never prints.
+     */
+    public static final int DEFAULT_SLOW_LOGIN_REPORT_SECONDS = 3;
 
     /**
      * Server-wide fallback for how long a section cell survives after its owner goes offline, used
@@ -35,12 +45,14 @@ public final class PlayerDataAdminConfig {
     private final boolean orphanReaperEnabled;     // playerdata.orphan-reaper.enabled (default false)
     private final int orphanReaperIntervalMinutes; // playerdata.orphan-reaper.interval-minutes
     private final int loginTimeoutSeconds;         // playerdata.login-timeout-seconds
+    private final int slowLoginReportSeconds;      // playerdata.slow-login-report-seconds
     private final int defaultIdleGraceSeconds;     // playerdata.default-idle-grace-seconds
 
     PlayerDataAdminConfig(String backendName, String collection, LoadMode loadMode,
                           int recentDays,
                           boolean orphanReaperEnabled, int orphanReaperIntervalMinutes,
-                          int loginTimeoutSeconds, Integer defaultIdleGraceSeconds) {
+                          int loginTimeoutSeconds, Integer slowLoginReportSeconds,
+                          Integer defaultIdleGraceSeconds) {
         this.backendName = backendName;
         this.collection = collection != null ? collection : DEFAULT_COLLECTION;
         this.loadMode = loadMode != null ? loadMode : LoadMode.ALL;
@@ -50,6 +62,9 @@ public final class PlayerDataAdminConfig {
                 ? orphanReaperIntervalMinutes : DEFAULT_ORPHAN_REAPER_INTERVAL_MINUTES;
         this.loginTimeoutSeconds = loginTimeoutSeconds > 0
                 ? loginTimeoutSeconds : DEFAULT_LOGIN_TIMEOUT_SECONDS;
+        //zero or negative is a legitimate choice here: it turns the report off
+        this.slowLoginReportSeconds = slowLoginReportSeconds != null
+                ? slowLoginReportSeconds : DEFAULT_SLOW_LOGIN_REPORT_SECONDS;
         //zero is a legitimate choice here (release as soon as the owner goes offline), so only an
         //absent or negative value falls back
         this.defaultIdleGraceSeconds = defaultIdleGraceSeconds != null && defaultIdleGraceSeconds >= 0
@@ -86,6 +101,14 @@ public final class PlayerDataAdminConfig {
     /** How long login-time storage resolution may take before the login is denied. */
     public int getLoginTimeoutSeconds() {
         return loginTimeoutSeconds;
+    }
+
+    /**
+     * How long a login may take before the framework prints the per-section breakdown naming what
+     * (and whose plugin) held it up. Zero or negative turns the report off.
+     */
+    public int getSlowLoginReportSeconds() {
+        return slowLoginReportSeconds;
     }
 
     /**

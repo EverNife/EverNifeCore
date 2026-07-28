@@ -301,6 +301,8 @@ public final class StorageYamlParser {
             throw new StorageConfigException("'playerdata.login-timeout-seconds' must be > 0!");
         }
 
+        Integer slowLoginReport = getIntOrNull(config, "playerdata.slow-login-report-seconds");
+
         Integer defaultIdleGrace = getIntOrNull(config, "playerdata.default-idle-grace-seconds");
         if (defaultIdleGrace != null && defaultIdleGrace < 0) {
             throw new StorageConfigException("'playerdata.default-idle-grace-seconds' must be >= 0"
@@ -308,7 +310,8 @@ public final class StorageYamlParser {
         }
 
         return new PlayerDataAdminConfig(backendName, collection, loadMode, recentDays,
-                orphanReaperEnabled, orphanReaperInterval, loginTimeoutSeconds, defaultIdleGrace);
+                orphanReaperEnabled, orphanReaperInterval, loginTimeoutSeconds, slowLoginReport,
+                defaultIdleGrace);
     }
 
     private static PDSectionAdminConfig parsePDSection(Config config, String pluginName, String sectionName) {

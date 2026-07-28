@@ -143,6 +143,8 @@ public class PlayerController {
     private volatile PlayerDataBinding playerDataBinding; //swapped by transferPlayerData
     private final Map<Class<? extends PDSection>, PDSectionBinding<? extends PDSection>> bindings = new ConcurrentHashMap<>();
     private final CompletableFuture<Void> ready = new CompletableFuture<>(); //gate that holds storage access during the legacy import
+    /** Logins currently resolving, so a timeout can print what was still loading when time ran out. */
+    private final Map<UUID, LoginTimings> loginsInFlight = new ConcurrentHashMap<>();
 
     // ---- engines ----
     private final FlushEngine flushEngine = new FlushEngine(this);
@@ -1504,9 +1506,14 @@ public class PlayerController {
         CompletableFuture<PlayerData> login = handleLogin(uuid, playerName);
         CompletableFuture<PlayerData> bounded = new CompletableFuture<>();
         ScheduledFuture<?> timeout = controller.lifecycleEngine.scheduler().schedule(
-                () -> bounded.completeExceptionally(new TimeoutException(
-                        "PlayerData login resolution timed out after " + timeoutSeconds
-                                + "s (storage down?) - denying the login for [" + uuid + "]")),
+                () -> {
+                    //the breakdown is worth most here: it names what was still loading when time ran out
+                    LoginTimings pending = controller.loginsInFlight.get(uuid);
+                    if (pending != null) pending.reportTimeout();
+                    bounded.completeExceptionally(new TimeoutException(
+                            "PlayerData login resolution timed out after " + timeoutSeconds
+                                    + "s (storage down?) - denying the login for [" + uuid + "]"));
+                },
                 TimeUnit.SECONDS.toMillis(timeoutSeconds), TimeUnit.MILLISECONDS);
         login.whenComplete((playerData, error) -> {
             timeout.cancel(false);
@@ -1517,15 +1524,32 @@ public class PlayerController {
     }
 
     private CompletableFuture<PlayerData> doHandleLogin(UUID currentUUID, String currentName){
+        LoginTimings timings = LoginTimings.start(currentUUID, currentName,
+                storageConfig.getPlayerData().getSlowLoginReportSeconds());
+        if (timings.isEnabled()) loginsInFlight.put(currentUUID, timings);
+
+        long accountStart = System.nanoTime();
         return Accounts.get().resolveOnLogin(currentUUID, currentName)
-                .thenCompose(account -> doHandleLoginResolved(currentUUID, currentName)
-                        .thenCompose(playerData ->
+                .thenCompose(account -> {
+                    timings.phase("account", accountStart);
+                    return doHandleLoginResolved(currentUUID, currentName, timings)
+                            .thenCompose(playerData -> {
                                 //login is the ONE reconciliation point of the stamped accountId: a
                                 //link/unlink decided elsewhere (other instance, offline) lands here,
                                 //BEFORE the account rows are loaded under that key
-                                migrateAndStamp(playerData, account.getAccountId())
-                                        .thenCompose(x -> accountEngine.hotLoadOnLogin(playerData))
-                                        .thenApply(x -> playerData)));
+                                long stampStart = System.nanoTime();
+                                return migrateAndStamp(playerData, account.getAccountId())
+                                        .thenCompose(x -> {
+                                            timings.phase("account id", stampStart);
+                                            return accountEngine.hotLoadOnLogin(playerData, timings);
+                                        })
+                                        .thenApply(x -> playerData);
+                            });
+                })
+                .whenComplete((playerData, failure) -> {
+                    loginsInFlight.remove(currentUUID);
+                    timings.reportIfSlow();
+                });
     }
 
     /**
@@ -1565,10 +1589,11 @@ public class PlayerController {
                 });
     }
 
-    private CompletableFuture<PlayerData> doHandleLoginResolved(UUID currentUUID, String currentName){
+    private CompletableFuture<PlayerData> doHandleLoginResolved(UUID currentUUID, String currentName,
+                                                                LoginTimings timings){
         if (UUIDsController.isUUIDLinkedToName(currentUUID, currentName)){
             //99% of re-logins: name and uuid unchanged
-            return doGetOrCreate(currentUUID);
+            return doGetOrCreate(currentUUID, timings);
         }
 
         String existingName = UUIDsController.getNameFromUUID(currentUUID);
@@ -1585,7 +1610,7 @@ public class PlayerController {
         }
 
         UUIDsController.addOrUpdateUUIDName(currentUUID, currentName);
-        return doGetOrCreate(currentUUID).thenApply(playerData -> {
+        return doGetOrCreate(currentUUID, timings).thenApply(playerData -> {
             if (!currentName.equals(playerData.getName())){
                 playerData.setName(currentName);
                 playerData.markDirty();
@@ -1599,26 +1624,36 @@ public class PlayerController {
     // -----------------------------------------------------------------------------------------------------------------------------//
 
     private CompletableFuture<PlayerData> doGetIfExists(UUID uuid){
+        return doGetIfExists(uuid, LoginTimings.DISABLED);
+    }
+
+    private CompletableFuture<PlayerData> doGetIfExists(UUID uuid, LoginTimings timings){
         CachingManager<UUID, PlayerData> baseManager = baseManager();
         PlayerData loaded = baseManager.peek(uuid).orElse(null);
         if (loaded != null) return CompletableFuture.completedFuture(loaded);
 
         //resolve caches the instance (always() policy); wake it and hot-load its sections.
         //Repeated resolves return the same cached instance, so the wake/name update is idempotent.
+        long baseStart = System.nanoTime();
         return baseManager.resolve(uuid).thenCompose(stored -> {
+            timings.phase("player row", baseStart);
             if (!stored.isPresent()) return CompletableFuture.completedFuture(null);
             PlayerData playerData = stored.get();
             playerData.warnIfStaleSchema();
             if (playerData.getName() != null){
                 UUIDsController.addOrUpdateUUIDName(playerData.getUniqueId(), playerData.getName());
             }
-            return hotLoadSectionsFor(playerData).thenApply(x -> playerData);
+            return hotLoadSectionsFor(playerData, timings).thenApply(x -> playerData);
         });
     }
 
     private CompletableFuture<PlayerData> doGetOrCreate(UUID uuid){
+        return doGetOrCreate(uuid, LoginTimings.DISABLED);
+    }
+
+    private CompletableFuture<PlayerData> doGetOrCreate(UUID uuid, LoginTimings timings){
         Objects.requireNonNull(uuid, "PlayerUUID can't be null");
-        return doGetIfExists(uuid).thenCompose(existing -> {
+        return doGetIfExists(uuid, timings).thenCompose(existing -> {
             if (existing != null) return CompletableFuture.completedFuture(existing);
 
             String knownName = UUIDsController.getNameFromUUID(uuid);
@@ -1630,7 +1665,7 @@ public class PlayerController {
             playerData.markDirty();
             //persist immediately and keep the cell cached (like the old addNewPlayerData + forceSave)
             return baseManager().saveAndCache(playerData)
-                    .thenCompose(x -> hotLoadSectionsFor(playerData))
+                    .thenCompose(x -> hotLoadSectionsFor(playerData, timings))
                     .thenApply(x -> playerData);
         });
     }
@@ -1640,11 +1675,12 @@ public class PlayerController {
      * {@link SectionLifecycle} loads on login. A {@code LAZY} section is skipped: it enters memory
      * only when someone actually resolves it.
      */
-    private CompletableFuture<Void> hotLoadSectionsFor(PlayerData playerData){
+    private CompletableFuture<Void> hotLoadSectionsFor(PlayerData playerData, LoginTimings timings){
         List<CompletableFuture<?>> futures = new ArrayList<>();
         for (PDSectionBinding<? extends PDSection> binding : bindings.values()){
             if (binding.getLifecycle().loadsOnLogin()){
-                futures.add(attachThroughManager(playerData, binding));
+                long sectionStart = System.nanoTime();
+                futures.add(timings.track(binding, sectionStart, attachThroughManager(playerData, binding)));
             }
         }
         if (futures.isEmpty()) return CompletableFuture.completedFuture(null);

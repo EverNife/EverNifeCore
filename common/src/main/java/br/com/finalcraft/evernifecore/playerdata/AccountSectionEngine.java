@@ -234,13 +234,14 @@ final class AccountSectionEngine {
      * row from the backend first when no other local session was already using it - the natural
      * point where writes made by OTHER instances of the network become visible.
      */
-    CompletableFuture<Void> hotLoadOnLogin(PlayerData playerData) {
+    CompletableFuture<Void> hotLoadOnLogin(PlayerData playerData, LoginTimings timings) {
         if (bindings.isEmpty()) return CompletableFuture.completedFuture(null);
         UUID accountKey = playerData.getAccountId();
         List<CompletableFuture<?>> futures = new ArrayList<>();
         for (AccountSectionBinding<?> binding : bindings.values()) {
             refreshIfIdle(binding, accountKey, playerData.getUniqueId());
-            futures.add(resolveThroughBinding(binding, accountKey));
+            long rowStart = System.nanoTime();
+            futures.add(timings.trackAccount(binding, rowStart, resolveThroughBinding(binding, accountKey)));
         }
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
     }

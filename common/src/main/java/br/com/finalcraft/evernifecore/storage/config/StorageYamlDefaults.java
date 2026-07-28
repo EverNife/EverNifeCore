@@ -108,7 +108,10 @@ public final class StorageYamlDefaults {
         config.setValue("playerdata.collection", "evernifecore_playerdata");
         config.setValue("playerdata.load-mode", "ALL");
         config.setValue("playerdata.recent-days", 60);
-        config.setValue("playerdata.login-timeout-seconds", 5);
+        config.setValue("playerdata.login-timeout-seconds",
+                PlayerDataAdminConfig.DEFAULT_LOGIN_TIMEOUT_SECONDS);
+        config.setValue("playerdata.slow-login-report-seconds",
+                PlayerDataAdminConfig.DEFAULT_SLOW_LOGIN_REPORT_SECONDS);
         config.setValue("playerdata.default-idle-grace-seconds",
                 PlayerDataAdminConfig.DEFAULT_IDLE_GRACE_SECONDS);
         config.setComment("playerdata", String.join("\n",
@@ -120,8 +123,15 @@ public final class StorageYamlDefaults {
         config.setComment("playerdata.load-mode",
                 "ALL = load every player at startup (default) | RECENT = only players seen in the last"
                         + " 'recent-days' (older players lazy-load on demand)");
-        config.setComment("playerdata.login-timeout-seconds",
-                "How long a login may wait on storage before being denied (storage down)");
+        config.setComment("playerdata.login-timeout-seconds", String.join("\n",
+                "How long a login may wait on storage before being denied (storage down).",
+                "The login resolves the player row plus every section that loads at login,",
+                "so this covers the whole chain, not a single read."));
+        config.setComment("playerdata.slow-login-report-seconds", String.join("\n",
+                "When a login takes longer than this, the console gets a breakdown of it:",
+                "how long each section took, which plugin declared it, and on which backend.",
+                "That is what tells you whether a slow login is EverNifeCore, another plugin",
+                "or one specific database. 0 turns the report off."));
         config.setComment("playerdata.default-idle-grace-seconds", String.join("\n",
                 "How long a player's section stays in memory after that player goes offline.",
                 "Applies to every section whose developer did not ask for a specific value;",
