@@ -172,7 +172,8 @@ class PDSectionRegistrationTest {
                 PDSectionConfiguration.builder(null, JobsSection.class, "jobs").build());
 
         assertNull(PlayerController.getLoadedSection(uuid, JobsSection.class),
-                "the previous session's cell must be gone - a LAZY section reloads on the next call");
+                "the previous session's cell must be gone - the owner is not online, so the rebind"
+                        + " does not hot-load it back");
         assertTrue(PlayerController.get().getBinding(JobsSection.class).getRepository().exists(uuid).join(),
                 "the unflushed change must have been persisted BEFORE the cache was dropped");
 

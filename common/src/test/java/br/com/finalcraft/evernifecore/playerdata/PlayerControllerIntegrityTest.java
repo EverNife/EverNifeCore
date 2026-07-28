@@ -104,9 +104,10 @@ class PlayerControllerIntegrityTest {
     @Test
     void getPDSectionIfPresentAndHasPDSection_distinguishAbsenceFromPresence() throws IOException {
         PlayerController.initialize(Storages.h2("d_present").writeTo(tempDir));
-        //LAZY (the default): login does NOT resolve the section, so "absent" means a true miss
+        //LAZY: login does NOT resolve the section, so "absent" here means a true miss
         PlayerController.registerPDSectionCfg(
-                PDSectionConfiguration.builder(null, BalancePDSection.class, "balancepdsection").build());
+                PDSectionConfiguration.builder(null, BalancePDSection.class, "balancepdsection")
+                        .lifecycle(SectionLifecycle.LAZY).build());
 
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "Maybe").join();

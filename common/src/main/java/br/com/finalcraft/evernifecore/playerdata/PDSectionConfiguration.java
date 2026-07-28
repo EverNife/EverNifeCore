@@ -60,7 +60,7 @@ public class PDSectionConfiguration<S extends PDSection> {
     private final String description;
     /**
      * When this section's cells enter and leave memory - never null; defaults to
-     * {@link SectionLifecycle#LAZY}.
+     * {@link SectionLifecycle#ONLINE}.
      */
     private final SectionLifecycle lifecycle;
     /**
@@ -134,7 +134,7 @@ public class PDSectionConfiguration<S extends PDSection> {
         private List<BackendType> allowedBackendTypes = Collections.emptyList();
         private Codec<S> codec;
         private String description;
-        private SectionLifecycle lifecycle = SectionLifecycle.LAZY;
+        private SectionLifecycle lifecycle = SectionLifecycle.ONLINE;
         private Duration idleGrace; //null = no advice; the admin's default applies
         private int maxCached = 0;
         private boolean discardDirtyOnReload = false;
@@ -186,12 +186,17 @@ public class PDSectionConfiguration<S extends PDSection> {
         }
 
         /**
-         * When this section's cells enter and leave memory (default {@link SectionLifecycle#LAZY}):
+         * When this section's cells enter and leave memory (default {@link SectionLifecycle#ONLINE}):
          * {@code LAZY} (first access), {@code ONLINE} (at login), {@code RESIDENT} (at login, never
          * released) or {@code PRELOADED} (whole collection at bind, never released).
+         *
+         * <p>Pick {@code LAZY} for cold data - something most players never touch, or that is only
+         * read by an admin command. It trades the login guarantee for not paying a read at every
+         * login: an {@code ONLINE} section is in memory by the time the player is in the world, so
+         * resolving it later completes immediately.</p>
          */
         public Builder<S> lifecycle(SectionLifecycle lifecycle) {
-            this.lifecycle = lifecycle == null ? SectionLifecycle.LAZY : lifecycle;
+            this.lifecycle = lifecycle == null ? SectionLifecycle.ONLINE : lifecycle;
             return this;
         }
 

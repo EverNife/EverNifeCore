@@ -262,7 +262,8 @@ class PlayerControllerLifecycleTest {
     @Test
     void lazyDoesNotLoadOnLoginButOnlineDoes() throws IOException {
         PlayerController.initialize(Storages.h2("f_lazyvsonline").writeTo(tempDir));
-        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, LazySection.class, "lazy").build());
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, LazySection.class, "lazy")
+                .lifecycle(SectionLifecycle.LAZY).build());
         PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, OnlineSection.class, "online")
                 .lifecycle(SectionLifecycle.ONLINE).build());
 

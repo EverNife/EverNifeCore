@@ -19,9 +19,12 @@ import java.time.Duration;
  * </table>
  *
  * <p>{@code LAZY} and {@code ONLINE} differ ONLY in when the first read happens: the login load and
- * a plugin's {@code getPDSection} run the very same resolution. Loading at login costs one seeded
- * transient default per logging-in player (cache-only, no write), which is why {@code LAZY} is the
- * default and {@code ONLINE} is what you pick for data read on the join tick itself.</p>
+ * a plugin's {@code getPDSection} run the very same resolution. {@code ONLINE} is the default because
+ * the login pipeline holds the connection until it finishes, so by the time the player is in the
+ * world the cell is already in memory and every later resolution completes from cache. That guarantee
+ * is what plugin code can lean on; the price is one read per section at every login, bounded by
+ * {@code playerdata.login-timeout-seconds}. {@code LAZY} is the deliberate choice for cold data -
+ * something most players never touch - and costs nothing until someone asks.</p>
  *
  * <p>Memory is bounded by the release rule, not by a freshness policy: a cell of an offline owner
  * goes away by itself. An extra hard ceiling is available through
