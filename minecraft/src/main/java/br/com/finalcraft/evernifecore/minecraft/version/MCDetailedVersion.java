@@ -41,27 +41,57 @@ public enum MCDetailedVersion {
     v1_21_R1(1211, "v1_21"),
     ;
 
-    private static final MCDetailedVersion currentVersion;
+    private static MCDetailedVersion currentVersion;
 
-    static {
-        String[] svPackage = Bukkit.getServer().getClass().getPackage().getName().split("\\.");
-        String svPackageVersionName = svPackage[svPackage.length - 1];
+    /**
+     * Resolves the running server's version, preferring the CraftBukkit revision package and falling
+     * back to the release it reports.
+     *
+     * <p>The package is the sharper answer - it names the revision (R1/R2/...) directly - but it only
+     * exists while the server relocates CraftBukkit per version. From 1.20.5 onwards the package is a
+     * plain {@code org.bukkit.craftbukkit}, and reading it alone silently reported whatever the newest
+     * known version happened to be.
+     *
+     * @return {@code null} when neither the package nor the release names anything known.
+     */
+    static MCDetailedVersion resolve(String serverPackageName, String bukkitVersion) {
+        String revision = serverPackageName.substring(serverPackageName.lastIndexOf('.') + 1);
 
-        MCDetailedVersion mcDetailedVersion = Arrays.stream(MCDetailedVersion.values())
-                .filter(version -> version.name().equalsIgnoreCase(svPackageVersionName))
+        MCDetailedVersion byRevision = Arrays.stream(MCDetailedVersion.values())
+                .filter(version -> version.name().equalsIgnoreCase(revision))
                 .findFirst()
                 .orElse(null);
 
-        if (mcDetailedVersion == null){
-            mcDetailedVersion = Arrays.asList(MCDetailedVersion.values()).get(MCDetailedVersion.values().length - 1); //Assume it's a newer version!
-            System.out.println(String.format(
-                    "[EverNifeCore] Failed to find out what is the MCVersion of this server when looking for the package name '%s'. Defaulting it to latest known MCVersion: (%s)",
-                    svPackageVersionName,
-                    mcDetailedVersion
-            ));
+        if (byRevision != null) {
+            return byRevision;
         }
 
-        currentVersion = mcDetailedVersion;
+        return newestOf(shortVersionOf(bukkitVersion));
+    }
+
+    /** {@code "1.21.1-R0.1-SNAPSHOT"} to {@code "v1_21"}, or {@code null} if it does not parse. */
+    private static String shortVersionOf(String bukkitVersion) {
+        if (bukkitVersion == null) return null;
+
+        String[] parts = bukkitVersion.split("[.\\-]");
+        if (parts.length < 2) return null;
+
+        try {
+            return "v" + Integer.parseInt(parts[0]) + "_" + Integer.parseInt(parts[1]);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** The highest revision known for a release, since the release alone does not name one. */
+    private static MCDetailedVersion newestOf(String shortVersion) {
+        MCDetailedVersion newest = null;
+        for (MCDetailedVersion version : values()) {
+            if (version.getShortVersion().equals(shortVersion)) {
+                newest = version;
+            }
+        }
+        return newest;
     }
 
     // Operations
@@ -87,7 +117,29 @@ public enum MCDetailedVersion {
         return shortVersion;
     }
 
+    /**
+     * Resolved on first use rather than at class load, so nothing forces a Bukkit server to exist
+     * merely because this enum was touched.
+     */
     public static MCDetailedVersion getCurrent() {
+        if (currentVersion == null) {
+            String serverPackageName = Bukkit.getServer().getClass().getPackage().getName();
+            String bukkitVersion = Bukkit.getBukkitVersion();
+
+            MCDetailedVersion resolved = resolve(serverPackageName, bukkitVersion);
+
+            if (resolved == null) {
+                resolved = values()[values().length - 1]; //Assume it's a newer version!
+                System.out.println(String.format(
+                        "[EverNifeCore] Failed to find out the MCVersion of this server from the package name '%s' or the reported version '%s'. Defaulting it to latest known MCVersion: (%s)",
+                        serverPackageName,
+                        bukkitVersion,
+                        resolved
+                ));
+            }
+
+            currentVersion = resolved;
+        }
         return currentVersion;
     }
 
