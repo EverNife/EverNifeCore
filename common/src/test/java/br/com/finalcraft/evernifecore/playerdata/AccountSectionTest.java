@@ -78,7 +78,7 @@ class AccountSectionTest {
 
     private void registerAchievements() {
         PlayerController.registerAccountSectionCfg(
-                AccountSectionConfiguration.builder(null, AchievementsSection.class, "achievementssection").build());
+                AccountSectionConfiguration.builder(null, AchievementsSection.class, "achievements").build());
     }
 
     /** Persists a canonical account with {@code memberUuid} linked in, plus the member's alias row. */
@@ -116,6 +116,52 @@ class AccountSectionTest {
         AchievementsSection reloaded = PlayerController
                 .getAccountSectionByAccountId(uuid, AchievementsSection.class).join();
         assertTrue(reloaded.unlocked.contains("first_join"), "the account row round-trips under the uuid key");
+    }
+
+    // ------------------------------------------------------------------
+    // re-registration reloads the account section (the PDSection mirror)
+    // ------------------------------------------------------------------
+
+    @Test
+    void reRegisteringFlushesThenDropsTheCachedRows() throws IOException {
+        PlayerController.initialize(writeStorageYml("acs_reload", false));
+        registerAchievements();
+
+        UUID uuid = UUID.randomUUID();
+        PlayerData playerData = PlayerController.handleLogin(uuid, "Reloader").join();
+        AchievementsSection before = playerData.getAccountSection(AchievementsSection.class).join();
+        before.unlocked.add("unflushed");
+        before.markDirty();
+
+        registerAchievements(); //the plugin reload re-registers
+
+        assertNull(PlayerController.getLoadedAccountSection(uuid, AchievementsSection.class),
+                "the previous session's row must be dropped");
+        AchievementsSection after = PlayerController
+                .getAccountSectionByAccountId(uuid, AchievementsSection.class).join();
+        assertTrue(after.unlocked.contains("unflushed"),
+                "the unflushed row must have been persisted before the cache was dropped");
+    }
+
+    @Test
+    void reRegisteringDiscardsUnflushedRowsWhenTheSectionAsksForIt() throws IOException {
+        PlayerController.initialize(writeStorageYml("acs_reload_discard", false));
+        PlayerController.registerAccountSectionCfg(AccountSectionConfiguration
+                .builder(null, AchievementsSection.class, "achievements").discardDirtyOnReload().build());
+
+        UUID uuid = UUID.randomUUID();
+        PlayerData playerData = PlayerController.handleLogin(uuid, "Derived").join();
+        AchievementsSection section = playerData.getAccountSection(AchievementsSection.class).join();
+        section.unlocked.add("derived");
+        section.markDirty();
+
+        PlayerController.registerAccountSectionCfg(AccountSectionConfiguration
+                .builder(null, AchievementsSection.class, "achievements").discardDirtyOnReload().build());
+
+        AchievementsSection after = PlayerController
+                .getAccountSectionByAccountId(uuid, AchievementsSection.class).join();
+        assertFalse(after.unlocked.contains("derived"),
+                "discardDirtyOnReload must drop the unflushed row instead of persisting it");
     }
 
     @Test

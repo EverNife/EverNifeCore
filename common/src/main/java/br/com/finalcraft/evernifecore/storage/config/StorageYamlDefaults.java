@@ -109,6 +109,8 @@ public final class StorageYamlDefaults {
         config.setValue("playerdata.load-mode", "ALL");
         config.setValue("playerdata.recent-days", 60);
         config.setValue("playerdata.login-timeout-seconds", 5);
+        config.setValue("playerdata.default-idle-grace-seconds",
+                PlayerDataAdminConfig.DEFAULT_IDLE_GRACE_SECONDS);
         config.setComment("playerdata", String.join("\n",
                 "============================================================",
                 " Base PlayerData (EverNifeCore)",
@@ -120,14 +122,30 @@ public final class StorageYamlDefaults {
                         + " 'recent-days' (older players lazy-load on demand)");
         config.setComment("playerdata.login-timeout-seconds",
                 "How long a login may wait on storage before being denied (storage down)");
+        config.setComment("playerdata.default-idle-grace-seconds", String.join("\n",
+                "How long a player's section stays in memory after that player goes offline.",
+                "Applies to every section whose developer did not ask for a specific value;",
+                "lower it to reclaim memory sooner (0 = release as soon as the player leaves),",
+                "raise it so a reconnect does not have to read from the database again.",
+                "One section alone is tuned under 'pdsections.<plugin>.<section>.idle-grace-seconds'."));
 
         // ---- pdsections ----
         config.setValue("pdsections", new java.util.LinkedHashMap<String, Object>());
         config.setComment("pdsections", String.join("\n",
                 "============================================================",
-                " PDSections registered by plugins.",
-                " Entries are generated automatically on the first registration",
-                " of each PDSection - edit the 'storage-backend-id' of each one freely.",
+                " PDSections registered by plugins, keyed by <plugin>.<section-id>.",
+                " Entries are generated automatically on the first registration of",
+                " each PDSection. Per entry you may set:",
+                "",
+                "   storage-backend-id: <an enabled backend id>",
+                "   collection: <collection name>",
+                "   idle-grace-seconds: <how long a cell lingers after the player leaves>",
+                "   cache: { policy: ALWAYS | TTL, ttlSeconds: <n> }   # freshness only",
+                "",
+                " 'cache' decides freshness; WHEN a section enters and leaves memory",
+                " is the developer's lifecycle. NOCACHE is refused: a PDSection is",
+                " persisted from its cached instance, so bypassing the cache would",
+                " lose every write.",
                 "============================================================"));
 
         // ---- multi-server-cache-sync (cross-instance cache coherence) ----

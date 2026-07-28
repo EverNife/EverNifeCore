@@ -30,17 +30,20 @@ public final class PDSectionBinding<S extends PDSection> {
     private final EntityDescriptor<UUID, S> descriptor;
     /** The per-class cache + repository façade backing this section. */
     private final CachingManager<UUID, S> manager;
+    /** How long a cell survives after its owner goes offline - admin over developer, already resolved. */
+    private final Duration idleGrace;
     /** Minor issues found during resolution (e.g. admin outside the suggested backends). */
     private final List<String> resolutionWarnings;
 
     PDSectionBinding(PDSectionConfiguration<S> configuration, String backendName, Storage storage,
                      EntityDescriptor<UUID, S> descriptor, CachingManager<UUID, S> manager,
-                     List<String> resolutionWarnings) {
+                     Duration idleGrace, List<String> resolutionWarnings) {
         this.configuration = configuration;
         this.backendName = backendName;
         this.storage = storage;
         this.descriptor = descriptor;
         this.manager = manager;
+        this.idleGrace = idleGrace;
         this.resolutionWarnings = Collections.unmodifiableList(resolutionWarnings);
     }
 
@@ -53,10 +56,6 @@ public final class PDSectionBinding<S extends PDSection> {
         return configuration.getLifecycle();
     }
 
-    /** How long a cell survives after its owner stops being online. */
-    public Duration getIdleGrace() {
-        return configuration.getIdleGrace();
-    }
 
     public String getCollection() {
         return descriptor.collection();

@@ -38,8 +38,13 @@ public enum SectionLifecycle {
     /** The whole collection is loaded at bind time and never released. */
     PRELOADED(true, true, false);
 
-    /** Default time a cell survives after its owner stops being online (reconnect + in-flight save window). */
-    public static final Duration DEFAULT_IDLE_GRACE = Duration.ofSeconds(60);
+    /**
+     * Default time a cell survives after its owner stops being online. An hour: a section holds an id,
+     * not a payload, so keeping a few of them through a dinner break costs almost nothing, while a
+     * short grace turns every reconnect into a fresh backend read. Admins who need the memory back
+     * sooner lower it in storage.yml ({@code playerdata.default-idle-grace-seconds}, or per section).
+     */
+    public static final Duration DEFAULT_IDLE_GRACE = Duration.ofHours(1);
 
     /** Cached-size at which a never-releasing section triggers the "too large" DEBUG warning. */
     public static final int NEVER_RELEASED_WARN_THRESHOLD = 100_000;

@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -209,6 +210,55 @@ class BindingResolverTest {
         StorageConfigException error = assertThrows(StorageConfigException.class,
                 () -> BindingResolver.resolve("FinalJobs", jobsCfg().build(), parsed, registry, refRegistry));
         assertTrue(error.getMessage().contains("NOCACHE"));
+    }
+
+    // ------------------------------------------------------------------
+    // idle grace: admin per-section > developer advice > admin default > factory
+    // ------------------------------------------------------------------
+
+    @Test
+    void idleGraceFallsBackToTheFactoryDefault() throws IOException {
+        setup();
+        PDSectionBinding<JobsPDSection> binding = BindingResolver.resolve("FinalJobs",
+                jobsCfg().build(), parsed, registry, refRegistry);
+        assertEquals(SectionLifecycle.DEFAULT_IDLE_GRACE, binding.getIdleGrace());
+    }
+
+    @Test
+    void devIdleGraceBeatsTheAdminDefault() throws IOException {
+        setup("playerdata:", "  default-idle-grace-seconds: 30");
+        PDSectionBinding<JobsPDSection> binding = BindingResolver.resolve("FinalJobs",
+                jobsCfg().idleGrace(Duration.ofSeconds(5)).build(), parsed, registry, refRegistry);
+        assertEquals(Duration.ofSeconds(5), binding.getIdleGrace());
+    }
+
+    @Test
+    void adminDefaultAppliesWhenTheDevAdvisedNothing() throws IOException {
+        setup("playerdata:", "  default-idle-grace-seconds: 30");
+        PDSectionBinding<JobsPDSection> binding = BindingResolver.resolve("FinalJobs",
+                jobsCfg().build(), parsed, registry, refRegistry);
+        assertEquals(Duration.ofSeconds(30), binding.getIdleGrace());
+    }
+
+    @Test
+    void adminPerSectionIdleGraceWinsOverEverything() throws IOException {
+        setup("playerdata:",
+                "  default-idle-grace-seconds: 30",
+                "pdsections:",
+                "  finaljobs:",
+                "    jobs:",
+                "      idle-grace-seconds: 7");
+        PDSectionBinding<JobsPDSection> binding = BindingResolver.resolve("FinalJobs",
+                jobsCfg().idleGrace(Duration.ofSeconds(5)).build(), parsed, registry, refRegistry);
+        assertEquals(Duration.ofSeconds(7), binding.getIdleGrace());
+    }
+
+    @Test
+    void aNegativeIdleGraceIsRefused() throws IOException {
+        assertThrows(StorageConfigException.class, () -> setup("playerdata:",
+                "  default-idle-grace-seconds: -1"));
+        assertThrows(IllegalArgumentException.class,
+                () -> jobsCfg().idleGrace(Duration.ofSeconds(-1)));
     }
 
     @Test

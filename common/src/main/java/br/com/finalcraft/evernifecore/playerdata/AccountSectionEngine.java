@@ -101,7 +101,7 @@ final class AccountSectionEngine {
             if (!reloadIfBound) {
                 return;
             }
-            reloadBinding(bindings.get(sectionClass));
+            reloadBinding(bindings.get(sectionClass), cfg.isDiscardDirtyOnReload());
         }
         ParsedStorageConfig parsed = controller.storageConfig();
         String backendName = parsed.getAccountBackendName();
@@ -169,22 +169,34 @@ final class AccountSectionEngine {
      * persisted first (a plugin reload must not cost a write), the cache is emptied and the collection
      * claim released.
      */
-    private void reloadBinding(AccountSectionBinding<?> current) {
+    private void reloadBinding(AccountSectionBinding<?> current, boolean discardDirty) {
         Class<?> sectionClass = current.getSectionClass();
-        try {
-            controller.flushAccountSectionManager(current).join();
-        } catch (Throwable flushFailure) {
-            PDLog.warning("Flush before the re-registration of AccountSection {%s} failed - reloading anyway,"
-                            + " the unflushed rows of this section are lost: %s",
-                    sectionClass.getSimpleName(), String.valueOf(flushFailure.getMessage()));
+        int dirtyRows = 0;
+        for (AccountSection<?> row : current.getManager().cachedValues()) {
+            if (row.isDirty()) dirtyRows++;
+        }
+        if (discardDirty) {
+            if (dirtyRows > 0) {
+                PDLog.warning("Re-registration of AccountSection {%s} DISCARDED %s unflushed row(s)"
+                                + " (the section declared discardDirtyOnReload).",
+                        sectionClass.getSimpleName(), dirtyRows);
+            }
+        } else {
+            try {
+                controller.flushAccountSectionManager(current).join();
+            } catch (Throwable flushFailure) {
+                PDLog.warning("Flush before the re-registration of AccountSection {%s} failed - reloading anyway,"
+                                + " the unflushed rows of this section are lost: %s",
+                        sectionClass.getSimpleName(), String.valueOf(flushFailure.getMessage()));
+            }
         }
         int cachedRows = current.getManager().cachedSize();
         current.getManager().clearCache();
         controller.registries().of(current.getPluginData()).unregister(sectionClass);
         controller.registry().releaseCollection(current.getBackendName(), current.getCollection());
         bindings.remove(sectionClass);
-        PDLog.info("Re-registered AccountSection {%s}: dropped %s cached row(s) (flushed first) and rebound it.",
-                sectionClass.getSimpleName(), cachedRows);
+        PDLog.info("Re-registered AccountSection {%s}: dropped %s cached row(s) (%s dirty, %s) and rebound it.",
+                sectionClass.getSimpleName(), cachedRows, dirtyRows, discardDirty ? "discarded" : "flushed first");
     }
 
     /** Unbinds every account section owned by {@code pluginName}: final flush, cache drop, claim release. */

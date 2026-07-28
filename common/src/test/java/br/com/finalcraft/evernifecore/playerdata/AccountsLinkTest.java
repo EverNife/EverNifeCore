@@ -94,9 +94,9 @@ class AccountsLinkTest {
 
     private void registerSections() {
         PlayerController.registerAccountSectionCfg(
-                AccountSectionConfiguration.builder(null, KillCountSection.class, "killcountsection").build());
+                AccountSectionConfiguration.builder(null, KillCountSection.class, "killcount").build());
         PlayerController.registerAccountSectionCfg(
-                AccountSectionConfiguration.builder(null, AchievementsSection.class, "achievementssection").build());
+                AccountSectionConfiguration.builder(null, AchievementsSection.class, "achievements").build());
     }
 
     private long storedKills(UUID accountKey) {

@@ -296,8 +296,14 @@ public final class StorageYamlParser {
             throw new StorageConfigException("'playerdata.login-timeout-seconds' must be > 0!");
         }
 
+        Integer defaultIdleGrace = getIntOrNull(config, "playerdata.default-idle-grace-seconds");
+        if (defaultIdleGrace != null && defaultIdleGrace < 0) {
+            throw new StorageConfigException("'playerdata.default-idle-grace-seconds' must be >= 0"
+                    + " (0 releases a cell as soon as its owner goes offline)!");
+        }
+
         return new PlayerDataAdminConfig(backendName, collection, loadMode, recentDays,
-                orphanReaperEnabled, orphanReaperInterval, loginTimeoutSeconds);
+                orphanReaperEnabled, orphanReaperInterval, loginTimeoutSeconds, defaultIdleGrace);
     }
 
     private static PDSectionAdminConfig parsePDSection(Config config, String pluginName, String sectionName) {
@@ -308,13 +314,20 @@ public final class StorageYamlParser {
             requireValidCollection(collection, "'pdsections." + pluginName + "." + sectionName + ".collection'");
         }
 
+        Integer idleGraceSeconds = getIntOrNull(config, base + "idle-grace-seconds");
+        if (idleGraceSeconds != null && idleGraceSeconds < 0) {
+            throw new StorageConfigException("'" + base + "idle-grace-seconds' must be >= 0"
+                    + " (0 releases a cell as soon as its owner goes offline)!");
+        }
+
         return new PDSectionAdminConfig(
                 pluginName,
                 sectionName,
                 config.getString(base + "storage-backend-id", null),
                 collection,
                 config.getString(base + "cache.policy", null),
-                getIntOrNull(config, base + "cache.ttlSeconds")
+                getIntOrNull(config, base + "cache.ttlSeconds"),
+                idleGraceSeconds
         );
     }
 

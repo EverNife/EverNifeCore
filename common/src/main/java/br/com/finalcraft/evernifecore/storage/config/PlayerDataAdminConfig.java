@@ -21,6 +21,13 @@ public final class PlayerDataAdminConfig {
     /** Default bound on login-time storage resolution before the login is denied. */
     public static final int DEFAULT_LOGIN_TIMEOUT_SECONDS = 5;
 
+    /**
+     * Server-wide fallback for how long a section cell survives after its owner goes offline, used
+     * for every section whose developer did not advise one. Mirrors
+     * {@link br.com.finalcraft.evernifecore.playerdata.storage.SectionLifecycle#DEFAULT_IDLE_GRACE}.
+     */
+    public static final int DEFAULT_IDLE_GRACE_SECONDS = 3600;
+
     private final String backendName;       // nullable -> default-backend
     private final String collection;
     private final LoadMode loadMode;
@@ -28,11 +35,12 @@ public final class PlayerDataAdminConfig {
     private final boolean orphanReaperEnabled;     // playerdata.orphan-reaper.enabled (default false)
     private final int orphanReaperIntervalMinutes; // playerdata.orphan-reaper.interval-minutes
     private final int loginTimeoutSeconds;         // playerdata.login-timeout-seconds
+    private final int defaultIdleGraceSeconds;     // playerdata.default-idle-grace-seconds
 
     PlayerDataAdminConfig(String backendName, String collection, LoadMode loadMode,
                           int recentDays,
                           boolean orphanReaperEnabled, int orphanReaperIntervalMinutes,
-                          int loginTimeoutSeconds) {
+                          int loginTimeoutSeconds, Integer defaultIdleGraceSeconds) {
         this.backendName = backendName;
         this.collection = collection != null ? collection : DEFAULT_COLLECTION;
         this.loadMode = loadMode != null ? loadMode : LoadMode.ALL;
@@ -42,6 +50,10 @@ public final class PlayerDataAdminConfig {
                 ? orphanReaperIntervalMinutes : DEFAULT_ORPHAN_REAPER_INTERVAL_MINUTES;
         this.loginTimeoutSeconds = loginTimeoutSeconds > 0
                 ? loginTimeoutSeconds : DEFAULT_LOGIN_TIMEOUT_SECONDS;
+        //zero is a legitimate choice here (release as soon as the owner goes offline), so only an
+        //absent or negative value falls back
+        this.defaultIdleGraceSeconds = defaultIdleGraceSeconds != null && defaultIdleGraceSeconds >= 0
+                ? defaultIdleGraceSeconds : DEFAULT_IDLE_GRACE_SECONDS;
     }
 
     /** Nullable - resolves against {@code default-backend} when absent. */
@@ -74,5 +86,13 @@ public final class PlayerDataAdminConfig {
     /** How long login-time storage resolution may take before the login is denied. */
     public int getLoginTimeoutSeconds() {
         return loginTimeoutSeconds;
+    }
+
+    /**
+     * Server-wide idle grace for the sections whose developer did not advise one. A per-section
+     * {@code idle-grace-seconds} still wins over it.
+     */
+    public int getDefaultIdleGraceSeconds() {
+        return defaultIdleGraceSeconds;
     }
 }

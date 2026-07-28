@@ -37,6 +37,13 @@ public class AccountSectionConfiguration<T extends AccountSection<T>> {
     /** Nullable - the default collection name ({@code acs_<plugin>_<id>}) is derived. */
     private final String collection;
     /**
+     * Whether a re-registration drops this section's unflushed rows instead of flushing them first.
+     * Off by default - see {@code PDSectionConfiguration#isDiscardDirtyOnReload()}. Weigh it harder
+     * here: an account row is shared by every linked identity and written from the whole network, so
+     * what is discarded may have come from another member's session.
+     */
+    private final boolean discardDirtyOnReload;
+    /**
      * The schema-migration chain for this account section (never null; may be empty). Ordered: entry i
      * upgrades version {@code (i + 1)} to {@code (i + 2)}. Registered with the framework (before the
      * section binds) by {@code PlayerController.registerAccountSectionCfg}.
@@ -44,11 +51,13 @@ public class AccountSectionConfiguration<T extends AccountSection<T>> {
     private final List<EntitySchemaMigrations.Step> migrations;
 
     private AccountSectionConfiguration(ECPluginData pluginData, Class<T> sectionClass, String sectionId,
-                                        String collection, List<EntitySchemaMigrations.Step> migrations) {
+                                        String collection, boolean discardDirtyOnReload,
+                                        List<EntitySchemaMigrations.Step> migrations) {
         this.pluginData = pluginData;
         this.sectionClass = sectionClass;
         this.sectionId = sectionId;
         this.collection = collection;
+        this.discardDirtyOnReload = discardDirtyOnReload;
         this.migrations = Collections.unmodifiableList(migrations);
     }
 
@@ -69,6 +78,7 @@ public class AccountSectionConfiguration<T extends AccountSection<T>> {
         private final Class<T> sectionClass;
         private final String sectionId;
         private String collection;
+        private boolean discardDirtyOnReload = false;
         private final List<EntitySchemaMigrations.Step> migrations = new ArrayList<>();
 
         private Builder(ECPluginData pluginData, Class<T> sectionClass, String sectionId) {
@@ -79,6 +89,16 @@ public class AccountSectionConfiguration<T extends AccountSection<T>> {
 
         public Builder<T> collection(String collection) {
             this.collection = collection;
+            return this;
+        }
+
+        /**
+         * Makes a re-registration DROP this section's unflushed rows instead of flushing them first.
+         * Only for a row whose in-memory state is derived/ephemeral; remember an account row is shared
+         * across the network, so the discarded write may not even be this server's.
+         */
+        public Builder<T> discardDirtyOnReload() {
+            this.discardDirtyOnReload = true;
             return this;
         }
 
@@ -111,7 +131,8 @@ public class AccountSectionConfiguration<T extends AccountSection<T>> {
         }
 
         public AccountSectionConfiguration<T> build() {
-            return new AccountSectionConfiguration<>(pluginData, sectionClass, sectionId, collection, migrations);
+            return new AccountSectionConfiguration<>(pluginData, sectionClass, sectionId, collection,
+                    discardDirtyOnReload, migrations);
         }
     }
 }

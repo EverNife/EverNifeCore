@@ -693,10 +693,11 @@ public class PlayerController {
         //guarded: start() runs BEFORE the fresh instance is published, so on a reload an unguarded
         //re-register would bind (and synchronously hot-load) on the still-current OLD controller
         if (!REGISTERED_SECTIONS.containsKey(PlayerCooldownsLocal.class)){
-            //LAZY (the default): most sessions never start a cooldown, so loading a row per login
-            //would be pure I/O for nothing
+            //ONLINE: IPlayerData.getCooldown documents .join() as safe on the main thread for an online
+            //player, which only holds while the bucket is already in memory
             PlayerController.registerPDSectionCfg(PDSectionConfiguration
                 .builder(EverNifeCore.getEcPluginData(), PlayerCooldownsLocal.class, "cooldowns")
+                .lifecycle(SectionLifecycle.ONLINE)
                 .description("Per-player cooldowns scoped to THIS server")
                 .legacyYaml("Cooldown", PlayerCooldownsLocal::fromLegacyYaml) // Import legacy data from EC v2
                 .build());
@@ -709,10 +710,14 @@ public class PlayerController {
         }
 
         //Per-player language is opt-in: without the setting the section is never registered, so
-        //nothing is hot-loaded on login and message rendering stays on the plugin's own language.
+        //nothing is loaded on login and message rendering stays on the plugin's own language.
+        //ONLINE is not a preference here: every message render reads this section through the
+        //SYNCHRONOUS cache-only peek (LocaleMessageImp), so a lifecycle that is not in memory by then
+        //silently falls back to the default language for the whole session.
         if (ECSettings.PER_PLAYER_LOCALE && !REGISTERED_SECTIONS.containsKey(LocalePDSection.class)){
             PlayerController.registerPDSectionCfg(PDSectionConfiguration
                 .builder(EverNifeCore.getEcPluginData(), LocalePDSection.class, "locale")
+                .lifecycle(SectionLifecycle.ONLINE)
                 .description("Per-player language override")
                 .build());
         }

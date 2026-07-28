@@ -65,7 +65,8 @@ public class PDSectionConfiguration<S extends PDSection> {
     private final SectionLifecycle lifecycle;
     /**
      * How long a cell survives after its owner stops being online, for a lifecycle that releases
-     * when idle. Never null; defaults to {@link SectionLifecycle#DEFAULT_IDLE_GRACE}.
+     * when idle. NULLABLE on purpose: {@code null} means the developer did not advise one, so the
+     * admin's global default applies (the resolver owns the chain - see {@code BindingResolver}).
      */
     private final Duration idleGrace;
     /** Hard ceiling of cached cells (LRU, dirty cells pinned); {@code 0} = unbounded. */
@@ -134,7 +135,7 @@ public class PDSectionConfiguration<S extends PDSection> {
         private Codec<S> codec;
         private String description;
         private SectionLifecycle lifecycle = SectionLifecycle.LAZY;
-        private Duration idleGrace = SectionLifecycle.DEFAULT_IDLE_GRACE;
+        private Duration idleGrace; //null = no advice; the admin's default applies
         private int maxCached = 0;
         private boolean discardDirtyOnReload = false;
         private String legacyYamlRootKey;
@@ -195,14 +196,17 @@ public class PDSectionConfiguration<S extends PDSection> {
         }
 
         /**
-         * How long a cell survives after its owner stops being online (default
-         * {@link SectionLifecycle#DEFAULT_IDLE_GRACE}). Ignored by a lifecycle that never releases.
+         * Advises how long a cell survives after its owner stops being online. Leave it alone unless
+         * this section has a reason to differ from the rest: unset, it follows the admin's
+         * {@code playerdata.default-idle-grace-seconds} (factory
+         * {@link SectionLifecycle#DEFAULT_IDLE_GRACE}). An admin per-section
+         * {@code idle-grace-seconds} overrides it either way. Ignored by a lifecycle that never releases.
          */
         public Builder<S> idleGrace(Duration idleGrace) {
             if (idleGrace != null && idleGrace.isNegative()) {
                 throw new IllegalArgumentException("idleGrace must not be negative, got " + idleGrace);
             }
-            this.idleGrace = idleGrace == null ? SectionLifecycle.DEFAULT_IDLE_GRACE : idleGrace;
+            this.idleGrace = idleGrace;
             return this;
         }
 

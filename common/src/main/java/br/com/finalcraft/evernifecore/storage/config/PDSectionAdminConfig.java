@@ -17,15 +17,18 @@ public final class PDSectionAdminConfig {
     private final String collection;      // nullable
     private final String cachePolicyName; // nullable (ALWAYS | TTL | NOCACHE)
     private final Integer cacheTtlSeconds; // nullable
+    private final Integer idleGraceSeconds; // nullable (wins over the developer's advice)
 
     PDSectionAdminConfig(String pluginName, String sectionName, String backendName,
-                         String collection, String cachePolicyName, Integer cacheTtlSeconds) {
+                         String collection, String cachePolicyName, Integer cacheTtlSeconds,
+                         Integer idleGraceSeconds) {
         this.pluginName = pluginName;
         this.sectionName = sectionName;
         this.backendName = backendName;
         this.collection = collection;
         this.cachePolicyName = cachePolicyName;
         this.cacheTtlSeconds = cacheTtlSeconds;
+        this.idleGraceSeconds = idleGraceSeconds;
     }
 
     public String getPluginName() {
@@ -50,5 +53,10 @@ public final class PDSectionAdminConfig {
 
     public Integer getCacheTtlSeconds() {
         return cacheTtlSeconds;
+    }
+
+    /** Nullable - the admin's per-section idle grace, which beats the developer's advice. */
+    public Integer getIdleGraceSeconds() {
+        return idleGraceSeconds;
     }
 }

@@ -17,6 +17,7 @@ import br.com.finalcraft.everydatabase.manager.RefRegistry;
 import br.com.finalcraft.everydatabase.manager.cache.CacheOptions;
 import br.com.finalcraft.everydatabase.manager.cache.CachePolicy;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -144,7 +145,25 @@ public final class BindingResolver {
 
         CachingManager<UUID, S> manager = refRegistry.manager(descriptor, storage, cacheOptions);
 
-        return new PDSectionBinding<>(cfg, backendName, storage, descriptor, manager, warnings);
+        return new PDSectionBinding<>(cfg, backendName, storage, descriptor, manager,
+                resolveIdleGrace(cfg, parsed, admin.orElse(null)), warnings);
+    }
+
+    /**
+     * The idle grace a section actually runs with:
+     * {@code pdsections[..].idle-grace-seconds ?? cfg.idleGrace ?? playerdata.default-idle-grace-seconds}
+     * (factory {@link SectionLifecycle#DEFAULT_IDLE_GRACE}) - the same shape as the backend chain, so a
+     * developer advising nothing follows the server's policy and an admin naming a section still wins.
+     */
+    private static Duration resolveIdleGrace(PDSectionConfiguration<?> cfg, ParsedStorageConfig parsed,
+                                             PDSectionAdminConfig admin) {
+        if (admin != null && admin.getIdleGraceSeconds() != null) {
+            return Duration.ofSeconds(admin.getIdleGraceSeconds());
+        }
+        if (cfg.getIdleGrace() != null) {
+            return cfg.getIdleGrace();
+        }
+        return Duration.ofSeconds(parsed.getPlayerData().getDefaultIdleGraceSeconds());
     }
 
     /**
@@ -226,7 +245,8 @@ public final class BindingResolver {
         CachingManager<UUID, S> manager = refRegistry.manager(descriptor, storage,
                 resolveCacheOptions(cfg.getPdSectionClass().getSimpleName(), cfg.getMaxCached(), null));
 
-        return new PDSectionBinding<>(cfg, targetBackendName, storage, descriptor, manager, warnings);
+        return new PDSectionBinding<>(cfg, targetBackendName, storage, descriptor, manager,
+                current.getIdleGrace(), warnings);
     }
 
     /**
