@@ -10,7 +10,7 @@ everydatabase = "1.1.0"
 everyconfig = "1.0.1"
 everylibs = "1.0.0"
 ecnmsutils = "1.1.5"
-ecforgelistener = "1.0.6"
+ecforgelistener = "1.0.7"
 
 # FinalCraft fork (same one EveryDatabase/EveryConfig use): hooks a Java 25 javac and only lifts
 # javac's syntax check, so modules can write modern syntax and still emit options.release bytecode.

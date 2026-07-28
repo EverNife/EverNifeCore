@@ -59,6 +59,7 @@ subprojects {
                 includeGroup "br.com.finalcraft.everylibs"
                 includeModule "br.com.finalcraft", "EveryConfig"
                 includeModule "br.com.finalcraft", "ECNmsUtils"
+                includeModule "br.com.finalcraft", "ECForgeListener"
             }
         }
         maven { url = "https://jitpack.io" }
