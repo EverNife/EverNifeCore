@@ -65,10 +65,10 @@ final class LifecycleEngine {
 
     private volatile ScheduledFuture<?> idleSweepTask;
     /**
-     * Per section class, when each cached key was FIRST seen with its owner offline - the clock the
-     * idle sweep measures the grace against (a cell whose owner never logs in gets no quit event).
+     * Per section class, when each cached key was FIRST seen unused - the clock the idle sweep
+     * measures the grace against (a cell whose owner never logs in here gets no quit event).
      */
-    private final Map<Class<? extends PDSection>, Map<UUID, Long>> idleSince = new ConcurrentHashMap<>();
+    private final Map<Class<?>, Map<UUID, Long>> idleSince = new ConcurrentHashMap<>();
     /** The flush pass that exceeded the stuck bound and is still running; no new pass starts over it. */
     private volatile CompletableFuture<Void> stuckFlush;
     private volatile boolean stopped;
@@ -296,6 +296,11 @@ final class LifecycleEngine {
         }
     }
 
+    /** Flushes a player off the caller's thread, through the same bounded pool the quit-flush uses. */
+    void flushPlayerOffThread(UUID uuid) {
+        quitFlushExecutor.execute(() -> flushPlayerWithRetry(uuid));
+    }
+
     /** Evicts an idle section cell unless the player came back online or the cell is still dirty. */
     private void evictIdleCell(UUID uuid, CachingManager<UUID, ? extends PDSection> manager, long graceMillis) {
         PlayerData playerData = controller.baseManager().peek(uuid).orElse(null);
@@ -315,9 +320,9 @@ final class LifecycleEngine {
 
     /**
      * Schedules the periodic idle sweep. Re-callable: it cancels/reschedules on the fly (single-thread
-     * scheduler, tolerant of a rebind). A no-op while no bound section releases when idle. The cadence
+     * scheduler, tolerant of a rebind). A no-op while nothing bound releases when idle. The cadence
      * is the shortest configured grace, clamped to [10s, 60s], so a released cell does not linger far
-     * past its grace.
+     * past its grace - note one section on a short grace therefore speeds the sweep up for all of them.
      */
     void scheduleIdleSweep() {
         ScheduledFuture<?> previous = idleSweepTask;
@@ -325,10 +330,9 @@ final class LifecycleEngine {
 
         long periodSeconds = 60L;
         boolean anyReleases = false;
-        for (PDSectionBinding<? extends PDSection> binding : controller.sectionBindings()) {
-            if (!binding.getLifecycle().releasesWhenIdle()) continue;
+        for (IdleReleaseTarget target : controller.idleReleaseTargets()) {
             anyReleases = true;
-            periodSeconds = Math.min(periodSeconds, Math.max(10L, binding.getIdleGrace().getSeconds()));
+            periodSeconds = Math.min(periodSeconds, Math.max(10L, target.getGraceMillis() / 1000L));
         }
         if (!anyReleases) return;
         final long period = periodSeconds;
@@ -337,9 +341,9 @@ final class LifecycleEngine {
     }
 
     /**
-     * Releases every cached cell of a releasing section whose owner has been offline for longer than
-     * that section's grace. The quit path already covers the player who just left; this covers the
-     * cell that was loaded for someone who was never online here (an offline lookup, a bulk read) and
+     * Releases every cached cell - player section or account row - that has been unused for longer
+     * than its grace. The quit path already covers whoever just left; this covers the cell loaded for
+     * someone who was never online here (an offline lookup, a bulk read, an account aggregate) and
      * therefore has no quit event to key off.
      *
      * <p>A dirty cell is never dropped: it is queued for a flush and re-checked on the next sweep.
@@ -347,56 +351,48 @@ final class LifecycleEngine {
      */
     void sweepIdleSections() {
         long now = System.currentTimeMillis();
-        for (PDSectionBinding<? extends PDSection> binding : controller.sectionBindings()) {
-            if (!binding.getLifecycle().releasesWhenIdle()) continue;
+        Set<Class<?>> swept = new HashSet<>();
+        for (IdleReleaseTarget target : controller.idleReleaseTargets()) {
+            swept.add(target.getSectionClass());
             try {
-                sweepBinding(binding, now);
+                sweepTarget(target, now);
             } catch (Throwable sweepFailure) {
-                PDLog.warning("Idle sweep of PDSection {%s} failed: %s",
-                        binding.getPdSectionClass().getSimpleName(), String.valueOf(sweepFailure.getMessage()));
+                PDLog.warning("Idle sweep of section {%s} failed: %s",
+                        target.getSectionClass().getSimpleName(), String.valueOf(sweepFailure.getMessage()));
             }
         }
-        idleSince.keySet().retainAll(boundSectionClasses());
+        idleSince.keySet().retainAll(swept);
     }
 
-    private void sweepBinding(PDSectionBinding<? extends PDSection> binding, long now) {
-        CachingManager<UUID, ? extends PDSection> manager = binding.getManager();
-        long graceMillis = binding.getIdleGrace().toMillis();
-        Map<UUID, Long> offlineSince = idleSince.computeIfAbsent(
-                binding.getPdSectionClass(), key -> new ConcurrentHashMap<>());
+    private void sweepTarget(IdleReleaseTarget target, long now) {
+        CachingManager<UUID, ? extends StoredSection> manager = target.getManager();
+        long graceMillis = target.getGraceMillis();
+        Map<UUID, Long> unusedSince = idleSince.computeIfAbsent(
+                target.getSectionClass(), key -> new ConcurrentHashMap<>());
 
         List<UUID> release = new ArrayList<>();
         Set<UUID> cached = manager.cachedKeys();
         for (UUID key : cached) {
-            PlayerData playerData = controller.baseManager().peek(key).orElse(null);
-            if (playerData != null && playerData.isPlayerOnline()) {
-                offlineSince.remove(key);
+            if (target.isStillInUse(key)) {
+                unusedSince.remove(key);
                 continue;
             }
-            PDSection cell = manager.peek(key).orElse(null);
+            StoredSection cell = manager.peek(key).orElse(null);
             if (cell != null && cell.isDirty()) {
                 //never drop an unflushed write - persist it and re-check on the next sweep
-                quitFlushExecutor.execute(() -> flushPlayerWithRetry(key));
+                target.flushDirty(key);
                 continue;
             }
-            Long since = offlineSince.putIfAbsent(key, now);
+            Long since = unusedSince.putIfAbsent(key, now);
             if (since != null && now - since >= graceMillis) {
                 release.add(key);
             }
         }
-        offlineSince.keySet().retainAll(cached);
+        unusedSince.keySet().retainAll(cached);
         if (!release.isEmpty()) {
             manager.evictAll(release);
-            offlineSince.keySet().removeAll(release);
+            unusedSince.keySet().removeAll(release);
         }
-    }
-
-    private Set<Class<? extends PDSection>> boundSectionClasses() {
-        Set<Class<? extends PDSection>> classes = new HashSet<>();
-        for (PDSectionBinding<? extends PDSection> binding : controller.sectionBindings()) {
-            classes.add(binding.getPdSectionClass());
-        }
-        return classes;
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------//

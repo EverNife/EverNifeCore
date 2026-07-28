@@ -37,7 +37,9 @@ import java.util.concurrent.TimeUnit;
  * <p>Cache lifecycle (fixed by design): a row stays resident while ANY member of its account is
  * online on this instance; on login it is re-read from the backend when no other local session was
  * already using it (data written by other instances of the network becomes visible at the natural
- * reconciliation point); after the last member quits it is evicted following a short grace.</p>
+ * reconciliation point); after the last member quits it is evicted following a short grace. A row
+ * read for an account with nobody online here never gets a quit event, so the periodic idle sweep
+ * is what releases that one - see {@link #idleReleaseTargets()}.</p>
  */
 final class AccountSectionEngine {
 
@@ -271,6 +273,29 @@ final class AccountSectionEngine {
                     () -> releaseIfIdle(binding, accountKey),
                     quitReleaseGraceMs(), TimeUnit.MILLISECONDS);
         }
+    }
+
+    /**
+     * The account rows the idle sweep may release. The quit path only covers an account whose member
+     * actually quit here: a row read for an account with nobody online - an offline lookup, an
+     * aggregate over accountIds - never gets a quit event, and without the sweep it would stay
+     * resident (and stale) until the binding is torn down.
+     */
+    List<IdleReleaseTarget> idleReleaseTargets() {
+        List<IdleReleaseTarget> targets = new ArrayList<>();
+        long graceMillis = quitReleaseGraceMs();
+        for (AccountSectionBinding<?> binding : bindings.values()) {
+            targets.add(new IdleReleaseTarget(
+                    binding.getSectionClass(),
+                    binding.getManager(),
+                    graceMillis,
+                    accountKey -> anyOtherOnlineMember(accountKey, null),
+                    accountKey -> {
+                        AccountSection<?> cell = binding.getManager().peek(accountKey).orElse(null);
+                        if (cell != null) controller.flushAccountSection(cell);
+                    }));
+        }
+        return targets;
     }
 
     private void releaseIfIdle(AccountSectionBinding<?> binding, UUID accountKey) {

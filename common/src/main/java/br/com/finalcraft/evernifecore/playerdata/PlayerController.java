@@ -795,6 +795,29 @@ public class PlayerController {
         }
     }
 
+    /**
+     * Everything the idle sweep may release: the player sections whose lifecycle releases when idle,
+     * plus every bound account row. Both families need the sweep for the same reason - a cell loaded
+     * for someone who never logs in here receives no quit event, so nothing else would ever free it.
+     */
+    List<IdleReleaseTarget> idleReleaseTargets() {
+        List<IdleReleaseTarget> targets = new ArrayList<>();
+        for (PDSectionBinding<? extends PDSection> binding : sectionBindings()) {
+            if (!binding.getLifecycle().releasesWhenIdle()) continue;
+            targets.add(new IdleReleaseTarget(
+                    binding.getPdSectionClass(),
+                    binding.getManager(),
+                    binding.getIdleGrace().toMillis(),
+                    uuid -> {
+                        PlayerData playerData = baseManager().peek(uuid).orElse(null);
+                        return playerData != null && playerData.isPlayerOnline();
+                    },
+                    uuid -> lifecycleEngine.flushPlayerOffThread(uuid)));
+        }
+        targets.addAll(accountEngine.idleReleaseTargets());
+        return targets;
+    }
+
     /** The plugin name a configuration belongs to, or {@code UnknownPlugin} for a plugin-less registration. */
     public static String pluginNameOf(ECPluginData pluginData) {
         return pluginData != null ? pluginData.getMetaInfo().getName() : "UnknownPlugin";
