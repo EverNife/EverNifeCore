@@ -66,7 +66,13 @@ final class AccountSectionEngine {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     void bindUnchecked(AccountSectionConfiguration<?> cfg) {
-        bind((AccountSectionConfiguration) cfg);
+        bind((AccountSectionConfiguration) cfg, false);
+    }
+
+    /** @see #bind(AccountSectionConfiguration, boolean) */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void bindUnchecked(AccountSectionConfiguration<?> cfg, boolean reloadIfBound) {
+        bind((AccountSectionConfiguration) cfg, reloadIfBound);
     }
 
     List<CachingManager<?, ?>> managers() {
@@ -84,11 +90,18 @@ final class AccountSectionEngine {
     /**
      * Materializes a registration into a binding on the account backend and hot-loads the rows of
      * the members already online (a hot reload / a registration arriving after the boot).
+     *
+     * @param reloadIfBound when the class is already bound, whether to tear the binding down and
+     *                      build it again from the fresh configuration - the account-family mirror of
+     *                      the PDSection reload a plugin re-registration triggers
      */
-    <S extends AccountSection<S>> void bind(AccountSectionConfiguration<S> cfg) {
+    <S extends AccountSection<S>> void bind(AccountSectionConfiguration<S> cfg, boolean reloadIfBound) {
         Class<S> sectionClass = cfg.getSectionClass();
         if (bindings.containsKey(sectionClass)) {
-            return;
+            if (!reloadIfBound) {
+                return;
+            }
+            reloadBinding(bindings.get(sectionClass));
         }
         ParsedStorageConfig parsed = controller.storageConfig();
         String backendName = parsed.getAccountBackendName();
@@ -149,6 +162,29 @@ final class AccountSectionEngine {
 
         //eager schema sweep of this account section (async, post-ready, O(1) when nothing eager is pending)
         controller.maybeSweepAccountSection(binding);
+    }
+
+    /**
+     * Drops a live account-section binding so a re-registration can rebuild it: the unflushed rows are
+     * persisted first (a plugin reload must not cost a write), the cache is emptied and the collection
+     * claim released.
+     */
+    private void reloadBinding(AccountSectionBinding<?> current) {
+        Class<?> sectionClass = current.getSectionClass();
+        try {
+            controller.flushAccountSectionManager(current).join();
+        } catch (Throwable flushFailure) {
+            PDLog.warning("Flush before the re-registration of AccountSection {%s} failed - reloading anyway,"
+                            + " the unflushed rows of this section are lost: %s",
+                    sectionClass.getSimpleName(), String.valueOf(flushFailure.getMessage()));
+        }
+        int cachedRows = current.getManager().cachedSize();
+        current.getManager().clearCache();
+        controller.registries().of(current.getPluginData()).unregister(sectionClass);
+        controller.registry().releaseCollection(current.getBackendName(), current.getCollection());
+        bindings.remove(sectionClass);
+        PDLog.info("Re-registered AccountSection {%s}: dropped %s cached row(s) (flushed first) and rebound it.",
+                sectionClass.getSimpleName(), cachedRows);
     }
 
     /** Unbinds every account section owned by {@code pluginName}: final flush, cache drop, claim release. */

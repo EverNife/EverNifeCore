@@ -553,7 +553,10 @@ public class PlayerController {
         REGISTERED_SECTIONS.put(pdSectionConfiguration.getPdSectionClass(), pdSectionConfiguration);
         PlayerController controller = INSTANCE;
         if (controller != null){
-            controller.bindSection(pdSectionConfiguration);
+            //a second registration of the same class is a plugin RELOAD: rebuild the binding and drop
+            //the previous session's cached state instead of quietly ignoring the fresh configuration
+            controller.bindSection(pdSectionConfiguration, true);
+            controller.onBindingsChanged();
         }
         //registrations made before the bootstrap are bound in PlayerController.start()
     }
@@ -572,7 +575,8 @@ public class PlayerController {
         REGISTERED_ACCOUNT_SECTIONS.put(configuration.getSectionClass(), configuration);
         PlayerController controller = INSTANCE;
         if (controller != null){
-            controller.accountEngine.bindUnchecked(configuration);
+            controller.accountEngine.bindUnchecked(configuration, true); //a re-registration is a reload
+            controller.onBindingsChanged();
         }
         //registrations made before the bootstrap are bound in PlayerController.start()
     }
@@ -855,12 +859,27 @@ public class PlayerController {
 
     @SuppressWarnings("unchecked")
     void bindSection(PDSectionConfiguration<?> configuration){
-        bindSectionTyped((PDSectionConfiguration<PDSection>) configuration);
+        bindSectionTyped((PDSectionConfiguration<PDSection>) configuration, false);
     }
 
-    private <S extends PDSection> void bindSectionTyped(PDSectionConfiguration<S> cfg){
+    /**
+     * @param reloadIfBound when the class is already bound: {@code true} tears the binding down and
+     *                      builds it again from the fresh configuration (a plugin re-registering, see
+     *                      {@link #reloadSection}); {@code false} keeps it and only re-runs the
+     *                      bind-time load ({@link #start()} revisiting a section it just bound)
+     */
+    @SuppressWarnings("unchecked")
+    void bindSection(PDSectionConfiguration<?> configuration, boolean reloadIfBound){
+        bindSectionTyped((PDSectionConfiguration<PDSection>) configuration, reloadIfBound);
+    }
+
+    private <S extends PDSection> void bindSectionTyped(PDSectionConfiguration<S> cfg, boolean reloadIfBound){
         @SuppressWarnings("unchecked")
         PDSectionBinding<S> binding = (PDSectionBinding<S>) bindings.get(cfg.getPdSectionClass());
+        if (binding != null && reloadIfBound){
+            reloadSection(binding, cfg);
+            binding = null; //dropped: fall through and resolve the fresh configuration below
+        }
         if (binding == null){
             String pluginName = cfg.getPluginData() != null ? cfg.getPluginData().getMetaInfo().getName() : "UnknownPlugin";
             String pluginAuthor = cfg.getPluginData() != null ? cfg.getPluginData().getMetaInfo().getAuthor() : "Unknown";
@@ -890,6 +909,53 @@ public class PlayerController {
         //eager schema sweep of this section (async, post-ready, O(1) when nothing eager is pending); this
         //hook covers boot binds AND late registerPDSectionCfg calls from dependent plugins
         sweepEngine.maybeSweep(binding);
+    }
+
+    /**
+     * Tears down the live binding of a section so a re-registration can build it again from scratch:
+     * a plugin reload must not keep serving the previous session's cached state (a derived value the
+     * reload is about to re-apply would be counted twice), and a configuration that changed - backend,
+     * collection, lifecycle - must actually take effect.
+     *
+     * <p>Dirty cells are FLUSHED first: the flush window is ~30 seconds, so dropping them would throw
+     * away whatever every online player earned since the last tick, over a config action that has
+     * nothing to do with them. A section whose in-memory state is genuinely derived opts out with
+     * {@code discardDirtyOnReload()}.</p>
+     */
+    private <S extends PDSection> void reloadSection(PDSectionBinding<S> current, PDSectionConfiguration<S> fresh){
+        Class<S> sectionClass = fresh.getPdSectionClass();
+        CachingManager<UUID, S> manager = current.getManager();
+        int cachedCells = manager.cachedSize();
+        int dirtyCells = 0;
+        for (S cell : manager.cachedValues()){
+            if (cell.isDirty()) dirtyCells++;
+        }
+
+        if (fresh.isDiscardDirtyOnReload()){
+            if (dirtyCells > 0){
+                PDLog.warning("Re-registration of PDSection {%s} DISCARDED %s unflushed cell(s)"
+                        + " (the section declared discardDirtyOnReload).", sectionClass.getSimpleName(), dirtyCells);
+            }
+        }else {
+            try {
+                flushEngine.flushSectionManager(current).join();
+            }catch (Throwable flushFailure){
+                PDLog.warning("Flush before the re-registration of PDSection {%s} failed - reloading anyway,"
+                                + " the unflushed cells of this section are lost: %s",
+                        sectionClass.getSimpleName(), String.valueOf(flushFailure.getMessage()));
+            }
+        }
+
+        manager.clearCache();
+        //release the manager and the collection claim so the fresh resolve can take them again with
+        //whatever the new configuration says (a changed collection would collide with its own claim)
+        ecRegistries.of(current.getConfiguration().getPluginData()).unregister(sectionClass);
+        registry.releaseCollection(current.getBackendName(), current.getCollection());
+        bindings.remove(sectionClass);
+
+        PDLog.info("Re-registered PDSection {%s}: dropped %s cached cell(s) (%s dirty, %s) and rebound it.",
+                sectionClass.getSimpleName(), cachedCells, dirtyCells,
+                fresh.isDiscardDirtyOnReload() ? "discarded" : "flushed first");
     }
 
     /**
@@ -1103,14 +1169,50 @@ public class PlayerController {
         });
     }
 
-    /** Discards every cached instance of that section (the next reads reload from the backend). */
-    public static void clearPDSections(Class<? extends PDSection> pdSectionClass){
+    /**
+     * Persists this section's unflushed changes and then discards EVERY cached instance of it,
+     * online players included (the next reads reload from the backend). The flush is not optional: a
+     * bare cache drop would take the unflushed writes with it, and losing them is never what a caller
+     * asking for a cold cache meant.
+     *
+     * <p>Prefer {@link #releasePDSection(Class)} to free memory: it keeps the cells of the players who
+     * are online, which are the ones that must stay canonical.</p>
+     */
+    public static CompletableFuture<Void> clearPDSections(Class<? extends PDSection> pdSectionClass){
         PlayerController controller = INSTANCE;
-        if (controller == null) return;
+        if (controller == null) return CompletableFuture.completedFuture(null);
         PDSectionBinding<? extends PDSection> binding = controller.bindings.get(pdSectionClass);
-        if (binding != null){
-            binding.getManager().clearCache();
-        }
+        if (binding == null) return CompletableFuture.completedFuture(null);
+        return controller.flushEngine.flushSectionManager(binding)
+                .whenComplete((ok, failure) -> binding.getManager().clearCache());
+    }
+
+    /**
+     * Frees a section's memory without disturbing the players who are online: every dirty cell is
+     * flushed, then the cells whose owner is NOT online are evicted. The way back to lazy behaviour
+     * after a bulk load (a leaderboard pass, an admin sweep) - though an aggregate is better served by
+     * {@link #querySection(Class, Query, QueryOptions)}, which never populates the cache to begin with.
+     *
+     * @return how many cells were released
+     */
+    public static CompletableFuture<Integer> releasePDSection(Class<? extends PDSection> pdSectionClass){
+        PlayerController controller = INSTANCE;
+        if (controller == null) return failedFuture(notBootstrapped());
+        PDSectionBinding<? extends PDSection> binding = controller.bindings.get(pdSectionClass);
+        if (binding == null) return failedFuture(notRegisteredPDSection(pdSectionClass));
+        return controller.flushEngine.flushSectionManager(binding).thenApply(x -> {
+            CachingManager<UUID, ? extends PDSection> manager = binding.getManager();
+            List<UUID> release = new ArrayList<>();
+            for (UUID key : manager.cachedKeys()){
+                PlayerData playerData = controller.baseManager().peek(key).orElse(null);
+                if (playerData != null && playerData.isPlayerOnline()) continue;
+                PDSection cell = manager.peek(key).orElse(null);
+                if (cell != null && cell.isDirty()) continue; //a write that did not land: keep it for the retry
+                release.add(key);
+            }
+            manager.evictAll(release);
+            return release.size();
+        });
     }
 
     /** Marks a player's cached section as stale - the next read reloads it. */
@@ -1714,6 +1816,11 @@ public class PlayerController {
     /** Immediate flush of a SINGLE account row in isolation (see {@link FlushEngine}). */
     CompletableFuture<Void> flushAccountSection(AccountSection<?> section){
         return flushEngine.flushAccountSection(section);
+    }
+
+    /** Flushes every dirty row of ONE account section (the account-family rebind path). */
+    CompletableFuture<Void> flushAccountSectionManager(AccountSectionBinding<?> binding){
+        return flushEngine.flushAccountSectionManager(binding);
     }
 
     /** Failed-write count since the last call; the periodic tick logs ONE aggregate line per tick. */

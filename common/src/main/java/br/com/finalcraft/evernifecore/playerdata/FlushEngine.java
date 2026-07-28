@@ -231,6 +231,22 @@ final class FlushEngine {
         return flusher.persistBatch(manager, dirty, mode(forced), what, hooks, StoredSection::markStoredInBackend);
     }
 
+    /**
+     * Persists every dirty cell of ONE section as a single forced batch - the flush a re-registration
+     * and a manual release run before dropping that section's cache, without touching the rest of the
+     * world. Completes immediately when nothing is dirty.
+     */
+    CompletableFuture<Void> flushSectionManager(PDSectionBinding<? extends PDSection> binding) {
+        CompletableFuture<Void> flush = flushDirtyEntities(binding.getManager(), what(binding), true, SECTION_HOOKS);
+        return flush == null ? CompletableFuture.completedFuture(null) : flush;
+    }
+
+    /** The account-family counterpart of {@link #flushSectionManager(PDSectionBinding)}. */
+    CompletableFuture<Void> flushAccountSectionManager(AccountSectionBinding<?> binding) {
+        CompletableFuture<Void> flush = flushDirtyEntities(binding.getManager(), what(binding), true, ACCOUNT_HOOKS);
+        return flush == null ? CompletableFuture.completedFuture(null) : flush;
+    }
+
     /** Persists ONE dirty section row of one manager by key (the forced single-entity path). */
     private <E extends StoredSection> CompletableFuture<Void> flushSingleEntity(
             CachingManager<UUID, E> manager, UUID key, String what, boolean forced, ConflictHooks<UUID, ? super E> hooks) {
