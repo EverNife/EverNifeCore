@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.playerdata;
 import br.com.finalcraft.evernifecore.playerdata.storage.BindingResolver;
 import br.com.finalcraft.evernifecore.playerdata.storage.PDSectionBinding;
 import br.com.finalcraft.evernifecore.playerdata.storage.PlayerDataBinding;
+import br.com.finalcraft.evernifecore.playerdata.storage.SectionIds;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
 import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
@@ -160,9 +161,8 @@ final class StorageTransferService {
         //manager was never frozen, so releasing the old one's freeze only retires the old manager
         migrateCachedSections(current, rebound);
         controller.installSectionBinding(pdSectionClass, rebound);
-        persistSectionBackend(current.getConfiguration().getPluginData() != null
-                        ? current.getConfiguration().getPluginData().getMetaInfo().getName() : "UnknownPlugin",
-                pdSectionClass.getSimpleName(), targetBackend);
+        persistSectionBackend(PlayerController.pluginNameOf(current.getConfiguration().getPluginData()),
+                current.getConfiguration().getSectionId(), targetBackend);
         freeze.close();
         controller.onBindingsChanged(); //rebind cache-sync + reschedule the ttl purge over the new manager set
         PDLog.info("%s transferred to backend '%s' (%s entities in %sms). The source collection on '%s'"
@@ -284,9 +284,13 @@ final class StorageTransferService {
                 .execute();
     }
 
-    /** The transfer result becomes the admin's choice persisted in storage.yml. */
-    private void persistSectionBackend(String pluginName, String sectionName, String targetBackend) {
-        controller.storageYml().setValue("pdsections." + pluginName + "." + sectionName + ".storage-backend-id", targetBackend);
+    /**
+     * The transfer result becomes the admin's choice persisted in storage.yml, under the SAME key the
+     * writer generates and the resolver reads - the section id, not the class name.
+     */
+    private void persistSectionBackend(String pluginName, String sectionId, String targetBackend) {
+        controller.storageYml().setValue("pdsections." + SectionIds.sanitizePlugin(pluginName)
+                + "." + sectionId + ".storage-backend-id", targetBackend);
         controller.storageYml().save();
     }
 

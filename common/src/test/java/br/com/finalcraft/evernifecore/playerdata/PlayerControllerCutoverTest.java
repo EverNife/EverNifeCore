@@ -111,7 +111,7 @@ class PlayerControllerCutoverTest {
         PlayerController.handleLogin(uuid, "Nife").join();
 
         //register AFTER the players are loaded: the hot-load batch attaches a default instance
-        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, JobsPDSection.class, "jobspdsection").build());
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, JobsPDSection.class, "jobs").build());
 
         PlayerData playerData = PlayerController.getLoaded(uuid);
         JobsPDSection section = playerData.getPDSection(JobsPDSection.class).join();

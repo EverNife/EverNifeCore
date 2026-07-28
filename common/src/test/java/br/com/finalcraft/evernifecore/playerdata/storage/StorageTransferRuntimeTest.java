@@ -81,7 +81,7 @@ class StorageTransferRuntimeTest {
     void transferPDSection_memoryToH2_cutsOverAndPersistsTheChoice() throws IOException {
         File storageYml = writeStorageYml("storage.yml", "test_files", "transfer_section");
         PlayerController.registerPDSectionCfg(
-                PDSectionConfiguration.builder(null, TransferJobsPDSection.class, "transferjobspdsection")
+                PDSectionConfiguration.builder(null, TransferJobsPDSection.class, "transferjobs")
                         .defaultBackend("test_mem")
                         .build());
         PlayerController.initialize(storageYml);
@@ -100,7 +100,7 @@ class StorageTransferRuntimeTest {
 
         //the admin choice was persisted in storage.yml (survives reboots)
         String persistedBackend = ConfigFactory.open(storageYml)
-                .getString("pdsections.UnknownPlugin.TransferJobsPDSection.storage-backend-id");
+                .getString("pdsections.unknownplugin.transferjobs.storage-backend-id");
         assertEquals("test_h2", persistedBackend, "the transfer must persist the new backend in storage.yml");
 
         //post-transfer writes go to the NEW backend (the in-memory one dies on reboot)
@@ -150,7 +150,7 @@ class StorageTransferRuntimeTest {
     void failedTransferKeepsTheBindingIntact() throws IOException {
         File storageYml = writeStorageYml("storage.yml", "test_files", "transfer_fail");
         PlayerController.registerPDSectionCfg(
-                PDSectionConfiguration.builder(null, TransferJobsPDSection.class, "transferjobspdsection")
+                PDSectionConfiguration.builder(null, TransferJobsPDSection.class, "transferjobs")
                         .defaultBackend("test_mem")
                         .build());
         PlayerController.initialize(storageYml);
@@ -173,7 +173,7 @@ class StorageTransferRuntimeTest {
         //test_mem already held this collection's claim (it was the original backend, kept as a backup),
         //so the failed transfer back must NOT release it - only a claim the transfer freshly created is
         //released on failure. Over-releasing here would drop the legitimate backup claim.
-        String collection = BindingResolver.defaultCollection("UnknownPlugin", "TransferJobsPDSection");
+        String collection = BindingResolver.defaultCollection("UnknownPlugin", "transferjobs");
         assertNotNull(PlayerController.get().registry().getCollectionOwner("test_mem", collection),
                 "a failed transfer must not release the pre-existing backup claim on the target");
 
