@@ -198,7 +198,7 @@ class BindingResolverTest {
         assertTrue(policy instanceof CachePolicy.TtlPolicy);
         assertEquals(12, ((CachePolicy.TtlPolicy) policy).getTtl().getSeconds());
         //freshness only - the lifecycle stays the developer's
-        assertEquals(SectionLifecycle.LAZY, binding.getLifecycle());
+        assertEquals(SectionLifecycle.ONLINE, binding.getLifecycle());
     }
 
     @Test

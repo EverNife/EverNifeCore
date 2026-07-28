@@ -118,7 +118,7 @@ final class LoginTimings {
     // Formatting - plain ASCII columns (console-safe, no color codes) with a couple of markers
     // -----------------------------------------------------------------------------------------------------------------------------//
 
-    private List<String> format(long elapsedNanos, boolean timedOut) {
+    List<String> format(long elapsedNanos, boolean timedOut) {
         List<Entry> rows = new ArrayList<>(sections);
         Collections.sort(rows, Comparator.comparingLong(Entry::elapsedNanos).reversed());
 
@@ -160,15 +160,15 @@ final class LoginTimings {
         //Only the LEFT edge is drawn. A closing edge would have to be padded to a column, and the
         //emoji markers are one Java char but two terminal columns - the frame would drift exactly on
         //the lines that carry the interesting information.
-        int width = title.length() + 4;
+        int width = title.length() + 8;
         for (String line : body) {
-            width = Math.max(width, line.length() + 2);
+            width = Math.max(width, line.length() + 3);
         }
 
         List<String> lines = new ArrayList<>();
         lines.add("+-- " + title + " " + repeat('-', width - title.length() - 5));
         for (String line : body) {
-            lines.add("|  " + line);
+            lines.add(trimTrailing("|  " + line));
         }
         lines.add("+" + repeat('-', width - 1));
         return lines;
@@ -210,6 +210,13 @@ final class LoginTimings {
 
     private static String seconds(long nanos) {
         return String.format(Locale.ROOT, "%.3fs", nanos / 1_000_000_000.0D);
+    }
+
+    /** The last column is padded to its width; the console has no use for that padding. */
+    private static String trimTrailing(String line) {
+        int end = line.length();
+        while (end > 0 && line.charAt(end - 1) == ' ') end--;
+        return line.substring(0, end);
     }
 
     private static String repeat(char character, int amount) {

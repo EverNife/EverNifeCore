@@ -472,6 +472,10 @@ public class PlayerController {
         return storageYml;
     }
 
+    LifecycleEngine lifecycleEngine(){
+        return lifecycleEngine;
+    }
+
     PlayerDataBinding playerDataBinding(){
         return playerDataBinding;
     }
