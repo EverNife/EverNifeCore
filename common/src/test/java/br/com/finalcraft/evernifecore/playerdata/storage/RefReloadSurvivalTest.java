@@ -97,7 +97,7 @@ class RefReloadSurvivalTest {
         PlayerController.initialize(storageYml);
 
         //the plugin registers its Ref-carrying PDSection, OWNED by the plugin -> per-plugin shared registry
-        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(plugin, ProfileSection.class).build());
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(plugin, ProfileSection.class, "profilesection").build());
 
         //the plugin opens its OWN ECStorage holding the Guild, on a SEPARATE persistent H2 mem; its Guild
         //manager registers in the plugin's shared registry (the same one the section resolves through)
@@ -146,7 +146,7 @@ class RefReloadSurvivalTest {
     void aFailedReloadKeepsTheLiveInstanceAndDoesNotFireCallbacks(TestPlatform platform) throws Exception {
         plugin = realPluginData();
         PlayerController.initialize(Storages.h2("atomic_live").writeTo(tempDir));
-        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(plugin, ProfileSection.class).build());
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(plugin, ProfileSection.class, "profilesection").build());
         PlayerController live = PlayerController.get();
 
         AtomicInteger callbackFires = new AtomicInteger();
@@ -174,7 +174,7 @@ class RefReloadSurvivalTest {
         plugin = realPluginData();
         File storageYml = Storages.h2("hook_cleanup").writeTo(tempDir);
         PlayerController.initialize(storageYml);
-        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(plugin, ProfileSection.class).build());
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(plugin, ProfileSection.class, "profilesection").build());
 
         AtomicInteger fires = new AtomicInteger();
         PlayerController.onStorageReload(plugin, fires::incrementAndGet);

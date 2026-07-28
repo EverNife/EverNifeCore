@@ -111,7 +111,7 @@ class PlayerControllerCutoverTest {
         PlayerController.handleLogin(uuid, "Nife").join();
 
         //register AFTER the players are loaded: the hot-load batch attaches a default instance
-        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, JobsPDSection.class).build());
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, JobsPDSection.class, "jobspdsection").build());
 
         PlayerData playerData = PlayerController.getLoaded(uuid);
         JobsPDSection section = playerData.getPDSection(JobsPDSection.class).join();
@@ -134,7 +134,7 @@ class PlayerControllerCutoverTest {
 
         //the auto-generated entry in storage.yml exists and is idempotent
         String yml = new String(Files.readAllBytes(storageYml.toPath()), StandardCharsets.UTF_8);
-        assertTrue(yml.contains("JobsPDSection"), "registerPDSectionCfg must append the pdsections entry");
+        assertTrue(yml.contains("jobs:"), "registerPDSectionCfg must append the pdsections entry");
     }
 
     // ------------------------------------------------------------------
@@ -548,7 +548,7 @@ class PlayerControllerCutoverTest {
         File storageYml = Storages.h2("g1_temporal").writeTo(tempDir);
         PlayerController.initialize(storageYml);
         PlayerController.registerPDSectionCfg(
-                PDSectionConfiguration.builder(null, TemporalPDSection.class).build());
+                PDSectionConfiguration.builder(null, TemporalPDSection.class, "temporalpdsection").build());
 
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "Chronos").join();
@@ -578,7 +578,7 @@ class PlayerControllerCutoverTest {
         File storageYml = Storages.localFile().writeTo(tempDir);
         PlayerController.initialize(storageYml);
         PlayerController.registerPDSectionCfg(
-                PDSectionConfiguration.builder(null, TemporalPDSection.class).build());
+                PDSectionConfiguration.builder(null, TemporalPDSection.class, "temporalpdsection").build());
 
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "Blank").join();

@@ -89,7 +89,7 @@ class RefInPDSectionTest {
         // so the automatic default codec must already be ref-aware
         StorageContext ctx = memoryStorage();
         PDSectionBinding<ProfileSection> binding = BindingResolver.resolve("PluginX",
-                PDSectionConfiguration.builder(null, ProfileSection.class).build(),
+                PDSectionConfiguration.builder(null, ProfileSection.class, "profilesection").build(),
                 ctx.parsed, ctx.registry, reg);
         CachingManager<UUID, ProfileSection> profiles = binding.getManager();
 

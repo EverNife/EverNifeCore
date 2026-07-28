@@ -65,7 +65,7 @@ class GroupedFileBackendTest {
         File storageYml = writeStorageYml(dataDir);
 
         PlayerController.registerPDSectionCfg(
-                PDSectionConfiguration.builder(null, JobsPDSection.class).build());
+                PDSectionConfiguration.builder(null, JobsPDSection.class, "jobspdsection").build());
         PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();

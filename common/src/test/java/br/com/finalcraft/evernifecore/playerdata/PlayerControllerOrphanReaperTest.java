@@ -66,10 +66,10 @@ class PlayerControllerOrphanReaperTest {
         Storages storages = Storages.h2(dbName);
         url = storages.jdbcUrl();
         PlayerController.initialize(storages.writeTo(tempDir));
-        //hotLoad(false): a login must not auto-seed a section, so each uuid gets exactly the rows this
+        //LAZY (the default): a login must not resolve the section, so each uuid gets exactly the rows this
         //test asks for
         PlayerController.registerPDSectionCfg(
-                PDSectionConfiguration.builder(null, LootPDSection.class).hotLoad(false).build());
+                PDSectionConfiguration.builder(null, LootPDSection.class, "lootpdsection").build());
         return PlayerController.get().getBinding(LootPDSection.class);
     }
 

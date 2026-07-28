@@ -32,7 +32,7 @@ class PDSectionYamlWriterTest {
 
         Config config = ConfigFactory.open(file);
         boolean wrote = PDSectionYamlWriter.ensureEntry(config,
-                "FinalJobs", "EverNife", "JobsPDSection",
+                "finaljobs", "FinalJobs", "EverNife", "jobs", "A player's job level and progress",
                 "localfile",
                 Arrays.asList("localfile", "mysql"),
                 Collections.singletonList("localfile"));
@@ -40,25 +40,26 @@ class PDSectionYamlWriterTest {
 
         // the entry + comments made it to disk
         String raw = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
-        assertTrue(raw.contains("JobsPDSection"));
+        assertTrue(raw.contains("jobs:"));
+        assertTrue(raw.contains("A player's job level and progress"));
         assertTrue(raw.contains("PDSection created by the Plugin [FinalJobs] authored by: EverNife"));
         assertTrue(raw.contains("Recommended Backend Types: localfile | mysql"));
 
         // the generated entry is readable by the parser
         ParsedStorageConfig parsed = StorageYamlParser.parse(file);
-        PDSectionAdminConfig section = parsed.getPDSection("FinalJobs", "JobsPDSection")
+        PDSectionAdminConfig section = parsed.getPDSection("FinalJobs", "jobs")
                 .orElseThrow(AssertionError::new);
         assertEquals("localfile", section.getBackendName());
 
         // second call: the entry already exists, nothing is rewritten
         boolean wroteAgain = PDSectionYamlWriter.ensureEntry(ConfigFactory.open(file),
-                "FinalJobs", "EverNife", "JobsPDSection",
+                "finaljobs", "FinalJobs", "EverNife", "jobs", null,
                 "mysql",                       // a different default must NOT overwrite the admin's state
                 Collections.emptyList(),
                 Collections.singletonList("localfile"));
         assertFalse(wroteAgain);
         assertEquals("localfile", StorageYamlParser.parse(file)
-                .getPDSection("FinalJobs", "JobsPDSection").orElseThrow(AssertionError::new)
+                .getPDSection("FinalJobs", "jobs").orElseThrow(AssertionError::new)
                 .getBackendName());
     }
 
@@ -68,7 +69,7 @@ class PDSectionYamlWriterTest {
         StorageYamlDefaults.writeDefault(file);
 
         PDSectionYamlWriter.ensureEntry(ConfigFactory.open(file),
-                "MyPlugin", "SomeAuthor", "MySection",
+                "myplugin", "MyPlugin", "SomeAuthor", "mysection", null,
                 "localfile",
                 Collections.emptyList(),
                 Arrays.asList("localfile", "h2", "mysql"));

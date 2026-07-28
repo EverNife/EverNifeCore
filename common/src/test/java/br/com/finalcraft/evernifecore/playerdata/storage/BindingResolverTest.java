@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -81,7 +82,7 @@ class BindingResolverTest {
     }
 
     private PDSectionConfiguration.Builder<JobsPDSection> jobsCfg() {
-        return PDSectionConfiguration.builder(null, JobsPDSection.class);
+        return PDSectionConfiguration.builder(null, JobsPDSection.class, "jobs");
     }
 
     @Test
@@ -91,7 +92,7 @@ class BindingResolverTest {
                 BindingResolver.resolve("FinalJobs", jobsCfg().build(), parsed, registry, refRegistry);
 
         assertEquals("main_storage", binding.getBackendName());
-        assertEquals("pd_finaljobs_jobspdsection", binding.getCollection());
+        assertEquals("pd_finaljobs_jobs", binding.getCollection());
         assertTrue(binding.getManager().defaultPolicy() instanceof CachePolicy.AlwaysPolicy);
         assertTrue(binding.getResolutionWarnings().isEmpty());
         assertEquals("application/json", binding.getDescriptor().codec().contentType());
@@ -108,8 +109,8 @@ class BindingResolverTest {
     @Test
     void adminOverrideWinsOverDevDefault() throws IOException {
         setup("pdsections:",
-                "  FinalJobs:",
-                "    JobsPDSection:",
+                "  finaljobs:",
+                "    jobs:",
                 "      storage-backend-id: economy_storage",
                 "      collection: custom_jobs");
         PDSectionBinding<JobsPDSection> binding = BindingResolver.resolve("FinalJobs",
@@ -123,8 +124,8 @@ class BindingResolverTest {
     @Test
     void adminOutsideSuggestedBackendsWarnsButProceeds() throws IOException {
         setup("pdsections:",
-                "  FinalJobs:",
-                "    JobsPDSection:",
+                "  finaljobs:",
+                "    jobs:",
                 "      storage-backend-id: economy_storage");
         PDSectionBinding<JobsPDSection> binding = BindingResolver.resolve("FinalJobs",
                 jobsCfg().suggestedBackends("main_storage", "yaml_files").build(),
@@ -138,13 +139,13 @@ class BindingResolverTest {
     @Test
     void unknownBackendIsHardError() throws IOException {
         setup("pdsections:",
-                "  FinalJobs:",
-                "    JobsPDSection:",
+                "  finaljobs:",
+                "    jobs:",
                 "      storage-backend-id: nonexistent");
         StorageConfigException error = assertThrows(StorageConfigException.class,
                 () -> BindingResolver.resolve("FinalJobs", jobsCfg().build(), parsed, registry, refRegistry));
         assertTrue(error.getMessage().contains("nonexistent"));
-        assertTrue(error.getMessage().contains("FinalJobs:JobsPDSection"));
+        assertTrue(error.getMessage().contains("finaljobs:jobs"));
     }
 
     @Test
@@ -164,10 +165,10 @@ class BindingResolverTest {
 
         StorageConfigException error = assertThrows(StorageConfigException.class,
                 () -> BindingResolver.resolve("FinalPoints",
-                        PDSectionConfiguration.builder(null, PointsPDSection.class)
+                        PDSectionConfiguration.builder(null, PointsPDSection.class, "points")
                                 .collection("shared_collection").build(),
                         parsed, registry, refRegistry));
-        assertTrue(error.getMessage().contains("FinalJobs:JobsPDSection")); // names the current owner
+        assertTrue(error.getMessage().contains("finaljobs:jobs")); // names the current owner
     }
 
     @Test
@@ -177,35 +178,51 @@ class BindingResolverTest {
                 jobsCfg().collection("shared_collection").build(), parsed, registry, refRegistry);
         // different backend, same collection name - allowed
         PDSectionBinding<PointsPDSection> binding = BindingResolver.resolve("FinalPoints",
-                PDSectionConfiguration.builder(null, PointsPDSection.class)
+                PDSectionConfiguration.builder(null, PointsPDSection.class, "points")
                         .collection("shared_collection").defaultBackend("economy_storage").build(),
                 parsed, registry, refRegistry);
         assertEquals("economy_storage", binding.getBackendName());
     }
 
     @Test
-    void adminCachePolicyOverridesDev() throws IOException {
+    void adminCachePolicySetsFreshness() throws IOException {
         setup("pdsections:",
-                "  FinalJobs:",
-                "    JobsPDSection:",
+                "  finaljobs:",
+                "    jobs:",
                 "      cache: { policy: TTL, ttlSeconds: 12 }");
         PDSectionBinding<JobsPDSection> binding = BindingResolver.resolve("FinalJobs",
-                jobsCfg().cache(SectionCachePolicy.resident()).build(), parsed, registry, refRegistry);
+                jobsCfg().build(), parsed, registry, refRegistry);
 
         CachePolicy policy = binding.getManager().defaultPolicy();
         assertTrue(policy instanceof CachePolicy.TtlPolicy);
         assertEquals(12, ((CachePolicy.TtlPolicy) policy).getTtl().getSeconds());
+        //freshness only - the lifecycle stays the developer's
+        assertEquals(SectionLifecycle.LAZY, binding.getLifecycle());
     }
 
     @Test
-    void devCachePolicyUsedWhenNoAdminOverride() throws IOException {
+    void adminNoCacheIsRefused() throws IOException {
+        setup("pdsections:",
+                "  finaljobs:",
+                "    jobs:",
+                "      cache: { policy: NOCACHE }");
+        StorageConfigException error = assertThrows(StorageConfigException.class,
+                () -> BindingResolver.resolve("FinalJobs", jobsCfg().build(), parsed, registry, refRegistry));
+        assertTrue(error.getMessage().contains("NOCACHE"));
+    }
+
+    @Test
+    void maxCachedBoundsTheStore() throws IOException {
         setup();
-        PDSectionBinding<JobsPDSection> binding = BindingResolver.resolve("FinalJobs",
-                jobsCfg().cache(SectionCachePolicy.ttl(java.time.Duration.ofSeconds(30))).build(),
-                parsed, registry, refRegistry);
-        CachePolicy policy = binding.getManager().defaultPolicy();
-        assertTrue(policy instanceof CachePolicy.TtlPolicy);
-        assertEquals(30, ((CachePolicy.TtlPolicy) policy).getTtl().getSeconds());
+        PDSectionBinding<JobsPDSection> bounded = BindingResolver.resolve("FinalJobs",
+                jobsCfg().maxCached(7).build(), parsed, registry, refRegistry);
+        assertTrue(bounded.getManager().defaultPolicy() instanceof CachePolicy.AlwaysPolicy);
+
+        for (int i = 0; i < 20; i++) {
+            bounded.getManager().seedIfAbsent(UUID.randomUUID(), new JobsPDSection());
+        }
+        assertTrue(bounded.getManager().cachedSize() <= 7,
+                "maxCached(7) must bound the store, cached=" + bounded.getManager().cachedSize());
     }
 
     @Test
@@ -221,7 +238,7 @@ class BindingResolverTest {
         assertTrue(yaml.getDescriptor().codec() instanceof EntitySchemaMigratingCodec);
 
         PDSectionBinding<PointsPDSection> json = BindingResolver.resolve("FinalPoints",
-                PDSectionConfiguration.builder(null, PointsPDSection.class)
+                PDSectionConfiguration.builder(null, PointsPDSection.class, "points")
                         .defaultBackend("json_files").build(),
                 parsed, registry, refRegistry);
         assertEquals("application/json", json.getDescriptor().codec().contentType());
@@ -258,7 +275,7 @@ class BindingResolverTest {
     void aSectionRoundTripsThroughTheResolvedBridgeCodec() throws IOException {
         setup();
         PDSectionBinding<RoundTripSection> binding = BindingResolver.resolve("FinalJobs",
-                PDSectionConfiguration.builder(null, RoundTripSection.class).build(),
+                PDSectionConfiguration.builder(null, RoundTripSection.class, "roundtrip").build(),
                 parsed, registry, refRegistry);
 
         // the descriptor's codec is the bridge (wrapped for schema migration); a section round-trips through it

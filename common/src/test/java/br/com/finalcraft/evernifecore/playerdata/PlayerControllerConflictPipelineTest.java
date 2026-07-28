@@ -98,7 +98,7 @@ class PlayerControllerConflictPipelineTest {
     private JobsPDSection bootWrappedSectionFor(String name, UUID uuid) throws Exception {
         PlayerController.initialize(writeMemoryStorageYml(name));
         wrapBackend("test_mem");
-        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, JobsPDSection.class).build());
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, JobsPDSection.class, "jobspdsection").build());
         PlayerController.handleLogin(uuid, "Worker").join();
         JobsPDSection section = PlayerController.getLoaded(uuid).getPDSection(JobsPDSection.class).join();
         //persist a first row cleanly so the conflict has a real winner to re-read

@@ -191,7 +191,7 @@ class LegacyImportTest {
 
     private void registerJobsSectionOwnedBy(ECPluginData owner) {
         PlayerController.registerPDSectionCfg(
-                PDSectionConfiguration.builder(owner, LegacyJobsPDSection.class)
+                PDSectionConfiguration.builder(owner, LegacyJobsPDSection.class, "legacyjobspdsection")
                         .legacyYaml("FinalJobs", section -> {
                             LegacyJobsPDSection jobs = new LegacyJobsPDSection();
                             jobs.level = section.getInt("level");

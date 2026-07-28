@@ -246,7 +246,7 @@ class ConfigFactoryCodecTest {
         };
         // register the chain through the real builder adapter (SectionSchemaStep -> EntitySchemaStep)
         List<EntitySchemaMigrations.Step> chain = PDSectionConfiguration
-                .builder(null, VersionedBag.class)
+                .builder(null, VersionedBag.class, "versionedbag")
                 .migration(1, step)
                 .build()
                 .getMigrations();

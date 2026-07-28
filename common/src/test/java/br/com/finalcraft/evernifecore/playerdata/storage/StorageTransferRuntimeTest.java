@@ -81,7 +81,7 @@ class StorageTransferRuntimeTest {
     void transferPDSection_memoryToH2_cutsOverAndPersistsTheChoice() throws IOException {
         File storageYml = writeStorageYml("storage.yml", "test_files", "transfer_section");
         PlayerController.registerPDSectionCfg(
-                PDSectionConfiguration.builder(null, TransferJobsPDSection.class)
+                PDSectionConfiguration.builder(null, TransferJobsPDSection.class, "transferjobspdsection")
                         .defaultBackend("test_mem")
                         .build());
         PlayerController.initialize(storageYml);
@@ -150,7 +150,7 @@ class StorageTransferRuntimeTest {
     void failedTransferKeepsTheBindingIntact() throws IOException {
         File storageYml = writeStorageYml("storage.yml", "test_files", "transfer_fail");
         PlayerController.registerPDSectionCfg(
-                PDSectionConfiguration.builder(null, TransferJobsPDSection.class)
+                PDSectionConfiguration.builder(null, TransferJobsPDSection.class, "transferjobspdsection")
                         .defaultBackend("test_mem")
                         .build());
         PlayerController.initialize(storageYml);

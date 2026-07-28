@@ -93,7 +93,7 @@ class LegacyImportReportTest {
 
     private void registerJobsSection() {
         PlayerController.registerPDSectionCfg(
-                PDSectionConfiguration.builder(null, LegacyJobsPDSection.class)
+                PDSectionConfiguration.builder(null, LegacyJobsPDSection.class, "legacyjobspdsection")
                         .legacyYaml("FinalJobs", section -> {
                             LegacyJobsPDSection jobs = new LegacyJobsPDSection();
                             jobs.level = section.getInt("level");

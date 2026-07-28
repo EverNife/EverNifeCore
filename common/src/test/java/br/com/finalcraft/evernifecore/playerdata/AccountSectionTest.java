@@ -78,7 +78,7 @@ class AccountSectionTest {
 
     private void registerAchievements() {
         PlayerController.registerAccountSectionCfg(
-                AccountSectionConfiguration.builder(null, AchievementsSection.class).build());
+                AccountSectionConfiguration.builder(null, AchievementsSection.class, "achievementssection").build());
     }
 
     /** Persists a canonical account with {@code memberUuid} linked in, plus the member's alias row. */

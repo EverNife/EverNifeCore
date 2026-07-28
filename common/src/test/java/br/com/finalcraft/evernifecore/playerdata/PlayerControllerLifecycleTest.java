@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.playerdata;
 import br.com.finalcraft.evernifecore.testing.Storages;
 import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
-import br.com.finalcraft.evernifecore.playerdata.storage.SectionCachePolicy;
+import br.com.finalcraft.evernifecore.playerdata.storage.SectionLifecycle;
 import br.com.finalcraft.evernifecore.storage.StorageRegistry;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.HealthStatus;
@@ -40,8 +40,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Cache lifecycle behaviour: the per-section cache policy (resident vs working-set vs lru vs ttl),
- * durable flush-on-quit with a storage-down retry, and {@code setPlayer} no longer dirtying the base.
+ * Cache lifecycle behaviour: the per-section lifecycle (lazy vs online vs resident, the idle release
+ * and the maxCached bound), durable flush-on-quit with a storage-down retry, and {@code setPlayer} no
+ * longer dirtying the base.
  * Runs on H2 mem - no Docker.
  */
 @ECoreTest
@@ -61,15 +62,15 @@ class PlayerControllerLifecycleTest {
         public long value;
     }
 
-    public static class WorkingSetSection extends PDSection {
+    public static class OnlineSection extends PDSection {
         public long value;
     }
 
-    public static class LruSection extends PDSection {
+    public static class BoundedSection extends PDSection {
         public long value;
     }
 
-    public static class TtlSection extends PDSection {
+    public static class LazySection extends PDSection {
         public long value;
     }
 
@@ -81,10 +82,10 @@ class PlayerControllerLifecycleTest {
     @Test
     void workingSetEvictsAfterQuitGrace_residentStaysCached() throws Exception {
         PlayerController.initialize(Storages.h2("f_ws").writeTo(tempDir));
-        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, ResidentSection.class)
-                .cache(SectionCachePolicy.resident()).build());
-        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, WorkingSetSection.class)
-                .cache(SectionCachePolicy.workingSet(Duration.ofMillis(150))).build());
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, ResidentSection.class, "resident")
+                .lifecycle(SectionLifecycle.RESIDENT).build());
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, OnlineSection.class, "online")
+                .lifecycle(SectionLifecycle.ONLINE).idleGrace(Duration.ofMillis(150)).build());
 
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "WS").join();
@@ -92,9 +93,9 @@ class PlayerControllerLifecycleTest {
 
         //load (seed) both sections into cache
         playerData.getPDSection(ResidentSection.class).join();
-        playerData.getPDSection(WorkingSetSection.class).join();
+        playerData.getPDSection(OnlineSection.class).join();
         assertNotNull(PlayerController.getLoadedSection(uuid, ResidentSection.class));
-        assertNotNull(PlayerController.getLoadedSection(uuid, WorkingSetSection.class));
+        assertNotNull(PlayerController.getLoadedSection(uuid, OnlineSection.class));
 
         //quit: the player is offline (no player attached), so the grace timer will evict the working set
         PlayerController.handlePlayerQuit(uuid);
@@ -105,8 +106,8 @@ class PlayerControllerLifecycleTest {
 
         //after the grace, the working-set cell is gone but the resident one is not
         awaitUntil(Duration.ofSeconds(3), () ->
-                PlayerController.getLoadedSection(uuid, WorkingSetSection.class) == null);
-        assertNull(PlayerController.getLoadedSection(uuid, WorkingSetSection.class),
+                PlayerController.getLoadedSection(uuid, OnlineSection.class) == null);
+        assertNull(PlayerController.getLoadedSection(uuid, OnlineSection.class),
                 "a working-set section must be evicted a grace after quit");
         assertNotNull(PlayerController.getLoadedSection(uuid, ResidentSection.class),
                 "the resident section is still cached after the working-set eviction");
@@ -119,7 +120,7 @@ class PlayerControllerLifecycleTest {
     @Test
     void quitFlushesDirtyState() throws Exception {
         PlayerController.initialize(Storages.h2("f_quitflush").writeTo(tempDir));
-        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, ResidentSection.class).build());
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, ResidentSection.class, "resident").build());
 
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "Quitter").join();
@@ -148,7 +149,7 @@ class PlayerControllerLifecycleTest {
         //wrap the backend's Storage so writes can be made to fail on demand (register AFTER bootstrap,
         //BEFORE the section binds, so the section manager resolves against the failing wrapper)
         wrapBackendWithFailable("test_h2");
-        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, ResidentSection.class).build());
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, ResidentSection.class, "resident").build());
 
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "Flaky").join();
@@ -202,54 +203,80 @@ class PlayerControllerLifecycleTest {
     }
 
     // ------------------------------------------------------------------
-    // lru(n) bounds the cached size
+    // maxCached(n) bounds the cached size
     // ------------------------------------------------------------------
 
     @Test
-    void lruPolicyBoundsCachedSize() throws IOException {
+    void maxCachedBoundsCachedSize() throws IOException {
         PlayerController.initialize(Storages.h2("f_lru").writeTo(tempDir));
-        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, LruSection.class)
-                .cache(SectionCachePolicy.lru(3)).build());
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, BoundedSection.class, "bounded")
+                .maxCached(3).build());
 
         //seed 10 distinct section cells; the bounded LRU keeps at most 3
         for (int i = 0; i < 10; i++) {
             UUID uuid = UUID.randomUUID();
             PlayerController.handleLogin(uuid, "L" + i).join();
-            LruSection s = PlayerController.getLoaded(uuid).getPDSection(LruSection.class).join();
+            BoundedSection s = PlayerController.getLoaded(uuid).getPDSection(BoundedSection.class).join();
             s.value = i;
             s.markDirty();
         }
         PlayerController.get().flushAll().join();
 
-        int cached = PlayerController.get().getBinding(LruSection.class).getManager().cachedSize();
-        assertTrue(cached <= 3, "an lru(3) manager must cap the cached size at 3, was " + cached);
+        int cached = PlayerController.get().getBinding(BoundedSection.class).getManager().cachedSize();
+        assertTrue(cached <= 3, "a maxCached(3) manager must cap the cached size at 3, was " + cached);
     }
 
     // ------------------------------------------------------------------
-    // ttl schedules purge (purgeExpired reachable and effective)
+    // the idle sweep releases a cell whose owner never was online (no quit to key off)
     // ------------------------------------------------------------------
 
     @Test
-    void ttlPolicyPurgeReleasesExpiredCells() throws Exception {
-        PlayerController.initialize(Storages.h2("f_ttl").writeTo(tempDir));
-        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, TtlSection.class)
-                .cache(SectionCachePolicy.ttl(Duration.ofMillis(50))).build());
+    void idleSweepReleasesCellOfOfflineOwner() throws Exception {
+        PlayerController.initialize(Storages.h2("f_idle").writeTo(tempDir));
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, LazySection.class, "lazy")
+                .lifecycle(SectionLifecycle.LAZY).idleGrace(Duration.ZERO).build());
 
         UUID uuid = UUID.randomUUID();
-        PlayerController.handleLogin(uuid, "TTL").join();
-        //persist a clean cell (so purge is free to drop it once expired)
-        TtlSection s = PlayerController.getLoaded(uuid).getPDSection(TtlSection.class).join();
+        //handleLogin resolves the PlayerData but never attaches an FPlayer, so the owner is OFFLINE
+        //here: exactly the cell no quit event will ever release
+        PlayerController.handleLogin(uuid, "Idle").join();
+        LazySection s = PlayerController.getLoaded(uuid).getPDSection(LazySection.class).join();
         s.value = 1L;
         s.markDirty();
         PlayerController.get().flushAll().join();
 
-        assertTrue(PlayerController.get().getBinding(TtlSection.class).getManager().cachedSize() >= 1);
+        assertTrue(PlayerController.get().getBinding(LazySection.class).getManager().cachedSize() >= 1,
+                "the resolved cell must be cached before the sweep");
 
-        //let the ttl elapse, then run the framework's purge hook: the expired clean cell is released
-        Thread.sleep(120);
-        PlayerController.get().purgeTtlManagers();
-        assertEquals(0, PlayerController.get().getBinding(TtlSection.class).getManager().cachedSize(),
-                "purge must release the expired ttl cell from memory");
+        //first sweep records the cell as idle, the second releases it (grace zero)
+        PlayerController.get().sweepIdleSections();
+        PlayerController.get().sweepIdleSections();
+        assertEquals(0, PlayerController.get().getBinding(LazySection.class).getManager().cachedSize(),
+                "the idle sweep must release the cell of an offline owner");
+    }
+
+    // ------------------------------------------------------------------
+    // LAZY does not load at login; ONLINE does
+    // ------------------------------------------------------------------
+
+    @Test
+    void lazyDoesNotLoadOnLoginButOnlineDoes() throws IOException {
+        PlayerController.initialize(Storages.h2("f_lazyvsonline").writeTo(tempDir));
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, LazySection.class, "lazy").build());
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, OnlineSection.class, "online")
+                .lifecycle(SectionLifecycle.ONLINE).build());
+
+        UUID uuid = UUID.randomUUID();
+        PlayerController.handleLogin(uuid, "Fresh").join();
+
+        assertNull(PlayerController.getLoadedSection(uuid, LazySection.class),
+                "a LAZY section must not enter memory until someone asks for it");
+        assertNotNull(PlayerController.getLoadedSection(uuid, OnlineSection.class),
+                "an ONLINE section is resolved by the login itself");
+
+        //the first effective call is what loads a LAZY one
+        PlayerController.getLoaded(uuid).getPDSection(LazySection.class).join();
+        assertNotNull(PlayerController.getLoadedSection(uuid, LazySection.class));
     }
 
     // ------------------------------------------------------------------
