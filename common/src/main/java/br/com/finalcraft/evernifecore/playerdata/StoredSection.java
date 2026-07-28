@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.playerdata;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchema;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import br.com.finalcraft.everydatabase.manager.CachingManager;
+import br.com.finalcraft.everydatabase.manager.cache.CacheEntry;
 import br.com.finalcraft.everydatabase.manager.cache.IDirtyable;
 import br.com.finalcraft.everydatabase.manager.writeback.PersistedState;
 import br.com.finalcraft.everydatabase.util.JsonAutoDetectFieldsOnly;
@@ -47,6 +48,19 @@ abstract class StoredSection implements EntitySchema, IDirtyable {
     /** Per-key lock guarding the flush/conflict-resolution critical section. */
     @JsonIgnore
     protected transient ReentrantLock lock = new ReentrantLock();
+
+    /**
+     * The cache cell this instance was handed out from, memoized at resolution time. Reading it is
+     * lock-free (volatile), which is what makes the detached check on every {@code markDirty()} free
+     * enough to live on the write path. Null for an instance that never went through the resolution
+     * path, and then there is simply no answer to give.
+     */
+    @JsonIgnore
+    private transient volatile CacheEntry<?> cacheCell;
+
+    /** The key {@link #cacheCell} is filed under - carried only so a report can name it. */
+    @JsonIgnore
+    private transient volatile UUID cacheKey;
 
     /** A short label of the section kind for diagnostics ({@code "PDSection"} / {@code "AccountSection"}). */
     abstract String sectionKind();
@@ -93,6 +107,29 @@ abstract class StoredSection implements EntitySchema, IDirtyable {
     @Override
     public void markDirty() {
         this.dirty = true;
+        reportIfDetached();
+    }
+
+    /**
+     * Records which cache cell handed this instance out, so a later write can tell whether it is
+     * still the live one. Called by the resolution path, right before the instance reaches the caller.
+     */
+    final void bindToCache(CachingManager<UUID, ?> manager, UUID key) {
+        this.cacheCell = manager.peekCell(key, manager.defaultPolicy());
+        this.cacheKey = key;
+    }
+
+    /**
+     * The flush pipeline persists the CACHED values, so a write on an instance the cache no longer
+     * holds is invisible to it. Nothing is thrown - blowing up inside a plugin's tick would trade a
+     * lost write for a broken plugin - and the dirty flag is still set, so a conflict adoption can
+     * still pick this state up. The point is only that the loss stops being silent.
+     */
+    private void reportIfDetached() {
+        CacheEntry<?> cell = this.cacheCell;
+        if (cell == null) return;
+        if (!cell.isEvicted() && cell.getValue() == this) return;
+        DetachedWrites.report(this, this.cacheKey);
     }
 
     // ---- presence bookkeeping (framework wiring) -----------------------------------------------

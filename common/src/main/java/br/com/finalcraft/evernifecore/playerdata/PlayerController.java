@@ -1039,6 +1039,7 @@ public class PlayerController {
             }else {
                 section = manager.seedIfAbsent(key, StoredSection.newDefault(cfg.getPdSectionClass()));
             }
+            section.bindToCache(manager, key);
             section.attachPlayerData(playerData);
         }
         PDLog.info("Finished Loading PDSection {%s} (%s) of %s players! (%s)",
@@ -1674,6 +1675,7 @@ public class PlayerController {
             }else {
                 section = manager.seedIfAbsent(key, StoredSection.newDefault(binding.getPdSectionClass()));
             }
+            section.bindToCache(manager, key); //so a write after the cell is released stops being silent
             section.attachPlayerData(playerData);
             return section;
         });
@@ -1701,6 +1703,7 @@ public class PlayerController {
                 return Optional.<T>empty();
             }
             StoredSection.upcastOrEvict(manager, key, section);
+            section.bindToCache(manager, key);
             section.attachPlayerData(pd);
             return Optional.of(section);
         });

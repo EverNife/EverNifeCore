@@ -397,6 +397,7 @@ final class AccountSectionEngine {
             S section = stored.get();
             if (section.isTransientDefault()) return Optional.<S>empty();
             StoredSection.upcastOrEvict(binding.getManager(), accountKey, section);
+            section.bindToCache(binding.getManager(), accountKey);
             return Optional.of(section);
         });
     }
@@ -419,12 +420,15 @@ final class AccountSectionEngine {
             AccountSectionBinding<S> binding, UUID accountKey) {
         CachingManager<UUID, S> manager = binding.getManager();
         return manager.resolve(accountKey).thenApply(stored -> {
+            S section;
             if (stored.isPresent()) {
-                S section = stored.get();
+                section = stored.get();
                 StoredSection.upcastOrEvict(manager, accountKey, section);
-                return section;
+            } else {
+                section = manager.seedIfAbsent(accountKey, newDefault(binding.getSectionClass(), accountKey));
             }
-            return manager.seedIfAbsent(accountKey, newDefault(binding.getSectionClass(), accountKey));
+            section.bindToCache(manager, accountKey); //so a write after the row is released stops being silent
+            return section;
         });
     }
 
