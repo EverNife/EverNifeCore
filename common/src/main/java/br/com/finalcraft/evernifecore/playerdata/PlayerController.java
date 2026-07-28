@@ -544,6 +544,7 @@ public class PlayerController {
     }
 
     public static void registerPDSectionCfg(PDSectionConfiguration<?> pdSectionConfiguration){
+        requireInstantiable(pdSectionConfiguration.getPdSectionClass(), "PDSection");
         requireFreeSectionId(pdSectionConfiguration);
         //install the schema-migration chain FIRST, before the section can bind/decode any row: the
         //register-before-load ordering (EntitySchemaMigrations) becomes structural (the chain travels with
@@ -569,6 +570,7 @@ public class PlayerController {
     }
 
     public static void registerAccountSectionCfg(AccountSectionConfiguration<?> configuration){
+        requireInstantiable(configuration.getSectionClass(), "AccountSection");
         requireFreeAccountSectionId(configuration);
         //install the schema-migration chain FIRST (see registerPDSectionCfg)
         EntitySchemaMigrations.registerChain(configuration.getSectionClass(), configuration.getMigrations());
@@ -606,6 +608,25 @@ public class PlayerController {
             throw new IllegalStateException("AccountSection [" + configuration.getSectionClass().getName()
                     + "] claims the section id '" + configuration.getSectionId() + "', already used by ["
                     + registered.getSectionClass().getName() + "] of the same plugin.");
+        }
+    }
+
+    /**
+     * Refuses at REGISTRATION a class the framework could never instantiate: an abstract type, or one
+     * without the no-arg constructor Jackson and the default-seeding path need. Otherwise the failure
+     * waits for the first cache miss of some player, far from the call that caused it.
+     */
+    private static void requireInstantiable(Class<?> sectionClass, String kind){
+        if (java.lang.reflect.Modifier.isAbstract(sectionClass.getModifiers())){
+            throw new IllegalStateException(kind + " [" + sectionClass.getName() + "] is abstract -"
+                    + " register the concrete class that holds the data.");
+        }
+        try {
+            sectionClass.getDeclaredConstructor();
+        }catch (NoSuchMethodException noNoArgConstructor){
+            throw new IllegalStateException(kind + " [" + sectionClass.getName() + "] must declare a"
+                    + " no-arg constructor: it is how Jackson decodes a stored row and how a default is"
+                    + " seeded on a miss. A non-static inner class cannot have one - make it static.");
         }
     }
 
@@ -1056,14 +1077,29 @@ public class PlayerController {
         return controller == null ? 0 : controller.baseManager().cachedSize();
     }
 
-    /** That player's cached section, or null when it isn't loaded (never touches storage). */
+    /**
+     * That player's cached section, or null when it isn't loaded (never touches storage).
+     *
+     * <p>Throws when {@code pdSectionClass} was never registered: {@code null} here means "not in
+     * memory", and answering that for a class the framework does not know would hide a programming
+     * error behind a perfectly ordinary-looking answer.</p>
+     */
     public static <T extends PDSection> T getLoadedSection(UUID uuid, Class<T> pdSectionClass){
         Objects.requireNonNull(uuid, "UUID can't be null");
+        requireRegisteredSection(pdSectionClass);
         PlayerController controller = INSTANCE;
         if (controller == null) return null;
         PDSectionBinding<T> binding = controller.getBinding(pdSectionClass);
         if (binding == null) return null;
         return binding.getManager().peek(uuid).orElse(null);
+    }
+
+    /** @throws IllegalStateException when no plugin ever registered {@code pdSectionClass}. */
+    static void requireRegisteredSection(Class<? extends PDSection> pdSectionClass){
+        Objects.requireNonNull(pdSectionClass, "PDSection class can't be null");
+        if (!REGISTERED_SECTIONS.containsKey(pdSectionClass)){
+            throw notRegisteredPDSection(pdSectionClass);
+        }
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------//
@@ -1135,6 +1171,11 @@ public class PlayerController {
      * Completes with {@code null} only when the player does not exist in the backend at all.
      */
     public static <T extends PDSection> CompletableFuture<T> getPDSection(UUID uuid, Class<T> pdSectionClass){
+        //checked BEFORE the player is resolved: an unknown player would otherwise short-circuit to a
+        //plain null and swallow the "you never registered this section" error entirely
+        if (!REGISTERED_SECTIONS.containsKey(pdSectionClass)){
+            return failedFuture(notRegisteredPDSection(pdSectionClass));
+        }
         PlayerData loaded = getLoaded(uuid);
         if (loaded != null) {
             return loaded.getPDSection(pdSectionClass);
@@ -1152,6 +1193,9 @@ public class PlayerController {
     }
 
     public static <T extends PDSection> CompletableFuture<T> getPDSection(String playerName, Class<T> pdSectionClass){
+        if (!REGISTERED_SECTIONS.containsKey(pdSectionClass)){
+            return failedFuture(notRegisteredPDSection(pdSectionClass));
+        }
         //routes through the name fallback too: a stored-but-unloaded player must resolve
         return getPlayerData(playerName).thenCompose(playerData ->
                 playerData == null
@@ -1705,6 +1749,10 @@ public class PlayerController {
      * player does not exist in the backend at all.
      */
     public static <T extends AccountSection<T>> CompletableFuture<T> getAccountSection(UUID playerUuid, Class<T> sectionClass){
+        //same reason as the PDSection accessor: an unknown player must not hide an unregistered section
+        if (!REGISTERED_ACCOUNT_SECTIONS.containsKey(sectionClass)){
+            return failedFuture(notRegisteredAccountSection(sectionClass));
+        }
         return getPlayerData(playerUuid).thenCompose(playerData ->
                 playerData == null
                         ? CompletableFuture.<T>completedFuture(null)
@@ -1723,9 +1771,15 @@ public class PlayerController {
         return controller.ready.thenCompose(v -> controller.accountEngine.resolve(sectionClass, accountId));
     }
 
-    /** That account's cached row, or null when it isn't loaded (never touches storage). */
+    /**
+     * That account's cached row, or null when it isn't loaded (never touches storage). Throws for a
+     * section class nobody registered - see {@link #getLoadedSection(UUID, Class)}.
+     */
     public static <T extends AccountSection<T>> T getLoadedAccountSection(UUID playerUuid, Class<T> sectionClass){
         Objects.requireNonNull(playerUuid, "UUID can't be null");
+        if (!REGISTERED_ACCOUNT_SECTIONS.containsKey(sectionClass)){
+            throw notRegisteredAccountSection(sectionClass);
+        }
         PlayerController controller = INSTANCE;
         if (controller == null) return null;
         PlayerData playerData = controller.baseManager().peek(playerUuid).orElse(null);

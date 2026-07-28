@@ -380,8 +380,15 @@ final class AccountSectionEngine {
         });
     }
 
-    /** The cached account row, or null when it is not in memory (never touches storage). */
+    /**
+     * The cached account row, or null when it is not in memory (never touches storage). Throws for a
+     * class nobody registered: {@code null} means "not loaded", and using it for "unknown section"
+     * too would hide the programming error.
+     */
     <S extends AccountSection<S>> S getLoaded(Class<S> sectionClass, UUID accountKey) {
+        if (!PlayerController.getConfiguredAccountSections().containsKey(sectionClass)) {
+            throw PlayerController.notRegisteredAccountSection(sectionClass);
+        }
         AccountSectionBinding<S> binding = getBinding(sectionClass);
         if (binding == null) return null;
         return binding.getManager().peek(accountKey).orElse(null);

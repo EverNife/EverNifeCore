@@ -155,6 +155,14 @@ public final class BindingResolver {
     private static CacheOptions resolveCacheOptions(String sectionId, int maxCached, PDSectionAdminConfig admin) {
         CachePolicy policy = CachePolicy.always();
         if (admin != null && admin.getCachePolicyName() != null) {
+            //NOCACHE never serves nor populates the cache, and the flush pipeline only ever sees CACHED
+            //cells - a section on it would take every write to the grave, silently. Refuse it here.
+            if ("NOCACHE".equalsIgnoreCase(admin.getCachePolicyName().trim())) {
+                throw new StorageConfigException("PDSection '" + sectionId + "' is configured with"
+                        + " 'cache.policy: NOCACHE', which a PDSection cannot use: its cached cell IS the"
+                        + " live instance the flush pipeline persists, so bypassing the cache would lose"
+                        + " every write. Use ALWAYS, or TTL when the rows are written from outside.");
+            }
             try {
                 policy = CachePolicy.fromAdminConfig(admin.getCachePolicyName(), admin.getCacheTtlSeconds());
             } catch (IllegalArgumentException e) {
