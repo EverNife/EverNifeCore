@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.util;
 
-import br.com.finalcraft.evernifecore.chatmenuapi.listeners.CMListener;
-import br.com.finalcraft.evernifecore.chatmenuapi.listeners.expectedchat.ExpectedChat;
-import br.com.finalcraft.evernifecore.chatmenuapi.menu.ChatMenuAPI;
+import br.com.finalcraft.evernifecore.minecraft.chat.ChatExpectationListener;
+import br.com.finalcraft.evernifecore.minecraft.chat.ExpectedChat;
+import br.com.finalcraft.evernifecore.minecraft.chat.IChatAction;
 import org.bukkit.entity.Player;
 
 public class FCChatUtil {
@@ -13,8 +13,8 @@ public class FCChatUtil {
      * @param player The player to expect a chat from.
      * @param chatAction The action to perform when the player chats.
      */
-    public static ExpectedChat expectPlayerChat(Player player, CMListener.IChatAction chatAction) {
-        return ChatMenuAPI.getChatListener().expectPlayerChat(player, chatAction, 0, null, null);
+    public static ExpectedChat expectPlayerChat(Player player, IChatAction chatAction) {
+        return ChatExpectationListener.get().expectPlayerChat(player, chatAction, 0, null, null);
     }
 
     /**
@@ -24,8 +24,8 @@ public class FCChatUtil {
      * @param chatAction The action to perform when the player chats.
      * @param expiration The time in milliseconds the wait for the chat.
      */
-    public static ExpectedChat expectPlayerChat(Player player, CMListener.IChatAction chatAction, long expiration) {
-        return ChatMenuAPI.getChatListener().expectPlayerChat(player, chatAction, expiration, null, null);
+    public static ExpectedChat expectPlayerChat(Player player, IChatAction chatAction, long expiration) {
+        return ChatExpectationListener.get().expectPlayerChat(player, chatAction, expiration, null, null);
     }
 
     /**
@@ -36,8 +36,8 @@ public class FCChatUtil {
      * @param expiration The time in milliseconds the wait for the chat.
      * @param onExpireAction The action to perform when the chat expires.
      */
-    public static ExpectedChat expectPlayerChat(Player player, CMListener.IChatAction chatAction, long expiration, Runnable onExpireAction) {
-        return ChatMenuAPI.getChatListener().expectPlayerChat(player, chatAction, expiration, onExpireAction, null);
+    public static ExpectedChat expectPlayerChat(Player player, IChatAction chatAction, long expiration, Runnable onExpireAction) {
+        return ChatExpectationListener.get().expectPlayerChat(player, chatAction, expiration, onExpireAction, null);
     }
 
     /**
@@ -49,8 +49,8 @@ public class FCChatUtil {
      * @param onExpireAction The action to perform when the chat expires.
      * @param onPlayerQuitAction The action to perform when the player quits.
      */
-    public static ExpectedChat expectPlayerChat(Player player, CMListener.IChatAction chatAction, long expiration, Runnable onExpireAction, Runnable onPlayerQuitAction) {
-        return ChatMenuAPI.getChatListener().expectPlayerChat(player, chatAction, expiration, onExpireAction, onPlayerQuitAction);
+    public static ExpectedChat expectPlayerChat(Player player, IChatAction chatAction, long expiration, Runnable onExpireAction, Runnable onPlayerQuitAction) {
+        return ChatExpectationListener.get().expectPlayerChat(player, chatAction, expiration, onExpireAction, onPlayerQuitAction);
     }
 
 }

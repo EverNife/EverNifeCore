@@ -38,7 +38,6 @@ dependencies {
     implementation(libs.ecnmsutils) {
         exclude group: "br.com.finalcraft", module: "*"
     }
-    implementation libs.chatmenuapi
     implementation libs.ecforgelistener
     implementation libs.libby.core
     implementation libs.triumph.gui
@@ -101,7 +100,6 @@ shadowJar {
 
     // Allowlist: everything else is expected from the server or fetched by libby at runtime.
     dependencies {
-        include(dependency('br.com.finalcraft:ChatMenuAPI:'))
         include(dependency('br.com.finalcraft:ECNmsUtils:'))
         include(dependency('net.byteflux:libby-core:'))
         include(dependency('dev.triumphteam:triumph-gui:'))

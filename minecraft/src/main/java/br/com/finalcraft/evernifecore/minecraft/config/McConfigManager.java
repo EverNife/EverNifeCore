@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.minecraft.config;
 
-import br.com.finalcraft.evernifecore.chatmenuapi.menu.element.InputElement;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.minecraft.autoupdater.SpigotUpdateChecker;
@@ -19,8 +18,7 @@ public class McConfigManager {
                 Arrays.asList(
                         FCBukkitUtil.class,
                         SpigotUpdateChecker.class,
-                        DefaultIcons.class,
-                        InputElement.class
+                        DefaultIcons.class
                 ).stream().filter(Objects::nonNull).toArray(Class[]::new)
         );
 

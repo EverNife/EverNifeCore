@@ -10,7 +10,6 @@ everydatabase = "1.1.0"
 everyconfig = "1.0.1"
 everylibs = "1.0.0"
 ecnmsutils = "1.1.5"
-chatmenuapi = "2.0.1"
 ecforgelistener = "1.0.6"
 
 # FinalCraft fork (same one EveryDatabase/EveryConfig use): hooks a Java 25 javac and only lifts
@@ -63,7 +62,6 @@ everylibs-reflection = { module = "br.com.finalcraft.everylibs:everylibs-reflect
 everylibs-utils = { module = "br.com.finalcraft.everylibs:everylibs-utils", version.ref = "everylibs" }
 everylibs-executors = { module = "br.com.finalcraft.everylibs:everylibs-executors", version.ref = "everylibs" }
 ecnmsutils = { module = "br.com.finalcraft:ECNmsUtils", version.ref = "ecnmsutils" }
-chatmenuapi = { module = "br.com.finalcraft:ChatMenuAPI", version.ref = "chatmenuapi" }
 ecforgelistener = { module = "br.com.finalcraft:ECForgeListener", version.ref = "ecforgelistener" }
 jabel = { module = "br.com.finalcraft:jabel", version.ref = "jabel" }
 
