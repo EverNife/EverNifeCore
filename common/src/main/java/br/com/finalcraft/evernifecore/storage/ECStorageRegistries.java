@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.everydatabase.manager.RefRegistry;
 
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Bridge that lets an {@link ECStorage} share a plugin's {@link RefRegistry} with that plugin's PlayerData
@@ -22,12 +23,33 @@ public final class ECStorageRegistries {
     /** Resolves the CURRENT controller instance's child registry for a plugin; swapped-safe (resolves lazily). */
     private static volatile Function<ECPluginData, RefRegistry> provider;
 
+    /** Answers whether a plugin registered a storage-reload callback; see {@link #hasReloadHook}. */
+    private static volatile Predicate<ECPluginData> reloadHookProbe;
+
     private ECStorageRegistries() {
     }
 
     /** Wired once by {@code PlayerController} (its lambda resolves the live controller instance each call). */
     public static void setProvider(Function<ECPluginData, RefRegistry> registryProvider) {
         provider = registryProvider;
+    }
+
+    /** Wired once by {@code PlayerController}, alongside {@link #setProvider}. */
+    public static void setReloadHookProbe(Predicate<ECPluginData> probe) {
+        reloadHookProbe = probe;
+    }
+
+    /**
+     * Whether {@code plugin} registered a storage-reload callback. An {@link ECStorage} asks this when it
+     * opens: without a callback, nothing re-runs the plugin's storage setup after a reload swaps the
+     * per-plugin registries, and the handle is left wired to a detached one.
+     *
+     * <p>{@code true} when no probe is wired yet - the answer is unknown, and a warning built on a guess
+     * would fire on every plugin-less/bootstrap-time open.</p>
+     */
+    public static boolean hasReloadHook(ECPluginData plugin) {
+        Predicate<ECPluginData> current = reloadHookProbe;
+        return current == null || plugin == null || current.test(plugin);
     }
 
     /**

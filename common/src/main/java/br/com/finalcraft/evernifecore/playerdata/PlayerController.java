@@ -21,6 +21,7 @@ import br.com.finalcraft.evernifecore.playerdata.storage.PlayerDataBinding;
 import br.com.finalcraft.evernifecore.playerdata.storage.SectionIds;
 import br.com.finalcraft.evernifecore.playerdata.storage.SectionLifecycle;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
+import br.com.finalcraft.evernifecore.storage.ECStorage;
 import br.com.finalcraft.evernifecore.storage.ECStorageRegistries;
 import br.com.finalcraft.evernifecore.storage.StorageBootGuard;
 import br.com.finalcraft.evernifecore.storage.StorageBootReport;
@@ -105,6 +106,7 @@ public class PlayerController {
         //PDSection can resolve an entity in the plugin's own ECStorage). The lambda resolves the LIVE
         //controller instance each call, so it survives a reload swap.
         ECStorageRegistries.setProvider(PlayerController::sharedRefRegistryFor);
+        ECStorageRegistries.setReloadHookProbe(PlayerController::hasStorageReloadHook);
     }
 
     /** The current controller instance's child registry for {@code plugin}, or {@code null} if not bootstrapped. */
@@ -228,6 +230,14 @@ public class PlayerController {
         }
 
         INSTANCE = fresh;                       //atomic instance swap
+
+        if (old != null){
+            //the per-plugin RefRegistries just changed identity: a plugin-owned ECStorage still holding the
+            //previous one is now invisible to that plugin's freshly rebound PDSections. Marked BEFORE the
+            //reload callbacks below, so a plugin that does re-open finds the mark and clears it, and one
+            //that does not is loud instead of silently unresolvable.
+            ECStorage.onRegistriesSwapped();
+        }
         if (!importPending){
             fresh.ready.complete(null);         //held until the import on the first boot
             //a registration that raced this bootstrap (arrived after fresh.start() visited the
@@ -669,6 +679,19 @@ public class PlayerController {
     public static void onStorageReload(ECPluginData plugin, Runnable callback){
         Objects.requireNonNull(callback, "callback can't be null");
         STORAGE_RELOAD_HOOKS.add(new ReloadHook(plugin, callback));
+    }
+
+    /**
+     * Whether {@code plugin} registered a storage-reload callback. Backs the warning an {@link ECStorage}
+     * emits when it opens without one - nothing would re-open that handle after a reload swaps the
+     * per-plugin registries.
+     */
+    public static boolean hasStorageReloadHook(ECPluginData plugin){
+        if (plugin == null) return false;
+        for (ReloadHook hook : STORAGE_RELOAD_HOOKS){
+            if (hook.plugin == plugin) return true;
+        }
+        return false;
     }
 
     /** Runs every storage-reload callback (post-swap); a failing one is logged, never fatal to the reload. */

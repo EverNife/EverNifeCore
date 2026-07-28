@@ -16,12 +16,14 @@ import br.com.finalcraft.everydatabase.manager.RefRegistry;
 import br.com.finalcraft.everydatabase.manager.cache.CacheOptions;
 import br.com.finalcraft.everydatabase.manager.cache.CachePolicy;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -69,8 +71,19 @@ public final class ECStorage {
      * here. Opened without a plugin - or before the PlayerData bootstrap wired the bridge - it is a private
      * registry. Either way {@link #reset()}/{@link #close()} unregister only THIS handle's own types, never
      * the whole (possibly shared) registry.
+     *
+     * <p>Not final: a reload replaces the plugin's shared registry, and {@link #rebind} moves this handle
+     * onto the fresh one without dropping the connection.</p>
      */
-    private final RefRegistry refRegistry;
+    private volatile RefRegistry refRegistry;
+
+    /**
+     * Set when a reload swapped this plugin's shared registry out from under the handle and nothing has
+     * re-run its storage setup yet - see {@link #onRegistriesSwapped()}. A detached handle refuses to hand
+     * out anything NEW (its managers would register in a registry no PDSection resolves through) while
+     * still allowing the plugin to flush and close what it already has.
+     */
+    private volatile boolean detached = false;
 
     /**
      * Managers created through {@link #manager(EntityDescriptor, CachePolicy)} on the OWNED registry,
@@ -82,11 +95,22 @@ public final class ECStorage {
     /** Flipped by {@link #close()} so a reload can tell a reusable handle from a dead one. */
     private volatile boolean open = true;
 
+    /**
+     * Every handle currently open, weakly held. {@link #onRegistriesSwapped()} walks it after a reload to
+     * find the handles whose plugin registry was replaced.
+     *
+     * <p>WEAK on purpose: a strong reference here would keep the handle - and through it the
+     * {@link ECPluginData} and the plugin's classloader - reachable forever, which is exactly the leak
+     * {@code PlayerController.unregisterPDSections} exists to prevent.</p>
+     */
+    private static final List<WeakReference<ECStorage>> OPEN_HANDLES = new CopyOnWriteArrayList<>();
+
     ECStorage(ECPluginData plugin, Storage storage, BackendDefinition definition, RefRegistry refRegistry) {
         this.plugin = plugin;
         this.storage = storage;
         this.definition = definition;
         this.refRegistry = refRegistry;
+        OPEN_HANDLES.add(new WeakReference<>(this));
     }
 
     // ---------------------------------------------------------------------
@@ -128,7 +152,16 @@ public final class ECStorage {
      * {@code format}, every other backend uses compact JSON. See {@link BackendDefinition#defaultCodec(Class)}.
      */
     public <V> Codec<V> defaultCodec(Class<V> type) {
+        ensureUsable();
         return definition.defaultCodec(type);
+    }
+
+    /**
+     * {@code true} while a reload has swapped this plugin's shared registry and nothing re-opened this
+     * handle yet. Flushing and closing still work; handing out new managers does not.
+     */
+    public boolean isDetached() {
+        return detached;
     }
 
     // ---------------------------------------------------------------------
@@ -141,7 +174,7 @@ public final class ECStorage {
      * Prefer {@link #manager(EntityDescriptor, CachePolicy)} when you want caching / {@code Ref} resolution.
      */
     public <K, V> Repository<K, V> repository(EntityDescriptor<K, V> descriptor) {
-        ensureOpen();
+        ensureUsable();
         return storage.repository(descriptor);
     }
 
@@ -160,7 +193,7 @@ public final class ECStorage {
      */
     @SuppressWarnings("unchecked")
     public <K, V> CachingManager<K, V> manager(EntityDescriptor<K, V> descriptor, CacheOptions options) {
-        ensureOpen();
+        ensureUsable();
         return (CachingManager<K, V>) managers.computeIfAbsent(descriptor.type(),
                 type -> refRegistry.manager(descriptor, storage, options));
     }
@@ -173,7 +206,7 @@ public final class ECStorage {
      */
     public <K, V> CachingManager<K, V> manager(EntityDescriptor<K, V> descriptor, CacheOptions options,
                                                RefRegistry customRegistry) {
-        ensureOpen();
+        ensureUsable();
         return customRegistry.manager(descriptor, storage, options);
     }
 
@@ -218,13 +251,82 @@ public final class ECStorage {
             refRegistry.unregister(type); // release only this handle's registrations from the (possibly shared) registry
         }
         managers.clear();
+        OPEN_HANDLES.removeIf(ref -> ref.get() == null || ref.get() == this);
         return storage.close();
+    }
+
+    /**
+     * Moves this handle onto {@code fresh} WITHOUT reconnecting: the tracked managers are cleared out of the
+     * old registry exactly as {@link #reset()} does, then the handle adopts the new registry and the caller
+     * re-derives its managers there - which is what gives them a codec bound to the live registry.
+     *
+     * <p>The connection is deliberately untouched. The previous behaviour closed and reopened the storage
+     * because an in-memory registry object had been replaced, which on a pooled backend meant tearing down
+     * the whole pool on every reload.</p>
+     */
+    private void rebind(RefRegistry fresh) {
+        reset();                    // unregisters this handle's types from the OLD registry - order matters
+        this.refRegistry = fresh;
+        this.detached = false;
+    }
+
+    /**
+     * Tells every open handle that the per-plugin registries were just replaced. Called by the core right
+     * after it publishes a reloaded PlayerData layer and BEFORE it fires the storage-reload callbacks, so a
+     * plugin's own callback finds the handle already marked and re-opens it into the live registry.
+     *
+     * <p>A handle whose plugin no longer resolves to the registry it holds is marked DETACHED rather than
+     * repaired: repairing it transparently is not possible. A manager carries the codec it was built with,
+     * and that codec captured a registry; moving the resolver alone would leave entities decoded against a
+     * graph nobody feeds, and building fresh managers would silently invalidate the ones the plugin already
+     * holds - trading a quiet read failure for a quiet write failure. So the handle refuses new work and
+     * says exactly how to fix it.</p>
+     *
+     * <p>The registrations in the OLD registry are left alone on purpose: a manager the plugin already holds
+     * keeps resolving inside that older but self-consistent graph until the plugin re-opens, instead of
+     * suddenly resolving nothing.</p>
+     */
+    public static void onRegistriesSwapped() {
+        OPEN_HANDLES.removeIf(ref -> ref.get() == null);
+        for (WeakReference<ECStorage> ref : OPEN_HANDLES) {
+            ECStorage handle = ref.get();
+            if (handle == null || !handle.open || handle.detached || handle.plugin == null) {
+                continue;
+            }
+            RefRegistry live = ECStorageRegistries.of(handle.plugin);
+            if (live == null || live == handle.refRegistry) {
+                continue;
+            }
+            handle.detached = true;
+            logWarning(handle.plugin, "This plugin's ECStorage is still wired to the RefRegistry a reload"
+                    + " replaced, so a Ref between its PDSections and this storage no longer resolves. The"
+                    + " handle refuses new managers until it is re-opened. Fix: register the re-open once,"
+                    + " on enable - PlayerController.onStorageReload(plugin, () -> STORAGE ="
+                    + " ECStorage.openOrReload(plugin, section, STORAGE).join())");
+        }
     }
 
     private void ensureOpen() {
         if (!open) {
             throw new IllegalStateException("This ECStorage has been closed and cannot be used -"
                     + " open a new one (or use openOrReload).");
+        }
+    }
+
+    /**
+     * Guards everything that would hand out NEW wiring. {@link #flushManagers()} and {@link #close()}
+     * deliberately do NOT go through here: they are the plugin's only chance to persist what is dirty and
+     * to release the connection, and refusing them would turn a resolution bug into data loss.
+     */
+    private void ensureUsable() {
+        ensureOpen();
+        if (detached) {
+            throw new IllegalStateException("This ECStorage is detached: a reload replaced the plugin's"
+                    + " RefRegistry and this handle was never re-opened, so anything created here would be"
+                    + " invisible to the plugin's PDSections. Re-open it with"
+                    + " ECStorage.openOrReload(plugin, section, existing), and register that call through"
+                    + " PlayerController.onStorageReload(plugin, ...) so it runs on every reload."
+                    + " flushManagers() and close() still work on a detached handle.");
         }
     }
 
@@ -352,15 +454,19 @@ public final class ECStorage {
 
     private static CompletableFuture<ECStorage> openOrReload(ECPluginData plugin, BackendDefinition definition,
                                                              StorageLogConfig logConfig, ECStorage existing) {
-        // reuse only when the target AND the shared registry are unchanged: keep the live connection and just
-        // wipe it clean. A core reload can SWAP the plugin's shared registry, and reusing then would leave this
-        // handle registered in the detached old one - so a registry swap forces a reconnect (fresh registration).
-        if (existing != null && existing.isOpen() && existing.definition.equals(definition)
-                && existing.refRegistry == resolveRegistry(plugin, existing.refRegistry)) {
-            existing.reset();
+        // same target: keep the live connection either way. An unchanged registry only needs the caches wiped;
+        // a reload that SWAPPED the plugin's shared registry needs the handle moved onto the fresh one, which
+        // also clears a detached mark. Neither case justifies tearing down a connection pool.
+        if (existing != null && existing.isOpen() && existing.definition.equals(definition)) {
+            RefRegistry live = resolveRegistry(plugin, existing.refRegistry);
+            if (live == existing.refRegistry) {
+                existing.reset();
+            } else {
+                existing.rebind(live);
+            }
             return CompletableFuture.completedFuture(existing);
         }
-        // different target, swapped registry, or a dead handle: drop the old one first, then open fresh
+        // different target, or a dead handle: drop the old one first, then open fresh
         if (existing != null && existing.isOpen()) {
             return existing.close().thenCompose(ignored -> openInternal(plugin, definition, logConfig, null));
         }
@@ -386,6 +492,7 @@ public final class ECStorage {
         }
         // the plugin's shared registry when available, else a fresh private one (plugin-less / bootstrap not up)
         RefRegistry registry = resolveRegistry(plugin, new RefRegistry());
+        warnIfReloadUnsafe(plugin, registry);
         return storage.init().handle((ignored, initFailure) -> {
             if (initFailure == null) {
                 return new ECStorage(plugin, storage, definition, registry);
@@ -449,6 +556,33 @@ public final class ECStorage {
     private static Throwable unwrap(Throwable throwable) {
         return (throwable instanceof CompletionException && throwable.getCause() != null)
                 ? throwable.getCause() : throwable;
+    }
+
+    /**
+     * Warns, at open time, about the two ways a handle ends up unable to resolve against the plugin's
+     * PDSections. Both are cheap to fix while the developer is writing the code and expensive to notice
+     * later - the symptom is a {@code Ref} quietly resolving to nothing, months in.
+     *
+     * <p>Always a warning, never a refusal: a plugin may legitimately open its storage before registering
+     * the reload callback, and refusing an open over registration ORDER would be hostile.</p>
+     */
+    private static void warnIfReloadUnsafe(ECPluginData plugin, RefRegistry registry) {
+        if (plugin == null) {
+            return; // a plugin-less open owns a private registry by contract, not by accident
+        }
+        if (ECStorageRegistries.of(plugin) != registry) {
+            logWarning(plugin, "This plugin opened an ECStorage before the PlayerData layer was up, so it"
+                    + " got a PRIVATE RefRegistry: a Ref between this storage and the plugin's PDSections"
+                    + " will not resolve, now or after a reload. Open it once the core is ready - the"
+                    + " storage-reload callback (PlayerController.onStorageReload) always runs late enough.");
+            return;
+        }
+        if (!ECStorageRegistries.hasReloadHook(plugin)) {
+            logWarning(plugin, "This plugin opened an ECStorage but registered no storage-reload callback."
+                    + " A reload replaces the plugin's RefRegistry, and nothing would re-open this handle:"
+                    + " it would detach and refuse new managers. Fix: PlayerController.onStorageReload("
+                    + "plugin, () -> STORAGE = ECStorage.openOrReload(plugin, section, STORAGE).join())");
+        }
     }
 
     private static void logWarning(ECPluginData plugin, String message) {
