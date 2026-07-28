@@ -78,6 +78,11 @@ public final class StorageYamlParser {
         } else {
             accountBackendName = defaultBackendName;
         }
+        Integer accountIdleGrace = getIntOrNull(config, "multi-platform-accounts.idle-grace-seconds");
+        if (accountIdleGrace != null && accountIdleGrace < 0) {
+            throw new StorageConfigException("'multi-platform-accounts.idle-grace-seconds' must be >= 0"
+                    + " (0 releases an account row as soon as its last member quits)!");
+        }
 
         // ---- pdsections (raw, validated at section registration time) ----
         Map<String, Map<String, PDSectionAdminConfig>> pdSections = new LinkedHashMap<>();
@@ -101,8 +106,8 @@ public final class StorageYamlParser {
         RedisSyncConfig redisSync = parseRedis(config);   // null unless the redis block is enabled
 
         return new ParsedStorageConfig(backends, defaultBackendName, multiplatformAccountsEnabled,
-                accountBackendName, playerData, pdSections, loggingLevel, enableSync, transportMode,
-                redisSync, warnings);
+                accountBackendName, accountIdleGrace, playerData, pdSections, loggingLevel, enableSync,
+                transportMode, redisSync, warnings);
     }
 
     /** Parses the {@code multi-server-cache-sync.redis} block; {@code null} unless it is enabled. */

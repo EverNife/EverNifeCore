@@ -23,6 +23,7 @@ public final class ParsedStorageConfig {
     private final String defaultBackendName;
     private final boolean multiplatformAccountsEnabled;
     private final String accountBackendName;                        // shared account backend (>= default)
+    private final Integer accountIdleGraceSeconds;                  // nullable -> playerdata default
     private final PlayerDataAdminConfig playerData;
     private final Map<String, Map<String, PDSectionAdminConfig>> pdSections; // plugin -> section -> cfg
     private final StorageLogLevel loggingLevel;
@@ -33,7 +34,7 @@ public final class ParsedStorageConfig {
 
     ParsedStorageConfig(Map<String, BackendDefinition> backends, String defaultBackendName,
                         boolean multiplatformAccountsEnabled, String accountBackendName,
-                        PlayerDataAdminConfig playerData,
+                        Integer accountIdleGraceSeconds, PlayerDataAdminConfig playerData,
                         Map<String, Map<String, PDSectionAdminConfig>> pdSections,
                         StorageLogLevel loggingLevel, boolean enableSync, SyncTransportMode transportMode,
                         RedisSyncConfig redisSync, List<String> warnings) {
@@ -41,6 +42,7 @@ public final class ParsedStorageConfig {
         this.defaultBackendName = defaultBackendName;
         this.multiplatformAccountsEnabled = multiplatformAccountsEnabled;
         this.accountBackendName = accountBackendName;
+        this.accountIdleGraceSeconds = accountIdleGraceSeconds;
         this.playerData = playerData;
         this.pdSections = Collections.unmodifiableMap(pdSections);
         this.loggingLevel = loggingLevel;
@@ -84,6 +86,18 @@ public final class ParsedStorageConfig {
 
     public PlayerDataAdminConfig getPlayerData() {
         return playerData;
+    }
+
+    /**
+     * How long an account row stays cached after the last online member of that account quits. Same
+     * concept as a PDSection's idle grace and it follows the same server-wide default
+     * ({@code playerdata.default-idle-grace-seconds}) unless
+     * {@code multi-platform-accounts.idle-grace-seconds} names its own value - the account family has
+     * no per-section config, so this is the one knob for the whole family.
+     */
+    public int getAccountIdleGraceSeconds() {
+        return accountIdleGraceSeconds != null
+                ? accountIdleGraceSeconds : playerData.getDefaultIdleGraceSeconds();
     }
 
     /**

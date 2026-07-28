@@ -41,8 +41,14 @@ import java.util.concurrent.TimeUnit;
  */
 final class AccountSectionEngine {
 
-    /** How long a released row stays cached after the last online member quits. */
-    private static final long QUIT_RELEASE_GRACE_MS = 60_000L;
+    /**
+     * How long a released row stays cached after the last online member quits - the account family's
+     * idle grace. Read from the config on every use so a reload of the controller picks up an edited
+     * value; the whole family shares it (there is no per-section account config).
+     */
+    private long quitReleaseGraceMs() {
+        return TimeUnit.SECONDS.toMillis(controller.storageConfig().getAccountIdleGraceSeconds());
+    }
 
     private final PlayerController controller;
     private final Map<Class<?>, AccountSectionBinding<?>> bindings = new ConcurrentHashMap<>();
@@ -262,7 +268,7 @@ final class AccountSectionEngine {
         for (AccountSectionBinding<?> binding : bindings.values()) {
             controller.lifecycleScheduler().schedule(
                     () -> releaseIfIdle(binding, accountKey),
-                    QUIT_RELEASE_GRACE_MS, TimeUnit.MILLISECONDS);
+                    quitReleaseGraceMs(), TimeUnit.MILLISECONDS);
         }
     }
 
@@ -273,9 +279,12 @@ final class AccountSectionEngine {
         if (cell.isDirty()) {
             //an unflushed write is pending: persist it, then re-check after another grace
             controller.flushAccountSection(cell);
+            //re-check after the grace again, but never sit on a pending write for an hour: a full
+            //grace here would delay only the eviction, not the flush, yet it also delays noticing a
+            //flush that keeps failing - a minute is enough to let the write land
             controller.lifecycleScheduler().schedule(
                     () -> releaseIfIdle(binding, accountKey),
-                    QUIT_RELEASE_GRACE_MS, TimeUnit.MILLISECONDS);
+                    Math.min(quitReleaseGraceMs(), 60_000L), TimeUnit.MILLISECONDS);
             return;
         }
         binding.getManager().evict(accountKey);

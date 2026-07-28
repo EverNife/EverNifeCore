@@ -456,6 +456,12 @@ public final class StorageYamlDefaults {
                 " (/ecaccount link). On a real network the backend below must",
                 " be a database SHARED by every instance (MariaDB/Mongo/...),",
                 " never a local file backend.",
+                "",
+                " Optional extra key:",
+                "   idle-grace-seconds: <n>",
+                " How long an account row stays in memory after the LAST online",
+                " member of that account quits. Absent = follow",
+                " 'playerdata.default-idle-grace-seconds'.",
                 "============================================================"));
         config.setComment("multi-platform-accounts.storage-backend-id",
                 "Backend hosting the WHOLE account family (account registry + account-wide"

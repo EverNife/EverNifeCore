@@ -216,6 +216,28 @@ class StorageYamlParserTest {
     }
 
     @Test
+    void accountIdleGraceFollowsThePlayerDataDefaultUnlessNamed() throws IOException {
+        ParsedStorageConfig followsDefault = StorageYamlParser.parse(yml(String.join("\n",
+                "storage-backends:",
+                "  mem: { enabled: true, type: memory }",
+                "default-backend: mem",
+                "playerdata:",
+                "  default-idle-grace-seconds: 120")));
+        assertEquals(120, followsDefault.getAccountIdleGraceSeconds(),
+                "one knob must move the whole storage layer by default");
+
+        ParsedStorageConfig named = StorageYamlParser.parse(yml(String.join("\n",
+                "storage-backends:",
+                "  mem: { enabled: true, type: memory }",
+                "default-backend: mem",
+                "playerdata:",
+                "  default-idle-grace-seconds: 120",
+                "multi-platform-accounts:",
+                "  idle-grace-seconds: 9")));
+        assertEquals(9, named.getAccountIdleGraceSeconds());
+    }
+
+    @Test
     void parsesRecentLoadMode() throws IOException {
         File file = yml(String.join("\n",
                 "storage-backends:",
