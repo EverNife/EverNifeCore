@@ -117,8 +117,8 @@ class ServerCooldownsTest {
                 "    type: h2",
                 "    url: \"jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1\"",
                 "default-backend: test_h2",
-                "multi-platform-accounts:",
-                "  enabled: true",
+                "network:",
+                "  storage-backend-id: test_h2",
                 "");
         File file = tempDir.resolve("storage_" + dbName + ".yml").toFile();
         Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));

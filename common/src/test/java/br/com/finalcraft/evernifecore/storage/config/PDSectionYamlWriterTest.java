@@ -42,7 +42,8 @@ class PDSectionYamlWriterTest {
         String raw = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
         assertTrue(raw.contains("jobs:"));
         assertTrue(raw.contains("A player's job level and progress"));
-        assertTrue(raw.contains("PDSection created by the Plugin [FinalJobs] authored by: EverNife"));
+        //author first, plugin last: the plugin name is the word an admin scans the file for
+        assertTrue(raw.contains("PDSection created by EverNife on the Plugin: FinalJobs"), raw);
         assertTrue(raw.contains("Recommended Backend Types: localfile | mysql"));
 
         // the generated entry is readable by the parser

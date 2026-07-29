@@ -84,7 +84,7 @@ class CooldownSectionsTest {
 
     @Test
     void aNetworkStopSurvivesRoundTripMergeAndPrune() throws IOException, InterruptedException {
-        File storageYml = writeStorageYml("net_stop_roundtrip", true);
+        File storageYml = writeStorageYml("net_stop_roundtrip");
         PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();
@@ -169,7 +169,7 @@ class CooldownSectionsTest {
 
     @Test
     void twoServersSeeEachOthersNetworkCooldown() throws IOException {
-        File storageYml = writeStorageYml("net_two_servers", true);
+        File storageYml = writeStorageYml("net_two_servers");
         PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();
@@ -192,7 +192,7 @@ class CooldownSectionsTest {
 
     @Test
     void linkAbsorbsANetworkCooldownIntoTheAccountRow() throws IOException {
-        PlayerController.initialize(writeStorageYml("net_link_absorb", true));
+        PlayerController.initialize(writeStorageYml("net_link_absorb"));
 
         UUID memberUuid = UUID.randomUUID();
         PlayerData member = PlayerController.handleLogin(memberUuid, "Alt").join();
@@ -217,7 +217,7 @@ class CooldownSectionsTest {
 
     @Test
     void aColdBucketResolvesTheStoredCooldownInsteadOfAnsweringFree() throws IOException {
-        File storageYml = writeStorageYml("local_cold_bucket", true);
+        File storageYml = writeStorageYml("local_cold_bucket");
         PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();
@@ -240,7 +240,7 @@ class CooldownSectionsTest {
 
     @Test
     void getCooldownNoLongerThrowsAndAPersistentPlayerCooldownSurvivesAReboot() throws IOException {
-        File storageYml = writeStorageYml("local_reboot", true);
+        File storageYml = writeStorageYml("local_reboot");
         PlayerController.initialize(storageYml);
 
         UUID uuid = UUID.randomUUID();
@@ -288,7 +288,7 @@ class CooldownSectionsTest {
     // fixtures
     // ================================================================================================
 
-    private File writeStorageYml(String dbName, boolean accountsEnabled) throws IOException {
+    private File writeStorageYml(String dbName) throws IOException {
         String yml = String.join("\n",
                 "storage-backends:",
                 "  test_h2:",
@@ -296,8 +296,8 @@ class CooldownSectionsTest {
                 "    type: h2",
                 "    url: \"jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1\"",
                 "default-backend: test_h2",
-                "multi-platform-accounts:",
-                "  enabled: " + accountsEnabled,
+                "network:",
+                "  storage-backend-id: test_h2",
                 "");
         File file = tempDir.resolve("storage_" + dbName + ".yml").toFile();
         Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));

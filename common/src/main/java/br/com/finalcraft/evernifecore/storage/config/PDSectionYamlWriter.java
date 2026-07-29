@@ -13,7 +13,7 @@ import java.util.List;
  *
  * <pre>
  * pdsections:
- *   # PDSection created by the Plugin [FinalJobs] authored by: EverNife
+ *   # PDSection created by EverNife on the Plugin: FinalJobs
  *   finaljobs:
  *     jobs:
  *       # A player's job level and progress
@@ -27,6 +27,15 @@ import java.util.List;
 public final class PDSectionYamlWriter {
 
     private PDSectionYamlWriter() {
+    }
+
+    /**
+     * The one-line credit above a plugin's entries, in the order it reads: who wrote it, then what it
+     * is part of. The plugin name comes last because that is the word the admin is scanning the file
+     * for, and bracketing it mid-sentence buried it.
+     */
+    private static String authorship(SectionFamily family, String pluginName, String pluginAuthor) {
+        return family.getLabel() + " created by " + pluginAuthor + " on the Plugin: " + pluginName;
     }
 
     /**
@@ -58,8 +67,7 @@ public final class PDSectionYamlWriter {
 
         storageYml.setValue(sectionPath + ".storage-backend-id", backendValue);
         if (newPluginEntry) {
-            storageYml.setComment(pluginPath,
-                    "PDSection created by the Plugin [" + pluginName + "] authored by: " + pluginAuthor);
+            storageYml.setComment(pluginPath, authorship(SectionFamily.PLAYER, pluginName, pluginAuthor));
         }
         String recommended = "Recommended Backend Types: " + String.join(" | ", possible);
         storageYml.setComment(sectionPath + ".storage-backend-id",
@@ -74,12 +82,11 @@ public final class PDSectionYamlWriter {
     /**
      * Writes the {@code accountsections.<plugin>.<sectionId>} entry if absent. It carries no
      * {@code storage-backend-id}: the whole account family lives on the one backend configured under
-     * {@code multi-platform-accounts}, and offering a per-section choice that cannot be honoured is
-     * exactly the kind of knob that misleads an admin.
+     * {@code network}, so a per-section choice could not be honoured.
      *
      * <pre>
      * accountsections:
-     *   # AccountSection created by the Plugin [FinalGuilds] authored by: EverNife
+     *   # AccountSection created by EverNife on the Plugin: FinalGuilds
      *   finalguilds:
      *     achievements:
      *       # Achievements shared by every linked identity
@@ -103,8 +110,7 @@ public final class PDSectionYamlWriter {
 
         storageYml.setValue(sectionPath + ".collection", collectionValue);
         if (newPluginEntry) {
-            storageYml.setComment(pluginPath, SectionFamily.ACCOUNT.getLabel()
-                    + " created by the Plugin [" + pluginName + "] authored by: " + pluginAuthor);
+            storageYml.setComment(pluginPath, authorship(SectionFamily.ACCOUNT, pluginName, pluginAuthor));
         }
         String shared = "Shared by every identity linked to the account."
                 + " Optional: cache: { policy: TTL, ttlSeconds: 300 }";
@@ -112,6 +118,40 @@ public final class PDSectionYamlWriter {
                 description == null || description.isEmpty()
                         ? shared
                         : description + "\n" + shared);
+
+        storageYml.save();
+        return true;
+    }
+
+    /**
+     * Writes the {@code network.server-cooldowns} entry if absent, so the one collection the framework
+     * owns on the network backend is visible to the admin, renameable out of a name collision, and on
+     * the boot report.
+     *
+     * <pre>
+     * network:
+     *   storage-backend-id: networkdata
+     *   server-cooldowns:
+     *     collection: ec_server_cooldowns
+     * </pre>
+     *
+     * <p>It gets {@code collection} and {@code cache} but no {@code storage-backend-id}: the rows belong
+     * to the network family, which moves as one.
+     *
+     * @return true when the entry was written (file saved); false when it already existed
+     */
+    public static boolean ensureServerCooldownsEntry(Config storageYml, String collectionValue) {
+        String entryPath = "network.server-cooldowns";
+        if (storageYml.contains(entryPath + ".collection")) {
+            return false;
+        }
+
+        storageYml.setValue(entryPath + ".collection", collectionValue);
+        storageYml.setComment(entryPath, String.join("\n",
+                "Network-wide cooldowns owned by no player - Cooldown.network(id).",
+                "Rename 'collection' if another plugin already claimed the name.",
+                "Optional: cache: { policy: TTL, ttlSeconds: 300 }, which bounds how stale",
+                "another server's write may look here when the backend has no change feed."));
 
         storageYml.save();
         return true;

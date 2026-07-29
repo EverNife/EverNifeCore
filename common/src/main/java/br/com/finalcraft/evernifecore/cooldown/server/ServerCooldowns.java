@@ -6,7 +6,10 @@ import br.com.finalcraft.evernifecore.playerdata.storage.PdSyncBindGuard;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
 import br.com.finalcraft.evernifecore.storage.StorageRegistry;
 import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
+import br.com.finalcraft.evernifecore.storage.config.PDSectionYamlWriter;
 import br.com.finalcraft.evernifecore.storage.config.ParsedStorageConfig;
+import br.com.finalcraft.evernifecore.storage.config.ServerCooldownsAdminConfig;
+import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.Storage;
 import br.com.finalcraft.everydatabase.codec.Codec;
@@ -33,23 +36,21 @@ import java.util.logging.Level;
  * account layer - an instance is bootstrapped once (from the PlayerController bootstrap) and swapped in
  * atomically.
  *
- * <p><b>Backend.</b> The rows live on the same shared backend the account family uses
- * ({@code multi-platform-accounts.storage-backend-id ?? default-backend}); a cooldown that spans the network has
- * exactly the reach an account has, so it needs the same one backend every instance agrees on - not one
- * of its own.</p>
+ * <p>The rows live on the network backend ({@code network.storage-backend-id}), the same one the
+ * account family uses. The whole collection is preloaded on bootstrap - it is tiny, and that keeps a
+ * cooldown check a cache read rather than backend I/O on the server thread.
  *
- * <p><b>Warm at bind.</b> The whole collection is preloaded on bootstrap: it is tiny (one row per
- * network cooldown id that a plugin actually declares), and it is what keeps a cooldown check a cache
- * read rather than backend I/O on the server thread.</p>
- *
- * <p><b>Convergence.</b> Rows are versioned, so two servers starting the same cooldown at once make one
- * of them lose the write; the loser resolves the race by {@link CooldownEntry#latest} against the state
- * that won, and retries - never by discarding a side wholesale.</p>
+ * <p>Rows are versioned, so two servers starting the same cooldown at once make one lose the write;
+ * the loser resolves it by {@link CooldownEntry#latest} against the state that won and retries, never
+ * by discarding a side wholesale.
  */
 public final class ServerCooldowns {
 
-    /** The collection the network-wide server cooldowns live in, on the shared backend. */
-    public static final String COLLECTION = "ec_server_cooldowns";
+    /**
+     * The collection name used unless the admin renames it under
+     * {@code network.server-cooldowns.collection} - the way out of a collision with another plugin.
+     */
+    public static final String DEFAULT_COLLECTION = "ec_server_cooldowns";
 
     /** Owner tag of this collection's registry claim. */
     private static final String CLAIM_OWNER = "EverNifeCore:ServerCooldowns";
@@ -60,6 +61,7 @@ public final class ServerCooldowns {
     private static volatile ServerCooldowns INSTANCE;
 
     private final String backendName;
+    private final String collection;
     private final CachingManager<String, ServerCooldownRow> manager;
     private final WriteBackFlusher flusher;
 
@@ -67,8 +69,10 @@ public final class ServerCooldowns {
     //awaits these before it closes the backend, so a write still on its way is never cut off
     private final Set<CompletableFuture<Void>> pendingWrites = ConcurrentHashMap.newKeySet();
 
-    private ServerCooldowns(String backendName, CachingManager<String, ServerCooldownRow> manager, ManagerLog log) {
+    private ServerCooldowns(String backendName, String collection,
+                            CachingManager<String, ServerCooldownRow> manager, ManagerLog log) {
         this.backendName = backendName;
+        this.collection = collection;
         this.manager = manager;
         this.flusher = new WriteBackFlusher(log);
     }
@@ -90,35 +94,45 @@ public final class ServerCooldowns {
      * @param log where the bind report and the flush's conflict/failure lines go
      */
     public static ServerCooldowns bootstrap(ParsedStorageConfig parsed, StorageRegistry registry,
-                                            RefRegistry globalRegistry, ManagerLog log) {
-        String backendName = parsed.getAccountBackendName();
+                                            RefRegistry globalRegistry, ManagerLog log, Config storageYml) {
+        String backendName = parsed.getNetworkBackendName();
         Storage storage = registry.get(backendName);
-        EntityDescriptor<String, ServerCooldownRow> descriptor = descriptor(parsed, backendName);
 
-        if (!registry.claimCollection(backendName, COLLECTION, CLAIM_OWNER)) {
-            throw new StorageConfigException("Server cooldowns want collection '" + COLLECTION
+        ServerCooldownsAdminConfig admin = parsed.getServerCooldowns();
+        String collection = admin.getCollection() != null ? admin.getCollection() : DEFAULT_COLLECTION;
+        //generate the admin's entry when missing - without it nothing in storage.yml says this
+        //collection exists, so a name collision here would be a dead end with nothing to edit
+        if (storageYml != null) {
+            PDSectionYamlWriter.ensureServerCooldownsEntry(storageYml, collection);
+        }
+
+        EntityDescriptor<String, ServerCooldownRow> descriptor =
+                descriptor(parsed, backendName, collection, globalRegistry);
+
+        if (!registry.claimCollection(backendName, collection, CLAIM_OWNER, descriptor)) {
+            throw new StorageConfigException("Server cooldowns want collection '" + collection
                     + "' on backend '" + backendName + "', but it is already used by '"
-                    + registry.getCollectionOwner(backendName, COLLECTION) + "'!");
+                    + registry.getCollectionOwner(backendName, collection) + "'! Rename it under"
+                    + " 'network.server-cooldowns.collection' in storage.yml.");
         }
 
         //a network cooldown is written from every server that declares it: reject/warn a backend that
         //cannot enforce the optimistic lock, on the same signal the account family carries
         List<String> warnings = new ArrayList<>();
-        PdSyncBindGuard.check("Server cooldowns", descriptor, storage, parsed,
-                parsed.isMultiplatformAccountsEnabled(), warnings);
+        PdSyncBindGuard.check("Server cooldowns", descriptor, storage, parsed, true, warnings);
         for (String warning : warnings) {
             log.log(Level.WARNING, warning);
         }
 
         CachingManager<String, ServerCooldownRow> manager =
-                globalRegistry.manager(descriptor, storage, CachePolicy.always());
+                globalRegistry.manager(descriptor, storage, freshnessOf(admin));
         //warm the whole collection: the set is tiny, and a cooldown check reads it synchronously
         manager.preloadAll().join();
 
-        ServerCooldowns fresh = new ServerCooldowns(backendName, manager, log);
+        ServerCooldowns fresh = new ServerCooldowns(backendName, collection, manager, log);
         INSTANCE = fresh;
         if (storage.enforcesOptimisticLock()){
-            log.log(Level.INFO, "Bound the network server cooldowns (collection '" + COLLECTION
+            log.log(Level.INFO, "Bound the network server cooldowns (collection '" + collection
                     + "' on shared backend '" + backendName + "', " + manager.cachedSize() + " warm).");
         } else {
             //a backend that cannot enforce the lock is not a shared one: with no declared multi-instance
@@ -146,22 +160,58 @@ public final class ServerCooldowns {
         INSTANCE = previous;
     }
 
-    /** The one descriptor of this collection. */
-    private static EntityDescriptor<String, ServerCooldownRow> descriptor(ParsedStorageConfig parsed, String backendName) {
+    /**
+     * The cache freshness of the cooldown rows. {@code always()} by default, because the flush walks
+     * {@code cachedValues()} - which is also why NOCACHE is refused rather than obeyed. A network with
+     * no change feed is the case for {@code TTL}: there, {@code always()} means another server's write
+     * is never seen at all.
+     */
+    private static CachePolicy freshnessOf(ServerCooldownsAdminConfig admin) {
+        if (admin.getCachePolicyName() == null) {
+            return CachePolicy.always();
+        }
+        if ("NOCACHE".equalsIgnoreCase(admin.getCachePolicyName().trim())) {
+            throw new StorageConfigException("'network.server-cooldowns' is configured with"
+                    + " 'cache.policy: NOCACHE', which the server cooldowns cannot use: the flush walks"
+                    + " the cached rows, so a route that never caches would take every write to the"
+                    + " grave. Use ALWAYS, or TTL to bound how stale another server's write may be.");
+        }
+        try {
+            return CachePolicy.fromAdminConfig(admin.getCachePolicyName(), admin.getCacheTtlSeconds());
+        } catch (IllegalArgumentException invalidPolicy) {
+            throw new StorageConfigException("'network.server-cooldowns': " + invalidPolicy.getMessage(),
+                    invalidPolicy);
+        }
+    }
+
+    /**
+     * The one descriptor of this collection. The codec is ref-aware against the GLOBAL registry, the
+     * one this manager lives in - so a {@code Ref} inside a cooldown row reaches other framework-owned
+     * entities. It cannot reach a plugin's: resolution walks child to parent, never the other way, and
+     * a framework entity that depended on a plugin being installed would be the wrong shape anyway.
+     */
+    private static EntityDescriptor<String, ServerCooldownRow> descriptor(ParsedStorageConfig parsed,
+                                                                          String backendName, String collection,
+                                                                          RefRegistry globalRegistry) {
         BackendDefinition backend = parsed.getBackend(backendName).orElseThrow(() ->
-                new StorageConfigException("Account backend '" + backendName + "' is not declared/enabled!"));
-        Codec<ServerCooldownRow> codec = BindingResolver.defaultCodec(backend, ServerCooldownRow.class);
+                new StorageConfigException("Network backend '" + backendName + "' is not declared/enabled!"));
+        Codec<ServerCooldownRow> codec = BindingResolver.defaultCodec(backend, ServerCooldownRow.class, globalRegistry);
         return EntityDescriptor
                 .builder(String.class, ServerCooldownRow.class)
-                .collection(COLLECTION)
+                .collection(collection)
                 .keyExtractor(ServerCooldownRow::getIdentifier)
                 .codec(codec)
                 .build();   // @OptimisticLock is scanned here
     }
 
-    /** The backend the rows live on (the shared one the account family uses). */
+    /** The backend the rows live on (the network one the account family also uses). */
     public String getBackendName() {
         return backendName;
+    }
+
+    /** The collection actually bound - the admin's name when they renamed it, otherwise the default. */
+    public String getCollection() {
+        return collection;
     }
 
     /** The cache/repository facade - handed to the cache-sync wiring alongside the other managers. */
