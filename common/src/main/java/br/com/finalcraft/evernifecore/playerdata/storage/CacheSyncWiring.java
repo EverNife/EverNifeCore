@@ -3,8 +3,11 @@ package br.com.finalcraft.evernifecore.playerdata.storage;
 import br.com.finalcraft.evernifecore.storage.config.ParsedStorageConfig;
 import br.com.finalcraft.evernifecore.storage.config.RedisSyncConfig;
 import br.com.finalcraft.evernifecore.storage.config.SyncTransportMode;
+import br.com.finalcraft.everydatabase.Storage;
 import br.com.finalcraft.everydatabase.changefeed.ChangeFeedStorage;
 import br.com.finalcraft.everydatabase.manager.CachingManager;
+import br.com.finalcraft.everydatabase.modules.groupedfile.GroupedFileStorage;
+import br.com.finalcraft.everydatabase.modules.localfile.LocalFileStorage;
 import br.com.finalcraft.everydatabase.manager.sync.CacheSync;
 import br.com.finalcraft.everydatabase.manager.sync.CacheSyncTransport;
 
@@ -18,26 +21,26 @@ import java.util.function.Consumer;
  * <ul>
  *   <li>{@code enabled: false} -> NO-OP: never starts anything.</li>
  *   <li>{@code transport: auto} (default) -> Redis if the redis block is enabled, else the backends'
- *       native change feed (Mongo/PostgreSQL) when EVERY manager's backend has one, else a silent
- *       no-op.</li>
+ *       native change feed when EVERY manager's backend has one AND none of them is a file backend,
+ *       else a silent no-op.</li>
  *   <li>{@code transport: redis} -> force the Redis pub/sub transport (silent no-op if no redis block
  *       is enabled).</li>
  *   <li>{@code transport: native} -> use only the backends' native feed; silent no-op if any backend
- *       has none.</li>
+ *       has none. This is the only way to reach a FILE backend's feed, which watches the local
+ *       filesystem: it cannot carry another server's write, so it buys nothing on a network and is
+ *       worth its watcher thread only where an admin edits the data files by hand.</li>
  * </ul>
  *
- * <p>The no-feed / no-redis case is a DELIBERATELY silent no-op: a feedless backend with no redis
- * simply has no coherence, which is the correct and harmless outcome on a single server (starting a
- * perpetual poller would be waste, and {@code CacheSync.start()} throws for a feedless backend with
- * no poll interval anyway). Only an EXPLICIT redis request that then fails is surfaced.</p>
+ * <p>The no-feed / no-redis case is a silent no-op: a backend with no shared signal simply has no
+ * coherence, which is the harmless outcome on a single server. Only an EXPLICIT redis request that
+ * then fails is surfaced.
  *
- * <p>The Redis transport lives in the optional {@code everydatabase-manager-jedis} module, which is
- * not a compile dependency of {@code common}; it is loaded reflectively so {@code common} builds
- * without it and the redis path fails loudly at boot when the runtime jar is missing.</p>
+ * <p>The Redis transport lives in the optional {@code everydatabase-manager-jedis} module and is
+ * loaded reflectively, so {@code common} builds without it and the redis path fails loudly at boot
+ * when the runtime jar is missing.
  *
- * <p>{@code CacheSync.close()} deliberately does NOT close its transport, so the wiring hands the
- * caller a {@link Handle} owning BOTH - closing the handle (on shutdown or a re-wire after a runtime
- * transfer) releases the Redis connection and its subscriber thread instead of leaking them.</p>
+ * <p>{@code CacheSync.close()} does NOT close its transport, so the wiring hands back a {@link Handle}
+ * owning BOTH - closing it releases the Redis connection and its subscriber thread.
  */
 public final class CacheSyncWiring {
 
@@ -99,6 +102,13 @@ public final class CacheSyncWiring {
         if (mode == SyncTransportMode.REDIS || !allBackendsHaveNativeFeed(managers)) {
             return null;
         }
+        // A FILE backend's feed watches the filesystem, which is a single-machine signal: it cannot
+        // carry a write made by another server, so on AUTO it would spend a watcher thread per storage
+        // and one wasted reload per local write to detect only this server's own writes. Reaching it
+        // takes an explicit 'native', which is where detecting a hand-edited file is the actual intent.
+        if (mode == SyncTransportMode.AUTO && anyBackendIsFileBacked(managers)) {
+            return null;
+        }
         Handle handle = bindAndStart(CacheSync.auto(), null, managers, logWarning);
         if (handle != null) {
             logInfo.accept("Cache-sync enabled via the backends' native change feeds.");
@@ -137,6 +147,21 @@ public final class CacheSyncWiring {
             }
         }
         return true;
+    }
+
+    /**
+     * Whether any manager sits on a backend whose change feed watches the local filesystem. Such a
+     * feed is real, but it is a single-machine signal, and it reports this server's own writes back to
+     * it - so it is worth a thread only when the admin asked for it by name.
+     */
+    private static boolean anyBackendIsFileBacked(List<CachingManager<?, ?>> managers) {
+        for (CachingManager<?, ?> manager : managers) {
+            Storage storage = manager.storage();
+            if (storage instanceof LocalFileStorage || storage instanceof GroupedFileStorage) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

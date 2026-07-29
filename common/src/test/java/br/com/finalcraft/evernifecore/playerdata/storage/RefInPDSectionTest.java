@@ -203,6 +203,8 @@ class RefInPDSectionTest {
                 "storage-backends:",
                 "  main_storage: { enabled: true, type: memory }",
                 "default-backend: main_storage",
+                "network:",
+                "  storage-backend-id: main_storage",
                 "");
         File file = Files.createTempFile("ref_storage_", ".yml").toFile();
         file.deleteOnExit();

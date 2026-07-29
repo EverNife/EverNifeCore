@@ -160,9 +160,12 @@ class PlayerControllerLifecycleTest {
         //storage down: the quit-flush fails and the player is enqueued for retry (not dropped)
         FailableStorage.FAIL_WRITES.set(true);
         PlayerController.handlePlayerQuit(uuid);
-        //give the async quit-flush time to fail and enqueue
-        awaitUntil(Duration.ofSeconds(3), () -> PlayerController.getLoadedSection(uuid, ResidentSection.class) != null
-                && PlayerController.getLoadedSection(uuid, ResidentSection.class).isDirty());
+        //wait for the retry to be ENQUEUED, not for the section to be dirty: it already is, so that
+        //predicate holds before the flush even starts and the assertion below then reads back inside
+        //the window where the flush has cleared the flag and the failed write has not re-set it yet.
+        //The enqueue happens after that re-set, so it is the first instant the settled state can be
+        //read - and no tick drains the queue behind a test, so the signal never goes back.
+        awaitUntil(Duration.ofSeconds(3), () -> PlayerController.get().lifecycleEngine().retryBacklogSize() > 0);
         assertTrue(PlayerController.getLoadedSection(uuid, ResidentSection.class).isDirty(),
                 "a storage-down quit-flush must leave the section dirty (not dropped)");
         assertFalse(PlayerController.get().getBinding(ResidentSection.class).getRepository().exists(uuid).join(),
@@ -430,6 +433,11 @@ class PlayerControllerLifecycleTest {
         @Override
         public CompletableFuture<Slice<ScanRow<V>>> scanAll(Cursor cursor, int limit) {
             return delegate.scanAll(cursor, limit);
+        }
+
+        @Override
+        public CompletableFuture<Slice<String>> keys(Cursor cursor, int limit) {
+            return delegate.keys(cursor, limit);
         }
 
         @Override

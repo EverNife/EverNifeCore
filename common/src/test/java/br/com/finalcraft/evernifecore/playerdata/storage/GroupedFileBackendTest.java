@@ -50,6 +50,8 @@ class GroupedFileBackendTest {
                 "    path: \"" + path + "\"",
                 "    format: yaml",
                 "default-backend: grouped",
+                "network:",
+                "  storage-backend-id: grouped",
                 "playerdata:",
                 "  storage-backend-id: grouped",
                 "  collection: evernifecore_playerdata",

@@ -84,6 +84,8 @@ class PlayerControllerConflictPipelineTest {
                 "    enabled: true",
                 "    type: memory",
                 "default-backend: test_mem",
+                "network:",
+                "  storage-backend-id: test_mem",
                 "");
         File file = tempDir.resolve("storage_" + name + ".yml").toFile();
         Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
@@ -499,6 +501,11 @@ class PlayerControllerConflictPipelineTest {
             @Override
             public CompletableFuture<Slice<ScanRow<V>>> scanAll(Cursor cursor, int limit) {
                 return delegate.scanAll(cursor, limit);
+            }
+
+            @Override
+            public CompletableFuture<Slice<String>> keys(Cursor cursor, int limit) {
+                return delegate.keys(cursor, limit);
             }
 
             @Override

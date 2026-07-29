@@ -84,6 +84,8 @@ class LegacyImportTest {
                 "    path: \"" + dataPath + "\"",
                 "    format: yaml",
                 "default-backend: test_files",
+                "network:",
+                "  storage-backend-id: test_files",
                 extraBlock,
                 "");
         File file = tempDir.resolve(fileName).toFile();

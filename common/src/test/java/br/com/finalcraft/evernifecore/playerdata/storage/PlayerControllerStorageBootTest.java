@@ -77,6 +77,8 @@ class PlayerControllerStorageBootTest {
                 "    type: h2",
                 "    url: \"jdbc:h2:file:" + missingDb + ";IFEXISTS=TRUE\"",
                 "default-backend: test_h2",
+                "network:",
+                "  storage-backend-id: test_h2",
                 "");
         File file = tempDir.resolve("storage_broken_" + tag + ".yml").toFile();
         Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));

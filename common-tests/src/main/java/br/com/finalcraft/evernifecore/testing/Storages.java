@@ -17,6 +17,9 @@ import java.util.List;
  * handful of lines that tell EverNifeCore which one to use. That is the part every storage test
  * used to copy.</p>
  *
+ * <p>The mandatory {@code network:} block is written for you, pointing at the one declared backend.
+ * Only a test about the block itself needs {@link #networkBackendId} or {@link #withoutNetworkBlock}.</p>
+ *
  * <pre>{@code
  * File yml = Storages.h2("my_test_db").writeTo(tempDir);
  * File yml = Storages.localFile().loadMode("RECENT", 60).writeTo(tempDir);
@@ -26,11 +29,15 @@ public final class Storages {
 
     private final String backendId;
     private final List<String> backendLines = new ArrayList<String>();
+    private final List<String> extraBackendLines = new ArrayList<String>();
     private final List<String> playerdataLines = new ArrayList<String>();
+    private final List<String> networkLines = new ArrayList<String>();
     private final List<String> rawTopLevelLines = new ArrayList<String>();
     private String fileName = "storage.yml";
     private String jdbcUrl;
     private String pathPlaceholder;
+    private String networkBackendId;      // null before networkBackendId(); resolved to backendId at write
+    private boolean writeNetworkBlock = true;
 
     private Storages(String backendId) {
         this.backendId = backendId;
@@ -83,12 +90,70 @@ public final class Storages {
     public Storages backendId(String backendId) {
         Storages renamed = new Storages(backendId);
         renamed.backendLines.addAll(backendLines);
+        renamed.extraBackendLines.addAll(extraBackendLines);
         renamed.playerdataLines.addAll(playerdataLines);
+        renamed.networkLines.addAll(networkLines);
         renamed.rawTopLevelLines.addAll(rawTopLevelLines);
         renamed.fileName = fileName;
         renamed.pathPlaceholder = pathPlaceholder;
         renamed.jdbcUrl = jdbcUrl;
+        renamed.networkBackendId = networkBackendId;
+        renamed.writeNetworkBlock = writeNetworkBlock;
         return renamed;
+    }
+
+    /**
+     * Renames the sub-directory of {@code baseDir} a file backend roots itself in. Two configurations
+     * that must not share a directory - or must - say so through this.
+     */
+    public Storages dataPath(String subDirectory) {
+        this.pathPlaceholder = subDirectory;
+        return this;
+    }
+
+    /**
+     * Declares a SECOND enabled backend alongside the primary one - what a test needs to move data
+     * between backends, or to prove two of them collide. {@code lines} are the entry's own fields,
+     * four-space indented and {@code ${path}}-aware, exactly like the primary backend's.
+     */
+    public Storages extraBackend(String id, String... lines) {
+        extraBackendLines.add("  " + id + ":");
+        extraBackendLines.add("    enabled: true");
+        Collections.addAll(extraBackendLines, lines);
+        return this;
+    }
+
+    /** As {@link #extraBackend}, but declared {@code enabled: false}. */
+    public Storages extraBackendDisabled(String id, String... lines) {
+        extraBackendLines.add("  " + id + ":");
+        extraBackendLines.add("    enabled: false");
+        Collections.addAll(extraBackendLines, lines);
+        return this;
+    }
+
+    /**
+     * Points {@code network.storage-backend-id} at a backend other than the primary one - normally
+     * one declared through {@link #extraBackend}. Without this the network block names the primary
+     * backend, which is what a single-backend test wants.
+     */
+    public Storages networkBackendId(String backendId) {
+        this.networkBackendId = backendId;
+        return this;
+    }
+
+    /** Raw {@code network:} lines, for a key this class does not model yet. Two-space indented. */
+    public Storages networkLines(String... lines) {
+        Collections.addAll(networkLines, lines);
+        return this;
+    }
+
+    /**
+     * Writes NO {@code network:} block at all. Only a test asserting that the missing block cancels
+     * the boot wants this - the block is required, so every other configuration is unbootable.
+     */
+    public Storages withoutNetworkBlock() {
+        this.writeNetworkBlock = false;
+        return this;
     }
 
     /** {@code playerdata.load-mode: ALL} - every player is loaded at boot. */
@@ -140,7 +205,20 @@ public final class Storages {
         for (String line : backendLines) {
             yaml.append(resolvePath(line, baseDir)).append('\n');
         }
+        for (String line : extraBackendLines) {
+            yaml.append(resolvePath(line, baseDir)).append('\n');
+        }
         yaml.append("default-backend: ").append(backendId).append('\n');
+        //required by the parser, so it is written by default: a test that does not care about the
+        //network family still has to boot, and pointing it at the one declared backend is the answer
+        if (writeNetworkBlock) {
+            yaml.append("network:\n");
+            yaml.append("  storage-backend-id: ")
+                    .append(networkBackendId != null ? networkBackendId : backendId).append('\n');
+            for (String line : networkLines) {
+                yaml.append(line).append('\n');
+            }
+        }
         for (String line : rawTopLevelLines) {
             yaml.append(line).append('\n');
         }

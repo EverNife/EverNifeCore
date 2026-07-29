@@ -22,10 +22,10 @@ import br.com.finalcraft.evernifecore.playerdata.storage.SectionIds;
 import br.com.finalcraft.evernifecore.playerdata.storage.SectionLifecycle;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
+import br.com.finalcraft.evernifecore.storage.ECNetworkStorage;
 import br.com.finalcraft.evernifecore.storage.ECStorageRegistries;
 import br.com.finalcraft.evernifecore.storage.StorageBootGuard;
 import br.com.finalcraft.evernifecore.storage.StorageBootReport;
-import br.com.finalcraft.evernifecore.storage.StorageConfigException;
 import br.com.finalcraft.evernifecore.storage.StorageRegistry;
 import br.com.finalcraft.evernifecore.storage.StorageUnavailableException;
 import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
@@ -107,12 +107,37 @@ public class PlayerController {
         //controller instance each call, so it survives a reload swap.
         ECStorageRegistries.setProvider(PlayerController::sharedRefRegistryFor);
         ECStorageRegistries.setReloadHookProbe(PlayerController::hasStorageReloadHook);
+        //and let a plugin reach the shared network backend without capturing anything of it: the
+        //supplier resolves the live controller each call, so a reload replaces what it answers
+        ECNetworkStorage.setAccessProvider(PlayerController::networkAccess);
     }
 
     /** The current controller instance's child registry for {@code plugin}, or {@code null} if not bootstrapped. */
     static RefRegistry sharedRefRegistryFor(ECPluginData plugin){
         PlayerController controller = INSTANCE;
         return controller == null ? null : controller.ecRegistries.of(plugin);
+    }
+
+    /** What {@link ECNetworkStorage} needs from the live controller, or {@code null} before the bootstrap. */
+    static ECNetworkStorage.NetworkAccess networkAccess(){
+        final PlayerController controller = INSTANCE;
+        if (controller == null) return null;
+        return new ECNetworkStorage.NetworkAccess() {
+            @Override
+            public StorageRegistry registry(){
+                return controller.registry;
+            }
+
+            @Override
+            public String backendName(){
+                return controller.storageConfig.getNetworkBackendName();
+            }
+
+            @Override
+            public RefRegistry refRegistryOf(ECPluginData plugin){
+                return controller.ecRegistries.of(plugin);
+            }
+        };
     }
 
     /** Section registrations made by devs - survive reloads (plugins register once on enable). */
@@ -284,7 +309,6 @@ public class PlayerController {
         PlayerData.registerBaseSchemas(); //before ANY row decode (idempotent)
         StorageYamlDefaults.writeDefault(storageYmlFile);
         this.storageYml = ConfigFactory.open(EverNifeCore.getEcPluginData(), storageYmlFile);
-        StorageYamlDefaults.ensureMultiplatformAccounts(storageYml); //older files predate the block
         this.storageConfig = StorageYamlParser.parse(storageYml);
         for (String warning : storageConfig.getWarnings()){
             PDLog.warning(warning);
@@ -311,25 +335,10 @@ public class PlayerController {
         for (String warning : playerDataBinding.getResolutionWarnings()){
             PDLog.warning(warning);
         }
-        if (storageConfig.isMultiplatformAccountsEnabled()){
-            //bring up the account/identity layer on the shared account backend before any account
-            //row is keyed - the login pipeline stamps each player's accountId from it
-            Accounts.bootstrap(storageConfig, registry, ecRegistries.global());
-        }else {
-            //disabled: linked accounts stored on this backend would silently key their account-wide
-            //data by the wrong id - refuse the boot while real links exist (enabling back is safe)
-            long storedAccounts = Accounts.countStoredAccounts(storageConfig, registry);
-            if (storedAccounts > 0){
-                throw new StorageConfigException(
-                        "storage.yml has 'multi-platform-accounts.enabled: false', but the account"
-                        + " collection '" + Accounts.COLLECTION + "' on backend '"
-                        + storageConfig.getAccountBackendName() + "' already holds " + storedAccounts
-                        + " row(s) of linked accounts. Disabling the layer would make their shared"
-                        + " data unreachable - re-enable it, or undo every link (/ecaccount unlink)"
-                        + " before disabling.");
-            }
-            Accounts.clear(); //every identity resolves to its own singleton account
-        }
+        //bring up the account/identity layer on the network backend before any account row is keyed -
+        //the login pipeline stamps each player's accountId from it. Unconditional: with no link the
+        //collection stays empty and every identity keys by its own uuid, so there is nothing to opt out of
+        Accounts.bootstrap(storageConfig, registry, ecRegistries.global());
     }
 
     /** The base PlayerData cache + repository façade (in {@code ECRegistries.global()}). */
@@ -404,7 +413,7 @@ public class PlayerController {
 
         //network-wide server cooldowns: bound unconditionally (the reach is declared at the call site,
         //not in the config) onto the same shared backend the account family uses
-        ServerCooldowns.bootstrap(storageConfig, registry, ecRegistries.global(), PDLog::log);
+        ServerCooldowns.bootstrap(storageConfig, registry, ecRegistries.global(), PDLog::log, storageYml);
 
         startCacheSync();
         lifecycleEngine.scheduleIdleSweep();
@@ -476,6 +485,11 @@ public class PlayerController {
 
     ECRegistries registries(){
         return ecRegistries;
+    }
+
+    /** The storage.yml this instance was built from - what a cutover re-reads when it reloads the core. */
+    File storageYmlFile(){
+        return storageYml.getFile();
     }
 
     Config storageYml(){
@@ -659,18 +673,13 @@ public class PlayerController {
     /**
      * Registers a callback to run right AFTER a core storage reload ({@link #initialize(File)}) has
      * published the fresh controller instance. A reload builds a new set of per-plugin reference
-     * registries, so a plugin that opened its own {@code ECStorage} (whose managers registered in the
-     * OLD per-plugin registry) must re-open it here for a {@code Ref} inside one of its PDSections to keep
-     * resolving after the reload. The one-line re-setup
-     * {@code STORAGE = ECStorage.openOrReload(plugin, section, STORAGE).join()} reconnects onto the fresh
-     * registry ({@code openOrReload} detects the swapped registry) and re-derives the managers; the
-     * PDSection side heals itself (its binding is rebuilt against the fresh registry on reload).
+     * registries, so a plugin holding its own {@code ECStorage} must re-open it here - one line,
+     * {@code STORAGE = ECStorage.openOrReload(plugin, section, STORAGE).join()} - for a {@code Ref}
+     * inside one of its PDSections to keep resolving. The PDSection side rebinds on its own.
      *
-     * <p>Callbacks survive reloads (they are registered once on enable, like the PDSection
-     * registrations) and are dropped by {@link #unregisterPDSections(ECPluginData)} when the owning
-     * plugin disables. A callback that throws is logged and never aborts the reload or the other
-     * callbacks. Fired only AFTER the atomic instance swap - never before, so the re-open resolves the
-     * fresh registry.</p>
+     * <p>Callbacks are registered once on enable, survive reloads, and are dropped by
+     * {@link #unregisterPDSections(ECPluginData)} when the owning plugin disables. One that throws is
+     * logged and aborts neither the reload nor the other callbacks.
      *
      * @param plugin   the owning plugin, used to drop the callback on disable (may be {@code null} for
      *                 a plugin-less/advanced registration that is never auto-dropped)
@@ -711,10 +720,10 @@ public class PlayerController {
     /**
      * Seeds the framework's own player-cooldown rows into the section registries the bind loops of
      * {@link #start()} consume: a per-player LOCAL row (loads with the player, evicts a grace after
-     * quit) and an account-wide NETWORK row (on the shared account backend). Idempotent and
+     * quit) and an account-wide NETWORK row (on the shared network backend). Idempotent and
      * reload-surviving, so a player cooldown always has a storage route without every plugin
-     * declaring one. The network reach is opted into at the call site, so both rows are registered
-     * unconditionally regardless of whether the multi-platform-accounts layer is enabled.
+     * declaring one. The network reach is opted into at the call site, per cooldown, so both rows are
+     * registered unconditionally.
      *
      * <p>Also called before the legacy import binds its adapters, so the local row's
      * {@code legacyYaml("Cooldown", ...)} claim is in place when the importer scans a v3 file.</p>
@@ -756,9 +765,15 @@ public class PlayerController {
     /**
      * Unregisters every PDSection the given plugin registered: flushes each section's dirty cells,
      * drops the binding (cache + collection claim released) and removes the schema-migration steps
-     * of those classes. MUST be called when the plugin is disabled at runtime - otherwise the
-     * registry keeps the plugin's classes (and its classloader) alive, and a re-enabled plugin's
-     * re-registration (new classloader, new Class object) would duplicate the collection claim.
+     * of those classes. MUST be called when the plugin is disabled at runtime, or a re-enabled
+     * plugin's re-registration (new classloader, new Class object) duplicates the collection claim.
+     *
+     * <p><b>What it can and cannot release.</b> This drops the plugin's entry from the per-plugin
+     * registry map, which is the core's own hold on those classes. It is not by itself enough to let
+     * the classloader go: the {@code RefRegistry} object survives while anything still references it,
+     * and an open {@code ECStorage} holds one in a final field. A plugin that wants to be collectable
+     * has to close its own handles - {@code ECStorage.close()} / {@code ECNetworkStorage.release()} -
+     * as well.</p>
      */
     public static void unregisterPDSections(ECPluginData ecPluginData){
         if (ecPluginData == null) return;
@@ -781,7 +796,16 @@ public class PlayerController {
                 ownedAccountSections.add(configuration.getSectionClass());
             }
         }
-        if (owned.isEmpty() && ownedAccountSections.isEmpty()) return;
+        //the registry drop is NOT behind this early return: a plugin whose only storage is an
+        //ECStorage or an ECNetworkStorage owns no section at all, and skipping it there left its type
+        //registrations - and its classloader through them - alive with nothing to release them
+        if (owned.isEmpty() && ownedAccountSections.isEmpty()){
+            PlayerController sectionLessOwner = INSTANCE;
+            if (sectionLessOwner != null){
+                sectionLessOwner.ecRegistries.drop(ecPluginData);
+            }
+            return;
+        }
         for (Class<? extends PDSection> pdSectionClass : owned){
             REGISTERED_SECTIONS.remove(pdSectionClass);
             EntitySchemaMigrations.clear(pdSectionClass);
@@ -947,7 +971,34 @@ public class PlayerController {
                 + " | quit-flush-retry-backlog=" + controller.lifecycleEngine.retryBacklogSize()
                 + " | conflicts-adopted=" + controller.flushEngine.conflictsAdoptedCount()
                 + " | last-write-failure=" + (lastFailure == 0L ? "never"
-                        : ((System.currentTimeMillis() - lastFailure) / 1000) + "s ago");
+                        : ((System.currentTimeMillis() - lastFailure) / 1000) + "s ago")
+                + "\n" + claimSummary(controller);
+    }
+
+    /**
+     * Every claimed collection per backend, with its owner. A collection reached through
+     * {@code ECNetworkStorage} has no entry in storage.yml by design - the plugin owns its descriptor
+     * and its cache policy, so a knob here could not be honoured. The claim is where it becomes
+     * visible instead, and it is also what a network transfer enumerates.
+     */
+    private static String claimSummary(PlayerController controller) {
+        StringBuilder sb = new StringBuilder();
+        for (String backendName : controller.registry.getNames()){
+            Map<String, String> claims = controller.registry.getClaims(backendName);
+            sb.append("claims[").append(backendName).append("]=");
+            if (claims.isEmpty()){
+                sb.append("(none)");
+            }else {
+                boolean first = true;
+                for (Map.Entry<String, String> claim : claims.entrySet()){
+                    if (!first) sb.append(", ");
+                    sb.append(claim.getKey()).append(" <- ").append(claim.getValue());
+                    first = false;
+                }
+            }
+            sb.append('\n');
+        }
+        return sb.toString().trim();
     }
 
     @SuppressWarnings("unchecked")
@@ -1485,8 +1536,9 @@ public class PlayerController {
                                                                           List<UUID> pageKeys){
         if (pageKeys.isEmpty()) return CompletableFuture.completedFuture(0L);
         //one key+version read for the whole page instead of a round-trip per key: versions() reports only
-        //the keys that exist, so "absent from the map" IS the batched existence answer (the version value
-        //itself is never read - backends that do not version report a literal 0 for every live key)
+        //the keys that exist, so "absent from the map" IS the batched existence answer. The version VALUE
+        //is never read here, and must not be: it is opaque, comparable only against an earlier read of
+        //the same key on the same backend, never against a literal
         return baseManager().repository().versions(pageKeys).thenCompose(livingBases -> {
             List<CompletableFuture<Boolean>> deletes = new ArrayList<>();
             for (UUID key : pageKeys){
@@ -2029,6 +2081,28 @@ public class PlayerController {
     /** Moves the base PlayerData collection to another enabled backend (see {@link StorageTransferService}). */
     public CompletableFuture<TransferReport> transferPlayerData(String targetBackend){
         return transferService.transferPlayerData(targetBackend);
+    }
+
+    /**
+     * Moves the WHOLE network family - accounts, account-wide sections, network cooldowns and every
+     * collection a plugin claimed on that backend - to another enabled backend, in one operation
+     * (see {@link StorageTransferService}). The family is indivisible: a link absorbs its rows in one
+     * place, which no split across backends could serve.
+     */
+    public CompletableFuture<NetworkTransferReport> transferNetwork(String targetBackend){
+        return transferService.transferNetwork(targetBackend);
+    }
+
+    /**
+     * What a network transfer WOULD move, without moving anything: every collection claimed on the
+     * network backend with its owner, and the ones nothing can copy because no descriptor was recorded
+     * for them. Printing this first is what stops an admin reading "transferred everything" over a
+     * transfer that quietly left something behind.
+     */
+    public static Map<String, String> networkTransferPreview(){
+        PlayerController controller = INSTANCE;
+        if (controller == null) return Collections.emptyMap();
+        return controller.registry.getClaims(controller.storageConfig.getNetworkBackendName());
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------//

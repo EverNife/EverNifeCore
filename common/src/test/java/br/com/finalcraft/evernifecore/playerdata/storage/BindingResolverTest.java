@@ -69,6 +69,8 @@ class BindingResolverTest {
                 "    path: \"" + tempDir.resolve("jsonfiles").toString().replace("\\", "/") + "\"",
                 "    format: json",
                 "default-backend: main_storage",
+                "network:",
+                "  storage-backend-id: main_storage",
                 ""));
         for (String line : pdsectionsYamlLines) {
             yml.append(line).append("\n");
@@ -421,6 +423,8 @@ class BindingResolverTest {
                 "  main_storage: { enabled: true, type: memory }",
                 "  economy_storage: { enabled: true, type: memory }",
                 "default-backend: main_storage",
+                "network:",
+                "  storage-backend-id: main_storage",
                 "multi-server-cache-sync:",
                 "  redis:",
                 "    enabled: " + redisEnabled,

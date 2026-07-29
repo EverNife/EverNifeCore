@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -55,6 +56,10 @@ class CacheSyncWiringTest {
     }
 
     private ParsedStorageConfig parse(boolean enableSync) throws IOException {
+        return parse(enableSync, null);
+    }
+
+    private ParsedStorageConfig parse(boolean enableSync, String transport) throws IOException {
         String dataPath = tempDir.resolve("gf_" + System.nanoTime()).toString().replace("\\", "/");
         String yml = String.join("\n",
                 "storage-backends:",
@@ -64,8 +69,11 @@ class CacheSyncWiringTest {
                 "    path: \"" + dataPath + "\"",
                 "    format: yaml",
                 "default-backend: files",
+                "network:",
+                "  storage-backend-id: files",
                 "multi-server-cache-sync:",
                 "  enabled: " + enableSync,
+                transport == null ? "" : "  transport: " + transport,
                 "");
         File file = tempDir.resolve("storage_" + System.nanoTime() + ".yml").toFile();
         Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
@@ -100,7 +108,7 @@ class CacheSyncWiringTest {
     }
 
     @Test
-    void syncEnabledNoRedisFeedlessBackend_returnsNullAndWarnsNothing() throws IOException {
+    void autoOverAFileBackendIsStillANoOp() throws IOException {
         ParsedStorageConfig parsed = parse(true);
         List<CachingManager<?, ?>> managers = new ArrayList<>();
         managers.add(managerOver(parsed));
@@ -109,7 +117,26 @@ class CacheSyncWiringTest {
         CacheSyncWiring.Handle handle = CacheSyncWiring.startIfEnabled(parsed, managers,
                 info -> { }, warnings::add);
 
-        assertNull(handle, "sync on with no redis over a feedless backend must be a NO-OP (null)");
-        assertTrue(warnings.isEmpty(), "the feedless no-op must be SILENT (no nag): " + warnings);
+        //a file backend DOES have a change feed, but it watches this machine's filesystem: it cannot
+        //carry another server's write, so on the default transport it would cost a watcher thread per
+        //storage to report only writes this server just made
+        assertNull(handle, "auto over a file backend must stay a NO-OP (null)");
+        assertTrue(warnings.isEmpty(), "the no-op must be SILENT (no nag): " + warnings);
+    }
+
+    @Test
+    void anExplicitNativeTransportDoesReachTheFileBackendsFeed() throws IOException {
+        ParsedStorageConfig parsed = parse(true, "native");
+        List<CachingManager<?, ?>> managers = new ArrayList<>();
+        managers.add(managerOver(parsed));
+
+        List<String> warnings = new ArrayList<>();
+        CacheSyncWiring.Handle handle = CacheSyncWiring.startIfEnabled(parsed, managers,
+                info -> { }, warnings::add);
+
+        //the gate above is about the DEFAULT, not about the feed being unusable: an admin who edits
+        //the data files by hand asks for it by name and gets it
+        assertNotNull(handle, "'native' must reach the file backend's feed: " + warnings);
+        handle.close();
     }
 }

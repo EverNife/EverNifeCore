@@ -69,6 +69,8 @@ class LegacyImportReportTest {
                 "    path: \"" + dataPath + "\"",
                 "    format: yaml",
                 "default-backend: test_files",
+                "network:",
+                "  storage-backend-id: test_files",
                 "");
         File file = tempDir.resolve("storage.yml").toFile();
         Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));

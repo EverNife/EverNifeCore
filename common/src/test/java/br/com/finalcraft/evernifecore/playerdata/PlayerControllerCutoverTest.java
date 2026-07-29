@@ -461,6 +461,9 @@ class PlayerControllerCutoverTest {
         @Override public CompletableFuture<java.util.Map<UUID, Long>> versions(Collection<UUID> keys) {
             return CompletableFuture.completedFuture(new java.util.HashMap<>());
         }
+        @Override public CompletableFuture<Slice<String>> keys(Cursor cursor, int limit) {
+            throw new UnsupportedOperationException();
+        }
         @Override public CompletableFuture<Slice<ScanRow<PlayerData>>> scanAll(Cursor cursor, int limit) {
             throw new UnsupportedOperationException();
         }
@@ -518,6 +521,9 @@ class PlayerControllerCutoverTest {
         }
         @Override public CompletableFuture<java.util.Map<UUID, Long>> versions(Collection<UUID> keys) {
             return CompletableFuture.completedFuture(new java.util.HashMap<>());
+        }
+        @Override public CompletableFuture<Slice<String>> keys(Cursor cursor, int limit) {
+            throw new UnsupportedOperationException();
         }
         @Override public CompletableFuture<Slice<ScanRow<JobsPDSection>>> scanAll(Cursor cursor, int limit) {
             throw new UnsupportedOperationException();
