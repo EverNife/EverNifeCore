@@ -32,15 +32,24 @@ public final class StorageYamlDefaults {
         Config config = ConfigFactory.open(EverNifeCore.getEcPluginData(), file);
 
         // ---- storage-backends ----
-        // groupedfile (the factory default): one YAML file per player key, holding all their collections
-        config.setValue("storage-backends.groupedfile.enabled", true);
-        config.setValue("storage-backends.groupedfile.type", "groupedfile");
-        config.setValue("storage-backends.groupedfile.path", "plugins/EverNifeCore/StorageData/groupedfile");
-        config.setValue("storage-backends.groupedfile.format", "yaml");
+        //two file backends out of the box, split by ROLE: what belongs to one player, and what the
+        //whole network has to agree on. Both groupedfile (one YAML file per key, holding all that
+        //key's collections); the ids name the role because the type is the field right below them
+        config.setValue("storage-backends.playerdata.enabled", true);
+        config.setValue("storage-backends.playerdata.type", "groupedfile");
+        config.setValue("storage-backends.playerdata.path", "plugins/EverNifeCore/StorageData/PlayerData");
+        config.setValue("storage-backends.playerdata.format", "yaml");
 
+        config.setValue("storage-backends.networkdata.enabled", true);
+        config.setValue("storage-backends.networkdata.type", "groupedfile");
+        config.setValue("storage-backends.networkdata.path", "plugins/EverNifeCore/StorageData/NetworkData");
+        config.setValue("storage-backends.networkdata.format", "yaml");
+
+        //a disabled EXAMPLE: the folder name is a placeholder on purpose, so enabling it without
+        //editing the path reads as unfinished instead of as a deliberate neighbour of the two above
         config.setValue("storage-backends.localfile.enabled", false);
         config.setValue("storage-backends.localfile.type", "localfile");
-        config.setValue("storage-backends.localfile.path", "plugins/EverNifeCore/StorageData/localfile");
+        config.setValue("storage-backends.localfile.path", "plugins/EverNifeCore/StorageData/SomeRandomFolder");
         config.setValue("storage-backends.localfile.format", "yaml");
 
         config.setValue("storage-backends.h2.enabled", false);
@@ -73,8 +82,17 @@ public final class StorageYamlDefaults {
                 " EverNifeCore - Storage (EveryDatabase)",
                 "",
                 " Storage backends for PlayerData, PDSections and plugin data.",
-                " Enable (enabled: true) the ones you want to use; 'groupedfile'",
-                " is the default and comes enabled (one YAML file per player).",
+                " Enable (enabled: true) the ones you want to use.",
+                "",
+                " Two come enabled, split by ROLE rather than by type:",
+                "   playerdata  - what belongs to ONE player on THIS server",
+                "   networkdata - what the whole network must agree on (accounts,",
+                "                 account-wide sections, network cooldowns). Point",
+                "                 it at a shared database the day a second server",
+                "                 joins; until then a local folder is a network of",
+                "                 one, which is correct.",
+                " The id names the role and 'type' below names the technology, so",
+                " switching networkdata to mysql does not turn its id into a lie.",
                 "",
                 " Each entry key is a FREE UNIQUE ID - you can declare SEVERAL",
                 " backends of the same type pointing to different servers, e.g.:",
@@ -93,18 +111,20 @@ public final class StorageYamlDefaults {
                 " downloaded up front at boot, so switching backend here never",
                 " hits a missing dependency.",
                 "============================================================"));
-        config.setComment("storage-backends.groupedfile.format",
-                "format: yaml | json - groupedfile co-locates ALL of a player's collections in one file per key");
+        config.setComment("storage-backends.playerdata.format",
+                "format: yaml | json - groupedfile co-locates ALL of a key's collections in one file per key");
+        config.setComment("storage-backends.networkdata.format",
+                "format: yaml | json - groupedfile co-locates ALL of a key's collections in one file per key");
         config.setComment("storage-backends.localfile.format",
                 "format: yaml | json (json is always pretty/indented)");
 
         // ---- default-backend ----
-        config.setValue("default-backend", "groupedfile");
+        config.setValue("default-backend", "playerdata");
         config.setComment("default-backend",
                 "Backend used when nothing more specific is configured");
 
         // ---- playerdata ----
-        config.setValue("playerdata.storage-backend-id", "groupedfile");
+        config.setValue("playerdata.storage-backend-id", "playerdata");
         config.setValue("playerdata.collection", "evernifecore_playerdata");
         config.setValue("playerdata.load-mode", "ALL");
         config.setValue("playerdata.recent-days", 60);
