@@ -114,6 +114,8 @@ class StorageBootReportTest {
                 "    url: \"mongodb://localhost:39308\"",
                 "    db: ecore",
                 "default-backend: mysql",
+                "network:",
+                "  storage-backend-id: mysql",
                 "playerdata:",
                 "  storage-backend-id: mysql",
                 "pdsections:",
@@ -152,6 +154,8 @@ class StorageBootReportTest {
                 "    enabled: true",
                 "    type: memory",
                 "default-backend: main",
+                "network:",
+                "  storage-backend-id: main",
                 "");
         File file = tempDir.resolve("storage.yml").toFile();
         Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
