@@ -17,7 +17,7 @@ import java.util.List;
 /**
  * Developer-side configuration of an {@link AccountSection}. Deliberately smaller than a
  * PDSection's: the whole account family lives on the ONE backend configured under
- * {@code multi-platform-accounts} in storage.yml (no per-section backend routing), the cache
+ * {@code network} in storage.yml (no per-section backend routing), the cache
  * lifecycle is fixed (resident while any member is online, refreshed on login, released after the
  * last member quits) and hot-load always happens on login.
  *

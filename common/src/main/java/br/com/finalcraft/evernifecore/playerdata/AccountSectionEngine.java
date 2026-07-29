@@ -116,9 +116,9 @@ final class AccountSectionEngine {
             reloadBinding(bindings.get(sectionClass), cfg.isDiscardDirtyOnReload());
         }
         ParsedStorageConfig parsed = controller.storageConfig();
-        String backendName = parsed.getAccountBackendName();
+        String backendName = parsed.getNetworkBackendName();
         BackendDefinition backend = parsed.getBackend(backendName).orElseThrow(() ->
-                new StorageConfigException("Account backend '" + backendName + "' is not declared/enabled!"));
+                new StorageConfigException("Network backend '" + backendName + "' is not declared/enabled!"));
         Storage storage = controller.registry().get(backendName);
 
         String pluginName = PlayerController.pluginNameOf(cfg.getPluginData());
@@ -142,12 +142,6 @@ final class AccountSectionEngine {
                     + " collection name '" + collection + "' - must match "
                     + StorageYamlParser.VALID_COLLECTION.pattern());
         }
-        if (!controller.registry().claimCollection(backendName, collection, sectionId)) {
-            throw new StorageConfigException("AccountSection '" + sectionId + "' wants collection '"
-                    + collection + "' on backend '" + backendName + "', but it is already used by '"
-                    + controller.registry().getCollectionOwner(backendName, collection) + "'!");
-        }
-
         // the plugin's child registry - shared by the codec (so a Ref in an account section resolves) and
         // the manager below, exactly as the PDSection path pairs them in BindingResolver.resolve
         RefRegistry accountRegistry = controller.registries().of(cfg.getPluginData());
@@ -160,11 +154,19 @@ final class AccountSectionEngine {
                 .codec(codec)
                 .build();
 
+        //claimed WITH the descriptor, after building it: the claim is what a network transfer
+        //enumerates, and a claim with no descriptor names a collection nothing can copy
+        if (!controller.registry().claimCollection(backendName, collection, sectionId, descriptor)) {
+            throw new StorageConfigException("AccountSection '" + sectionId + "' wants collection '"
+                    + collection + "' on backend '" + backendName + "', but it is already used by '"
+                    + controller.registry().getCollectionOwner(backendName, collection) + "'!");
+        }
+
         //account rows may be written from several servers of the network: reject/warn a backend
         //that cannot enforce the optimistic lock, scoped to the account family
         List<String> warnings = new ArrayList<>();
         PdSyncBindGuard.check("AccountSection '" + sectionId + "'", descriptor, storage, parsed,
-                parsed.isMultiplatformAccountsEnabled(), warnings);
+                true, warnings);
         for (String warning : warnings) {
             PDLog.warning(warning);
         }

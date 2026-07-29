@@ -11,10 +11,10 @@ import lombok.RequiredArgsConstructor;
 import java.util.UUID;
 
 /**
- * The RESOLVED storage wiring of an {@link AccountSection}: the account backend, the section's
+ * The RESOLVED storage wiring of an {@link AccountSection}: the network backend, the section's
  * collection and its {@link CachingManager}. Simpler than a PDSection's binding by design - the
- * whole account family shares the one backend configured under {@code multi-platform-accounts}
- * and the cache lifecycle is fixed. Produced by {@link AccountSectionEngine}; immutable.
+ * whole account family shares the one backend configured under {@code network} and the cache
+ * lifecycle is fixed. Produced by {@link AccountSectionEngine}; immutable.
  */
 @Getter
 @RequiredArgsConstructor

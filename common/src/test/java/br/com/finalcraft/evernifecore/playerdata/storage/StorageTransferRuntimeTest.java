@@ -67,6 +67,8 @@ class StorageTransferRuntimeTest {
                 "    type: h2",
                 "    url: \"jdbc:h2:mem:" + h2Db + ";DB_CLOSE_DELAY=-1\"",
                 "default-backend: " + defaultBackend,
+                "network:",
+                "  storage-backend-id: " + defaultBackend,
                 "");
         File file = tempDir.resolve(fileName).toFile();
         Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));

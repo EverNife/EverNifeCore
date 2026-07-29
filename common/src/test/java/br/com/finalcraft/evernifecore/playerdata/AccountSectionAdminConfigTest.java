@@ -65,8 +65,8 @@ class AccountSectionAdminConfigTest {
                 "    type: h2",
                 "    url: \"jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1\"",
                 "default-backend: test_h2",
-                "multi-platform-accounts:",
-                "  enabled: true",
+                "network:",
+                "  storage-backend-id: test_h2",
                 "  idle-grace-seconds: " + accountIdleGraceSeconds,
                 ""));
         for (String line : extraLines) {
@@ -96,7 +96,8 @@ class AccountSectionAdminConfigTest {
         assertTrue(raw.contains("acs_unknownplugin_trophies"), raw);
         assertTrue(raw.contains("Trophies shared by every linked identity"),
                 "the description is the only place the admin learns what this section holds:\n" + raw);
-        assertTrue(raw.contains("AccountSection created by the Plugin"), raw);
+        //author first, plugin last - the same order both families now write
+        assertTrue(raw.contains("AccountSection created by ") && raw.contains(" on the Plugin: "), raw);
     }
 
     @Test

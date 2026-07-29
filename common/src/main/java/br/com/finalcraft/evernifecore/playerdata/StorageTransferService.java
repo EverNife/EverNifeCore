@@ -15,8 +15,15 @@ import br.com.finalcraft.everydatabase.transfer.StorageTransfer;
 import br.com.finalcraft.everydatabase.transfer.TransferError;
 import br.com.finalcraft.everydatabase.transfer.TransferReport;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Runtime transfer of a collection between backends (the {@code /ecstorage transfer} pipeline):
@@ -28,6 +35,9 @@ import java.util.concurrent.CompletableFuture;
  * guard: taking it is atomic, so this service holds no freeze state of its own.
  */
 final class StorageTransferService {
+
+    /** One network transfer at a time, process-wide: it rewrites storage.yml and reloads the core. */
+    private static final AtomicBoolean NETWORK_TRANSFER_RUNNING = new AtomicBoolean(false);
 
     private final PlayerController controller;
 
@@ -92,6 +102,116 @@ final class StorageTransferService {
                     .handle((report, error) -> finishSectionTransfer(pdSectionClass, binding, rebound, targetBackend, freeze, targetClaimWasFresh, report, error))
                     .thenCompose(future -> future);
         });
+    }
+
+    /**
+     * Moves the WHOLE network family to another enabled backend: the account registry, every
+     * account-wide section, the network cooldowns, and every collection a plugin claimed through
+     * {@code ECNetworkStorage}. The unit is the family, indivisibly: a link absorbs its rows in one
+     * place, so splitting them would need a write coordinated across two databases.
+     *
+     * <p>What travels is what is CLAIMED on the source backend, so a plugin's collection travels with
+     * the framework's without anyone maintaining a list. A claim recorded without a descriptor cannot
+     * be decoded, so it is reported rather than skipped in silence.
+     *
+     * <p>The cutover re-runs the core storage reload against the rewritten storage.yml instead of
+     * re-deriving each manager by hand: every family already has a reload path, plugin storage-reload
+     * callbacks fire on the way through, and the rows were flushed before the copy.
+     */
+    CompletableFuture<NetworkTransferReport> transferNetwork(String targetBackend) {
+        String sourceBackend = controller.storageConfig().getNetworkBackendName();
+        Throwable invalidTarget = validateTransferTarget(targetBackend, sourceBackend);
+        if (invalidTarget != null) return PlayerController.failedFuture(invalidTarget);
+        if (!NETWORK_TRANSFER_RUNNING.compareAndSet(false, true)) {
+            return PlayerController.failedFuture(
+                    new IllegalStateException("A network transfer is already running!"));
+        }
+
+        Map<String, String> claims = controller.registry().getClaims(sourceBackend);
+        Map<String, EntityDescriptor<?, ?>> movable = new LinkedHashMap<>();
+        List<String> unmovable = new ArrayList<>();
+        for (Map.Entry<String, String> claim : claims.entrySet()) {
+            EntityDescriptor<?, ?> descriptor =
+                    controller.registry().getClaimedDescriptor(sourceBackend, claim.getKey());
+            if (descriptor != null) {
+                movable.put(claim.getKey(), descriptor);
+            } else {
+                unmovable.add(claim.getKey() + " (claimed by " + claim.getValue() + ")");
+            }
+        }
+        if (movable.isEmpty()) {
+            NETWORK_TRANSFER_RUNNING.set(false);
+            return PlayerController.failedFuture(new IllegalStateException("Nothing to transfer:"
+                    + " no collection on the network backend '" + sourceBackend + "' can be copied."
+                    + (unmovable.isEmpty() ? "" : " Claimed but not copyable: " + unmovable)));
+        }
+
+        //flush first: the copy reads the BACKEND, so anything still dirty in memory would be left behind
+        return controller.flushAll().thenCompose(flushed -> {
+            List<String> freshClaims = new ArrayList<>();
+            Storage source = controller.registry().get(sourceBackend);
+            Storage target = controller.registry().get(targetBackend);
+            List<TransferReport> reports = new ArrayList<>();
+            try {
+                for (Map.Entry<String, EntityDescriptor<?, ?>> entry : movable.entrySet()) {
+                    boolean wasFresh = controller.registry()
+                            .getCollectionOwner(targetBackend, entry.getKey()) == null;
+                    controller.registry().claimCollection(targetBackend, entry.getKey(),
+                            claims.get(entry.getKey()), entry.getValue());
+                    if (wasFresh) freshClaims.add(entry.getKey());
+
+                    TransferReport report = copyCollection(source, target, entry.getValue()).join();
+                    reports.add(report);
+                    if (!report.success()) {
+                        return abortNetworkTransfer(targetBackend, freshClaims, sourceBackend,
+                                new NetworkTransferReport(sourceBackend, targetBackend, false,
+                                        movable.keySet(), unmovable, reports));
+                    }
+                }
+            } catch (Throwable copyFailure) {
+                abortNetworkTransfer(targetBackend, freshClaims, sourceBackend, null);
+                return PlayerController.failedFuture(copyFailure);
+            }
+
+            //cutover: the rewritten key is what the reload below reads, so it is written first
+            controller.storageYml().setValue("network.storage-backend-id", targetBackend);
+            controller.storageYml().save();
+            NETWORK_TRANSFER_RUNNING.set(false);
+            PlayerController.initialize(controller.storageYmlFile());
+            PDLog.info("The network family moved from backend '%s' to '%s' (%s collection(s)). The source"
+                            + " collections were kept untouched as a backup.",
+                    sourceBackend, targetBackend, movable.size());
+            return CompletableFuture.completedFuture(new NetworkTransferReport(sourceBackend,
+                    targetBackend, true, movable.keySet(), unmovable, reports));
+        });
+    }
+
+    /** Releases only the claims THIS transfer created on the target, and lets the next one start. */
+    private CompletableFuture<NetworkTransferReport> abortNetworkTransfer(String targetBackend,
+                                                                          List<String> freshClaims,
+                                                                          String sourceBackend,
+                                                                          NetworkTransferReport report) {
+        for (String collection : freshClaims) {
+            controller.registry().releaseCollection(targetBackend, collection);
+        }
+        NETWORK_TRANSFER_RUNNING.set(false);
+        PDLog.warning("Network transfer to backend '%s' FAILED - the network family stays on '%s' and"
+                + " storage.yml was not touched. Collections already copied were left on the target as"
+                + " leftovers; clear them before retrying.", targetBackend, sourceBackend);
+        return report == null ? CompletableFuture.completedFuture(null)
+                : CompletableFuture.completedFuture(report);
+    }
+
+    /** One collection, same name on both sides, read and written through the claimer's own descriptor. */
+    private static <K, V> CompletableFuture<TransferReport> copyCollection(Storage from, Storage to,
+                                                                           EntityDescriptor<K, V> descriptor) {
+        return StorageTransfer.builder()
+                .from(from).to(to)
+                .descriptor(descriptor)
+                .failIfTargetCollectionNotEmpty(true)
+                .verifyCounts(true)
+                .build()
+                .execute();
     }
 
     /** Moves the base PlayerData collection to another enabled backend (same pipeline). */

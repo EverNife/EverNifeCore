@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.storage.BindingResolver;
+import br.com.finalcraft.evernifecore.storage.StorageConfigException;
 import br.com.finalcraft.evernifecore.storage.StorageRegistry;
 import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
 import br.com.finalcraft.evernifecore.storage.config.ParsedStorageConfig;
@@ -34,36 +35,32 @@ import java.util.function.Supplier;
  * a static facade, mirroring {@link PlayerController}: an instance is bootstrapped once (from the
  * PlayerController bootstrap) and swapped in atomically.
  *
- * <p><b>Singleton account for an unlinked uuid.</b> A uuid that has never been linked resolves to a
- * singleton account whose {@code accountId == uuid}. So an account-wide section of an unlinked
- * player keys by the same value it would with plain uuid keying - account scoping only changes
- * behavior once identities have actually been linked.</p>
+ * <p>A uuid that has never been linked resolves to a singleton account whose
+ * {@code accountId == uuid}, so account scoping only changes behavior once identities are linked.
+ * The first real link mints a brand-new random accountId (never a member's uuid - see
+ * {@link #linkExternal(UUID, String, String, UUID)} for the validated escape hatch), persists the
+ * canonical account row, and writes one alias row per identity so every member stays resolvable by
+ * its own key. accountIds are OPAQUE: integrations must not derive meaning from them.
  *
- * <p><b>Linked accounts are explicit and own their id.</b> The first real link mints a brand-new
- * random accountId (never a member's uuid - see {@link #linkExternal(UUID, String, String, UUID)}
- * for the strictly validated escape hatch), persists the canonical account row, and writes one
- * alias row per identity so every member stays resolvable by its own key. accountIds are OPAQUE:
- * integrations must not derive meaning from them.</p>
+ * <p>Identity only: every operation here writes exclusively to the account collection. The
+ * account-wide DATA stored under a former key is absorbed into the canonical rows at each member's
+ * next login, or via {@code /ecaccount migrate}.
  *
- * <p><b>Identity only - data follows lazily.</b> Every operation here writes exclusively to the
- * account collection (one backend). The account-wide DATA stored under a former key is absorbed
- * into the canonical rows at each member's next login (or via {@code /ecaccount migrate}).</p>
- *
- * <p><b>Backend routing.</b> The account collection lives on the backend the admin points
- * {@code multi-platform-accounts.storage-backend-id} at in storage.yml; absent that, it falls back to the
- * default backend. It must be the SAME backend across every instance that shares accounts.</p>
- *
- * <p><b>Opt-in.</b> The layer only bootstraps when {@code multi-platform-accounts.enabled} is true;
- * disabled, every caller goes through {@link #get()} and account scoping degrades
- * to plain uuid keying (mutating operations fail with a clear error).</p>
+ * <p>The account collection lives on the network backend named in
+ * {@code network.storage-backend-id}, and must be the SAME backend across every instance that shares
+ * accounts. The layer always bootstraps: with no link, {@code ec_accounts} stays empty and every
+ * identity is its own account.
  */
 public final class Accounts {
 
     /** Fallback provider tag of a platform uuid identity, used before a platform is registered. */
     public static final String PLATFORM_PROVIDER = "platform";
 
-    /** The account collection name on the account backend. */
+    /** The account collection name on the network backend. */
     public static final String COLLECTION = "ec_accounts";
+
+    /** Owner tag of this collection's registry claim. */
+    private static final String CLAIM_OWNER = "EverNifeCore:Accounts";
 
     /** Alias chains longer than this abort resolution (defensive: only a corrupt cycle produces one). */
     private static final int MAX_ALIAS_HOPS = 5;
@@ -81,7 +78,11 @@ public final class Accounts {
         this.manager = manager;
     }
 
-    /** True when the account/identity layer is bootstrapped (Multi-Platform Accounts is enabled). */
+    /**
+     * True once the account/identity layer has bootstrapped - false before the storage boot and in
+     * tests. Not an admin's answer to anything: there is no switch for the layer, and linking is an
+     * operation ({@code /ecaccount link}), never a setting.
+     */
     public static boolean isEnabled() {
         return INSTANCE != null;
     }
@@ -99,16 +100,24 @@ public final class Accounts {
 
     /**
      * Builds the account manager against storage.yml and installs it as the current instance. Called
-     * by the PlayerController bootstrap after the registry is initialized. The account backend is
-     * {@code accounts.backend ?? default-backend}; the manager is created in {@code globalRegistry}
-     * with an unbounded, resident cache (an account is tiny and read on every account-scoped access).
+     * by the PlayerController bootstrap after the registry is initialized. The account collection lives
+     * on {@code network.storage-backend-id}; the manager is created in {@code globalRegistry} with an
+     * unbounded, resident cache (an account is tiny and read on every account-scoped access).
      */
     public static Accounts bootstrap(ParsedStorageConfig parsed, StorageRegistry registry,
                                           RefRegistry globalRegistry) {
-        String backendName = parsed.getAccountBackendName();
+        String backendName = parsed.getNetworkBackendName();
         Storage storage = registry.get(backendName);
+        EntityDescriptor<UUID, Account> descriptor = descriptor(parsed, backendName, globalRegistry);
+        //claimed like every other collection on the backend: it is what stops a plugin from taking the
+        //name, and what a network transfer enumerates to know this collection has to travel too
+        if (!registry.claimCollection(backendName, COLLECTION, CLAIM_OWNER, descriptor)) {
+            throw new StorageConfigException("The account registry wants collection '" + COLLECTION
+                    + "' on the network backend '" + backendName + "', but it is already used by '"
+                    + registry.getCollectionOwner(backendName, COLLECTION) + "'!");
+        }
         CachingManager<UUID, Account> manager =
-                globalRegistry.manager(descriptor(parsed, backendName), storage, CachePolicy.always());
+                globalRegistry.manager(descriptor, storage, CachePolicy.always());
         //warm every stored account/alias up-front: the sync keying fast-path (accountNow) is
         //cache-only, and the collection stays tiny (only explicitly linked identities persist rows),
         //so this keeps account-scoped keying correct even for offline players loaded at boot
@@ -125,21 +134,16 @@ public final class Accounts {
     }
 
     /**
-     * Counts the account rows stored on the configured account backend WITHOUT bootstrapping the
-     * layer (no manager, no cache). Backs the boot guard: disabling the layer while linked accounts
-     * exist would make their account-wide data unreachable, so the boot refuses instead.
+     * The one descriptor of the account collection. The codec is ref-aware against the GLOBAL registry,
+     * where the account manager itself lives: {@code Ref} resolution only walks upwards, so an account
+     * can point at another framework-owned entity but never at a plugin's - which is correct, the
+     * framework cannot depend on a plugin being installed.
      */
-    public static long countStoredAccounts(ParsedStorageConfig parsed, StorageRegistry registry) {
-        String backendName = parsed.getAccountBackendName();
-        Storage storage = registry.get(backendName);
-        return storage.repository(descriptor(parsed, backendName)).count().join();
-    }
-
-    /** The one descriptor of the account collection (bootstrap and the boot guard must agree on it). */
-    private static EntityDescriptor<UUID, Account> descriptor(ParsedStorageConfig parsed, String backendName) {
+    private static EntityDescriptor<UUID, Account> descriptor(ParsedStorageConfig parsed, String backendName,
+                                                              RefRegistry globalRegistry) {
         BackendDefinition backend = parsed.getBackend(backendName).orElseThrow(() ->
-                new IllegalStateException("Account backend '" + backendName + "' is not declared/enabled!"));
-        Codec<Account> codec = BindingResolver.defaultCodec(backend, Account.class);
+                new IllegalStateException("Network backend '" + backendName + "' is not declared/enabled!"));
+        Codec<Account> codec = BindingResolver.defaultCodec(backend, Account.class, globalRegistry);
         return EntityDescriptor
                 .builder(UUID.class, Account.class)
                 .collection(COLLECTION)
@@ -738,7 +742,8 @@ public final class Accounts {
     }
 
     private static IllegalStateException disabled() {
-        return new IllegalStateException("Multi-Platform Accounts is disabled on this instance -"
-                + " enable 'multi-platform-accounts.enabled' in storage.yml to link identities");
+        return new IllegalStateException("The account layer is not bootstrapped on this instance -"
+                + " it comes up with the PlayerController, so this ran either before the storage boot"
+                + " finished or after it failed");
     }
 }

@@ -76,7 +76,7 @@ class AccountsLinkTest {
         }
     }
 
-    private void bootstrapEnabled(String dbName) throws IOException {
+    private void bootstrap(String dbName) throws IOException {
         String yml = String.join("\n",
                 "storage-backends:",
                 "  test_h2:",
@@ -84,8 +84,8 @@ class AccountsLinkTest {
                 "    type: h2",
                 "    url: \"jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1\"",
                 "default-backend: test_h2",
-                "multi-platform-accounts:",
-                "  enabled: true",
+                "network:",
+                "  storage-backend-id: test_h2",
                 "");
         File file = tempDir.resolve("storage_" + dbName + ".yml").toFile();
         Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
@@ -120,7 +120,7 @@ class AccountsLinkTest {
 
     @Test
     void linkExternalBirthsExplicitAccountWithMintedId() throws IOException {
-        bootstrapEnabled("link_birth");
+        bootstrap("link_birth");
 
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "Alpha").join();
@@ -148,7 +148,7 @@ class AccountsLinkTest {
 
     @Test
     void linkExternalRejectsReservedAndAmbiguousProviders() throws IOException {
-        bootstrapEnabled("link_reject");
+        bootstrap("link_reject");
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "Rules").join();
 
@@ -167,7 +167,7 @@ class AccountsLinkTest {
 
     @Test
     void dataFollowsTheLinkAtNextLogin() throws IOException {
-        bootstrapEnabled("link_rollforward");
+        bootstrap("link_rollforward");
         registerSections();
 
         UUID uuid = UUID.randomUUID();
@@ -201,7 +201,7 @@ class AccountsLinkTest {
 
     @Test
     void transitiveFusionJoinsTwoPlayersThroughTheSameExternal() throws IOException {
-        bootstrapEnabled("link_transitive");
+        bootstrap("link_transitive");
         registerSections();
 
         UUID uuidA = UUID.randomUUID();
@@ -238,7 +238,7 @@ class AccountsLinkTest {
 
     @Test
     void desiredAccountIdIsHonoredOnCreationAndIdempotentAfter() throws IOException {
-        bootstrapEnabled("desired_ok");
+        bootstrap("desired_ok");
 
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "SiteUser").join();
@@ -258,7 +258,7 @@ class AccountsLinkTest {
 
     @Test
     void desiredAccountIdRejectsCollisions() throws IOException {
-        bootstrapEnabled("desired_collisions");
+        bootstrap("desired_collisions");
 
         UUID linkedUuid = UUID.randomUUID();
         PlayerController.handleLogin(linkedUuid, "Taken").join();
@@ -299,7 +299,7 @@ class AccountsLinkTest {
 
     @Test
     void ledgerMakesInterruptedMigrationSafeForNonIdempotentMerge() throws IOException {
-        bootstrapEnabled("ledger_resume");
+        bootstrap("ledger_resume");
         registerSections();
 
         UUID uuid = UUID.randomUUID();
@@ -349,7 +349,7 @@ class AccountsLinkTest {
 
     @Test
     void unlinkedMemberStartsFreshAndAccountKeepsData() throws IOException {
-        bootstrapEnabled("unlink_fresh");
+        bootstrap("unlink_fresh");
         registerSections();
 
         UUID uuidA = UUID.randomUUID();
@@ -385,7 +385,7 @@ class AccountsLinkTest {
 
     @Test
     void unlinkExternalRemovesTheIdentityWithoutTouchingData() throws IOException {
-        bootstrapEnabled("unlink_external");
+        bootstrap("unlink_external");
 
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "Hubbed").join();
@@ -405,7 +405,7 @@ class AccountsLinkTest {
 
     @Test
     void migrateAccountDataReconcilesOfflinePlayer() throws IOException {
-        bootstrapEnabled("migrate_cmd");
+        bootstrap("migrate_cmd");
         registerSections();
 
         UUID uuid = UUID.randomUUID();
@@ -433,7 +433,7 @@ class AccountsLinkTest {
 
     @Test
     void adminLinkFusesTwoPlatformIdentities() throws IOException {
-        bootstrapEnabled("admin_link");
+        bootstrap("admin_link");
 
         UUID uuidA = UUID.randomUUID();
         UUID uuidB = UUID.randomUUID();
