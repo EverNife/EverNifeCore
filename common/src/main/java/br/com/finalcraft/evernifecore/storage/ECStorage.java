@@ -34,10 +34,7 @@ import java.util.logging.Logger;
  * backend its own config declares - the drivers are already downloaded by the core at boot, so any
  * type the admin picks just works.
  *
- * <p>This REPLACES the old global-facade design (a static {@code ECStorage.repository("name", ...)}
- * routing by storage.yml backend ids): that shared registry conflated the core's PlayerData routing
- * with third-party plugin data and confused usage. An {@code ECStorage} is now a self-contained
- * context you {@link #open} and {@link #close} yourself.</p>
+ * <p>A handle is a self-contained context the plugin {@link #open}s and {@link #close}s itself.
  *
  * <pre>{@code
  * // onEnable - one line: seeds a groupedfile default under the plugin's dataFolder if the section is
@@ -53,9 +50,9 @@ import java.util.logging.Logger;
  * STORAGE.close().join();
  * }</pre>
  *
- * <p>It deliberately does NOT implement {@link Storage}: a delegating wrapper would hide the concrete
- * storage's own interfaces (e.g. {@code SchemaAwareStorage}/{@code TransactionalStorage}) from an
- * {@code instanceof} check. Take the raw storage from {@link #storage()} when you need it.</p>
+ * <p>It does NOT implement {@link Storage}: a delegating wrapper would hide the concrete storage's own
+ * interfaces (e.g. {@code SchemaAwareStorage}) from an {@code instanceof} check. Take the raw storage
+ * from {@link #storage()} when you need it.
  */
 public final class ECStorage {
 
@@ -65,15 +62,13 @@ public final class ECStorage {
     private final BackendDefinition definition;
 
     /**
-     * The registry this handle's managers register in. When opened with an {@link ECPluginData}, this is
-     * that plugin's SHARED child registry (the same one the plugin's PlayerData PDSections resolve through,
-     * via {@link ECStorageRegistries}), so a {@code Ref} inside a PDSection can resolve an entity that lives
-     * here. Opened without a plugin - or before the PlayerData bootstrap wired the bridge - it is a private
-     * registry. Either way {@link #reset()}/{@link #close()} unregister only THIS handle's own types, never
-     * the whole (possibly shared) registry.
+     * The registry this handle's managers register in: the plugin's SHARED child registry (the one its
+     * PDSections resolve through, via {@link ECStorageRegistries}) when opened with an
+     * {@link ECPluginData}, a private one otherwise. {@link #reset()}/{@link #close()} unregister only
+     * THIS handle's own types, never the whole registry.
      *
-     * <p>Not final: a reload replaces the plugin's shared registry, and {@link #rebind} moves this handle
-     * onto the fresh one without dropping the connection.</p>
+     * <p>Not final: a reload replaces the shared registry and {@link #rebind} moves this handle onto the
+     * fresh one without dropping the connection.
      */
     private volatile RefRegistry refRegistry;
 
@@ -149,11 +144,16 @@ public final class ECStorage {
     /**
      * The default codec for {@code type} on this backend, so a plugin's entity honours the configured
      * format exactly as PlayerData does: a file backend picks YAML or (pretty) JSON from its
-     * {@code format}, every other backend uses compact JSON. See {@link BackendDefinition#defaultCodec(Class)}.
+     * {@code format}, every other backend uses compact JSON.
+     *
+     * <p>REF-AWARE against {@link #refRegistry()} - this handle's registry, shared with the plugin's
+     * PDSections when it was opened with a plugin - so a {@code Ref} field resolves once decoded
+     * instead of answering empty. The binding is additive: an entity with no {@code Ref} field decodes
+     * exactly as before.</p>
      */
     public <V> Codec<V> defaultCodec(Class<V> type) {
         ensureUsable();
-        return definition.defaultCodec(type);
+        return definition.defaultCodec(type, refRegistry);
     }
 
     /**
@@ -260,9 +260,8 @@ public final class ECStorage {
      * old registry exactly as {@link #reset()} does, then the handle adopts the new registry and the caller
      * re-derives its managers there - which is what gives them a codec bound to the live registry.
      *
-     * <p>The connection is deliberately untouched. The previous behaviour closed and reopened the storage
-     * because an in-memory registry object had been replaced, which on a pooled backend meant tearing down
-     * the whole pool on every reload.</p>
+     * <p>The connection is untouched: an in-memory registry swap is no reason to tear down a pooled
+     * backend on every reload.
      */
     private void rebind(RefRegistry fresh) {
         reset();                    // unregisters this handle's types from the OLD registry - order matters
@@ -276,15 +275,12 @@ public final class ECStorage {
      * plugin's own callback finds the handle already marked and re-opens it into the live registry.
      *
      * <p>A handle whose plugin no longer resolves to the registry it holds is marked DETACHED rather than
-     * repaired: repairing it transparently is not possible. A manager carries the codec it was built with,
-     * and that codec captured a registry; moving the resolver alone would leave entities decoded against a
-     * graph nobody feeds, and building fresh managers would silently invalidate the ones the plugin already
-     * holds - trading a quiet read failure for a quiet write failure. So the handle refuses new work and
-     * says exactly how to fix it.</p>
+     * repaired: a manager carries the codec it was built with, and that codec captured a registry, so
+     * neither moving the resolver nor rebuilding the managers can be done without silently breaking one
+     * of the two. It refuses new work and says how to fix it instead.
      *
-     * <p>The registrations in the OLD registry are left alone on purpose: a manager the plugin already holds
-     * keeps resolving inside that older but self-consistent graph until the plugin re-opens, instead of
-     * suddenly resolving nothing.</p>
+     * <p>The OLD registry's registrations are left alone, so a manager the plugin already holds keeps
+     * resolving inside that older but self-consistent graph until the plugin re-opens.
      */
     public static void onRegistriesSwapped() {
         OPEN_HANDLES.removeIf(ref -> ref.get() == null);
@@ -314,9 +310,9 @@ public final class ECStorage {
     }
 
     /**
-     * Guards everything that would hand out NEW wiring. {@link #flushManagers()} and {@link #close()}
-     * deliberately do NOT go through here: they are the plugin's only chance to persist what is dirty and
-     * to release the connection, and refusing them would turn a resolution bug into data loss.
+     * Guards everything that would hand out NEW wiring. {@link #flushManagers()} and {@link #close()} do
+     * NOT go through here: refusing the plugin's only chance to persist what is dirty would turn a
+     * resolution bug into data loss.
      */
     private void ensureUsable() {
         ensureOpen();
@@ -409,11 +405,9 @@ public final class ECStorage {
      * {@code S = openOrReload(plugin, cfg, S)}. Seeds a groupedfile default under the plugin dataFolder
      * when the section is empty.
      *
-     * <p><b>Core reload:</b> a core storage reload SWAPS the plugin's shared registry, so a plugin that
-     * holds a {@code Ref} into this storage from one of its PDSections MUST re-run this call after each
-     * reload (register it in the {@code PlayerController.onStorageReload(plugin, ...)} callback). This
-     * call detects the swapped registry and reconnects (fresh registration), which is what keeps the Ref
-     * resolvable; the PDSection side rebinds to the fresh registry on its own.</p>
+     * <p>A core storage reload SWAPS the plugin's shared registry, which this call detects and
+     * reconnects onto. Register it through {@code PlayerController.onStorageReload(plugin, ...)} so it
+     * runs on every reload.
      *
      * @param existing the previous handle (may be {@code null} on first open, or already closed)
      */
@@ -450,6 +444,17 @@ public final class ECStorage {
     public static CompletableFuture<ECStorage> openOrReload(BackendDefinition definition, ECStorage existing) {
         ECPluginData plugin = existing != null ? existing.plugin : null;
         return openOrReload(plugin, definition, StorageLogConfig.defaults(), existing);
+    }
+
+
+    /**
+     * A handle onto the network backend for {@code plugin}. Opens no connection and reads no config of
+     * its own: the backend is already up, chosen by the admin under {@code network.storage-backend-id}.
+     *
+     * @throws StorageUnavailableException when the PlayerController has not bootstrapped yet
+     */
+    public static ECNetworkStorage network(ECPluginData plugin) {
+        return ECNetworkStorage.of(plugin);
     }
 
     private static CompletableFuture<ECStorage> openOrReload(ECPluginData plugin, BackendDefinition definition,

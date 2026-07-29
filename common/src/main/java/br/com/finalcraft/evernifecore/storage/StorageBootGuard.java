@@ -31,7 +31,7 @@ public final class StorageBootGuard {
             each.getCause().printStackTrace();
         }
         for (String line : StorageBootReport.render(failure, stopping, reloading)) {
-            severe(colorize(line));
+            severe(line);
         }
 
         if (stopping) {
@@ -47,10 +47,5 @@ public final class StorageBootGuard {
         } catch (Throwable noPluginRuntime) {
             Logger.getLogger("EverNifeCore").log(Level.SEVERE, message);
         }
-    }
-
-    /** Color only makes sense on the Minecraft console; other platforms/tests get the plain line. */
-    private static String colorize(String line) {
-        return "minecraft".equals(EverNifeCore.getPlatform().getPlatformProviderId()) ? "§c" + line : line;
     }
 }

@@ -43,6 +43,16 @@ public enum BackendType {
     }
 
     /**
+     * Whether this type keeps its data as loose files under a {@code path} directory it owns outright,
+     * reading every file there that carries the resolved extension. Two of them over one directory
+     * corrupt each other; an embedded database whose file merely SITS in such a directory does not,
+     * since neither ever opens the other's file.
+     */
+    public boolean isFileBacked() {
+        return this == LOCALFILE || this == GROUPEDFILE;
+    }
+
+    /**
      * @throws StorageConfigException if the id does not match any known type
      */
     public static BackendType fromId(String id) {

@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.storage;
 
 import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
+import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.Storage;
 
 import java.util.ArrayList;
@@ -38,6 +39,8 @@ public final class StorageRegistry {
 
     /** backendName -> (collection -> owner) */
     private final Map<String, Map<String, String>> claimedCollections = new ConcurrentHashMap<>();
+    /** backendName -> (collection -> the descriptor its claimer reads/writes it through) */
+    private final Map<String, Map<String, EntityDescriptor<?, ?>>> claimedDescriptors = new ConcurrentHashMap<>();
 
     public StorageRegistry(String defaultBackendName) {
         this.defaultBackendName = defaultBackendName;
@@ -98,16 +101,58 @@ public final class StorageRegistry {
      *         false if another owner already holds that collection on this backend
      */
     public boolean claimCollection(String backendName, String collection, String owner) {
+        return claimCollection(backendName, collection, owner, null);
+    }
+
+    /**
+     * As {@link #claimCollection(String, String, String)}, recording the descriptor the claimer reads
+     * and writes the collection through.
+     *
+     * <p>Without it a collection can be listed but not MOVED: a transfer copies rows through a
+     * descriptor pair, and the framework has none of its own for a collection a plugin declared. The
+     * claim is the one moment every claimer, framework or plugin, already passes through.</p>
+     */
+    public boolean claimCollection(String backendName, String collection, String owner,
+                                   EntityDescriptor<?, ?> descriptor) {
         Map<String, String> ofBackend = claimedCollections
                 .computeIfAbsent(backendName, k -> new ConcurrentHashMap<>());
         String existingOwner = ofBackend.putIfAbsent(collection, owner);
-        return existingOwner == null || existingOwner.equals(owner);
+        boolean claimed = existingOwner == null || existingOwner.equals(owner);
+        if (claimed && descriptor != null) {
+            claimedDescriptors.computeIfAbsent(backendName, k -> new ConcurrentHashMap<>())
+                    .put(collection, descriptor);
+        }
+        return claimed;
+    }
+
+    /**
+     * The descriptor a claimed collection is read and written through, or {@code null} when the
+     * claimer did not record one - in which case nothing can copy that collection, and a transfer has
+     * to say so rather than report a move it did not make.
+     */
+    public EntityDescriptor<?, ?> getClaimedDescriptor(String backendName, String collection) {
+        Map<String, EntityDescriptor<?, ?>> ofBackend = claimedDescriptors.get(backendName);
+        return ofBackend == null ? null : ofBackend.get(collection);
     }
 
     /** @return the owner of a claimed collection, or null when not claimed. */
     public String getCollectionOwner(String backendName, String collection) {
         Map<String, String> ofBackend = claimedCollections.get(backendName);
         return ofBackend == null ? null : ofBackend.get(collection);
+    }
+
+    /**
+     * Every collection claimed on a backend, mapped to its owner - an immutable snapshot. This is the
+     * enumeration that turns "move the network" from a hardcoded list of collections into "everything
+     * claimed on this backend", so a collection a plugin claimed at runtime travels with the rest.
+     *
+     * @return an unmodifiable copy; a backend with no claims answers an empty map, never null
+     */
+    public Map<String, String> getClaims(String backendName) {
+        Map<String, String> ofBackend = claimedCollections.get(backendName);
+        return ofBackend == null
+                ? Collections.<String, String>emptyMap()
+                : Collections.unmodifiableMap(new LinkedHashMap<>(ofBackend));
     }
 
     /**
@@ -119,6 +164,10 @@ public final class StorageRegistry {
         Map<String, String> ofBackend = claimedCollections.get(backendName);
         if (ofBackend != null) {
             ofBackend.remove(collection);
+        }
+        Map<String, EntityDescriptor<?, ?>> descriptors = claimedDescriptors.get(backendName);
+        if (descriptors != null) {
+            descriptors.remove(collection);
         }
     }
 
