@@ -21,9 +21,9 @@ public final class ParsedStorageConfig {
 
     private final Map<String, BackendDefinition> backends;          // insertion order
     private final String defaultBackendName;
-    private final boolean multiplatformAccountsEnabled;
-    private final String accountBackendName;                        // shared account backend (>= default)
+    private final String networkBackendName;                        // the one backend the network shares
     private final Integer accountIdleGraceSeconds;                  // nullable -> playerdata default
+    private final ServerCooldownsAdminConfig serverCooldowns;       // never null; every key inside is optional
     private final PlayerDataAdminConfig playerData;
     private final Map<String, Map<String, PDSectionAdminConfig>> pdSections; // plugin -> section -> cfg
     private final Map<String, Map<String, PDSectionAdminConfig>> accountSections; // idem, account family
@@ -34,17 +34,17 @@ public final class ParsedStorageConfig {
     private final List<String> warnings;
 
     ParsedStorageConfig(Map<String, BackendDefinition> backends, String defaultBackendName,
-                        boolean multiplatformAccountsEnabled, String accountBackendName,
-                        Integer accountIdleGraceSeconds, PlayerDataAdminConfig playerData,
+                        String networkBackendName, Integer accountIdleGraceSeconds,
+                        ServerCooldownsAdminConfig serverCooldowns, PlayerDataAdminConfig playerData,
                         Map<String, Map<String, PDSectionAdminConfig>> pdSections,
                         Map<String, Map<String, PDSectionAdminConfig>> accountSections,
                         StorageLogLevel loggingLevel, boolean enableSync, SyncTransportMode transportMode,
                         RedisSyncConfig redisSync, List<String> warnings) {
         this.backends = Collections.unmodifiableMap(new LinkedHashMap<>(backends));
         this.defaultBackendName = defaultBackendName;
-        this.multiplatformAccountsEnabled = multiplatformAccountsEnabled;
-        this.accountBackendName = accountBackendName;
+        this.networkBackendName = networkBackendName;
         this.accountIdleGraceSeconds = accountIdleGraceSeconds;
+        this.serverCooldowns = serverCooldowns;
         this.playerData = playerData;
         this.pdSections = Collections.unmodifiableMap(pdSections);
         this.accountSections = Collections.unmodifiableMap(accountSections);
@@ -69,22 +69,14 @@ public final class ParsedStorageConfig {
     }
 
     /**
-     * Whether the multi-platform account layer is enabled ({@code multi-platform-accounts.enabled}
-     * in storage.yml, {@code false} by default). When disabled, every identity resolves to its own
-     * singleton account and no account row is ever written.
+     * The one backend every server of the network shares ({@code network.storage-backend-id}): the
+     * account registry, every account-wide section and the network-wide server cooldowns. Always an
+     * explicitly named, declared and enabled backend - there is no fallback to
+     * {@link #getDefaultBackendName()}, since inheriting it silently would move the whole family the
+     * day an unrelated key is edited.
      */
-    public boolean isMultiplatformAccountsEnabled() {
-        return multiplatformAccountsEnabled;
-    }
-
-    /**
-     * The backend hosting the whole account family - the account registry and every account-wide
-     * section ({@code multi-platform-accounts.storage-backend-id} in storage.yml). Shared across instances;
-     * falls back to {@link #getDefaultBackendName()} when the admin does not override it. Always an
-     * enabled, declared backend.
-     */
-    public String getAccountBackendName() {
-        return accountBackendName;
+    public String getNetworkBackendName() {
+        return networkBackendName;
     }
 
     public PlayerDataAdminConfig getPlayerData() {
@@ -92,11 +84,19 @@ public final class ParsedStorageConfig {
     }
 
     /**
+     * The admin's entry for the network-wide server cooldowns ({@code network.server-cooldowns}).
+     * Never null - the block is optional and an absent one simply carries no override.
+     */
+    public ServerCooldownsAdminConfig getServerCooldowns() {
+        return serverCooldowns;
+    }
+
+    /**
      * How long an account row stays cached after the last online member of that account quits. Same
      * concept as a PDSection's idle grace and it follows the same server-wide default
-     * ({@code playerdata.default-idle-grace-seconds}) unless
-     * {@code multi-platform-accounts.idle-grace-seconds} names its own value - the account family has
-     * no per-section config, so this is the one knob for the whole family.
+     * ({@code playerdata.default-idle-grace-seconds}) unless {@code network.idle-grace-seconds} names
+     * its own value - the account family has no per-section config, so this is the one knob for the
+     * whole family.
      */
     public int getAccountIdleGraceSeconds() {
         return accountIdleGraceSeconds != null

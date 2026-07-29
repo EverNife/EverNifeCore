@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -43,13 +44,30 @@ class StorageYamlParserTest {
 
         ParsedStorageConfig parsed = StorageYamlParser.parse(file);
 
-        assertEquals(6, parsed.getBackends().size());
-        assertEquals("groupedfile", parsed.getDefaultBackendName());
+        assertEquals(7, parsed.getBackends().size());
+        assertEquals("playerdata", parsed.getDefaultBackendName());
+        assertEquals("networkdata", parsed.getNetworkBackendName());
 
-        BackendDefinition groupedfile = parsed.getBackend("groupedfile").orElseThrow(AssertionError::new);
-        assertTrue(groupedfile.isEnabled());
-        assertEquals(BackendType.GROUPEDFILE, groupedfile.getType());
-        assertEquals(BackendDefinition.FileFormat.YAML, groupedfile.getFormat());
+        // the two backends that ship enabled are split by role, both groupedfile
+        for (String role : new String[]{"playerdata", "networkdata"}) {
+            BackendDefinition backend = parsed.getBackend(role).orElseThrow(AssertionError::new);
+            assertTrue(backend.isEnabled(), role);
+            assertEquals(BackendType.GROUPEDFILE, backend.getType(), role);
+            assertEquals(BackendDefinition.FileFormat.YAML, backend.getFormat(), role);
+        }
+
+        //the split is only real if they land in different directories: sharing one would put two
+        //independent lock maps over the same files, and let each list the other's as its own
+        String playerPath = parsed.getBackend("playerdata").orElseThrow(AssertionError::new).getPath();
+        String networkPath = parsed.getBackend("networkdata").orElseThrow(AssertionError::new).getPath();
+        assertNotEquals(playerPath, networkPath);
+        assertFalse(playerPath.startsWith(networkPath), playerPath + " must not sit inside " + networkPath);
+        assertFalse(networkPath.startsWith(playerPath), networkPath + " must not sit inside " + playerPath);
+
+        //the disabled example is a placeholder, not a considered neighbour of the two above
+        String examplePath = parsed.getBackend("localfile").orElseThrow(AssertionError::new).getPath();
+        assertNotEquals(playerPath, examplePath);
+        assertNotEquals(networkPath, examplePath);
 
         // every other default backend ships disabled
         assertFalse(parsed.getBackend("localfile").orElseThrow(AssertionError::new).isEnabled());
@@ -92,6 +110,8 @@ class StorageYamlParserTest {
                 "    url: \"jdbc:mysql://points-db:3306/minecraft\"",
                 "  localfile: { enabled: true, type: localfile, path: \"data\" }",
                 "default-backend: localfile",
+                "network:",
+                "  storage-backend-id: localfile",
                 ""));
         ParsedStorageConfig parsed = StorageYamlParser.parse(file);
 
@@ -113,9 +133,9 @@ class StorageYamlParserTest {
         ParsedStorageConfig parsed = StorageYamlParser.parse(file);
         StorageRegistry registry = StorageYamlParser.buildRegistry(parsed, StorageLogConfig.silent());
 
-        assertEquals(1, registry.getNames().size());
-        assertTrue(registry.getNames().contains("groupedfile"));
-        assertEquals("groupedfile", registry.getDefaultBackendName());
+        assertEquals(2, registry.getNames().size());
+        assertTrue(registry.getNames().containsAll(Arrays.asList("playerdata", "networkdata")));
+        assertEquals("playerdata", registry.getDefaultBackendName());
         assertThrows(StorageConfigException.class, () -> registry.get("mysql"));
     }
 
@@ -197,6 +217,8 @@ class StorageYamlParserTest {
                 "  localfile: { enabled: true, type: localfile, path: \"data\" }",
                 "  mysql: { enabled: false, type: sql, url: \"jdbc:mysql://x/db\", format: yaml }",
                 "default-backend: localfile",
+                "network:",
+                "  storage-backend-id: localfile",
                 ""));
         ParsedStorageConfig parsed = StorageYamlParser.parse(file);
         assertEquals(1, parsed.getWarnings().size());
@@ -209,6 +231,8 @@ class StorageYamlParserTest {
                 "storage-backends:",
                 "  mem: { enabled: true, type: memory }",
                 "default-backend: mem",
+                "network:",
+                "  storage-backend-id: mem",
                 ""));
         ParsedStorageConfig parsed = StorageYamlParser.parse(file);
         assertEquals(1, parsed.getWarnings().size());
@@ -221,6 +245,8 @@ class StorageYamlParserTest {
                 "storage-backends:",
                 "  mem: { enabled: true, type: memory }",
                 "default-backend: mem",
+                "network:",
+                "  storage-backend-id: mem",
                 "playerdata:",
                 "  default-idle-grace-seconds: 120")));
         assertEquals(120, followsDefault.getAccountIdleGraceSeconds(),
@@ -230,10 +256,11 @@ class StorageYamlParserTest {
                 "storage-backends:",
                 "  mem: { enabled: true, type: memory }",
                 "default-backend: mem",
+                "network:",
+                "  storage-backend-id: mem",
+                "  idle-grace-seconds: 9",
                 "playerdata:",
-                "  default-idle-grace-seconds: 120",
-                "multi-platform-accounts:",
-                "  idle-grace-seconds: 9")));
+                "  default-idle-grace-seconds: 120")));
         assertEquals(9, named.getAccountIdleGraceSeconds());
     }
 
@@ -243,6 +270,8 @@ class StorageYamlParserTest {
                 "storage-backends:",
                 "  localfile: { enabled: true, type: localfile, path: \"data\" }",
                 "default-backend: localfile",
+                "network:",
+                "  storage-backend-id: localfile",
                 "playerdata:",
                 "  load-mode: RECENT",
                 "  recent-days: 15",
@@ -259,6 +288,8 @@ class StorageYamlParserTest {
                 "  localfile: { enabled: true, type: localfile, path: \"data\" }",
                 "  mysql: { enabled: false, type: sql, url: \"jdbc:mysql://x/db\" }",
                 "default-backend: localfile",
+                "network:",
+                "  storage-backend-id: localfile",
                 "pdsections:",
                 "  FinalJobs:",
                 "    JobsPDSection:",
@@ -285,6 +316,8 @@ class StorageYamlParserTest {
                 "storage-backends:",
                 "  localfile: { enabled: true, type: localfile, path: \"data\" }",
                 "default-backend: localfile",
+                "network:",
+                "  storage-backend-id: localfile",
                 "logging:",
                 "  level: shout",
                 ""));
@@ -299,6 +332,8 @@ class StorageYamlParserTest {
                 "storage-backends:",
                 "  localfile: { enabled: true, type: localfile, path: \"data\" }",
                 "default-backend: localfile",
+                "network:",
+                "  storage-backend-id: localfile",
                 "pdsections:",
                 "  FinalJobs:",
                 "    JobsPDSection: {}",

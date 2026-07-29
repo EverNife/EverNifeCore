@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.evernifecore.storage.BackendType;
+import br.com.finalcraft.evernifecore.storage.StorageBootReport;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
 import br.com.finalcraft.evernifecore.storage.StorageRegistry;
 import br.com.finalcraft.everydatabase.log.StorageLogConfig;
@@ -26,6 +27,8 @@ import java.util.regex.Pattern;
  *   <li>no backend declared / unknown {@code type} / missing required field</li>
  *   <li>{@code default-backend} missing, not declared or disabled</li>
  *   <li>{@code playerdata.storage-backend-id} not declared or disabled</li>
+ *   <li>{@code network.storage-backend-id} missing, empty, not declared or disabled</li>
+ *   <li>a {@code multi-platform-accounts} block, which {@code network} replaced</li>
  *   <li>invalid collection name (must match {@code ^[a-zA-Z][a-zA-Z0-9_]*$})</li>
  * </ul>
  *
@@ -59,6 +62,7 @@ public final class StorageYamlParser {
         if (backends.isEmpty()) {
             throw new StorageConfigException("storage.yml has no 'storage-backends:' declared!");
         }
+        FileBackendDirectoryGuard.check(backends, config.getFile());
 
         // ---- default-backend ----
         String defaultBackendName = config.getString("default-backend", null);
@@ -70,19 +74,17 @@ public final class StorageYamlParser {
         // ---- playerdata ----
         PlayerDataAdminConfig playerData = parsePlayerData(config, backends, defaultBackendName);
 
-        // ---- multi-platform-accounts (identity layer): opt-in, one backend for the whole family ----
-        boolean multiplatformAccountsEnabled = config.getBoolean("multi-platform-accounts.enabled", false);
-        String accountBackendName = emptyToNull(config.getString("multi-platform-accounts.storage-backend-id", null));
-        if (accountBackendName != null) {
-            requireEnabledBackend(backends, accountBackendName, "'multi-platform-accounts.storage-backend-id'");
-        } else {
-            accountBackendName = defaultBackendName;
-        }
-        Integer accountIdleGrace = getIntOrNull(config, "multi-platform-accounts.idle-grace-seconds");
+        // ---- network: the one backend every server of the network shares ----
+        requireNoLegacyAccountsBlock(config);
+        String networkBackendName = emptyToNull(config.getString("network.storage-backend-id", null));
+        requireUsableNetworkBackend(backends, networkBackendName, config.getFile());
+
+        Integer accountIdleGrace = getIntOrNull(config, "network.idle-grace-seconds");
         if (accountIdleGrace != null && accountIdleGrace < 0) {
-            throw new StorageConfigException("'multi-platform-accounts.idle-grace-seconds' must be >= 0"
+            throw new StorageConfigException("'network.idle-grace-seconds' must be >= 0"
                     + " (0 releases an account row as soon as its last member quits)!");
         }
+        ServerCooldownsAdminConfig serverCooldowns = parseServerCooldowns(config);
 
         // ---- section entries, per family (raw, validated at section registration time) ----
         Map<String, Map<String, PDSectionAdminConfig>> pdSections = parseSectionBlock(config, SectionFamily.PLAYER);
@@ -97,9 +99,64 @@ public final class StorageYamlParser {
                 config.getString("multi-server-cache-sync.transport", "auto"), warnings);
         RedisSyncConfig redisSync = parseRedis(config);   // null unless the redis block is enabled
 
-        return new ParsedStorageConfig(backends, defaultBackendName, multiplatformAccountsEnabled,
-                accountBackendName, accountIdleGrace, playerData, pdSections, accountSections,
+        return new ParsedStorageConfig(backends, defaultBackendName, networkBackendName,
+                accountIdleGrace, serverCooldowns, playerData, pdSections, accountSections,
                 loggingLevel, enableSync, transportMode, redisSync, warnings);
+    }
+
+    /**
+     * The network backend has to be named, declared and enabled. It gets the full boot-report banner
+     * rather than a one-line message: the admin loses the server over it, same as an unreachable
+     * database, and the fix is a line of storage.yml they have to be shown.
+     */
+    private static void requireUsableNetworkBackend(Map<String, BackendDefinition> backends,
+                                                    String backendName, File storageYmlFile) {
+        String cause = null;
+        if (backendName == null) {
+            cause = "missing or empty - it has to be named explicitly";
+        } else {
+            BackendDefinition backend = backends.get(backendName);
+            if (backend == null) {
+                cause = "not declared under 'storage-backends:'";
+            } else if (!backend.isEnabled()) {
+                cause = "DISABLED - set 'storage-backends." + backendName + ".enabled: true'";
+            }
+        }
+        if (cause != null) {
+            throw new StorageConfigException(String.join("\n",
+                    StorageBootReport.renderUnusableNetworkBackend(backendName, cause, storageYmlFile)));
+        }
+    }
+
+    /** The {@code network.server-cooldowns} entry; every key is optional, so an absent block is valid. */
+    private static ServerCooldownsAdminConfig parseServerCooldowns(Config config) {
+        String base = "network.server-cooldowns.";
+        String collection = emptyToNull(config.getString(base + "collection", null));
+        if (collection != null) {
+            requireValidCollection(collection, "'" + base + "collection'");
+        }
+        return new ServerCooldownsAdminConfig(collection,
+                emptyToNull(config.getString(base + "cache.policy", null)),
+                getIntOrNull(config, base + "cache.ttlSeconds"));
+    }
+
+    /**
+     * Refuses a storage.yml still carrying the old {@code multi-platform-accounts} block. Ignoring it
+     * would be worse than refusing: the admin would read their own file back and believe the keys in it
+     * are doing something. The message names the block that replaced it and maps every key across.
+     */
+    private static void requireNoLegacyAccountsBlock(Config config) {
+        if (!config.contains("multi-platform-accounts")) {
+            return;
+        }
+        throw new StorageConfigException("storage.yml still declares 'multi-platform-accounts', which no"
+                + " longer exists. Replace the whole block with 'network':\n"
+                + "  multi-platform-accounts.storage-backend-id -> network.storage-backend-id (now REQUIRED,\n"
+                + "      with no fallback to 'default-backend' - name the backend explicitly)\n"
+                + "  multi-platform-accounts.idle-grace-seconds  -> network.idle-grace-seconds\n"
+                + "  multi-platform-accounts.enabled            -> gone. Linking identities was never"
+                + " something to switch on: a link only exists once an admin runs /ecaccount link, and"
+                + " without one every identity is its own account exactly as before.");
     }
 
     /** Parses the {@code multi-server-cache-sync.redis} block; {@code null} unless it is enabled. */
@@ -172,7 +229,7 @@ public final class StorageYamlParser {
         BackendDefinition.FileFormat format = null;
         String formatRaw = section.getString("format", null);
         if (formatRaw != null) {
-            if (type != BackendType.LOCALFILE && type != BackendType.GROUPEDFILE) {
+            if (!type.isFileBacked()) {
                 warnings.add("Backend '" + name + "': 'format' is only valid on type localfile/groupedfile"
                         + " - ignored here.");
             } else if (formatRaw.equalsIgnoreCase("yaml") || formatRaw.equalsIgnoreCase("yml")) {

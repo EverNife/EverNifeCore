@@ -170,12 +170,17 @@ public final class StorageYamlDefaults {
                 " Entries are generated automatically on the first registration.",
                 " Per entry you may set:",
                 "",
-                "   collection: acs_myplugin_mysection",
-                "   cache: { policy: TTL, ttlSeconds: 300 }",
+                " accountsections:",
+                "   <plugin_id>:",
+                "     <section_id>:",
+                "       collection: <collection_name>",
+                "       cache: { policy: ALWAYS | TTL, ttlSeconds: <n> }",
                 "",
-                " There is no per-section backend here on purpose: the whole account",
-                " family lives on the backend set under 'multi-platform-accounts',",
-                " which is what lets a link absorb its rows in one place.",
+                " There is no 'storage-backend-id' here on purpose: the whole account",
+                " family lives on the backend set under 'network', which is what lets",
+                " a link absorb its rows in one place. A per-section backend would be",
+                " a knob nothing could honour - the link would have to coordinate a",
+                " write across two databases.",
                 " 'cache.policy: TTL' bounds how stale another instance's write may",
                 " look on this server when the backend has no change feed.",
                 "============================================================"));
@@ -188,18 +193,20 @@ public final class StorageYamlDefaults {
                 " Entries are generated automatically on the first registration of",
                 " each PDSection. Per entry you may set:",
                 "",
-                "   lifecycle: LAZY | ONLINE | RESIDENT | PRELOADED",
-                "     When the data enters and leaves memory, overriding the plugin.",
-                "     ONLINE (the usual default) loads it during the login, which holds",
-                "     the connection until it is done; LAZY moves it off that path, at",
-                "     the cost of the first read happening whenever something asks.",
-                "     Reach for LAZY when the slow-login report names a heavy section",
-                "     you would rather not pay for at every join.",
-                "",
-                "   storage-backend-id: <an enabled backend id>",
-                "   collection: <collection name>",
-                "   idle-grace-seconds: <how long a cell lingers after the player leaves>",
-                "   cache: { policy: ALWAYS | TTL, ttlSeconds: <n> }   # freshness only",
+                " pdsections:",
+                "   <plugin_id>:",
+                "     <section_id>:",
+                "       # Controls when the data enters and leaves memory, overriding the",
+                "       # plugin. ONLINE (the usual default) loads it during the login,",
+                "       # which holds the connection until it is done; LAZY moves it off",
+                "       # that path, at the cost of the first read happening whenever",
+                "       # something asks. Reach for LAZY when the slow-login report names",
+                "       # a heavy section you would rather not pay for at every join.",
+                "       lifecycle: LAZY | ONLINE | RESIDENT | PRELOADED",
+                "       storage-backend-id: <an enabled backend id>",
+                "       collection: <collection_name>",
+                "       idle-grace-seconds: <how long a cell lingers after the player leaves>",
+                "       cache: { policy: ALWAYS | TTL, ttlSeconds: <n> }   # freshness only",
                 "",
                 " 'cache' decides freshness; WHEN a section enters and leaves memory",
                 " is the developer's lifecycle. NOCACHE is refused: a PDSection is",
@@ -230,18 +237,25 @@ public final class StorageYamlDefaults {
                 "  auto   - redis if the redis block below is enabled, else the",
                 "           backend's native change feed, else off (default)",
                 "  redis  - force the redis pub/sub below",
-                "  native - use ONLY the backend's native change feed. NOTE: only",
-                "           mongo and postgresql have a native feed; sql (MySQL/",
-                "           MariaDB) and the file backends do NOT - for those,",
-                "           coherence exists only through redis."));
+                "  native - use ONLY the backend's native change feed.",
+                "",
+                "Which backends have a native feed: mongo and postgresql, plus the",
+                "file backends. sql (MySQL/MariaDB) has none - there, coherence",
+                "exists only through redis.",
+                "",
+                "A file backend's feed watches THIS machine's filesystem, so it",
+                "cannot carry another server's write and buys nothing on a real",
+                "network. 'auto' therefore skips it. Set 'native' to turn it on,",
+                "which is worth doing where an admin edits the data files by hand",
+                "and wants the server to notice."));
         config.setComment("multi-server-cache-sync.redis", String.join("\n",
                 "Single app-level Redis/Valkey block (never one per backend) - a",
                 "signalling channel, not a data store. Enable it to carry the sync",
                 "signal over ANY backend (required for sql / file backends).",
                 "Optional extra keys: user, pass, database, channel, ssl."));
 
-        // ---- multi-platform-accounts (identity layer: a file-level decision, kept near the bottom) ----
-        writeMultiplatformAccountsBlock(config);
+        // ---- network (the one backend the whole network shares: a file-level decision, kept near the bottom) ----
+        writeNetworkBlock(config);
 
         // ---- logging ----
         config.setValue("logging.level", "warn");
@@ -255,35 +269,16 @@ public final class StorageYamlDefaults {
     }
 
     /**
-     * Appends the {@code multi-platform-accounts} block to an ALREADY EXISTING storage.yml that
-     * predates it (a fresh file gets it near the bottom, just above {@code logging}, via
-     * {@link #writeDefault(File)}).
-     *
-     * @return true when the block was written (file saved); false when it already existed
-     */
-    public static boolean ensureMultiplatformAccounts(Config config) {
-        if (config.contains("multi-platform-accounts")) {
-            return false;
-        }
-        writeMultiplatformAccountsBlock(config);
-        config.save();
-        return true;
-    }
-
-    /**
      * Seeds a default inline single-backend block at {@code section} - a plugin's own config field (e.g.
      * config.yml's {@code storage:}) that {@link StorageYamlParser#parseInlineBackend} then reads. The
      * shape mirrors storage.yml's backends but simplified: the child key IS the backend type, enabling is
      * implicit, and EXACTLY ONE is declared. Idempotent: if a backend is already declared it returns
      * untouched, keeping the admin's choice - so it is safe to call on every load.
      *
-     * <p>The seeded {@code type}/{@code format} are the plugin's own standardized default, so a plugin can
-     * ship whichever default it wants (a groupedfile server, a mongo server, ...). {@code format} is only
-     * meaningful for the FILE backends ({@code groupedfile}/{@code localfile}): a {@code null} format on a
-     * file backend defaults to {@link BackendDefinition.FileFormat#YAML}, and on any non-file backend the
-     * format is dropped altogether (there is no file format to pick - it is overridden to none). Each file
-     * backend is rooted in its OWN {@code baseStoragePath/<type>} subfolder, so switching type never makes
-     * two backends share a directory (one dir holds one container format).</p>
+     * <p>{@code format} is only meaningful for the FILE backends ({@code groupedfile}/{@code localfile}):
+     * {@code null} there means {@link BackendDefinition.FileFormat#YAML}, and on a non-file backend it is
+     * dropped. Each file backend is rooted in its OWN {@code baseStoragePath/<type>} subfolder, so
+     * switching type never makes two backends share a directory.
      *
      * @param section         the field to seed (e.g. {@code config.getConfigSection("storage")})
      * @param baseStoragePath the base data folder; each file backend gets a {@code /<type>} subfolder of it
@@ -349,7 +344,7 @@ public final class StorageYamlDefaults {
      */
     private static BackendDefinition.FileFormat resolveFileFormat(BackendType type,
                                                                   BackendDefinition.FileFormat requested) {
-        if (type != BackendType.GROUPEDFILE && type != BackendType.LOCALFILE) {
+        if (!type.isFileBacked()) {
             return null;
         }
         return requested != null ? requested : BackendDefinition.FileFormat.YAML;
@@ -492,38 +487,48 @@ public final class StorageYamlDefaults {
                 "============================================================");
     }
 
-    private static void writeMultiplatformAccountsBlock(Config config) {
-        config.setValue("multi-platform-accounts.enabled", false);
-        config.setValue("multi-platform-accounts.storage-backend-id", "");
-        config.setComment("multi-platform-accounts", String.join("\n",
+    private static void writeNetworkBlock(Config config) {
+        config.setValue("network.storage-backend-id", "networkdata");
+        config.setComment("network", String.join("\n",
                 "============================================================",
-                " Multi-Platform Accounts",
+                " Network data",
                 "",
-                " Links identities from DIFFERENT platforms into ONE account:",
-                " Minecraft <-> Hytale <-> external providers (Discord, a",
-                " website, ...). Linked players share the account-wide data",
-                " (network achievements, VIP status, ...).",
+                " The one backend every server of your network must agree on.",
+                " It holds the account registry, every account-wide section and",
+                " the network-wide server cooldowns.",
                 "",
-                " This is a SEPARATE concern from 'multi-server-cache-sync'",
-                " above: that one is about running several instances of the",
-                " SAME platform on a shared database; this one is about linking",
-                " different platforms/identities - meaningful even on a single",
-                " server (e.g. linking Discord on a solo server).",
+                " Two DIFFERENT questions meet here, and only the first one is",
+                " configured:",
                 "",
-                " Enabling this writes NOTHING by itself - account rows only",
-                " start to exist when identities are actually linked",
-                " (/ecaccount link). On a real network the backend below must",
-                " be a database SHARED by every instance (MariaDB/Mongo/...),",
-                " never a local file backend.",
+                "   'do all my servers see the same row?'",
+                "       answered by the backend below. Point every server at",
+                "       one shared database (MariaDB/Mongo/...) and they share",
+                "       data with NO linking involved, because Minecraft",
+                "       servers already agree on a player's uuid.",
                 "",
-                " Optional extra key:",
+                "   'are these two identities the same person?'",
+                "       answered by /ecaccount link, per person, by an admin.",
+                "       Needed when the uuid itself differs - a Hytale server,",
+                "       a Discord identity, a registration site. Nothing here",
+                "       enables or disables it; a link only exists once someone",
+                "       runs the command.",
+                "",
+                " A single server is a network of one: the local backend below",
+                " is the right answer until a second server joins.",
+                "",
+                " network:",
+                "   storage-backend-id: <an enabled backend id>",
+                "   # How long an account row stays in memory after the LAST online",
+                "   # member of that account quits. Absent = follow",
+                "   # 'playerdata.default-idle-grace-seconds'.",
                 "   idle-grace-seconds: <n>",
-                " How long an account row stays in memory after the LAST online",
-                " member of that account quits. Absent = follow",
-                " 'playerdata.default-idle-grace-seconds'.",
+                "   server-cooldowns:",
+                "     collection: <collection_name>",
+                "     cache: { policy: ALWAYS | TTL, ttlSeconds: <n> }",
                 "============================================================"));
-        config.setComment("multi-platform-accounts.storage-backend-id",
-                "Backend hosting the WHOLE account family (account registry + account-wide"
-                        + " sections). Empty = the 'default-backend'.");
+        config.setComment("network.storage-backend-id",
+                "REQUIRED. An enabled backend id from 'storage-backends'. There is no implicit"
+                        + " fallback here on purpose: inheriting 'default-backend' silently would move"
+                        + " the whole network family the day someone edits an unrelated key.");
     }
 }

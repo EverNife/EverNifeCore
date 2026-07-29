@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.config.settings;
 
+import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpWords;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.cooldown.CooldownRetention;
 import br.com.finalcraft.evernifecore.time.DayOfToday;
@@ -9,6 +10,7 @@ import br.com.finalcraft.everylibs.util.FCTimeUtil;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -37,6 +39,11 @@ public class ECSettings {
 
     //Storage
     public static boolean STOP_SERVER_IF_STORAGE_IS_UNREACHABLE = true;
+
+    //Commands
+    public static boolean COMMAND_REGISTRY_FILES_ENABLED = false;
+    public static List<String> COMMAND_HELP_WORDS = HelpWords.DEFAULTS;
+    public static int COMMAND_HELP_PAGE_SIZE = 8;
 
     public static void initialize(){
         ZONE_ID_OF_DAY_OF_TODAY = ConfigManager.getMainConfig().getOrSetValueIfAbsent("Settings.Time.ZONE_ID_OF_DAY_OF_TODAY",
@@ -120,6 +127,30 @@ public class ECSettings {
                         "\ndatabase: EverNifeCore stays DISABLED either way, every plugin that depends on it" +
                         "\nfails, and the data that IS written diverges from what the database holds." +
                         "\nThe only safe way out of a boot failure is fixing (or disabling) the backend."
+        );
+
+        COMMAND_REGISTRY_FILES_ENABLED = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
+                "Settings.Commands.REGISTRY_FILES_ENABLED", false,
+                "Set to 'true' to generate plugins/EverNifeCore/commands/<PluginName>.yml, where each" +
+                        "\ncommand and sub-command can be disabled or given extra aliases. While 'false' nothing is" +
+                        "\nread or written and the annotations are the only source of truth."
+        );
+
+        COMMAND_HELP_WORDS = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
+                "Settings.Commands.HELP_WORDS", HelpWords.DEFAULTS,
+                "The words that open a command's help instead of naming a sub-command, at any depth:" +
+                        "\n'/mycmd help', '/mycmd user Steve ajuda'. Add your server's language here." +
+                        "\n" +
+                        "\nThey intercept, they never reserve: a sub-command labelled with one of these words," +
+                        "\nor a capture standing where it was typed, still wins the token. Leaving the list" +
+                        "\nempty is not a way to turn the help off - the shipped words come back."
+        );
+        HelpWords.configure(COMMAND_HELP_WORDS);
+
+        COMMAND_HELP_PAGE_SIZE = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
+                "Settings.Commands.HELP_PAGE_SIZE", 8,
+                "How many sub-command lines one page of a command's help shows. A help that fits in a" +
+                        "\nsingle page is printed with no page indicator at all, exactly as it always was."
         );
 
         if (ConfigManager.getMainConfig().hasNewSeededDefaults()){
