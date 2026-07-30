@@ -5,18 +5,11 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
-import br.com.finalcraft.evernifecore.commands.finalcmd.accessvalidation.CMDAccessValidation;
-import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
-import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.CMDData;
-import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.FinalCMDData;
-import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.SubCMDData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.*;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.contextual.*;
-import br.com.finalcraft.evernifecore.commands.finalcmd.custom.ICustomFinalCMD;
-import br.com.finalcraft.evernifecore.commands.finalcmd.custom.contexts.CustomizeContext;
-import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDMethodInterpreter;
-import br.com.finalcraft.evernifecore.commands.finalcmd.executor.MethodData;
+import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandPath;
+import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandTreeScanner;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpLine;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
@@ -25,28 +18,42 @@ import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
-import br.com.finalcraft.evernifecore.locale.FCLocale;
-import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
-import br.com.finalcraft.evernifecore.locale.FCMultiLocales;
 import br.com.finalcraft.evernifecore.pageviewer.PageVisualization;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
-import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
-import br.com.finalcraft.everylibs.commons.Tuple;
 import br.com.finalcraft.everylibs.util.numberwrapper.NumberWrapper;
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
 
 import java.lang.reflect.*;
 import java.util.*;
 
 public class FinalCMDManager {
 
+    private static boolean builtinParsersRegistered = false;
+
     static {
-        //The ArgParsers bellow will be available to all ECPlugins
+        registerBuiltinParsers();
+    }
+
+    /**
+     * Registers the {@code ArgParser}s every ECPlugin gets for free, plus the platform's own. Runs
+     * from this class's static initializer - which every registration path touches - and is idempotent,
+     * so a caller that needs the framework ready WITHOUT registering a command may call it directly.
+     */
+    public static synchronized void registerBuiltinParsers() {
+        if (builtinParsersRegistered){
+            return;
+        }
+        builtinParsersRegistered = true;
+
         //Needs to be registered here because we need them for plugins that load before EverNifeCore
         ArgParserManager.addGlobalParser(Argumento.class, ArgParserArgumento.class);
         ArgParserManager.addGlobalParser(String.class, ArgParserString.class);
+        //Every numeric wrapper the parser can hand back as itself - a type it cannot narrow to would
+        //convert fine here and blow up inside method.invoke instead
         ArgParserManager.addGlobalParser(Integer.class, ArgParserNumber.class);
+        ArgParserManager.addGlobalParser(Long.class, ArgParserNumber.class);
+        ArgParserManager.addGlobalParser(Short.class, ArgParserNumber.class);
+        ArgParserManager.addGlobalParser(Byte.class, ArgParserNumber.class);
         ArgParserManager.addGlobalParser(Float.class, ArgParserNumber.class);
         ArgParserManager.addGlobalParser(Double.class, ArgParserNumber.class);
         ArgParserManager.addGlobalParser(NumberWrapper.class, ArgParserNumberWrapper.class);
@@ -62,6 +69,7 @@ public class FinalCMDManager {
         ArgParserManager.addGlobalContextualParser(FCommandSender.class, ArgParserContextualFCommandSender.class);
         ArgParserManager.addGlobalContextualParser(HelpContext.class, ArgParserContextualHelpContext.class);
         ArgParserManager.addGlobalContextualParser(HelpLine.class, ArgParserContextualHelpLine.class);
+        ArgParserManager.addGlobalContextualParser(CommandPath.class, ArgParserContextualCommandPath.class);
         ArgParserManager.addGlobalContextualParser(String.class, ArgParserContextualLabel.class);
         ArgParserManager.addGlobalContextualParser(MultiArgumentos.class, ArgParserContextualMultiArgumentos.class);
         ArgParserManager.addGlobalContextualParser(PDSection.class, ArgParserContextualPDSection.class);
@@ -82,9 +90,8 @@ public class FinalCMDManager {
             Object customExecutor = constructor.newInstance();
             return registerCommand(ecPluginData, customExecutor);
         } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
-            ecPluginData.getLog().warning("Fail to create instance of the FinalCMD Command: " + cmdClass.getName());
-            ecPluginData.getLog().warning("Does the class has a default constructor?");
-            e.printStackTrace();
+            ecPluginData.getLog().severe("Fail to create instance of the FinalCMD Command: " + cmdClass.getName()
+                    + " - does the class have a no-arg constructor?", e);
         }
         return Collections.emptyList();
     }
@@ -94,168 +101,35 @@ public class FinalCMDManager {
      * each one found. A class with a SINGLE {@code @FinalCMD} may declare {@code @SubCMD} methods
      * alongside it (one command, several subcommands); a class with SEVERAL independent
      * {@code @FinalCMD} methods registers each as its own command (subcommands are not allowed there).
+     * <p>
+     * Nothing thrown here escapes: a command whose shape the framework refuses is logged and lost, the
+     * server still opens. To read what such a refusal teaches, scan without registering through
+     * {@link CommandTreeScanner#scanCommands(ECPluginData, Object)}.
      *
-     * @return every {@link FinalCMDPluginCommand} that was actually registered, in registration order;
-     *         empty when nothing at all succeeded (a single-command class also returns empty here, even
-     *         though {@code @SubCMD}s of a failed registration are never separately reported) - the
-     *         multi-{@code @FinalCMD} class path may return a PARTIAL list when only some succeed
+     * @return every {@link FinalCMDPluginCommand} actually registered, in registration order, or empty
+     *         when nothing succeeded; a multi-{@code @FinalCMD} class may return a PARTIAL list
      */
     public static List<FinalCMDPluginCommand> registerCommand(@Nonnull ECPluginData ecPluginData, @Nonnull Object executor) {
         try {
-            List<Tuple<FinalCMD, Method>> finalCMDMainMethods = new ArrayList<>();
-
-            //Add all declared-methods from the class and its supper-classes until Object
-            HashSet<Method> methods = new HashSet<>();
-            Class<?> father = executor.getClass();
-            while (father != null && father != Object.class){
-                methods.addAll(Arrays.asList(father.getDeclaredMethods()));
-                father = father.getSuperclass();
+            List<CommandTreeScanner.ScannedCommand> scannedCommands = CommandTreeScanner.scanCommands(ecPluginData, executor);
+            if (scannedCommands.isEmpty()){
+                return Collections.emptyList();
             }
 
-            //Checking for all methods that have a @FinalCMD
-            for (Method declaredMethod : methods) {
-                if (declaredMethod.isAnnotationPresent(FinalCMD.Ignore.class)){
-                    continue;
-                }
-
-                FinalCMD finalCMD = FCReflectionUtil.getAnnotations().getAnnotationDeeply(declaredMethod, FinalCMD.class);
-                if (finalCMD != null){
-                    finalCMDMainMethods.add(Tuple.of(finalCMD, declaredMethod));
-                }
-            }
-
-            //If there is no method with @FinalCMD annotation, maybe the class itself is annotated
-            if (finalCMDMainMethods.size() == 0){
-                FinalCMD finalCMD = FCReflectionUtil.getAnnotations().getAnnotationDeeply(executor.getClass(), FinalCMD.class);
-                if (finalCMD == null){
-                    ecPluginData.getLog().severe("Tried to register a FinalCMD(" + executor.getClass().getName() + ") without any @FinalCMD Annotation!");
-                    return Collections.emptyList();
-                }
-                finalCMDMainMethods.add(Tuple.of(finalCMD, null));
-            }
-
-            //Identify whether this class declares any (static) LocaleMessage field, so its locale is loaded
-            boolean hasStaticLocaleField = false;
-            for (Field declaredField : executor.getClass().getDeclaredFields()) {
-                if (declaredField.isAnnotationPresent(FCLocale.class) || declaredField.isAnnotationPresent(FCMultiLocales.class)){
-                    if (!Modifier.isStatic(declaredField.getModifiers())){
-                        ecPluginData.getLog().severe("The LocaleMessage [" + declaredField.getName() + "] found at [" + declaredField.getDeclaringClass().getName() + "] is not static! This is an error, it will be ignored!");
-                    }else {
-                        hasStaticLocaleField = true;
-                    }
-                }
-            }
-
-            //IF we have any method with FCLocale annotation, then load it using the FCLocaleManager
-            if (hasStaticLocaleField){
-                FCLocaleManager.loadLocale(ecPluginData, executor.getClass());
-            }
-
-            if (finalCMDMainMethods.size() == 1){ //Check for SubCommands, maybe this @FinalCMD is in the Class
-                Tuple<FinalCMD, Method> tuple = finalCMDMainMethods.get(0);
-
-                final FinalCMD finalCMD = tuple.getLeft();
-                @Nullable Method mainCommandMethod = tuple.getRight(); //Method is null if we have a @FinalCMD annotation to the class rather than the function
-
-                FinalCMDData finalCMDData = new FinalCMDData(finalCMD);
-                MethodData<FinalCMDData> mainMethodData = new MethodData(finalCMDData, mainCommandMethod);
-
-                List<MethodData<SubCMDData>> subCommandsMethodData = new ArrayList<>();
-                for (Method declaredMethod : methods) {
-                    FinalCMD.SubCMD subCMD = FCReflectionUtil.getAnnotations().getAnnotationDeeply(declaredMethod, FinalCMD.SubCMD.class);
-                    if (subCMD != null){
-                        SubCMDData subCMDData = new SubCMDData(subCMD);
-                        subCommandsMethodData.add(new MethodData(subCMDData, declaredMethod));
-                    }
-                }
-
-                CustomizeContext customizeContext = new CustomizeContext(mainMethodData, subCommandsMethodData);
-
-                if (executor instanceof ICustomFinalCMD){
-                    //Apply command customization if necessary
-                    ((ICustomFinalCMD) executor).customize(customizeContext);
-                }
-
-                //After customization, lets load the Validators locales
-                for (CMDData<?> cmdData : customizeContext.getAllCMDData()) {
-                    //If it's not the default validator, lets load its locale
-                    for (CMDAccessValidation cmdAccessValidation : cmdData.getCmdAccessValidations()) {
-                        Class<?> validationClass = cmdAccessValidation.getClass();
-                        //Maybe the Validation class is not from this ECPlugin, so lets make sure its loaded on its proper owner
-                        ECPluginData providingPlugin = ECPluginManager.getProvidingPlugin(validationClass);
-                        FCLocaleManager.loadLocale(providingPlugin, true, validationClass);
-                    }
-                }
-
-                CMDMethodInterpreter mainMethodInterpreter = mainCommandMethod == null
-                        ? null :
-                        new CMDMethodInterpreter(ecPluginData, customizeContext.getMainMethod(), executor);
-
-                FinalCMDPluginCommand newCommand = new FinalCMDPluginCommand(ecPluginData, finalCMDData, mainMethodInterpreter);
-                for (MethodData<SubCMDData> subCMDDataMethodData : customizeContext.getSubMethods()) {
-                    CMDMethodInterpreter subCommandInterpreter = new CMDMethodInterpreter(ecPluginData, subCMDDataMethodData, executor);
-                    newCommand.addSubCommand(subCommandInterpreter);
-                }
-
-                boolean registered = newCommand.registerCommand();
-                ECPluginManager.getOrCreateECorePluginData(ecPluginData).reloadAllCustomLocales();
-                return registered ? Collections.singletonList(newCommand) : Collections.<FinalCMDPluginCommand>emptyList();
-            }
-
-            // We have several @FinalCMD annotated methods on this class, lets register all of them.
-            // Each one is a different command without any SubCommand
             List<FinalCMDPluginCommand> registeredCommands = new ArrayList<>();
-            for (Tuple<FinalCMD, Method> tuple : finalCMDMainMethods) {
-                try {
-                    FinalCMD finalCMD = tuple.getLeft();
-                    Method mainCommandMethod = tuple.getRight();
-
-                    FinalCMDData finalCMDData = new FinalCMDData(finalCMD);
-                    MethodData<FinalCMDData> mainMethodData = new MethodData(finalCMDData, mainCommandMethod);
-                    CustomizeContext customizeContext = new CustomizeContext(mainMethodData, Collections.EMPTY_LIST);
-
-                    if (executor instanceof ICustomFinalCMD){
-                        //Apply command customization if necessary
-                        ((ICustomFinalCMD) executor).customize(customizeContext);
-                    }
-
-                    //After customization, lets load the Validators locales
-                    for (CMDData<?> cmdData : customizeContext.getAllCMDData()) {
-                        //If it's not the default validator, lets load its locale
-                        for (CMDAccessValidation cmdAccessValidation : cmdData.getCmdAccessValidations()) {
-                            Class<?> validationClass = cmdAccessValidation.getClass();
-                            //Maybe the Validation class is not from this ECPlugin, so lets make sure its loaded on its proper owner
-                            ECPluginData plugin = ECPluginManager.getProvidingPlugin(validationClass);
-                            FCLocaleManager.loadLocale(plugin, true, validationClass);
-                        }
-                    }
-
-                    CMDMethodInterpreter mainMethodInterpreter = mainCommandMethod == null ? null : new CMDMethodInterpreter(ecPluginData, customizeContext.getMainMethod(), executor);
-
-                    FinalCMDPluginCommand newCommand = new FinalCMDPluginCommand(ecPluginData, finalCMDData, mainMethodInterpreter);
-
-                    if (newCommand.registerCommand()){
-                        registeredCommands.add(newCommand);
-                    }
-                }catch (Throwable e){
-                    ecPluginData.getLog().severe("Error registering a FinalCMD on the class [" + executor.getClass().getName() + "] method " + tuple.getRight().getName() + "!");
-                    e.printStackTrace();
-                }
-            }
-
-            //We are in a case where there are several @FinalCMD methods, we cannot allow SubCMDs in this class
-            // lets check for it just to warn the developer
-            for (Method declaredMethod : methods) {
-                if (declaredMethod.isAnnotationPresent(FinalCMD.SubCMD.class)){
-                    ecPluginData.getLog().severe("Found a SubCMD on the class [" + executor.getClass().getName() + "] method " + declaredMethod.getName() + " but the class has more than one FinalCMD, this will be ignored!");
+            for (CommandTreeScanner.ScannedCommand scannedCommand : scannedCommands) {
+                FinalCMDPluginCommand newCommand = new FinalCMDPluginCommand(ecPluginData, scannedCommand.getFinalCMDData(), scannedCommand.getRoot());
+                if (newCommand.registerCommand()){
+                    registeredCommands.add(newCommand);
                 }
             }
 
             ECPluginManager.getOrCreateECorePluginData(ecPluginData).reloadAllCustomLocales();
             return registeredCommands;
         }catch (Throwable e){
-            ecPluginData.getLog().warning("Fail to register FinalCMD Command: " + executor.getClass().getName());
-            e.printStackTrace();
+            //A malformed command is lost, with the reason in the log - the same deal every other
+            //registration in this project makes, listeners included. The boot never stops for it.
+            ecPluginData.getLog().severe("Fail to register FinalCMD Command: " + executor.getClass().getName(), e);
         }
         return Collections.emptyList();
     }

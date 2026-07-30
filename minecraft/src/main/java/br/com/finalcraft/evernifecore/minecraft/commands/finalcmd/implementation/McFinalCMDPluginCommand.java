@@ -95,9 +95,9 @@ public class McFinalCMDPluginCommand extends Command implements PluginIdentifiab
      */
     @Override
     public List<String> tabComplete(CommandSender sender, String alias, String[] args) {
-        //The shared logic lives in FinalCMDPluginCommand (common); the ONE thing this platform adds is
-        //the fallback when no sub-command/main-interpreter matches at all: Bukkit's own player-name
-        //completion, instead of the common class's own empty-list default.
-        return finalCMDPluginCommand.tabComplete(FCBukkitUtil.adapt(sender), alias, args, () -> super.tabComplete(sender, alias, args));
+        //Straight to the shared logic, with no platform fallback behind it: Bukkit's own completion
+        //answers online player names to ANY position the tree could not place, which is a wrong answer
+        //wearing the face of a right one. An empty list is the truth.
+        return finalCMDPluginCommand.tabComplete(FCBukkitUtil.adapt(sender), alias, args);
     }
 }
