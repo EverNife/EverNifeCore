@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Pins the registration flow of {@code FinalCMDManager.registerCommand} (matrix A): how a command
+ * Pins the registration flow of {@code FinalCMDManager.registerCommand}: how a command
  * class is scanned into a {@link FinalCMDPluginCommand}, and what happens when the scan can't
  * produce one.
  */
@@ -63,14 +63,14 @@ class RegistrationSystemTest {
     }
 
     @Test
-    void a1_typeAnnotatedWithSubCommandsRegistersSortedByLabel() {
+    void typeAnnotatedWithSubCommandsRegistersSortedByLabel() {
         FinalCMDPluginCommand command = newHarness().register(new A1_TypeAnnotatedWithSubCommands());
 
         assertNotNull(command);
-        assertEquals(3, command.getSubCommands().size());
+        assertEquals(3, command.getRoot().getChildren().size());
         assertEquals(
                 List.of("alpha", "mike", "zulu"),
-                command.getSubCommands().stream().map(i -> i.getLabels()[0]).toList()
+                command.getRoot().getChildren().stream().map(i -> i.getPrimaryLabel()).toList()
         );
     }
 
@@ -84,12 +84,12 @@ class RegistrationSystemTest {
     }
 
     @Test
-    void a2_singleMainMethodHasNoSubCommands() {
+    void singleMainMethodHasNoSubCommands() {
         FinalCMDPluginCommand command = newHarness().register(new A2_SingleMainMethod());
 
         assertNotNull(command);
         assertNotNull(command.getMainInterpreter());
-        assertTrue(command.getSubCommands().isEmpty());
+        assertTrue(command.getRoot().getChildren().isEmpty());
     }
 
     // ------------------------------------------------------------------
@@ -110,14 +110,14 @@ class RegistrationSystemTest {
     }
 
     @Test
-    void a3_severalFinalCMDMethodsRegisterAsIndependentCommandsAndIgnoreTheStraySubCMD() {
+    void severalFinalCMDMethodsRegisterAsIndependentCommandsAndIgnoreTheStraySubCMD() {
         List<FinalCMDPluginCommand> commands = newHarness().registerAll(new A3_SeveralIndependentFinalCMDs());
 
         assertEquals(2, commands.size());
         assertTrue(commands.stream().anyMatch(c -> c.getPrimaryLabel().equals("a3cmdone")));
         assertTrue(commands.stream().anyMatch(c -> c.getPrimaryLabel().equals("a3cmdtwo")));
         //Neither independent command picked up the stray @SubCMD as one of its own
-        assertTrue(commands.stream().allMatch(c -> c.getSubCommands().isEmpty()));
+        assertTrue(commands.stream().allMatch(c -> c.getRoot().getChildren().isEmpty()));
     }
 
     // ------------------------------------------------------------------
@@ -129,7 +129,7 @@ class RegistrationSystemTest {
     }
 
     @Test
-    void a4_classWithoutAnyFinalCMDAnnotationFailsRegistration() {
+    void classWithoutAnyFinalCMDAnnotationFailsRegistration() {
         boolean registered = newHarness().registerExpectingFailure(new A4_NoAnnotationAtAll());
 
         assertFalse(registered);
@@ -149,7 +149,7 @@ class RegistrationSystemTest {
     }
 
     @Test
-    void a5_ignoreAnnotationExcludesTheMethodFromTheScan() {
+    void ignoreAnnotationExcludesTheMethodFromTheScan() {
         //Only "a5cmd" should have been produced - "a5ignored" was skipped entirely
         List<FinalCMDPluginCommand> commands = newHarness().registerAll(new A5_IgnoredMethod());
 
@@ -166,11 +166,11 @@ class RegistrationSystemTest {
 
     public static class A6_NoContextualArgAtAll {
         @FinalCMD(aliases = "a6cmd")
-        public void run(@Arg(name = "<x>") String x) {}
+        public void run(@Arg("<x>") String x) {}
     }
 
     @Test
-    void a6_methodWithNoContextualArgFailsRegistrationInsteadOfThrowing() {
+    void methodWithNoContextualArgFailsRegistrationInsteadOfThrowing() {
         boolean registered = newHarness().registerExpectingFailure(new A6_NoContextualArgAtAll());
 
         assertFalse(registered);
@@ -191,7 +191,7 @@ class RegistrationSystemTest {
     }
 
     @Test
-    void a7_parameterWithUnrelatedAnnotationIsTreatedAsContextual() {
+    void parameterWithUnrelatedAnnotationIsTreatedAsContextual() {
         FinalCMDPluginCommand command = newHarness().register(new A7_UnrelatedAnnotationFallsBackToContextual());
         assertNotNull(command, "registration should have succeeded: @Deprecated is not a recognized command annotation, so it falls back to contextual");
 
@@ -209,7 +209,7 @@ class RegistrationSystemTest {
         static String lastReceived;
 
         @FinalCMD(aliases = "a8cmd")
-        public void run(FCommandSender sender, @Arg(name = "<value>") String value) {
+        public void run(FCommandSender sender, @Arg("<value>") String value) {
             lastReceived = value;
         }
     }
@@ -222,7 +222,7 @@ class RegistrationSystemTest {
     }
 
     @Test
-    void a8_subclassMethodWithoutAnnotationsFallsBackToTheParentsArgs() {
+    void subclassMethodWithoutAnnotationsFallsBackToTheParentsArgs() {
         FinalCMDPluginCommand command = newHarness().register(new A8_Subclass());
         assertNotNull(command, "MethodArgScanner should have climbed to the parent to find @Arg");
 
@@ -248,7 +248,7 @@ class RegistrationSystemTest {
     }
 
     @Test
-    void a9_reregisterSameLabelUnregistersFirst() {
+    void reregisterSameLabelUnregistersFirst() {
         newHarness();
         FinalCMDPluginCommand first = harness.register(new A9_First());
         FinalCMDPluginCommand second = harness.register(new A9_Second());
@@ -269,11 +269,11 @@ class RegistrationSystemTest {
 
     public static class A10_UnregisteredParserType {
         @FinalCMD(aliases = "a10cmd")
-        public void run(FCommandSender sender, @Arg(name = "<x>") UnregisteredType value) {}
+        public void run(FCommandSender sender, @Arg("<x>") UnregisteredType value) {}
     }
 
     @Test
-    void a10_argWithNoRegisteredParserFailsRegistrationInsteadOfThrowing() {
+    void argWithNoRegisteredParserFailsRegistrationInsteadOfThrowing() {
         boolean registered = newHarness().registerExpectingFailure(new A10_UnregisteredParserType());
 
         assertFalse(registered);

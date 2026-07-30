@@ -21,11 +21,12 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Pins {@code FCDefaultExecutor.onCommand} (matrix B): help routing, sub-command resolution,
+ * Pins {@code FCDefaultExecutor.onCommand}: help routing, sub-command resolution,
  * permission gates, playerOnly, unknown-subcommand fallbacks, {@link CMDAccessValidation}, and
  * exception propagation.
  */
@@ -79,7 +80,7 @@ class DispatchSystemTest {
     }
 
     @Test
-    void b1_fullHelpTypeSendsHelpOnEmptyArgs() {
+    void fullHelpTypeSendsHelpOnEmptyArgs() {
         FinalCMDPluginCommand command = newHarness().register(new B1_FullCmd());
         TestCommandSender sender = new TestCommandSender("console");
 
@@ -89,7 +90,7 @@ class DispatchSystemTest {
     }
 
     @Test
-    void b1_exceptEmptyDoesNotSendHelpOnEmptyArgsButDoesOnHelp() {
+    void exceptEmptyDoesNotSendHelpOnEmptyArgsButDoesOnHelp() {
         FinalCMDPluginCommand command = newHarness().register(new B1_ExceptEmptyCmd());
         TestCommandSender sender = new TestCommandSender("console");
 
@@ -102,7 +103,7 @@ class DispatchSystemTest {
     }
 
     @Test
-    void b1_noneNeverSendsHelp() {
+    void noneNeverSendsHelp() {
         FinalCMDPluginCommand command = newHarness().register(new B1_NoneCmd());
         TestCommandSender sender = new TestCommandSender("console");
 
@@ -125,7 +126,7 @@ class DispatchSystemTest {
     }
 
     @Test
-    void b2_helpQuestionMarkAndAjudaAllRouteToHelp() {
+    void helpQuestionMarkAndAjudaAllRouteToHelp() {
         FinalCMDPluginCommand command = newHarness().register(new B2_Cmd());
 
         for (String helpToken : new String[]{"help", "?", "ajuda"}) {
@@ -150,7 +151,7 @@ class DispatchSystemTest {
     }
 
     @Test
-    void b3_subCommandLookupIsCaseInsensitiveAndAcceptsAnyDeclaredLabel() {
+    void subCommandLookupIsCaseInsensitiveAndAcceptsAnyDeclaredLabel() {
         FinalCMDPluginCommand command = newHarness().register(new B3_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
@@ -178,7 +179,7 @@ class DispatchSystemTest {
     }
 
     @Test
-    void b4_commandPermissionDeniedSendsMessageAndSkipsInvocation() {
+    void commandPermissionDeniedSendsMessageAndSkipsInvocation() {
         FinalCMDPluginCommand command = newHarness().register(new B4_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
         B4_Cmd.invoked = false;
@@ -204,7 +205,7 @@ class DispatchSystemTest {
     }
 
     @Test
-    void b5_subCommandPermissionDeniedSendsMessageAndSkipsInvocation() {
+    void subCommandPermissionDeniedSendsMessageAndSkipsInvocation() {
         FinalCMDPluginCommand command = newHarness().register(new B5_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
         B5_Cmd.invoked = false;
@@ -216,7 +217,8 @@ class DispatchSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // B6 - a playerOnly command (contextual FPlayer arg) invoked by console returns silently
+    // B6 - a playerOnly command (contextual FPlayer arg) invoked by console says so. It is a different
+    // sentence from a missing permission on purpose: no permission node would ever have granted it
     // ------------------------------------------------------------------
 
     @FinalCMD(aliases = "b6cmd")
@@ -230,7 +232,7 @@ class DispatchSystemTest {
     }
 
     @Test
-    void b6_playerOnlySubCommandInvokedByConsoleReturnsSilently() {
+    void playerOnlySubCommandInvokedByConsoleSaysItNeedsAPlayer() {
         FinalCMDPluginCommand command = newHarness().register(new B6_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
         B6_Cmd.invoked = false;
@@ -238,11 +240,12 @@ class DispatchSystemTest {
         harness.dispatch(command, sender, "sub");
 
         assertFalse(B6_Cmd.invoked);
-        sender.assertNoMessageSent();
+        sender.assertAnyMessageContains("Only a player");
+        assertFalse(sender.anyMessageContains("permission"), "the reason is not a permission: " + sender.getMessages());
     }
 
     // ------------------------------------------------------------------
-    // B7 - unknown subcommand, no main interpreter -> PARAMETER_ERROR with ${label} resolved
+    // B7 - unknown subcommand, no main interpreter -> UNKNOWN_SUBCOMMAND naming what does exist
     // ------------------------------------------------------------------
 
     @FinalCMD(aliases = "b7cmd")
@@ -252,13 +255,14 @@ class DispatchSystemTest {
     }
 
     @Test
-    void b7_unknownSubCommandWithoutMainInterpreterSendsParameterError() {
+    void unknownSubCommandWithoutMainInterpreterNamesTheAvailableOnes() {
         FinalCMDPluginCommand command = newHarness().register(new B7_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "totallyUnknown");
 
-        sender.assertAnyMessageContains("/b7cmd help");
+        sender.assertAnyMessageContains("totallyUnknown");
+        sender.assertAnyMessageContains("sub");
     }
 
     // ------------------------------------------------------------------
@@ -272,7 +276,7 @@ class DispatchSystemTest {
         //an unannotated String param binds to the CONTEXTUAL label parser instead of a positional
         //arg (String has both a value ArgParser and a contextual one registered globally) - @Arg is
         //what makes it read from args[0]
-        public void main(FCommandSender sender, @Arg(name = "[arg]") String firstArg) {
+        public void main(FCommandSender sender, @Arg("[arg]") String firstArg) {
             lastArg = firstArg;
         }
 
@@ -281,7 +285,7 @@ class DispatchSystemTest {
     }
 
     @Test
-    void b8_unknownSubCommandWithMainInterpreterInvokesTheMainInterpreterWithTheArgs() {
+    void unknownSubCommandWithMainInterpreterInvokesTheMainInterpreterWithTheArgs() {
         FinalCMDPluginCommand command = newHarness().register(new B8_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
         B8_Cmd.lastArg = null;
@@ -324,7 +328,7 @@ class DispatchSystemTest {
     }
 
     @Test
-    void b9_deniedAccessValidationBlocksSilently() {
+    void deniedAccessValidationBlocksSilently() {
         FinalCMDPluginCommand command = newHarness().register(new B9_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
         B9_Cmd.invoked = false;
@@ -338,8 +342,9 @@ class DispatchSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // B10 - an exception inside the method propagates as a RuntimeException, and gets logged severe
-    // with the command/args
+    // B10 - an exception inside the method stops at the framework: the sender is told in their own
+    // language, the log carries the command, the args and the stack, and nothing is rethrown at the
+    // platform (which would answer the same thing a second time, in a sentence of its own)
     // ------------------------------------------------------------------
 
     @FinalCMD(aliases = "b10cmd")
@@ -351,25 +356,151 @@ class DispatchSystemTest {
     }
 
     @Test
-    void b10_exceptionInsideTheMethodPropagatesAndIsLoggedSevere() {
+    void exceptionInsideTheMethodAnswersTheSenderAndIsLoggedWithItsStack() {
         FinalCMDPluginCommand command = newHarness().register(new B10_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         ByteArrayOutputStream capturedOut = new ByteArrayOutputStream();
         PrintStream originalOut = System.out;
         System.setOut(new PrintStream(capturedOut));
-        RuntimeException thrown;
         try {
-            thrown = assertThrows(RuntimeException.class, () -> harness.dispatch(command, sender, "sub"));
+            harness.dispatch(command, sender, "sub");
         } finally {
             System.setOut(originalOut);
         }
 
-        assertNotNull(thrown.getCause());
-        assertTrue(thrown.getCause().getCause() instanceof IllegalStateException);
+        sender.assertAnyMessageContains("went wrong");
 
         String logged = capturedOut.toString();
         assertTrue(logged.contains("SEVERE"), "the failure should have been logged severe: " + logged);
         assertTrue(logged.contains("b10cmd") && logged.contains("sub"), "the log should mention the command/args: " + logged);
+        assertTrue(logged.contains("IllegalStateException") && logged.contains("boom"), "the log should carry the cause: " + logged);
+    }
+
+    // ------------------------------------------------------------------
+    // B11 - a declaration beats the help interceptor: a child, or a capture, named by a reserved word
+    // is reachable, and the word still opens the help wherever nothing claims it
+    // ------------------------------------------------------------------
+
+    @FinalCMD(aliases = "b11cmd")
+    public static class B11_Cmd {
+        static String lastInvoked;
+
+        @FinalCMD.SubCMD(subcmd = "help")
+        public void helpSub(FCommandSender sender) {
+            lastInvoked = "help-sub";
+        }
+
+        @FinalCMD.SubCMD(subcmd = "other")
+        public void other(FCommandSender sender) {
+            lastInvoked = "other";
+        }
+    }
+
+    @FinalCMD(aliases = "b11capturecmd")
+    public static class B11_CaptureCmd {
+        static String captured;
+
+        @FinalCMD.Node(subcmd = "user")
+        public static class UserNode {
+            @FinalCMD.Capture
+            public String capture(@Arg("<user>") String user) {
+                captured = user;
+                return user;
+            }
+
+            @FinalCMD.SubCMD(subcmd = "info")
+            public void info(FCommandSender sender) {}
+        }
+    }
+
+    @Test
+    void aSubcommandNamedLikeAReservedWordIsReachable() {
+        FinalCMDPluginCommand command = newHarness().register(new B11_Cmd());
+        TestCommandSender sender = new TestCommandSender("console");
+        B11_Cmd.lastInvoked = null;
+
+        harness.dispatch(command, sender, "help");
+
+        assertEquals("help-sub", B11_Cmd.lastInvoked, "the declared child answers the word it declared");
+        assertFalse(sentHelp(sender), "the interceptor did not shadow it");
+    }
+
+    @Test
+    void aReservedWordNoChildClaimsStillOpensTheHelp() {
+        FinalCMDPluginCommand command = newHarness().register(new B11_Cmd());
+        TestCommandSender sender = new TestCommandSender("console");
+
+        harness.dispatch(command, sender, "ajuda");
+
+        assertTrue(sentHelp(sender), "nothing declares 'ajuda', so it is still the help word");
+    }
+
+    @Test
+    void aCaptureTakesAReservedWordAsItsOwnToken() {
+        FinalCMDPluginCommand command = newHarness().register(new B11_CaptureCmd());
+        B11_CaptureCmd.captured = null;
+
+        harness.dispatch(command, new TestCommandSender("console"), "user Ajuda info");
+
+        assertEquals("Ajuda", B11_CaptureCmd.captured, "a player named like a help word is addressable");
+    }
+
+    // ------------------------------------------------------------------
+    // B12 - a flag declared by the executable of a node WITH children is typeable: reaching a node
+    // that recognizes the flag ends the walk, instead of refusing the token as too early
+    // ------------------------------------------------------------------
+
+    public static class B12_Cmd {
+        static Boolean rootVerbose;
+        static Boolean nodeDetails;
+
+        @FinalCMD(aliases = "b12cmd")
+        public void root(FCommandSender sender, @Arg.Flag("--verbose") Boolean verbose) {
+            rootVerbose = verbose;
+        }
+
+        @FinalCMD.Node(subcmd = "admin")
+        public static class AdminNode {
+            @FinalCMD.Execute
+            public void run(FCommandSender sender, @Arg.Flag("--details") Boolean details) {
+                nodeDetails = details;
+            }
+
+            @FinalCMD.SubCMD(subcmd = "ban")
+            public void ban(FCommandSender sender) {}
+        }
+    }
+
+    @Test
+    void aRootFlagIsTypeableEvenWhenTheRootHasChildren() {
+        FinalCMDPluginCommand command = newHarness().register(new B12_Cmd());
+        B12_Cmd.rootVerbose = null;
+
+        harness.dispatch(command, new TestCommandSender("console"), "--verbose");
+
+        assertEquals(Boolean.TRUE, B12_Cmd.rootVerbose);
+    }
+
+    @Test
+    void aNodeExecutableFlagIsTypeableEvenWhenTheNodeHasChildren() {
+        FinalCMDPluginCommand command = newHarness().register(new B12_Cmd());
+        B12_Cmd.nodeDetails = null;
+
+        harness.dispatch(command, new TestCommandSender("console"), "admin --details");
+
+        assertEquals(Boolean.TRUE, B12_Cmd.nodeDetails);
+    }
+
+    @Test
+    void aFlagNoOneOnThePathDeclaresIsStillRefused() {
+        FinalCMDPluginCommand command = newHarness().register(new B12_Cmd());
+        TestCommandSender sender = new TestCommandSender("console");
+        B12_Cmd.nodeDetails = null;
+
+        harness.dispatch(command, sender, "admin --nosuchflag");
+
+        assertNull(B12_Cmd.nodeDetails);
+        assertTrue(sender.anyMessageContains("--nosuchflag"), "the refusal names the token: " + sender.getMessages());
     }
 }
