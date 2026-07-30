@@ -125,6 +125,12 @@ public class Argumento {
         }
     }
 
+    /**
+     * The token as the number type asked for, or null when it is not one. Every integral type is read
+     * through {@link #getLong()} and answers null for a value it cannot hold, instead of wrapping around
+     * to a number nobody typed: {@code "200"} is not a {@code Byte}, and saying so is the only honest
+     * answer a caller can act on.
+     */
     public <T extends Number> NumberWrapper<T> getNumberWrapper(Class<T> clazz){
         if (argumento.isEmpty()) return null;
 
@@ -138,12 +144,19 @@ public class Argumento {
             number = getFloat();
         } else if (clazz == Double.class) {
             number = getDouble();
+        } else if (clazz == Short.class) {
+            number = withinRange(Short.MIN_VALUE, Short.MAX_VALUE) ? Short.valueOf(getLong().shortValue()) : null;
         } else if (clazz == Byte.class) {
-            number = Byte.valueOf((byte)(int)getInteger());
+            number = withinRange(Byte.MIN_VALUE, Byte.MAX_VALUE) ? Byte.valueOf(getLong().byteValue()) : null;
         }
 
         if (number == null) return null;
         return (NumberWrapper<T>) NumberWrapper.of(number);
+    }
+
+    private boolean withinRange(long floor, long ceiling){
+        Long value = getLong();
+        return value != null && value >= floor && value <= ceiling;
     }
 
     public <T extends Number> NumberWrapper<T> getNumberWrapper(Class<T> clazz, T def){
