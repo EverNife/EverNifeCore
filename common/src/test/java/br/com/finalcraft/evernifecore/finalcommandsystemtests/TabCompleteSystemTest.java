@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Pins {@code FinalCMDPluginCommand.tabComplete} (matrix E): first-arg sub-command listing
+ * Pins {@code FinalCMDPluginCommand.tabComplete}: first-arg sub-command listing
  * (permission/playerOnly/prefix filters), {@link CMDAccessValidation#onPreTabValidation}, and
  * value-position delegation to each {@code ITabParser}.
  */
@@ -68,7 +68,7 @@ class TabCompleteSystemTest {
     }
 
     @Test
-    void e1_firstArgListIsFilteredByPermissionPlayerOnlyAndPrefix() {
+    void firstArgListIsFilteredByPermissionPlayerOnlyAndPrefix() {
         FinalCMDPluginCommand command = newHarness().register(new E1_Cmd());
 
         TestCommandSender console = new TestCommandSender("console");
@@ -110,7 +110,7 @@ class TabCompleteSystemTest {
     }
 
     @Test
-    void e2_deniedAccessValidationHidesTheSubCommandFromTab() {
+    void deniedAccessValidationHidesTheSubCommandFromTab() {
         FinalCMDPluginCommand command = newHarness().register(new E2_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
@@ -124,11 +124,11 @@ class TabCompleteSystemTest {
     @FinalCMD(aliases = "e3cmd")
     public static class E3_Cmd {
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<value>") Boolean value) {}
+        public void sub(FCommandSender sender, @Arg("<value>") Boolean value) {}
     }
 
     @Test
-    void e3_valuePositionDelegatesToTheArgsTabParser() {
+    void valuePositionDelegatesToTheArgsTabParser() {
         FinalCMDPluginCommand command = newHarness().register(new E3_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
@@ -141,7 +141,7 @@ class TabCompleteSystemTest {
     // ------------------------------------------------------------------
 
     @Test
-    void e4_positionWithoutAParserReturnsEmptyList() {
+    void positionWithoutAParserReturnsEmptyList() {
         FinalCMDPluginCommand command = newHarness().register(new E3_Cmd()); //only 1 @Arg (index 1)
         TestCommandSender sender = new TestCommandSender("console");
 
@@ -155,11 +155,11 @@ class TabCompleteSystemTest {
     @FinalCMD(aliases = "e5cmd")
     public static class E5_Cmd {
         @FinalCMD.SubCMD(subcmd = "sub", permission = "e5.perm")
-        public void sub(FCommandSender sender, @Arg(name = "<value>") Boolean value) {}
+        public void sub(FCommandSender sender, @Arg("<value>") Boolean value) {}
     }
 
     @Test
-    void e5_interpreterPermissionDeniedReturnsEmptyListAtValuePosition() {
+    void interpreterPermissionDeniedReturnsEmptyListAtValuePosition() {
         FinalCMDPluginCommand command = newHarness().register(new E5_Cmd());
         TestCommandSender sender = new TestCommandSender("console"); //lacks "e5.perm"
 
