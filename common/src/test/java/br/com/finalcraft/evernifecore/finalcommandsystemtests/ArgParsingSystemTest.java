@@ -8,8 +8,8 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Pins {@code @Arg} parsing and the builtin {@link ArgParser}s (matrix C): required/optional
+ * Pins {@code @Arg} parsing and the builtin {@link ArgParser}s: required/optional
  * handling, the happy path of every builtin type, error messaging, context bounds/selection,
  * custom parsers, {@link br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgRequirementType},
  * sub-command positional offsets, and repeated-type args.
@@ -66,13 +66,13 @@ class ArgParsingSystemTest {
         static boolean invoked = false;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<value>") String value) {
+        public void sub(FCommandSender sender, @Arg("<value>") String value) {
             invoked = true;
         }
     }
 
     @Test
-    void c1_missingRequiredArgSendsHelpLineAndSkipsInvocation() {
+    void missingRequiredArgSendsHelpLineAndSkipsInvocation() {
         FinalCMDPluginCommand command = newHarness().register(new C1_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
         C1_Cmd.invoked = false;
@@ -93,14 +93,14 @@ class ArgParsingSystemTest {
         static String received = "not-called";
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "[value]") String value) {
+        public void sub(FCommandSender sender, @Arg("[value]") String value) {
             invoked = true;
             received = value;
         }
     }
 
     @Test
-    void c2_missingOptionalArgIsNullAndMethodRuns() {
+    void missingOptionalArgIsNullAndMethodRuns() {
         FinalCMDPluginCommand command = newHarness().register(new C2_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
         C2_Cmd.invoked = false;
@@ -121,13 +121,13 @@ class ArgParsingSystemTest {
         static String received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<value>") String value) {
+        public void sub(FCommandSender sender, @Arg("<value>") String value) {
             received = value;
         }
     }
 
     @Test
-    void c3_string_happyPath() {
+    void string_happyPath() {
         FinalCMDPluginCommand command = newHarness().register(new C3_StringCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub hello");
 
@@ -139,13 +139,13 @@ class ArgParsingSystemTest {
         static Integer received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<value>") Integer value) {
+        public void sub(FCommandSender sender, @Arg("<value>") Integer value) {
             received = value;
         }
     }
 
     @Test
-    void c3_integer_happyPath() {
+    void integer_happyPath() {
         FinalCMDPluginCommand command = newHarness().register(new C3_IntegerCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub 42");
 
@@ -157,13 +157,13 @@ class ArgParsingSystemTest {
         static Double received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<value>") Double value) {
+        public void sub(FCommandSender sender, @Arg("<value>") Double value) {
             received = value;
         }
     }
 
     @Test
-    void c3_double_happyPath() {
+    void double_happyPath() {
         FinalCMDPluginCommand command = newHarness().register(new C3_DoubleCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub 3.5");
 
@@ -175,13 +175,13 @@ class ArgParsingSystemTest {
         static Boolean received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<value>") Boolean value) {
+        public void sub(FCommandSender sender, @Arg("<value>") Boolean value) {
             received = value;
         }
     }
 
     @Test
-    void c3_boolean_happyPath() {
+    void boolean_happyPath() {
         FinalCMDPluginCommand command = newHarness().register(new C3_BooleanCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub true");
 
@@ -195,13 +195,13 @@ class ArgParsingSystemTest {
         static SampleEnum received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<value>") SampleEnum value) {
+        public void sub(FCommandSender sender, @Arg("<value>") SampleEnum value) {
             received = value;
         }
     }
 
     @Test
-    void c3_enum_happyPath() {
+    void enum_happyPath() {
         FinalCMDPluginCommand command = newHarness().register(new C3_EnumCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub beta");
 
@@ -213,13 +213,13 @@ class ArgParsingSystemTest {
         static FCTimeFrame received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<value>") FCTimeFrame value) {
+        public void sub(FCommandSender sender, @Arg("<value>") FCTimeFrame value) {
             received = value;
         }
     }
 
     @Test
-    void c3_fcTimeFrame_happyPath() {
+    void fcTimeFrame_happyPath() {
         FinalCMDPluginCommand command = newHarness().register(new C3_TimeFrameCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub 2h30m");
 
@@ -232,13 +232,13 @@ class ArgParsingSystemTest {
         static NumberWrapper received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<value>") NumberWrapper value) {
+        public void sub(FCommandSender sender, @Arg("<value>") NumberWrapper value) {
             received = value;
         }
     }
 
     @Test
-    void c3_numberWrapper_happyPath() {
+    void numberWrapper_happyPath() {
         FinalCMDPluginCommand command = newHarness().register(new C3_NumberWrapperCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub 7.25");
 
@@ -251,13 +251,13 @@ class ArgParsingSystemTest {
         static Argumento received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<value>") Argumento value) {
+        public void sub(FCommandSender sender, @Arg("<value>") Argumento value) {
             received = value;
         }
     }
 
     @Test
-    void c3_argumento_happyPath() {
+    void argumento_happyPath() {
         FinalCMDPluginCommand command = newHarness().register(new C3_ArgumentoCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub rawtoken");
 
@@ -270,15 +270,15 @@ class ArgParsingSystemTest {
         static UUID received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<value>") UUID value) {
+        public void sub(FCommandSender sender, @Arg("<value>") UUID value) {
             received = value;
         }
     }
 
     @Test
-    void c3_uuid_happyPath() throws IOException {
-        //ArgParserUUID.parserArgument requires PlayerController.getLoaded(uuid) != null - the only
-        //builtin type in this matrix row that needs live PlayerController/storage state (D3); an H2
+    void uuid_happyPath() throws IOException {
+        //ArgParserUUID.parse requires PlayerController.getLoaded(uuid) != null - the only
+        //builtin type here that needs live PlayerController/storage state; an H2
         //in-memory backend keeps it headless and fast.
         UUID uuid = UUID.randomUUID();
         try {
@@ -307,13 +307,13 @@ class ArgParsingSystemTest {
         static boolean invoked = false;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<value>") Integer value) {
+        public void sub(FCommandSender sender, @Arg("<value>") Integer value) {
             invoked = true;
         }
     }
 
     @Test
-    void c4_invalidIntegerSendsParserErrorAndSkipsInvocationWithoutThrowing() {
+    void invalidIntegerSendsParserErrorAndSkipsInvocationWithoutThrowing() {
         FinalCMDPluginCommand command = newHarness().register(new C4_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
         C4_Cmd.invoked = false;
@@ -333,13 +333,13 @@ class ArgParsingSystemTest {
         static Integer received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<value>", context = "[1:*]") Integer value) {
+        public void sub(FCommandSender sender, @Arg(value = "<value>", context = "[1:*]") Integer value) {
             received = value;
         }
     }
 
     @Test
-    void c5_belowLowerBoundErrors() {
+    void belowLowerBoundErrors() {
         FinalCMDPluginCommand command = newHarness().register(new C5_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
         C5_Cmd.received = null;
@@ -351,7 +351,7 @@ class ArgParsingSystemTest {
     }
 
     @Test
-    void c5_withinBoundIsAccepted() {
+    void withinBoundIsAccepted() {
         FinalCMDPluginCommand command = newHarness().register(new C5_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
         C5_Cmd.received = null;
@@ -359,6 +359,119 @@ class ArgParsingSystemTest {
         harness.dispatch(command, sender, "sub 5");
 
         assertEquals(5, C5_Cmd.received);
+    }
+
+    // ------------------------------------------------------------------
+    // A numeric selection list is declared in decimal, but the argument type decides what the parser
+    // produces - so the list has to be compared numerically, never by the boxed type
+    // ------------------------------------------------------------------
+
+    @FinalCMD(aliases = "numselectint")
+    public static class NumericSelectionalIntegerCmd {
+        static Integer received;
+
+        @FinalCMD.SubCMD(subcmd = "sub")
+        public void sub(FCommandSender sender, @Arg(value = "<value>", context = "1|2|3") Integer value) {
+            received = value;
+        }
+    }
+
+    @Test
+    void aNumericSelectionListAcceptsAValueOfItOnAnIntegerArgument() {
+        FinalCMDPluginCommand command = newHarness().register(new NumericSelectionalIntegerCmd());
+        TestCommandSender sender = new TestCommandSender("console");
+        NumericSelectionalIntegerCmd.received = null;
+
+        harness.dispatch(command, sender, "sub 2");
+
+        assertEquals(2, NumericSelectionalIntegerCmd.received);
+        assertTrue(sender.getMessages().isEmpty(), "a value that is on the list is not an error");
+    }
+
+    @Test
+    void aNumericSelectionListRefusesAValueOutsideItOnAnIntegerArgument() {
+        FinalCMDPluginCommand command = newHarness().register(new NumericSelectionalIntegerCmd());
+        TestCommandSender sender = new TestCommandSender("console");
+        NumericSelectionalIntegerCmd.received = null;
+
+        harness.dispatch(command, sender, "sub 7");
+
+        assertNull(NumericSelectionalIntegerCmd.received);
+        sender.assertAnyMessageContains("must be");
+    }
+
+    @FinalCMD(aliases = "numselectdouble")
+    public static class NumericSelectionalDoubleCmd {
+        static Double received;
+
+        @FinalCMD.SubCMD(subcmd = "sub")
+        public void sub(FCommandSender sender, @Arg(value = "<value>", context = "1|2|3") Double value) {
+            received = value;
+        }
+    }
+
+    @Test
+    void aNumericSelectionListAcceptsAValueOfItOnADoubleArgument() {
+        FinalCMDPluginCommand command = newHarness().register(new NumericSelectionalDoubleCmd());
+        TestCommandSender sender = new TestCommandSender("console");
+        NumericSelectionalDoubleCmd.received = null;
+
+        harness.dispatch(command, sender, "sub 2");
+
+        assertEquals(2.0, NumericSelectionalDoubleCmd.received);
+        assertTrue(sender.getMessages().isEmpty(), "a value that is on the list is not an error");
+    }
+
+    @Test
+    void aNumericSelectionListRefusesAValueOutsideItOnADoubleArgument() {
+        FinalCMDPluginCommand command = newHarness().register(new NumericSelectionalDoubleCmd());
+        TestCommandSender sender = new TestCommandSender("console");
+        NumericSelectionalDoubleCmd.received = null;
+
+        harness.dispatch(command, sender, "sub 7");
+
+        assertNull(NumericSelectionalDoubleCmd.received);
+        sender.assertAnyMessageContains("must be");
+    }
+
+    @FinalCMD(aliases = "numintervalint")
+    public static class NumericIntervalIntegerCmd {
+        static Integer received;
+
+        @FinalCMD.SubCMD(subcmd = "sub")
+        public void sub(FCommandSender sender, @Arg(value = "<value>", context = "[1:5]") Integer value) {
+            received = value;
+        }
+    }
+
+    @FinalCMD(aliases = "numintervaldouble")
+    public static class NumericIntervalDoubleCmd {
+        static Double received;
+
+        @FinalCMD.SubCMD(subcmd = "sub")
+        public void sub(FCommandSender sender, @Arg(value = "<value>", context = "[1:5]") Double value) {
+            received = value;
+        }
+    }
+
+    @Test
+    void aNumericIntervalAcceptsAValueInsideItOnAnIntegerArgument() {
+        FinalCMDPluginCommand command = newHarness().register(new NumericIntervalIntegerCmd());
+        NumericIntervalIntegerCmd.received = null;
+
+        harness.dispatch(command, new TestCommandSender("console"), "sub 3");
+
+        assertEquals(3, NumericIntervalIntegerCmd.received);
+    }
+
+    @Test
+    void aNumericIntervalAcceptsAValueInsideItOnADoubleArgument() {
+        FinalCMDPluginCommand command = newHarness().register(new NumericIntervalDoubleCmd());
+        NumericIntervalDoubleCmd.received = null;
+
+        harness.dispatch(command, new TestCommandSender("console"), "sub 3");
+
+        assertEquals(3.0, NumericIntervalDoubleCmd.received);
     }
 
     // ------------------------------------------------------------------
@@ -370,13 +483,13 @@ class ArgParsingSystemTest {
         static String received = "not-called";
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<value>", context = "a|b|c") String value) {
+        public void sub(FCommandSender sender, @Arg(value = "<value>", context = "a|b|c") String value) {
             received = value;
         }
     }
 
     @Test
-    void c6_string_outsideTheListErrors() {
+    void string_outsideTheListErrors() {
         FinalCMDPluginCommand command = newHarness().register(new C6_StringCmd());
         TestCommandSender sender = new TestCommandSender("console");
         C6_StringCmd.received = "not-called";
@@ -388,7 +501,7 @@ class ArgParsingSystemTest {
     }
 
     @Test
-    void c6_string_insideTheListIsAccepted() {
+    void string_insideTheListIsAccepted() {
         FinalCMDPluginCommand command = newHarness().register(new C6_StringCmd());
         TestCommandSender sender = new TestCommandSender("console");
         C6_StringCmd.received = "not-called";
@@ -405,13 +518,13 @@ class ArgParsingSystemTest {
         static SampleEnum received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<value>", context = "ALPHA") SampleEnum value) {
+        public void sub(FCommandSender sender, @Arg(value = "<value>", context = "ALPHA") SampleEnum value) {
             received = value;
         }
     }
 
     @Test
-    void c6_enum_outsideTheRestrictedContextErrors() {
+    void enum_outsideTheRestrictedContextErrors() {
         FinalCMDPluginCommand command = newHarness().register(new C6_EnumCmd());
         TestCommandSender sender = new TestCommandSender("console");
         C6_EnumCmd.received = null;
@@ -433,8 +546,8 @@ class ArgParsingSystemTest {
         }
 
         @Override
-        public String parserArgument(ArgParserCommandContext argContext, FCommandSender sender, Argumento argumento) throws ArgParseException {
-            return new StringBuilder(argumento.toString()).reverse().toString();
+        public ParseResult<String> parse(ParseCall call) {
+            return ParseResult.of(new StringBuilder(call.getArgumento().toString()).reverse().toString());
         }
     }
 
@@ -443,13 +556,13 @@ class ArgParsingSystemTest {
         static String received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<value>", parser = ReverseStringParser.class) String value) {
+        public void sub(FCommandSender sender, @Arg(value = "<value>", parser = ReverseStringParser.class) String value) {
             received = value;
         }
     }
 
     @Test
-    void c7_customArgParserIsRespected() {
+    void customArgParserIsRespected() {
         FinalCMDPluginCommand command = newHarness().register(new C7_Cmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub hello");
 
@@ -457,35 +570,33 @@ class ArgParsingSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // C8 - ArgRequirementType brackets: <x>, [x], <(x)>, [(x)] recognized; no brackets fails
-    // registration (ArgMountException, swallowed to a plain false - see RegistrationSystemTest A6/A10)
+    // C8 - ArgRequirementType brackets: <x> and [x] recognized; no brackets fails registration
+    // (ArgMountException, swallowed to a plain false - see RegistrationSystemTest A6/A10)
     // ------------------------------------------------------------------
 
     @FinalCMD(aliases = "c8cmd")
     public static class C8_AllBracketsCmd {
         @FinalCMD.SubCMD(subcmd = "sub")
         public void sub(FCommandSender sender,
-                         @Arg(name = "<required>") String required,
-                         @Arg(name = "[optional]") String optional,
-                         @Arg(name = "<(providedRequired)>") String providedRequired,
-                         @Arg(name = "[(providedOptional)]") String providedOptional) {
+                         @Arg("<required>") String required,
+                         @Arg("[optional]") String optional) {
         }
     }
 
     @Test
-    void c8_allFourBracketFormsAreRecognizedAtRegistration() {
+    void bothBracketFormsAreRecognizedAtRegistration() {
         FinalCMDPluginCommand command = newHarness().register(new C8_AllBracketsCmd());
 
-        assertNotNull(command, "all four ArgRequirementType bracket forms should register cleanly");
+        assertNotNull(command, "both ArgRequirementType bracket forms should register cleanly");
     }
 
     public static class C8_NoBracketsCmd {
         @FinalCMD(aliases = "c8nobrackets")
-        public void run(FCommandSender sender, @Arg(name = "novalidbrackets") String value) {}
+        public void run(FCommandSender sender, @Arg("novalidbrackets") String value) {}
     }
 
     @Test
-    void c8_nameWithoutBracketsFailsRegistration() {
+    void nameWithoutBracketsFailsRegistration() {
         boolean registered = newHarness().registerExpectingFailure(new C8_NoBracketsCmd());
 
         assertFalse(registered);
@@ -500,13 +611,13 @@ class ArgParsingSystemTest {
         static String received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<value>") String value) {
+        public void sub(FCommandSender sender, @Arg("<value>") String value) {
             received = value;
         }
     }
 
     @Test
-    void c9_firstArgOfASubCommandReadsIndexOneNotZero() {
+    void firstArgOfASubCommandReadsIndexOneNotZero() {
         FinalCMDPluginCommand command = newHarness().register(new C9_Cmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub theValue");
 
@@ -524,14 +635,14 @@ class ArgParsingSystemTest {
         static String second;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "<first>") String first, @Arg(name = "<second>") String second) {
+        public void sub(FCommandSender sender, @Arg("<first>") String first, @Arg("<second>") String second) {
             C10_Cmd.first = first;
             C10_Cmd.second = second;
         }
     }
 
     @Test
-    void c10_twoArgsOfTheSameTypeBothReachTheMethodInOrder() {
+    void twoArgsOfTheSameTypeBothReachTheMethodInOrder() {
         FinalCMDPluginCommand command = newHarness().register(new C10_Cmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub foo bar");
 

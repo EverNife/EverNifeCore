@@ -54,7 +54,7 @@ class ArgDefSystemTest {
         static Integer received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "[value]", def = "5") Integer value) {
+        public void sub(FCommandSender sender, @Arg(value = "[value]", def = "5") Integer value) {
             received = value;
         }
     }
@@ -78,7 +78,7 @@ class ArgDefSystemTest {
         static Integer received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "[page]", context = "[1:*]", def = "1") Integer page) {
+        public void sub(FCommandSender sender, @Arg(value = "[page]", context = "[1:*]", def = "1") Integer page) {
             received = page;
         }
     }
@@ -94,12 +94,9 @@ class ArgDefSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // 3 - an invalid def() (unparseable for the arg's type) goes through the EXACT SAME fallback
-    // every builtin ArgParser already has for a bad player-typed value on an [optional] arg: the
-    // "needs to be an integer" error only fires when argInfo.isRequired() is true
-    // (ArgParserNumber#parserArgument); since def() is only legal on [optional] args, an
-    // unparseable def() is silently resolved to null instead - def() does not special-case this,
-    // it reuses that same path, so the method still runs, just with a null value and no message
+    // 3 - an invalid def() (unparseable for the arg's type) is the developer's own text failing, not
+    // a player's, so it does NOT take the degradation an optional argument gives a token nobody
+    // recognized: it aborts, with the stack in the plugin's log
     // ------------------------------------------------------------------
 
     @FinalCMD(aliases = "argdef3cmd")
@@ -108,14 +105,14 @@ class ArgDefSystemTest {
         static Integer received = -1;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "[value]", def = "abc") Integer value) {
+        public void sub(FCommandSender sender, @Arg(value = "[value]", def = "abc") Integer value) {
             invoked = true;
             received = value;
         }
     }
 
     @Test
-    void scenario3_invalidDefSilentlyResolvesToNullLikeABadOptionalPlayerValueWould() {
+    void scenario3_anUnparseableDefAbortsInsteadOfSilentlyResolvingToNull() {
         FinalCMDPluginCommand command = newHarness().register(new Scenario3_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
         Scenario3_Cmd.invoked = false;
@@ -123,13 +120,14 @@ class ArgDefSystemTest {
 
         harness.dispatch(command, sender, "sub");
 
-        assertTrue(Scenario3_Cmd.invoked, "an optional arg's fallback swallows the unparseable def(), it does not abort dispatch");
-        assertNull(Scenario3_Cmd.received);
-        sender.assertNoMessageSent();
+        assertFalse(Scenario3_Cmd.invoked, "a def() the command cannot read is a bug in the command, not an absent value");
+        assertEquals(-1, Scenario3_Cmd.received, "the method never ran, so it never got a null");
+        assertFalse(sender.getMessages().isEmpty(), "whoever typed it is still told the argument did not work");
     }
 
     // ------------------------------------------------------------------
-    // 4 - a def() outside the declared context bound also errors like a bad typed value would
+    // 4 - a def() outside the declared context bound is refused for a reason the sender cannot act on,
+    // so it is reported as the command's own bug rather than as their bad input
     // ------------------------------------------------------------------
 
     @FinalCMD(aliases = "argdef4cmd")
@@ -137,13 +135,13 @@ class ArgDefSystemTest {
         static boolean invoked = false;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "[value]", context = "[1:*]", def = "0") Integer value) {
+        public void sub(FCommandSender sender, @Arg(value = "[value]", context = "[1:*]", def = "0") Integer value) {
             invoked = true;
         }
     }
 
     @Test
-    void scenario4_defOutsideTheContextBoundErrorsAndSkipsInvocation() {
+    void scenario4_defOutsideTheContextBoundBlamesTheCommandInsteadOfTheSender() {
         FinalCMDPluginCommand command = newHarness().register(new Scenario4_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
         Scenario4_Cmd.invoked = false;
@@ -151,7 +149,12 @@ class ArgDefSystemTest {
         harness.dispatch(command, sender, "sub");
 
         assertFalse(Scenario4_Cmd.invoked);
-        sender.assertAnyMessageContains("higher than");
+        assertFalse(sender.getMessages().isEmpty(), "the argument did not work and they are still told so");
+
+        for (String message : sender.getMessages()) {
+            assertFalse(message.contains("higher than"),
+                    "nobody typed the 0 - telling them it is out of range asks them to fix what they cannot reach: " + message);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -163,7 +166,7 @@ class ArgDefSystemTest {
         static Integer received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "[value]", def = "5") Integer value) {
+        public void sub(FCommandSender sender, @Arg(value = "[value]", def = "5") Integer value) {
             received = value;
         }
     }
@@ -188,7 +191,7 @@ class ArgDefSystemTest {
         static Integer received = -1;
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "[value]") Integer value) {
+        public void sub(FCommandSender sender, @Arg("[value]") Integer value) {
             invoked = true;
             received = value;
         }
@@ -213,7 +216,7 @@ class ArgDefSystemTest {
 
     public static class Scenario7_Cmd {
         @FinalCMD(aliases = "argdef7cmd")
-        public void run(FCommandSender sender, @Arg(name = "<value>", def = "5") Integer value) {}
+        public void run(FCommandSender sender, @Arg(value = "<value>", def = "5") Integer value) {}
     }
 
     @Test
@@ -224,26 +227,20 @@ class ArgDefSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // 8 - def() on a provided-by-context arg (<(x)> or [(x)]) fails registration the same way
+    // 8 - def() on a required arg that also resolves from the sender fails registration the same way:
+    // def() is an OPTIONAL-only attribute, whatever else the argument declares
     // ------------------------------------------------------------------
 
     public static class Scenario8a_Cmd {
         @FinalCMD(aliases = "argdef8acmd")
-        public void run(FCommandSender sender, @Arg(name = "<(value)>", def = "5") Integer value) {}
-    }
-
-    public static class Scenario8b_Cmd {
-        @FinalCMD(aliases = "argdef8bcmd")
-        public void run(FCommandSender sender, @Arg(name = "[(value)]", def = "5") Integer value) {}
+        public void run(FCommandSender sender, @Arg(value = "<value>", fromSender = true, def = "5") Integer value) {}
     }
 
     @Test
-    void scenario8_defOnAProvidedByContextArgFailsRegistration() {
+    void scenario8_defOnARequiredFromSenderArgFailsRegistration() {
         boolean requiredForm = newHarness().registerExpectingFailure(new Scenario8a_Cmd());
-        boolean optionalForm = harness.registerExpectingFailure(new Scenario8b_Cmd());
 
-        assertFalse(requiredForm, "<(x)> with def() should fail registration");
-        assertFalse(optionalForm, "[(x)] with def() should fail registration");
+        assertFalse(requiredForm, "<x> with def() should fail registration, fromSender or not");
     }
 
     // ------------------------------------------------------------------
@@ -255,7 +252,7 @@ class ArgDefSystemTest {
         static Integer received;
 
         @FinalCMD(aliases = "argdef9cmd")
-        public void run(FCommandSender sender, @Arg(name = "[value]", def = "%default%") Integer value) {
+        public void run(FCommandSender sender, @Arg(value = "[value]", def = "%default%") Integer value) {
             received = value;
         }
 
@@ -286,7 +283,7 @@ class ArgDefSystemTest {
         static String received = "not-called";
 
         @FinalCMD.SubCMD(subcmd = "sub")
-        public void sub(FCommandSender sender, @Arg(name = "[value]", def = "a b") String value) {
+        public void sub(FCommandSender sender, @Arg(value = "[value]", def = "a b") String value) {
             received = value;
         }
     }
@@ -299,5 +296,40 @@ class ArgDefSystemTest {
         harness.dispatch(command, new TestCommandSender("console"), "sub");
 
         assertEquals("a b", Scenario10_Cmd.received);
+    }
+
+    // ------------------------------------------------------------------
+    // 11 - def() on an OPTIONAL variadic tail: an empty tail takes the declared default instead of
+    // the empty text it would otherwise be handed
+    // ------------------------------------------------------------------
+
+    @FinalCMD(aliases = "argdef11cmd")
+    public static class Scenario11_Cmd {
+        static String received;
+
+        @FinalCMD.SubCMD(subcmd = "sub")
+        public void sub(FCommandSender sender, @Arg(value = "[reason...]", def = "no reason given") String reason) {
+            received = reason;
+        }
+    }
+
+    @Test
+    void scenario11_anEmptyOptionalTailTakesItsDeclaredDefault() {
+        FinalCMDPluginCommand command = newHarness().register(new Scenario11_Cmd());
+        Scenario11_Cmd.received = null;
+
+        harness.dispatch(command, new TestCommandSender("console"), "sub");
+
+        assertEquals("no reason given", Scenario11_Cmd.received);
+    }
+
+    @Test
+    void scenario11_aTailWithTokensIgnoresItsDefault() {
+        FinalCMDPluginCommand command = newHarness().register(new Scenario11_Cmd());
+        Scenario11_Cmd.received = null;
+
+        harness.dispatch(command, new TestCommandSender("console"), "sub griefou a base");
+
+        assertEquals("griefou a base", Scenario11_Cmd.received);
     }
 }
