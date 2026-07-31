@@ -4,22 +4,18 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
-import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.IECPluginBootstrap;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
-import br.com.finalcraft.everyconfig.config.Config;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -29,10 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Pins the central command registry (matrix RG): every command registered through
- * {@link FinalCMDManager} is tracked on its owning {@link ECPluginData}, is individually and
- * bulk-unregisterable, survives a reload without duplicating, and is gated by the central
- * {@code commands.yml} (enabled flag + aliases override).
+ * Pins the command bookkeeping: every command registered through {@link FinalCMDManager} is tracked
+ * on its owning {@link ECPluginData}, is individually and bulk-unregisterable, and survives a reload
+ * without duplicating. What the per-plugin registry file may change about it lives in
+ * {@code CommandRegistryFileSystemTest}.
  */
 class CommandRegistrySystemTest {
 
@@ -64,7 +60,7 @@ class CommandRegistrySystemTest {
     }
 
     @Test
-    void rg1_registeredCommandIsTrackedAndFoundByAnyLabelCaseInsensitive() {
+    void registeredCommandIsTrackedAndFoundByAnyLabelCaseInsensitive() {
         FinalCmdTestHarness h = newHarness();
         FinalCMDPluginCommand command = h.register(new RG1_Cmd());
 
@@ -78,7 +74,7 @@ class CommandRegistrySystemTest {
     }
 
     @Test
-    void rg1_getRegisteredCommandsIsACopyExternalMutationDoesNotLeak() {
+    void getRegisteredCommandsIsACopyExternalMutationDoesNotLeak() {
         FinalCmdTestHarness h = newHarness();
         h.register(new RG1_Cmd());
 
@@ -107,7 +103,7 @@ class CommandRegistrySystemTest {
     }
 
     @Test
-    void rg2_unregisterTellsThePlatformRemovesFromTheListAndIsIdempotent() {
+    void unregisterTellsThePlatformRemovesFromTheListAndIsIdempotent() {
         FinalCmdTestHarness h = newHarness();
         FinalCMDPluginCommand command = h.register(new RG2_Cmd());
         assertNotNull(command);
@@ -138,7 +134,7 @@ class CommandRegistrySystemTest {
     }
 
     @Test
-    void rg3_unregisterAllCommandsClearsTheWholeList() {
+    void unregisterAllCommandsClearsTheWholeList() {
         FinalCmdTestHarness h = newHarness();
         h.register(new RG3_CmdOne());
         h.register(new RG3_CmdTwo());
@@ -161,7 +157,7 @@ class CommandRegistrySystemTest {
     }
 
     @Test
-    void rg4_reregisteringSamePrimaryLabelReplacesInsteadOfDuplicating() {
+    void reregisteringSamePrimaryLabelReplacesInsteadOfDuplicating() {
         FinalCmdTestHarness h = newHarness();
         h.register(new RG4_Cmd());
         FinalCMDPluginCommand second = h.register(new RG4_Cmd()); //simulates a reload re-registering the same command
@@ -183,7 +179,7 @@ class CommandRegistrySystemTest {
     }
 
     @Test
-    void rg5_multiFinalCMDClassRegistersAndTracksEveryCommand() {
+    void multiFinalCMDClassRegistersAndTracksEveryCommand() {
         FinalCmdTestHarness h = newHarness();
         List<FinalCMDPluginCommand> registered = h.registerAll(new RG5_MultiCmd());
 
@@ -231,7 +227,7 @@ class CommandRegistrySystemTest {
     }
 
     @Test
-    void rg6_defaultShutdownPreUnregistersCommandsAndListeners() {
+    void defaultShutdownPreUnregistersCommandsAndListeners() {
         FinalCmdTestHarness h = newHarness();
         FakeBootstrap boot = new FakeBootstrap(h.ecPluginData);
         h.register(new RG6_Cmd());
@@ -247,59 +243,6 @@ class CommandRegistrySystemTest {
     }
 
     // ------------------------------------------------------------------
-    // RG7 - commands.yml: first registration seeds the entry; a pre-existing 'enabled: false' skips
-    // registration (with a log); a pre-existing 'aliases' override replaces the extra labels
-    // ------------------------------------------------------------------
-
-    public static class RG7_Cmd {
-        @FinalCMD(aliases = {"rg7cmd", "rg7alias"})
-        public void run(FCommandSender sender) {}
-    }
-
-    @Test
-    void rg7_commandsYamlSeedsThenHonorsEnabledFalseAndAliasesOverride() {
-        FinalCmdTestHarness h = newHarness();
-        String pluginName = h.ecPluginData.getMetaInfo().getName();
-        String path = "Commands." + pluginName + ".rg7cmd";
-
-        //first registration: the entry does not exist yet - it gets seeded from the annotation
-        FinalCMDPluginCommand first = h.register(new RG7_Cmd());
-        assertNotNull(first);
-
-        Config commandsConfig = ConfigFactory.open(h.ecPluginData, "commands.yml");
-        assertTrue(commandsConfig.getBoolean(path + ".enabled", false), "a fresh entry must seed enabled=true");
-        assertEquals(Collections.singletonList("rg7alias"), commandsConfig.getStringList(path + ".aliases", Collections.emptyList()));
-
-        //an admin disables the command directly in commands.yml
-        commandsConfig.setValue(path + ".enabled", false);
-        commandsConfig.save();
-        h.platform.reset();
-
-        boolean secondRegistered = h.registerExpectingFailure(new RG7_Cmd());
-
-        assertFalse(secondRegistered, "registerCommand() must report failure when commands.yml disables the command");
-        assertNull(h.platform.getCaptured("rg7cmd"), "the platform must never receive a register call for a disabled command");
-        assertTrue(
-                h.platform.getInfoMessages().stream().anyMatch(m -> m.contains("rg7cmd") && m.contains("disabled by commands.yml")),
-                "a disabled command must log why it was skipped"
-        );
-
-        //an admin re-enables it and overrides its extra labels
-        commandsConfig = ConfigFactory.open(h.ecPluginData, "commands.yml");
-        commandsConfig.setValue(path + ".enabled", true);
-        commandsConfig.setValue(path + ".aliases", Collections.singletonList("rg7renamed"));
-        commandsConfig.save();
-        h.platform.reset();
-
-        FinalCMDPluginCommand third = h.register(new RG7_Cmd());
-
-        assertNotNull(third, "registration must succeed again once re-enabled");
-        assertEquals("rg7cmd", third.getPrimaryLabel(), "the primary label is never overridden by commands.yml");
-        assertArrayEquals(new String[]{"rg7renamed"}, third.getExtraLabels(), "the aliases override replaces the annotation's extra labels");
-        assertNotNull(h.platform.getCaptured("rg7renamed"), "the platform must see the overridden alias, not the annotation's original one");
-    }
-
-    // ------------------------------------------------------------------
     // RG8 - a platform-level registration failure keeps the command out of the tracked list
     // ------------------------------------------------------------------
 
@@ -309,7 +252,7 @@ class CommandRegistrySystemTest {
     }
 
     @Test
-    void rg8_platformRegistrationFailureKeepsTheCommandOutOfTheList() {
+    void platformRegistrationFailureKeepsTheCommandOutOfTheList() {
         FinalCmdTestHarness h = newHarness();
         h.platform.setForceRegisterFailure(true);
 
