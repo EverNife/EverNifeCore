@@ -1,11 +1,14 @@
 package br.com.finalcraft.evernifecore.testing;
 
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.version.FCPlatformType;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * What every {@link IPlatform} has to hold, whoever implements it - the doubles in this library,
@@ -82,6 +85,36 @@ public final class PlatformConformance {
             }
         });
 
+        return Collections.unmodifiableList(failures);
+    }
+
+    /**
+     * Whether the parsers a platform registers for its OWN types are the ones the framework resolves.
+     * <p>
+     * It is a conformance check rather than a unit test because the answer depends on registration
+     * ORDER, which only a real platform has: the builtins are all in place by the time
+     * {@code IPlatform.registerArgParsers()} runs, so a platform parser for a subtype of a builtin type
+     * lands in a registry that already answers for it. Resolving by assignability alone would silently
+     * never reach any of them.
+     * <p>
+     * Call it after the platform's registrations have run.
+     *
+     * @param plugin                    any plugin data - the lookup falls back to the global registry
+     * @param expectedContextualParsers the type each platform contextual parser claims, mapped to the
+     *                                  parser class that has to answer for it
+     * @return one line per type answered by something else, empty when every claim holds
+     */
+    public static List<String> checkArgParsers(ECPluginData plugin, Map<Class<?>, Class<?>> expectedContextualParsers) {
+        List<String> failures = new ArrayList<String>();
+        for (Map.Entry<Class<?>, Class<?>> expected : expectedContextualParsers.entrySet()) {
+            Class<?> resolved = ArgParserManager.getContextualParser(plugin, expected.getKey());
+            if (resolved != expected.getValue()) {
+                failures.add("the contextual parser of " + expected.getKey().getSimpleName() + " is "
+                        + (resolved == null ? "<none>" : resolved.getSimpleName())
+                        + ", not the platform's " + expected.getValue().getSimpleName()
+                        + " - a registration nothing can reach is dead code");
+            }
+        }
         return Collections.unmodifiableList(failures);
     }
 

@@ -40,7 +40,7 @@ class FinalCmdTestHarnessSmokeTest {
 
         @FinalCMD(aliases = "smokegreet")
         @FinalCMD.SubCMD(subcmd = "hello")
-        public void hello(FCommandSender sender, @Arg(name = "<name>") String name) {
+        public void hello(FCommandSender sender, @Arg("<name>") String name) {
             LAST_GREETED.set(name);
         }
     }

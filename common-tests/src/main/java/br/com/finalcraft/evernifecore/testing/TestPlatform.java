@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -36,6 +37,8 @@ public class TestPlatform extends AbstractTestPlatform {
     private final List<FinalCMDPluginCommand> registrationOrder = new ArrayList<>();
     private final List<String> unregisteredLabels = new ArrayList<>();
     private final List<String> infoMessages = new ArrayList<>();
+    //appended from whatever thread logs (flusher, idle sweep, cache-sync), so never a plain ArrayList
+    private final List<String> loggedMessages = new CopyOnWriteArrayList<>();
     private final List<String> shutdownReasons = new ArrayList<>();
 
     // null means "not configured": the inherited strict method refuses.
@@ -85,6 +88,16 @@ public class TestPlatform extends AbstractTestPlatform {
         return infoMessages;
     }
 
+    /**
+     * Every line logged through an adapter this platform created, at ANY level, in order. Some
+     * behaviour has no other observable effect - a bind that warns about a risky backend still binds,
+     * so the warning is all there is to assert on. {@link Logs} reads this.
+     */
+    public List<String> getLoggedMessages() {
+        return loggedMessages;
+    }
+
+
     /** Every reason passed to {@code shutdown} - a real shutdown would kill the test JVM. */
     public List<String> getShutdownReasons() {
         return shutdownReasons;
@@ -100,6 +113,7 @@ public class TestPlatform extends AbstractTestPlatform {
         registrationOrder.clear();
         unregisteredLabels.clear();
         infoMessages.clear();
+        loggedMessages.clear();
         shutdownReasons.clear();
     }
 
@@ -223,21 +237,25 @@ public class TestPlatform extends AbstractTestPlatform {
             @Override
             public void info(String string) {
                 infoMessages.add(string);
+                loggedMessages.add(string);
                 System.out.println(string);
             }
 
             @Override
             public void warning(String string) {
+                loggedMessages.add(string);
                 System.out.println("[WARN] " + string);
             }
 
             @Override
             public void severe(String string) {
+                loggedMessages.add(string);
                 System.out.println("[SEVERE] " + string);
             }
 
             @Override
             public void log(java.util.logging.Level level, String string) {
+                loggedMessages.add(string);
                 System.out.println("[" + level + "] " + string);
             }
         };

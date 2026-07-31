@@ -3,9 +3,11 @@ package br.com.finalcraft.evernifecore.testing;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgMountException;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.FCDefaultExecutor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
+import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandTreeScanner;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
@@ -47,10 +49,14 @@ public class FinalCmdTestHarness implements AutoCloseable {
 
         this.ecPluginData = ECPluginManager.getOrCreateECorePluginData(new Object());
 
-        //FinalCMDManager's static block (first FinalCMD ever touched in this JVM) logs through
+        //The builtin-parser bootstrap (first FinalCMD ever touched in this JVM) logs through
         //EverNifeCore's OWN ecPluginData (EverNifeCore.getLog()), which is otherwise only set by the
         //real bootstrap (onLoaderInstantiate); without it, ArgParserManager.addGlobalParser NPEs.
         EverNifeCore.instance.onLoaderInstantiate(ecPluginData);
+
+        //Explicit, because a test may only ever scan a tree: nothing on that path would touch
+        //FinalCMDManager, and every default parser lookup would come back null
+        FinalCMDManager.registerBuiltinParsers();
 
         //These core classes carry static @FCLocale fields (permission/help/parameter-error messages)
         //that the real bootstrap loads through ConfigManager.initialize(); that method also boots
@@ -62,7 +68,7 @@ public class FinalCmdTestHarness implements AutoCloseable {
     /**
      * Registers a FinalCMD executor instance and returns the single {@link FinalCMDPluginCommand}
      * this call produced. Use {@link #registerAll(Object)} when the executor may declare several
-     * independent {@code @FinalCMD} methods (matrix A3).
+     * independent {@code @FinalCMD} methods.
      */
     public FinalCMDPluginCommand register(Object executor) {
         List<FinalCMDPluginCommand> registered = registerAll(executor);
@@ -80,9 +86,29 @@ public class FinalCmdTestHarness implements AutoCloseable {
         return FinalCMDManager.registerCommand(ecPluginData, executor);
     }
 
-    /** @return false if the registration itself failed (e.g. no {@code @FinalCMD} found at all). */
+    /** @return false if the registration itself failed - a shape error, or no {@code @FinalCMD} found at all. */
     public boolean registerExpectingFailure(Object executor) {
         return !FinalCMDManager.registerCommand(ecPluginData, executor).isEmpty();
+    }
+
+    /**
+     * Scans {@code executor} expecting the framework to refuse its SHAPE, and hands the error back so
+     * the test can pin what the message teaches - naming the class, the member and the call that fixes
+     * it is the whole point of a registration error.
+     * <p>
+     * This goes through the scanner rather than {@link #register(Object)}: registering swallows the
+     * refusal (the command is lost, the reason goes to the log, the server opens anyway), so the
+     * message is only readable where it is raised.
+     *
+     * @throws AssertionError if the scan succeeded instead
+     */
+    public ArgMountException registerExpectingError(Object executor) {
+        try {
+            CommandTreeScanner.scanCommands(ecPluginData, executor);
+        }catch (ArgMountException shapeError){
+            return shapeError;
+        }
+        throw new AssertionError("Expected the registration of [" + executor.getClass().getName() + "] to be refused, but it succeeded.");
     }
 
     /** Splits {@code argsLine} on spaces (empty string -&gt; zero args) and dispatches it through the real {@code FCDefaultExecutor}. */
@@ -91,8 +117,17 @@ public class FinalCmdTestHarness implements AutoCloseable {
         cmd.getExecutor().onCommand(sender, cmd.getPrimaryLabel(), args);
     }
 
+    /**
+     * Tab-completes {@code args}, whose LAST element is the word being completed - {@code ""} meaning a
+     * word not started yet. {@code tab(cmd, sender, "user", "")} asks what follows {@code user}.
+     */
     public List<String> tab(FinalCMDPluginCommand cmd, FCommandSender sender, String... args) {
         return cmd.tabComplete(sender, cmd.getPrimaryLabel(), args);
+    }
+
+    /** Structural assertions over the tree {@code cmd} registered - see {@link TreeAssert}. */
+    public TreeAssert tree(FinalCMDPluginCommand cmd) {
+        return new TreeAssert(this, cmd);
     }
 
     @Override
