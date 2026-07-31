@@ -1,41 +1,28 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.help;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.locale.LocaleMessage;
-import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
+import br.com.finalcraft.evernifecore.locale.ILocaleMessageBase;
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
 
-public class HelpLine {
+/**
+ * One {@link HelpLineTemplate} already bound to the path it speaks about, and therefore sendable. It
+ * belongs to a single render: what a command hands to a method (or sends on a missing argument) is
+ * always one of these, never the shared template it came from.
+ */
+public final class HelpLine {
 
-    private final LocaleMessageImp localeMessage;
-    private final String permission;
-    private transient String label = null;
-    private transient String subCMDLabel = null;
+    private final ILocaleMessageBase message;
 
-    public HelpLine(LocaleMessageImp localeMessage, String permission) {
-        this.localeMessage = localeMessage;
-        this.permission = permission;
+    HelpLine(@Nonnull ILocaleMessageBase message) {
+        this.message = message;
     }
 
-    public LocaleMessage getLocaleMessage() {
-        return this.localeMessage;
+    public void sendTo(FCommandSender sender) {
+        message.send(sender);
     }
 
-    public String getPermission(){
-        return permission;
-    }
-
-    public void sendTo(FCommandSender sender){
-        this.localeMessage
-                .addPlaceholder("label", label)
-                .addPlaceholder("subcmd", subCMDLabel)
-                .send(sender);
-    }
-
-    public HelpLine setLabelsUsed(@Nonnull String label, @Nullable String subCMDLabel){
-        this.label = label;
-        this.subCMDLabel = subCMDLabel;
-        return this;
+    /** Exactly what {@link #sendTo} would deliver, for whoever wants to compose instead of send. */
+    public ILocaleMessageBase getMessage() {
+        return message;
     }
 }

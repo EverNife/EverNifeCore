@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandPath;
 import br.com.finalcraft.evernifecore.fancytext.MessageScope;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
@@ -206,7 +207,7 @@ class PageViewerContractTest {
 
         //A page can be re-sent later, from another command's scope, and must still say what it was
         //built to say - which is why the page's own declaration is baked in before any render.
-        try (MessageScope scope = MessageScope.open("scopelabel", null)) {
+        try (MessageScope scope = MessageScope.open(CommandPath.ofRoot("scopelabel"))) {
             viewer.send(console);
         }
 

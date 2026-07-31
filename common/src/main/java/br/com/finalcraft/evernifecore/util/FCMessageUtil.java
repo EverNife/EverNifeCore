@@ -10,74 +10,99 @@ import br.com.finalcraft.everylibs.util.numberwrapper.NumberWrapper;
 import java.math.BigDecimal;
 import java.util.Collection;
 
+/**
+ * The messages the framework and its parsers share. Every {@code LocaleMessage} here is public, so a
+ * parser can carry the message itself inside the result it answers with instead of only being able to
+ * fire-and-forget it through the helper next to it - both forms stay, and neither mutates the field
+ * ({@code addPlaceholder} answers with a new object).
+ */
 public class FCMessageUtil {
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe value §7[§e${argument}§7]§c is not valid here!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO valor §7[§e${argument}§7]§c não é válido aqui!")
+    public static LocaleMessage INVALID_ARGUMENT;
+    public static void invalidArgument(FCommandSender sender, String argument){
+        INVALID_ARGUMENT.addPlaceholder("argument", argument).send(sender);
+    }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe player §7[§e${searched_name}§7]§c is not online!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO Jogador §7[§e${searched_name}§7]§c não está online!")
-    private static LocaleMessage PLAYER_NOT_ONLINE;
+    public static LocaleMessage PLAYER_NOT_ONLINE;
     public static void playerNotOnline(FCommandSender sender, String searchedName){
         PLAYER_NOT_ONLINE.addPlaceholder("searched_name", searchedName).send(sender);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe player §7[§e${searched_name}§7]§c does not exist or is not online!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO Jogador §7[§e${searched_name}§7]§c não existe ou não está online!")
-    private static LocaleMessage PLAYER_NOT_FOUND;
+    public static LocaleMessage PLAYER_NOT_FOUND;
     public static void playerNotFound(FCommandSender sender, String searchedName){
         PLAYER_NOT_FOUND.addPlaceholder("searched_name", searchedName).send(sender);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe player §7[§e${searched_name}§7]§c does not exist or never joined this server!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO Jogador §7[§e${searched_name}§7]§c não existe ou nunca entrou nesse servidor!")
-    private static LocaleMessage PLAYER_DATA_NOT_FOUND;
+    public static LocaleMessage PLAYER_DATA_NOT_FOUND;
     public static void playerDataNotFound(FCommandSender sender, String searchedName){
         PLAYER_DATA_NOT_FOUND.addPlaceholder("searched_name", searchedName).send(sender);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThere is not world called §7[§e${searched_name}§7]§c!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cNão existe nenhum mundo chamado §7[§e${searched_name}§7]§c!")
-    private static LocaleMessage WORLD_NOT_FOUND;
+    public static LocaleMessage WORLD_NOT_FOUND;
     public static void worldNotFound(FCommandSender sender, String searchedName){
         WORLD_NOT_FOUND.addPlaceholder("searched_name", searchedName).send(sender);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cYou do not have the permission to do that.")
     @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cVocê não tem a permissão para fazer isto.")
-    private static LocaleMessage YOU_DO_NOT_HAVE_PERMISSION;
+    public static LocaleMessage YOU_DO_NOT_HAVE_PERMISSION;
     public static void needsThePermission(FCommandSender sender){
         YOU_DO_NOT_HAVE_PERMISSION.send(sender);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cYou do not have the permission §6[§e${permission}§6] §cto do that.")
     @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cVocê não tem a permissão §6[§e${permission}§6] §cpara fazer isto.")
-    private static LocaleMessage YOU_DO_NOT_HAVE_SPECIFIC_PERMISSION;
+    public static LocaleMessage YOU_DO_NOT_HAVE_SPECIFIC_PERMISSION;
     public static void needsThePermission(FCommandSender sender, String permission){
         YOU_DO_NOT_HAVE_SPECIFIC_PERMISSION.addPlaceholder("permission", permission).send(sender);
     }
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cOnly a player can use this - it needs somebody standing in the world.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cApenas um jogador pode usar isto - é preciso alguém dentro do mundo.")
+    public static LocaleMessage ONLY_A_PLAYER_CAN_DO_THAT;
+    /**
+     * What a command answers whoever is not standing in the world. It is a different sentence from a
+     * missing permission on purpose: no permission can ever fix it, and a console told "you do not have
+     * the permission" spends the afternoon looking for the node to grant.
+     */
+    public static void needsToBeAPlayer(FCommandSender sender){
+        ONLY_A_PLAYER_CAN_DO_THAT.send(sender);
+    }
+
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need to be holding an item in your hand!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa estar segurando um item em sua mão!")
-    private static LocaleMessage NEEDS_TO_BE_HOLDING_ITEM;
+    public static LocaleMessage NEEDS_TO_BE_HOLDING_ITEM;
     public static void needsToBeHoldingItem(FCommandSender sender){
         NEEDS_TO_BE_HOLDING_ITEM.send(sender);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need to be holding an §7[§2${item_name}§7]§c in your hand!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa estar segurando um §7[§2${item_name}§7]§c em sua mão!")
-    private static LocaleMessage NEEDS_TO_BE_HOLDING_SPECIFIC_ITEM;
+    public static LocaleMessage NEEDS_TO_BE_HOLDING_SPECIFIC_ITEM;
     public static void needsToBeHoldingItem(FCommandSender sender, String itemName){
         NEEDS_TO_BE_HOLDING_SPECIFIC_ITEM.addPlaceholder("item_name", itemName).send(sender);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need to be looking at a block!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa estar olhando para um bloco!")
-    private static LocaleMessage NEEDS_TO_BE_LOOKING_AT_BLOCK;
+    public static LocaleMessage NEEDS_TO_BE_LOOKING_AT_BLOCK;
     public static void needsToBeLookingAtBlock(FCommandSender sender){
         NEEDS_TO_BE_LOOKING_AT_BLOCK.send(sender);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need to be looking at a block §e[${block_name}]§c!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa estar olhando para um bloco §e[${block_name}]§c!")
-    private static LocaleMessage NEEDS_TO_BE_LOOKING_AT_A_SPECIFIC_BLOCK;
+    public static LocaleMessage NEEDS_TO_BE_LOOKING_AT_A_SPECIFIC_BLOCK;
     public static void needsToBeLookingAtBlock(FCommandSender sender, String blockName){
         NEEDS_TO_BE_LOOKING_AT_A_SPECIFIC_BLOCK
                 .addPlaceholder("block_name", blockName)
@@ -86,14 +111,14 @@ public class FCMessageUtil {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need to be looking at an entity!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa estar olhando para uma entidade!")
-    private static LocaleMessage NEEDS_TO_BE_LOOKING_AT_ENTITY;
+    public static LocaleMessage NEEDS_TO_BE_LOOKING_AT_ENTITY;
     public static void needsToBeLookingAtEntity(FCommandSender sender){
         NEEDS_TO_BE_LOOKING_AT_BLOCK.send(sender);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need to be looking at an entity §e[${entity_name}]§c!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa estar olhando para uma entidade §e[${entity_name}]§c!")
-    private static LocaleMessage NEEDS_TO_BE_LOOKING_AT_A_SPECIFIC_ENTITY;
+    public static LocaleMessage NEEDS_TO_BE_LOOKING_AT_A_SPECIFIC_ENTITY;
     public static void needsToBeLookingAtEntity(FCommandSender sender, String entityName){
         NEEDS_TO_BE_LOOKING_AT_A_SPECIFIC_BLOCK
                 .addPlaceholder("entity_name", entityName)
@@ -102,14 +127,14 @@ public class FCMessageUtil {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need to have an §7§l[§e${item_name}§7§l]§c in your inventory!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa ter um(a) §7§l[§e${item_name}§7§l]§c em seu inventário!")
-    private static LocaleMessage NEEDS_TO_HAVE_ON_INVENTORY;
+    public static LocaleMessage NEEDS_TO_HAVE_ON_INVENTORY;
     public static void needsToHaveOnInventory(FCommandSender sender, String itemName){
         NEEDS_TO_HAVE_ON_INVENTORY.addPlaceholder("item_name", itemName).send(sender);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need to have §7§l[§6${item_amount}x §e${item_name}§7§l]§c in your inventory!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa ter §7§l[§6${item_amount}x §e${item_name}§7§l]§c em seu inventário!")
-    private static LocaleMessage NEEDS_TO_HAVE_ON_INVENTORY_AMOUNT;
+    public static LocaleMessage NEEDS_TO_HAVE_ON_INVENTORY_AMOUNT;
     public static void needsToHaveOnInventory(FCommandSender sender, String itemName, int amount){
         NEEDS_TO_HAVE_ON_INVENTORY_AMOUNT
                 .addPlaceholder("item_amount", amount)
@@ -119,7 +144,7 @@ public class FCMessageUtil {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou need more space on the inventory!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê precisa de mais espaço no inventário!")
-    private static LocaleMessage NOT_ENOUGHT_SPACE_ON_INVENTORY;
+    public static LocaleMessage NOT_ENOUGHT_SPACE_ON_INVENTORY;
     public static <T extends Number> void needsToHaveMoreInventorySpace(FCommandSender sender){
         NOT_ENOUGHT_SPACE_ON_INVENTORY
                 .send(sender);
@@ -127,42 +152,42 @@ public class FCMessageUtil {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §7[§2${argumento}§7]§c needs to be an integer!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §7[§2${argumento}§7]§c precisa ser um número inteiro!")
-    private static LocaleMessage NEEDS_TO_BE_INTEGER;
+    public static LocaleMessage NEEDS_TO_BE_INTEGER;
     public static void needsToBeInteger(FCommandSender sender, String argumento){
         NEEDS_TO_BE_INTEGER.addPlaceholder("argumento", argumento).send(sender);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §7[§2${argumento}§7]§c needs to be a BOLEAN (true|false or yes|no) !")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §7[§2${argumento}§7]§c precisa ser um valor BOLEANO (true|false ou sim|nao) !")
-    private static LocaleMessage NEEDS_TO_BE_BOOLEAN;
+    public static LocaleMessage NEEDS_TO_BE_BOOLEAN;
     public static void needsToBeBoolean(FCommandSender sender, String argumento){
         NEEDS_TO_BE_BOOLEAN.addPlaceholder("argumento", argumento).send(sender);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §7[§2${argumento}§7]§c needs to be a real number!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §7[§2${argumento}§7]§c precisa ser um número real!")
-    private static LocaleMessage NEEDS_TO_BE_DOUBLE;
+    public static LocaleMessage NEEDS_TO_BE_DOUBLE;
     public static void needsToBeDouble(FCommandSender sender, String argumento){
         NEEDS_TO_BE_DOUBLE.addPlaceholder("argumento", argumento).send(sender);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §7[§2${argumento}§7]§c needs to be a valid UUID!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §7[§2${argumento}§7]§c precisa ser uma UUID válida!")
-    private static LocaleMessage NEEDS_TO_BE_UUID;
+    public static LocaleMessage NEEDS_TO_BE_UUID;
     public static void needsToBeUUID(FCommandSender sender, String argumento){
         NEEDS_TO_BE_UUID.addPlaceholder("argumento", argumento).send(sender);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §7[§2${argumento}§7]§c needs to be a valid TimeFrame! §eFor Example: '30s' or '1h 30m 10s'")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §7[§2${argumento}§7]§c precisa ser uma TimeFrame Valido! §ePor exemplo: '30s' ou '1h 30m 10s'")
-    private static LocaleMessage NEEDS_TO_BE_TIME_FRAME;
+    public static LocaleMessage NEEDS_TO_BE_TIME_FRAME;
     public static void needsToBeTimeFrame(FCommandSender sender, String argumento){
         NEEDS_TO_BE_TIME_FRAME.addPlaceholder("argumento", argumento).send(sender);
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cYou do not have enough money! §7§o(Money: ${current_money}§l/§7§o${needed_money})")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cVocê não tem money suficiente! §7§o(Money: ${current_money}§l/§7§o${needed_money})")
-    private static LocaleMessage ECO_NOT_ENOUGHT;
+    public static LocaleMessage ECO_NOT_ENOUGHT;
     public static void ecoNotEnough(FPlayer sender, double amountNeeded){
         ecoNotEnough(sender, FCEcoUtil.ecoGetInBigDecimal(sender), BigDecimal.valueOf(amountNeeded));
     }
@@ -178,7 +203,7 @@ public class FCMessageUtil {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe inserted value §e(${number})§c must be between §6[${min}] §cand §6[${max}]§c!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO valor inserido §e(${number})§c deve estar entre §6[${min}] §ce §6[${max}]§c!")
-    private static LocaleMessage NOT_BOUNDED;
+    public static LocaleMessage NOT_BOUNDED;
     public static <T extends Number> void notBounded(FCommandSender sender, T number, T min, T max){
         NOT_BOUNDED
                 .addPlaceholder("number", NumberWrapper.of(number))
@@ -189,7 +214,7 @@ public class FCMessageUtil {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe inserted value §e(${number})§c must be higher than §6[${min}]§c!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO valor inserido §e(${number})§c deve ser maior que §6[${min}]§c!")
-    private static LocaleMessage NOT_BOUNDED_LOWER;
+    public static LocaleMessage NOT_BOUNDED_LOWER;
     public static <T extends Number> void notBoundedLower(FCommandSender sender, T number, T min){
         NOT_BOUNDED_LOWER
                 .addPlaceholder("number", NumberWrapper.of(number))
@@ -199,7 +224,7 @@ public class FCMessageUtil {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe inserted value §e(${number})§c must be lower than §6[${max}]§c!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO valor inserido §e(${number})§c deve ser menor que §6[${max}]§c!")
-    private static LocaleMessage NOT_BOUNDED_UPPER;
+    public static LocaleMessage NOT_BOUNDED_UPPER;
     public static <T extends Number> void notBoundedUpper(FCommandSender sender, T number, T max){
         NOT_BOUNDED_UPPER
                 .addPlaceholder("number", NumberWrapper.of(number))
@@ -209,21 +234,32 @@ public class FCMessageUtil {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cThe inserted value §e(§6${value}§e)§c must be §6[${possibilities}§6]§c!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO valor inserido §e(§6${value}§e)§c deve ser §6[${possibilities}§6]§c!")
-    private static LocaleMessage NOT_WITHIN_POSSIBILITIES;
+    public static LocaleMessage NOT_WITHIN_POSSIBILITIES;
     public static void notWithinPossibilities(FCommandSender sender, String argument, Collection<? extends Object> possibilities){
-        StringBuilder stringBuilder = new StringBuilder();
-        for (Object value : possibilities) {
-            stringBuilder.append("§b" + value + "§7, ");
-        }
         NOT_WITHIN_POSSIBILITIES
                 .addPlaceholder("value", argument)
-                .addPlaceholder("possibilities", stringBuilder.substring(0, stringBuilder.length() - 4))
+                .addPlaceholder("possibilities", possibilitiesText(possibilities))
                 .send(sender);
+    }
+
+    /**
+     * The {@code ${possibilities}} text of {@link #NOT_WITHIN_POSSIBILITIES}, for whoever needs to
+     * carry the message around instead of sending it right away.
+     */
+    public static String possibilitiesText(Collection<? extends Object> possibilities){
+        StringBuilder stringBuilder = new StringBuilder();
+        for (Object value : possibilities) {
+            if (stringBuilder.length() > 0){
+                stringBuilder.append("§7, ");
+            }
+            stringBuilder.append("§b").append(value);
+        }
+        return stringBuilder.toString();
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§2§l ▶ §aThe plugin [§b${plugin_name}§a] has been reloaded!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§2§l ▶ §aO plugin [§b${plugin_name}§a] foi recarregado com sucesso!")
-    private static LocaleMessage PLUGIN_HAS_BEEN_RELOADED;
+    public static LocaleMessage PLUGIN_HAS_BEEN_RELOADED;
     public static <T extends Number> void pluginHasBeenReloaded(FCommandSender sender, String pluginName){
         PLUGIN_HAS_BEEN_RELOADED
                 .addPlaceholder("plugin_name", pluginName)

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
+import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandPath;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
@@ -79,7 +80,7 @@ public class MessageScopeContractTest {
         TestCommandSender sender = new TestCommandSender("CONSOLE");
 
         SendCustom builtInsideTheCommand;
-        try (MessageScope scope = MessageScope.open("mycmd", null)) {
+        try (MessageScope scope = MessageScope.open(CommandPath.ofRoot("mycmd"))) {
             builtInsideTheCommand = ScopedLocales.USAGE.custom();
         }
 
@@ -99,7 +100,7 @@ public class MessageScopeContractTest {
         TestCommandSender sender = new TestCommandSender("CONSOLE");
         RenderContext forced = RenderContext.of(sender, CommandMessageContext.of("forced", "sub"));
 
-        try (MessageScope scope = MessageScope.open("scoped", null)) {
+        try (MessageScope scope = MessageScope.open(CommandPath.ofRoot("scoped"))) {
             ScopedLocales.USAGE.send(forced, sender);
             FancyText.of("plain /${label} ${subcmd}").send(forced, sender);
         }
@@ -113,7 +114,7 @@ public class MessageScopeContractTest {
     void theCommandLabelResolvesInAPlainMessageInsideAScopeAndStaysRawOutsideOne() {
         TestCommandSender sender = new TestCommandSender("CONSOLE");
 
-        try (MessageScope scope = MessageScope.open("mycmd", "sub")) {
+        try (MessageScope scope = MessageScope.open(CommandPath.ofSingleSegment("mycmd", "sub"))) {
             assertEquals("use /mycmd sub", FancyText.of("use /${label} ${subcmd}").toLegacyString(RenderContext.of(sender)));
         }
 
@@ -126,7 +127,7 @@ public class MessageScopeContractTest {
     void aMessageThatDeclaresLabelItselfShadowsTheFrameworkWideOne() {
         TestCommandSender sender = new TestCommandSender("CONSOLE");
 
-        try (MessageScope scope = MessageScope.open("mycmd", null)) {
+        try (MessageScope scope = MessageScope.open(CommandPath.ofRoot("mycmd"))) {
             assertEquals("use /mine", FancyText.of("use /${label}")
                     .addPlaceholder("label", "mine")
                     .toLegacyString(RenderContext.of(sender)));
@@ -137,7 +138,7 @@ public class MessageScopeContractTest {
     void aScopeStopsBeingVisibleOnceItIsClosed() {
         assertSame(CommandMessageContext.EMPTY, MessageScope.currentOrEmpty());
 
-        try (MessageScope scope = MessageScope.open("mycmd", "sub")) {
+        try (MessageScope scope = MessageScope.open(CommandPath.ofSingleSegment("mycmd", "sub"))) {
             assertEquals("mycmd", MessageScope.currentOrEmpty().getLabel());
             assertEquals("sub", MessageScope.currentOrEmpty().getSubCommandName());
         }
@@ -148,8 +149,8 @@ public class MessageScopeContractTest {
 
     @Test
     void aNestedScopeDoesNotCloseWhatTheOuterOneStillNeeds() {
-        try (MessageScope outer = MessageScope.open("outer", null)) {
-            try (MessageScope inner = MessageScope.open("inner", null)) {
+        try (MessageScope outer = MessageScope.open(CommandPath.ofRoot("outer"))) {
+            try (MessageScope inner = MessageScope.open(CommandPath.ofRoot("inner"))) {
                 assertEquals("outer", MessageScope.currentOrEmpty().getLabel(),
                         "the outer scope owns the context until it closes");
             }
@@ -160,7 +161,7 @@ public class MessageScopeContractTest {
 
     private Thread sendingThread(String label, TestCommandSender sender, CyclicBarrier barrier) {
         return new Thread(() -> {
-            try (MessageScope scope = MessageScope.open(label, null)) {
+            try (MessageScope scope = MessageScope.open(CommandPath.ofRoot(label))) {
                 barrier.await();
                 ScopedLocales.USAGE.send(sender);
             } catch (Exception e) {

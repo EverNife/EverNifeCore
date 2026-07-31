@@ -1,10 +1,11 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
+import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandPath;
 import jakarta.annotation.Nullable;
 
 /**
- * The command scope of the current thread: which label and sub-command are executing right now, if
- * any. Opened around a synchronous command invocation and read automatically by
+ * The command scope of the current thread: which command path is executing right now, if any.
+ * Opened around a synchronous command invocation and read automatically by
  * {@link RenderContext#of}. A task spawned onto another thread from inside a command loses the
  * scope by definition - pass a {@link CommandMessageContext} explicitly in that case.
  */
@@ -20,10 +21,10 @@ public final class MessageScope implements AutoCloseable {
         this.owner = owner;
     }
 
-    public static MessageScope open(@Nullable String label, @Nullable String subCommandName) {
+    public static MessageScope open(@Nullable CommandPath path) {
         boolean owner = CURRENT.get() == null;
         if (owner) {
-            CURRENT.set(new CommandMessageContext(label, subCommandName));
+            CURRENT.set(new CommandMessageContext(path));
         }
         return new MessageScope(owner);
     }

@@ -55,7 +55,7 @@ public class FCLocaleScanner {
 
                 FCLocale[] fcLocales = multiLocale ? declaredField.getAnnotation(FCMultiLocales.class).value() : declaredField.getAnnotationsByType(FCLocale.class);
 
-                String key = declaredField.getDeclaringClass().getSimpleName() + "." + declaredField.getName().toUpperCase(Locale.ROOT).replace("__",".");
+                String key = nestedSimpleName(declaredField.getDeclaringClass()) + "." + declaredField.getName().toUpperCase(Locale.ROOT).replace("__",".");
 
                 FCLocaleData[] fcLocaleDatas = Arrays.stream(fcLocales)
                         .map(FCLocaleData::new)
@@ -160,6 +160,19 @@ public class FCLocaleScanner {
         }
 
         return newLocale;
+    }
+
+    /**
+     * Simple names from the outermost enclosing class inwards, dot joined. A bare simple name files two
+     * inner classes called {@code PermissionNode} under different parents on the SAME entry, and the
+     * second one silently inherits the first one's text.
+     */
+    private static String nestedSimpleName(Class<?> clazz){
+        StringBuilder name = new StringBuilder(clazz.getSimpleName());
+        for (Class<?> enclosing = clazz.getEnclosingClass(); enclosing != null; enclosing = enclosing.getEnclosingClass()) {
+            name.insert(0, enclosing.getSimpleName() + ".");
+        }
+        return name.toString();
     }
 
     private static String getFieldAndClassName(Field field){
