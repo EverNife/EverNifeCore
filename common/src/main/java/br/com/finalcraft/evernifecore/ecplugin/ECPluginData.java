@@ -2,7 +2,10 @@ package br.com.finalcraft.evernifecore.ecplugin;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
+import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandNode;
+import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandPath;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.fancytext.FancySegment;
@@ -336,6 +339,34 @@ public class ECPluginData {
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * Whether {@code path} is still reachable after this plugin's command registry file had its say:
+     * {@code false} once the file pruned it, {@code true} while it is active - and {@code true} for
+     * everything while the registry files are turned off, because then nothing was ever pruned.
+     * <p>
+     * It answers about a decision the REGISTRATION already took, over the tree that is live right now.
+     * It is not a second way of turning a command off at runtime.
+     */
+    public boolean isCommandPathEnabled(CommandPath path){
+        if (!ECSettings.COMMAND_REGISTRY_FILES_ENABLED){
+            return true;
+        }
+
+        FinalCMDPluginCommand command = findRegisteredCommand(path.getLabel()).orElse(null);
+        if (command == null){
+            return false;
+        }
+
+        CommandNode node = command.getRoot();
+        for (String literal : path.getLiterals()) {
+            node = node.getChild(literal);
+            if (node == null){
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
