@@ -1,32 +1,28 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.contextual;
 
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgContextualInfo;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserContextual;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ContextualParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import jakarta.annotation.Nonnull;
 
 public class ArgParserContextualPDSection extends ArgParserContextual<PDSection> {
 
-    public ArgParserContextualPDSection(ArgContextualInfo argContextualInfo) {
-        super(argContextualInfo);
+    public ArgParserContextualPDSection(ArgInfo argInfo) {
+        super(argInfo);
     }
 
     @Override
-    public PDSection parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender) throws ArgParseException {
-        return (PDSection) PlayerController.getPDSection(sender.getUniqueId(), getArgInfo().getArgumentType()).join();
+    public ParseResult<PDSection> parse(@Nonnull ContextualParseCall call) {
+        PDSection pdSection = (PDSection) PlayerController.getPDSection(call.getSender().getUniqueId(), getArgInfo().getArgumentType()).join();
+        //Completes with null only for a player the backend has never heard of - absent, not broken
+        return pdSection != null ? ParseResult.of(pdSection) : ParseResult.<PDSection>empty();
     }
 
     @Override
     public boolean requiresToBeAPlayer() {
         return true;
-    }
-
-    @Override
-    public int getPriority() {
-        return -100;
     }
 }
