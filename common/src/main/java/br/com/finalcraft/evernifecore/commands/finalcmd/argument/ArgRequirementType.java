@@ -3,23 +3,24 @@ package br.com.finalcraft.evernifecore.commands.finalcmd.argument;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
+/**
+ * The two shapes an argument name can have. Whether a value may come from the sender instead of the
+ * line is NOT one of them: that is {@code @Arg(fromSender = true)}, an annotation attribute, so the
+ * displayed name never has to carry semantics the framework has to tokenize back out of it.
+ */
 public enum ArgRequirementType {
-    REQUIRED_OR_PROVIDED_BY_CONTEXT("<(", ")>", true, true),
-    OPTIONAL_OR_PROVIDED_BY_CONTEXT("[(", ")]", false, true),
-    REQUIRED("<", ">", true, false),
-    OPTIONAL("[", "]", false, false),
+    REQUIRED("<", ">", true),
+    OPTIONAL("[", "]", false),
     ;
 
     private final String start;
     private final String end;
     private final boolean required;
-    private final boolean providedByContext;
 
-    ArgRequirementType(String start, String end, boolean required, boolean providedByContext) {
+    ArgRequirementType(String start, String end, boolean required) {
         this.start = start;
         this.end = end;
         this.required = required;
-        this.providedByContext = providedByContext;
     }
 
     public String getStart() {
@@ -32,10 +33,6 @@ public enum ArgRequirementType {
 
     public boolean isRequired() {
         return required;
-    }
-
-    public boolean isProvidedByContext() {
-        return providedByContext;
     }
 
     public static String stripBrackets(@Nonnull String argument){
