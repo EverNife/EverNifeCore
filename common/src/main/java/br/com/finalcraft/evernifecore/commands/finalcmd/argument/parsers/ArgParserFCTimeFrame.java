@@ -1,11 +1,9 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers;
 
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
@@ -34,18 +32,12 @@ public class ArgParserFCTimeFrame extends ArgParser<FCTimeFrame> {
     public static LocaleMessage THIS_IS_NOT_A_VALID_TIME_FRAME;
 
     @Override
-    public FCTimeFrame parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
+    public ParseResult<FCTimeFrame> parse(@Nonnull ParseCall call) {
+        Long millisConverted = FCTimeUtil.toMillis(call.getArgumento().toString());
 
-        Long millisConverted = FCTimeUtil.toMillis(argumento.toString());
-
-        if (argInfo.isRequired() && millisConverted == null){
-            THIS_IS_NOT_A_VALID_TIME_FRAME
-                    .addPlaceholder("time", argumento.toString())
-                    .send(sender);
-            throw new ArgParseException();
-        }
-
-        return millisConverted == null ? null : FCTimeFrame.of(millisConverted);
+        return millisConverted == null
+                ? unrecognized(THIS_IS_NOT_A_VALID_TIME_FRAME.addPlaceholder("time", call.getArgumento().toString()))
+                : ParseResult.of(FCTimeFrame.of(millisConverted));
     }
 
     private final List<String> TIMEFRAME_EXAMPLES = Arrays.asList(

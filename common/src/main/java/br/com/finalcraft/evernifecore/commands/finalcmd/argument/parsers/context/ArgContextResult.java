@@ -1,11 +1,10 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.context;
 
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgRequirementType;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgMountException;
 
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class ArgContextResult {
 
@@ -27,15 +26,26 @@ public class ArgContextResult {
     public static ArgContextResult parseFrom(String context) {
         context = ArgRequirementType.stripBrackets(context); //Remove Requirement Type
 
-        LinkedHashMap<String, String> contextKeyMap = Arrays.stream(context.split("\\|"))
-                .map(rule -> rule.split("="))
-                .collect(Collectors.toMap(pair -> pair[0].toLowerCase(), pair -> {
-                    if (pair.length > 1) {
-                        return pair[1];
-                    } else {
-                        return "true";
-                    }
-                }, (v1, v2) -> v1, LinkedHashMap::new));
+        LinkedHashMap<String, String> contextKeyMap = new LinkedHashMap<>();
+        if (context.trim().isEmpty()){
+            return new ArgContextResult(contextKeyMap); //no context at all: every key simply absent
+        }
+
+        for (String rule : context.split("\\|")) {
+            String[] pair = rule.split("=", 2);
+            String key = pair[0].trim().toLowerCase();
+
+            if (key.isEmpty()){
+                throw new ArgMountException("The context entry [" + rule + "] of [" + context + "] names no key. " +
+                        "Write 'key' for a bare switch, or 'key=value'.");
+            }
+            if (pair.length > 1 && pair[1].trim().isEmpty()){
+                throw new ArgMountException("The context entry [" + rule + "] of [" + context + "] has an empty value after the '='. " +
+                        "Write 'key' when the switch alone is what you mean, or give it a value.");
+            }
+
+            contextKeyMap.putIfAbsent(key, pair.length > 1 ? pair[1] : "true"); //a repeated key keeps the first
+        }
 
         return new ArgContextResult(contextKeyMap);
     }

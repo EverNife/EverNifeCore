@@ -1,11 +1,9 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers;
 
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.everylibs.util.numberwrapper.NumberWrapper;
 import jakarta.annotation.Nonnull;
 
@@ -22,11 +20,8 @@ public class ArgParserNumberWrapper extends ArgParser<NumberWrapper> {
     }
 
     @Override
-    public NumberWrapper parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
-
-        Number number = ARG_PARSER_NUMBER.parserArgument(argContext, sender, argumento);
-
-        return number == null ? null : NumberWrapper.of(number);
+    public ParseResult<NumberWrapper> parse(@Nonnull ParseCall call) {
+        return ARG_PARSER_NUMBER.parse(call).map(NumberWrapper::of);
     }
 
     @Override

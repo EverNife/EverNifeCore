@@ -1,12 +1,11 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers;
 
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.ILocaleMessageBase;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
@@ -69,31 +68,26 @@ public class ArgParserPDSectionId extends ArgParser<Class<? extends PDSection>> 
     private static LocaleMessage AVAILABLE_PDSECTIONS;
 
     @Override
-    public Class<? extends PDSection> parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
-        Class<? extends PDSection> resolved = resolve(argumento.toString());
+    public ParseResult<Class<? extends PDSection>> parse(@Nonnull ParseCall call) {
+        Class<? extends PDSection> resolved = resolve(call.getArgumento().toString());
 
-        if (resolved == null) {
-            if (argInfo.isRequired()) {
-
-                NO_SUCH_PDSECTION
-                    .addPlaceholder("id", argumento.toString())
-                    .send(sender);
-
-                List<String> ids = registeredIds();
-                if (ids.isEmpty()) {
-                    NO_PDSECTIONS_AVAILABLE
-                        .send(sender);
-                } else {
-                    AVAILABLE_PDSECTIONS
-                        .addPlaceholder("ids", String.join("§7, §f", ids))
-                        .send(sender);
-                }
-                throw new ArgParseException();
-            }
-            return null;
+        if (resolved != null) {
+            return ParseResult.of(resolved);
         }
 
-        return resolved;
+        //Lazy because listing every registered section walks and sorts the whole registry, and on an
+        //optional argument nobody ever reads the answer
+        return unrecognized(() -> {
+            List<ILocaleMessageBase> reason = new ArrayList<>();
+            reason.add(NO_SUCH_PDSECTION.addPlaceholder("id", call.getArgumento().toString()));
+
+            List<String> ids = registeredIds();
+            reason.add(ids.isEmpty()
+                    ? NO_PDSECTIONS_AVAILABLE
+                    : AVAILABLE_PDSECTIONS.addPlaceholder("ids", String.join("§7, §f", ids)));
+
+            return reason;
+        });
     }
 
     @Override

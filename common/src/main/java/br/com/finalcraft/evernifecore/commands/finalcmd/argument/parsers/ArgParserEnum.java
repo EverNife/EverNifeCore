@@ -1,17 +1,17 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgMountException;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.util.ArgsParserUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
 import com.google.common.collect.ImmutableList;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 
@@ -55,26 +55,44 @@ public class ArgParserEnum extends ArgParser<Enum> {
 
         // Populate the lookup map for every enum constant selected by the possibilities
         // (works for both the implicit full-enum context and an explicit subset context)
-        for (Object e : argInfo.getArgumentType().getEnumConstants()) {
-            Enum<?> enumConstant = (Enum<?>) e;
-            String nameLowercase = enumConstant.name().toLowerCase();
-            if (possibilities.contains(nameLowercase)) {
-                enumMap.put(nameLowercase, enumConstant);
+        for (String possibility : possibilities) {
+            Enum<?> constant = constantNamed(argInfo, possibility);
+            if (constant == null){
+                //An option that names no constant can never be satisfied: the argument would refuse every
+                //token while offering this one, and only the boot knows it is a typo
+                throw new ArgMountException("The context option [" + possibility + "] of the argument [" + argInfo.getArgData().getName() + "] " +
+                        "is not a constant of " + argInfo.getArgumentType().getSimpleName() + " - no token could ever satisfy it. " +
+                        "Valid constants: " + constantNamesOf(argInfo) + ".");
             }
+            enumMap.put(possibility.toLowerCase(), constant);
         }
     }
 
-    @Override
-    public Enum parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
-
-        Enum result = enumMap.get(argumento.toLowerCase());
-
-        if (result == null && argInfo.isRequired()){
-            FCMessageUtil.notWithinPossibilities(sender, argumento.toString(), possibilities);
-            throw new ArgParseException();
+    private static @Nullable Enum<?> constantNamed(ArgInfo argInfo, String wanted) {
+        for (Object e : argInfo.getArgumentType().getEnumConstants()) {
+            Enum<?> enumConstant = (Enum<?>) e;
+            if (enumConstant.name().equalsIgnoreCase(wanted)){
+                return enumConstant;
+            }
         }
+        return null;
+    }
 
-        return result;
+    private static String constantNamesOf(ArgInfo argInfo) {
+        return Arrays.stream(argInfo.getArgumentType().getEnumConstants())
+                .map(e -> ((Enum<?>) e).name())
+                .collect(Collectors.joining(", "));
+    }
+
+    @Override
+    public ParseResult<Enum> parse(@Nonnull ParseCall call) {
+        Enum constant = enumMap.get(call.getArgumento().toLowerCase());
+
+        return constant == null
+                ? unrecognized(FCMessageUtil.NOT_WITHIN_POSSIBILITIES
+                        .addPlaceholder("value", call.getArgumento().toString())
+                        .addPlaceholder("possibilities", FCMessageUtil.possibilitiesText(possibilities)))
+                : ParseResult.of(constant);
     }
 
     @Override

@@ -1,11 +1,10 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers;
 
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.util.ArgsParserUtil;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
@@ -18,27 +17,56 @@ import java.util.stream.Collectors;
 public class ArgParserArgumento extends ArgParser<Argumento> {
 
     protected final List<String> possibilities;
+    /** Whether the options came from a {@code context()} the developer wrote, or from the argument's own name. */
+    protected final boolean declaredContext;
 
     public ArgParserArgumento(ArgInfo argInfo) {
         super(argInfo);
 
+        this.declaredContext = !argInfo.getArgData().getContext().isEmpty();
+
         //If context is empty, take the name for it
-        String context = argInfo.getArgData().getContext().isEmpty()
-                ? argInfo.getArgData().getName()
-                : argInfo.getArgData().getContext();
+        String context = declaredContext
+                ? argInfo.getArgData().getContext()
+                : argInfo.getArgData().getName();
 
         possibilities = ImmutableList.copyOf(ArgsParserUtil.parseStringContextSelectional(context));
     }
 
+    /**
+     * A declared {@code context()} is applied here exactly as it is on a String argument: the raw token
+     * type is a convenience, not an exemption from what the declaration says. Without one, any token
+     * goes - the options then only feed tab-complete.
+     */
     @Override
-    public Argumento parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
-
-        if (argInfo.isRequired() && argumento.isEmpty()){
-            FCMessageUtil.notWithinPossibilities(sender, argumento.toString(), possibilities);
-            throw new ArgParseException();
+    public ParseResult<Argumento> parse(@Nonnull ParseCall call) {
+        if (call.getArgumento().isEmpty()){
+            return notWithinPossibilities(call);
         }
 
-        return argumento;
+        if (!declaredContext){
+            return ParseResult.of(call.getArgumento());
+        }
+
+        for (String option : possibilities) {
+            if (call.getArgumento().equalsIgnoreCase(option)){
+                return ParseResult.of(new Argumento(option)); //the DECLARED spelling, like every other choice
+            }
+        }
+
+        return notWithinPossibilities(call);
+    }
+
+    private ParseResult<Argumento> notWithinPossibilities(ParseCall call) {
+        return unrecognized(FCMessageUtil.NOT_WITHIN_POSSIBILITIES
+                .addPlaceholder("value", call.getArgumento().toString())
+                .addPlaceholder("possibilities", FCMessageUtil.possibilitiesText(possibilities)));
+    }
+
+    /** An optional token nobody typed still arrives as an {@link Argumento} - an empty one, never null. */
+    @Override
+    public ParseResult<Argumento> absent(@Nonnull ParseCall call) {
+        return ParseResult.of(call.getArgumento());
     }
 
     @Override

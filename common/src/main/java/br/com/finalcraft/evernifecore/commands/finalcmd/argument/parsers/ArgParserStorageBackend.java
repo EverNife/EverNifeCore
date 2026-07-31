@@ -1,12 +1,11 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers;
 
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.ILocaleMessageBase;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
@@ -41,25 +40,26 @@ public class ArgParserStorageBackend extends ArgParser<String> {
     private static LocaleMessage ENABLED_BACKENDS;
 
     @Override
-    public String parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
+    public ParseResult<String> parse(@Nonnull ParseCall call) {
         for (String backendName : PlayerController.getEnabledBackendNames()) {
-            if (backendName.equalsIgnoreCase(argumento.toString())) {
-                return backendName;
+            if (backendName.equalsIgnoreCase(call.getArgumento().toString())) {
+                return ParseResult.of(backendName);
             }
         }
 
-        if (argInfo.isRequired()) {
+        //Lazy because listing the enabled backends reads storage.yml's resolved state, and on an
+        //optional argument nobody ever reads the answer
+        return unrecognized(() -> {
+            List<ILocaleMessageBase> reason = new ArrayList<>();
+            reason.add(NO_SUCH_BACKEND.addPlaceholder("backend", call.getArgumento().toString()));
+
             List<String> backends = PlayerController.getEnabledBackendNames();
-            NO_SUCH_BACKEND.addPlaceholder("backend", argumento.toString()).send(sender);
-            if (backends.isEmpty()) {
-                NO_BACKENDS_AVAILABLE.send(sender);
-            } else {
-                ENABLED_BACKENDS.addPlaceholder("backends", String.join("§7, §f", backends)).send(sender);
-            }
-            throw new ArgParseException();
-        }
+            reason.add(backends.isEmpty()
+                    ? NO_BACKENDS_AVAILABLE
+                    : ENABLED_BACKENDS.addPlaceholder("backends", String.join("§7, §f", backends)));
 
-        return null;
+            return reason;
+        });
     }
 
     @Override

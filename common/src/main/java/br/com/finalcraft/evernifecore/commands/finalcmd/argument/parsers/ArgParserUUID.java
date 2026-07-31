@@ -1,12 +1,10 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.context.ArgContextExtractor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.context.ArgContextResult;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
@@ -36,25 +34,19 @@ public class ArgParserUUID extends ArgParser<UUID> {
     }
 
     @Override
-    public UUID parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
-        UUID uuid = argumento.getUUID();
+    public ParseResult<UUID> parse(@Nonnull ParseCall call) {
+        UUID uuid = call.getArgumento().getUUID();
 
         if (uuid == null){
-            if (this.getArgInfo().isRequired()){
-                FCMessageUtil.needsToBeUUID(sender, argumento.toString());
-                throw new ArgParseException();
-            }
-            return null;
+            return unrecognized(FCMessageUtil.NEEDS_TO_BE_UUID.addPlaceholder("argumento", call.getArgumento().toString()));
         }
 
-        PlayerData playerData = PlayerController.getLoaded(uuid);
-
-        if (playerData == null){
-            FCMessageUtil.playerDataNotFound(sender, argumento.toString());
-            throw new ArgParseException();
+        if (PlayerController.getLoaded(uuid) == null){
+            //A well-formed UUID nobody here has ever been: converted fine, refused anyway
+            return denied(FCMessageUtil.PLAYER_DATA_NOT_FOUND.addPlaceholder("searched_name", call.getArgumento().toString()));
         }
 
-        return uuid;
+        return ParseResult.of(uuid);
     }
 
     @Override

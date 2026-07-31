@@ -1,12 +1,10 @@
 package br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.context.ArgContextExtractor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.context.ArgContextResult;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
@@ -37,27 +35,27 @@ public class ArgParserIPlayerData extends ArgParser<IPlayerData> {
     }
 
     @Override
-    public IPlayerData parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
-        PlayerData playerData = argumento.getPlayerData();
+    public ParseResult<IPlayerData> parse(@Nonnull ParseCall call) {
+        PlayerData playerData = call.getArgumento().getPlayerData();
 
         if (playerData == null){
-            if (!argInfo.isRequired()){
-                return null;
-            }
-            FCMessageUtil.playerDataNotFound(sender, argumento.toString());
-            throw new ArgParseException();
+            return unrecognized(FCMessageUtil.PLAYER_DATA_NOT_FOUND
+                    .addPlaceholder("searched_name", call.getArgumento().toString()));
         }
 
         if (this.online && !playerData.isPlayerOnline()){
-            FCMessageUtil.playerNotOnline(sender, playerData.getName());
-            throw new ArgParseException();
+            //Found them, and refusing anyway: a domain rule, fatal even on an optional argument
+            return denied(FCMessageUtil.PLAYER_NOT_ONLINE
+                    .addPlaceholder("searched_name", playerData.getName()));
         }
 
         if (PlayerData.class.equals(argInfo.getArgumentType())){
-            return playerData;
+            return ParseResult.<IPlayerData>of(playerData);
         }
 
-        return playerData.getPDSection((Class<? extends PDSection>) this.argInfo.getArgumentType()).join();
+        return ParseResult.<IPlayerData>of(playerData
+                .getPDSection((Class<? extends PDSection>) this.argInfo.getArgumentType())
+                .join());
     }
 
     @Override
