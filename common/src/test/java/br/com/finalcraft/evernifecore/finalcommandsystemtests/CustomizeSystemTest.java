@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Pins {@link ICustomFinalCMD}/{@link CustomizeContext}/{@code CMDAlias} (matrix G): customization
+ * Pins {@link ICustomFinalCMD}/{@link CustomizeContext}/{@code CMDAlias}: customization
  * runs before registration, and its effects (labels, {@code replace(...)}) are per-instance.
  */
 class CustomizeSystemTest {
@@ -67,7 +67,7 @@ class CustomizeSystemTest {
     }
 
     @Test
-    void g1_customizeRunsBeforeRegistrationAndSetLabelsChangesTheRegisteredAlias() {
+    void customizeRunsBeforeRegistrationAndSetLabelsChangesTheRegisteredAlias() {
         FinalCMDPluginCommand command = newHarness().register(new G1_Cmd());
 
         assertEquals("customizedlabel", command.getPrimaryLabel());
@@ -83,9 +83,9 @@ class CustomizeSystemTest {
     // ------------------------------------------------------------------
 
     public static class G2_Cmd implements ICustomFinalCMD {
-        @FinalCMD(aliases = "cmd%suffix%", usage = "usage%suffix%", permission = "perm%suffix%")
+        @FinalCMD(aliases = "cmd%suffix%", permission = "perm%suffix%")
         public void run(FCommandSender sender,
-                         @Arg(name = "<val%suffix%>", context = "ctx%suffix%",
+                         @Arg(value = "<val%suffix%>", context = "ctx%suffix%",
                                  locales = {@FCLocale(lang = LocaleType.EN_US, text = "loc%suffix%")}) String value) {}
 
         @Override
@@ -94,12 +94,22 @@ class CustomizeSystemTest {
         }
     }
 
+    //usage() lives on its own command: it is only legal on a method with no @Arg/@Arg.Flag at all
+    public static class G2_UsageCmd implements ICustomFinalCMD {
+        @FinalCMD(aliases = "usagecmd%suffix%", usage = "usage%suffix%")
+        public void run(FCommandSender sender) {}
+
+        @Override
+        public void customize(@Nonnull CustomizeContext context) {
+            context.replace("%suffix%", "REPLACED");
+        }
+    }
+
     @Test
-    void g2_replacePlaceholderAffectsCmdDataAndArgData() {
+    void replacePlaceholderAffectsCmdDataAndArgData() {
         FinalCMDPluginCommand command = newHarness().register(new G2_Cmd());
 
         assertEquals("cmdREPLACED", command.getPrimaryLabel());
-        assertEquals("usageREPLACED", command.getFinalCMD().getUsage());
         assertEquals("permREPLACED", command.getFinalCMD().getPermission());
 
         ArgParser<?> argParser = command.getMainInterpreter().getCustomArguments().get(1);
@@ -107,6 +117,8 @@ class CustomizeSystemTest {
         assertEquals("<valREPLACED>", argData.getName());
         assertEquals("ctxREPLACED", argData.getContext());
         assertEquals("locREPLACED", argData.getLocales()[0].text());
+
+        assertEquals("usageREPLACED", harness.register(new G2_UsageCmd()).getFinalCMD().getUsage());
     }
 
     // ------------------------------------------------------------------
@@ -116,7 +128,7 @@ class CustomizeSystemTest {
     // ------------------------------------------------------------------
 
     @Test
-    void g3_twoCMDAliasInstancesEachKeepTheirOwnTheCommandInTheHover() {
+    void twoCMDAliasInstancesEachKeepTheirOwnTheCommandInTheHover() {
         newHarness();
         FinalCMDPluginCommand cmd1 = harness.register(new CMDAlias("g3one", "target1"));
         FinalCMDPluginCommand cmd2 = harness.register(new CMDAlias("g3two", "target2"));
@@ -124,8 +136,8 @@ class CustomizeSystemTest {
         assertNotNull(cmd1.getMainInterpreter());
         assertNotNull(cmd2.getMainInterpreter());
 
-        FancyText hover1 = cmd1.getMainInterpreter().getHelpLine().getLocaleMessage().getFancyText("EN_US");
-        FancyText hover2 = cmd2.getMainInterpreter().getHelpLine().getLocaleMessage().getFancyText("EN_US");
+        FancyText hover1 = cmd1.getMainInterpreter().getHelpLineTemplate().getLocaleMessage().getFancyText("EN_US");
+        FancyText hover2 = cmd2.getMainInterpreter().getHelpLineTemplate().getLocaleMessage().getFancyText("EN_US");
 
         assertNotNull(hover1);
         assertNotNull(hover2);
@@ -156,10 +168,10 @@ class CustomizeSystemTest {
     }
 
     @Test
-    void g4_setDescriptionOverrideInsideCustomizeBecomesTheHelpLineHover() {
+    void setDescriptionOverrideInsideCustomizeBecomesTheHelpLineHover() {
         FinalCMDPluginCommand command = newHarness().register(new G4_Cmd());
 
-        FancyText hover = command.getMainInterpreter().getHelpLine().getLocaleMessage().getFancyText("EN_US");
+        FancyText hover = command.getMainInterpreter().getHelpLineTemplate().getLocaleMessage().getFancyText("EN_US");
 
         assertNotNull(hover);
         assertTrue(hover.getHoverText().contains("Set directly via customize"));
@@ -172,15 +184,15 @@ class CustomizeSystemTest {
     // ------------------------------------------------------------------
 
     @Test
-    void g5_twoCMDAliasInstancesKeepTheirOwnTheCommandInBothEnUsAndPtBrHovers() {
+    void twoCMDAliasInstancesKeepTheirOwnTheCommandInBothEnUsAndPtBrHovers() {
         newHarness();
         FinalCMDPluginCommand cmd1 = harness.register(new CMDAlias("g5one", "target1"));
         FinalCMDPluginCommand cmd2 = harness.register(new CMDAlias("g5two", "target2"));
 
-        FancyText hover1EnUs = cmd1.getMainInterpreter().getHelpLine().getLocaleMessage().getFancyText("EN_US");
-        FancyText hover1PtBr = cmd1.getMainInterpreter().getHelpLine().getLocaleMessage().getFancyText("PT_BR");
-        FancyText hover2EnUs = cmd2.getMainInterpreter().getHelpLine().getLocaleMessage().getFancyText("EN_US");
-        FancyText hover2PtBr = cmd2.getMainInterpreter().getHelpLine().getLocaleMessage().getFancyText("PT_BR");
+        FancyText hover1EnUs = cmd1.getMainInterpreter().getHelpLineTemplate().getLocaleMessage().getFancyText("EN_US");
+        FancyText hover1PtBr = cmd1.getMainInterpreter().getHelpLineTemplate().getLocaleMessage().getFancyText("PT_BR");
+        FancyText hover2EnUs = cmd2.getMainInterpreter().getHelpLineTemplate().getLocaleMessage().getFancyText("EN_US");
+        FancyText hover2PtBr = cmd2.getMainInterpreter().getHelpLineTemplate().getLocaleMessage().getFancyText("PT_BR");
 
         assertNotNull(hover1EnUs);
         assertNotNull(hover1PtBr);

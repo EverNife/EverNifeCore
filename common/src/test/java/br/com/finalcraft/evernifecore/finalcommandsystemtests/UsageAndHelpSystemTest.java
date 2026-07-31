@@ -3,26 +3,37 @@ package br.com.finalcraft.evernifecore.finalcommandsystemtests;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserContextual;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ContextualParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgMountException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpWords;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
+import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
+import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Pins usage/help/hover/locale rendering (matrix D): {@code CMDMethodInterpreter.buildHelpLine}
+ * Pins usage/help/hover/locale rendering: {@code CMDMethodInterpreter.buildHelpLine}
  * and {@code HelpContext.sendTo}.
  */
 class UsageAndHelpSystemTest {
@@ -45,8 +56,8 @@ class UsageAndHelpSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // D1 - a subcommand with no @Arg and a usage() uses the usage text (with legacy %name%/%label%
-    // stripped) for the help line
+    // D1 - a subcommand with no @Arg and a usage() puts the usage text on the help line, exactly as
+    // written: nothing inside it is a placeholder and nothing is stripped out of it
     // ------------------------------------------------------------------
 
     @FinalCMD(aliases = "d1cmd")
@@ -56,37 +67,51 @@ class UsageAndHelpSystemTest {
     }
 
     @Test
-    void d1_noArgSubCommandWithUsageUsesTheUsageTextStrippedOfLegacyPlaceholders() {
+    void noArgSubCommandWithUsageRendersTheUsageTextVerbatim() {
         FinalCMDPluginCommand command = newHarness().register(new D1_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "help");
 
-        sender.assertAnyMessageContains("does the thing");
-        //%name% and %label% inside usage() itself are legacy placeholders that get stripped to "",
-        //not resolved - unlike the framework's OWN %label%/%subcmd% around it
-        assertFalse(sender.anyMessageContains("%name%"));
+        sender.assertAnyMessageContains("d1cmd sub %name% does the thing %label%");
     }
 
     // ------------------------------------------------------------------
-    // D2 - a subcommand WITH @Arg ignores usage() entirely; the line is built from the @Arg names
+    // D2 - a subcommand WITH @Arg builds its line from the @Arg names, and a usage() written next to
+    // them is dead text: declaring both is refused at registration
     // ------------------------------------------------------------------
 
     @FinalCMD(aliases = "d2cmd")
     public static class D2_Cmd {
+        @FinalCMD.SubCMD(subcmd = "sub")
+        public void sub(FCommandSender sender, @Arg("<value>") String value) {}
+    }
+
+    @FinalCMD(aliases = "d2deadcmd")
+    public static class D2_DeadUsageCmd {
         @FinalCMD.SubCMD(subcmd = "sub", usage = "THIS_USAGE_MUST_NOT_APPEAR")
-        public void sub(FCommandSender sender, @Arg(name = "<value>") String value) {}
+        public void sub(FCommandSender sender, @Arg("<value>") String value) {}
     }
 
     @Test
-    void d2_subCommandWithArgIgnoresUsageAndBuildsFromArgNames() {
+    void subCommandWithArgBuildsTheLineFromTheArgNames() {
         FinalCMDPluginCommand command = newHarness().register(new D2_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "help");
 
         sender.assertAnyMessageContains("<value>");
-        assertFalse(sender.anyMessageContains("THIS_USAGE_MUST_NOT_APPEAR"));
+    }
+
+    @Test
+    void usageDeclaredNextToAnArgIsRefusedAtRegistration() {
+        newHarness();
+
+        ArgMountException error = harness.registerExpectingError(new D2_DeadUsageCmd());
+
+        assertTrue(error.getMessage().contains("THIS_USAGE_MUST_NOT_APPEAR"), error.getMessage());
+        assertTrue(error.getMessage().contains("sub"), error.getMessage());
+        assertTrue(error.getMessage().contains("Delete the usage()"), error.getMessage());
     }
 
     // ------------------------------------------------------------------
@@ -102,7 +127,7 @@ class UsageAndHelpSystemTest {
     }
 
     @Test
-    void d3_noLocalesAndNoDescriptionOverrideMeansNoHoverOnTheHelpLine() {
+    void noLocalesAndNoDescriptionOverrideMeansNoHoverOnTheHelpLine() {
         FinalCMDPluginCommand command = newHarness().register(new D3_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
@@ -124,7 +149,7 @@ class UsageAndHelpSystemTest {
     }
 
     @Test
-    void d4_localesOnSubCommandDrivesTheHoverFromFCLocale() {
+    void localesOnSubCommandDrivesTheHoverFromFCLocale() {
         FinalCMDPluginCommand command = newHarness().register(new D4_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
@@ -143,11 +168,11 @@ class UsageAndHelpSystemTest {
     public static class D5_Cmd {
         @FinalCMD.SubCMD(subcmd = "sub")
         public void sub(FCommandSender sender,
-                         @Arg(name = "<value>", locales = {@FCLocale(lang = LocaleType.EN_US, text = "The value to use")}) String value) {}
+                         @Arg(value = "<value>", locales = {@FCLocale(lang = LocaleType.EN_US, text = "The value to use")}) String value) {}
     }
 
     @Test
-    void d5_argLocalesAddAnExtraHoverBlock() {
+    void argLocalesAddAnExtraHoverBlock() {
         FinalCMDPluginCommand command = newHarness().register(new D5_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
@@ -175,7 +200,7 @@ class UsageAndHelpSystemTest {
     }
 
     @Test
-    void d6_helpFiltersRestrictedLinesAndRespectsTheCustomHeader() {
+    void helpFiltersRestrictedLinesAndRespectsTheCustomHeader() {
         FinalCMDPluginCommand command = newHarness().register(new D6_Cmd());
         TestCommandSender sender = new TestCommandSender("console"); //no permissions granted
 
@@ -187,7 +212,7 @@ class UsageAndHelpSystemTest {
     }
 
     @Test
-    void d6_senderWithNoPermissionAtAllGetsNeedsThePermissionInstead() {
+    void senderWithNoPermissionAtAllGetsNeedsThePermissionInstead() {
         newHarness();
         TestCommandSender sender = new TestCommandSender("console"); //no permissions granted
 
@@ -225,7 +250,7 @@ class UsageAndHelpSystemTest {
     }
 
     @Test
-    void d7_classOwnFCLocaleFieldsAreLoadedAndLabelIsResolvedAtDispatch() {
+    void classOwnFCLocaleFieldsAreLoadedAndLabelIsResolvedAtDispatch() {
         FinalCMDPluginCommand command = newHarness().register(new D7_Cmd());
         assertNotNull(D7_Cmd.GREETING, "the field should have been populated at registration time");
 
@@ -233,5 +258,153 @@ class UsageAndHelpSystemTest {
         harness.dispatch(command, sender, "sub");
 
         sender.assertAnyMessageContains("You used d7cmd!");
+    }
+
+    // ------------------------------------------------------------------
+    // D8 - a help longer than one page is paged, and the page word rides the help word
+    // ------------------------------------------------------------------
+
+    @FinalCMD(aliases = "d8cmd")
+    public static class D8_Cmd {
+        @FinalCMD.SubCMD(subcmd = "alpha") public void alpha(FCommandSender sender) {}
+        @FinalCMD.SubCMD(subcmd = "bravo") public void bravo(FCommandSender sender) {}
+        @FinalCMD.SubCMD(subcmd = "charlie") public void charlie(FCommandSender sender) {}
+        @FinalCMD.SubCMD(subcmd = "delta") public void delta(FCommandSender sender) {}
+        @FinalCMD.SubCMD(subcmd = "echo") public void echo(FCommandSender sender) {}
+    }
+
+    @FinalCMD(aliases = "d8shortcmd")
+    public static class D8_ShortCmd {
+        @FinalCMD.SubCMD(subcmd = "alpha") public void alpha(FCommandSender sender) {}
+        @FinalCMD.SubCMD(subcmd = "bravo") public void bravo(FCommandSender sender) {}
+    }
+
+    @Test
+    void aHelpLongerThanOnePageIsPagedAndTheFooterNamesTheNextPage() {
+        int originalPageSize = ECSettings.COMMAND_HELP_PAGE_SIZE;
+        ECSettings.COMMAND_HELP_PAGE_SIZE = 2;
+        try {
+            FinalCMDPluginCommand command = newHarness().register(new D8_Cmd());
+
+            TestCommandSender firstPage = new TestCommandSender("console");
+            harness.dispatch(command, firstPage, "help");
+            assertTrue(firstPage.anyMessageContains("alpha"));
+            assertFalse(firstPage.anyMessageContains("charlie"), "the third line belongs to page 2");
+            assertTrue(firstPage.anyMessageContains("/d8cmd help 2"), "the footer says how to move on");
+
+            TestCommandSender secondPage = new TestCommandSender("console");
+            harness.dispatch(command, secondPage, "help 2");
+            assertTrue(secondPage.anyMessageContains("charlie"));
+            assertFalse(secondPage.anyMessageContains("alpha"), "page 2 starts where page 1 stopped");
+
+            TestCommandSender wayPastTheEnd = new TestCommandSender("console");
+            harness.dispatch(command, wayPastTheEnd, "help 99");
+            assertTrue(wayPastTheEnd.anyMessageContains("echo"), "a page nobody has still answers with the last one");
+        } finally {
+            ECSettings.COMMAND_HELP_PAGE_SIZE = originalPageSize;
+        }
+    }
+
+    @Test
+    void aHelpThatFitsInOnePageSaysNothingAboutPages() {
+        int originalPageSize = ECSettings.COMMAND_HELP_PAGE_SIZE;
+        ECSettings.COMMAND_HELP_PAGE_SIZE = 2;
+        try {
+            FinalCMDPluginCommand command = newHarness().register(new D8_ShortCmd());
+            TestCommandSender sender = new TestCommandSender("console");
+
+            harness.dispatch(command, sender, "help");
+
+            assertTrue(sender.anyMessageContains("alpha") && sender.anyMessageContains("bravo"));
+            assertFalse(sender.anyMessageContains("1/1"), "one page is not worth announcing");
+        } finally {
+            ECSettings.COMMAND_HELP_PAGE_SIZE = originalPageSize;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // D9 - the help words come from configuration, and a server may add its own language
+    // ------------------------------------------------------------------
+
+    @Test
+    void aConfiguredHelpWordOpensTheHelpAndTheShippedOnesStillDo() {
+        try {
+            HelpWords.configure(Arrays.asList("help", "?", "ajuda", "ayuda"));
+            FinalCMDPluginCommand command = newHarness().register(new D8_ShortCmd());
+
+            TestCommandSender spanish = new TestCommandSender("console");
+            harness.dispatch(command, spanish, "ayuda");
+            assertTrue(spanish.anyMessageContains("alpha"), "the configured word opens the help");
+
+            TestCommandSender english = new TestCommandSender("console");
+            harness.dispatch(command, english, "help");
+            assertTrue(english.anyMessageContains("alpha"), "and the shipped ones keep working");
+        } finally {
+            HelpWords.configure(HelpWords.DEFAULTS);
+        }
+    }
+
+    @Test
+    void anEmptyHelpWordListFallsBackToTheShippedWords() {
+        try {
+            HelpWords.configure(Arrays.asList("", "   "));
+
+            assertEquals(HelpWords.DEFAULTS, HelpWords.all(), "an empty list is not a way to turn the help off");
+            assertTrue(HelpWords.isHelpWord("HELP"), "and the lookup stays case-insensitive");
+        } finally {
+            HelpWords.configure(HelpWords.DEFAULTS);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // D10 - "is this a player?" has ONE answer, and every surface reads it
+    // ------------------------------------------------------------------
+
+    /** A sender with a UUID that is NOT an FPlayer - a command block, a proxy, a test double. */
+    private static class UuidCarryingSender extends TestCommandSender {
+        private final UUID uniqueId = UUID.randomUUID();
+
+        UuidCarryingSender() {
+            super("commandblock");
+        }
+
+        @Override
+        public UUID getUniqueId() {
+            return uniqueId;
+        }
+    }
+
+    /** Contextual, and player-only - which is what gates the visibility of a line in help and tab. */
+    public static class PlayerOnlyParser extends ArgParserContextual<String> {
+        public PlayerOnlyParser(ArgInfo argInfo) {
+            super(argInfo);
+        }
+
+        @Override
+        public ParseResult<String> parse(@Nonnull ContextualParseCall call) {
+            return ParseResult.of(call.getSender().getName());
+        }
+
+        @Override
+        public boolean requiresToBeAPlayer() {
+            return true;
+        }
+    }
+
+    @FinalCMD(aliases = "d10cmd")
+    public static class D10_Cmd {
+        @FinalCMD.SubCMD(subcmd = "only")
+        public void only(FCommandSender sender, @Arg.Contextual(value = "player", parser = PlayerOnlyParser.class) String who) {}
+    }
+
+    @Test
+    void aSenderWithAUuidIsAPlayerToTheHelpAndToTheTabAlike() {
+        FinalCMDPluginCommand command = newHarness().register(new D10_Cmd());
+        UuidCarryingSender sender = new UuidCarryingSender();
+
+        harness.dispatch(command, sender, "help");
+        assertTrue(sender.anyMessageContains("only"), "the help lists a player-only line for a sender with a UUID");
+
+        assertEquals(Arrays.asList("only"), harness.tab(command, sender, ""), "and so does the tab");
     }
 }
