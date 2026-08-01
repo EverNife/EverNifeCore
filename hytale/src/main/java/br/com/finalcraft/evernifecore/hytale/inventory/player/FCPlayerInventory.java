@@ -63,12 +63,7 @@ public class FCPlayerInventory implements ConfigLifecycle {
     public FCPlayerInventory(FPlayer player, @Nullable Collection<IExtraInvFactory<?>> inventoryFactories) {
         Inventory playerInventory = ((HytaleFPlayer)player).getPlayer().getInventory();
 
-        this.storage = new GenericInventory(playerInventory.getStorage());
-        this.armor = new GenericInventory(playerInventory.getArmor());
-        this.hotbar = new GenericInventory(playerInventory.getHotbar());
-        this.utility = new GenericInventory(playerInventory.getUtility());
-        this.tools = new GenericInventory(playerInventory.getTools());
-        this.backpack = new GenericInventory(playerInventory.getBackpack());
+        snapshotSectionsFrom(playerInventory);
 
         if (inventoryFactories != null){
             for (IExtraInvFactory<?> factory : inventoryFactories) {
@@ -106,6 +101,30 @@ public class FCPlayerInventory implements ConfigLifecycle {
                 .orElse(null);
     }
 
+    // ==================== the six built-in sections ====================
+    // These two are mirrors and must stay one below the other: each section reads from, and writes back to,
+    // the container that names it. Pointing two sections at one container is silent data loss rather than a
+    // misplaced item, because restoring also blanks every slot the snapshot does not fill - so the last write
+    // wins the whole container and every section before it is gone.
+
+    void snapshotSectionsFrom(Inventory playerInventory) {
+        this.storage = new GenericInventory(playerInventory.getStorage());
+        this.armor = new GenericInventory(playerInventory.getArmor());
+        this.hotbar = new GenericInventory(playerInventory.getHotbar());
+        this.utility = new GenericInventory(playerInventory.getUtility());
+        this.tools = new GenericInventory(playerInventory.getTools());
+        this.backpack = new GenericInventory(playerInventory.getBackpack());
+    }
+
+    void restoreSectionsTo(Inventory playerInventory) {
+        storage.restoreTo(playerInventory.getStorage());
+        armor.restoreTo(playerInventory.getArmor());
+        hotbar.restoreTo(playerInventory.getHotbar());
+        utility.restoreTo(playerInventory.getUtility());
+        tools.restoreTo(playerInventory.getTools());
+        backpack.restoreTo(playerInventory.getBackpack());
+    }
+
     public void restoreTo(FPlayer player){
         restoreTo(player, ExtraInvManager.getAllFactories());
     }
@@ -113,26 +132,23 @@ public class FCPlayerInventory implements ConfigLifecycle {
     public void restoreTo(FPlayer player, @Nullable Collection<IExtraInvFactory<?>> inventoryFactories) {
         Inventory playerInventory = ((HytaleFPlayer)player).getPlayer().getInventory();
 
-        storage.restoreTo(playerInventory.getStorage());
-        armor.restoreTo(playerInventory.getStorage());
-        hotbar.restoreTo(playerInventory.getStorage());
-        utility.restoreTo(playerInventory.getStorage());
-        tools.restoreTo(playerInventory.getStorage());
-        backpack.restoreTo(playerInventory.getStorage());
+        restoreSectionsTo(playerInventory);
 
-        for (IExtraInvFactory factory : inventoryFactories) {
-            // We need to ge all factories, rather than use 'this.getExtraInvs()'
-            // because if there is a factory that is not present on 'this.extraInvs()',
-            // it means that we need to erase that extraInv on the player
-            try {
-                ExtraInv extraInv = this.getExtraInv(factory.getId());
-                if (extraInv == null){
-                    extraInv = factory.createEmptyExtraInv();
+        if (inventoryFactories != null) {
+            for (IExtraInvFactory factory : inventoryFactories) {
+                // We need to ge all factories, rather than use 'this.getExtraInvs()'
+                // because if there is a factory that is not present on 'this.extraInvs()',
+                // it means that we need to erase that extraInv on the player
+                try {
+                    ExtraInv extraInv = this.getExtraInv(factory.getId());
+                    if (extraInv == null){
+                        extraInv = factory.createEmptyExtraInv();
+                    }
+                    factory.applyToPlayer(player, extraInv);
+                }catch (Throwable e){
+                    EverNifeCore.getLog().info("Failed to restore ExtraInv(" + factory.getId() + ") into " + player.getName());
+                    e.printStackTrace();
                 }
-                factory.applyToPlayer(player, extraInv);
-            }catch (Throwable e){
-                EverNifeCore.getLog().info("Failed to restore ExtraInv(" + factory.getId() + ") into " + player.getName());
-                e.printStackTrace();
             }
         }
     }
