@@ -73,7 +73,7 @@ public class CMDECLocale {
     @FinalCMD.SubCMD(
         subcmd = {"set"},
         permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE,
-        usage = "%name% <PluginName> <LocaleName>",
+        usage = "<PluginName> <LocaleName>",
         locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Defines a locale to a specific plugin."),
             @FCLocale(lang = LocaleType.PT_BR, text = "Define uma Locale para um plugin específico.")
@@ -81,25 +81,25 @@ public class CMDECLocale {
     )
     public void set(FCommandSender sender, String label, MultiArgumentos argumentos, HelpLine helpLine) {
 
-        if (argumentos.emptyArgs(1,2)){
+        if (argumentos.emptyArgs(0,1)){
             helpLine.sendTo(sender);
             return;
         }
 
 
-        ECPluginData plugin = argumentos.get(1).getECPluginData();
+        ECPluginData plugin = argumentos.get(0).getECPluginData();
         ECPluginData ecPluginData = plugin == null
             ? null
             : ECPluginManager.getECPluginsMap().get(plugin.getMetaInfo().getName());
 
         if (ecPluginData == null){
-            sender.sendMessage("§e§l ▶ §cThere is no ECPlugin with the name §e[" + argumentos.get(1) + "]§c found on this server.");
+            sender.sendMessage("§e§l ▶ §cThere is no ECPlugin with the name §e[" + argumentos.get(0) + "]§c found on this server.");
             return;
         }
 
         String localeType = null;
         for (String value : LocaleType.values()) {
-            if (argumentos.get(2).equalsIgnoreCase(value)){
+            if (argumentos.get(1).equalsIgnoreCase(value)){
                 localeType = value;
                 break;
             }
@@ -107,7 +107,7 @@ public class CMDECLocale {
 
         Config localization_config = ConfigFactory.open(plugin, "localization/localization_config.yml");
 
-        String newLocaleValue = "lang_" + (localeType != null ? localeType : argumentos.get(2)) + ".yml";
+        String newLocaleValue = "lang_" + (localeType != null ? localeType : argumentos.get(1)) + ".yml";
         String previousLocaleValue = localization_config.getString("Localization.fileName");
 
         if (!newLocaleValue.equals(previousLocaleValue)){
@@ -122,7 +122,7 @@ public class CMDECLocale {
     @FinalCMD.SubCMD(
         subcmd = {"setall"},
         permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE,
-        usage = "%name% <LocaleName>",
+        usage = "<LocaleName>",
         locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Defines the locale to every single plugin."),
             @FCLocale(lang = LocaleType.PT_BR, text = "Define a Locale de todos os ECPlugin para uma específica.")
@@ -130,13 +130,13 @@ public class CMDECLocale {
     )
     public void setall(FCommandSender sender, String label, MultiArgumentos argumentos, HelpLine helpLine) {
 
-        if (argumentos.emptyArgs(1)){
+        if (argumentos.emptyArgs(0)){
             helpLine.sendTo(sender);
             return;
         }
 
         for (ECPluginData value : ECPluginManager.getECPluginsMap().values()) {
-            FCServerUtil.makePlayerExecuteCommand(sender, label + " set " + value.getMetaInfo().getName() + " " + argumentos.get(1));
+            FCServerUtil.makePlayerExecuteCommand(sender, label + " set " + value.getMetaInfo().getName() + " " + argumentos.get(0));
         }
 
     }
@@ -144,7 +144,7 @@ public class CMDECLocale {
     @FinalCMD.SubCMD(
         subcmd = {"self"},
         permission = PermissionNodes.EVERNIFECORE_COMMAND_FCLOCALE_SELF,
-        usage = "%name% <LocaleName>",
+        usage = "<LocaleName>",
         validation = {PerPlayerLocaleAccessValidation.class},
         locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Choose the language YOU see messages in."),
@@ -153,21 +153,21 @@ public class CMDECLocale {
     )
     public void self(FCommandSender sender, MultiArgumentos argumentos, HelpLine helpLine, LocalePDSection localeSection) {
 
-        if (argumentos.emptyArgs(1)){
+        if (argumentos.emptyArgs(0)){
             helpLine.sendTo(sender);
             return;
         }
 
         String localeType = null;
         for (String value : LocaleType.values()) {
-            if (argumentos.get(1).equalsIgnoreCase(value)){
+            if (argumentos.get(0).equalsIgnoreCase(value)){
                 localeType = value;
                 break;
             }
         }
 
         if (localeType == null){
-            sender.sendMessage("§e§l ▶ §c[" + argumentos.get(1) + "]§c is not a known locale.");
+            sender.sendMessage("§e§l ▶ §c[" + argumentos.get(0) + "]§c is not a known locale.");
             return;
         }
 

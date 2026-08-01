@@ -27,7 +27,7 @@ public class CoreCommand {
             },
             permission = PermissionNodes.EVERNIFECORE_COMMAND_INFO
     )
-    public void info(FCommandSender sender, @Arg(name = "[page]", context = "[1:*]") Integer page){
+    public void info(FCommandSender sender, @Arg(value = "[page]", context = "[1:*]") Integer page){
         PageViewer.targeting(ECPluginData.class)
                 .withSuplier(() -> new ArrayList<>(ECPluginManager.getECPluginsMap().values()))
                 .extracting(ecPluginData -> ecPluginData.getMetaInfo().getName())

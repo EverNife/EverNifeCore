@@ -15,7 +15,7 @@ public class CMDGetName {
             aliases = {"getname", "nameof"},
             permission = PermissionNodes.EVERNIFECORE_COMMAND_NAMEOF
     )
-    public void onCommand(FCommandSender sender, @Arg(name = "<PlayerUUID>") UUID playerUUID) {
+    public void onCommand(FCommandSender sender, @Arg("<PlayerUUID>") UUID playerUUID) {
         PlayerData playerData = PlayerController.getPlayerData(playerUUID).join();
         sender.sendMessage("§a [" + playerData.getName() + "] --> §e" + playerData.getUniqueId());
     }

@@ -73,9 +73,9 @@ public class CustomizeContext {
                 argData.replace(placeholder, value);
             }
 
-            for (Tuple<ArgContextualData, Class> tuple : methodData.getContextualArgDataMap().values()) {
-                ArgContextualData argContextualData = tuple.getLeft();
-                argContextualData.replace(placeholder, value);
+            for (Tuple<ArgData, Class> tuple : methodData.getContextualArgDataMap().values()) {
+                ArgData argData = tuple.getLeft();
+                argData.replace(placeholder, value);
             }
         }
     }
@@ -95,9 +95,9 @@ public class CustomizeContext {
                 argData.replace(replacer);
             }
 
-            for (Tuple<ArgContextualData, Class> tuple : methodData.getContextualArgDataMap().values()) {
-                ArgContextualData argContextualData = tuple.getLeft();
-                argContextualData.replace(replacer);
+            for (Tuple<ArgData, Class> tuple : methodData.getContextualArgDataMap().values()) {
+                ArgData argData = tuple.getLeft();
+                argData.replace(replacer);
             }
         }
     }

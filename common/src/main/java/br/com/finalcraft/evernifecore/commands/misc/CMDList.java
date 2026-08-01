@@ -16,7 +16,7 @@ public class CMDList {
     @FinalCMD(
             aliases = {"list","playerlist"}
     )
-    public void onCommand(FCommandSender sender, @Arg(name = "[page]") PageVisualization page) {
+    public void onCommand(FCommandSender sender, @Arg("[page]") PageVisualization page) {
         PageViewer.targeting(FPlayer.class)
                 .withSuplier(() -> new ArrayList<>(EverNifeCore.getPlatform().getOnlinePlayers()))
                 .extracting(player -> player.getName())

@@ -1,11 +1,11 @@
 package br.com.finalcraft.evernifecore.commands.misc;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.PermissionNodes;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
-import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FlagArg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpLine;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
@@ -46,7 +46,7 @@ public class CMDECCooldown {
 
     @FinalCMD.SubCMD(
             subcmd = "reset",
-            usage = "%name% <CooldownID>",
+            usage = "<CooldownID>",
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "Reset an specific cooldown!"),
                     @FCLocale(lang = LocaleType.PT_BR, text = "Reseta um cooldown especifico!")
@@ -54,12 +54,12 @@ public class CMDECCooldown {
     )
     public void reset(FCommandSender sender, MultiArgumentos argumentos, HelpLine helpLine) {
 
-        if (argumentos.emptyArgs(1)){
+        if (argumentos.emptyArgs(0)){
             helpLine.sendTo(sender);
             return;
         }
 
-        Cooldown cooldown = Cooldown.of(argumentos.getStringArg(1));
+        Cooldown cooldown = Cooldown.of(argumentos.getStringArg(0));
         if (!cooldown.isInCooldown()){
             COOLDOWN_NOT_IN_COOLDOWN.addPlaceholder("cooldown", cooldown.getIdentifier()).send(sender);
             return;
@@ -71,7 +71,7 @@ public class CMDECCooldown {
 
     @FinalCMD.SubCMD(
             subcmd = "resetplayer",
-            usage = "%name% <player> <CooldownID>",
+            usage = "<player> <CooldownID>",
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "Reset an specific player cooldown!"),
                     @FCLocale(lang = LocaleType.PT_BR, text = "Reseta um cooldown especifico de um jogador!")
@@ -79,23 +79,23 @@ public class CMDECCooldown {
     )
     public void resetPlayer(FCommandSender sender, MultiArgumentos argumentos, HelpLine helpLine) {
 
-        if (argumentos.emptyArgs(1,2)){
+        if (argumentos.emptyArgs(0,1)){
             helpLine.sendTo(sender);
             return;
         }
 
-        PlayerData playerData = argumentos.get(1).getPlayerData();
+        PlayerData playerData = argumentos.get(0).getPlayerData();
 
         if (playerData == null){
-            FCMessageUtil.playerDataNotFound(sender, argumentos.getStringArg(1));
+            FCMessageUtil.playerDataNotFound(sender, argumentos.getStringArg(0));
             return;
         }
 
         //the target may be offline, so its cooldown bucket may have to be read from the backend: resolve
         //async and bridge back to the main thread instead of blocking it with a .join()
-        PlayerController.whenCompleteOnMainThread(playerData.getCooldown(argumentos.getStringArg(2)), (cooldown, error) -> {
+        PlayerController.whenCompleteOnMainThread(playerData.getCooldown(argumentos.getStringArg(1)), (cooldown, error) -> {
             if (error != null){
-                error.printStackTrace();
+                EverNifeCore.getLog().severe("Failed to read the cooldowns of " + playerData.getName(), error);
                 return;
             }
             if (!cooldown.isInCooldown()){
@@ -131,7 +131,7 @@ public class CMDECCooldown {
 
     @FinalCMD.SubCMD(
             subcmd = "viewplayer",
-            usage = "%name% <player>",
+            usage = "<player>",
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "List a player's cooldowns (local and network)!"),
                     @FCLocale(lang = LocaleType.PT_BR, text = "Lista os cooldowns de um jogador (local e de rede)!")
@@ -139,15 +139,15 @@ public class CMDECCooldown {
     )
     public void viewPlayer(FCommandSender sender, MultiArgumentos argumentos, HelpLine helpLine) {
 
-        if (argumentos.emptyArgs(1)){
+        if (argumentos.emptyArgs(0)){
             helpLine.sendTo(sender);
             return;
         }
 
-        PlayerData playerData = argumentos.get(1).getPlayerData();
+        PlayerData playerData = argumentos.get(0).getPlayerData();
 
         if (playerData == null){
-            FCMessageUtil.playerDataNotFound(sender, argumentos.getStringArg(1));
+            FCMessageUtil.playerDataNotFound(sender, argumentos.getStringArg(0));
             return;
         }
 
@@ -160,7 +160,7 @@ public class CMDECCooldown {
                 localFuture.thenCombine(networkFuture, AbstractMap.SimpleImmutableEntry::new),
                 (buckets, error) -> {
                     if (error != null){
-                        error.printStackTrace();
+                        EverNifeCore.getLog().severe("Failed to read the cooldowns of " + playerData.getName(), error);
                         return;
                     }
                     COOLDOWN_VIEW_PLAYER_HEADER.addPlaceholder("player", playerData.getName()).send(sender);
@@ -252,9 +252,9 @@ public class CMDECCooldown {
             }
     )
     public void set(FCommandSender sender,
-                     @Arg(name = "<CooldownID>") String cooldownId,
-                     @Arg(name = "<duration>") String duration,
-                     @FlagArg(name = "--network", aliases = "-n", def = "false", locales = {
+                     @Arg("<CooldownID>") String cooldownId,
+                     @Arg("<duration>") String duration,
+                     @Arg.Flag(value = "--network", aliases = "-n", def = "false", locales = {
                              @FCLocale(lang = LocaleType.EN_US, text = "Apply network-wide (follows the account across servers)."),
                              @FCLocale(lang = LocaleType.PT_BR, text = "Aplica na rede inteira (segue a conta entre servidores).")
                      })
@@ -279,10 +279,10 @@ public class CMDECCooldown {
             }
     )
     public void setPlayer(FCommandSender sender,
-                           @Arg(name = "<player>") PlayerData playerData,
-                           @Arg(name = "<CooldownID>") String cooldownId,
-                           @Arg(name = "<duration>") String duration,
-                           @FlagArg(name = "--network", aliases = "-n", def = "false", locales = {
+                           @Arg("<player>") PlayerData playerData,
+                           @Arg("<CooldownID>") String cooldownId,
+                           @Arg("<duration>") String duration,
+                           @Arg.Flag(value = "--network", aliases = "-n", def = "false", locales = {
                                    @FCLocale(lang = LocaleType.EN_US, text = "Apply network-wide (follows the account across servers)."),
                                    @FCLocale(lang = LocaleType.PT_BR, text = "Aplica na rede inteira (segue a conta entre servidores).")
                            })
@@ -298,7 +298,7 @@ public class CMDECCooldown {
         CompletableFuture<PlayerCooldown> cooldownFuture = network ? playerData.getNetworkCooldown(cooldownId) : playerData.getCooldown(cooldownId);
         PlayerController.whenCompleteOnMainThread(cooldownFuture, (cooldown, error) -> {
             if (error != null){
-                error.printStackTrace();
+                EverNifeCore.getLog().severe("Failed to read the cooldowns of " + playerData.getName(), error);
                 return;
             }
             if (network){

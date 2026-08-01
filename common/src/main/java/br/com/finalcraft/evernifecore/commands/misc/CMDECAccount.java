@@ -43,10 +43,6 @@ public class CMDECAccount {
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cA camada de contas ainda não está pronta (o PlayerController não foi inicializado).")
     private static LocaleMessage NOT_READY;
 
-    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §cMulti-Platform Accounts is disabled on this server. Enable it in storage.yml ('multi-platform-accounts.enabled: true') to link identities.")
-    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §cO Multi-Platform Accounts está desativado neste servidor. Ative no storage.yml ('multi-platform-accounts.enabled: true') para vincular identidades.")
-    private static LocaleMessage LAYER_DISABLED;
-
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §6Account §e[${account}]§6 has §e${count}§6 linked identity(ies):")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §6A conta §e[${account}]§6 tem §e${count}§6 identidade(s) vinculada(s):")
     private static LocaleMessage INFO_HEADER;
@@ -77,23 +73,23 @@ public class CMDECAccount {
 
     @FinalCMD.SubCMD(
             subcmd = "info",
-            usage = "${name} <player>",
+            usage = "<player>",
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "Show the account a player belongs to."),
                     @FCLocale(lang = LocaleType.PT_BR, text = "Mostra a conta a que um jogador pertence.")
             }
     )
     public void info(FCommandSender sender, MultiArgumentos argumentos, HelpLine helpLine) {
-        if (argumentos.emptyArgs(1)) {
+        if (argumentos.emptyArgs(0)) {
             helpLine.sendTo(sender);
             return;
         }
         if (!checkLayerReady(sender)) {
             return;
         }
-        PlayerData playerData = argumentos.get(1).getPlayerData();
+        PlayerData playerData = argumentos.get(0).getPlayerData();
         if (playerData == null) {
-            FCMessageUtil.playerDataNotFound(sender, argumentos.getStringArg(1));
+            FCMessageUtil.playerDataNotFound(sender, argumentos.getStringArg(0));
             return;
         }
 
@@ -126,7 +122,7 @@ public class CMDECAccount {
 
     @FinalCMD.SubCMD(
             subcmd = "link",
-            usage = "${name} <target> <source>",
+            usage = "<target> <source>",
             //own permission node: an irreversible cross-player data merge must never ride the same
             //node as the read-only 'info'
             permission = PermissionNodes.EVERNIFECORE_COMMAND_ACCOUNT_LINK,
@@ -136,21 +132,21 @@ public class CMDECAccount {
             }
     )
     public void link(FCommandSender sender, MultiArgumentos argumentos, HelpLine helpLine) {
-        if (argumentos.emptyArgs(1, 2)) {
+        if (argumentos.emptyArgs(0, 1)) {
             helpLine.sendTo(sender);
             return;
         }
         if (!checkLayerReady(sender)) {
             return;
         }
-        PlayerData target = argumentos.get(1).getPlayerData();
-        PlayerData source = argumentos.get(2).getPlayerData();
+        PlayerData target = argumentos.get(0).getPlayerData();
+        PlayerData source = argumentos.get(1).getPlayerData();
         if (target == null) {
-            FCMessageUtil.playerDataNotFound(sender, argumentos.getStringArg(1));
+            FCMessageUtil.playerDataNotFound(sender, argumentos.getStringArg(0));
             return;
         }
         if (source == null) {
-            FCMessageUtil.playerDataNotFound(sender, argumentos.getStringArg(2));
+            FCMessageUtil.playerDataNotFound(sender, argumentos.getStringArg(1));
             return;
         }
 
@@ -167,7 +163,7 @@ public class CMDECAccount {
 
     @FinalCMD.SubCMD(
             subcmd = "unlink",
-            usage = "${name} <player>",
+            usage = "<player>",
             permission = PermissionNodes.EVERNIFECORE_COMMAND_ACCOUNT_LINK,
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "Unlink a member from its account (the member starts fresh; the account keeps the data)."),
@@ -175,16 +171,16 @@ public class CMDECAccount {
             }
     )
     public void unlink(FCommandSender sender, MultiArgumentos argumentos, HelpLine helpLine) {
-        if (argumentos.emptyArgs(1)) {
+        if (argumentos.emptyArgs(0)) {
             helpLine.sendTo(sender);
             return;
         }
         if (!checkLayerReady(sender)) {
             return;
         }
-        PlayerData playerData = argumentos.get(1).getPlayerData();
+        PlayerData playerData = argumentos.get(0).getPlayerData();
         if (playerData == null) {
-            FCMessageUtil.playerDataNotFound(sender, argumentos.getStringArg(1));
+            FCMessageUtil.playerDataNotFound(sender, argumentos.getStringArg(0));
             return;
         }
 
@@ -204,7 +200,7 @@ public class CMDECAccount {
 
     @FinalCMD.SubCMD(
             subcmd = "migrate",
-            usage = "${name} <player>",
+            usage = "<player>",
             permission = PermissionNodes.EVERNIFECORE_COMMAND_ACCOUNT_LINK,
             locales = {
                     @FCLocale(lang = LocaleType.EN_US, text = "Force the account-data reconciliation of an offline player (it runs at login otherwise)."),
@@ -212,16 +208,16 @@ public class CMDECAccount {
             }
     )
     public void migrate(FCommandSender sender, MultiArgumentos argumentos, HelpLine helpLine) {
-        if (argumentos.emptyArgs(1)) {
+        if (argumentos.emptyArgs(0)) {
             helpLine.sendTo(sender);
             return;
         }
         if (!checkLayerReady(sender)) {
             return;
         }
-        PlayerData playerData = argumentos.get(1).getPlayerData();
+        PlayerData playerData = argumentos.get(0).getPlayerData();
         if (playerData == null) {
-            FCMessageUtil.playerDataNotFound(sender, argumentos.getStringArg(1));
+            FCMessageUtil.playerDataNotFound(sender, argumentos.getStringArg(0));
             return;
         }
 
@@ -237,14 +233,14 @@ public class CMDECAccount {
                 });
     }
 
-    /** Shared readiness guard of every subcommand: controller bootstrapped + account layer enabled. */
+    /**
+     * Shared readiness guard of every subcommand. Both halves now mean the same thing - the storage
+     * boot has not finished, or it failed - so they answer with one message. The layer is not
+     * something an admin switches on, which is why there is no "it is turned off" case to report.
+     */
     private boolean checkLayerReady(FCommandSender sender) {
-        if (PlayerController.get() == null) {
+        if (PlayerController.get() == null || !Accounts.isEnabled()) {
             NOT_READY.send(sender);
-            return false;
-        }
-        if (!Accounts.isEnabled()) {
-            LAYER_DISABLED.send(sender);
             return false;
         }
         return true;
