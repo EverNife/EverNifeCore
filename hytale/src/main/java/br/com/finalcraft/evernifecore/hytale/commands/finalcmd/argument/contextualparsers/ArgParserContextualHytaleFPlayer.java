@@ -1,22 +1,21 @@
 package br.com.finalcraft.evernifecore.hytale.commands.finalcmd.argument.contextualparsers;
 
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgContextualInfo;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserContextual;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ContextualParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import jakarta.annotation.Nonnull;
 
 public class ArgParserContextualHytaleFPlayer extends ArgParserContextual<HytaleFPlayer> {
 
-    public ArgParserContextualHytaleFPlayer(ArgContextualInfo argContextualInfo) {
-        super(argContextualInfo);
+    public ArgParserContextualHytaleFPlayer(ArgInfo argInfo) {
+        super(argInfo);
     }
 
     @Override
-    public HytaleFPlayer parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender) throws ArgParseException {
-        return (HytaleFPlayer) sender;
+    public ParseResult<HytaleFPlayer> parse(@Nonnull ContextualParseCall call) {
+        return ParseResult.of((HytaleFPlayer) call.getSender());
     }
 
     @Override

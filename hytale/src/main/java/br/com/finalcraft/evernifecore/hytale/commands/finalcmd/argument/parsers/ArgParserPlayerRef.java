@@ -1,12 +1,10 @@
 package br.com.finalcraft.evernifecore.hytale.commands.finalcmd.argument.parsers;
 
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
@@ -24,15 +22,12 @@ public class ArgParserPlayerRef extends ArgParser<PlayerRef> {
     }
 
     @Override
-    public PlayerRef parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
-        FPlayer player = argumento.getPlayer();
+    public ParseResult<PlayerRef> parse(@Nonnull ParseCall call) {
+        FPlayer player = call.getArgumento().getPlayer();
 
-        if (argInfo.isRequired() && player == null){
-            FCMessageUtil.playerNotOnline(sender, argumento.toString());
-            throw new ArgParseException();
-        }
-
-        return ((HytaleFPlayer) player).getPlayerRef();
+        return player == null
+                ? unrecognized(FCMessageUtil.PLAYER_NOT_ONLINE.addPlaceholder("searched_name", call.getArgumento().toString()))
+                : ParseResult.of(((HytaleFPlayer) player).getPlayerRef());
     }
 
     @Override

@@ -42,6 +42,15 @@ dependencies {
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter
     testRuntimeOnly libs.junit.platform.launcher
+    // The shared test engine: platform doubles, the command harness and the IPlatform conformance suite
+    testImplementation project(':common-tests')
+    // A running Hytale server provides these - compileOnly above - so the test JVM has to bring them back
+    testImplementation libs.hytale.server
+}
+
+test {
+    useJUnitPlatform()
+    systemProperty 'java.util.logging.manager', 'com.hypixel.hytale.logger.backend.HytaleLogManager'
 }
 
 shadowJar {
