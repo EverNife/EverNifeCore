@@ -1,11 +1,9 @@
 package br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.parsers;
 
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
@@ -37,45 +35,43 @@ public class ArgParserFCWorldGuardRegion extends ArgParser<FCWorldGuardRegion> {
     @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cExiste mais de uma região na sua localização! §7§o${region_list}")
     public static LocaleMessage THERE_IS_MORE_THAN_ONE_REGION_AT_YOUR_LOCATION;
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cOnly a player stands somewhere - name the region instead!")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cApenas um jogador está em algum lugar - informe o nome da região!")
+    public static LocaleMessage ONLY_A_PLAYER_STANDS_SOMEWHERE;
+
     @Override
-    public FCWorldGuardRegion parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
-        FCWorldGuardRegion fcWorldGuardRegion = WGPlatform.getInstance().getRegionByID(null, argumento.toString());
+    public ParseResult<FCWorldGuardRegion> parse(@Nonnull ParseCall call) {
+        FCWorldGuardRegion region = WGPlatform.getInstance().getRegionByID(null, call.getArgumento().toString());
 
-        if (fcWorldGuardRegion == null && getArgInfo().isProvidedByContext() && sender instanceof Player){
-            argContext.setShouldMoveArgIndex(false);
-            Player player = (Player) sender;
-            List<FCWorldGuardRegion> regionAtPlayer = WGPlatform.getInstance().getApplicableRegions(player.getLocation()).getRegions().stream()
-                    .filter(region -> region.contains(player))
-                    .collect(Collectors.toList());
+        return region != null
+                ? ParseResult.of(region)
+                : unrecognized(THERE_IS_NO_REGION_FOR_THIS_NAME
+                        .addPlaceholder("region_name", call.getArgumento().toString()));
+    }
 
-            if (regionAtPlayer.size() == 0){
-                if (getArgInfo().isRequired()){
-                    THERE_IS_NO_REGION_AT_YOUR_LOCATION.send(sender);
-                    throw new ArgParseException();
-                }else {
-                    return null;
-                }
-            }
-
-            if (regionAtPlayer.size() > 1){
-                String regionList = regionAtPlayer.stream().map(region -> region.getId()).collect(Collectors.joining(", "));
-                THERE_IS_MORE_THAN_ONE_REGION_AT_YOUR_LOCATION
-                        .addPlaceholder("region_list", regionList)
-                        .send(sender);
-                throw new ArgParseException();
-            }
-
-            return regionAtPlayer.get(0);
+    /** The region the sender is standing in - which is why the console never gets one. */
+    @Override
+    public ParseResult<FCWorldGuardRegion> fromSender(@Nonnull ParseCall call) {
+        if (!(call.getSender() instanceof Player)){
+            return unrecognized(ONLY_A_PLAYER_STANDS_SOMEWHERE);
         }
 
-        if (fcWorldGuardRegion == null && this.getArgInfo().isRequired()){
-            THERE_IS_NO_REGION_FOR_THIS_NAME
-                    .addPlaceholder("region_name", argumento.toString())
-                    .send(sender);
-            throw new ArgParseException();
+        Player player = (Player) call.getSender();
+        List<FCWorldGuardRegion> regionAtPlayer = WGPlatform.getInstance().getApplicableRegions(player.getLocation()).getRegions().stream()
+                .filter(region -> region.contains(player))
+                .collect(Collectors.toList());
+
+        if (regionAtPlayer.isEmpty()){
+            //"There is no region here" is a fact, not a policy: only a required argument turns it fatal
+            return unrecognized(THERE_IS_NO_REGION_AT_YOUR_LOCATION);
         }
 
-        return fcWorldGuardRegion;
+        if (regionAtPlayer.size() > 1){
+            String regionList = regionAtPlayer.stream().map(FCWorldGuardRegion::getId).collect(Collectors.joining(", "));
+            return denied(THERE_IS_MORE_THAN_ONE_REGION_AT_YOUR_LOCATION.addPlaceholder("region_list", regionList));
+        }
+
+        return ParseResult.of(regionAtPlayer.get(0));
     }
 
     @Override

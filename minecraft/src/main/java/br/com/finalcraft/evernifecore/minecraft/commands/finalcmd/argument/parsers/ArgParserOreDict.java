@@ -1,12 +1,10 @@
 package br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.parsers;
 
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.cache.CacheableSupplier;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
@@ -33,21 +31,13 @@ public class ArgParserOreDict extends ArgParser<OreDictEntry> {
     public static LocaleMessage THERE_IS_NO_OREDICT_WITH_THE_NAME;
 
     @Override
-    public OreDictEntry parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
+    public ParseResult<OreDictEntry> parse(@Nonnull ParseCall call) {
         Set<String> allOreNames = new HashSet<>(NMSUtils.get().getOreRegistry().getAllOreNames());
 
-        if (!allOreNames.contains(argumento.toString())){
-            if (argInfo.isRequired()){
-                THERE_IS_NO_OREDICT_WITH_THE_NAME
-                        .addPlaceholder("oredict_name", argumento.toString())
-                        .send(sender);
-                throw new ArgParseException();
-            }else {
-                return null;
-            }
-        }
-
-        return new OreDictEntry(argumento.toString());
+        return allOreNames.contains(call.getArgumento().toString())
+                ? ParseResult.of(new OreDictEntry(call.getArgumento().toString()))
+                : unrecognized(THERE_IS_NO_OREDICT_WITH_THE_NAME
+                        .addPlaceholder("oredict_name", call.getArgumento().toString()));
     }
 
     /**

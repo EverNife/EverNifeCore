@@ -1,22 +1,21 @@
 package br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.contextualparsers;
 
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgContextualInfo;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserContextual;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ContextualParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import jakarta.annotation.Nonnull;
 import org.bukkit.command.CommandSender;
 
 public class ArgParserContextualCommandSender extends ArgParserContextual<CommandSender> {
 
-    public ArgParserContextualCommandSender(ArgContextualInfo argContextualInfo) {
-        super(argContextualInfo);
+    public ArgParserContextualCommandSender(ArgInfo argInfo) {
+        super(argInfo);
     }
 
     @Override
-    public CommandSender parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender) throws ArgParseException {
-        return sender.getDelegate(CommandSender.class);
+    public ParseResult<CommandSender> parse(@Nonnull ContextualParseCall call) {
+        return ParseResult.of(call.getSender().getDelegate(CommandSender.class));
     }
 
     @Override

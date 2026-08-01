@@ -1,11 +1,9 @@
 package br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.parsers;
 
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import jakarta.annotation.Nonnull;
 import org.bukkit.Bukkit;
@@ -22,16 +20,12 @@ public class ArgParserWorld extends ArgParser<World> {
     }
 
     @Override
-    public World parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
+    public ParseResult<World> parse(@Nonnull ParseCall call) {
+        World world = call.getArgumento().adapter().getWorld();
 
-        World world = argumento.adapter().getWorld();
-
-        if (world == null && this.getArgInfo().isRequired()){
-            FCMessageUtil.worldNotFound(sender, argumento.toString());
-            throw new ArgParseException();
-        }
-
-        return world;
+        return world == null
+                ? unrecognized(FCMessageUtil.WORLD_NOT_FOUND.addPlaceholder("searched_name", call.getArgumento().toString()))
+                : ParseResult.of(world);
     }
 
     @Override

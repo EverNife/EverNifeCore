@@ -52,7 +52,7 @@ public class CMDOreDictInfo {
             },
             permission = McPermissionNodes.EVERNIFECORE_COMMAND_OREINFO
     )
-    public void menu(PlayerData playerData, @Arg(name = "<oreDict>") OreDictEntry oreDictEntry) {
+    public void menu(PlayerData playerData, @Arg("<oreDict>") OreDictEntry oreDictEntry) {
 
         new OredictViewerGui(oreDictEntry, playerData).open();
 
@@ -66,7 +66,7 @@ public class CMDOreDictInfo {
             },
             permission = McPermissionNodes.EVERNIFECORE_COMMAND_OREINFO
     )
-    public void listItemsFrom(FCommandSender sender, @Arg(name = "<oreDict>") OreDictEntry oreDictEntry, @Arg(name = "[page]") PageVisualization pageVisualization) {
+    public void listItemsFrom(FCommandSender sender, @Arg("<oreDict>") OreDictEntry oreDictEntry, @Arg("[page]") PageVisualization pageVisualization) {
 
         List<ItemStack> itemStacks = oreDictEntry.getItemStacks();
 
@@ -87,7 +87,7 @@ public class CMDOreDictInfo {
             },
             permission = McPermissionNodes.EVERNIFECORE_COMMAND_OREINFO
     )
-    public void list(FCommandSender sender, String label, @Arg(name = "[startsWith]") String startsWith) {
+    public void list(FCommandSender sender, String label, @Arg("[startsWith]") String startsWith) {
 
         final List<OreDictEntry> filteredEntries = ArgParserOreDict.CACHED_OREDICT_ENTRIES.getValue();
 

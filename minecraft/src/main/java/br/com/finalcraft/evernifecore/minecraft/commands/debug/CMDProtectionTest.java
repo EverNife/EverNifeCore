@@ -60,7 +60,7 @@ public class CMDProtectionTest implements ICustomFinalCMD {
             aliases = {"protectiontest"},
             permission = McPermissionNodes.EVERNIFECORE_COMMAND_TESTPROTECTION
     )
-    public void onCommand(Player player, FPlayer fPlayer, @Arg(name = "[%protection_plugins%]") String procteionHandlerName) {
+    public void onCommand(Player player, FPlayer fPlayer, @Arg("[%protection_plugins%]") String procteionHandlerName) {
 
         if (atLeastOne == false){
             NO_PROTECTIONS_DETECTED.send(fPlayer);

@@ -1,13 +1,11 @@
 package br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.parsers;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserCommandContext;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import br.com.finalcraft.evernifecore.util.FCStringUtil;
@@ -24,22 +22,21 @@ public class ArgParserPlayer extends ArgParser<Player> {
     }
 
     @Override
-    public Player parserArgument(@Nonnull ArgParserCommandContext argContext, @Nonnull FCommandSender sender, @Nonnull Argumento argumento) throws ArgParseException {
-        FPlayer player = argumento.getPlayer();
+    public ParseResult<Player> parse(@Nonnull ParseCall call) {
+        FPlayer player = call.getArgumento().getPlayer();
 
         if (player == null){
-            if (argInfo.isRequired()){
-                FCMessageUtil.playerNotOnline(sender, argumento.toString());
-                throw new ArgParseException();
-            }
-            return null;
+            return unrecognized(FCMessageUtil.PLAYER_NOT_ONLINE.addPlaceholder("searched_name", call.getArgumento().toString()));
         }
 
         if (!(player instanceof MinecraftFPlayer)){
-            throw new ArgParseException("The resolved player is not a MinecraftFPlayer: " + player.getClass().getName());
+            //A player resolved by the platform that this platform cannot hand over is a wiring bug,
+            //not something whoever typed the name can do anything about
+            return ParseResult.internalError(new IllegalStateException(
+                    "The resolved player is not a MinecraftFPlayer: " + player.getClass().getName()));
         }
 
-        return ((MinecraftFPlayer) player).getPlayer();
+        return ParseResult.of(((MinecraftFPlayer) player).getPlayer());
     }
 
     @Override
