@@ -1,12 +1,15 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.cfg;
 
+import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.argumento.Argumento;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgRequirementType;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgParseException;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseOutcome;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ResolvedArguments;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -104,15 +107,12 @@ public class SettingsScanner {
                 }
 
                 if (parserClass != null){
-                    ArgInfo argInfo = new ArgInfo(defValue.getClass(), new ArgData().setContext(settings.context()), -1, ArgRequirementType.REQUIRED);
+                    ArgInfo argInfo = ArgInfo.standalone(defValue.getClass(), new ArgData().setName(settings.key()).setContext(settings.context()));
 
                     try {
                         ArgParser argParser = parserClass.getConstructor(ArgInfo.class).newInstance(argInfo);
-                        //TODO Check this logic bellow!
-                        newValue = argParser.parserArgument(null, FCBukkitUtil.adapt(Bukkit.getConsoleSender()), new Argumento(String.valueOf(newValue)));
-                    } catch (ArgParseException ignored) {
-                        ecPluginData.getLog().warning("Using default value for " + new ConfigSection(config, settings.key()).toString() + " Fix your Config!");
-                        newValue = defValue;
+                        newValue = parsedOrDefault(ecPluginData, FCBukkitUtil.adapt(Bukkit.getConsoleSender()),
+                                argParser, argInfo, newValue, defValue, config, settings.key());
                     } catch (Exception e) {
                         ecPluginData.getLog().warning("Failed to load ConfigSetting for [" + instance.getClass().getSimpleName() + " - " + declaredField.toString() + "] As the parser failed to be created!");
                         e.printStackTrace();
@@ -132,6 +132,28 @@ public class SettingsScanner {
                 }
             }
         }
+    }
+
+    /**
+     * The stored value as the parser reads it, or {@code defValue} when it cannot be read. Split out
+     * of the field loop so the sender that is never messaged is a parameter rather than a lookup on a
+     * running server, and the reporting can be exercised without one.
+     */
+    static Object parsedOrDefault(ECPluginData ecPluginData, FCommandSender sender, ArgParser argParser,
+                                  ArgInfo argInfo, Object storedValue, Object defValue, Config config, String key) {
+        //A config value, not a command line: there is no dispatch above it, and the ArgInfo is
+        //REQUIRED so an unreadable value means "fix it" instead of null
+        ParseCall call = new ParseCall(sender, new Argumento(String.valueOf(storedValue)), argInfo,
+                null, ResolvedArguments.none(), false);
+
+        ParseOutcome<?> outcome = new ConfigParseEngine(ecPluginData).run(argParser, call);
+
+        if (outcome.isFatal()){
+            ecPluginData.getLog().warning("Using default value for " + new ConfigSection(config, key).toString() + " Fix your Config!");
+            return defValue;
+        }
+
+        return outcome.getValueOrNull();
     }
 
     private static List<Class<?>> getFieldType(Field field) {

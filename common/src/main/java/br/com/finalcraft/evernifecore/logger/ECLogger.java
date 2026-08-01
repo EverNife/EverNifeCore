@@ -4,6 +4,8 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logger.debug.IDebugModule;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
@@ -74,6 +76,21 @@ public class ECLogger<DL extends IDebugModule> {
 
     public void severe(Supplier<String> supplier) {
         logAdapter.severe(supplier.get());
+    }
+
+    /**
+     * A failure worth its stack trace. The trace goes through the same adapter as the message, so it
+     * lands in the server log next to what it is about, instead of on stdout where a log file, a log
+     * level and a timestamp never reach it.
+     */
+    public void severe(String message, Throwable cause) {
+        logAdapter.severe(cause == null ? message : message + System.lineSeparator() + stackTraceOf(cause));
+    }
+
+    private static String stackTraceOf(Throwable cause) {
+        StringWriter trace = new StringWriter();
+        cause.printStackTrace(new PrintWriter(trace));
+        return trace.toString();
     }
 
     // -----------------------------------------------------------------------------------------------------------------
