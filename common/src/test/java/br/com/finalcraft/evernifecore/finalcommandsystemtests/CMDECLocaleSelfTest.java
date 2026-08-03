@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Pins '/eclocale self' (C17 command side): while PER_PLAYER_LOCALE is off the subcommand is hidden
+ * Pins '/eclocale self': while PER_PLAYER_LOCALE is off the subcommand is hidden
  * and inert; while it is on, it stores the executor's chosen (normalized) language.
  */
 @ECoreTest

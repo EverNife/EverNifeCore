@@ -35,8 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * The F6 fire-test: {@link CMDECCooldown}'s former local/network 2x2 subcommand matrix collapsed into
- * {@code set}/{@code setplayer} plus a {@code --network} {@code @FlagArg}. Pins the registered shape
+ * The framework eating its own cooking: {@link CMDECCooldown}'s former local/network 2x2 subcommand matrix collapsed into
+ * {@code set}/{@code setplayer} plus a {@code --network} {@code @Arg.Flag}. Pins the registered shape
  * (the two now-deleted labels gone) and both the local and network dispatch paths, up to what the
  * headless harness can reach.
  */
@@ -98,8 +98,8 @@ class CMDECCooldownDogfoodTest {
         //an exact-set comparison of every "set*"-prefixed label proves BOTH survivors exist AND
         //nothing else does (in particular, neither of the two now-deleted "*network" labels) without
         //spelling the deleted names out anywhere in this file
-        Set<String> setPrefixedLabels = command.getSubCommands().stream()
-                .map(sub -> sub.getLabels()[0])
+        Set<String> setPrefixedLabels = command.getRoot().getChildren().stream()
+                .map(sub -> sub.getPrimaryLabel())
                 .filter(label -> label.startsWith("set"))
                 .collect(Collectors.toSet());
 
@@ -251,8 +251,8 @@ class CMDECCooldownDogfoodTest {
                 "    type: h2",
                 "    url: \"jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1\"",
                 "default-backend: test_h2",
-                "multi-platform-accounts:",
-                "  enabled: true",
+                "network:",
+                "  storage-backend-id: test_h2",
                 "");
         File file = tempDir.resolve("storage_" + dbName + ".yml").toFile();
         Files.write(file.toPath(), yml.getBytes(StandardCharsets.UTF_8));
