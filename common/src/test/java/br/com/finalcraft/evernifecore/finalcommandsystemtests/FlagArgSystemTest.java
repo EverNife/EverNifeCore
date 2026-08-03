@@ -54,8 +54,8 @@ class FlagArgSystemTest {
     // "false" -> FALSE
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "fl1cmd")
-    public static class FL1_Cmd {
+    @FinalCMD(aliases = "boolpresence")
+    public static class BooleanPresence_Cmd {
         static Boolean received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -64,8 +64,8 @@ class FlagArgSystemTest {
         }
     }
 
-    @FinalCMD(aliases = "fl1defcmd")
-    public static class FL1Def_Cmd {
+    @FinalCMD(aliases = "boolpresencedef")
+    public static class BooleanPresenceWithDef_Cmd {
         static Boolean received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -76,32 +76,32 @@ class FlagArgSystemTest {
 
     @Test
     void presentBooleanFlagIsTrue() {
-        FinalCMDPluginCommand command = newHarness().register(new FL1_Cmd());
-        FL1_Cmd.received = null;
+        FinalCMDPluginCommand command = newHarness().register(new BooleanPresence_Cmd());
+        BooleanPresence_Cmd.received = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub --force");
 
-        assertEquals(Boolean.TRUE, FL1_Cmd.received);
+        assertEquals(Boolean.TRUE, BooleanPresence_Cmd.received);
     }
 
     @Test
     void absentBooleanFlagWithoutDefIsNull() {
-        FinalCMDPluginCommand command = newHarness().register(new FL1_Cmd());
-        FL1_Cmd.received = Boolean.TRUE; //non-null sentinel, so a leftover value can't fake a pass
+        FinalCMDPluginCommand command = newHarness().register(new BooleanPresence_Cmd());
+        BooleanPresence_Cmd.received = Boolean.TRUE; //non-null sentinel, so a leftover value can't fake a pass
 
         harness.dispatch(command, new TestCommandSender("console"), "sub");
 
-        assertNull(FL1_Cmd.received);
+        assertNull(BooleanPresence_Cmd.received);
     }
 
     @Test
     void absentBooleanFlagWithDefFalseIsFalse() {
-        FinalCMDPluginCommand command = newHarness().register(new FL1Def_Cmd());
-        FL1Def_Cmd.received = null;
+        FinalCMDPluginCommand command = newHarness().register(new BooleanPresenceWithDef_Cmd());
+        BooleanPresenceWithDef_Cmd.received = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub");
 
-        assertEquals(Boolean.FALSE, FL1Def_Cmd.received);
+        assertEquals(Boolean.FALSE, BooleanPresenceWithDef_Cmd.received);
     }
 
     // ------------------------------------------------------------------
@@ -109,8 +109,8 @@ class FlagArgSystemTest {
     // legitimate value
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "fl2cmd")
-    public static class FL2_Cmd {
+    @FinalCMD(aliases = "boolarityzero")
+    public static class BooleanArityZero_Cmd {
         static Boolean forceReceived;
         static String nameReceived;
 
@@ -123,14 +123,14 @@ class FlagArgSystemTest {
 
     @Test
     void booleanFlagArityZeroNeverConsumesTheNextToken() {
-        FinalCMDPluginCommand command = newHarness().register(new FL2_Cmd());
-        FL2_Cmd.forceReceived = null;
-        FL2_Cmd.nameReceived = null;
+        FinalCMDPluginCommand command = newHarness().register(new BooleanArityZero_Cmd());
+        BooleanArityZero_Cmd.forceReceived = null;
+        BooleanArityZero_Cmd.nameReceived = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub --force Nick");
 
-        assertEquals(Boolean.TRUE, FL2_Cmd.forceReceived);
-        assertEquals("Nick", FL2_Cmd.nameReceived, "Nick was NOT consumed by --force; it remained positional");
+        assertEquals(Boolean.TRUE, BooleanArityZero_Cmd.forceReceived);
+        assertEquals("Nick", BooleanArityZero_Cmd.nameReceived, "Nick was NOT consumed by --force; it remained positional");
     }
 
     // ------------------------------------------------------------------
@@ -138,8 +138,8 @@ class FlagArgSystemTest {
     // dispatch (the same ArgParserNumber error a REQUIRED positional would raise)
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "fl3cmd")
-    public static class FL3_Cmd {
+    @FinalCMD(aliases = "valueflag")
+    public static class ValueFlag_Cmd {
         static Integer received;
         static boolean invoked = false;
 
@@ -152,35 +152,35 @@ class FlagArgSystemTest {
 
     @Test
     void valueFlagConsumesTheNextToken() {
-        FinalCMDPluginCommand command = newHarness().register(new FL3_Cmd());
-        FL3_Cmd.invoked = false;
-        FL3_Cmd.received = null;
+        FinalCMDPluginCommand command = newHarness().register(new ValueFlag_Cmd());
+        ValueFlag_Cmd.invoked = false;
+        ValueFlag_Cmd.received = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub --page 2");
 
-        assertTrue(FL3_Cmd.invoked);
-        assertEquals(2, FL3_Cmd.received);
+        assertTrue(ValueFlag_Cmd.invoked);
+        assertEquals(2, ValueFlag_Cmd.received);
     }
 
     @Test
     void unparseableValueAbortsDispatchAndDoesNotInvoke() {
-        FinalCMDPluginCommand command = newHarness().register(new FL3_Cmd());
-        FL3_Cmd.invoked = false;
+        FinalCMDPluginCommand command = newHarness().register(new ValueFlag_Cmd());
+        ValueFlag_Cmd.invoked = false;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub --page abc");
 
-        assertFalse(FL3_Cmd.invoked);
+        assertFalse(ValueFlag_Cmd.invoked);
     }
 
     @Test
     void valueOutsideTheContextBoundAbortsDispatch() {
-        FinalCMDPluginCommand command = newHarness().register(new FL3_Cmd());
-        FL3_Cmd.invoked = false;
+        FinalCMDPluginCommand command = newHarness().register(new ValueFlag_Cmd());
+        ValueFlag_Cmd.invoked = false;
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "sub --page 0");
 
-        assertFalse(FL3_Cmd.invoked);
+        assertFalse(ValueFlag_Cmd.invoked);
         sender.assertAnyMessageContains("higher than");
     }
 
@@ -190,8 +190,8 @@ class FlagArgSystemTest {
     // through an internally-REQUIRED ArgInfo so a typo is never silently swallowed
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "fl4cmd")
-    public static class FL4_Cmd {
+    @FinalCMD(aliases = "flagdef")
+    public static class FlagDef_Cmd {
         static Integer received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -200,8 +200,8 @@ class FlagArgSystemTest {
         }
     }
 
-    @FinalCMD(aliases = "fl4invalidcmd")
-    public static class FL4Invalid_Cmd {
+    @FinalCMD(aliases = "flagdefinvalid")
+    public static class UnreadableFlagDef_Cmd {
         static boolean invoked = false;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -212,22 +212,22 @@ class FlagArgSystemTest {
 
     @Test
     void absentFlagWithValidDefParsesTheDef() {
-        FinalCMDPluginCommand command = newHarness().register(new FL4_Cmd());
-        FL4_Cmd.received = null;
+        FinalCMDPluginCommand command = newHarness().register(new FlagDef_Cmd());
+        FlagDef_Cmd.received = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub");
 
-        assertEquals(1, FL4_Cmd.received);
+        assertEquals(1, FlagDef_Cmd.received);
     }
 
     @Test
     void invalidDefErrorsAtFirstUseInsteadOfSilentlyResolvingToNull() {
-        FinalCMDPluginCommand command = newHarness().register(new FL4Invalid_Cmd());
-        FL4Invalid_Cmd.invoked = false;
+        FinalCMDPluginCommand command = newHarness().register(new UnreadableFlagDef_Cmd());
+        UnreadableFlagDef_Cmd.invoked = false;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub");
 
-        assertFalse(FL4Invalid_Cmd.invoked);
+        assertFalse(UnreadableFlagDef_Cmd.invoked);
     }
 
     // ------------------------------------------------------------------
@@ -235,8 +235,8 @@ class FlagArgSystemTest {
     // alias/name spelling shared between two @Arg.Flag on the same method fails registration
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "fl5cmd")
-    public static class FL5_Cmd {
+    @FinalCMD(aliases = "flagalias")
+    public static class FlagAlias_Cmd {
         static Boolean received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -245,8 +245,8 @@ class FlagArgSystemTest {
         }
     }
 
-    public static class FL5Dup_Cmd {
-        @FinalCMD(aliases = "fl5dupcmd")
+    public static class DuplicateFlagSpelling_Cmd {
+        @FinalCMD(aliases = "flagaliasdup")
         public void run(FCommandSender sender,
                          @Arg.Flag(value = "--force", aliases = "-x") Boolean force,
                          @Arg.Flag(value = "--fx", aliases = "-x") Boolean fx) {}
@@ -254,17 +254,17 @@ class FlagArgSystemTest {
 
     @Test
     void aliasResolvesTheSameBindingAsTheLongName() {
-        FinalCMDPluginCommand command = newHarness().register(new FL5_Cmd());
-        FL5_Cmd.received = null;
+        FinalCMDPluginCommand command = newHarness().register(new FlagAlias_Cmd());
+        FlagAlias_Cmd.received = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub -f");
 
-        assertEquals(Boolean.TRUE, FL5_Cmd.received);
+        assertEquals(Boolean.TRUE, FlagAlias_Cmd.received);
     }
 
     @Test
     void duplicateAliasAcrossTwoFlagsFailsRegistration() {
-        boolean registered = newHarness().registerExpectingFailure(new FL5Dup_Cmd());
+        boolean registered = newHarness().registerExpectingFailure(new DuplicateFlagSpelling_Cmd());
 
         assertFalse(registered);
     }
@@ -273,38 +273,38 @@ class FlagArgSystemTest {
     // three independent fail-fast registration guards
     // ------------------------------------------------------------------
 
-    public static class FL6Primitive_Cmd {
-        @FinalCMD(aliases = "fl6primcmd")
+    public static class PrimitiveFlagType_Cmd {
+        @FinalCMD(aliases = "flagprimitive")
         public void run(FCommandSender sender, @Arg.Flag("--force") boolean force) {}
     }
 
-    public static class FL6Both_Cmd {
-        @FinalCMD(aliases = "fl6bothcmd")
+    public static class ArgAndFlagOnOneParameter_Cmd {
+        @FinalCMD(aliases = "flagbotharg")
         public void run(FCommandSender sender, @Arg("<x>") @Arg.Flag("--x") String x) {}
     }
 
-    public static class FL6BadName_Cmd {
-        @FinalCMD(aliases = "fl6badnamecmd")
+    public static class FlagNameWithoutDashes_Cmd {
+        @FinalCMD(aliases = "flagbadname")
         public void run(FCommandSender sender, @Arg.Flag("force") String force) {}
     }
 
     @Test
-    void fl6a_primitiveFlagTypeFailsRegistration() {
-        boolean registered = newHarness().registerExpectingFailure(new FL6Primitive_Cmd());
+    void primitiveFlagTypeFailsRegistration() {
+        boolean registered = newHarness().registerExpectingFailure(new PrimitiveFlagType_Cmd());
 
         assertFalse(registered);
     }
 
     @Test
-    void fl6b_argAndFlagArgOnTheSameParameterFailsRegistration() {
-        boolean registered = newHarness().registerExpectingFailure(new FL6Both_Cmd());
+    void argAndFlagArgOnTheSameParameterFailsRegistration() {
+        boolean registered = newHarness().registerExpectingFailure(new ArgAndFlagOnOneParameter_Cmd());
 
         assertFalse(registered);
     }
 
     @Test
-    void fl6c_nameWithoutLongDashesFailsRegistration() {
-        boolean registered = newHarness().registerExpectingFailure(new FL6BadName_Cmd());
+    void nameWithoutLongDashesFailsRegistration() {
+        boolean registered = newHarness().registerExpectingFailure(new FlagNameWithoutDashes_Cmd());
 
         assertFalse(registered);
     }
@@ -314,8 +314,8 @@ class FlagArgSystemTest {
     // the same token after "--" is not an error at all, it stays positional
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "fl7cmd")
-    public static class FL7_Cmd {
+    @FinalCMD(aliases = "flagundeclared")
+    public static class UndeclaredFlag_Cmd {
         static boolean invoked = false;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -326,26 +326,26 @@ class FlagArgSystemTest {
 
     @Test
     void unknownFlagAbortsDispatchAndListsTheDeclaredFlags() {
-        FinalCMDPluginCommand command = newHarness().register(new FL7_Cmd());
-        FL7_Cmd.invoked = false;
+        FinalCMDPluginCommand command = newHarness().register(new UndeclaredFlag_Cmd());
+        UndeclaredFlag_Cmd.invoked = false;
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "sub --froce");
 
-        assertFalse(FL7_Cmd.invoked);
+        assertFalse(UndeclaredFlag_Cmd.invoked);
         sender.assertAnyMessageContains("froce");
         sender.assertAnyMessageContains("--force");
     }
 
     @Test
     void theSameTokenAfterEndOfFlagsMarkerIsPositionalNotAnError() {
-        FinalCMDPluginCommand command = newHarness().register(new FL7_Cmd());
-        FL7_Cmd.invoked = false;
+        FinalCMDPluginCommand command = newHarness().register(new UndeclaredFlag_Cmd());
+        UndeclaredFlag_Cmd.invoked = false;
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "sub -- --froce");
 
-        assertTrue(FL7_Cmd.invoked);
+        assertTrue(UndeclaredFlag_Cmd.invoked);
         sender.assertNoMessageSent();
     }
 
@@ -354,8 +354,8 @@ class FlagArgSystemTest {
     // permission message aborts dispatch
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "fl8cmd")
-    public static class FL8_Cmd {
+    @FinalCMD(aliases = "flagperm")
+    public static class FlagPermission_Cmd {
         static boolean invoked = false;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -366,36 +366,36 @@ class FlagArgSystemTest {
 
     @Test
     void presentFlagWithoutThePermissionAbortsWithTheStandardMessage() {
-        FinalCMDPluginCommand command = newHarness().register(new FL8_Cmd());
-        FL8_Cmd.invoked = false;
+        FinalCMDPluginCommand command = newHarness().register(new FlagPermission_Cmd());
+        FlagPermission_Cmd.invoked = false;
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "sub --silent");
 
-        assertFalse(FL8_Cmd.invoked);
+        assertFalse(FlagPermission_Cmd.invoked);
         sender.assertAnyMessageContains("permission");
     }
 
     @Test
     void presentFlagWithThePermissionInvokesNormally() {
-        FinalCMDPluginCommand command = newHarness().register(new FL8_Cmd());
-        FL8_Cmd.invoked = false;
+        FinalCMDPluginCommand command = newHarness().register(new FlagPermission_Cmd());
+        FlagPermission_Cmd.invoked = false;
         TestCommandSender sender = new TestCommandSender("console").grant("test.silent");
 
         harness.dispatch(command, sender, "sub --silent");
 
-        assertTrue(FL8_Cmd.invoked);
+        assertTrue(FlagPermission_Cmd.invoked);
     }
 
     @Test
     void absentFlagNeverChecksThePermission() {
-        FinalCMDPluginCommand command = newHarness().register(new FL8_Cmd());
-        FL8_Cmd.invoked = false;
+        FinalCMDPluginCommand command = newHarness().register(new FlagPermission_Cmd());
+        FlagPermission_Cmd.invoked = false;
         TestCommandSender sender = new TestCommandSender("console"); //no permission granted
 
         harness.dispatch(command, sender, "sub");
 
-        assertTrue(FL8_Cmd.invoked);
+        assertTrue(FlagPermission_Cmd.invoked);
     }
 
     // ------------------------------------------------------------------
@@ -405,8 +405,8 @@ class FlagArgSystemTest {
     // negative-number guard is untouched by the declarative pipeline)
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "fl9nocmd")
-    public static class FL9NoFlag_Cmd {
+    @FinalCMD(aliases = "flagnone")
+    public static class NoFlagDeclared_Cmd {
         static String received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -415,8 +415,8 @@ class FlagArgSystemTest {
         }
     }
 
-    @FinalCMD(aliases = "fl9negcmd")
-    public static class FL9Negative_Cmd {
+    @FinalCMD(aliases = "flagnegative")
+    public static class NegativeNumberPositional_Cmd {
         static Integer received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -427,43 +427,43 @@ class FlagArgSystemTest {
 
     @Test
     void methodWithoutFlagArgRefusesADashTokenAndTeachesTheEscape() {
-        FinalCMDPluginCommand command = newHarness().register(new FL9NoFlag_Cmd());
-        FL9NoFlag_Cmd.received = null;
+        FinalCMDPluginCommand command = newHarness().register(new NoFlagDeclared_Cmd());
+        NoFlagDeclared_Cmd.received = null;
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "sub --qualquer");
 
-        assertNull(FL9NoFlag_Cmd.received);
+        assertNull(NoFlagDeclared_Cmd.received);
         sender.assertAnyMessageContains("--qualquer");
         sender.assertAnyMessageContains("plain text"); //the refusal teaches the escape that makes it a positional
     }
 
     @Test
     void theEscapeDeliversADashTokenAsAPositionalWithNoFlagDeclaredAtAll() {
-        FinalCMDPluginCommand command = newHarness().register(new FL9NoFlag_Cmd());
-        FL9NoFlag_Cmd.received = null;
+        FinalCMDPluginCommand command = newHarness().register(new NoFlagDeclared_Cmd());
+        NoFlagDeclared_Cmd.received = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub -- --qualquer");
 
-        assertEquals("--qualquer", FL9NoFlag_Cmd.received);
+        assertEquals("--qualquer", NoFlagDeclared_Cmd.received);
     }
 
     @Test
     void methodWithFlagArgStillParsesANegativeNumberPositional() {
-        FinalCMDPluginCommand command = newHarness().register(new FL9Negative_Cmd());
-        FL9Negative_Cmd.received = null;
+        FinalCMDPluginCommand command = newHarness().register(new NegativeNumberPositional_Cmd());
+        NegativeNumberPositional_Cmd.received = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub -5");
 
-        assertEquals(-5, FL9Negative_Cmd.received);
+        assertEquals(-5, NegativeNumberPositional_Cmd.received);
     }
 
     // ------------------------------------------------------------------
     // flags can sit before, between, or after positionals on the command line
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "fl10cmd")
-    public static class FL10_Cmd {
+    @FinalCMD(aliases = "flagposition")
+    public static class FlagPosition_Cmd {
         static String cooldownIdReceived;
         static String extraReceived;
         static Boolean forceReceived;
@@ -479,35 +479,35 @@ class FlagArgSystemTest {
         }
     }
 
-    private void assertFl10(String argsLine) {
-        FinalCMDPluginCommand command = harness.register(new FL10_Cmd());
-        FL10_Cmd.cooldownIdReceived = null;
-        FL10_Cmd.extraReceived = null;
-        FL10_Cmd.forceReceived = null;
+    private void assertFlagAndBothPositionalsResolve(String argsLine) {
+        FinalCMDPluginCommand command = harness.register(new FlagPosition_Cmd());
+        FlagPosition_Cmd.cooldownIdReceived = null;
+        FlagPosition_Cmd.extraReceived = null;
+        FlagPosition_Cmd.forceReceived = null;
 
         harness.dispatch(command, new TestCommandSender("console"), argsLine);
 
-        assertEquals("MyCooldown", FL10_Cmd.cooldownIdReceived, argsLine);
-        assertEquals("Extra", FL10_Cmd.extraReceived, argsLine);
-        assertEquals(Boolean.TRUE, FL10_Cmd.forceReceived, argsLine);
+        assertEquals("MyCooldown", FlagPosition_Cmd.cooldownIdReceived, argsLine);
+        assertEquals("Extra", FlagPosition_Cmd.extraReceived, argsLine);
+        assertEquals(Boolean.TRUE, FlagPosition_Cmd.forceReceived, argsLine);
     }
 
     @Test
     void flagBeforeThePositionals() {
         newHarness();
-        assertFl10("reset --force MyCooldown Extra");
+        assertFlagAndBothPositionalsResolve("reset --force MyCooldown Extra");
     }
 
     @Test
     void flagBetweenThePositionals() {
         newHarness();
-        assertFl10("reset MyCooldown --force Extra");
+        assertFlagAndBothPositionalsResolve("reset MyCooldown --force Extra");
     }
 
     @Test
     void flagAfterThePositionals() {
         newHarness();
-        assertFl10("reset MyCooldown Extra --force");
+        assertFlagAndBothPositionalsResolve("reset MyCooldown Extra --force");
     }
 
     // ------------------------------------------------------------------
@@ -515,8 +515,8 @@ class FlagArgSystemTest {
     // String, and the value/quote consumption never eats the following positional in Case A
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "fl11cmd")
-    public static class FL11_Cmd {
+    @FinalCMD(aliases = "flagquoted")
+    public static class QuotedFlagValue_Cmd {
         static String titleReceived;
         static String restReceived;
 
@@ -529,26 +529,26 @@ class FlagArgSystemTest {
 
     @Test
     void quotedMultiWordFlagValueBecomesASingleValue() {
-        FinalCMDPluginCommand command = newHarness().register(new FL11_Cmd());
-        FL11_Cmd.titleReceived = null;
-        FL11_Cmd.restReceived = "sentinel";
+        FinalCMDPluginCommand command = newHarness().register(new QuotedFlagValue_Cmd());
+        QuotedFlagValue_Cmd.titleReceived = null;
+        QuotedFlagValue_Cmd.restReceived = "sentinel";
 
         harness.dispatch(command, new TestCommandSender("console"), "sub --title 'Title Message'");
 
-        assertEquals("Title Message", FL11_Cmd.titleReceived);
-        assertNull(FL11_Cmd.restReceived);
+        assertEquals("Title Message", QuotedFlagValue_Cmd.titleReceived);
+        assertNull(QuotedFlagValue_Cmd.restReceived);
     }
 
     @Test
     void unquotedFlagValueOnlyTakesTheNextTokenAndLeavesTheRestPositional() {
-        FinalCMDPluginCommand command = newHarness().register(new FL11_Cmd());
-        FL11_Cmd.titleReceived = null;
-        FL11_Cmd.restReceived = null;
+        FinalCMDPluginCommand command = newHarness().register(new QuotedFlagValue_Cmd());
+        QuotedFlagValue_Cmd.titleReceived = null;
+        QuotedFlagValue_Cmd.restReceived = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub --title Title Message");
 
-        assertEquals("Title", FL11_Cmd.titleReceived);
-        assertEquals("Message", FL11_Cmd.restReceived, "'Message' was NOT part of the flag value - it remains a positional argument");
+        assertEquals("Title", QuotedFlagValue_Cmd.titleReceived);
+        assertEquals("Message", QuotedFlagValue_Cmd.restReceived, "'Message' was NOT part of the flag value - it remains a positional argument");
     }
 
     // ------------------------------------------------------------------
@@ -570,21 +570,21 @@ class FlagArgSystemTest {
         }
     }
 
-    @FinalCMD(aliases = "fl12flagcmd")
-    public static class FL12Flag_Cmd {
+    @FinalCMD(aliases = "isflagvalueflag")
+    public static class IsFlagValueOnFlag_Cmd {
         @FinalCMD.SubCMD(subcmd = "sub")
         public void sub(FCommandSender sender, @Arg.Flag(value = "--tag", parser = IsFlagTrackingParser.class) String tag) {}
     }
 
-    @FinalCMD(aliases = "fl12poscmd")
-    public static class FL12Positional_Cmd {
+    @FinalCMD(aliases = "isflagvaluepos")
+    public static class IsFlagValueOnPositional_Cmd {
         @FinalCMD.SubCMD(subcmd = "sub")
         public void sub(FCommandSender sender, @Arg(value = "[tag]", parser = IsFlagTrackingParser.class) String tag) {}
     }
 
     @Test
     void isFlagIsTrueWhenParsingAFlagsValue() {
-        FinalCMDPluginCommand command = newHarness().register(new FL12Flag_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new IsFlagValueOnFlag_Cmd());
         IsFlagTrackingParser.lastIsFlag = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub --tag hello");
@@ -594,7 +594,7 @@ class FlagArgSystemTest {
 
     @Test
     void isFlagIsFalseWhenParsingAPositionalsValue() {
-        FinalCMDPluginCommand command = newHarness().register(new FL12Positional_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new IsFlagValueOnPositional_Cmd());
         IsFlagTrackingParser.lastIsFlag = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub hello");
@@ -607,8 +607,8 @@ class FlagArgSystemTest {
     // post-strip positionals (the flag tokens are already gone)
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "fl13cmd")
-    public static class FL13_Cmd {
+    @FinalCMD(aliases = "flagmultiargs")
+    public static class MultiArgumentosAfterStrip_Cmd {
         static List<String> seenPositionals;
         static Boolean forceReceived;
 
@@ -621,15 +621,15 @@ class FlagArgSystemTest {
 
     @Test
     void multiArgumentosContextualSeesOnlyThePostStripPositionals() {
-        FinalCMDPluginCommand command = newHarness().register(new FL13_Cmd());
-        FL13_Cmd.seenPositionals = null;
-        FL13_Cmd.forceReceived = null;
+        FinalCMDPluginCommand command = newHarness().register(new MultiArgumentosAfterStrip_Cmd());
+        MultiArgumentosAfterStrip_Cmd.seenPositionals = null;
+        MultiArgumentosAfterStrip_Cmd.forceReceived = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub hello --force");
 
         //the window starts AFTER the path, so the subcommand's own label is not one of its positionals
-        assertEquals(List.of("hello"), FL13_Cmd.seenPositionals);
-        assertEquals(Boolean.TRUE, FL13_Cmd.forceReceived);
+        assertEquals(List.of("hello"), MultiArgumentosAfterStrip_Cmd.seenPositionals);
+        assertEquals(Boolean.TRUE, MultiArgumentosAfterStrip_Cmd.forceReceived);
     }
 
     // ------------------------------------------------------------------
@@ -637,8 +637,8 @@ class FlagArgSystemTest {
     // command line
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "fl14cmd")
-    public static class FL14_Cmd {
+    @FinalCMD(aliases = "flagtwo")
+    public static class TwoIndependentFlags_Cmd {
         static Boolean alphaReceived;
         static Boolean betaReceived;
 
@@ -651,47 +651,47 @@ class FlagArgSystemTest {
 
     @Test
     void bothFlagsInDeclarationOrder() {
-        FinalCMDPluginCommand command = newHarness().register(new FL14_Cmd());
-        FL14_Cmd.alphaReceived = null;
-        FL14_Cmd.betaReceived = null;
+        FinalCMDPluginCommand command = newHarness().register(new TwoIndependentFlags_Cmd());
+        TwoIndependentFlags_Cmd.alphaReceived = null;
+        TwoIndependentFlags_Cmd.betaReceived = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub --alpha --beta");
 
-        assertEquals(Boolean.TRUE, FL14_Cmd.alphaReceived);
-        assertEquals(Boolean.TRUE, FL14_Cmd.betaReceived);
+        assertEquals(Boolean.TRUE, TwoIndependentFlags_Cmd.alphaReceived);
+        assertEquals(Boolean.TRUE, TwoIndependentFlags_Cmd.betaReceived);
     }
 
     @Test
     void bothFlagsInReverseOrder() {
-        FinalCMDPluginCommand command = newHarness().register(new FL14_Cmd());
-        FL14_Cmd.alphaReceived = null;
-        FL14_Cmd.betaReceived = null;
+        FinalCMDPluginCommand command = newHarness().register(new TwoIndependentFlags_Cmd());
+        TwoIndependentFlags_Cmd.alphaReceived = null;
+        TwoIndependentFlags_Cmd.betaReceived = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub --beta --alpha");
 
-        assertEquals(Boolean.TRUE, FL14_Cmd.alphaReceived);
-        assertEquals(Boolean.TRUE, FL14_Cmd.betaReceived);
+        assertEquals(Boolean.TRUE, TwoIndependentFlags_Cmd.alphaReceived);
+        assertEquals(Boolean.TRUE, TwoIndependentFlags_Cmd.betaReceived);
     }
 
     @Test
     void onlyOneOfTwoFlagsPresentLeavesTheOtherNull() {
-        FinalCMDPluginCommand command = newHarness().register(new FL14_Cmd());
-        FL14_Cmd.alphaReceived = Boolean.TRUE; //sentinel
-        FL14_Cmd.betaReceived = null;
+        FinalCMDPluginCommand command = newHarness().register(new TwoIndependentFlags_Cmd());
+        TwoIndependentFlags_Cmd.alphaReceived = Boolean.TRUE; //sentinel
+        TwoIndependentFlags_Cmd.betaReceived = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub --beta");
 
-        assertNull(FL14_Cmd.alphaReceived);
-        assertEquals(Boolean.TRUE, FL14_Cmd.betaReceived);
+        assertNull(TwoIndependentFlags_Cmd.alphaReceived);
+        assertEquals(Boolean.TRUE, TwoIndependentFlags_Cmd.betaReceived);
     }
 
     // ------------------------------------------------------------------
-    // R1 - array arithmetic: a @Arg.Flag declared BETWEEN two @Arg in the METHOD signature must not
+    // array arithmetic: a @Arg.Flag declared BETWEEN two @Arg in the METHOD signature must not
     // disturb theArgs[] slot assignment for either positional
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "r1cmd")
-    public static class R1_Cmd {
+    @FinalCMD(aliases = "flagbetweenpos")
+    public static class FlagBetweenPositionals_Cmd {
         static String beforeReceived;
         static String afterReceived;
         static Boolean forceReceived;
@@ -706,16 +706,16 @@ class FlagArgSystemTest {
 
     @Test
     void flagDeclaredBetweenTwoPositionalsInTheMethodSignatureDoesNotDisturbTheArgsSlots() {
-        FinalCMDPluginCommand command = newHarness().register(new R1_Cmd());
-        R1_Cmd.beforeReceived = null;
-        R1_Cmd.afterReceived = null;
-        R1_Cmd.forceReceived = null;
+        FinalCMDPluginCommand command = newHarness().register(new FlagBetweenPositionals_Cmd());
+        FlagBetweenPositionals_Cmd.beforeReceived = null;
+        FlagBetweenPositionals_Cmd.afterReceived = null;
+        FlagBetweenPositionals_Cmd.forceReceived = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub A B --force");
 
-        assertEquals("A", R1_Cmd.beforeReceived);
-        assertEquals("B", R1_Cmd.afterReceived);
-        assertEquals(Boolean.TRUE, R1_Cmd.forceReceived);
+        assertEquals("A", FlagBetweenPositionals_Cmd.beforeReceived);
+        assertEquals("B", FlagBetweenPositionals_Cmd.afterReceived);
+        assertEquals(Boolean.TRUE, FlagBetweenPositionals_Cmd.forceReceived);
     }
 
     // ------------------------------------------------------------------
@@ -723,8 +723,8 @@ class FlagArgSystemTest {
     // usage line, exactly like a positional's
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "fl15cmd")
-    public static class FL15_Cmd {
+    @FinalCMD(aliases = "flagunreadable")
+    public static class UnreadableFlagValue_Cmd {
         static boolean ran;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -735,13 +735,13 @@ class FlagArgSystemTest {
 
     @Test
     void emptyFlagValueAnswersWithTheUsageLineInsteadOfAbortingInSilence() {
-        FinalCMDPluginCommand command = newHarness().register(new FL15_Cmd());
-        FL15_Cmd.ran = false;
+        FinalCMDPluginCommand command = newHarness().register(new UnreadableFlagValue_Cmd());
+        UnreadableFlagValue_Cmd.ran = false;
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "sub --title ''");
 
-        assertFalse(FL15_Cmd.ran, "a flag value the parser could not read stops the command");
+        assertFalse(UnreadableFlagValue_Cmd.ran, "a flag value the parser could not read stops the command");
         assertFalse(sender.getMessages().isEmpty(), "and the sender is told, instead of nothing happening at all");
     }
 
@@ -750,8 +750,8 @@ class FlagArgSystemTest {
     // text nobody typed never shows up in the refusal
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "fl16cmd")
-    public static class FL16_Cmd {
+    @FinalCMD(aliases = "flagdefbroken")
+    public static class BrokenFlagDefault_Cmd {
         static boolean ran;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -762,13 +762,13 @@ class FlagArgSystemTest {
 
     @Test
     void brokenFlagDefaultBlamesTheCommandInsteadOfTheSender() {
-        FinalCMDPluginCommand command = newHarness().register(new FL16_Cmd());
-        FL16_Cmd.ran = false;
+        FinalCMDPluginCommand command = newHarness().register(new BrokenFlagDefault_Cmd());
+        BrokenFlagDefault_Cmd.ran = false;
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "sub");
 
-        assertFalse(FL16_Cmd.ran);
+        assertFalse(BrokenFlagDefault_Cmd.ran);
         assertFalse(sender.anyMessageContains("primeira"), "the sender never typed the def() text");
         assertTrue(sender.anyMessageContains("--page"), "the refusal names the flag whose default is broken");
     }
@@ -778,8 +778,8 @@ class FlagArgSystemTest {
     // presence and never hands its parser a token nobody typed
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "fl17cmd")
-    public static class FL17_Cmd {
+    @FinalCMD(aliases = "flagnovalue")
+    public static class ValueFlagWithNothingToTake_Cmd {
         static boolean ran;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -790,25 +790,25 @@ class FlagArgSystemTest {
 
     @Test
     void valueFlagAtTheEndOfTheLineRefusesInsteadOfBecomingTrue() {
-        FinalCMDPluginCommand command = newHarness().register(new FL17_Cmd());
-        FL17_Cmd.ran = false;
+        FinalCMDPluginCommand command = newHarness().register(new ValueFlagWithNothingToTake_Cmd());
+        ValueFlagWithNothingToTake_Cmd.ran = false;
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "sub --page");
 
-        assertFalse(FL17_Cmd.ran);
+        assertFalse(ValueFlagWithNothingToTake_Cmd.ran);
         assertTrue(sender.anyMessageContains("--page"), "the refusal names the flag, not the value it never got");
     }
 
     @Test
     void valueFlagFollowedByAnotherFlagRefusesInsteadOfEatingIt() {
-        FinalCMDPluginCommand command = newHarness().register(new FL17_Cmd());
-        FL17_Cmd.ran = false;
+        FinalCMDPluginCommand command = newHarness().register(new ValueFlagWithNothingToTake_Cmd());
+        ValueFlagWithNothingToTake_Cmd.ran = false;
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "sub --page --force");
 
-        assertFalse(FL17_Cmd.ran);
+        assertFalse(ValueFlagWithNothingToTake_Cmd.ran);
         assertTrue(sender.anyMessageContains("--page"), "the refusal names the flag left without a value");
     }
 
@@ -817,8 +817,8 @@ class FlagArgSystemTest {
     // nothing after it is a value nobody typed, and a presence flag takes no value at all
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "fl18cmd")
-    public static class FL18_Cmd {
+    @FinalCMD(aliases = "flaginline")
+    public static class InlineEqualsFlagValue_Cmd {
         static boolean ran;
         static Integer pageReceived;
         static String titleReceived;
@@ -838,45 +838,45 @@ class FlagArgSystemTest {
 
     @Test
     void inlineEqualsValueResolvesLikeASeparateToken() {
-        FinalCMDPluginCommand command = newHarness().register(new FL18_Cmd());
-        FL18_Cmd.pageReceived = null;
+        FinalCMDPluginCommand command = newHarness().register(new InlineEqualsFlagValue_Cmd());
+        InlineEqualsFlagValue_Cmd.pageReceived = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub --page=3");
 
-        assertEquals(Integer.valueOf(3), FL18_Cmd.pageReceived);
+        assertEquals(Integer.valueOf(3), InlineEqualsFlagValue_Cmd.pageReceived);
     }
 
     @Test
     void inlineEqualsValueGroupsQuotedText() {
-        FinalCMDPluginCommand command = newHarness().register(new FL18_Cmd());
-        FL18_Cmd.titleReceived = null;
+        FinalCMDPluginCommand command = newHarness().register(new InlineEqualsFlagValue_Cmd());
+        InlineEqualsFlagValue_Cmd.titleReceived = null;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub --title='Title Message'");
 
-        assertEquals("Title Message", FL18_Cmd.titleReceived);
+        assertEquals("Title Message", InlineEqualsFlagValue_Cmd.titleReceived);
     }
 
     @Test
     void inlineEqualsWithNothingAfterItRefuses() {
-        FinalCMDPluginCommand command = newHarness().register(new FL18_Cmd());
-        FL18_Cmd.ran = false;
+        FinalCMDPluginCommand command = newHarness().register(new InlineEqualsFlagValue_Cmd());
+        InlineEqualsFlagValue_Cmd.ran = false;
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "sub --page=");
 
-        assertFalse(FL18_Cmd.ran);
+        assertFalse(InlineEqualsFlagValue_Cmd.ran);
         assertFalse(sender.anyMessageContains("--page="), "the flag is known - what is missing is its value");
     }
 
     @Test
     void inlineEqualsOnAPresenceFlagRefuses() {
-        FinalCMDPluginCommand command = newHarness().register(new FL18_Cmd());
-        FL18_Cmd.ran = false;
+        FinalCMDPluginCommand command = newHarness().register(new InlineEqualsFlagValue_Cmd());
+        InlineEqualsFlagValue_Cmd.ran = false;
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "sub --force=false");
 
-        assertFalse(FL18_Cmd.ran);
+        assertFalse(InlineEqualsFlagValue_Cmd.ran);
         assertTrue(sender.anyMessageContains("--force"), "the refusal names the flag");
         assertFalse(sender.anyMessageContains("--force=false"), "the flag is declared - what it does not take is a value");
     }
@@ -886,8 +886,8 @@ class FlagArgSystemTest {
     // taken: picking silently is how "--page 1 --page 2" used to quietly mean page one
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "fl19cmd")
-    public static class FL19_Cmd {
+    @FinalCMD(aliases = "flagrepeated")
+    public static class RepeatedFlag_Cmd {
         static Integer pageReceived;
         static boolean ran;
 
@@ -900,40 +900,40 @@ class FlagArgSystemTest {
 
     @Test
     void aFlagWrittenTwiceIsRefusedByName() {
-        FinalCMDPluginCommand command = newHarness().register(new FL19_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new RepeatedFlag_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
-        FL19_Cmd.ran = false;
-        FL19_Cmd.pageReceived = null;
+        RepeatedFlag_Cmd.ran = false;
+        RepeatedFlag_Cmd.pageReceived = null;
 
         harness.dispatch(command, sender, "sub --page 1 --page 2");
 
-        assertFalse(FL19_Cmd.ran, "neither value is taken");
-        assertNull(FL19_Cmd.pageReceived);
+        assertFalse(RepeatedFlag_Cmd.ran, "neither value is taken");
+        assertNull(RepeatedFlag_Cmd.pageReceived);
         sender.assertAnyMessageContains("--page");
         sender.assertAnyMessageContains("twice");
     }
 
     @Test
     void aSecondSpellingOfTheSameFlagCountsAsTheSameFlag() {
-        FinalCMDPluginCommand command = newHarness().register(new FL19_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new RepeatedFlag_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
-        FL19_Cmd.ran = false;
+        RepeatedFlag_Cmd.ran = false;
 
         //the alias resolves to the same binding, so "-p" after "--page" is the same question asked twice
         harness.dispatch(command, sender, "sub --page 1 -p 2");
 
-        assertFalse(FL19_Cmd.ran);
+        assertFalse(RepeatedFlag_Cmd.ran);
         sender.assertAnyMessageContains("-p");
     }
 
     @Test
     void aFlagWrittenOnceIsStillJustAFlag() {
-        FinalCMDPluginCommand command = newHarness().register(new FL19_Cmd());
-        FL19_Cmd.ran = false;
+        FinalCMDPluginCommand command = newHarness().register(new RepeatedFlag_Cmd());
+        RepeatedFlag_Cmd.ran = false;
 
         harness.dispatch(command, new TestCommandSender("console"), "sub --page 2");
 
-        assertTrue(FL19_Cmd.ran);
-        assertEquals(Integer.valueOf(2), FL19_Cmd.pageReceived);
+        assertTrue(RepeatedFlag_Cmd.ran);
+        assertEquals(Integer.valueOf(2), RepeatedFlag_Cmd.pageReceived);
     }
 }

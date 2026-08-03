@@ -52,11 +52,11 @@ class CustomizeSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // G1 - ICustomFinalCMD.customize runs before registration; setLabels changes the registered
+    // ICustomFinalCMD.customize runs before registration; setLabels changes the registered
     // alias
     // ------------------------------------------------------------------
 
-    public static class G1_Cmd implements ICustomFinalCMD {
+    public static class SetLabels_Cmd implements ICustomFinalCMD {
         @FinalCMD(aliases = "originalalias")
         public void run(FCommandSender sender) {}
 
@@ -68,7 +68,7 @@ class CustomizeSystemTest {
 
     @Test
     void customizeRunsBeforeRegistrationAndSetLabelsChangesTheRegisteredAlias() {
-        FinalCMDPluginCommand command = newHarness().register(new G1_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new SetLabels_Cmd());
 
         assertEquals("customizedlabel", command.getPrimaryLabel());
         assertNull(harness.platform.getCaptured("originalalias"), "the annotation's own alias was never registered");
@@ -76,13 +76,13 @@ class CustomizeSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // G2 - CustomizeContext.replace("%x%", v) affects labels/usage/permission/locales AND ArgData
+    // CustomizeContext.replace("%x%", v) affects labels/usage/permission/locales AND ArgData
     // (name/context/locales). descriptionOverride is a runtime LocaleMessageImp, not a String, and
     // is deliberately NOT touched by replace(...) (see CMDAlias, which resolves its own placeholder
     // via LocaleMessageImp#derivePlaceholderResolved before ever handing the override to CMDData).
     // ------------------------------------------------------------------
 
-    public static class G2_Cmd implements ICustomFinalCMD {
+    public static class ReplacePlaceholder_Cmd implements ICustomFinalCMD {
         @FinalCMD(aliases = "cmd%suffix%", permission = "perm%suffix%")
         public void run(FCommandSender sender,
                          @Arg(value = "<val%suffix%>", context = "ctx%suffix%",
@@ -95,7 +95,7 @@ class CustomizeSystemTest {
     }
 
     //usage() lives on its own command: it is only legal on a method with no @Arg/@Arg.Flag at all
-    public static class G2_UsageCmd implements ICustomFinalCMD {
+    public static class ReplacePlaceholderUsage_Cmd implements ICustomFinalCMD {
         @FinalCMD(aliases = "usagecmd%suffix%", usage = "usage%suffix%")
         public void run(FCommandSender sender) {}
 
@@ -107,7 +107,7 @@ class CustomizeSystemTest {
 
     @Test
     void replacePlaceholderAffectsCmdDataAndArgData() {
-        FinalCMDPluginCommand command = newHarness().register(new G2_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new ReplacePlaceholder_Cmd());
 
         assertEquals("cmdREPLACED", command.getPrimaryLabel());
         assertEquals("permREPLACED", command.getFinalCMD().getPermission());
@@ -118,11 +118,11 @@ class CustomizeSystemTest {
         assertEquals("ctxREPLACED", argData.getContext());
         assertEquals("locREPLACED", argData.getLocales()[0].text());
 
-        assertEquals("usageREPLACED", harness.register(new G2_UsageCmd()).getFinalCMD().getUsage());
+        assertEquals("usageREPLACED", harness.register(new ReplacePlaceholderUsage_Cmd()).getFinalCMD().getUsage());
     }
 
     // ------------------------------------------------------------------
-    // G3 - two CMDAlias instances (different aliases, different target commands) each register
+    // two CMDAlias instances (different aliases, different target commands) each register
     // with a hover carrying THEIR OWN %the_command% - proof the derived descriptionOverride is
     // per-instance, not shared through the class-level @FCLocale template
     // ------------------------------------------------------------------
@@ -130,8 +130,8 @@ class CustomizeSystemTest {
     @Test
     void twoCMDAliasInstancesEachKeepTheirOwnTheCommandInTheHover() {
         newHarness();
-        FinalCMDPluginCommand cmd1 = harness.register(new CMDAlias("g3one", "target1"));
-        FinalCMDPluginCommand cmd2 = harness.register(new CMDAlias("g3two", "target2"));
+        FinalCMDPluginCommand cmd1 = harness.register(new CMDAlias("hoverone", "target1"));
+        FinalCMDPluginCommand cmd2 = harness.register(new CMDAlias("hovertwo", "target2"));
 
         assertNotNull(cmd1.getMainInterpreter());
         assertNotNull(cmd2.getMainInterpreter());
@@ -148,17 +148,17 @@ class CustomizeSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // G4 - a plain custom executor calling setDescriptionOverride() directly inside customize()
+    // a plain custom executor calling setDescriptionOverride() directly inside customize()
     // (no placeholder to resolve, unlike CMDAlias) gets that message as the help line's hover -
     // there is no runtime-only description String left on the annotation, so this is the only way
     // left to give a command a per-instance description without being a CMDAlias
     // ------------------------------------------------------------------
 
-    public static class G4_Cmd implements ICustomFinalCMD {
+    public static class DescriptionOverride_Cmd implements ICustomFinalCMD {
         @FCLocale(lang = LocaleType.EN_US, text = "Set directly via customize")
         static LocaleMessageImp DESCRIPTION;
 
-        @FinalCMD(aliases = "g4cmd")
+        @FinalCMD(aliases = "descriptionoverride")
         public void run(FCommandSender sender) {}
 
         @Override
@@ -169,7 +169,7 @@ class CustomizeSystemTest {
 
     @Test
     void setDescriptionOverrideInsideCustomizeBecomesTheHelpLineHover() {
-        FinalCMDPluginCommand command = newHarness().register(new G4_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new DescriptionOverride_Cmd());
 
         FancyText hover = command.getMainInterpreter().getHelpLineTemplate().getLocaleMessage().getFancyText("EN_US");
 
@@ -178,7 +178,7 @@ class CustomizeSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // G5 - two CMDAlias instances each keep their own %the_command% in BOTH EN_US and PT_BR
+    // two CMDAlias instances each keep their own %the_command% in BOTH EN_US and PT_BR
     // hovers - proof the derived override carries every locale of the class-level @FCLocale
     // template, not just the plugin's default language
     // ------------------------------------------------------------------
@@ -186,8 +186,8 @@ class CustomizeSystemTest {
     @Test
     void twoCMDAliasInstancesKeepTheirOwnTheCommandInBothEnUsAndPtBrHovers() {
         newHarness();
-        FinalCMDPluginCommand cmd1 = harness.register(new CMDAlias("g5one", "target1"));
-        FinalCMDPluginCommand cmd2 = harness.register(new CMDAlias("g5two", "target2"));
+        FinalCMDPluginCommand cmd1 = harness.register(new CMDAlias("multilocaleone", "target1"));
+        FinalCMDPluginCommand cmd2 = harness.register(new CMDAlias("multilocaletwo", "target2"));
 
         FancyText hover1EnUs = cmd1.getMainInterpreter().getHelpLineTemplate().getLocaleMessage().getFancyText("EN_US");
         FancyText hover1PtBr = cmd1.getMainInterpreter().getHelpLineTemplate().getLocaleMessage().getFancyText("PT_BR");

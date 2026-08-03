@@ -46,11 +46,11 @@ class FlagUxSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // H1 - a visible flag adds its compact "[--name]" token to the usage line
+    // a visible flag adds its compact "[--name]" token to the usage line
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "h1cmd")
-    public static class H1_Cmd {
+    @FinalCMD(aliases = "flagusagetoken")
+    public static class UsageToken_Cmd {
         @FinalCMD.SubCMD(subcmd = "set")
         public void set(FCommandSender sender,
                          @Arg("<CooldownID>") String cooldownId,
@@ -59,7 +59,7 @@ class FlagUxSystemTest {
 
     @Test
     void visibleFlagAddsItsCompactTokenToUsage() {
-        FinalCMDPluginCommand command = newHarness().register(new H1_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new UsageToken_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "help");
@@ -68,11 +68,11 @@ class FlagUxSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // H2 - a flag with locales() gets its own hover block, title + bullet line
+    // a flag with locales() gets its own hover block, title + bullet line
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "h2cmd")
-    public static class H2_Cmd {
+    @FinalCMD(aliases = "flaglocale")
+    public static class FlagLocale_Cmd {
         @FinalCMD.SubCMD(subcmd = "set")
         public void set(FCommandSender sender,
                          @Arg("<CooldownID>") String cooldownId,
@@ -83,12 +83,12 @@ class FlagUxSystemTest {
 
     @Test
     void flagWithLocaleGetsItsOwnHoverBlock() {
-        FinalCMDPluginCommand command = newHarness().register(new H2_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new FlagLocale_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "help");
 
-        String hover = sender.hoverTextOfMessageContaining("h2cmd set");
+        String hover = sender.hoverTextOfMessageContaining("flaglocale set");
         assertNotNull(hover);
         assertTrue(hover.contains("✯"));
         assertTrue(hover.contains("--network"));
@@ -96,18 +96,18 @@ class FlagUxSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // H3 - a flag WITHOUT locales() still gets a title-only hover block (unlike a plain @Arg, which
+    // a flag WITHOUT locales() still gets a title-only hover block (unlike a plain @Arg, which
     // contributes nothing to the hover when it has no locale)
     // ------------------------------------------------------------------
 
     @Test
     void flagWithoutLocaleShowsATitleOnlyHoverBlock() {
-        FinalCMDPluginCommand command = newHarness().register(new H1_Cmd()); //--network has no locales()
+        FinalCMDPluginCommand command = newHarness().register(new UsageToken_Cmd()); //--network has no locales()
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "help");
 
-        String hover = sender.hoverTextOfMessageContaining("h1cmd set");
+        String hover = sender.hoverTextOfMessageContaining("flagusagetoken set");
         assertNotNull(hover);
         assertTrue(hover.contains("✯"));
         assertTrue(hover.contains("--network"));
@@ -115,28 +115,28 @@ class FlagUxSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // H4 - aliases are appended to the hover title: "[--network | -n]"
+    // aliases are appended to the hover title: "[--network | -n]"
     // ------------------------------------------------------------------
 
     @Test
     void aliasesAreAppendedToTheHoverTitle() {
-        FinalCMDPluginCommand command = newHarness().register(new H1_Cmd()); //aliases = "-n"
+        FinalCMDPluginCommand command = newHarness().register(new UsageToken_Cmd()); //aliases = "-n"
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "help");
 
-        String hover = sender.hoverTextOfMessageContaining("h1cmd set");
+        String hover = sender.hoverTextOfMessageContaining("flagusagetoken set");
         assertNotNull(hover);
         assertTrue(hover.contains("--network | -n"));
     }
 
     // ------------------------------------------------------------------
-    // H5 - showOnUsage=false hides the flag from BOTH the usage line and the hover, but it remains
+    // showOnUsage=false hides the flag from BOTH the usage line and the hover, but it remains
     // suggested on tab-complete and fully functional on dispatch
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "h5cmd")
-    public static class H5_Cmd {
+    @FinalCMD(aliases = "flaghidden")
+    public static class HiddenFlag_Cmd {
         static Boolean received;
 
         @FinalCMD.SubCMD(subcmd = "set")
@@ -151,13 +151,13 @@ class FlagUxSystemTest {
 
     @Test
     void showOnUsageFalseHidesFromUsageAndHover() {
-        FinalCMDPluginCommand command = newHarness().register(new H5_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new HiddenFlag_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "help");
 
         assertFalse(sender.anyMessageContains("--hidden"), "must not appear on the usage line");
-        String hover = sender.hoverTextOfMessageContaining("h5cmd set");
+        String hover = sender.hoverTextOfMessageContaining("flaghidden set");
         if (hover != null){
             assertFalse(hover.contains("--hidden"), "must not appear on the hover either");
         }
@@ -165,78 +165,78 @@ class FlagUxSystemTest {
 
     @Test
     void showOnUsageFalseStillTabCompletesAndWorksOnDispatch() {
-        FinalCMDPluginCommand command = newHarness().register(new H5_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new HiddenFlag_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         //still suggested on tab
         assertEquals(List.of("--hidden"), harness.tab(command, sender, "set", "MyCd", "--"));
 
         //still functional on dispatch
-        H5_Cmd.received = null;
+        HiddenFlag_Cmd.received = null;
         harness.dispatch(command, sender, "set MyCd --hidden");
-        assertEquals(Boolean.TRUE, H5_Cmd.received);
+        assertEquals(Boolean.TRUE, HiddenFlag_Cmd.received);
     }
 
     // ------------------------------------------------------------------
-    // TA - the flag-aware branches of FinalCMDPluginCommand.tabComplete
+    // the flag-aware branches of FinalCMDPluginCommand.tabComplete
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "tacmd")
-    public static class TA_Cmd {
+    @FinalCMD(aliases = "flagtab")
+    public static class FlagTab_Cmd {
         @FinalCMD.SubCMD(subcmd = "set")
         public void set(FCommandSender sender,
                          @Arg(value = "<CooldownID>", context = "coola|coolb") String cooldownId,
                          @Arg(value = "<mode>", context = "alpha|beta|gamma") String mode,
                          @Arg.Flag(value = "--network", aliases = "-n") Boolean network,
                          @Arg.Flag(value = "--page", context = "1|2|3") Integer page,
-                         @Arg.Flag(value = "--secret", permission = "ta.secret") Boolean secret) {}
+                         @Arg.Flag(value = "--secret", permission = "flagtab.secret") Boolean secret) {}
     }
 
     @Test
-    void ta_a_dashPrefixSuggestsTheDeclaredFlagNames() {
-        FinalCMDPluginCommand command = newHarness().register(new TA_Cmd());
-        TestCommandSender sender = new TestCommandSender("console"); //lacks "ta.secret"
+    void dashPrefixSuggestsTheDeclaredFlagNames() {
+        FinalCMDPluginCommand command = newHarness().register(new FlagTab_Cmd());
+        TestCommandSender sender = new TestCommandSender("console"); //lacks "flagtab.secret"
 
         assertEquals(List.of("--network", "--page"), harness.tab(command, sender, "set", "MyCd", "alpha", "--"));
     }
 
     @Test
-    void ta_b_typedPrefixFiltersTheFlagNames() {
-        FinalCMDPluginCommand command = newHarness().register(new TA_Cmd());
+    void typedPrefixFiltersTheFlagNames() {
+        FinalCMDPluginCommand command = newHarness().register(new FlagTab_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         assertEquals(List.of("--network"), harness.tab(command, sender, "set", "MyCd", "alpha", "--ne"));
     }
 
     @Test
-    void ta_c_aFlagAlreadyUsedIsNotSuggestedAgain() {
-        FinalCMDPluginCommand command = newHarness().register(new TA_Cmd());
+    void aFlagAlreadyUsedIsNotSuggestedAgain() {
+        FinalCMDPluginCommand command = newHarness().register(new FlagTab_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         assertEquals(List.of("--page"), harness.tab(command, sender, "set", "MyCd", "alpha", "--network", "--"));
     }
 
     @Test
-    void ta_d_aFlagWithDeniedPermissionIsNeverSuggested() {
-        FinalCMDPluginCommand command = newHarness().register(new TA_Cmd());
+    void aFlagWithDeniedPermissionIsNeverSuggested() {
+        FinalCMDPluginCommand command = newHarness().register(new FlagTab_Cmd());
         TestCommandSender withoutPermission = new TestCommandSender("console");
-        TestCommandSender withPermission = new TestCommandSender("op").grant("ta.secret");
+        TestCommandSender withPermission = new TestCommandSender("op").grant("flagtab.secret");
 
         assertFalse(harness.tab(command, withoutPermission, "set", "MyCd", "alpha", "--").contains("--secret"));
         assertTrue(harness.tab(command, withPermission, "set", "MyCd", "alpha", "--").contains("--secret"));
     }
 
     @Test
-    void ta_e_previousTokenIsAValueFlagDelegatesToItsOwnValueParser() {
-        FinalCMDPluginCommand command = newHarness().register(new TA_Cmd());
+    void previousTokenIsAValueFlagDelegatesToItsOwnValueParser() {
+        FinalCMDPluginCommand command = newHarness().register(new FlagTab_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         assertEquals(List.of("1", "2", "3"), harness.tab(command, sender, "set", "MyCd", "alpha", "--page", ""));
     }
 
     @Test
-    void ta_f_indexCorrectionSkipsAPresenceFlagAndLandsOnTheFirstPositional() {
-        FinalCMDPluginCommand command = newHarness().register(new TA_Cmd());
+    void indexCorrectionSkipsAPresenceFlagAndLandsOnTheFirstPositional() {
+        FinalCMDPluginCommand command = newHarness().register(new FlagTab_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         //--network is arity 0 (never consumes a token): the word being typed is still positional 1
@@ -246,8 +246,8 @@ class FlagUxSystemTest {
     }
 
     @Test
-    void ta_g_afterEndOfFlagsEverythingStaysPositionalEvenIfItLooksLikeAFlag() {
-        FinalCMDPluginCommand command = newHarness().register(new TA_Cmd());
+    void afterEndOfFlagsEverythingStaysPositionalEvenIfItLooksLikeAFlag() {
+        FinalCMDPluginCommand command = newHarness().register(new FlagTab_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         //"--p" looks like the start of "--page", but it comes after a literal "--": if the end-of-flags
@@ -257,8 +257,8 @@ class FlagUxSystemTest {
     }
 
     @Test
-    void ta_h_aPrefixOnlyAnAliasMatchesSuggestsThatAlias() {
-        FinalCMDPluginCommand command = newHarness().register(new TA_Cmd());
+    void aPrefixOnlyAnAliasMatchesSuggestsThatAlias() {
+        FinalCMDPluginCommand command = newHarness().register(new FlagTab_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         //"-n" is the whole reason the alias exists, and it is the one moment it can be discovered
@@ -266,8 +266,8 @@ class FlagUxSystemTest {
     }
 
     @Test
-    void ta_i_aFlagAnswersWithOneSpellingAtATime() {
-        FinalCMDPluginCommand command = newHarness().register(new TA_Cmd());
+    void aFlagAnswersWithOneSpellingAtATime() {
+        FinalCMDPluginCommand command = newHarness().register(new FlagTab_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         //"-" matches both "--network" and "-n"; the long name is the one offered, never both
@@ -275,8 +275,8 @@ class FlagUxSystemTest {
     }
 
     @Test
-    void ta_j_aMarkerBeingTypedWithItsValueGluedOnCompletesTheValue() {
-        FinalCMDPluginCommand command = newHarness().register(new TA_Cmd());
+    void aMarkerBeingTypedWithItsValueGluedOnCompletesTheValue() {
+        FinalCMDPluginCommand command = newHarness().register(new FlagTab_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         //"--page=" is not a name being typed - the name is finished and the VALUE is what is open, so
@@ -287,8 +287,8 @@ class FlagUxSystemTest {
     }
 
     @Test
-    void ta_k_aMarkerThatAlreadyTookItsValueLeavesTheNextWordPositional() {
-        FinalCMDPluginCommand command = newHarness().register(new TA_Cmd());
+    void aMarkerThatAlreadyTookItsValueLeavesTheNextWordPositional() {
+        FinalCMDPluginCommand command = newHarness().register(new FlagTab_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         //"--page=3" consumed nothing after it, so the word being typed is positional 0 (CooldownID) -
@@ -297,8 +297,8 @@ class FlagUxSystemTest {
     }
 
     @Test
-    void ta_l_aMarkerTheExtractionCouldNotTakeIsStillNotAPositional() {
-        FinalCMDPluginCommand command = newHarness().register(new TA_Cmd());
+    void aMarkerTheExtractionCouldNotTakeIsStillNotAPositional() {
+        FinalCMDPluginCommand command = newHarness().register(new FlagTab_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         //"--page" was left with nothing to take (a flag marker follows it), so the extraction reports
@@ -314,7 +314,7 @@ class FlagUxSystemTest {
 
     @Test
     void everyUnknownFlagIsNamedInTheSameMessage() {
-        FinalCMDPluginCommand command = newHarness().register(new TA_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new FlagTab_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "set MyCd alpha --froce --paeg");
@@ -325,7 +325,7 @@ class FlagUxSystemTest {
 
     @Test
     void aFlagKeptOffTheUsageLineIsNotRevealedByATypo() {
-        FinalCMDPluginCommand command = newHarness().register(new H5_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new HiddenFlag_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "set MyCd --hiden");
@@ -363,8 +363,8 @@ class FlagUxSystemTest {
 
     @Test
     void aFlagTheSenderMayNotUseIsNotNamedByATypoEither() {
-        FinalCMDPluginCommand command = newHarness().register(new TA_Cmd());
-        TestCommandSender sender = new TestCommandSender("console"); //lacks "ta.secret"
+        FinalCMDPluginCommand command = newHarness().register(new FlagTab_Cmd());
+        TestCommandSender sender = new TestCommandSender("console"); //lacks "flagtab.secret"
 
         harness.dispatch(command, sender, "set MyCd alpha --secrt");
 

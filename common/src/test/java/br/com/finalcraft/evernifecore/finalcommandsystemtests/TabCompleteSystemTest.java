@@ -45,19 +45,19 @@ class TabCompleteSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // E1 - first-arg listing: filtered by permission, by playerOnly (console can't see it), and by
+    // first-arg listing: filtered by permission, by playerOnly (console can't see it), and by
     // the typed prefix (startsWithIgnoreCase)
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "e1cmd")
-    public static class E1_Cmd {
+    @FinalCMD(aliases = "firstarglist")
+    public static class FirstArgListing_Cmd {
         @FinalCMD.SubCMD(subcmd = "set")
         public void set(FCommandSender sender) {}
 
         @FinalCMD.SubCMD(subcmd = "show")
         public void show(FCommandSender sender) {}
 
-        @FinalCMD.SubCMD(subcmd = "secret", permission = "e1.secret")
+        @FinalCMD.SubCMD(subcmd = "secret", permission = "firstarglist.secret")
         public void secret(FCommandSender sender) {}
 
         @FinalCMD.SubCMD(subcmd = "sonly")
@@ -69,19 +69,19 @@ class TabCompleteSystemTest {
 
     @Test
     void firstArgListIsFilteredByPermissionPlayerOnlyAndPrefix() {
-        FinalCMDPluginCommand command = newHarness().register(new E1_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new FirstArgListing_Cmd());
 
         TestCommandSender console = new TestCommandSender("console");
         //"other" is excluded by the "s" prefix; "secret" by permission; "sonly" by playerOnly
         assertEquals(List.of("set", "show"), harness.tab(command, console, "s"));
 
         TestFPlayerSender player = new TestFPlayerSender("Steve");
-        //same sender, still no "e1.secret" permission, but now IS a player -> "sonly" shows up
+        //same sender, still no "firstarglist.secret" permission, but now IS a player -> "sonly" shows up
         assertEquals(List.of("set", "show", "sonly"), harness.tab(command, player, "s"));
     }
 
     // ------------------------------------------------------------------
-    // E2 - CMDAccessValidation.onPreTabValidation == false hides the sub-command from the first-arg
+    // CMDAccessValidation.onPreTabValidation == false hides the sub-command from the first-arg
     // listing
     // ------------------------------------------------------------------
 
@@ -100,8 +100,8 @@ class TabCompleteSystemTest {
         }
     }
 
-    @FinalCMD(aliases = "e2cmd")
-    public static class E2_Cmd {
+    @FinalCMD(aliases = "tabvalidation")
+    public static class HiddenByValidation_Cmd {
         @FinalCMD.SubCMD(subcmd = "hidden", validation = {HidingValidation.class})
         public void hidden(FCommandSender sender) {}
 
@@ -111,25 +111,25 @@ class TabCompleteSystemTest {
 
     @Test
     void deniedAccessValidationHidesTheSubCommandFromTab() {
-        FinalCMDPluginCommand command = newHarness().register(new E2_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new HiddenByValidation_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         assertEquals(List.of("visible"), harness.tab(command, sender, ""));
     }
 
     // ------------------------------------------------------------------
-    // E3 - index >= 1 delegates to the ITabParser at that position (Boolean's choices)
+    // index >= 1 delegates to the ITabParser at that position (Boolean's choices)
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "e3cmd")
-    public static class E3_Cmd {
+    @FinalCMD(aliases = "valueposition")
+    public static class ValuePosition_Cmd {
         @FinalCMD.SubCMD(subcmd = "sub")
         public void sub(FCommandSender sender, @Arg("<value>") Boolean value) {}
     }
 
     @Test
     void valuePositionDelegatesToTheArgsTabParser() {
-        FinalCMDPluginCommand command = newHarness().register(new E3_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new ValuePosition_Cmd());
         TestCommandSender sender = new TestCommandSender("console");
 
         assertEquals(List.of("false", "true"), harness.tab(command, sender, "sub", ""));
@@ -137,31 +137,31 @@ class TabCompleteSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // E4 - a position with no @Arg parser returns an empty list
+    // a position with no @Arg parser returns an empty list
     // ------------------------------------------------------------------
 
     @Test
     void positionWithoutAParserReturnsEmptyList() {
-        FinalCMDPluginCommand command = newHarness().register(new E3_Cmd()); //only 1 @Arg (index 1)
+        FinalCMDPluginCommand command = newHarness().register(new ValuePosition_Cmd()); //only 1 @Arg (index 1)
         TestCommandSender sender = new TestCommandSender("console");
 
         assertTrue(harness.tab(command, sender, "sub", "true", "").isEmpty());
     }
 
     // ------------------------------------------------------------------
-    // E5 - the interpreter's own permission denied -> empty list, even at a value position
+    // the interpreter's own permission denied -> empty list, even at a value position
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "e5cmd")
-    public static class E5_Cmd {
-        @FinalCMD.SubCMD(subcmd = "sub", permission = "e5.perm")
+    @FinalCMD(aliases = "tabperm")
+    public static class PermissionGated_Cmd {
+        @FinalCMD.SubCMD(subcmd = "sub", permission = "tabperm.use")
         public void sub(FCommandSender sender, @Arg("<value>") Boolean value) {}
     }
 
     @Test
     void interpreterPermissionDeniedReturnsEmptyListAtValuePosition() {
-        FinalCMDPluginCommand command = newHarness().register(new E5_Cmd());
-        TestCommandSender sender = new TestCommandSender("console"); //lacks "e5.perm"
+        FinalCMDPluginCommand command = newHarness().register(new PermissionGated_Cmd());
+        TestCommandSender sender = new TestCommandSender("console"); //lacks "tabperm.use"
 
         assertTrue(harness.tab(command, sender, "sub", "").isEmpty());
     }

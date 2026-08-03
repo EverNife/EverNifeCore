@@ -211,7 +211,7 @@ class ArgDefSystemTest {
 
     // ------------------------------------------------------------------
     // 7 - def() on a <required> arg fails registration (ArgMountException, swallowed to false - see
-    // ArgParsingSystemTest C8)
+    // ArgParsingSystemTest#nameWithoutBracketsFailsRegistration)
     // ------------------------------------------------------------------
 
     public static class Scenario7_Cmd {

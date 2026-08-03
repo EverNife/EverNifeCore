@@ -60,23 +60,23 @@ class HelpTreeAndLocaleKeySystemTest {
     }
 
     // ------------------------------------------------------------------
-    // C1 - one template, two paths, two threads: neither render sees the other's tokens
+    // one template, two paths, two threads: neither render sees the other's tokens
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "c1cmd")
-    public static class C1_Cmd {
+    @FinalCMD(aliases = "concurrenthelpline")
+    public static class ConcurrentHelpLineCmd {
         @FinalCMD.SubCMD(subcmd = "info")
         public void info(FCommandSender sender) {}
     }
 
     @Test
     void concurrentRendersOfTheSameHelpLineDoNotContaminateEachOther() throws Exception {
-        FinalCMDPluginCommand command = newHarness().register(new C1_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new ConcurrentHelpLineCmd());
         HelpLineTemplate shared = command.getRoot().getChild("info").getHelpLineTemplate();
         assertNotNull(shared);
 
-        CommandPath alice = pathOf("c1cmd", ImmutableList.of("user", "Alice"), ImmutableList.of("user"), 0);
-        CommandPath bob = pathOf("c1cmd", ImmutableList.of("user", "Bob"), ImmutableList.of("user"), 0);
+        CommandPath alice = pathOf("concurrenthelpline", ImmutableList.of("user", "Alice"), ImmutableList.of("user"), 0);
+        CommandPath bob = pathOf("concurrenthelpline", ImmutableList.of("user", "Bob"), ImmutableList.of("user"), 0);
 
         TestCommandSender aliceSender = Senders.console("alice");
         TestCommandSender bobSender = Senders.console("bob");
@@ -122,13 +122,13 @@ class HelpTreeAndLocaleKeySystemTest {
     }
 
     // ------------------------------------------------------------------
-    // C2/C3 - a node lists its own children and nobody else's, and every gate above it counts
+    // a node lists its own children and nobody else's, and every gate above it counts
     // ------------------------------------------------------------------
 
-    public static class C2_NodeValidation extends CMDAccessValidation {
+    public static class ToggleableNodeValidation extends CMDAccessValidation {
         static boolean allow = true;
 
-        public C2_NodeValidation() {
+        public ToggleableNodeValidation() {
         }
 
         @Override
@@ -144,14 +144,14 @@ class HelpTreeAndLocaleKeySystemTest {
         }
     }
 
-    @FinalCMD(aliases = "c2cmd")
-    public static class C2_Cmd {
-        @FinalCMD.Node(subcmd = "user", permission = "c2.user", validation = C2_NodeValidation.class)
+    @FinalCMD(aliases = "nodehelp")
+    public static class NodeHelpCmd {
+        @FinalCMD.Node(subcmd = "user", permission = "nodehelp.user", validation = ToggleableNodeValidation.class)
         public static class UserNode {
             @FinalCMD.SubCMD(subcmd = "info")
             public void info(FCommandSender sender) {}
 
-            @FinalCMD.SubCMD(subcmd = "secret", permission = "c2.secret")
+            @FinalCMD.SubCMD(subcmd = "secret", permission = "nodehelp.secret")
             public void secret(FCommandSender sender) {}
 
             @FinalCMD.SubCMD(subcmd = "here")
@@ -167,9 +167,9 @@ class HelpTreeAndLocaleKeySystemTest {
 
     @Test
     void nodeHelpListsOnlyItsOwnChildrenAndFiltersEachOfThem() {
-        FinalCMDPluginCommand command = newHarness().register(new C2_Cmd());
-        C2_NodeValidation.allow = true;
-        TestCommandSender sender = Senders.console().grant("c2.user");
+        FinalCMDPluginCommand command = newHarness().register(new NodeHelpCmd());
+        ToggleableNodeValidation.allow = true;
+        TestCommandSender sender = Senders.console().grant("nodehelp.user");
 
         harness.dispatch(command, sender, "user");
 
@@ -182,9 +182,9 @@ class HelpTreeAndLocaleKeySystemTest {
 
     @Test
     void aNodeTheSenderCannotReachListsNothingAtAll() {
-        FinalCMDPluginCommand command = newHarness().register(new C2_Cmd());
-        C2_NodeValidation.allow = true;
-        TestCommandSender sender = Senders.console(); //no c2.user
+        FinalCMDPluginCommand command = newHarness().register(new NodeHelpCmd());
+        ToggleableNodeValidation.allow = true;
+        TestCommandSender sender = Senders.console(); //no nodehelp.user
 
         harness.dispatch(command, sender, "user");
 
@@ -194,38 +194,38 @@ class HelpTreeAndLocaleKeySystemTest {
 
     @Test
     void theNodesOwnValidationGatesItsHelpEvenWithoutAnExecutable() {
-        FinalCMDPluginCommand command = newHarness().register(new C2_Cmd());
-        C2_NodeValidation.allow = false;
-        TestCommandSender sender = Senders.console().grant("c2.user");
+        FinalCMDPluginCommand command = newHarness().register(new NodeHelpCmd());
+        ToggleableNodeValidation.allow = false;
+        TestCommandSender sender = Senders.console().grant("nodehelp.user");
 
         try {
             harness.dispatch(command, sender, "user");
             assertFalse(sender.anyMessageContains("user info"), "the node's own validation refused, so it has no help to show");
         } finally {
-            C2_NodeValidation.allow = true;
+            ToggleableNodeValidation.allow = true;
         }
     }
 
     @Test
     void rootHelpListsLevelOneAndLeaksNoGrandchild() {
-        FinalCMDPluginCommand command = newHarness().register(new C2_Cmd());
-        C2_NodeValidation.allow = true;
+        FinalCMDPluginCommand command = newHarness().register(new NodeHelpCmd());
+        ToggleableNodeValidation.allow = true;
         TestFPlayerSender sender = Senders.player("steve");
-        sender.grant("c2.user");
+        sender.grant("nodehelp.user");
 
         harness.dispatch(command, sender, "help");
 
-        sender.assertAnyMessageContains("c2cmd user");
+        sender.assertAnyMessageContains("nodehelp user");
         assertFalse(sender.anyMessageContains("user info"), "level 2 belongs to the node's own help");
         assertFalse(sender.anyMessageContains("user permission"), "level 2 belongs to the node's own help");
     }
 
     // ------------------------------------------------------------------
-    // C4 - the four path placeholders, resolved four levels down
+    // the four path placeholders, resolved four levels down
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "c4cmd")
-    public static class C4_Cmd {
+    @FinalCMD(aliases = "pathplaceholders")
+    public static class PathPlaceholdersCmd {
         @FCLocale(lang = LocaleType.EN_US, text = "L=[${label}] P=[${path}] PP=[${parentpath}] S=[${subcmd}]")
         static LocaleMessage PLACEHOLDERS;
 
@@ -251,23 +251,23 @@ class HelpTreeAndLocaleKeySystemTest {
 
     @Test
     void pathPlaceholdersResolveAtDepthFour() {
-        FinalCMDPluginCommand command = newHarness().register(new C4_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new PathPlaceholdersCmd());
         TestCommandSender sender = Senders.console();
 
         harness.dispatch(command, sender, "user Steve permission group set");
 
-        sender.assertAnyMessageContains("L=[c4cmd]");
+        sender.assertAnyMessageContains("L=[pathplaceholders]");
         sender.assertAnyMessageContains("P=[user Steve permission group set]");
         sender.assertAnyMessageContains("PP=[user Steve permission group]");
         sender.assertAnyMessageContains("S=[set]");
     }
 
     // ------------------------------------------------------------------
-    // C5 - two inner classes with the same simple name are two entries, not one
+    // two inner classes with the same simple name are two entries, not one
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "c5cmd")
-    public static class C5_Cmd {
+    @FinalCMD(aliases = "samesimplename")
+    public static class SameSimpleNameNodesCmd {
         @FinalCMD.Node(subcmd = "alpha")
         public static class Alpha {
             @FinalCMD.Node(subcmd = "shared")
@@ -295,22 +295,22 @@ class HelpTreeAndLocaleKeySystemTest {
 
     @Test
     void twoInnerNodesWithTheSameSimpleNameGetTwoLanguageFileEntries() {
-        FinalCMDPluginCommand command = newHarness().register(new C5_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new SameSimpleNameNodesCmd());
         List<String> keys = new ArrayList<>(harness.ecPluginData.getLocalizedMessages().keySet());
 
         //The static field of each node: keyed by the nesting chain, so the second one no longer
         //inherits the first one's text
-        assertTrue(keys.contains("HelpTreeAndLocaleKeySystemTest.C5_Cmd.Alpha.Shared.NOT_FOUND"), keys.toString());
-        assertTrue(keys.contains("HelpTreeAndLocaleKeySystemTest.C5_Cmd.Beta.Shared.NOT_FOUND"), keys.toString());
+        assertTrue(keys.contains("HelpTreeAndLocaleKeySystemTest.SameSimpleNameNodesCmd.Alpha.Shared.NOT_FOUND"), keys.toString());
+        assertTrue(keys.contains("HelpTreeAndLocaleKeySystemTest.SameSimpleNameNodesCmd.Beta.Shared.NOT_FOUND"), keys.toString());
 
         //The help line of each node's leaf: keyed by the command path (a line with no locales() of
         //its own is never filed in the language file, so the key is read off the message itself)
-        assertEquals("c5cmd.alpha.shared.GO", helpLineKeyOf(command, "alpha", "shared", "go"));
-        assertEquals("c5cmd.beta.shared.GO", helpLineKeyOf(command, "beta", "shared", "go"));
+        assertEquals("samesimplename.alpha.shared.GO", helpLineKeyOf(command, "alpha", "shared", "go"));
+        assertEquals("samesimplename.beta.shared.GO", helpLineKeyOf(command, "beta", "shared", "go"));
 
         TestCommandSender sender = Senders.console();
-        C5_Cmd.Alpha.Shared.NOT_FOUND.send(sender);
-        C5_Cmd.Beta.Shared.NOT_FOUND.send(sender);
+        SameSimpleNameNodesCmd.Alpha.Shared.NOT_FOUND.send(sender);
+        SameSimpleNameNodesCmd.Beta.Shared.NOT_FOUND.send(sender);
         sender.assertAnyMessageContains("ALPHA SIDE");
         sender.assertAnyMessageContains("BETA SIDE");
     }
@@ -325,19 +325,19 @@ class HelpTreeAndLocaleKeySystemTest {
     }
 
     // ------------------------------------------------------------------
-    // C7 - usageName shortens the line only, and only when it names a real spelling
+    // usageName shortens the line only, and only when it names a real spelling
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "c7cmd")
-    public static class C7_Cmd {
+    @FinalCMD(aliases = "usagename")
+    public static class UsageNameCmd {
         @FinalCMD.SubCMD(subcmd = "run")
         public void run(FCommandSender sender,
                         @Arg.Flag(value = "--network", aliases = "-n", usageName = "-n", def = "false") Boolean network,
                         @Arg.Flag(value = "--hidden", aliases = "-h", usageName = "-h", showOnUsage = false) String hidden) {}
     }
 
-    @FinalCMD(aliases = "c7badcmd")
-    public static class C7_BadUsageNameCmd {
+    @FinalCMD(aliases = "usagenamebad")
+    public static class UnknownUsageNameCmd {
         @FinalCMD.SubCMD(subcmd = "run")
         public void run(FCommandSender sender,
                         @Arg.Flag(value = "--network", aliases = "-n", usageName = "-x") Boolean network) {}
@@ -345,7 +345,7 @@ class HelpTreeAndLocaleKeySystemTest {
 
     @Test
     void usageNameShowsTheShortSpellingOnTheLineAndKeepsBothOnTheHover() {
-        FinalCMDPluginCommand command = newHarness().register(new C7_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new UsageNameCmd());
         TestCommandSender sender = Senders.console();
 
         harness.dispatch(command, sender, "help");
@@ -353,7 +353,7 @@ class HelpTreeAndLocaleKeySystemTest {
         sender.assertAnyMessageContains("[-n]");
         assertFalse(sender.anyMessageContains("[--network]"), "the line asked for the short spelling");
 
-        String hover = sender.hoverTextOfMessageContaining("c7cmd run");
+        String hover = sender.hoverTextOfMessageContaining("usagename run");
         assertNotNull(hover);
         assertTrue(hover.contains("--network | -n"), hover);
 
@@ -364,7 +364,7 @@ class HelpTreeAndLocaleKeySystemTest {
     void aUsageNameThatNamesNoDeclaredSpellingIsRefusedAtRegistration() {
         newHarness();
 
-        ArgMountException error = harness.registerExpectingError(new C7_BadUsageNameCmd());
+        ArgMountException error = harness.registerExpectingError(new UnknownUsageNameCmd());
 
         assertTrue(error.getMessage().contains("-x"), error.getMessage());
         assertTrue(error.getMessage().contains("--network"), error.getMessage());

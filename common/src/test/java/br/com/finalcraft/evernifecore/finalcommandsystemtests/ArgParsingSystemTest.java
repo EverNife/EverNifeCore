@@ -58,11 +58,11 @@ class ArgParsingSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // C1 - a missing <required> arg sends the help line and does not invoke the method
+    // a missing <required> arg sends the help line and does not invoke the method
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "c1cmd")
-    public static class C1_Cmd {
+    @FinalCMD(aliases = "missingrequired")
+    public static class MissingRequiredArgCmd {
         static boolean invoked = false;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -73,22 +73,22 @@ class ArgParsingSystemTest {
 
     @Test
     void missingRequiredArgSendsHelpLineAndSkipsInvocation() {
-        FinalCMDPluginCommand command = newHarness().register(new C1_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new MissingRequiredArgCmd());
         TestCommandSender sender = new TestCommandSender("console");
-        C1_Cmd.invoked = false;
+        MissingRequiredArgCmd.invoked = false;
 
         harness.dispatch(command, sender, "sub");
 
-        assertFalse(C1_Cmd.invoked);
+        assertFalse(MissingRequiredArgCmd.invoked);
         assertFalse(sender.getMessages().isEmpty(), "the help line should have been sent");
     }
 
     // ------------------------------------------------------------------
-    // C2 - a missing [optional] arg is null, the method still runs
+    // a missing [optional] arg is null, the method still runs
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "c2cmd")
-    public static class C2_Cmd {
+    @FinalCMD(aliases = "missingoptional")
+    public static class MissingOptionalArgCmd {
         static boolean invoked = false;
         static String received = "not-called";
 
@@ -101,23 +101,23 @@ class ArgParsingSystemTest {
 
     @Test
     void missingOptionalArgIsNullAndMethodRuns() {
-        FinalCMDPluginCommand command = newHarness().register(new C2_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new MissingOptionalArgCmd());
         TestCommandSender sender = new TestCommandSender("console");
-        C2_Cmd.invoked = false;
-        C2_Cmd.received = "not-called";
+        MissingOptionalArgCmd.invoked = false;
+        MissingOptionalArgCmd.received = "not-called";
 
         harness.dispatch(command, sender, "sub");
 
-        assertTrue(C2_Cmd.invoked);
-        assertNull(C2_Cmd.received);
+        assertTrue(MissingOptionalArgCmd.invoked);
+        assertNull(MissingOptionalArgCmd.received);
     }
 
     // ------------------------------------------------------------------
-    // C3 - happy path for every builtin type (1 test per type)
+    // happy path for every builtin type (1 test per type)
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "c3string")
-    public static class C3_StringCmd {
+    @FinalCMD(aliases = "typestring")
+    public static class StringArgCmd {
         static String received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -128,14 +128,14 @@ class ArgParsingSystemTest {
 
     @Test
     void string_happyPath() {
-        FinalCMDPluginCommand command = newHarness().register(new C3_StringCmd());
+        FinalCMDPluginCommand command = newHarness().register(new StringArgCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub hello");
 
-        assertEquals("hello", C3_StringCmd.received);
+        assertEquals("hello", StringArgCmd.received);
     }
 
-    @FinalCMD(aliases = "c3integer")
-    public static class C3_IntegerCmd {
+    @FinalCMD(aliases = "typeinteger")
+    public static class IntegerArgCmd {
         static Integer received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -146,14 +146,14 @@ class ArgParsingSystemTest {
 
     @Test
     void integer_happyPath() {
-        FinalCMDPluginCommand command = newHarness().register(new C3_IntegerCmd());
+        FinalCMDPluginCommand command = newHarness().register(new IntegerArgCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub 42");
 
-        assertEquals(42, C3_IntegerCmd.received);
+        assertEquals(42, IntegerArgCmd.received);
     }
 
-    @FinalCMD(aliases = "c3double")
-    public static class C3_DoubleCmd {
+    @FinalCMD(aliases = "typedouble")
+    public static class DoubleArgCmd {
         static Double received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -164,14 +164,14 @@ class ArgParsingSystemTest {
 
     @Test
     void double_happyPath() {
-        FinalCMDPluginCommand command = newHarness().register(new C3_DoubleCmd());
+        FinalCMDPluginCommand command = newHarness().register(new DoubleArgCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub 3.5");
 
-        assertEquals(3.5, C3_DoubleCmd.received);
+        assertEquals(3.5, DoubleArgCmd.received);
     }
 
-    @FinalCMD(aliases = "c3boolean")
-    public static class C3_BooleanCmd {
+    @FinalCMD(aliases = "typeboolean")
+    public static class BooleanArgCmd {
         static Boolean received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -182,16 +182,16 @@ class ArgParsingSystemTest {
 
     @Test
     void boolean_happyPath() {
-        FinalCMDPluginCommand command = newHarness().register(new C3_BooleanCmd());
+        FinalCMDPluginCommand command = newHarness().register(new BooleanArgCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub true");
 
-        assertEquals(Boolean.TRUE, C3_BooleanCmd.received);
+        assertEquals(Boolean.TRUE, BooleanArgCmd.received);
     }
 
     public enum SampleEnum {ALPHA, BETA}
 
-    @FinalCMD(aliases = "c3enum")
-    public static class C3_EnumCmd {
+    @FinalCMD(aliases = "typeenum")
+    public static class EnumArgCmd {
         static SampleEnum received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -202,14 +202,14 @@ class ArgParsingSystemTest {
 
     @Test
     void enum_happyPath() {
-        FinalCMDPluginCommand command = newHarness().register(new C3_EnumCmd());
+        FinalCMDPluginCommand command = newHarness().register(new EnumArgCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub beta");
 
-        assertEquals(SampleEnum.BETA, C3_EnumCmd.received);
+        assertEquals(SampleEnum.BETA, EnumArgCmd.received);
     }
 
-    @FinalCMD(aliases = "c3timeframe")
-    public static class C3_TimeFrameCmd {
+    @FinalCMD(aliases = "typetimeframe")
+    public static class TimeFrameArgCmd {
         static FCTimeFrame received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -220,15 +220,15 @@ class ArgParsingSystemTest {
 
     @Test
     void fcTimeFrame_happyPath() {
-        FinalCMDPluginCommand command = newHarness().register(new C3_TimeFrameCmd());
+        FinalCMDPluginCommand command = newHarness().register(new TimeFrameArgCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub 2h30m");
 
-        assertNotNull(C3_TimeFrameCmd.received);
-        assertEquals(2 * 60 * 60 * 1000L + 30 * 60 * 1000L, C3_TimeFrameCmd.received.getMillis());
+        assertNotNull(TimeFrameArgCmd.received);
+        assertEquals(2 * 60 * 60 * 1000L + 30 * 60 * 1000L, TimeFrameArgCmd.received.getMillis());
     }
 
-    @FinalCMD(aliases = "c3numberwrapper")
-    public static class C3_NumberWrapperCmd {
+    @FinalCMD(aliases = "typenumberwrapper")
+    public static class NumberWrapperArgCmd {
         static NumberWrapper received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -239,15 +239,15 @@ class ArgParsingSystemTest {
 
     @Test
     void numberWrapper_happyPath() {
-        FinalCMDPluginCommand command = newHarness().register(new C3_NumberWrapperCmd());
+        FinalCMDPluginCommand command = newHarness().register(new NumberWrapperArgCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub 7.25");
 
-        assertNotNull(C3_NumberWrapperCmd.received);
-        assertEquals(7.25, C3_NumberWrapperCmd.received.doubleValue());
+        assertNotNull(NumberWrapperArgCmd.received);
+        assertEquals(7.25, NumberWrapperArgCmd.received.doubleValue());
     }
 
-    @FinalCMD(aliases = "c3argumento")
-    public static class C3_ArgumentoCmd {
+    @FinalCMD(aliases = "typeargumento")
+    public static class ArgumentoArgCmd {
         static Argumento received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -258,15 +258,15 @@ class ArgParsingSystemTest {
 
     @Test
     void argumento_happyPath() {
-        FinalCMDPluginCommand command = newHarness().register(new C3_ArgumentoCmd());
+        FinalCMDPluginCommand command = newHarness().register(new ArgumentoArgCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub rawtoken");
 
-        assertNotNull(C3_ArgumentoCmd.received);
-        assertEquals("rawtoken", C3_ArgumentoCmd.received.toString());
+        assertNotNull(ArgumentoArgCmd.received);
+        assertEquals("rawtoken", ArgumentoArgCmd.received.toString());
     }
 
-    @FinalCMD(aliases = "c3uuid")
-    public static class C3_UUIDCmd {
+    @FinalCMD(aliases = "typeuuid")
+    public static class UUIDArgCmd {
         static UUID received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -282,15 +282,15 @@ class ArgParsingSystemTest {
         //in-memory backend keeps it headless and fast.
         UUID uuid = UUID.randomUUID();
         try {
-            PlayerController.initialize(Storages.h2("c3uuid").writeTo(tempDir));
-            PlayerController.handleLogin(uuid, "C3UuidPlayer").join();
+            PlayerController.initialize(Storages.h2("uuidarg").writeTo(tempDir));
+            PlayerController.handleLogin(uuid, "UuidArgPlayer").join();
             assertNotNull(PlayerController.getLoaded(uuid), "fixture setup: the player should be loaded");
 
-            FinalCMDPluginCommand command = newHarness().register(new C3_UUIDCmd());
-            C3_UUIDCmd.received = null;
+            FinalCMDPluginCommand command = newHarness().register(new UUIDArgCmd());
+            UUIDArgCmd.received = null;
             harness.dispatch(command, new TestCommandSender("console"), "sub " + uuid);
 
-            assertEquals(uuid, C3_UUIDCmd.received);
+            assertEquals(uuid, UUIDArgCmd.received);
         } finally {
             PlayerController.shutdown();
             PlayerController.getConfiguredPDSections().clear();
@@ -299,11 +299,11 @@ class ArgParsingSystemTest {
 
 
     // ------------------------------------------------------------------
-    // C4 - an invalid Integer sends the parser's error message, does not invoke, does not throw
+    // an invalid Integer sends the parser's error message, does not invoke, does not throw
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "c4cmd")
-    public static class C4_Cmd {
+    @FinalCMD(aliases = "invalidinteger")
+    public static class InvalidIntegerArgCmd {
         static boolean invoked = false;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -314,22 +314,22 @@ class ArgParsingSystemTest {
 
     @Test
     void invalidIntegerSendsParserErrorAndSkipsInvocationWithoutThrowing() {
-        FinalCMDPluginCommand command = newHarness().register(new C4_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new InvalidIntegerArgCmd());
         TestCommandSender sender = new TestCommandSender("console");
-        C4_Cmd.invoked = false;
+        InvalidIntegerArgCmd.invoked = false;
 
         harness.dispatch(command, sender, "sub notanumber");
 
-        assertFalse(C4_Cmd.invoked);
+        assertFalse(InvalidIntegerArgCmd.invoked);
         sender.assertAnyMessageContains("needs to be an integer");
     }
 
     // ------------------------------------------------------------------
-    // C5 - context = "[1:*]" on Integer: below the bound errors, within it is fine
+    // context = "[1:*]" on Integer: below the bound errors, within it is fine
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "c5cmd")
-    public static class C5_Cmd {
+    @FinalCMD(aliases = "lowerbound")
+    public static class LowerBoundedIntegerCmd {
         static Integer received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -340,25 +340,25 @@ class ArgParsingSystemTest {
 
     @Test
     void belowLowerBoundErrors() {
-        FinalCMDPluginCommand command = newHarness().register(new C5_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new LowerBoundedIntegerCmd());
         TestCommandSender sender = new TestCommandSender("console");
-        C5_Cmd.received = null;
+        LowerBoundedIntegerCmd.received = null;
 
         harness.dispatch(command, sender, "sub 0");
 
-        assertNull(C5_Cmd.received);
+        assertNull(LowerBoundedIntegerCmd.received);
         sender.assertAnyMessageContains("higher than");
     }
 
     @Test
     void withinBoundIsAccepted() {
-        FinalCMDPluginCommand command = newHarness().register(new C5_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new LowerBoundedIntegerCmd());
         TestCommandSender sender = new TestCommandSender("console");
-        C5_Cmd.received = null;
+        LowerBoundedIntegerCmd.received = null;
 
         harness.dispatch(command, sender, "sub 5");
 
-        assertEquals(5, C5_Cmd.received);
+        assertEquals(5, LowerBoundedIntegerCmd.received);
     }
 
     // ------------------------------------------------------------------
@@ -475,11 +475,11 @@ class ArgParsingSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // C6 - context = "a|b|c" on String/Enum: outside the list errors
+    // context = "a|b|c" on String/Enum: outside the list errors
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "c6string")
-    public static class C6_StringCmd {
+    @FinalCMD(aliases = "selectionstring")
+    public static class StringSelectionCmd {
         static String received = "not-called";
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -490,31 +490,31 @@ class ArgParsingSystemTest {
 
     @Test
     void string_outsideTheListErrors() {
-        FinalCMDPluginCommand command = newHarness().register(new C6_StringCmd());
+        FinalCMDPluginCommand command = newHarness().register(new StringSelectionCmd());
         TestCommandSender sender = new TestCommandSender("console");
-        C6_StringCmd.received = "not-called";
+        StringSelectionCmd.received = "not-called";
 
         harness.dispatch(command, sender, "sub z");
 
-        assertEquals("not-called", C6_StringCmd.received);
+        assertEquals("not-called", StringSelectionCmd.received);
         sender.assertAnyMessageContains("must be");
     }
 
     @Test
     void string_insideTheListIsAccepted() {
-        FinalCMDPluginCommand command = newHarness().register(new C6_StringCmd());
+        FinalCMDPluginCommand command = newHarness().register(new StringSelectionCmd());
         TestCommandSender sender = new TestCommandSender("console");
-        C6_StringCmd.received = "not-called";
+        StringSelectionCmd.received = "not-called";
 
         //ArgsParserUtil.parseStringContextSelectional lower-cases every option: the returned value is
         //always lowercase, regardless of the casing the option list or the input used
         harness.dispatch(command, sender, "sub B");
 
-        assertEquals("b", C6_StringCmd.received);
+        assertEquals("b", StringSelectionCmd.received);
     }
 
-    @FinalCMD(aliases = "c6enum")
-    public static class C6_EnumCmd {
+    @FinalCMD(aliases = "selectionenum")
+    public static class EnumSelectionCmd {
         static SampleEnum received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -525,19 +525,19 @@ class ArgParsingSystemTest {
 
     @Test
     void enum_outsideTheRestrictedContextErrors() {
-        FinalCMDPluginCommand command = newHarness().register(new C6_EnumCmd());
+        FinalCMDPluginCommand command = newHarness().register(new EnumSelectionCmd());
         TestCommandSender sender = new TestCommandSender("console");
-        C6_EnumCmd.received = null;
+        EnumSelectionCmd.received = null;
 
         //BETA exists on the enum but was not included in the @Arg context, so it's outside the list
         harness.dispatch(command, sender, "sub beta");
 
-        assertNull(C6_EnumCmd.received);
+        assertNull(EnumSelectionCmd.received);
         sender.assertAnyMessageContains("must be");
     }
 
     // ------------------------------------------------------------------
-    // C7 - a custom @Arg(parser = ...) is respected
+    // a custom @Arg(parser = ...) is respected
     // ------------------------------------------------------------------
 
     public static class ReverseStringParser extends ArgParser<String> {
@@ -551,8 +551,8 @@ class ArgParsingSystemTest {
         }
     }
 
-    @FinalCMD(aliases = "c7cmd")
-    public static class C7_Cmd {
+    @FinalCMD(aliases = "customparser")
+    public static class CustomParserCmd {
         static String received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -563,19 +563,19 @@ class ArgParsingSystemTest {
 
     @Test
     void customArgParserIsRespected() {
-        FinalCMDPluginCommand command = newHarness().register(new C7_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new CustomParserCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub hello");
 
-        assertEquals("olleh", C7_Cmd.received);
+        assertEquals("olleh", CustomParserCmd.received);
     }
 
     // ------------------------------------------------------------------
-    // C8 - ArgRequirementType brackets: <x> and [x] recognized; no brackets fails registration
-    // (ArgMountException, swallowed to a plain false - see RegistrationSystemTest A6/A10)
+    // ArgRequirementType brackets: <x> and [x] recognized; no brackets fails registration
+    // (ArgMountException, swallowed to a plain false - see RegistrationSystemTest)
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "c8cmd")
-    public static class C8_AllBracketsCmd {
+    @FinalCMD(aliases = "allbrackets")
+    public static class AllBracketsCmd {
         @FinalCMD.SubCMD(subcmd = "sub")
         public void sub(FCommandSender sender,
                          @Arg("<required>") String required,
@@ -585,29 +585,29 @@ class ArgParsingSystemTest {
 
     @Test
     void bothBracketFormsAreRecognizedAtRegistration() {
-        FinalCMDPluginCommand command = newHarness().register(new C8_AllBracketsCmd());
+        FinalCMDPluginCommand command = newHarness().register(new AllBracketsCmd());
 
         assertNotNull(command, "both ArgRequirementType bracket forms should register cleanly");
     }
 
-    public static class C8_NoBracketsCmd {
-        @FinalCMD(aliases = "c8nobrackets")
+    public static class NoBracketsCmd {
+        @FinalCMD(aliases = "nobrackets")
         public void run(FCommandSender sender, @Arg("novalidbrackets") String value) {}
     }
 
     @Test
     void nameWithoutBracketsFailsRegistration() {
-        boolean registered = newHarness().registerExpectingFailure(new C8_NoBracketsCmd());
+        boolean registered = newHarness().registerExpectingFailure(new NoBracketsCmd());
 
         assertFalse(registered);
     }
 
     // ------------------------------------------------------------------
-    // C9 - a sub-command's first @Arg reads args[1] (args[0] is the sub-command's own name)
+    // a sub-command's first @Arg reads args[1] (args[0] is the sub-command's own name)
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "c9cmd")
-    public static class C9_Cmd {
+    @FinalCMD(aliases = "subargindex")
+    public static class SubCommandArgIndexCmd {
         static String received;
 
         @FinalCMD.SubCMD(subcmd = "sub")
@@ -618,35 +618,35 @@ class ArgParsingSystemTest {
 
     @Test
     void firstArgOfASubCommandReadsIndexOneNotZero() {
-        FinalCMDPluginCommand command = newHarness().register(new C9_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new SubCommandArgIndexCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub theValue");
 
         //"sub" occupies args[0]; the @Arg reads args[1], not args[0]
-        assertEquals("theValue", C9_Cmd.received);
+        assertEquals("theValue", SubCommandArgIndexCmd.received);
     }
 
     // ------------------------------------------------------------------
-    // C10 - two @Arg of the same type: both get parsed, in order, and both reach the method
+    // two @Arg of the same type: both get parsed, in order, and both reach the method
     // ------------------------------------------------------------------
 
-    @FinalCMD(aliases = "c10cmd")
-    public static class C10_Cmd {
+    @FinalCMD(aliases = "twosametype")
+    public static class TwoArgsSameTypeCmd {
         static String first;
         static String second;
 
         @FinalCMD.SubCMD(subcmd = "sub")
         public void sub(FCommandSender sender, @Arg("<first>") String first, @Arg("<second>") String second) {
-            C10_Cmd.first = first;
-            C10_Cmd.second = second;
+            TwoArgsSameTypeCmd.first = first;
+            TwoArgsSameTypeCmd.second = second;
         }
     }
 
     @Test
     void twoArgsOfTheSameTypeBothReachTheMethodInOrder() {
-        FinalCMDPluginCommand command = newHarness().register(new C10_Cmd());
+        FinalCMDPluginCommand command = newHarness().register(new TwoArgsSameTypeCmd());
         harness.dispatch(command, new TestCommandSender("console"), "sub foo bar");
 
-        assertEquals("foo", C10_Cmd.first);
-        assertEquals("bar", C10_Cmd.second);
+        assertEquals("foo", TwoArgsSameTypeCmd.first);
+        assertEquals("bar", TwoArgsSameTypeCmd.second);
     }
 }
