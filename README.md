@@ -9,23 +9,35 @@
 
 # EverNifeCore
 
-> A comprehensive Java Framework for Bukkit/Spigot/Paper plugin development!
+> A core, platform-agnostic framework for making Bukkit plugins and Hytale mods.
 
-EverNifeCore is a powerful, feature-rich framework designed to accelerate Minecraft plugin development. Originally created as a private foundation for my plugin ecosystem, it's now available to the community, providing developers with robust APIs, utilities, and ready-to-use systems that enforce best practices and reduce boilerplate code.
+Write commands, configs, messages and player data once, against an API that has no idea which server
+it is running on. The same command class compiles and runs on Bukkit/Spigot/Paper and on Hytale; the
+same player data can live in flat files, MySQL, PostgreSQL, H2 or MongoDB, chosen by the server owner
+in a config file rather than by you in code.
 
-## 🚀 Quick Start
+## 📖 The documentation is the wiki
 
-### For Server Owners
+**This page is a tour.** The full developer guide - every API, every contract, every trap - is the
+**[EverNifeCore Wiki](https://github.com/EverNife/EverNifeCore/wiki)**.
+
+| Start here | |
+|---|---|
+| [Installation](https://github.com/EverNife/EverNifeCore/wiki/Installation) | the repository and the one `compileOnly` dependency |
+| [Quick Start](https://github.com/EverNife/EverNifeCore/wiki/Quick-Start) | a complete minimal plugin: command, config, localized message |
+| [Architecture Overview](https://github.com/EverNife/EverNifeCore/wiki/Architecture-Overview) | `common` with zero Bukkit imports, the two platforms, the startup sequence |
+| [Gotchas & Pitfalls](https://github.com/EverNife/EverNifeCore/wiki/Gotchas-and-Pitfalls) | the behavioral traps, before you hit them |
+
+## 🚀 Install
+
+### Server owners
+
 1. Download the latest JAR from [Releases](https://github.com/EverNife/EverNifeCore/releases)
-2. Place in your `plugins/` folder
-3. Restart your server (don't reload it)
+2. Drop it in `plugins/`
+3. Start the server (do not reload it)
 
-> If you configure an external database in `storage.yml`, know that a backend marked `enabled: true`
-> which cannot be reached **stops the server at boot**, with a report naming every unreachable one.
-> That is the default (`Settings.Storage.STOP_SERVER_IF_STORAGE_IS_UNREACHABLE`), and it only applies
-> to a boot - a failed reload never stops anything.
+### Developers
 
-### For Developers
 ```groovy
 repositories {
     maven { url = 'https://maven.petrus.dev/public' }
@@ -37,273 +49,255 @@ dependencies {
 }
 ```
 
-## 📋 Table of Contents
+Hytale, the thin common artifact and the relocated view are on
+[Installation](https://github.com/EverNife/EverNifeCore/wiki/Installation).
 
-- [🌟 Key Features](#-key-features)
-- [🏗️ Architecture](#️-architecture)
-- [📚 Core Systems](#-core-systems)
-  - [Command Framework](#command-framework)
-  - [Configuration System](#configuration-system)
-  - [FancyText & Messaging](#fancytext--messaging)
-  - [GUI Framework](#gui-framework)
-  - [Scheduler & Threading](#scheduler--threading)
-  - [Player Data Management](#player-data-management)
-  - [Database Integration](#database-integration)
-  - [Localization System](#localization-system)
-  - [Economy Integration](#economy-integration)
-  - [Protection Systems](#protection-systems)
-- [🔧 Utilities](#-utilities)
-- [🔌 Integrations](#-integrations)
-- [📖 Examples](#-examples)
-- [🤝 Contributing](#-contributing)
-- [📞 Support](#-support)
+---
 
-## 🌟 Key Features
+# What it looks like
 
-### 🎯 **Multi-Platform Support**
-- **Bukkit/Spigot/Paper** compatibility (1.7.10 - 1.21)
-- **Forge Integration** for hybrid servers (1.7.10, 1.12.2, 1.16.5, 1.20.1, 1.21)
-- **Version-specific NMS** handling with automatic fallbacks
-- **Java Support** Java8 to Java25
+## Commands
 
-### ⚡ **Developer Experience**
-- **Virtual Thread Scheduler** (Java 21+) with fallback thread pools
-- **Smart Configuration Caching** with memory optimization
-- **Annotation-driven** Command System
-
-## 📚 Core Systems
-
-### Command Framework
-
-Powerful annotation-based command system with automatic argument parsing, permission handling, and localization.
+A command is a plain class. Parameters are injected and parsed: `<arg>` is required, `[arg]` is
+optional, and `@Arg.Flag` binds a `--name value` flag that may appear anywhere on the line.
 
 ```java
 @FinalCMD(
-    aliases = {"teleport", "tp"},
-    permission = "myplugin.teleport",
-    locales = {
-        @FCLocale(lang = LocaleType.EN_US, text = "Teleport to a player or location")
-    }
+  aliases = {"greet", "hi"}, 
+  permission = "myplugin.greet"
 )
-public void teleportCommand(
-        CommandSender sender, 
-        @Arg(name = "<player>") Player target, // <> means notNull
-        @Arg(name = "[destination]") Player destination) { // [] means 'nullable'
-    
-    if (destination != null) {
-        target.teleport(destination.getLocation());
-        FancyText.of("§aTeleported §e" + target.getName() + " §ato §e" + destination.getName())
-                .send(sender);
-    }
-}
-```
+public class GreetCommand {
 
-**Features:**
-- Automatic argument parsing and validation
-- `--name value` style flags (`@FlagArg`), independent of argument order
-- Built-in help system generation
-- Permission and context validation
-- Multi-language support
-- Tab completion
-- Subcommand support
-
-### Configuration System
-
-Advanced YAML configuration with smart caching, comments, and type-safe access.
-
-```java
-// Basic usage
-Config config = new Config(pluginInstance, "config.yml");
-
-// Type-safe getters with defaults
-String serverName = config.getOrSetDefaultValue("server.name", "MyServer", 
-    "The display name of your server");
-
-boolean enableFeature = config.getOrSetDefaultValue("features.teleport", true);
-```
-
-```java
-// Complex objects with @Loadable/@Salvable
-public class TeleportLocation implements Salvable {
-  //var x, y, z, world;
-  @Override
-  public void onConfigSave(ConfigSection section) {
-      section.setValue("world", this.world);
-      section.setValue("x", this.x);
-      section.setValue("y", this.y);
-      section.setValue("z", this.z);
-  }
-  
-  @Loadable @Salvable
-  public static TeleportLocation onConfigLoad(ConfigSection section) {
-      return new TeleportLocation(
-          section.getString("world"),
-          section.getDouble("x"),
-          section.getDouble("y"),
-          section.getDouble("z")
-      );
-  }
-}
-
-List<TeleportLocation> warps = config.getLoadableList("warps", TeleportLocation.class);
-```
-
-**Features:**
-- Smart memory caching with automatic cleanup
-- Comment preservation and generation
-- Type-safe access methods
-- Custom object serialization
-- Async saving
-
-### FancyText & Messaging
-
-Rich text formatting with click/hover events and component chaining. `FancyText` is the interface:
-`FancySegment` is one styled piece, `FancyFormatter` is an ordered chain of pieces.
-
-```java
-// One piece: text + hover tooltip + click action.
-FancyText.of("§aClick here to teleport!")
-    .setHover("§7Teleports you to spawn")
-    .setClickCommand("/spawn")
-    .send(player);
-
-// A chain - each append(...) adds a piece, and the setters act on the last one.
-FancyFormatter formatter = FancyText.of("§6[Server] ")
-    .append("§fWelcome ", "§7You joined the server!")
-    .append("§e" + player.getName(), "§7Click to view profile", "/profile " + player.getName())
-    .append("§f to our server!");
-
-formatter.send(player);
-
-// Placeholders: declare the bare key, cite it as ${key} in the text.
-FancyText.of("§eBalance: §a${balance}§e coins")
-    .addPlaceholder("balance", () -> economy.getBalance(player))
-    .send(player);
-
-// Item display in hover
-FancyText.of("§6Legendary Sword")
-    .setHoverItem("minecraft:diamond_sword")
-    .send(player);
-```
-
-### Player Data Management
-
-Persistent player data with automatic saving and caching.
-
-```java
-public class MyPlayerData extends PlayerData {
-    
-    @Override
-    public void onPlayerLogin() {
-        // Called when player joins
-    }
-    
-    public int getCoins() {
-        return getPDSection().getOrSetDefaultValue("coins", 0);
-    }
-    
-    public void addCoins(int amount) {
-        int current = getCoins();
-        getPDSection().setValue("coins", current + amount);
-        markAsModified(); // Schedule async save
+    @FinalCMD.SubCMD(
+      subcmd = "bonus", 
+      permission = "myplugin.greet.bonus"
+    )
+    public void setBonus(FCommandSender sender,
+                         @Arg("<player>") FPlayer target,
+                         @Arg("<amount>") Integer amount,
+                         @Arg.Flag(value = "--silent", aliases = "-s", def = "false") Boolean silent) {
+        // parsed, permission-checked, tab-completed and help-generated for you
     }
 }
 
-// Usage
-MyPlayerData data = PlayerController.getPlayerData(player, MyPlayerData.class);
-data.addCoins(100);
+FinalCMDManager.registerCommand(ecPluginData, GreetCommand.class);
 ```
 
-### Database Integration
+Registration builds a command **tree**: nodes are walked and dispatched in ordered phases, permission
+and validation are evaluated over the whole path, and tab-completion is answered from the tree.
 
-Hibernate-based database abstraction with SQLite and MySQL support.
+📖 [Command Framework](https://github.com/EverNife/EverNifeCore/wiki/Command-Framework) ·
+[Argument Parsing](https://github.com/EverNife/EverNifeCore/wiki/Argument-Parsing) ·
+[Flags](https://github.com/EverNife/EverNifeCore/wiki/Flags)
+
+## Configuration
+
+YAML (or TOML/JSON) with inline comments generated from your code - you never ship a bundled default
+file. `getOrSetValueIfAbsent` reads the key, or seeds it with its comment the first time.
 
 ```java
-@Entity
-@Table(name = "player_stats")
-public class PlayerStats {
-    @Id
-    private String uuid;
-    
-    private int kills;
-    private int deaths;
-    
-    // Getters/Setters
+Config config = ConfigFactory.open(ecPluginData, "config.yml");
+
+int joinBonus = config.getOrSetValueIfAbsent(
+  "settings.join-bonus",
+  100,
+  "Bonus shown to a player when they run /greet me."
+);
+```
+
+Teaching the config a new type is one registration, and it then works everywhere - solo value, POJO
+field, map value, list element:
+
+```java
+ConfigFactory.register(MyData.class).asMap(MyData::toMap, MyData::fromMap);   // object-shaped
+ConfigFactory.register(MyId.class).asString(MyId::toString, MyId::parse);     // scalar, usable as a key
+```
+
+If your type is already an POJO there is no need to even register it at all. Use normal Jackson Annotations
+to ignore some fields and that's it.
+
+📖 [Configuration](https://github.com/EverNife/EverNifeCore/wiki/Configuration)
+
+## Player data
+
+A `PDSection` is a plain Jackson POJO. Mutate the fields, call `markDirty()`, and the flush pipeline
+persists it. That is the whole persistence API.
+
+```java
+public class JobsSection extends PDSection {
+    public int level;
+    public String job = "none";
+
+    public void levelUp() {
+        level++;
+        markDirty();
+    }
 }
 
-// Usage
-HibernateConnection connection = DatabaseFactory.createSQLiteConnection("stats.db");
-connection.registerEntity(PlayerStats.class);
+// once, at enable - the id is the stable storage identity, so the class can be renamed freely
+PlayerController.registerPDSectionCfg(ecPluginData, JobsSection.class, "jobs");
 
-// Query
-PlayerStats stats = connection.findByPrimaryKey(PlayerStats.class, player.getUniqueId().toString());
+// reads are 100% async; on a cached online player the future is already completed
+PlayerController.getPDSection(uuid, JobsSection.class).thenAccept(JobsSection::levelUp);
 ```
 
-### Localization System
+📖 [PlayerData & PDSections](https://github.com/EverNife/EverNifeCore/wiki/PlayerData-and-PDSections) ·
+[Accounts](https://github.com/EverNife/EverNifeCore/wiki/Accounts) ·
+[Cooldowns](https://github.com/EverNife/EverNifeCore/wiki/Cooldowns)
 
-Multi-language support with automatic message formatting. Each message declares its translations
-inline and is synced to an editable language file per plugin.
+## Storage
+
+Where that data physically lives is the **admin's** decision, in `storage.yml`. The developer advises
+a default; nobody has to recompile anything to move a collection to MySQL.
+
+```yaml
+storage-backends:
+  playerdata:                  # what belongs to ONE player on THIS server
+    enabled: true
+    type: groupedfile
+    path: plugins/EverNifeCore/StorageData/PlayerData
+  networkdata:                 # what the whole network must agree on
+    enabled: true
+    type: groupedfile
+    path: plugins/EverNifeCore/StorageData/NetworkData
+  mysql:
+    enabled: false
+    type: sql
+    url: "jdbc:mysql://localhost:3306/minecraft"
+```
+
+Backends are named by **role**, not by technology: a single server is a network of one, and when a
+second server joins you point `networkdata` at a shared database and nothing else changes. Backends
+supported: grouped files, local files, MySQL/MariaDB, PostgreSQL, H2, MongoDB, in-memory. Moving live
+data between them is a runtime command (`/ecstorage transfer`), not a migration script.
+
+📖 [Storage Backends](https://github.com/EverNife/EverNifeCore/wiki/Storage-Backends) ·
+[Inline Backends for Plugins](https://github.com/EverNife/EverNifeCore/wiki/Inline-Stroage-Backends-for-Plugins) ·
+[Legacy Data Migration](https://github.com/EverNife/EverNifeCore/wiki/Legacy-Data-Migration)
+
+## Messages, localization and rich text
+
+Every message declares its translations inline and is synced to an editable language file per plugin,
+so a server owner rewords it without touching your jar. `${key}` placeholders are declared bare and
+cited with their delimiters.
 
 ```java
-@FCLocale(lang = LocaleType.EN_US, text = "Welcome ${player}!")
-@FCLocale(lang = LocaleType.PT_BR, text = "Bem-vindo ${player}!")
-public static LocaleMessage WELCOME_MESSAGE;
+@FCLocale(lang = LocaleType.EN_US, text = "&aWelcome, ${player}&a! Your bonus is &6${bonus}&a.")
+@FCLocale(lang = LocaleType.PT_BR, text = "&aBem-vindo, ${player}&a! Seu bônus é &6${bonus}&a.")
+public static LocaleMessage WELCOME;
 
-// Usage - the key is declared bare, and cited as ${key} in the text.
-WELCOME_MESSAGE
-    .addPlaceholder("player", player.getName())
-    .send(player);
+WELCOME.addPlaceholder("player", player.getName())
+       .addPlaceholder("bonus", joinBonus)
+       .send(player);
 ```
 
-## 🔧 Utilities
+`FancyText` is the rich-text interface: `FancySegment` is one styled piece, `FancyFormatter` an
+ordered chain of pieces.
 
-### ItemStack Builder
 ```java
-ItemStack sword = FCItemFactory.from(Material.DIAMOND_SWORD)
-    .displayName("§6Legendary Blade")
-    .lore("§7A powerful weapon", "§7forged by ancient smiths")
-    .addEnchant(Enchantment.FIRE_ASPECT, 5)
-    .build();
+FancyText.of("&aClick here to teleport!")
+        .setHover("&7Teleports you to spawn")
+        .setClickCommand("/spawn")
+        .send(player);
+
+FancyText.of("&6Legendary Sword")
+        .setHoverItem("minecraft:diamond_sword")
+        .send(player);
 ```
 
-### NBT Manipulation with Item-NBT-API
-Read more at https://github.com/tr7zw/Item-NBT-API Item-NBT-API
+📖 [Localization](https://github.com/EverNife/EverNifeCore/wiki/Localization) ·
+[FancyText](https://github.com/EverNife/EverNifeCore/wiki/FancyText) ·
+[Placeholders](https://github.com/EverNife/EverNifeCore/wiki/Placeholders)
+
+## Items and GUIs
+
 ```java
-FCItemFactory.from(itemStack)
-    .setNbt(nbtCompound -> {
-        nbtCompound.setBoolean("Unbreakable", true);
-        nbtCompound.setInteger("HideFlags", 1);
-        nbtCompound.setString("teste", "teste");
-    })
-   .build();
+ItemStack reward = FCItemFactory.from(Material.DIAMOND_SWORD)
+  .displayName("&bExcalibur") // color codes translated for you
+  .lore("&7A legendary blade", "&7+10 damage")
+  .addEnchant(Enchantment.DAMAGE_ALL, 5)
+  .setGlow()
+  .setUnbreakable()
+  .build();
 
+builder.asGuiItem();          // straight into the GUI layer
+builder.asLayout();           // a LayoutIcon for the config-driven layout system
 ```
 
-### Reflection Utilities
-```java
-MethodInvoker method = FCReflectionUtil.getMethod(Player.class, "getHandle");
-Object nmsPlayer = method.invoke(player);
-```
+The builder clones its source, so the original stack is never mutated, and it falls back to raw NBT on
+legacy versions where the modern API does not exist.
+
+📖 [Items & NBT](https://github.com/EverNife/EverNifeCore/wiki/Items-and-NBT) ·
+[GUI Framework](https://github.com/EverNife/EverNifeCore/wiki/GUI-Framework)
+
+## Multi-platform
+
+`common` has **zero** Bukkit imports. Platform behaviour reaches it two ways: runtime providers
+registered by the platform entry point, and compile-time stubs that each platform replaces with a real
+class of the same fully-qualified name. Your code takes `FPlayer` and `FCommandSender` and never asks
+which server it is on.
+
+| Platform | Module | Deployable artifact |
+|---|---|---|
+| Bukkit / Spigot / Paper (1.7.10 - 1.21) | `minecraft` | `minecraft:shadowJar` |
+| Hytale | `hytale` | `hytale:shadowJar` (classifier `Hytale`) |
+
+One JDK 25 toolchain compiles everything; the Bukkit side emits Java 8 bytecode against a Java 8 API
+floor, so one jar covers 1.7.10 through 1.21.
+
+📖 [Platform Abstraction](https://github.com/EverNife/EverNifeCore/wiki/Platform-Abstraction) ·
+[Hytale Platform](https://github.com/EverNife/EverNifeCore/wiki/Hytale-Platform) ·
+[Version Compatibility](https://github.com/EverNife/EverNifeCore/wiki/Version-Compatibility) ·
+[Java Versions & Toolchains](https://github.com/EverNife/EverNifeCore/wiki/Java-Versions-and-Toolchains)
+
+## And the rest
+
+Sync and async scheduling on virtual threads where the runtime has them, per-server and per-player
+cooldowns that can be network-wide, accounts that link a player's data across alt logins, paginated
+chat views, and a headless test engine published as `evernifecore-common-tests` so a plugin can test
+against platform doubles instead of a running server.
+
+📖 [Scheduler & Threading](https://github.com/EverNife/EverNifeCore/wiki/Scheduler-and-Threading) ·
+[Cooldowns](https://github.com/EverNife/EverNifeCore/wiki/Cooldowns) ·
+[Accounts](https://github.com/EverNife/EverNifeCore/wiki/Accounts) ·
+[full wiki index](https://github.com/EverNife/EverNifeCore/wiki)
+
+---
 
 ## 🔌 Integrations
 
-- **WorldGuard/WorldEdit** - Region and selection utilities
-- **Vault** - Economy and permission integration
-- **PlaceholderAPI** - Custom placeholder support
-- **LuckPerms** - Advanced permission handling
-- **ProtocolLib** - Packet manipulation
-- **BossShopPro** - Shop integration
-- **FeatherBoard** - Scoreboard utilities
+Each one is optional and degrades quietly when its plugin is absent.
 
-## 📖 Examples
+| Integration | What you get |
+|---|---|
+| **Vault / VaultUnlocked** | one economy API over whatever the server runs - [Economy](https://github.com/EverNife/EverNifeCore/wiki/Economy) |
+| **PlaceholderAPI** | resolve placeholders and register your own namespace |
+| **LuckPerms** | read a player's meta values |
+| **WorldEdit** | schematic pasting |
+| **WorldGuard / GriefDefender / GriefPreventionPlus** | one `canBuild`/`canBreak`/`canInteract` answer over every installed protection plugin |
+| **BossShopPro** | shop items carrying EverNifeCore NBT data parts |
 
-## 🤝 Contributing
+📖 [Integrations](https://github.com/EverNife/EverNifeCore/wiki/Integrations)
 
-Contributions are welcome! Please note that this project requires several private dependencies for full compilation:
+## 🧱 Built on
 
-- Various CraftBukkit versions for NMS support
-- Some paid plugins for integration features
-- Private repository access for certain dependencies
+- **[EveryDatabase](https://github.com/EverNife/EveryDatabase)** - the storage engine: entities,
+  codecs, caching, references, backend drivers.
+- **[EveryConfig](https://github.com/EverNife/EveryConfig)** - the Jackson-first YAML layer: typed
+  reads/writes, inline comments, async saves.
+- **[EveryLibs](https://github.com/EverNife/EveryLibs)** - reflection, executor and collection helpers.
+
+All three are `api` dependencies of `common`, so their types are part of its public API.
+
+## 🤝 Building
+
+Building the whole project needs a few jars that cannot be fetched from a
+public repository (paid or unobtainable plugins used by the integration modules); `common`,
+`api-contracts` and `libby` build without them.
+
+📖 [Building from Source](https://github.com/EverNife/EverNifeCore/wiki/Building-from-Source) ·
+[Project Layout](https://github.com/EverNife/EverNifeCore/wiki/Project-Layout) ·
+[CHANGELOG](CHANGELOG.MD)
 
 ## 📞 Support
 
