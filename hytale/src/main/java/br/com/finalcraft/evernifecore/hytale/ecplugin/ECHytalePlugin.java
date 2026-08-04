@@ -16,6 +16,10 @@ import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
  */
 public abstract class ECHytalePlugin extends JavaPlugin implements IECPluginBootstrap {
 
+    {
+        onInstantiate();
+    }
+
     protected ECHytalePlugin(JavaPluginInit init) {
         super(init);
     }

@@ -45,6 +45,11 @@ public interface IECPluginBootstrap {
     //  Enable
     // ------------------------------------------------------------------
 
+    /** Optional enable extras that must run on INSTANTIATE. No-op by default. */
+    public default void onInstantiate() {
+
+    }
+
     /** Optional enable extras that must run BEFORE the shared wiring. No-op by default. */
     public default void onECPluginEnablePre() {
 

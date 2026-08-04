@@ -13,6 +13,10 @@ import org.bukkit.plugin.java.JavaPlugin;
  */
 public abstract class ECBukkitPlugin extends JavaPlugin implements IECPluginBootstrap {
 
+    {
+        onInstantiate();
+    }
+
     @Override
     public void onEnable() {
         runECPluginEnable();
