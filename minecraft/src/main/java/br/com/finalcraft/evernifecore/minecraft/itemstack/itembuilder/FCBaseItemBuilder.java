@@ -9,8 +9,6 @@ import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import de.tr7zw.changeme.nbtapi.NBTCompound;
 import de.tr7zw.changeme.nbtapi.NBTItem;
-import dev.triumphteam.gui.builder.item.ItemBuilder;
-import dev.triumphteam.gui.components.util.VersionHelper;
 import jakarta.annotation.Nonnull;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.Color;
@@ -31,12 +29,9 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * This class is a mirror of {@link dev.triumphteam.gui.builder.item.BaseItemBuilder} but with:
- *  - few aditions
- *  - support to NBT
- *  - support to FCColorUtil
+ * Fluent {@link ItemStack} builder, with NBT and FCColorUtil support on top of the plain Bukkit meta.
  *
- * @param <B> The ItemBuilder type so the methods can cast to the subtype
+ * @param <B> The builder type so the methods can cast to the subtype
  */
 public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
 
@@ -311,7 +306,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      */
     @Nonnull
     public B setUnbreakable(boolean unbreakable) {
-        if (VersionHelper.IS_UNBREAKABLE_LEGACY) {
+        if (MCVersion.isLower(MCDetailedVersion.v1_11_R1)) { //ItemMeta#setUnbreakable only exists from 1.11 on
             return setNbt(nbtCompound -> {
                 if (unbreakable){
                     nbtCompound.setBoolean("Unbreakable", true);
@@ -383,7 +378,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
      */
     @Nonnull
     public B setCustomModelData(final int modelData) {
-        if (VersionHelper.IS_CUSTOM_MODEL_DATA) {
+        if (MCVersion.isHigherEquals(MCDetailedVersion.v1_14_R1)) { //custom model data arrived in 1.14
             meta.setCustomModelData(modelData);
         }
 

@@ -1,10 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.util;
 
-import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutIcon;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder.FCItemBuilder;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
-import dev.triumphteam.gui.guis.GuiItem;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
@@ -30,8 +28,6 @@ public enum EnumStainedGlassPane {
     private final Material material;
     private final short damage;
     private final char colorCode;
-    private transient LayoutIcon layoutIcon = null;
-    private transient GuiItem guiItem = null;
 
     EnumStainedGlassPane(char colorCode) {
         if (MCVersion.isHigherEquals(MCVersion.v1_13)) {
@@ -60,21 +56,6 @@ public enum EnumStainedGlassPane {
     public FCItemBuilder asFactory(){
         return FCItemFactory.from(this.material)
                 .applyIf(() -> damage != 0, fcItemBuilder -> fcItemBuilder.durability(this.damage));
-    }
-
-    public LayoutIcon asLayout(){
-        if (layoutIcon == null) {
-            layoutIcon = asFactory().displayName("§" + this.colorCode + "§l❂").asLayout();
-        }
-        return layoutIcon;
-    }
-
-    public GuiItem asBackground(){
-        if (guiItem == null) {
-            guiItem = asFactory().displayName("§" + this.colorCode + "§l❂").asGuiItem();
-            guiItem.setAction(event -> event.setCancelled(true));
-        }
-        return guiItem;
     }
 
     public ItemStack getItemStack(){

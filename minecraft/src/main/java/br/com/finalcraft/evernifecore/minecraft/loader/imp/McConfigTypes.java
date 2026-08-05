@@ -3,7 +3,6 @@ package br.com.finalcraft.evernifecore.minecraft.loader.imp;
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
-import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutIcon;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.SlotSet;
 import br.com.finalcraft.evernifecore.minecraft.inventory.invitem.InvItem;
 import br.com.finalcraft.evernifecore.minecraft.inventory.invitem.InvItemManager;
@@ -52,8 +51,8 @@ import java.util.regex.Pattern;
  *
  * <p>The {@code GenericInventory}/{@code FCPlayerInventory} families are NOT registered here: they self-describe
  * as bound entities ({@code @JsonAnyGetter} + {@code ConfigLifecycle}), so nesting composes for free. The
- * config-value-shaped {@link InvItem} and {@link LayoutIcon} still route their nested pieces back through the
- * shared type-aware mapper.
+ * config-value-shaped {@link InvItem} still routes its nested pieces back through the shared type-aware
+ * mapper.
  */
 public final class McConfigTypes {
 
@@ -65,7 +64,6 @@ public final class McConfigTypes {
     public static void register() {
         registerLocation();
         registerItemStack();
-        registerLayoutIcon();
         registerSlotSet();
     }
 
@@ -288,45 +286,12 @@ public final class McConfigTypes {
     // GenericInventory and FCPlayerInventory are self-describing bound entities (see their @JsonAnyGetter /
     // ConfigLifecycle) - they need no central registration here.
 
-    // ==================== LayoutIcon ====================
-
-    /** Read-shaped ({@code {Slot, Permission, DisplayItem}}); its path-based read logic is reused via an
-     *  in-memory type-aware bridge so it stays identical to the config-driven loader. */
-    private static void registerLayoutIcon() {
-        ConfigFactory.register(LayoutIcon.class).jackson(
-                new JsonSerializer<LayoutIcon>() {
-                    @Override
-                    public void serialize(LayoutIcon value, JsonGenerator gen, SerializerProvider provider)
-                            throws IOException {
-                        Map<String, Object> map = new LinkedHashMap<>();
-                        List<String> slots = new ArrayList<>();
-                        for (int slot : value.getSlot()) {
-                            slots.add(String.valueOf(slot));
-                        }
-                        map.put("Slot", slots);
-                        map.put("Permission", value.getPermission());
-                        if (value.getItemStack() != null) {
-                            map.put("DisplayItem", FCItemFactory.from(value.getItemStack()).toDataPart());
-                        }
-                        gen.writeObject(map);
-                    }
-                },
-                new StdDeserializer<LayoutIcon>(LayoutIcon.class) {
-                    @Override
-                    public LayoutIcon deserialize(JsonParser parser, DeserializationContext context)
-                            throws IOException {
-                        return LayoutIcon.onConfigLoad(sectionFrom(parser.readValueAsTree()));
-                    }
-                }
-        );
-    }
-
     // ==================== shared bridge ====================
 
     /**
      * Materialize {@code node} into a file-less, type-aware {@link ConfigSection}. This is the bridge a
-     * path-based reader ({@link InvItem#onConfigLoad}, {@link LayoutIcon#onConfigLoad}) needs: it reads
-     * through {@code getValue(path, ItemStack.class)} etc., which the in-memory config resolves through the
+     * path-based reader ({@link InvItem#onConfigLoad}) needs: it reads through
+     * {@code getValue(path, ItemStack.class)} etc., which the in-memory config resolves through the
      * same registered adapters. Delegates to the shared {@link ConfigFactory#inMemorySection(JsonNode)}.
      */
     private static ConfigSection sectionFrom(JsonNode node) {

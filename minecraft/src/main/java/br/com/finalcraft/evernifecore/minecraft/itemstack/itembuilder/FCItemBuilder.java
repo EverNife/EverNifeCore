@@ -1,16 +1,11 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder;
 
-import br.com.finalcraft.evernifecore.minecraft.gui.item.GuiItemComplex;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
-import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutIcon;
-import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutIconBuilder;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.ClickContext;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
-import dev.triumphteam.gui.guis.GuiItem;
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
@@ -19,45 +14,8 @@ import java.util.function.Supplier;
 
 public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
 
-    private transient @Nullable LayoutIcon layout; //This will be present when the FCItemBuilder comes from an LayoutIcon
-
-    public FCItemBuilder(@Nonnull ItemStack itemStack, LayoutIcon layoutIcon) {
-        super(itemStack);
-        this.layout = layoutIcon;
-    }
-
     public FCItemBuilder(@Nonnull ItemStack itemStack) {
-        this(itemStack, null);
-    }
-
-    /**
-     * Returns a GuiItemComplex object that contains the ItemStack of this ItemBuilder.
-     *
-     * @return A GuiItemComplex object.
-     */
-    @Nonnull
-    public GuiItemComplex asGuiItemComplex() {
-        return new GuiItemComplex(build());
-    }
-
-    /**
-     * Returns a GuiItem object that contains the ItemStack of this ItemBuilder.
-     *
-     * @return A GuiItem object.
-     */
-    @Nonnull
-    public GuiItem asGuiItem() {
-        return new GuiItem(build());
-    }
-
-    /**
-     * Returns a GuiItem object that contains the ItemStack of this ItemBuilder.
-     *
-     * @return A GuiItem object.
-     */
-    @Nonnull
-    public <GI extends GuiItem> GI asGuiItem(Class<GI> customGuiItem) {
-        return as(customGuiItem);
+        super(itemStack);
     }
 
     /**
@@ -83,42 +41,11 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
     }
 
     /**
-     * Returns a LayoutIcon object that contains the ItemStack of this ItemBuilder.
-     *
-     * @return A LayoutIcon object
-     */
-    @Nonnull
-    public LayoutIcon asLayout() {
-        if (layout != null){
-            ItemStack finalStack = this.build();
-            return new LayoutIcon(
-                    finalStack,
-                    layout.getSlot(),
-                    layout.isBackground(),
-                    layout.getPermission(),
-                    FCItemFactory.from(finalStack).toDataPart() //Need to recalculate data-part as it was probably changed on the factory
-            );
-        }else {
-            return new LayoutIcon(
-                    this.build(),
-                    new int[0],
-                    false,
-                    "",
-                    null //No need to calculate data-part, as this is the creation process, not an edition process
-            );
-        }
-    }
-
-    public LayoutIconBuilder asLayoutBuilder(){
-        return this.asLayout().asLayoutBuilder();
-    }
-
-    /**
      * Returns an ItemStackHolder object that contains the ItemStack of this ItemBuilder.
      * An ItemStackHolder is any object that has a Construtor that has a sole argument
      * of an ItemStack
      *
-     * @return A LayoutIcon object
+     * @return An instance of the requested ItemStackHolder class
      */
     @Nonnull
     public <ItemStackHolder> ItemStackHolder as(Class<ItemStackHolder> itemStackHolderClass) {
