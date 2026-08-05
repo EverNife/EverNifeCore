@@ -5,7 +5,6 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
-import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.fancytext.FancySegment;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
@@ -13,7 +12,6 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.parsers.ArgParserOreDict;
-import br.com.finalcraft.evernifecore.minecraft.guis.gui.OredictViewerGui;
 import br.com.finalcraft.evernifecore.minecraft.nms.data.oredict.OreDictEntry;
 import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
@@ -35,28 +33,14 @@ public class CMDOreDictInfo {
             hover = "\n§2OredictName: §e${oredict_name}" +
                     "\n§2OredictItems: §e${oredict_amount}" +
                     "\n" +
-                    "\n§bClick to open a menu with all items from this OreDict!",
-            click = "/${label} menu ${oredict_name}"
+                    "\n§bClick to list every item from this OreDict!",
+            click = "/${label} listItemsFrom ${oredict_name}"
     )
     private static LocaleMessage OREDICT_INFO;
 
     @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §c This item do not have an OreDict!")
     @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §c Este item não possui um OreDict!")
     private static LocaleMessage THIS_ITEM_DO_NOT_HAVE_AN_OREDICT;
-
-    @FinalCMD.SubCMD(
-            subcmd = {"menu"},
-            locales = {
-                    @FCLocale(lang = LocaleType.EN_US, text = "Open a menu showing all items from this OreDict!"),
-                    @FCLocale(lang = LocaleType.PT_BR, text = "Abre um menu mostrando todos os itens deste OreDict!")
-            },
-            permission = McPermissionNodes.EVERNIFECORE_COMMAND_OREINFO
-    )
-    public void menu(PlayerData playerData, @Arg("<oreDict>") OreDictEntry oreDictEntry) {
-
-        new OredictViewerGui(oreDictEntry, playerData).open();
-
-    }
 
     @FinalCMD.SubCMD(
             subcmd = {"listItemsFrom"},

@@ -4,7 +4,6 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.minecraft.autoupdater.SpigotUpdateChecker;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.DefaultIcons;
-import br.com.finalcraft.evernifecore.minecraft.guis.LayoutManager;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 
 import java.util.Arrays;
@@ -21,8 +20,6 @@ public class McConfigManager {
                         DefaultIcons.class
                 ).stream().filter(Objects::nonNull).toArray(Class[]::new)
         );
-
-        LayoutManager.initialize();//This uses some locales. Must be called after FCLocaleManager;
     }
 
 }
