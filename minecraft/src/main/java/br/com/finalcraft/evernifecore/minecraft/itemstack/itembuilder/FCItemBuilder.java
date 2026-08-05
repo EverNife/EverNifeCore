@@ -1,8 +1,10 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder;
 
 import br.com.finalcraft.evernifecore.minecraft.gui.item.GuiItemComplex;
+import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutIcon;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutIconBuilder;
+import br.com.finalcraft.evernifecore.minecraft.gui.view.ClickContext;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
@@ -56,6 +58,21 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
     @Nonnull
     public <GI extends GuiItem> GI asGuiItem(Class<GI> customGuiItem) {
         return as(customGuiItem);
+    }
+
+    /**
+     * Ends the chain as an {@link Icon}: the item plus everything a gui needs to place it and react
+     * to it. This is the single icon type - there is no separate "gui item".
+     */
+    @Nonnull
+    public Icon asIcon() {
+        return new Icon(build());
+    }
+
+    /** Ends the chain as an {@link Icon} that answers a click. */
+    @Nonnull
+    public Icon onClick(@Nonnull Consumer<ClickContext> onClick) {
+        return asIcon().onClick(onClick);
     }
 
     /**

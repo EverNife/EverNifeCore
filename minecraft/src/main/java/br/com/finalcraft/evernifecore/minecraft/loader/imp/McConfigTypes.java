@@ -4,6 +4,7 @@ import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutIcon;
+import br.com.finalcraft.evernifecore.minecraft.gui.model.SlotSet;
 import br.com.finalcraft.evernifecore.minecraft.inventory.invitem.InvItem;
 import br.com.finalcraft.evernifecore.minecraft.inventory.invitem.InvItemManager;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
@@ -24,6 +25,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +66,73 @@ public final class McConfigTypes {
         registerLocation();
         registerItemStack();
         registerLayoutIcon();
+        registerSlotSet();
+    }
+
+    // ==================== SlotSet ====================
+
+    /**
+     * The single slot-list codec. On disk a slot list has been written three ways - the bracketed string
+     * {@code "[1,2,3]"}, a YAML list, and a bare number for one slot - and each of them used to be parsed
+     * somewhere else, with the bare number silently degrading to "no slots". All three are read here and
+     * only the bracketed string is ever written back.
+     *
+     * <p>An empty list means "nowhere", which is how an admin switches an icon off, and is never an error.
+     * Text that is neither of the three IS an error, and it is logged naming the value instead of leaving
+     * an icon mysteriously absent.</p>
+     */
+    private static void registerSlotSet() {
+        ConfigFactory.register(SlotSet.class).jackson(
+                new JsonSerializer<SlotSet>() {
+                    @Override
+                    public void serialize(SlotSet value, JsonGenerator gen, SerializerProvider provider)
+                            throws IOException {
+                        gen.writeString(value.serialize());
+                    }
+                },
+                new StdDeserializer<SlotSet>(SlotSet.class) {
+                    @Override
+                    public SlotSet deserialize(JsonParser parser, DeserializationContext context)
+                            throws IOException {
+                        return readSlotSet(parser.readValueAsTree());
+                    }
+                }
+        );
+    }
+
+    private static SlotSet readSlotSet(JsonNode node) {
+        if (node == null || node.isNull()) {
+            return SlotSet.EMPTY;
+        }
+        try {
+            if (node.isArray()) {
+                List<Integer> slots = new ArrayList<>();
+                for (JsonNode element : node) {
+                    slots.addAll(Arrays.asList(boxed(SlotSet.parse(element.asText()).toArray())));
+                }
+                int[] values = new int[slots.size()];
+                for (int i = 0; i < values.length; i++) {
+                    values[i] = slots.get(i);
+                }
+                return SlotSet.of(values);
+            }
+            if (node.isNumber()) {
+                return SlotSet.of(node.asInt());
+            }
+            return SlotSet.parse(node.asText());
+        } catch (RuntimeException e) {
+            EverNifeCore.getLog().warning("[Config] Ignoring an unreadable slot list [" + node + "]: "
+                    + e.getMessage());
+            return SlotSet.EMPTY;
+        }
+    }
+
+    private static Integer[] boxed(int[] values) {
+        Integer[] boxed = new Integer[values.length];
+        for (int i = 0; i < values.length; i++) {
+            boxed[i] = values[i];
+        }
+        return boxed;
     }
 
     // ==================== Location ====================

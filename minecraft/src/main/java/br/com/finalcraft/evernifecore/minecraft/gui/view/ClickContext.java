@@ -1,0 +1,127 @@
+package br.com.finalcraft.evernifecore.minecraft.gui.view;
+
+import br.com.finalcraft.evernifecore.minecraft.gui.Gui;
+import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+import org.bukkit.Sound;
+import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.inventory.ItemStack;
+
+/**
+ * One click, as the handler sees it: who clicked, where, how, and what it may do about it.
+ *
+ * <p>It never exposes the {@code InventoryClickEvent}. Everything a handler legitimately wants is a
+ * method here, which is what makes a handler assertable without a server.</p>
+ *
+ * <p>A handler may finish long after the click - it may be waiting on player data. {@link #isAlive()}
+ * says whether it is still the click the player is waiting on; a later click makes an earlier one
+ * stale, and acting on a stale context is a no-op.</p>
+ */
+public final class ClickContext {
+
+    private final GuiView view;
+    private final long token;
+    private final int slot;
+    private final ClickType clickType;
+    private final ItemStack cursor;
+    private final Icon icon;
+
+    private boolean moveAllowed = false;
+
+    ClickContext(GuiView view, long token, int slot, ClickType clickType, ItemStack cursor, Icon icon) {
+        this.view = view;
+        this.token = token;
+        this.slot = slot;
+        this.clickType = clickType;
+        this.cursor = cursor == null ? null : cursor.clone();
+        this.icon = icon;
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Reading
+    // -----------------------------------------------------------------------------------------------------------------
+
+    @Nullable
+    public Player getViewer() {
+        return view.getViewer();
+    }
+
+    @Nonnull
+    public Gui getGui() {
+        return view.getGui();
+    }
+
+    @Nonnull
+    public GuiView getView() {
+        return view;
+    }
+
+    /** The raw, 0-based slot inside the gui. */
+    public int getSlot() {
+        return slot;
+    }
+
+    @Nonnull
+    public ClickType getClickType() {
+        return clickType;
+    }
+
+    /** A snapshot of what was on the cursor when the click happened, or {@code null}. */
+    @Nullable
+    public ItemStack getCursor() {
+        return cursor;
+    }
+
+    /** The icon that was clicked, or {@code null} when the slot carried none. */
+    @Nullable
+    public Icon getIcon() {
+        return icon;
+    }
+
+    /** Whether this is still the click the player is waiting on, and the screen is still open. */
+    public boolean isAlive() {
+        return view.isTokenAlive(token);
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Acting
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Lets this one click move items, overriding the screen's policy.
+     *
+     * <p>Only meaningful while the handler is still running: once the click has been answered there
+     * is no event left to un-cancel.</p>
+     */
+    public void allowMove() {
+        this.moveAllowed = true;
+    }
+
+    boolean isMoveAllowed() {
+        return moveAllowed;
+    }
+
+    /** Closes the screen, on the next tick - closing a container from inside its own click is not safe. */
+    public void close() {
+        view.closeNextTick();
+    }
+
+    /** Renders every icon again. The commit still writes only the slots whose output changed. */
+    public void refresh() {
+        view.refresh();
+    }
+
+    public void sound(@Nonnull Sound sound) {
+        sound(sound, 1.0F, 1.0F);
+    }
+
+    public void sound(@Nonnull Sound sound, float volume, float pitch) {
+        Player viewer = getViewer();
+        if (viewer != null && sound != null) {
+            viewer.playSound(viewer.getLocation(), sound, volume, pitch);
+        }
+    }
+
+}

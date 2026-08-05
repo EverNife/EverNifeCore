@@ -9,10 +9,13 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
+import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.minecraft.commands.McCommandRegisterer;
 import br.com.finalcraft.evernifecore.minecraft.config.McConfigManager;
 import br.com.finalcraft.evernifecore.minecraft.dependencies.ECoreDependencies;
 import br.com.finalcraft.evernifecore.minecraft.ecplugin.ECBukkitPlugin;
+import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiListener;
+import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiViews;
 import br.com.finalcraft.evernifecore.minecraft.integration.VaultIntegration;
 import br.com.finalcraft.evernifecore.minecraft.integration.WorldEditIntegration;
 import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerInteractListener;
@@ -108,6 +111,7 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         ECListener.register(ecPluginData, PlayerLoginListener.class);
         ECListener.register(ecPluginData, PlayerInteractListener.class);
         ECListener.register(ecPluginData, PluginListener.class);
+        ECListener.register(ecPluginData, GuiListener.class);
 
         if (Bukkit.getPluginManager().isPluginEnabled("AuthMe")){
             ECListener.register(ecPluginData, PlayerLoginListener.AuthmeLogin.class);
@@ -140,6 +144,15 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
             }
             EverNifeCore.getLog().warning("§e[NBT Self-Test] Item/GUI NBT features will not work correctly on this server.");
         }
+    }
+
+    @Override
+    public void onECPluginShutdownPre() {
+        //screens close first, while GuiListener is still registered: it is InventoryCloseEvent that runs
+        //their onClose, and an editable screen still open at disable would spill its contents as loot
+        GuiViews.closeAll();
+        ECListener.unregisterAll(getPluginData());
+        FinalCMDManager.unregisterAllCommands(getPluginData());
     }
 
     @Override

@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
@@ -51,8 +52,16 @@ public class McFCScheduler {
         }, delayMillis, TimeUnit.MILLISECONDS);
     }
 
-    public void scheduleSyncInTicks(Runnable runnable, long delayTicks){
-        wrapRunnable(runnable).runTaskLater(EverNifeCoreBukkitPlugin.instance, delayTicks);
+    public BukkitTask scheduleSyncInTicks(Runnable runnable, long delayTicks){
+        return wrapRunnable(runnable).runTaskLater(EverNifeCoreBukkitPlugin.instance, delayTicks);
+    }
+
+    /**
+     * Runs {@code runnable} on the main thread every {@code periodTicks}, first after
+     * {@code delayTicks}. Cancel through the returned task; nothing else stops it.
+     */
+    public BukkitTask repeatSyncInTicks(Runnable runnable, long delayTicks, long periodTicks){
+        return wrapRunnable(runnable).runTaskTimer(EverNifeCoreBukkitPlugin.instance, delayTicks, periodTicks);
     }
 
     // -----------------------------------------------------------------------------------------------------------------
