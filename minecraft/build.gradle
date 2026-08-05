@@ -118,6 +118,10 @@ shadowJar {
         include(dependency('br.com.finalcraft.everydatabase:everydatabase-manager:'))
         include(dependency('br.com.finalcraft.everyconfig:everyconfig-core:'))
         include(dependency('br.com.finalcraft.everyconfig:everyconfig-rules:'))
+        // everyconfig-rules READS these annotations reflectively, so they have to be in the jar even
+        // though nothing here implements Bean Validation. NEVER relocated: a rule declared by a plugin
+        // must be the same class this one looks for.
+        include(dependency('jakarta.validation:jakarta.validation-api:'))
         include(dependency('br.com.finalcraft.everylibs:everylibs-common:'))
         include(dependency('br.com.finalcraft.everylibs:everylibs-reflection:'))
         include(dependency('br.com.finalcraft.everylibs:everylibs-utils:'))

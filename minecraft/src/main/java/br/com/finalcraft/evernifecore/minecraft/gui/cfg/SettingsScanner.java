@@ -1,181 +1,262 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.cfg;
 
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.argumento.Argumento;
-import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgData;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgRequirementType;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseOutcome;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ResolvedArguments;
-import br.com.finalcraft.everyconfig.config.Config;
-import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
-import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
-import org.bukkit.Bukkit;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.everyconfig.binding.BindException;
+import br.com.finalcraft.everyconfig.config.Config;
+import br.com.finalcraft.everyconfig.rule.RuleEvaluation;
+import br.com.finalcraft.everyconfig.rule.RuleEvaluator;
+import br.com.finalcraft.everyconfig.rule.RuleFinding;
+import br.com.finalcraft.everyconfig.rule.RuleModel;
+import br.com.finalcraft.everyconfig.rule.RulePolicy;
+import br.com.finalcraft.everyconfig.rule.RuleSite;
+import br.com.finalcraft.everyconfig.rule.ValueSource;
+import br.com.finalcraft.everyconfig.ruleset.StandardRules;
+import com.fasterxml.jackson.databind.JsonNode;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Fills an object's {@link ConfigSetting} fields from a config file: it seeds each key with the field's own
+ * value the first time, reads back what the file says from then on, and judges the result against the
+ * semantic rules declared on the field.
+ *
+ * <p>What a refusal costs depends on where the value came from, and that difference is the whole point:
+ *
+ * <ul>
+ *   <li>a value the FILE supplied is user data - it is logged once, replaced by the handler's correction
+ *       or by the field's own default, and the server keeps booting;</li>
+ *   <li>a value the field's own DEFAULT supplied is a code defect - no file can fix it and every run
+ *       reproduces it - so it throws.</li>
+ * </ul>
+ *
+ * <p>It works on any class. The requirements are a field carrying {@link ConfigSetting} and a non-null
+ * value in it: the field's value is both the default written to a fresh file and the type the stored value
+ * is read back as.
+ */
 public class SettingsScanner {
 
-    public static void loadSettings(ECPluginData ecPluginData, Config config, Object instance){
+    /** The standard vocabulary under this scanner's policy: file data warns instead of failing the boot, a
+     *  default that breaks its own rule still throws, and a handler may correct what it refused. */
+    private static final RuleEvaluator EVALUATOR = RuleEvaluator.of(StandardRules.engine())
+            .withPolicy(RulePolicy.defaults()
+                    .withSeverity(RulePolicy.Severity.LOG)
+                    .withCorrections(true));
 
-        for (Field declaredField : instance.getClass().getDeclaredFields()) {
+    /** What has already been warned about, so a file nobody fixed does not repeat itself on every reload. */
+    private static final Set<String> WARNED =
+            Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
-            ConfigSetting settings = declaredField.getAnnotation(ConfigSetting.class);
+    /**
+     * Load every {@link ConfigSetting} of {@code instance} - its own and the ones it inherits - from
+     * {@code config}, seeding what the file lacks.
+     *
+     * @throws BindException when a field's own default breaks a rule declared on that same field
+     */
+    public static void load(ECPluginData ecPluginData, Config config, Object instance) {
+        Class<?> type = instance.getClass();
+        Map<Field, List<RuleSite>> rules = rulesByField(type);
 
-            if (settings != null){
+        for (Field field : settingFields(type)) {
+            ConfigSetting setting = field.getAnnotation(ConfigSetting.class);
+            String key = setting.key();
+            Object defaultValue = valueOf(field, instance);
 
-                Object defValue = null;
-                try {
-                    declaredField.setAccessible(true);
-                    defValue = declaredField.get(instance);
-                } catch (IllegalAccessException ignored) {
-                    ;
-                }
+            if (defaultValue == null) {
+                ecPluginData.getLog().warning("Skipping the ConfigSetting '" + key + "' on "
+                        + type.getSimpleName() + "." + field.getName() + ": the field has no default value, "
+                        + "which is what seeds the file and names the type to read it back as. Initialize it.");
+                continue;
+            }
 
-                if (defValue == null){
-                    ecPluginData.getLog().warning("Failed to load ConfigSetting for [" + instance.getClass().getSimpleName() + " - " + declaredField.toString() + "] As there are no DEFAULT_VALUE set");
-                    continue;
-                }
+            List<RuleSite> sites = sitesOf(rules, field);
+            if (sites.isEmpty() && Modifier.isStatic(field.getModifiers()) && declaresRule(field)) {
+                ecPluginData.getLog().warning("The rules on " + type.getSimpleName() + "." + field.getName()
+                        + " will never be checked: a static field is not a config site. Make it an instance "
+                        + "field, or drop the rule.");
+            }
 
-                String pluginLanguage = ecPluginData.getPluginLanguage();
+            boolean fromFile = config.contains(key);
+            config.setValueIfAbsent(key, defaultValue,
+                    comment(setting, ecPluginData.getPluginLanguage(), sites));
 
-                String comment = settings.comment().length > 0
-                        ? Arrays.stream(settings.comment())
-                            .filter(fcLocale -> fcLocale.lang().equalsIgnoreCase(pluginLanguage))
-                            .findFirst()
-                            .orElse(settings.comment()[0])
-                            .text()
-                        : null;
-
-                Object newValue = null;
-                if (defValue instanceof List){
-                    List<Class<?>> fieldType = getFieldType(declaredField);
-
-                    if (fieldType.size() == 1 && fieldType.get(0) == Integer.class){
-
-                        Object slotObject = config.getValue(settings.key());
-
-                        if (slotObject == null){
-                            List<String> slotsAsString = new ArrayList<>();
-                            for (int i : (List<Integer>) defValue) {
-                                slotsAsString.add(String.valueOf(i));
-                            }
-                            config.setValueIfAbsent(settings.key(), slotsAsString.stream().collect(Collectors.joining(",","[","]"))); //Store slots like "[1,2,3,4,5]"
-                            newValue = defValue;
-                        } else if (slotObject instanceof String){
-                            String slotString = (String) slotObject;
-                            if (!slotString.isEmpty()){
-                                newValue = Arrays.stream(slotString.replace("[", "")
-                                                .replace("]", "")
-                                                .split(","))
-                                        .map(value -> Integer.valueOf(value.trim()))
-                                        .collect(Collectors.toList());
-                                ;
-                            }
-                        }else {
-                            newValue = config.getStringList(settings.key())
-                                    .stream()
-                                    .mapToInt(value -> Integer.valueOf(value.trim()))
-                                    .toArray();
-                        }
-                    }else {
-                        newValue = config.getOrSetValueIfAbsent(settings.key(), (List<? extends Object>) defValue, comment);
-                    }
+            ValueSource source = fromFile ? ValueSource.FILE : ValueSource.DEFAULT;
+            Object value = defaultValue;
+            if (fromFile) {
+                Object stored = storedValue(config, key, field, defaultValue);
+                if (stored == null) {
+                    //A value the file supplied and the read then discarded is still file-sourced: the type
+                    //is already the complaint, and calling it a default would make @Explicit fire on top of it
+                    warnOnce(ecPluginData, type, key, "unreadable",
+                            "The value at '" + key + "' cannot be read as "
+                                    + defaultValue.getClass().getSimpleName() + ". Fix it in the file; "
+                                    + "until then the default " + defaultValue + " is in use.");
                 } else {
-                    newValue = config.getOrSetValueIfAbsent(settings.key(), defValue, comment);
-                }
-
-                Class<? extends ArgParser> parserClass = null;
-
-                if (ArgParser.class == settings.parser()){
-                    //This means the DEFAULT parser, so, we look over the ArgParserManager
-                    parserClass = ArgParserManager.getParser(ECPluginManager.getOrCreateECorePluginData(ecPluginData), defValue.getClass());
-                }else {
-                    parserClass = settings.parser();
-                }
-
-                if (parserClass != null){
-                    ArgInfo argInfo = ArgInfo.standalone(defValue.getClass(), new ArgData().setName(settings.key()).setContext(settings.context()));
-
-                    try {
-                        ArgParser argParser = parserClass.getConstructor(ArgInfo.class).newInstance(argInfo);
-                        newValue = parsedOrDefault(ecPluginData, FCBukkitUtil.adapt(Bukkit.getConsoleSender()),
-                                argParser, argInfo, newValue, defValue, config, settings.key());
-                    } catch (Exception e) {
-                        ecPluginData.getLog().warning("Failed to load ConfigSetting for [" + instance.getClass().getSimpleName() + " - " + declaredField.toString() + "] As the parser failed to be created!");
-                        e.printStackTrace();
-                        continue;
-                    }
-                }
-
-                try {
-                    Class type = declaredField.getType();
-                    if (type == Double.class) newValue = Double.valueOf(((Number) newValue).doubleValue());
-                    if (type == Integer.class) newValue = Integer.valueOf(((Number) newValue).intValue());
-                    if (type == Float.class) newValue = Float.valueOf(((Number) newValue).floatValue());
-
-                    declaredField.set(instance, newValue);
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
+                    value = stored;
                 }
             }
+
+            for (RuleSite site : sites) {
+                RuleEvaluation evaluation = EVALUATOR.evaluate(site, config.getConfigSection(key), value,
+                        source, instance);
+                for (RuleFinding finding : evaluation.findings()) {
+                    if (finding.severity() == RulePolicy.Severity.THROW) {
+                        throw new BindException(finding.message());
+                    }
+                    warnOnce(ecPluginData, type, key, site.rule().annotationType().getName(),
+                            finding.message());
+                }
+                //A handler that corrected has answered its own refusal; one that merely refused leaves the
+                //field's default as the only value left to use
+                value = evaluation.corrected() ? evaluation.value()
+                        : evaluation.findings().isEmpty() ? value : defaultValue;
+            }
+
+            inject(ecPluginData, field, instance, value);
         }
     }
 
     /**
-     * The stored value as the parser reads it, or {@code defValue} when it cannot be read. Split out
-     * of the field loop so the sender that is never messaged is a parameter rather than a lookup on a
-     * running server, and the reporting can be exercised without one.
+     * The {@link ConfigSetting} fields of the whole hierarchy, base class first and in declaration order: a
+     * layout inherits its parent's settings, and the file they seed reads from the base down.
      */
-    static Object parsedOrDefault(ECPluginData ecPluginData, FCommandSender sender, ArgParser argParser,
-                                  ArgInfo argInfo, Object storedValue, Object defValue, Config config, String key) {
-        //A config value, not a command line: there is no dispatch above it, and the ArgInfo is
-        //REQUIRED so an unreadable value means "fix it" instead of null
-        ParseCall call = new ParseCall(sender, new Argumento(String.valueOf(storedValue)), argInfo,
-                null, ResolvedArguments.none(), false);
-
-        ParseOutcome<?> outcome = new ConfigParseEngine(ecPluginData).run(argParser, call);
-
-        if (outcome.isFatal()){
-            ecPluginData.getLog().warning("Using default value for " + new ConfigSection(config, key).toString() + " Fix your Config!");
-            return defValue;
+    private static List<Field> settingFields(Class<?> type) {
+        List<Class<?>> hierarchy = new ArrayList<>();
+        for (Class<?> clazz = type; clazz != null && clazz != Object.class; clazz = clazz.getSuperclass()) {
+            hierarchy.add(0, clazz);
         }
-
-        return outcome.getValueOrNull();
-    }
-
-    private static List<Class<?>> getFieldType(Field field) {
-        try {
-            Type genericType = field.getGenericType();
-
-            if (genericType instanceof ParameterizedType) {
-                ParameterizedType parameterizedType = (ParameterizedType) genericType;
-                Type[] typeArguments = parameterizedType.getActualTypeArguments();
-
-                List<Class<?>> result = new ArrayList<>();
-                for (Type type : typeArguments) {
-                    if (type instanceof Class<?>) {
-                        result.add((Class<?>) type);
-                    }
+        List<Field> fields = new ArrayList<>();
+        for (Class<?> clazz : hierarchy) {
+            for (Field field : clazz.getDeclaredFields()) {
+                if (field.isAnnotationPresent(ConfigSetting.class)) {
+                    fields.add(field);
                 }
-                return result;
             }
-        } catch (Exception ignored) {
-
         }
-        return Collections.emptyList();
+        return fields;
     }
 
+    /** Every rule EveryConfig resolves for the type, indexed by the field carrying it. */
+    private static Map<Field, List<RuleSite>> rulesByField(Class<?> type) {
+        Map<Field, List<RuleSite>> byField = new HashMap<>();
+        for (RuleSite site : RuleModel.of(type, EVALUATOR.engine().selector())) {
+            if (site.kind() != RuleSite.Kind.FIELD) {
+                continue;
+            }
+            List<RuleSite> sites = byField.get(site.field());
+            if (sites == null) {
+                sites = new ArrayList<>();
+                byField.put(site.field(), sites);
+            }
+            sites.add(site);
+        }
+        return byField;
+    }
+
+    private static List<RuleSite> sitesOf(Map<Field, List<RuleSite>> rules, Field field) {
+        List<RuleSite> sites = rules.get(field);
+        return sites != null ? sites : Collections.<RuleSite>emptyList();
+    }
+
+    /** Whether the field declares a rule the engine would claim - asked only where no site exists to
+     *  claim it, so a declaration that can never fire is reported instead of ignored. */
+    private static boolean declaresRule(Field field) {
+        for (Annotation annotation : field.getDeclaredAnnotations()) {
+            if (EVALUATOR.engine().selector().claims(annotation)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * What the file says above the key: the comment written for the plugin's language, then a line per rule
+     * describing itself, so the admin reads "At most 100." without opening any documentation.
+     */
+    private static String comment(ConfigSetting setting, String language, List<RuleSite> sites) {
+        List<String> lines = new ArrayList<>();
+        FCLocale[] comments = setting.comment();
+        if (comments.length > 0) {
+            FCLocale chosen = comments[0];
+            for (FCLocale candidate : comments) {
+                if (candidate.lang().equalsIgnoreCase(language)) {
+                    chosen = candidate;
+                    break;
+                }
+            }
+            lines.add(chosen.text());
+        }
+        for (RuleSite site : sites) {
+            lines.addAll(EVALUATOR.engine().describe(site));
+        }
+        return lines.isEmpty() ? null : String.join("\n", lines);
+    }
+
+    /**
+     * The stored value read as the default's own type, or null when the file holds something that cannot be
+     * read as it. A list is read element-typed - from the field's type argument, since the default may be
+     * empty - and an empty list IS an answer, because emptying a list is how an admin removes every entry.
+     */
+    private static Object storedValue(Config config, String key, Field field, Object defaultValue) {
+        if (defaultValue instanceof List) {
+            List<?> stored = config.getList(key, elementType(field, (List<?>) defaultValue));
+            if (!stored.isEmpty()) {
+                return stored;
+            }
+            JsonNode node = config.getNode(key);
+            return node != null && node.isArray() ? stored : null;
+        }
+        return config.getValue(key, defaultValue.getClass());
+    }
+
+    /** The declared type argument of a list field, falling back to what the default holds and finally to
+     *  {@code Object} - the same fallback EveryConfig's own seeding uses for an untyped default. */
+    private static Class<?> elementType(Field field, List<?> defaultValue) {
+        Type generic = field.getGenericType();
+        if (generic instanceof ParameterizedType) {
+            Type[] arguments = ((ParameterizedType) generic).getActualTypeArguments();
+            if (arguments.length == 1 && arguments[0] instanceof Class) {
+                return (Class<?>) arguments[0];
+            }
+        }
+        return defaultValue.isEmpty() ? Object.class : defaultValue.get(0).getClass();
+    }
+
+    private static Object valueOf(Field field, Object instance) {
+        try {
+            field.setAccessible(true);
+            return field.get(instance);
+        } catch (Exception unreadable) {
+            return null;
+        }
+    }
+
+    private static void inject(ECPluginData ecPluginData, Field field, Object instance, Object value) {
+        try {
+            field.setAccessible(true);
+            field.set(instance, value);
+        } catch (Exception unwritable) {
+            ecPluginData.getLog().warning("Could not write " + instance.getClass().getSimpleName() + "."
+                    + field.getName() + ": " + unwritable);
+        }
+    }
+
+    /** Warn once per site, not once per load: the same broken line on every reload teaches nothing new. */
+    private static void warnOnce(ECPluginData ecPluginData, Class<?> type, String key, String about,
+                                 String message) {
+        if (WARNED.add(type.getName() + '#' + key + '#' + about)) {
+            ecPluginData.getLog().warning(message);
+        }
+    }
 }

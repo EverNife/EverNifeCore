@@ -1,16 +1,19 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.cfg;
 
-import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgData;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgRequirementType;
-import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserNumber;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
-import br.com.finalcraft.evernifecore.testing.Logs;
-import br.com.finalcraft.evernifecore.testing.TestCommandSender;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
+import br.com.finalcraft.evernifecore.testing.Platforms;
+import br.com.finalcraft.evernifecore.testing.Plugins;
+import br.com.finalcraft.everyconfig.binding.BindException;
 import br.com.finalcraft.everyconfig.config.Config;
+import br.com.finalcraft.everyconfig.ruleset.Explicit;
+import br.com.finalcraft.everyconfig.ruleset.OneOf;
+import br.com.finalcraft.everyconfig.ruleset.OneOfSource;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,98 +21,228 @@ import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The same parsers a command line uses, reading a config file. A value nobody can read is an error in
- * the file, so it is reported where a file error belongs - the owning plugin's log - and never as a
- * chat message aimed at whoever happens to be holding the console.
+ * The file decides the value and the field decides what the value has to mean. A file the admin got wrong
+ * costs a line in the log; a default the developer got wrong costs the boot.
+ *
+ * <p>Every scenario that reads the log declares its own settings class: the scanner warns once per site for
+ * the whole JVM, so two tests sharing a key would race for the single warning it produces.
  */
 class SettingsScannerTest {
+
+    private static final AtomicInteger UNIQUE_SUFFIX = new AtomicInteger();
+
+    /** The whole vocabulary at once: a bounded number, a set only the running server knows, and a value the
+     *  operator has to write down instead of inheriting. */
+    static class ShopSettings {
+
+        @ConfigSetting(key = "Settings.taxRate", comment = @FCLocale(text = "Cut kept from every sale"))
+        @Min(0)
+        @Max(1)
+        public Double taxRate = 0.05D;
+
+        @ConfigSetting(key = "Settings.world", comment = @FCLocale(text = "Where the shop stands"))
+        @OneOf(provider = LoadedWorlds.class)
+        public String world = "world";
+
+        @ConfigSetting(key = "Settings.apiToken")
+        @Explicit
+        public String apiToken = "";
+    }
+
+    /** A set that exists only while the server runs - the case an enum cannot cover. */
+    public static final class LoadedWorlds implements OneOfSource {
+
+        @Override
+        public Collection<String> values() {
+            return Arrays.asList("world", "world_nether");
+        }
+    }
+
+    static class BaseSettings {
+
+        @ConfigSetting(key = "Settings.title")
+        public String title = "Shop";
+    }
+
+    static class InheritedSettings extends BaseSettings {
+
+        @ConfigSetting(key = "Settings.rows")
+        public Integer rows = 6;
+    }
+
+    static class ListSettings {
+
+        @ConfigSetting(key = "Settings.levels")
+        public List<Integer> levels = Arrays.asList(1, 2, 3);
+    }
+
+    static class TypedSettings {
+
+        @ConfigSetting(key = "Gui.rows")
+        public Integer rows = 3;
+    }
+
+    static class TokenSettings {
+
+        @ConfigSetting(key = "Settings.token")
+        @Explicit
+        public String token = "";
+    }
+
+    static class BrokenDefault {
+
+        @ConfigSetting(key = "Settings.chance")
+        @Max(100)
+        public Integer chance = 150;
+    }
 
     //NEVER: see RegistrationSystemTest - the locale bootstrap's async saveAsync() can race JUnit's
     //default @TempDir cleanup on Windows.
     @TempDir(cleanup = CleanupMode.NEVER)
     Path tempDir;
 
-    private FinalCmdTestHarness harness;
-    private TestCommandSender console;
+    private ECoreTestWorld world;
+    private ECPluginData ecPluginData;
     private Config config;
 
     @BeforeEach
     void setup() {
-        harness = new FinalCmdTestHarness("SettingsScanner", tempDir);
-        console = new TestCommandSender("console");
+        world = Platforms.lenient().install().withPluginExtractor(
+                Plugins.fake("SettingsScanner_" + UNIQUE_SUFFIX.incrementAndGet(), tempDir.toFile()));
+        ecPluginData = ECPluginManager.getOrCreateECorePluginData(new Object());
         config = ConfigFactory.open((ECPluginData) null, tempDir.resolve("settings.yml").toFile());
     }
 
     @AfterEach
     void teardown() {
-        if (harness != null) harness.close();
-    }
-
-    private static ArgInfo integerSetting(String key) {
-        return ArgInfo.standalone(Integer.class, new ArgData().setName(key).setContext(""));
+        if (world != null) world.close();
     }
 
     @Test
-    void anUnreadableValueIsLoggedAndTheDefaultIsKept() {
-        ArgInfo argInfo = integerSetting("gui.rows");
-        ArgParser parser = new ArgParserNumber(argInfo);
+    void aFreshFileIsSeededWithTheDefaultAndWithWhatEachRuleDocuments() {
+        ShopSettings settings = new ShopSettings();
 
-        List<String> logged = Logs.capture(() -> {
-            Object value = SettingsScanner.parsedOrDefault(harness.ecPluginData, console, parser, argInfo,
-                    "notanumber", 3, config, "gui.rows");
+        SettingsScanner.load(ecPluginData, config, settings);
 
-            assertEquals(3, value, "a value the parser cannot read falls back to the declared default");
-        });
+        assertEquals(0.05D, settings.taxRate);
+        assertEquals(0.05D, config.getDouble("Settings.taxRate"));
 
-        assertTrue(console.getMessages().isEmpty(),
-                "a broken config line is not chat, and the console sender got: " + console.getMessages());
-        assertTrue(anyContains(logged, "needs to be an integer"),
-                "the parser's own reason belongs in the log: " + logged);
-        assertTrue(anyContains(logged, "Fix your Config!"),
-                "and so does which setting fell back: " + logged);
+        String comment = config.getComment("Settings.taxRate");
+        assertTrue(comment.contains("Cut kept from every sale"), comment);
+        assertTrue(comment.contains("At least 0."), "a rule documents itself in the file: " + comment);
+        assertTrue(comment.contains("At most 1."), comment);
     }
 
     @Test
-    void aValueOutOfTheDeclaredRangeIsLoggedAndTheDefaultIsKept() {
-        ArgInfo argInfo = ArgInfo.standalone(Integer.class, new ArgData().setName("gui.rows").setContext("[1:5]"));
-        ArgParser parser = new ArgParserNumber(argInfo);
+    void whatTheFileSaysWinsOverTheDefault() {
+        config.setValue("Settings.taxRate", 0.2D);
+        ShopSettings settings = new ShopSettings();
 
-        List<String> logged = Logs.capture(() -> {
-            Object value = SettingsScanner.parsedOrDefault(harness.ecPluginData, console, parser, argInfo,
-                    "9", 3, config, "gui.rows");
+        SettingsScanner.load(ecPluginData, config, settings);
 
-            assertEquals(3, value);
-        });
-
-        assertTrue(console.getMessages().isEmpty(),
-                "a refusal reports the same way a miss does: " + console.getMessages());
-        assertTrue(anyContains(logged, "Fix your Config!"), logged.toString());
+        assertEquals(0.2D, settings.taxRate);
     }
 
     @Test
-    void aReadableValueIsParsedWithoutSayingAnythingToAnybody() {
-        ArgInfo argInfo = integerSetting("gui.rows");
-        ArgParser parser = new ArgParserNumber(argInfo);
+    void aFileValueARuleRefusesIsLoggedAtItsOwnKeyAndTheDefaultIsKept() {
+        config.setValue("Settings.taxRate", 1.5D);
+        ShopSettings settings = new ShopSettings();
 
-        List<String> logged = Logs.capture(() -> {
-            Object value = SettingsScanner.parsedOrDefault(harness.ecPluginData, console, parser, argInfo,
-                    "4", 3, config, "gui.rows");
+        SettingsScanner.load(ecPluginData, config, settings);
 
-            assertEquals(4, ((Number) value).intValue());
-        });
-
-        assertTrue(console.getMessages().isEmpty());
-        assertTrue(!anyContains(logged, "Fix your Config!"), "nothing fell back: " + logged);
+        assertEquals(0.05D, settings.taxRate, "the refused value never reaches the field");
+        assertTrue(anyContains("at 'Settings.taxRate' rejects the file value '1.5'"),
+                "the message names the key the admin will look for: " + world.platform().getLoggedMessages());
     }
 
-    private static boolean anyContains(List<String> lines, String fragment) {
-        for (String line : lines) {
+    @Test
+    void aRuntimeSetIsAskedWhileTheServerRuns() {
+        ShopSettings accepted = new ShopSettings();
+        config.setValue("Settings.world", "world_nether");
+        SettingsScanner.load(ecPluginData, config, accepted);
+        assertEquals("world_nether", accepted.world);
+
+        ShopSettings refused = new ShopSettings();
+        config.setValue("Settings.world", "the_end");
+        SettingsScanner.load(ecPluginData, config, refused);
+
+        assertEquals("world", refused.world);
+        assertTrue(anyContains("at 'Settings.world' rejects the file value 'the_end'"),
+                world.platform().getLoggedMessages().toString());
+    }
+
+    @Test
+    void aValueTheDeclaredTypeCannotReadFallsBackToTheDefault() {
+        config.setValue("Gui.rows", "notanumber");
+        TypedSettings settings = new TypedSettings();
+
+        SettingsScanner.load(ecPluginData, config, settings);
+
+        assertEquals(3, settings.rows);
+        assertTrue(anyContains("cannot be read as Integer"), world.platform().getLoggedMessages().toString());
+    }
+
+    @Test
+    void aValueThatHasToBeWrittenDownIsAskedForWithoutStoppingTheBoot() {
+        TokenSettings settings = new TokenSettings();
+
+        SettingsScanner.load(ecPluginData, config, settings);
+
+        assertEquals("", settings.token);
+        assertTrue(anyContains("must be set in the config file"),
+                world.platform().getLoggedMessages().toString());
+    }
+
+    @Test
+    void aDefaultThatBreaksItsOwnRuleIsACodeDefectAndThrows() {
+        BindException failure = assertThrows(BindException.class,
+                () -> SettingsScanner.load(ecPluginData, config, new BrokenDefault()));
+
+        assertTrue(failure.getMessage().contains("code defect"), failure.getMessage());
+        assertTrue(failure.getMessage().contains("BrokenDefault.chance"), failure.getMessage());
+    }
+
+    @Test
+    void settingsAreInheritedFromTheBaseClass() {
+        config.setValue("Settings.title", "Bazaar");
+        InheritedSettings settings = new InheritedSettings();
+
+        SettingsScanner.load(ecPluginData, config, settings);
+
+        assertEquals("Bazaar", settings.title);
+        assertEquals(6, settings.rows);
+    }
+
+    @Test
+    void aListIsReadBackElementTypedAndEmptyingItIsAnAnswer() {
+        ListSettings seeded = new ListSettings();
+        SettingsScanner.load(ecPluginData, config, seeded);
+        assertEquals(Arrays.asList(1, 2, 3), seeded.levels);
+
+        config.setValue("Settings.levels", Arrays.asList(4, 5));
+        ListSettings edited = new ListSettings();
+        SettingsScanner.load(ecPluginData, config, edited);
+        assertEquals(Arrays.asList(4, 5), edited.levels);
+
+        config.setValue("Settings.levels", Collections.emptyList());
+        ListSettings emptied = new ListSettings();
+        SettingsScanner.load(ecPluginData, config, emptied);
+        assertEquals(Collections.emptyList(), emptied.levels, "erasing every entry means none, not the default");
+    }
+
+    private boolean anyContains(String fragment) {
+        for (String line : world.platform().getLoggedMessages()) {
             if (line.contains(fragment)) {
                 return true;
             }
