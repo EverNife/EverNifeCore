@@ -74,10 +74,11 @@ public interface IECPluginBootstrap {
      * Optional shutdown extras that run BEFORE the shared teardown. The default unregisters every
      * listener this plugin registered through {@link ECListener#register}, and every command it
      * registered through {@link FinalCMDManager}, so the plugin stops receiving events/commands before
-     * {@link #onECPluginShutdown()} closes the resources those touch. A class that overrides this
-     * replaces that cleanup, so it should call {@code ECListener.unregisterAll(getPluginData())} and
-     * {@code FinalCMDManager.unregisterAllCommands(getPluginData())} (or
-     * {@code IECPluginBootstrap.super.onECPluginShutdownPre()}) itself if it still wants it.
+     * {@link #onECPluginShutdown()} closes the resources those touch. An override REPLACES that
+     * cleanup, so it has to ask for it back: {@code super.onECPluginShutdownPre()} from a subclass of
+     * a base that already implements this interface ({@code ECBukkitPlugin}, {@code ECHytalePlugin}),
+     * or {@code IECPluginBootstrap.super.onECPluginShutdownPre()} only from a class that implements
+     * it directly - the qualified form does not compile anywhere else.
      */
     public default void onECPluginShutdownPre() {
         ECListener.unregisterAll(getPluginData());
