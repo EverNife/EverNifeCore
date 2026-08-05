@@ -2,12 +2,14 @@ package br.com.finalcraft.evernifecore.minecraft.gui.view;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.minecraft.gui.Gui;
+import br.com.finalcraft.evernifecore.minecraft.gui.component.GuiComponent;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.Cancellable;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.ClickPolicy;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.GuiGeometry;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.Region;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.SlotSet;
+import br.com.finalcraft.evernifecore.minecraft.gui.state.WatchState;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.entity.Player;
@@ -16,41 +18,62 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /**
  * One viewer's copy of a {@link Gui}: the container, the buffer that decides what to write into it,
- * the tasks that belong to it and the click bookkeeping.
+ * the components with their state, the tasks that belong to it and the click bookkeeping.
  *
  * <p>A view exists only while the window is open. Closing it cancels every task it scheduled, drops
  * every state subscription it took and releases the {@code Player}, in that order and without
  * waiting for a garbage collector.</p>
+ *
+ * <p>Everything a screen changes lands in the buffer first and reaches the container once per tick,
+ * so any number of state changes inside one tick cost one pass and only over the slots that differ.</p>
  */
 public final class GuiView {
+
+    /** Icons declared straight on the gui sit here; each component gets its own layer above it. */
+    private static final int FIRST_COMPONENT_LAYER = Region.LAYER_CONTENT + 1;
 
     private final Gui gui;
     private final UUID viewerId;
     private final String viewerName;
-    private final GuiSurface surface;
     private final GuiGeometry geometry;
     private final GuiBuffer buffer;
     private final GuiScheduler scheduler;
 
+    private final List<GuiComponent> components = new ArrayList<>();
+    private final Set<GuiComponent> dirtyComponents = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final List<WatchState<?>> watches = new ArrayList<>();
+    private final Map<Gui.IconBinding, Icon> animatedIcons = new IdentityHashMap<>();
+    private final TreeMap<Integer, Icon[]> iconLayers = new TreeMap<>();
+
     private final List<Cancellable> tasks = new ArrayList<>();
     private final List<Cancellable> subscriptions = new ArrayList<>();
 
+    private GuiSurface surface;
     private Player viewer;
-    private Icon[] slotIcons;
-    private int[] slotIconLayers;
     private Region[] slotRegions;
+    private String currentTitle;
 
+    private Cancellable watchTask;
     private Cancellable pendingCommit;
+    private boolean staticIconsDirty = true;
+    private boolean swappingSurface = false;
     private long clickToken = 0L;
     private long lastAcceptedClickAt = 0L;
     private boolean closed = false;
 
-    GuiView(Gui gui, Player viewer, GuiSurface surface, GuiScheduler scheduler) {
+    GuiView(Gui gui, Player viewer, GuiSurface surface, GuiScheduler scheduler, String title) {
         this.gui = gui;
         this.viewer = viewer;
         this.viewerId = viewer.getUniqueId();
@@ -59,6 +82,32 @@ public final class GuiView {
         this.geometry = new GuiGeometry(gui.getType(), surface.getSize());
         this.buffer = new GuiBuffer(surface.getSize());
         this.scheduler = scheduler;
+        this.currentTitle = title;
+    }
+
+    /** Builds the components and arms whatever they asked to be armed. Runs once, right after opening. */
+    void start() {
+        for (Gui.IconBinding binding : gui.getIconBindings()) {
+            Icon icon = binding.getIcon();
+            if (!icon.isAnimated()) {
+                continue;
+            }
+            Icon owned = icon.copy();
+            animatedIcons.put(binding, owned);
+            repeat(icon.getEveryTicks(), () -> {
+                owned.runRenderer();
+                staticIconsDirty = true;
+                scheduleCommit();
+            });
+        }
+
+        int layer = FIRST_COMPONENT_LAYER;
+        for (Consumer<GuiComponent> declaration : gui.getComponentDeclarations()) {
+            GuiComponent component = new GuiComponent(this, layer++);
+            components.add(component);
+            declaration.accept(component);
+            component.start();
+        }
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -106,6 +155,17 @@ public final class GuiView {
         return scheduler;
     }
 
+    @Nonnull
+    public List<GuiComponent> getComponents() {
+        return Collections.unmodifiableList(components);
+    }
+
+    /** The title the container was opened with. It changes only when the surface is swapped. */
+    @Nonnull
+    public String getCurrentTitle() {
+        return currentTitle;
+    }
+
     public boolean isClosed() {
         return closed;
     }
@@ -117,10 +177,19 @@ public final class GuiView {
                 && ((BukkitGuiSurface) surface).getInventory() == inventory;
     }
 
-    /** The icon painted at {@code slot}, or {@code null}. */
+    /** The icon painted at {@code slot} - the topmost layer that put one there - or {@code null}. */
     @Nullable
     public Icon getIconAt(int slot) {
-        return slotIcons != null && slot >= 0 && slot < slotIcons.length ? slotIcons[slot] : null;
+        if (!geometry.isInside(slot)) {
+            return null;
+        }
+        for (Map.Entry<Integer, Icon[]> entry : iconLayers.descendingMap().entrySet()) {
+            Icon icon = entry.getValue()[slot];
+            if (icon != null) {
+                return icon;
+            }
+        }
+        return null;
     }
 
     /** The policy ruling {@code slot}: the region's when one claims it, the gui's otherwise. */
@@ -133,18 +202,44 @@ public final class GuiView {
     }
 
     // -----------------------------------------------------------------------------------------------------------------
-    //  Rendering
+    //  Painting
     // -----------------------------------------------------------------------------------------------------------------
 
-    /** Renders every icon into the buffer. Does not touch the container - {@link #commitNow()} does. */
+    /** Paints one icon over every slot of {@code slots}, on {@code layer}. */
+    public void paint(int layer, @Nonnull SlotSet slots, @Nonnull Icon icon) {
+        if (!icon.isVisibleTo(viewer)) {
+            return;
+        }
+        ItemStack rendered = icon.getItemStack();
+        for (Integer slot : slots.resolve(geometry)) {
+            if (!geometry.isInside(slot)) {
+                EverNifeCore.getLog().warning("A gui icon was bound to slot " + slot + ", outside a "
+                        + geometry + ". The icon was skipped.");
+                continue;
+            }
+            buffer.write(layer, slot, rendered);
+            iconsOf(layer)[slot] = icon;
+        }
+    }
+
+    /** Erases one layer: its items and its icons, everywhere. */
+    public void clearLayer(int layer) {
+        buffer.clearLayer(layer);
+        iconLayers.remove(layer);
+    }
+
+    /** Renders everything: the icons declared on the gui, then every component. */
     public void render() {
-        slotIcons = new Icon[geometry.getSize()];
-        slotIconLayers = new int[geometry.getSize()];
+        renderStaticIcons();
+        for (GuiComponent component : components) {
+            component.renderNow();
+        }
+        dirtyComponents.clear();
+    }
+
+    private void renderStaticIcons() {
+        staticIconsDirty = false;
         slotRegions = new Region[geometry.getSize()];
-
-        buffer.clearLayer(Region.LAYER_BACKGROUND);
-        buffer.clearLayer(Region.LAYER_CONTENT);
-
         for (Region region : gui.getRegions().values()) {
             for (Integer slot : region.getSlots().resolve(geometry)) {
                 if (geometry.isInside(slot)) {
@@ -153,49 +248,90 @@ public final class GuiView {
             }
         }
 
+        clearLayer(Region.LAYER_BACKGROUND);
+        clearLayer(Region.LAYER_CONTENT);
         for (Gui.IconBinding binding : gui.getIconBindings()) {
-            Icon icon = binding.getIcon();
-            if (!icon.isVisibleTo(viewer)) {
-                continue;
-            }
-            int layer = icon.isBackground() ? Region.LAYER_BACKGROUND : Region.LAYER_CONTENT;
-            ItemStack rendered = icon.getItemStack();
-            for (Integer slot : binding.getSlots().resolve(geometry)) {
-                if (!geometry.isInside(slot)) {
-                    EverNifeCore.getLog().warning("Gui icon bound to slot " + slot + ", outside a "
-                            + geometry + ". The icon was skipped.");
-                    continue;
-                }
-                buffer.write(layer, slot, rendered);
-                if (slotIcons[slot] == null || layer >= slotIconLayers[slot]) {
-                    slotIcons[slot] = icon;
-                    slotIconLayers[slot] = layer;
-                }
-            }
+            Icon icon = animatedIcons.containsKey(binding) ? animatedIcons.get(binding) : binding.getIcon();
+            paint(icon.isBackground() ? Region.LAYER_BACKGROUND : Region.LAYER_CONTENT,
+                    binding.getSlots(), icon);
         }
     }
 
-    /** Renders again and schedules the commit. The commit still writes only what changed. */
+    private Icon[] iconsOf(int layer) {
+        Icon[] icons = iconLayers.get(layer);
+        if (icons == null) {
+            icons = new Icon[geometry.getSize()];
+            iconLayers.put(layer, icons);
+        }
+        return icons;
+    }
+
+    /** Renders every component again and schedules the commit. The commit still writes only what changed. */
     public void refresh() {
         if (closed) {
             return;
         }
-        render();
+        staticIconsDirty = true;
+        for (GuiComponent component : components) {
+            dirtyComponents.add(component);
+        }
+        scheduleCommit();
+    }
+
+    /** Marks one component for a re-render on the next tick. */
+    public void markComponentDirty(@Nonnull GuiComponent component) {
+        if (closed) {
+            return;
+        }
+        dirtyComponents.add(component);
         scheduleCommit();
     }
 
     /**
-     * Asks for a commit on the next tick, once. Every change made in the same tick lands in the same
+     * Asks for a pass on the next tick, once. Every change made in the same tick lands in the same
      * write, and a screen nobody is changing schedules nothing.
      */
-    public void scheduleCommit() {
+    public synchronized void scheduleCommit() {
         if (closed || pendingCommit != null) {
             return;
         }
-        pendingCommit = scheduler.later(1L, () -> {
+        pendingCommit = scheduler.later(1L, this::runPass);
+    }
+
+    private void runPass() {
+        synchronized (this) {
             pendingCommit = null;
+        }
+        if (closed) {
+            return;
+        }
+        try {
+            if (staticIconsDirty) {
+                renderStaticIcons();
+            }
+            if (!dirtyComponents.isEmpty()) {
+                List<GuiComponent> pending = new ArrayList<>(dirtyComponents);
+                dirtyComponents.removeAll(pending);
+                for (GuiComponent component : pending) {
+                    component.renderNow();
+                }
+            }
+            applyTitleIfChanged();
             commitNow();
-        });
+        } catch (Throwable e) {
+            EverNifeCore.getLog().severe("A gui render pass failed for [" + viewerName + "]: " + e);
+            e.printStackTrace();
+        }
+    }
+
+    private void applyTitleIfChanged() {
+        String wanted = gui.getTitle();
+        if (wanted.equals(currentTitle)) {
+            return;
+        }
+        if (GuiViews.swapSurfaceForTitle(this, wanted)) {
+            currentTitle = wanted;
+        }
     }
 
     /** Writes the slots whose rendered output changed, right now. Main thread only. */
@@ -239,6 +375,28 @@ public final class GuiView {
         subscriptions.add(subscription);
     }
 
+    /**
+     * Polls a watched value once per tick. One task serves every watch of the view, and it exists
+     * only while at least one watch does - a screen with no watch polls nothing.
+     */
+    public void addWatch(@Nonnull WatchState<?> watch) {
+        watches.add(watch);
+        if (watchTask == null) {
+            watchTask = repeat(1L, this::pollWatches);
+        }
+    }
+
+    private void pollWatches() {
+        for (WatchState<?> watch : watches) {
+            try {
+                watch.poll();
+            } catch (Throwable e) {
+                EverNifeCore.getLog().severe("A gui watch failed for [" + viewerName + "]: " + e);
+                e.printStackTrace();
+            }
+        }
+    }
+
     // -----------------------------------------------------------------------------------------------------------------
     //  Clicks
     // -----------------------------------------------------------------------------------------------------------------
@@ -268,6 +426,29 @@ public final class GuiView {
 
     ClickContext newClickContext(long token, int slot, ClickType clickType, ItemStack cursor, Icon icon) {
         return new ClickContext(this, token, slot, clickType, cursor, icon);
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Surface swap - the reopen a title change costs
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /** True while the container is being replaced, so the close it causes is not a real close. */
+    boolean isSwappingSurface() {
+        return swappingSurface;
+    }
+
+    void beginSurfaceSwap() {
+        this.swappingSurface = true;
+    }
+
+    void endSurfaceSwap() {
+        this.swappingSurface = false;
+    }
+
+    /** Adopts the replacement container. It starts empty, so everything is written again. */
+    void adoptSurface(GuiSurface newSurface) {
+        this.surface = newSurface;
+        buffer.forgetCommitted();
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -308,10 +489,13 @@ public final class GuiView {
             task.cancel();
         }
         tasks.clear();
+        watchTask = null;
+        watches.clear();
         for (Cancellable subscription : subscriptions) {
             subscription.cancel();
         }
         subscriptions.clear();
+        dirtyComponents.clear();
 
         try {
             if (gui.getOnClose() != null) {
@@ -323,9 +507,10 @@ public final class GuiView {
         }
 
         this.viewer = null;
-        this.slotIcons = null;
-        this.slotIconLayers = null;
         this.slotRegions = null;
+        this.iconLayers.clear();
+        this.animatedIcons.clear();
+        this.components.clear();
     }
 
     /** What the container holds at those slots right now. */

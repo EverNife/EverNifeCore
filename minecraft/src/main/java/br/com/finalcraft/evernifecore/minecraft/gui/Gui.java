@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.gui;
 
+import br.com.finalcraft.evernifecore.minecraft.gui.component.GuiComponent;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.ClickPolicy;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.GuiGeometry;
@@ -47,6 +48,7 @@ public class Gui {
     private long debounceMillis = DEFAULT_DEBOUNCE_MILLIS;
 
     private final List<IconBinding> iconBindings = new ArrayList<>();
+    private final List<Consumer<GuiComponent>> componentDeclarations = new ArrayList<>();
     private final Map<String, Region> regions = new LinkedHashMap<>();
     private Consumer<CloseContext> onClose;
 
@@ -80,9 +82,11 @@ public class Gui {
     /**
      * A title read again on every render, so it can carry a page number or a filter.
      *
-     * <p>A title change costs a reopen: the vanilla protocol has no way to rename an open window and
-     * this framework does not go to NMS for one. The screen the player is looking at is preserved -
-     * only the container is replaced.</p>
+     * <p><b>A title change costs a reopen.</b> The vanilla protocol has no way to rename an open
+     * window, and renaming one through NMS would mean a per-version module matrix this framework
+     * deliberately does not carry. So the container is replaced and the player sees one frame of
+     * flicker; the view itself survives - component state, scheduled tasks and the back stack are
+     * all preserved. A screen whose title changes on every tick will flicker on every tick.</p>
      */
     @Nonnull
     public Gui title(@Nonnull Supplier<String> title) {
@@ -104,6 +108,23 @@ public class Gui {
                     + "To leave a slot empty, simply do not bind an icon to it.");
         }
         iconBindings.add(new IconBinding(slots, icon));
+        return this;
+    }
+
+    /**
+     * Declares a group of slots that render together and re-render alone.
+     *
+     * <p>The lambda runs once per viewer, when their view is built, so a state created inside it
+     * with {@code c.remember(...)} belongs to that player. State meant to be shared lives outside,
+     * in a {@code State.of(...)} that several components remember.</p>
+     */
+    @Nonnull
+    public Gui component(@Nonnull Consumer<GuiComponent> declaration) {
+        if (declaration == null) {
+            throw new IllegalArgumentException("A component needs a declaration - the lambda that "
+                    + "remembers its state and says what it renders.");
+        }
+        componentDeclarations.add(declaration);
         return this;
     }
 
@@ -212,6 +233,11 @@ public class Gui {
     @Nonnull
     public List<IconBinding> getIconBindings() {
         return Collections.unmodifiableList(iconBindings);
+    }
+
+    @Nonnull
+    public List<Consumer<GuiComponent>> getComponentDeclarations() {
+        return Collections.unmodifiableList(componentDeclarations);
     }
 
     @Nonnull

@@ -1,11 +1,15 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.layout;
 
 import br.com.finalcraft.evernifecore.minecraft.gui.view.ClickContext;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder.FCItemBuilder;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -25,6 +29,8 @@ public class Icon {
     private String permission = "";
     private boolean background = false;
     private Consumer<ClickContext> onClick;
+    private long everyTicks = 0L;
+    private Consumer<Icon> renderer;
 
     public Icon(@Nonnull ItemStack itemStack) {
         setItemStack(itemStack);
@@ -108,13 +114,86 @@ public class Icon {
         return this;
     }
 
-    /** An independent copy: same stack, same permission, same handler, no shared mutable state. */
+    /**
+     * Redraws this icon every {@code ticks} while a view showing it is open - {@code every(20)} is
+     * once a second, not ten times. The task belongs to that view and is cancelled when it closes;
+     * an icon nobody is looking at costs nothing.
+     */
+    @Nonnull
+    public Icon every(long ticks) {
+        this.everyTicks = Math.max(0L, ticks);
+        return this;
+    }
+
+    /** What {@link #every(long)} runs: it edits the icon, and the changed slots are repainted. */
+    @Nonnull
+    public Icon render(@Nullable Consumer<Icon> renderer) {
+        this.renderer = renderer;
+        return this;
+    }
+
+    public long getEveryTicks() {
+        return everyTicks;
+    }
+
+    @Nullable
+    public Consumer<Icon> getRenderer() {
+        return renderer;
+    }
+
+    /** Whether this icon redraws itself on a timer, which is what makes a view keep a copy of it. */
+    public boolean isAnimated() {
+        return everyTicks > 0 && renderer != null;
+    }
+
+    public void runRenderer() {
+        if (renderer != null) {
+            renderer.accept(this);
+        }
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Editing the item - the same vocabulary as the factory, so a render function needs no second type
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /** Runs the full item factory over this icon's stack and keeps the result. */
+    @Nonnull
+    public Icon edit(@Nonnull Consumer<FCItemBuilder> edit) {
+        FCItemBuilder builder = FCItemFactory.from(itemStack);
+        edit.accept(builder);
+        setItemStack(builder.build());
+        return this;
+    }
+
+    @Nonnull
+    public Icon displayName(@Nonnull String displayName) {
+        return edit(builder -> builder.displayName(displayName));
+    }
+
+    @Nonnull
+    public Icon lore(@Nonnull String... lore) {
+        return lore(Arrays.asList(lore));
+    }
+
+    @Nonnull
+    public Icon lore(@Nonnull List<String> lore) {
+        return edit(builder -> builder.lore(lore));
+    }
+
+    @Nonnull
+    public Icon amount(int amount) {
+        return edit(builder -> builder.amount(amount));
+    }
+
+    /** An independent copy: same stack, same permission, same handlers, no shared mutable state. */
     @Nonnull
     public Icon copy() {
         Icon copy = new Icon(itemStack);
         copy.permission = this.permission;
         copy.background = this.background;
         copy.onClick = this.onClick;
+        copy.everyTicks = this.everyTicks;
+        copy.renderer = this.renderer;
         return copy;
     }
 

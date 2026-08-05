@@ -75,6 +75,13 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
         return asIcon().onClick(onClick);
     }
 
+    /** Ends the chain as an {@link Icon} that redraws itself every {@code ticks} - pair it with
+     *  {@link Icon#render(Consumer)}. */
+    @Nonnull
+    public Icon every(long ticks) {
+        return asIcon().every(ticks);
+    }
+
     /**
      * Returns a LayoutIcon object that contains the ItemStack of this ItemBuilder.
      *

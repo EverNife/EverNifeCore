@@ -105,6 +105,14 @@ public final class GuiBuffer {
         dirty.set(0, size);
     }
 
+    /** Forgets what was written, because the container it was written into is gone (a surface swap). */
+    public void forgetCommitted() {
+        for (int slot = 0; slot < size; slot++) {
+            committed[slot] = null;
+        }
+        markAllDirty();
+    }
+
     /**
      * Writes the slots whose rendered output changed, and only those.
      *

@@ -73,19 +73,12 @@ public final class GuiViews {
                 return;
             }
 
-            Inventory inventory = createInventory(gui);
-            GuiView view = new GuiView(gui, player, new BukkitGuiSurface(inventory), BukkitGuiScheduler.INSTANCE);
+            String title = trimTitle(gui.getTitle());
+            Inventory inventory = createInventory(gui, title);
+            GuiView view = new GuiView(gui, player, new BukkitGuiSurface(inventory),
+                    BukkitGuiScheduler.INSTANCE, gui.getTitle());
 
-            PendingOpen previous = pending;
-            PendingOpen attempt = new PendingOpen(player.getUniqueId(), inventory);
-            pending = attempt;
-            try {
-                player.openInventory(inventory);
-            } finally {
-                pending = previous;
-            }
-
-            if (!attempt.confirmed) {
+            if (!attemptOpen(player, inventory)) {
                 refuse(gui, player, future, "the server did not open the window "
                         + "(the player may be sleeping or leaving, or another plugin cancelled the open)");
                 return;
@@ -96,6 +89,7 @@ public final class GuiViews {
                 displaced.release(CloseReason.REQUESTED);
             }
 
+            view.start();
             view.render();
             view.commitNow();
             future.complete(view);
@@ -112,8 +106,48 @@ public final class GuiViews {
         future.completeExceptionally(new IllegalStateException(message));
     }
 
-    private static Inventory createInventory(Gui gui) {
-        String title = trimTitle(gui.getTitle());
+    /** Opens {@code inventory} and answers whether the server confirmed it through its own event. */
+    private static boolean attemptOpen(Player player, Inventory inventory) {
+        PendingOpen previous = pending;
+        PendingOpen attempt = new PendingOpen(player.getUniqueId(), inventory);
+        pending = attempt;
+        try {
+            player.openInventory(inventory);
+        } finally {
+            pending = previous;
+        }
+        return attempt.confirmed;
+    }
+
+    /**
+     * Replaces a view's container with one carrying {@code title}, which is the only way to rename a
+     * window without NMS. The view itself survives - state, tasks and subscriptions all stay - and
+     * the close the replacement causes is not reported as a close.
+     *
+     * @return whether the replacement window actually opened; on a refusal the view keeps the old one
+     */
+    static boolean swapSurfaceForTitle(GuiView view, String title) {
+        Player player = view.getViewer();
+        if (player == null || !player.isOnline()) {
+            return false;
+        }
+
+        Inventory inventory = createInventory(view.getGui(), trimTitle(title));
+        view.beginSurfaceSwap();
+        try {
+            if (!attemptOpen(player, inventory)) {
+                EverNifeCore.getLog().warning("The gui of [" + player.getName() + "] could not be reopened "
+                        + "to change its title; it keeps the previous one.");
+                return false;
+            }
+            view.adoptSurface(new BukkitGuiSurface(inventory));
+            return true;
+        } finally {
+            view.endSurfaceSwap();
+        }
+    }
+
+    private static Inventory createInventory(Gui gui, String title) {
         GuiType type = gui.getType();
         if (type.isChest()) {
             return Bukkit.createInventory(null, type.sizeOf(gui.getRows()), title);
@@ -148,7 +182,7 @@ public final class GuiViews {
 
     static void handleClose(Player player, Inventory inventory) {
         GuiView view = OPEN.get(player.getUniqueId());
-        if (view == null || !view.isSurface(inventory)) {
+        if (view == null || !view.isSurface(inventory) || view.isSwappingSurface()) {
             return;
         }
         OPEN.remove(player.getUniqueId());
