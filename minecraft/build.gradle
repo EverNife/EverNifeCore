@@ -40,7 +40,6 @@ dependencies {
     }
     implementation libs.ecforgelistener
     implementation libs.libby.core
-    implementation libs.triumph.gui
 
     // Fork that restores NBT-API on Forge/Cauldron 1.7.10 (Crucible): upstream 2.15.7 renamed the
     // COMPOUND_*_LEGACY reflection methods but left the Forge1710Mappings keys on the old names.
@@ -102,7 +101,6 @@ shadowJar {
     dependencies {
         include(dependency('br.com.finalcraft:ECNmsUtils:'))
         include(dependency('net.byteflux:libby-core:'))
-        include(dependency('dev.triumphteam:triumph-gui:'))
         include(dependency('de.tr7zw:item-nbt-api:'))
         include(dependency('br.com.finalcraft:ECForgeListener:'))
         include(dependency('net.kyori:.*'))
@@ -129,7 +127,6 @@ shadowJar {
     relocate 'net.byteflux.libby', 'br.com.finalcraft.libs.net.byteflux'
     relocate 'net.kyori', 'br.com.finalcraft.libs.net.kyori'
     relocate 'de.tr7zw.changeme.nbtapi', 'br.com.finalcraft.libs.minecraft.nbtapi'
-    relocate 'dev.triumphteam', 'br.com.finalcraft.libs.minecraft.dev.triumphteam'
 
     // Rewrites the embedded EveryDatabase/EveryConfig refs onto the coordinates libby delivers at
     // runtime. The Jackson pairs come from the single source in the root build (rootProject.

@@ -35,7 +35,6 @@ libby = "1.3.1"
 slf4j = "1.7.36"
 log4j = "2.20.0"
 jakarta-annotation = "2.1.1"
-triumph-gui = "3.1.11-evernife-03"
 nbtapi = "2.15.8-crucible"
 bungeecord-chat = "1.16-R0.1"
 commons-io = "2.6"
@@ -93,7 +92,6 @@ slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 log4j-api = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
 log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
 jakarta-annotation = { module = "jakarta.annotation:jakarta.annotation-api", version.ref = "jakarta-annotation" }
-triumph-gui = { module = "dev.triumphteam:triumph-gui", version.ref = "triumph-gui" }
 nbtapi = { module = "de.tr7zw:item-nbt-api", version.ref = "nbtapi" }
 bungeecord-chat = { module = "net.md-5:bungeecord-chat", version.ref = "bungeecord-chat" }
 commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
