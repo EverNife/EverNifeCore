@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 /**
@@ -53,7 +54,9 @@ public final class GuiView {
 
     private final List<GuiComponent> components = new ArrayList<>();
     private final Set<GuiComponent> dirtyComponents = Collections.newSetFromMap(new ConcurrentHashMap<>());
-    private final List<WatchState<?>> watches = new ArrayList<>();
+    //copy-on-write so a watch that registers another watch while being polled neither breaks the pass
+    //in flight nor is lost: the newcomer joins the next one
+    private final List<WatchState<?>> watches = new CopyOnWriteArrayList<>();
     private final Map<Gui.IconBinding, Icon> animatedIcons = new IdentityHashMap<>();
     private final TreeMap<Integer, Icon[]> iconLayers = new TreeMap<>();
 

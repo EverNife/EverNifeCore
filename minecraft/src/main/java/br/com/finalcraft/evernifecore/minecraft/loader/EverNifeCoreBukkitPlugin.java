@@ -9,7 +9,6 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
-import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.minecraft.commands.McCommandRegisterer;
 import br.com.finalcraft.evernifecore.minecraft.config.McConfigManager;
 import br.com.finalcraft.evernifecore.minecraft.dependencies.ECoreDependencies;
@@ -151,8 +150,9 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         //screens close first, while GuiListener is still registered: it is InventoryCloseEvent that runs
         //their onClose, and an editable screen still open at disable would spill its contents as loot
         GuiViews.closeAll();
-        ECListener.unregisterAll(getPluginData());
-        FinalCMDManager.unregisterAllCommands(getPluginData());
+        //the inherited default is what unregisters listeners and commands; ECBukkitPlugin sits between
+        //this class and IECPluginBootstrap, so the qualified `IECPluginBootstrap.super` form is illegal here
+        super.onECPluginShutdownPre();
     }
 
     @Override

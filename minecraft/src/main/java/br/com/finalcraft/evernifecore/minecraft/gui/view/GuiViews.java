@@ -84,6 +84,10 @@ public final class GuiViews {
                 return;
             }
 
+            //almost never fires: openInventory closes the previous window before returning, so its
+            //InventoryCloseEvent already went through handleClose (as PLAYER_CLOSED) by the time this
+            //put runs. What is left here is the view whose window vanished without that event - the
+            //entry would otherwise stay in OPEN forever, holding a Player and its tasks alive
             GuiView displaced = OPEN.put(player.getUniqueId(), view);
             if (displaced != null) {
                 displaced.release(CloseReason.REQUESTED);
