@@ -57,7 +57,7 @@ subprojects {
             content {
                 includeGroup "br.com.finalcraft.everydatabase"
                 includeGroup "br.com.finalcraft.everylibs"
-                includeModule "br.com.finalcraft", "EveryConfig"
+                includeGroup "br.com.finalcraft.everyconfig"
                 includeModule "br.com.finalcraft", "ECNmsUtils"
                 includeModule "br.com.finalcraft", "ECForgeListener"
             }

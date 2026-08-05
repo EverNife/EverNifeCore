@@ -26,7 +26,8 @@ dependencies {
     // EveryDatabase/EveryConfig - resolve to the SAME relocated names in compile and runtime.
     relocatedBundle libs.everydatabase.core
     relocatedBundle libs.everydatabase.manager
-    relocatedBundle libs.everyconfig
+    relocatedBundle libs.everyconfig.core
+    relocatedBundle libs.everyconfig.rules
     relocatedBundle libs.everylibs.common
     relocatedBundle libs.everylibs.reflection
     relocatedBundle libs.everylibs.utils
@@ -38,7 +39,8 @@ dependencies {
     // behind EveryDatabase/EveryConfig arrive via libby (minecraft) or the shadow jar (hytale).
     api libs.everydatabase.core
     api libs.everydatabase.manager
-    api libs.everyconfig
+    api libs.everyconfig.core
+    api libs.everyconfig.rules
     api libs.everylibs.common
     api libs.everylibs.reflection
     api libs.everylibs.utils

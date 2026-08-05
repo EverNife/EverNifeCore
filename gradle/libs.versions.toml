@@ -7,7 +7,7 @@ shadow = "9.4.2"
 
 # FinalCraft libraries
 everydatabase = "1.2.0"
-everyconfig = "1.0.1"
+everyconfig = "1.1.0"
 everylibs = "1.0.0"
 ecnmsutils = "1.1.5"
 ecforgelistener = "1.0.7"
@@ -56,7 +56,8 @@ h2 = "1.4.200"
 [libraries]
 everydatabase-core = { module = "br.com.finalcraft.everydatabase:everydatabase-core", version.ref = "everydatabase" }
 everydatabase-manager = { module = "br.com.finalcraft.everydatabase:everydatabase-manager", version.ref = "everydatabase" }
-everyconfig = { module = "br.com.finalcraft:EveryConfig", version.ref = "everyconfig" }
+everyconfig-core = { module = "br.com.finalcraft.everyconfig:everyconfig-core", version.ref = "everyconfig" }
+everyconfig-rules = { module = "br.com.finalcraft.everyconfig:everyconfig-rules", version.ref = "everyconfig" }
 everylibs-common = { module = "br.com.finalcraft.everylibs:everylibs-common", version.ref = "everylibs" }
 everylibs-reflection = { module = "br.com.finalcraft.everylibs:everylibs-reflection", version.ref = "everylibs" }
 everylibs-utils = { module = "br.com.finalcraft.everylibs:everylibs-utils", version.ref = "everylibs" }

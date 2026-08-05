@@ -118,7 +118,8 @@ shadowJar {
         // (Jackson, Hikari, drivers, Mongo) stay out - libby downloads them already relocated.
         include(dependency('br.com.finalcraft.everydatabase:everydatabase-core:'))
         include(dependency('br.com.finalcraft.everydatabase:everydatabase-manager:'))
-        include(dependency('br.com.finalcraft:EveryConfig:'))
+        include(dependency('br.com.finalcraft.everyconfig:everyconfig-core:'))
+        include(dependency('br.com.finalcraft.everyconfig:everyconfig-rules:'))
         include(dependency('br.com.finalcraft.everylibs:everylibs-common:'))
         include(dependency('br.com.finalcraft.everylibs:everylibs-reflection:'))
         include(dependency('br.com.finalcraft.everylibs:everylibs-utils:'))
