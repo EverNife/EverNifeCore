@@ -310,6 +310,16 @@ public class FancyTextCodecRoundTripTest {
         public String typeId() {
             return typeId;
         }
+
+        @Override
+        public String serialize() {
+            return payload;
+        }
+
+        @Override
+        public FancyHover deserialize(String payload) {
+            return new CodeclessHover(typeId, payload);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -426,6 +436,16 @@ public class FancyTextCodecRoundTripTest {
         @Override
         public String typeId() {
             return TYPE_ID;
+        }
+
+        @Override
+        public String serialize() {
+            return payload;
+        }
+
+        @Override
+        public FancyHover deserialize(String payload) {
+            return new CustomHover(payload);
         }
 
         @Override

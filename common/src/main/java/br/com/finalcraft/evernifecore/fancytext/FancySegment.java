@@ -72,19 +72,8 @@ public class FancySegment implements FancyText {
         return new TextHover(hoverText);
     }
 
-    /**
-     * Only the legacy string-payload hover kinds (plain text, item id) support placeholder
-     * substitution today; a custom registry type's payload is opaque to this class and passes
-     * through untouched.
-     */
     private static FancyHover replaceHoverPayload(FancyHover hover, UnaryOperator<String> transform) {
-        if (hover instanceof TextHover) {
-            return new TextHover(transform.apply(((TextHover) hover).text()));
-        }
-        if (hover instanceof ItemHover) {
-            return new ItemHover(transform.apply(((ItemHover) hover).rawItem()));
-        }
-        return hover;
+        return hover == null ? null : hover.replacePayload(transform);
     }
 
     @Override
@@ -325,10 +314,11 @@ public class FancySegment implements FancyText {
     }
 
     private FancySegment resolvedCopy(RenderContext context) {
-        FancySegment copy = copy();
-        copy.text = resolve(this.text, context);
+        FancySegment copy = new FancySegment(resolve(this.text, context));
         copy.hover = replaceHoverPayload(this.hover, payload -> resolve(payload, context));
         copy.clickActionText = resolve(this.clickActionText, context);
+        copy.clickActionType = this.clickActionType;
+        copy.placeholders = this.placeholders;
         return copy;
     }
 
@@ -353,11 +343,8 @@ public class FancySegment implements FancyText {
 
     @Override
     public FancySegment copy() {
-        // Copies the hover value by reference rather than round-tripping it through a legacy string:
-        // a custom registry type has no such string form at all, so the round trip would silently
-        // drop it (see FancyHover#toLegacyPayload).
         FancySegment copy = new FancySegment(text);
-        copy.hover = this.hover;
+        copy.hover = this.hover == null ? null : this.hover.copy();
         copy.clickActionText = this.clickActionText;
         copy.clickActionType = this.clickActionType;
         if (this.placeholders != null) {

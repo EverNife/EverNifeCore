@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.fancytext.hover;
 
 import java.util.Objects;
+import java.util.function.UnaryOperator;
 
 /** The plain-tooltip hover: renders as {@code HoverEvent.showText(...)} of a (possibly multi-line) string. */
 public final class TextHover implements FancyHover {
@@ -25,6 +26,21 @@ public final class TextHover implements FancyHover {
     @Override
     public String toLegacyPayload() {
         return text;
+    }
+
+    @Override
+    public String serialize() {
+        return text;
+    }
+
+    @Override
+    public FancyHover deserialize(String payload) {
+        return new TextHover(payload);
+    }
+
+    @Override
+    public FancyHover replacePayload(UnaryOperator<String> transform) {
+        return deserialize(transform.apply(serialize()));
     }
 
     @Override

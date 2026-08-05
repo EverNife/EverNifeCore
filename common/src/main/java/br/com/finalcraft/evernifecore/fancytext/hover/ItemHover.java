@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.fancytext.hover;
 
 import java.util.Objects;
+import java.util.function.UnaryOperator;
 
 /**
  * The item-tooltip hover: renders as {@code HoverEvent.showItem(...)} built from a raw item id/SNBT
@@ -32,6 +33,21 @@ public final class ItemHover implements FancyHover {
     @Override
     public String toLegacyPayload() {
         return LEGACY_SENTINEL + rawItem;
+    }
+
+    @Override
+    public String serialize() {
+        return rawItem;
+    }
+
+    @Override
+    public FancyHover deserialize(String payload) {
+        return new ItemHover(payload);
+    }
+
+    @Override
+    public FancyHover replacePayload(UnaryOperator<String> transform) {
+        return new ItemHover(this.rawItem); // ItemStack does not trasnform at all
     }
 
     @Override

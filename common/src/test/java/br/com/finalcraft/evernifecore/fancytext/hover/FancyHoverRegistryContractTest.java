@@ -83,6 +83,17 @@ public class FancyHoverRegistryContractTest {
         String asLabel() {
             return x + ", " + y + ", " + z;
         }
+
+        @Override
+        public String serialize() {
+            return x + "," + y + "," + z;
+        }
+
+        @Override
+        public FancyHover deserialize(String payload) {
+            String[] parts = payload.split(",");
+            return new CoordinatesHover(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+        }
     }
 
     // --- a second pair of synthetic types, used only to prove the degrade-hop cap ------------------
@@ -92,12 +103,32 @@ public class FancyHoverRegistryContractTest {
         public String typeId() {
             return "test-hop-a";
         }
+
+        @Override
+        public String serialize() {
+            return "";
+        }
+
+        @Override
+        public FancyHover deserialize(String payload) {
+            return new HopAHover();
+        }
     }
 
     private static final class HopBHover implements FancyHover {
         @Override
         public String typeId() {
             return "test-hop-b";
+        }
+
+        @Override
+        public String serialize() {
+            return "";
+        }
+
+        @Override
+        public FancyHover deserialize(String payload) {
+            return new HopBHover();
         }
     }
 
