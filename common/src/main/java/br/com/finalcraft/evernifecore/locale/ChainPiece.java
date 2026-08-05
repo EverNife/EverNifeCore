@@ -20,7 +20,7 @@ public interface ChainPiece {
     /** The recipient's locale text for {@code localeMessage}, falling back to the plugin's default. */
     static ChainPiece of(LocaleMessage localeMessage) {
         return sender -> (sender == null
-                ? localeMessage.getDefaultFancyText()
+                ? localeMessage.getDefaultFancyText().copy()
                 : localeMessage.getFancyText(sender)).copy();
     }
 
