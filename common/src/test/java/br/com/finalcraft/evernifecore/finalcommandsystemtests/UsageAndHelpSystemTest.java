@@ -183,6 +183,8 @@ class UsageAndHelpSystemTest {
         assertTrue(hover.contains("✯"));
         assertTrue(hover.contains("value"));
         assertTrue(hover.contains("The value to use"));
+        //this subcommand has no description of its own, and an absent one renders as nothing, not as "null"
+        assertFalse(hover.contains("null"), hover);
     }
 
     // ------------------------------------------------------------------

@@ -770,7 +770,7 @@ public class CMDMethodInterpreter {
                             applyDefaultFormatting.accept(fancyFormatter);
                             if (extraDescription != null){
                                 anyLocalizedArg.set(true);
-                                fancyFormatter.setHover(description + "" +
+                                fancyFormatter.setHover((description != null ? description : "") +
                                         "\n" +
                                         "\n §d ✯ §7§l[§e" + argParser.getArgInfo().getArgData().getName() + "§7§l]§r" +
                                         "\n §7● §6" + extraDescription);
