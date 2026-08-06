@@ -32,7 +32,7 @@ public final class PlayerDouble {
     private final GuiEventBus events;
 
     private ItemStack cursor;
-    private SyntheticInventoryView openView;
+    private InventoryView openView;
     private boolean online = true;
     private boolean refuseOpens = false;
 
@@ -101,7 +101,7 @@ public final class PlayerDouble {
     }
 
     /** The window currently open, or {@code null}. */
-    public SyntheticInventoryView getOpenView() {
+    public InventoryView getOpenView() {
         return openView;
     }
 
@@ -110,12 +110,11 @@ public final class PlayerDouble {
     }
 
     private InventoryView open(Inventory inventory) {
-        SyntheticInventoryView view = new SyntheticInventoryView(inventory, playerInventory.asInventory(),
-                face, InventoryType.CHEST);
+        InventoryView view = joinedView(inventory, playerInventory.asInventory(), face);
         if (refuseOpens) {
             return view;
         }
-        SyntheticInventoryView previous = openView;
+        InventoryView previous = openView;
         openView = view;
         if (previous != null) {
             //a real server closes the previous window before the new one exists
@@ -126,53 +125,65 @@ public final class PlayerDouble {
     }
 
     private void close() {
-        SyntheticInventoryView closing = openView;
+        InventoryView closing = openView;
         openView = null;
         if (closing != null) {
             events.fireClose(closing);
         }
     }
 
-    /** The two containers a click can land in, joined the way a server joins them. */
-    public static final class SyntheticInventoryView extends InventoryView {
+    /**
+     * The two containers a click can land in, joined the way a server joins them.
+     *
+     * <p>The join is the view's whole job, and every raw-slot question an event asks - which
+     * container was clicked, what is in the slot, what replaces it - comes back through it.</p>
+     */
+    private static InventoryView joinedView(Inventory top, Inventory bottom, HumanEntity player) {
+        return Doubles.of(InventoryView.class)
+                .returning("getTopInventory", top)
+                .returning("getBottomInventory", bottom)
+                .returning("getPlayer", player)
+                .returning("getType", InventoryType.CHEST)
+                .returning("getTitle", "")
+                .on("getInventory", args -> containerOf(top, bottom, (Integer) args[0]))
+                .on("convertSlot", args -> localSlot(top, (Integer) args[0]))
+                .on("getCursor", args -> player.getItemOnCursor())
+                .on("getItem", args -> {
+                    Inventory container = containerOf(top, bottom, (Integer) args[0]);
+                    return container == null ? null : container.getItem(localSlot(top, (Integer) args[0]));
+                })
+                .on("setItem", args -> {
+                    Inventory container = containerOf(top, bottom, (Integer) args[0]);
+                    if (container != null) {
+                        container.setItem(localSlot(top, (Integer) args[0]), (ItemStack) args[1]);
+                    }
+                    return null;
+                })
+                .build();
+    }
 
-        private final Inventory top;
-        private final Inventory bottom;
-        private final HumanEntity player;
-        private final InventoryType type;
-
-        SyntheticInventoryView(Inventory top, Inventory bottom, HumanEntity player, InventoryType type) {
-            this.top = top;
-            this.bottom = bottom;
-            this.player = player;
-            this.type = type;
+    /** Which container a raw slot lands in; {@code null} is the client saying "outside the window". */
+    private static Inventory containerOf(Inventory top, Inventory bottom, int rawSlot) {
+        if (rawSlot < 0) {
+            return null;
         }
+        return rawSlot < top.getSize() ? top : bottom;
+    }
 
-        @Override
-        public Inventory getTopInventory() {
-            return top;
+    /**
+     * The same raw slot as an index into the container it landed in.
+     *
+     * <p>Inside the screen the two numbers are equal. Below it they are not: the player's own
+     * inventory is sent with its main rows before its hotbar, while it numbers the hotbar first - so
+     * raw slot 31 of a 27-slot screen is local slot 13, a number the screen also has. That collision
+     * is why the framework judges a click by its raw slot and never by this one.</p>
+     */
+    private static int localSlot(Inventory top, int rawSlot) {
+        if (rawSlot < top.getSize()) {
+            return rawSlot;
         }
-
-        @Override
-        public Inventory getBottomInventory() {
-            return bottom;
-        }
-
-        @Override
-        public HumanEntity getPlayer() {
-            return player;
-        }
-
-        @Override
-        public InventoryType getType() {
-            return type;
-        }
-
-        @Override
-        public String getTitle() {
-            return "";
-        }
-
+        int slot = rawSlot - top.getSize();
+        return slot >= 27 ? slot - 27 : slot + 9;
     }
 
 }

@@ -3,14 +3,11 @@ package br.com.finalcraft.evernifecore.minecraft.itemstack.testkit;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemProbe;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
+import br.com.finalcraft.evernifecore.minecraft.testkit.BukkitRegistries;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import org.bukkit.Bukkit;
-import org.bukkit.NamespacedKey;
 import org.bukkit.Server;
-import org.bukkit.enchantments.Enchantment;
-import org.bukkit.enchantments.EnchantmentTarget;
 import org.bukkit.inventory.ItemFactory;
-import org.bukkit.inventory.ItemStack;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
@@ -35,8 +32,6 @@ import java.lang.reflect.Proxy;
  */
 public final class ItemWorld implements AutoCloseable {
 
-    private static boolean enchantsRegistered = false;
-
     /** A runtime that answers metadata and resolves enchantments - most of what an item is. */
     public static ItemWorld withMetadata(MCDetailedVersion version) {
         return install(ItemRuntime.of(version, ItemProbe.ITEM_META, ItemProbe.ENCHANT_REGISTRY));
@@ -52,7 +47,6 @@ public final class ItemWorld implements AutoCloseable {
     private boolean closed = false;
 
     private ItemWorld(ItemRuntime runtime) {
-        registerEnchantments();
         this.previousServer = Bukkit.getServer();
         setBukkitServer(buildServer(runtime));
         this.engine = ItemEngine.install(runtime);
@@ -117,6 +111,8 @@ public final class ItemWorld implements AutoCloseable {
                         switch (method.getName()) {
                             case "getItemFactory":
                                 return itemFactory;
+                            case "getRegistry":
+                                return BukkitRegistries.forType((Class<?>) args[0]);
                             case "getBukkitVersion":
                                 return bukkitVersion;
                             case "getVersion":
@@ -144,72 +140,6 @@ public final class ItemWorld implements AutoCloseable {
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException("Bukkit.server could not be replaced; the described server "
                     + "this rig is built on cannot be installed.", e);
-        }
-    }
-
-    /**
-     * Puts a couple of enchantments in the registry, once.
-     *
-     * <p>Bukkit's own constants are only names off a server - the registry that turns a key back
-     * into one is filled by the server implementation, and there is none here.</p>
-     */
-    private static void registerEnchantments() {
-        if (enchantsRegistered) {
-            return;
-        }
-        enchantsRegistered = true;
-        Enchantment.registerEnchantment(new NamedEnchantment("sharpness"));
-        Enchantment.registerEnchantment(new NamedEnchantment("unbreaking"));
-    }
-
-    /** The enchantment reduced to what an item-data line needs of it: a key and a level ceiling. */
-    private static final class NamedEnchantment extends Enchantment {
-
-        private final String name;
-
-        private NamedEnchantment(String name) {
-            super(NamespacedKey.minecraft(name));
-            this.name = name;
-        }
-
-        @Override
-        public String getName() {
-            return name;
-        }
-
-        @Override
-        public int getMaxLevel() {
-            return 5;
-        }
-
-        @Override
-        public int getStartLevel() {
-            return 1;
-        }
-
-        @Override
-        public EnchantmentTarget getItemTarget() {
-            return EnchantmentTarget.ALL;
-        }
-
-        @Override
-        public boolean isTreasure() {
-            return false;
-        }
-
-        @Override
-        public boolean isCursed() {
-            return false;
-        }
-
-        @Override
-        public boolean conflictsWith(Enchantment other) {
-            return false;
-        }
-
-        @Override
-        public boolean canEnchantItem(ItemStack item) {
-            return true;
         }
     }
 

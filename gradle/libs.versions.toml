@@ -17,7 +17,7 @@ ecforgelistener = "1.0.7"
 jabel = "1.2.0"
 
 # Server and plugin APIs
-spigot = "1.19.2-R0.1-SNAPSHOT"
+spigot = "26.2-R0.1-SNAPSHOT"
 # The two ends of the class/interface flip, and the reason they are pinned apart from the line
 # above: a call's opcode is frozen at compile time, so one artifact cannot serve both shapes.
 # `legacy` is the newest API where InventoryView and Biome are still classes; `modern` is the oldest

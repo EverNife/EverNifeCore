@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiView;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiViews;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
+import br.com.finalcraft.evernifecore.minecraft.testkit.BukkitRegistries;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
@@ -212,6 +213,7 @@ public final class GuiTestWorld implements AutoCloseable {
         return Doubles.of(Server.class)
                 .on("isPrimaryThread", args -> Thread.currentThread() == mainThread)
                 .on("getItemFactory", args -> itemFactory)
+                .on("getRegistry", args -> BukkitRegistries.forType((Class<?>) args[0]))
                 .on("getScheduler", args -> scheduler.asBukkitScheduler())
                 .on("getLogger", args -> Logger.getLogger(pluginName))
                 .on("createInventory", args -> createInventory(args))
