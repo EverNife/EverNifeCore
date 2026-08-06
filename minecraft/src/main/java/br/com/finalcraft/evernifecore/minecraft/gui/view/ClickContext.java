@@ -15,9 +15,10 @@ import org.bukkit.inventory.ItemStack;
  * <p>It never exposes the {@code InventoryClickEvent}. Everything a handler legitimately wants is a
  * method here, which is what makes a handler assertable without a server.</p>
  *
- * <p>A handler may finish long after the click - it may be waiting on player data. {@link #isAlive()}
- * says whether it is still the click the player is waiting on; a later click makes an earlier one
- * stale, and acting on a stale context is a no-op.</p>
+ * <p>A handler may finish long after the click - it may be waiting on player data. A later click
+ * makes an earlier one stale, and every action below then does nothing: a screen the player has
+ * already moved on from must not be closed, redrawn or made to play a sound by an answer that
+ * arrived too late. {@link #isAlive()} is how a handler can tell before doing work of its own.</p>
  */
 public final class ClickContext {
 
@@ -96,7 +97,9 @@ public final class ClickContext {
      * is no event left to un-cancel.</p>
      */
     public void allowMove() {
-        this.moveAllowed = true;
+        if (isAlive()) {
+            this.moveAllowed = true;
+        }
     }
 
     boolean isMoveAllowed() {
@@ -105,12 +108,16 @@ public final class ClickContext {
 
     /** Closes the screen, on the next tick - closing a container from inside its own click is not safe. */
     public void close() {
-        view.closeNextTick();
+        if (isAlive()) {
+            view.closeNextTick();
+        }
     }
 
     /** Renders every icon again. The commit still writes only the slots whose output changed. */
     public void refresh() {
-        view.refresh();
+        if (isAlive()) {
+            view.refresh();
+        }
     }
 
     public void sound(@Nonnull Sound sound) {
@@ -119,7 +126,7 @@ public final class ClickContext {
 
     public void sound(@Nonnull Sound sound, float volume, float pitch) {
         Player viewer = getViewer();
-        if (viewer != null && sound != null) {
+        if (isAlive() && viewer != null && sound != null) {
             viewer.playSound(viewer.getLocation(), sound, volume, pitch);
         }
     }
