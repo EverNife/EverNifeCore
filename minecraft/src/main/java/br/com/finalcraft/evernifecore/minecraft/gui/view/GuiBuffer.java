@@ -100,9 +100,23 @@ public final class GuiBuffer {
         return !dirty.isEmpty();
     }
 
-    /** Marks every slot for re-comparison, which is how a resync recovers a container someone else touched. */
-    public void markAllDirty() {
+    private void markAllDirty() {
         dirty.set(0, size);
+    }
+
+    /**
+     * Re-reads {@code surface}: what the container actually holds becomes the baseline, so the next
+     * commit overwrites every slot that stopped showing what this buffer drew.
+     *
+     * <p>Comparing against what was <i>written</i> would find nothing wrong - the buffer's memory of
+     * a slot does not change when somebody else does - which is exactly the case this exists for.</p>
+     */
+    public void adoptContainer(GuiSurface surface) {
+        for (int slot = 0; slot < size; slot++) {
+            ItemStack actual = surface.getItem(slot);
+            committed[slot] = actual == null ? null : actual.clone();
+        }
+        markAllDirty();
     }
 
     /** Forgets what was written, because the container it was written into is gone (a surface swap). */

@@ -345,9 +345,12 @@ public final class GuiView {
         buffer.commit(surface);
     }
 
-    /** Re-reads the whole container after something outside the framework touched it. */
+    /** Re-reads the whole container and puts back whatever stopped showing what this screen drew. */
     public void resync() {
-        buffer.markAllDirty();
+        if (closed) {
+            return;
+        }
+        buffer.adoptContainer(surface);
         commitNow();
     }
 
