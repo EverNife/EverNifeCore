@@ -108,8 +108,7 @@ public final class ItemWorld implements AutoCloseable {
                 });
 
         String bukkitVersion = runtime.getVersion() == null ? "1.21.1-R0.1-SNAPSHOT"
-                : runtime.getVersion().getShortVersion().replace("v", "").replace("_", ".")
-                + ".0-R0.1-SNAPSHOT";
+                : runtime.getVersion().getReleaseFamily() + ".0-R0.1-SNAPSHOT";
 
         return (Server) Proxy.newProxyInstance(Server.class.getClassLoader(),
                 new Class<?>[]{Server.class}, new InvocationHandler() {

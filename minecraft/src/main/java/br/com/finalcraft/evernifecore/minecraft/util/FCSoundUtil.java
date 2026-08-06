@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.util;
 
+import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import jakarta.annotation.Nonnull;
 import org.bukkit.Bukkit;
@@ -9,13 +10,12 @@ import org.bukkit.entity.Player;
 public class FCSoundUtil {
 
     /**
-     * Picks the sound key for the running era. {@code detailedShortValue} is
-     * {@code MCDetailedVersion.getShortValue()} (17,18 = 1.7/1.8; 19..112 = 1.9..1.12; &gt;=113 = 1.13+),
-     * so a key renamed at the 1.9 or the 1.13 flattening resolves to the name that server actually knows.
+     * Picks the sound key for the era {@code version} belongs to, so a key renamed at the 1.9 or at
+     * the 1.13 flattening resolves to the name that server actually knows.
      */
-    public static String pickByEra(int detailedShortValue, String pre1_9, String from1_9to1_12, String flat1_13) {
-        if (detailedShortValue <= 18) return pre1_9;
-        if (detailedShortValue <= 112) return from1_9to1_12;
+    public static String pickByEra(MCDetailedVersion version, String pre1_9, String from1_9to1_12, String flat1_13) {
+        if (version.isLower(MCDetailedVersion.v1_9_R1)) return pre1_9;
+        if (version.isLower(MCDetailedVersion.v1_13_R1)) return from1_9to1_12;
         return flat1_13;
     }
 

@@ -24,24 +24,30 @@ public enum MCVersion {
         return detailedVersion;
     }
 
+    // Comparisons against this coarse ladder answer per release family, so every 1.16.x server is
+    // v1_16 and every 26.2.x server is one version.
+    private static int compareCurrentTo(MCVersion otherVersion) {
+        return MCDetailedVersion.getCurrent().compareFamily(otherVersion.getDetailedVersion());
+    }
+
     public static boolean isLower(MCVersion otherVersion) {
-        return MCDetailedVersion.getCurrent().getShortValue() < otherVersion.getDetailedVersion().getShortValue();
+        return compareCurrentTo(otherVersion) < 0;
     }
 
     public static boolean isLowerEquals(MCVersion otherVersion) {
-        return MCDetailedVersion.getCurrent().getShortValue() <= otherVersion.getDetailedVersion().getShortValue();
+        return compareCurrentTo(otherVersion) <= 0;
     }
 
     public static boolean isEqual(MCVersion otherVersion) {
-        return MCDetailedVersion.getCurrent().getShortValue() == otherVersion.getDetailedVersion().getShortValue();
+        return compareCurrentTo(otherVersion) == 0;
     }
 
     public static boolean isHigher(MCVersion otherVersion) {
-        return MCDetailedVersion.getCurrent().getShortValue() > otherVersion.getDetailedVersion().getShortValue();
+        return compareCurrentTo(otherVersion) > 0;
     }
 
     public static boolean isHigherEquals(MCVersion otherVersion) {
-        return MCDetailedVersion.getCurrent().getShortValue() >= otherVersion.getDetailedVersion().getShortValue();
+        return compareCurrentTo(otherVersion) >= 0;
     }
 
     // -----------------------------------------------------------------------------------------------------------------

@@ -3,13 +3,19 @@ package br.com.finalcraft.evernifecore.minecraft.version;
 import org.bukkit.Bukkit;
 
 /**
- * The CraftBukkit revisions this core knows about, each declaring the lowest Minecraft release it
- * covers.
+ * The Minecraft versions this core knows about, each declaring the lowest release it covers.
  *
- * <p>A revision spans a range of releases - {@code v1_20_R3} is 1.20.3 and 1.20.4, {@code v1_20_R4}
+ * <p>A constant spans a range of releases - {@code v1_20_R3} is 1.20.3 and 1.20.4, {@code v1_20_R4}
  * is 1.20.5 and 1.20.6 - and a range ends where the next one begins, so the declared release is all
- * the table needs. Everything else about a constant (its release family and its revision number) is
- * read off its own name, which is also what {@link #resolve} matches the server package against.
+ * the table needs. That declared release is also what orders the table and what {@link #resolve}
+ * matches a reported version against.
+ *
+ * <p>Constants carry two naming schemes, because a server reports two different things. Up to
+ * 1.20.4 the server package named the CraftBukkit revision, so those constants are named after it
+ * ({@code v1_16_R3}) and {@link #resolve} can match the package outright. From 1.20.5 the package
+ * is a plain {@code org.bukkit.craftbukkit} and the reported release is the only evidence left;
+ * once Minecraft moved to year-based releases the constants are named after the release itself
+ * ({@code v26_2}), since a revision in the name would claim something no such server reports.
  */
 public enum MCDetailedVersion {
 
@@ -49,6 +55,10 @@ public enum MCDetailedVersion {
     v1_21_R5("1.21.6"),
     v1_21_R6("1.21.9"),
     v1_21_R7("1.21.11"),
+    v26_1("26.1"),
+    v26_1_1("26.1.1"),
+    v26_1_2("26.1.2"),
+    v26_2("26.2"),
     ;
 
     private static MCDetailedVersion currentVersion;
@@ -77,8 +87,8 @@ public enum MCDetailedVersion {
     }
 
     /**
-     * The newest revision whose range starts at or below the reported release. A patch above every
-     * known range still answers the newest revision of that family, which is the closest the table
+     * The newest constant whose range starts at or below the reported release. A patch above every
+     * known range still answers the newest constant of that family, which is the closest the table
      * can get to a release published after it was written.
      *
      * @return {@code null} when no known release family matches.
@@ -122,45 +132,83 @@ public enum MCDetailedVersion {
     }
 
     // Operations
-    private final int value;
-    private final int shortValue;
-    private final String shortVersion;
+    private final String releaseFamily;
     private final int major;
     private final int minor;
     private final int lowestPatch;
 
     MCDetailedVersion(String lowestRelease) {
-        String[] familyAndRevision = name().substring(1).split("_R");
-        String[] family = familyAndRevision[0].split("_");
-
-        this.major = Integer.parseInt(family[0]);
-        this.minor = Integer.parseInt(family[1]);
-        this.shortVersion = "v" + major + "_" + minor;
-        this.shortValue = Integer.parseInt("" + major + minor);
-        this.value = shortValue * 10 + Integer.parseInt(familyAndRevision[1]);
-
         int[] floor = releaseOf(lowestRelease);
-        if (floor == null || floor[0] != major || floor[1] != minor) {
+        if (floor == null) {
             throw new IllegalArgumentException(String.format(
-                    "%s declares '%s' as the lowest release it covers, but that is not a %s.%s release. "
-                            + "Declare the first release the revision shipped on, in its own family - v1_20_R4 "
-                            + "shipped on 1.20.5, so it declares \"1.20.5\".",
-                    name(), lowestRelease, major, minor
+                    "%s declares \"%s\" as the lowest release it covers, but that does not read as a "
+                            + "Minecraft release. Declare the first release this constant covers, as the "
+                            + "server reports it - \"1.20.5\", \"26.2\".",
+                    name(), lowestRelease
             ));
         }
+        this.major = floor[0];
+        this.minor = floor[1];
         this.lowestPatch = floor[2];
+        this.releaseFamily = major + "." + minor;
+        requireNameSaysWhichReleaseItCovers(lowestRelease);
     }
 
-    public int getValue() {
-        return value;
+    private void requireNameSaysWhichReleaseItCovers(String lowestRelease) {
+        String familyPrefix = "v" + major + "_" + minor + "_R";
+        boolean namedAfterRevision = name().startsWith(familyPrefix)
+                && isDigits(name().substring(familyPrefix.length()));
+
+        if (namedAfterRevision || name().equals("v" + lowestRelease.replace('.', '_'))) {
+            return;
+        }
+
+        throw new IllegalArgumentException(String.format(
+                "%s declares \"%s\" as the lowest release it covers, but its name says otherwise. Name a "
+                        + "constant after the CraftBukkit revision its server package reports - v1_20_R4 "
+                        + "covers 1.20.5, so it is named %s<n> - or, when the package no longer carries a "
+                        + "revision, after the release itself: \"%s\" makes %s. Rename it, or fix the "
+                        + "release it declares.",
+                name(), lowestRelease, familyPrefix, lowestRelease, "v" + lowestRelease.replace('.', '_')
+        ));
     }
 
-    public int getShortValue() {
-        return shortValue;
+    private static boolean isDigits(String text) {
+        if (text.isEmpty()) return false;
+        for (int i = 0; i < text.length(); i++) {
+            if (!Character.isDigit(text.charAt(i))) return false;
+        }
+        return true;
     }
 
-    public String getShortVersion() {
-        return shortVersion;
+    /** The release family this covers, written the way a server reports it: {@code 1.21}, {@code 26.2}. */
+    public String getReleaseFamily() {
+        return releaseFamily;
+    }
+
+    /** The lowest release this covers, the one it was declared with: {@code 1.20.5}, {@code 26.1.2}. */
+    public String getLowestRelease() {
+        return lowestPatch == 0 ? releaseFamily : releaseFamily + "." + lowestPatch;
+    }
+
+    /**
+     * Where a server of this version keeps a CraftBukkit class, most likely first - the caller takes
+     * the first that loads.
+     *
+     * <p>Up to 1.20.4 CraftBukkit was relocated into a package carrying the revision, so those
+     * versions offer the relocated name and then the plain one, because a fork can report a version
+     * whose layout it does not follow. From 1.20.5 the package is plain and there is nothing to
+     * relocate into: the revision only ever existed as a package segment, so building one for a
+     * version that never had it would name a class no server has.
+     *
+     * @param craftBukkitClass the name below the CraftBukkit package, such as {@code entity.CraftPlayer}
+     */
+    public String[] getCraftBukkitClassNames(String craftBukkitClass) {
+        String plain = "org.bukkit.craftbukkit." + craftBukkitClass;
+        if (isHigherEquals(v1_20_R4)) {
+            return new String[]{plain};
+        }
+        return new String[]{"org.bukkit.craftbukkit." + name() + "." + craftBukkitClass, plain};
     }
 
     /**
@@ -190,23 +238,43 @@ public enum MCDetailedVersion {
     }
 
     public boolean isLower(MCDetailedVersion otherVersion) {
-        return this.getValue() < otherVersion.getValue();
+        return compareRelease(otherVersion) < 0;
     }
 
     public boolean isLowerEquals(MCDetailedVersion otherVersion) {
-        return this.getValue() <= otherVersion.getValue();
+        return compareRelease(otherVersion) <= 0;
     }
 
     public boolean isEqual(MCDetailedVersion otherVersion) {
-        return this.getValue() == otherVersion.getValue();
+        return compareRelease(otherVersion) == 0;
     }
 
     public boolean isHigher(MCDetailedVersion otherVersion) {
-        return this.getValue() > otherVersion.getValue();
+        return compareRelease(otherVersion) > 0;
     }
 
     public boolean isHigherEquals(MCDetailedVersion otherVersion) {
-        return this.getValue() >= otherVersion.getValue();
+        return compareRelease(otherVersion) >= 0;
+    }
+
+    /**
+     * Orders two constants by the release each declares, one digit group at a time.
+     *
+     * <p>Folding a release into a single number is what stops working the moment the scheme changes:
+     * 26.2 comes after 1.21.11, yet nothing binds a number built out of {@code 26} and {@code 2} to
+     * land above one built out of {@code 1} and {@code 21}. Comparing the groups needs no such luck -
+     * 26 is simply greater than 1.
+     */
+    private int compareRelease(MCDetailedVersion other) {
+        if (major != other.major) return Integer.compare(major, other.major);
+        if (minor != other.minor) return Integer.compare(minor, other.minor);
+        return Integer.compare(lowestPatch, other.lowestPatch);
+    }
+
+    /** The same order, blind to the patch, so every constant of one family answers as one version. */
+    int compareFamily(MCDetailedVersion other) {
+        if (major != other.major) return Integer.compare(major, other.major);
+        return Integer.compare(minor, other.minor);
     }
 
 }

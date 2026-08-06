@@ -47,10 +47,8 @@ public class FCMinecraftAdventureUtil {
         MethodInvoker<?> spigot = null;
         MethodInvoker<?> sendBaseComponents = null;
         try {
-            Class<?> craftPlayer = FCReflectionUtil.getClasses().getFirstClass(
-                    "org.bukkit.craftbukkit." + MCVersion.getCurrent().name() + ".entity.CraftPlayer",
-                    "org.bukkit.craftbukkit.entity.CraftPlayer" // Paper 1.20.5+ dropped the version segment
-            );
+            Class<?> craftPlayer = FCReflectionUtil.getClasses()
+                    .getFirstClass(MCVersion.getCurrent().getCraftBukkitClassNames("entity.CraftPlayer"));
             Class<?> baseComponent = FCReflectionUtil.getClasses().getClass("net.md_5.bungee.api.chat.BaseComponent");
 
             if (craftPlayer != null && baseComponent != null) {
