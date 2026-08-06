@@ -41,12 +41,6 @@
 * field org/bukkit/Material.dataLjava/lang/Class;                          # MaterialSignInterpreter:29, in the else of isLowerEquals(v1_12) and again behind !material.isLegacy()
 * field org/bukkit/Statistic.PLAY_ONE_MINUTELorg/bukkit/Statistic;         # McDefaultOntimeManager:15, isHigherEquals(v1_13) ternary falls back to Statistic.valueOf("PLAY_ONE_TICK")
 
-# Renamed in 1.21, so these two are absent at the NEW end of the range instead of the old one.
-# A getstatic resolves when it first executes, not at class load, so a branch that never runs
-# never asks for the constant.
-* field org/bukkit/Particle.REDSTONELorg/bukkit/Particle;                                  # CMDProtectionTest$ParticleCompat, reached only from the isHigherEquals(v1_13) && isLower(v1_21) branch
-* field org/bukkit/enchantments/Enchantment.DURABILITYLorg/bukkit/enchantments/Enchantment; # FCBaseItemBuilder.setGlow, inside if (MCVersion.isEqual(v1_7_10)) - the one runtime that reaches it is the one that has it
-
 # ---------------------------------------------------------------------------------------------
 # Methods that arrived after some supported era.
 # ---------------------------------------------------------------------------------------------

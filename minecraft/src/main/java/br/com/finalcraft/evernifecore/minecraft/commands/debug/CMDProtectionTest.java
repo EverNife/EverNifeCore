@@ -175,10 +175,8 @@ public class CMDProtectionTest implements ICustomFinalCMD {
 
         formatter.send(fPlayer);
 
-        //Both ends matter: dust options arrived in 1.13, and the REDSTONE particle was renamed to
-        //DUST in 1.21, so without the ceiling this branch reaches a constant a modern server no
-        //longer declares.
-        if (MCVersion.isHigherEquals(MCVersion.v1_13) && MCVersion.isLower(MCVersion.v1_21)){
+        //Coloured dust arrived in 1.13.
+        if (MCVersion.isHigherEquals(MCVersion.v1_13)){
             cuboidSelection.setPos1(cuboidSelection.getPos1().setY(player.getLocation().getBlockY()));
             cuboidSelection.setPos2(cuboidSelection.getPos2().setY(player.getLocation().getBlockY()));
             ParticleCompat.sendParticles(canBreakOnRegion, canBuildOnRegion, player, cuboidSelection);
@@ -222,6 +220,9 @@ public class CMDProtectionTest implements ICustomFinalCMD {
 
         //This is necessary to keep this class compatible with older versions without wasting too much time
         private static void sendParticles(boolean canBreakOnRegion, boolean canBuildOnRegion, Player player, CuboidSelection cuboidSelection) {
+            //REDSTONE was renamed to DUST in 1.21. Naming either constant would bind this class to
+            //one half of the supported range, so the spelling is chosen once and looked up by name.
+            Particle dust = Particle.valueOf(MCVersion.isHigherEquals(MCVersion.v1_21) ? "DUST" : "REDSTONE");
             FCScheduler.runAsync(() -> {
                 Particle.DustOptions GREEN_PARTICLE = new Particle.DustOptions(Color.fromRGB(0, 255, 0), 1.0F);
                 Particle.DustOptions RED_PARTICLE = new Particle.DustOptions(Color.fromRGB(255, 0, 0), 1.0F);
@@ -233,7 +234,7 @@ public class CMDProtectionTest implements ICustomFinalCMD {
                 for (int i = 0; i < 4; i++) {
                     FCScheduler.scheduleAsync(() -> {
                         selectionWalls.forEach(pos -> {
-                            player.spawnParticle(Particle.REDSTONE, pos.getAdapter().getLocation(player.getWorld()), 1, SELECTED_COLOR);
+                            player.spawnParticle(dust, pos.getAdapter().getLocation(player.getWorld()), 1, SELECTED_COLOR);
                         });
                     }, i * 5);
                 }
