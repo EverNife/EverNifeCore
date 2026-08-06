@@ -175,7 +175,10 @@ public class CMDProtectionTest implements ICustomFinalCMD {
 
         formatter.send(fPlayer);
 
-        if (MCVersion.isHigherEquals(MCVersion.v1_13)){
+        //Both ends matter: dust options arrived in 1.13, and the REDSTONE particle was renamed to
+        //DUST in 1.21, so without the ceiling this branch reaches a constant a modern server no
+        //longer declares.
+        if (MCVersion.isHigherEquals(MCVersion.v1_13) && MCVersion.isLower(MCVersion.v1_21)){
             cuboidSelection.setPos1(cuboidSelection.getPos1().setY(player.getLocation().getBlockY()));
             cuboidSelection.setPos2(cuboidSelection.getPos2().setY(player.getLocation().getBlockY()));
             ParticleCompat.sendParticles(canBreakOnRegion, canBuildOnRegion, player, cuboidSelection);

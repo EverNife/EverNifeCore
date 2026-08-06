@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.minecraft.biome.BiomeAccess;
 import br.com.finalcraft.evernifecore.minecraft.commands.debug.CMDBlockInfo;
 import br.com.finalcraft.evernifecore.minecraft.commands.debug.CMDEntityInfo;
 import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
@@ -72,7 +73,7 @@ public class PlayerInteractListener implements ECListener {
                 .addPlaceholder("block_type", block.getType().name())
                 .addPlaceholder("block_id", MCVersion.isHigherEquals(MCVersion.v1_13) ? "" : block.getType().getId())
                 .addPlaceholder("block_meta", MCVersion.isHigherEquals(MCVersion.v1_13) ? "" : block.getData() == 0 ? "" : ":" + block.getData())
-                .addPlaceholder("biome", block.getBiome().name())
+                .addPlaceholder("biome", BiomeAccess.get().nameAt(block))
                 .setClickSuggest(FCItemUtils.getBukkitIdentifier(itemStack))
                 .send(FCBukkitUtil.adapt(player));
     }

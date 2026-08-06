@@ -53,7 +53,10 @@ public class GuiListener implements ECListener {
         }
         Player player = (Player) event.getWhoClicked();
         GuiView view = GuiViews.getOpenView(player);
-        if (view == null || !view.isSurface(event.getView().getTopInventory())) {
+        //getInventory() IS the view's top inventory, and it is declared by the event class, which
+        //never changed shape - reaching it through getView() would freeze a call against
+        //InventoryView, a type that is a class before 1.21 and an interface after it.
+        if (view == null || !view.isSurface(event.getInventory())) {
             return;
         }
         processClick(view, event);
@@ -128,7 +131,7 @@ public class GuiListener implements ECListener {
         }
         Player player = (Player) event.getWhoClicked();
         GuiView view = GuiViews.getOpenView(player);
-        if (view == null || !view.isSurface(event.getView().getTopInventory())) {
+        if (view == null || !view.isSurface(event.getInventory())) {
             return;
         }
 

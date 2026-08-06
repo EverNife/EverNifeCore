@@ -34,6 +34,7 @@ dependencies {
     implementation project(':minecraft:modules:v1_7_10')
     implementation project(':minecraft:modules:v1_12_2')
     implementation project(':minecraft:modules:v1_16_5')
+    implementation project(':minecraft:modules:modern')
 
     implementation(libs.ecnmsutils) {
         exclude group: "br.com.finalcraft", module: "*"
@@ -111,6 +112,7 @@ shadowJar {
         include(project(':minecraft:modules:v1_7_10'))
         include(project(':minecraft:modules:v1_12_2'))
         include(project(':minecraft:modules:v1_16_5'))
+        include(project(':minecraft:modules:modern'))
 
         // Only the canonical EveryDatabase/EveryConfig/EveryLibs classes. Their heavy deps
         // (Jackson, Hikari, drivers, Mongo) stay out - libby downloads them already relocated.

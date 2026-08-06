@@ -7,7 +7,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
-import org.bukkit.block.Biome;
+import br.com.finalcraft.evernifecore.minecraft.biome.BiomeAccess;
 import org.bukkit.entity.Player;
 
 public class CMDBiomeInfo {
@@ -24,16 +24,16 @@ public class CMDBiomeInfo {
         }
 
         if (argumentos.get(0).equalsIgnoreCase("all")){
-            for (Biome value : Biome.values()) {
-                sender.sendMessage("§b§l > §e" + value.name());
+            for (String biome : BiomeAccess.get().biomeNames()) {
+                sender.sendMessage("§b§l > §e" + biome);
             }
             return;
         }
 
         BlockPos blockPos = sender.asFPlayer().getLocation().getBlockPos();
 
-        String biomeName = sender.asFPlayer().getDelegate(Player.class)
-                .getLocation().getBlock().getBiome().name();
+        String biomeName = BiomeAccess.get().nameAt(sender.asFPlayer().getDelegate(Player.class)
+                .getLocation().getBlock());
 
         sender.sendMessage("§7§o(" + blockPos.getX() + "," + blockPos.getY() + "," + blockPos.getZ() + ") §e" + biomeName);
     }

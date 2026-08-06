@@ -10,7 +10,9 @@ repositories {
 dependencies {
     compileOnly project(':common')
 
-    compileOnly libs.spigot.api
+    // Pinned back on purpose: this module carries the pre-1.21 shape of InventoryView and Biome,
+    // and the opcode it compiles is the one old servers can link.
+    compileOnly libs.spigot.api.legacy
 
     compileOnly name: "GriefPreventionPlus-13.3"
     compileOnly name: "PlaceholderAPI-2.11.2"

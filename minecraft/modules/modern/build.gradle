@@ -11,9 +11,8 @@ dependencies {
     compileOnly project(':common')
 
     implementation project(':minecraft:modules:VersionedPlugins')
-    // A pre-1.21 era module: it must not see an API newer than the servers it serves.
-    compileOnly libs.spigot.api.legacy
-
-    compileOnly name: "worldguard-bukkit-7.0.5-dist" // up to 1.16
-    compileOnly name: "worldedit-bukkit-7.2.5-dist"  // up to 1.16
+    // The one module that sees the post-flip shape of InventoryView and Biome. Pinned to the floor
+    // of that era rather than to the current API, so nothing newer than the oldest server it serves
+    // can reach these classes.
+    compileOnly libs.spigot.api.modern
 }

@@ -81,7 +81,10 @@ public class PlayerCraftListener implements ECListener {
                 }
 
                 int maxCraftable = FCCraftUtil.getMaxCraftAmount(event.getInventory());
-                int capacity = FCInventoryUtil.getMaxFitAmount(event.getRecipe().getResult().clone(), event.getView().getBottomInventory());
+                //The bottom half of a crafting view is the crafter's own inventory, so ask the
+                //player for it: going through getView() would freeze a call against InventoryView,
+                //a type that is a class before 1.21 and an interface after it.
+                int capacity = FCInventoryUtil.getMaxFitAmount(event.getRecipe().getResult().clone(), player.getInventory());
 
                 // If we can't fit everything, increase "space" to include the items dropped by
                 // crafting

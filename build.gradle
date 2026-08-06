@@ -108,14 +108,16 @@ subprojects {
 //  JDK 25, so there is no separate compiler pin anywhere: Gradle, production compile, test compile
 //  and test execution all run on the single Java 25 toolchain.
 //
-//  :hytale is deliberately absent - it is plain Java 25 with no bytecode cap. The version-compat
-//  modules are handled by the block below, which explains why they cannot use options.release.
+//  :hytale is deliberately absent - it is plain Java 25 with no bytecode cap. Most version-compat
+//  modules are handled by the block below, which explains why they cannot use options.release;
+//  :minecraft:modules:modern is the exception - it reaches for no JDK internal, so it keeps the floor.
 // ======================================================================
 configure([project(':api-contracts'),
            project(':common'),
            project(':common-tests'),
            project(':libby'),
-           project(':minecraft')]) {
+           project(':minecraft'),
+           project(':minecraft:modules:modern')]) {
     dependencies {
         annotationProcessor libs.jabel
         compileOnly libs.jabel
