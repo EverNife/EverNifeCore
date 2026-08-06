@@ -1,0 +1,379 @@
+// ======================================================================
+//  checkLinkage - does the compiled bytecode still link on every server we support?
+//
+//  Pinning an API jar is not a guard rail: it does not refuse anything, it only fails to offer.
+//  Nothing else stops a reference that a supported server cannot resolve from reaching the shadow
+//  jar, and two whole classes of that failure are invisible to javac and to the test suite:
+//
+//    * a member that is simply absent there  -> NoSuchFieldError / NoSuchMethodError
+//    * a type that changed between class and interface, with the member present on BOTH sides
+//      -> IncompatibleClassChangeError, because the call opcode is frozen when we compile
+//
+//  The second one is why this exists at all and why no off-the-shelf tool replaces it: a presence
+//  check cannot see it. This reads the constant pool of every compiled class and, for each
+//  org/bukkit reference, asks each target runtime's API jar whether the member is there AND
+//  whether the reference's tag (Methodref vs InterfaceMethodref) matches the shape that runtime
+//  declares.
+//
+//  Written in the build's own Groovy on purpose: `check` must not start depending on a language
+//  runtime that is not already required to build the project.
+// ======================================================================
+
+import java.util.zip.ZipFile
+import java.util.zip.ZipEntry
+
+// The root project declares none of its own - every other repository block in this build lives
+// inside `subprojects`, and these configurations are resolved here.
+repositories {
+    mavenCentral()
+    maven {
+        name = 'spigotmc-repo'
+        url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots'
+    }
+    flatDir { dirs 'C:/Meus/workshop/workshop/PublicLibs' }
+}
+
+// Every server era the project claims to support. 1.7.10 has neither a spigot-api nor an
+// org.bukkit:bukkit artifact - Crucible is the real Forge/Bukkit 1.7.10 server that carries those
+// classes, and it is already the runtime this project targets there.
+ext.linkageTargets = [
+        '1.7.10' : [name: 'Crucible'],
+        '1.12.2' : 'org.spigotmc:spigot-api:1.12.2-R0.1-SNAPSHOT',
+        '1.16.5' : 'org.spigotmc:spigot-api:1.16.5-R0.1-SNAPSHOT',
+        '1.19.2' : 'org.spigotmc:spigot-api:1.19.2-R0.1-SNAPSHOT',
+        '1.21.11': 'org.spigotmc:spigot-api:1.21.11-R0.2-SNAPSHOT',
+        '26.2'   : 'org.spigotmc:spigot-api:26.2-R0.1-SNAPSHOT',
+]
+
+ext.linkageConfigurationOf = { String targetId -> 'linkageApi_' + targetId.replace('.', '_') }
+
+// One configuration per era, never one shared bucket: they are all the same module, so a single
+// configuration would resolve the conflict by keeping the newest and silently check nothing else.
+// Each is non-transitive - org/bukkit lives in the jar itself.
+ext.linkageTargets.each { String targetId, Object coordinates ->
+    String configurationName = ext.linkageConfigurationOf(targetId)
+    configurations.create(configurationName) { transitive = false }
+    dependencies.add(configurationName, coordinates)
+}
+
+// ----------------------------------------------------------------------
+//  Class file reading: constant pool, access flags, member tables.
+// ----------------------------------------------------------------------
+
+class ClassFile {
+    String name
+    String superName
+    List<String> interfaces = []
+    boolean isInterface
+    /** name + descriptor of every field this class declares itself. */
+    Set<String> fields = new HashSet<>()
+    /** name + descriptor of every method this class declares itself. */
+    Set<String> methods = new HashSet<>()
+    /** [tag, owner, name, descriptor] for every member reference in the pool. */
+    List<List<String>> memberRefs = []
+    /** every class this pool names. */
+    Set<String> classRefs = new HashSet<>()
+}
+
+class ClassReader {
+
+    private final DataInputStream input
+    private Object[] pool
+
+    ClassReader(byte[] bytes) {
+        this.input = new DataInputStream(new ByteArrayInputStream(bytes))
+    }
+
+    private static final int MAGIC = 0xCAFEBABE as int
+
+    ClassFile read() {
+        if (input.readInt() != MAGIC) {
+            throw new IOException('not a class file')
+        }
+        input.readUnsignedShort() // minor
+        input.readUnsignedShort() // major
+        readPool()
+
+        ClassFile out = new ClassFile()
+        int accessFlags = input.readUnsignedShort()
+        out.isInterface = (accessFlags & 0x0200) != 0
+        out.name = className(input.readUnsignedShort())
+        int superIndex = input.readUnsignedShort()
+        out.superName = superIndex == 0 ? null : className(superIndex)
+        int interfaceCount = input.readUnsignedShort()
+        interfaceCount.times { out.interfaces << className(input.readUnsignedShort()) }
+
+        out.fields.addAll(readMembers())
+        out.methods.addAll(readMembers())
+
+        for (int i = 1; i < pool.length; i++) {
+            def entry = pool[i]
+            if (!(entry instanceof Object[])) continue
+            def cells = entry as Object[]
+            String tag = cells[0]
+            if (tag == 'Class') {
+                out.classRefs << utf8(cells[1] as int)
+            } else if (tag in ['Fieldref', 'Methodref', 'InterfaceMethodref']) {
+                def nameAndType = pool[cells[2] as int] as Object[]
+                out.memberRefs << [tag,
+                                   className(cells[1] as int),
+                                   utf8(nameAndType[1] as int),
+                                   utf8(nameAndType[2] as int)]
+            }
+        }
+        return out
+    }
+
+    /** Members of the class being read; attributes are skipped wholesale. */
+    private List<String> readMembers() {
+        List<String> out = []
+        int count = input.readUnsignedShort()
+        count.times {
+            input.readUnsignedShort() // access flags
+            String name = utf8(input.readUnsignedShort())
+            String descriptor = utf8(input.readUnsignedShort())
+            out << (name + descriptor)
+            skipAttributes()
+        }
+        return out
+    }
+
+    private void skipAttributes() {
+        int count = input.readUnsignedShort()
+        count.times {
+            input.readUnsignedShort() // name index
+            int length = input.readInt()
+            input.skipBytes(length)
+        }
+    }
+
+    private void readPool() {
+        int count = input.readUnsignedShort()
+        pool = new Object[count]
+        for (int i = 1; i < count; i++) {
+            int tag = input.readUnsignedByte()
+            switch (tag) {
+                case 1: pool[i] = input.readUTF(); break
+                case 7: pool[i] = ['Class', input.readUnsignedShort()] as Object[]; break
+                case 8: input.readUnsignedShort(); break                       // String
+                case 9: pool[i] = ['Fieldref', input.readUnsignedShort(), input.readUnsignedShort()] as Object[]; break
+                case 10: pool[i] = ['Methodref', input.readUnsignedShort(), input.readUnsignedShort()] as Object[]; break
+                case 11: pool[i] = ['InterfaceMethodref', input.readUnsignedShort(), input.readUnsignedShort()] as Object[]; break
+                case 12: pool[i] = ['NameAndType', input.readUnsignedShort(), input.readUnsignedShort()] as Object[]; break
+                case 3: case 4: input.readInt(); break                          // Integer, Float
+                case 5: case 6: input.readLong(); i++; break                    // Long, Double take two slots
+                case 15: input.readUnsignedByte(); input.readUnsignedShort(); break
+                case 16: input.readUnsignedShort(); break
+                case 17: case 18: input.readUnsignedShort(); input.readUnsignedShort(); break
+                case 19: case 20: input.readUnsignedShort(); break
+                default: throw new IOException("unknown constant pool tag ${tag}")
+            }
+        }
+    }
+
+    private String utf8(int index) { return pool[index] as String }
+
+    private String className(int index) {
+        def cells = pool[index] as Object[]
+        return utf8(cells[1] as int)
+    }
+}
+
+// ----------------------------------------------------------------------
+//  A target runtime: every class its API jar declares, indexed for member resolution.
+// ----------------------------------------------------------------------
+
+class Runtime {
+    String id
+    Map<String, ClassFile> classes = [:]
+
+    boolean declares(String className) { return classes.containsKey(className) }
+
+    /** True when the reference resolves through the owner's own members or anything it inherits. */
+    boolean resolves(String owner, String name, String descriptor) {
+        ClassFile current = classes[owner]
+        if (current == null) {
+            // The walk left the API jar. A JDK supertype can legitimately be where the member comes
+            // from (Biome.name() lands on java.lang.Enum), so ask this JVM instead of guessing.
+            // Anything else - a third-party type - stays unverifiable and counts as present rather
+            // than burying the real findings under noise.
+            return owner.startsWith('java/') || owner.startsWith('javax/')
+                    ? jdkDeclares(owner, name)
+                    : true
+        }
+        String member = name + descriptor
+        if (current.fields.contains(member) || current.methods.contains(member)) {
+            return true
+        }
+        for (String parent : ([current.superName] + current.interfaces)) {
+            if (parent != null && resolves(parent, name, descriptor)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /** Name-only, because the question is just whether the JDK supertype could be the source. */
+    private static boolean jdkDeclares(String className, String memberName) {
+        try {
+            Class<?> loaded = Class.forName(className.replace('/', '.'))
+            return loaded.methods.any { it.name == memberName } ||
+                    loaded.fields.any { it.name == memberName }
+        } catch (Throwable ignored) {
+            return true
+        }
+    }
+
+    /** null when this runtime does not declare the type at all. */
+    Boolean isInterface(String className) {
+        ClassFile found = classes[className]
+        return found == null ? null : found.isInterface
+    }
+}
+
+// ----------------------------------------------------------------------
+//  The task.
+// ----------------------------------------------------------------------
+
+tasks.register('checkLinkage') {
+    group = 'verification'
+    description = 'Fails when compiled bytecode names something a supported server cannot link.'
+
+    def scanned = [project(':minecraft'),
+                   project(':minecraft:modules:VersionedPlugins'),
+                   project(':minecraft:modules:v1_7_10'),
+                   project(':minecraft:modules:v1_12_2'),
+                   project(':minecraft:modules:v1_16_5'),
+                   project(':minecraft:modules:modern')]
+    scanned.each { dependsOn "${it.path}:classes" }
+
+    def classDirs = scanned.collect { it.layout.buildDirectory.dir('classes/java/main') }
+    def apiConfigurations = rootProject.ext.linkageTargets.keySet().collectEntries {
+        [(it): configurations.getByName(rootProject.ext.linkageConfigurationOf(it))]
+    }
+    def allowlistFile = rootProject.file('tools/linkage-allowlist.txt')
+
+    inputs.files(classDirs)
+    apiConfigurations.values().each { inputs.files(it) }
+    inputs.file(allowlistFile)
+    outputs.upToDateWhen { false }
+
+    doLast {
+        Set<String> allowed = new LinkedHashSet<>()
+        allowlistFile.eachLine { String line ->
+            String body = line.replaceFirst(/#.*$/, '').trim()
+            if (body.isEmpty()) return
+            def cells = body.split(/\s+/)
+            if (cells.length != 3) {
+                throw new GradleException("tools/linkage-allowlist.txt line is not <runtime> <kind>"
+                        + " <reference>: [${line}]. Three columns, then '#' and the site that guards it.")
+            }
+            allowed << cells.join(' ')
+        }
+
+        Map<String, Runtime> runtimes = [:]
+        apiConfigurations.each { String targetId, Object configuration ->
+            Runtime runtime = new Runtime(id: targetId)
+            configuration.files.each { File jar ->
+                new ZipFile(jar).withCloseable { zip ->
+                    zip.entries().each { ZipEntry entry ->
+                        if (!entry.name.endsWith('.class')) return
+                        try {
+                            ClassFile parsed = new ClassReader(zip.getInputStream(entry).bytes).read()
+                            runtime.classes[parsed.name] = parsed
+                        } catch (Exception ignored) {
+                            // A jar this old carries the odd unreadable entry; one class less to
+                            // check against is not worth failing the build over.
+                        }
+                    }
+                }
+            }
+            if (runtime.classes.isEmpty()) {
+                throw new GradleException("checkLinkage read no classes out of the ${targetId} API"
+                        + " jar, so it would pass by knowing nothing. Check that"
+                        + " ${rootProject.ext.linkageTargets[targetId]} still resolves to a real jar.")
+            }
+            runtimes[targetId] = runtime
+        }
+        logger.lifecycle("checkLinkage: ${runtimes.size()} target runtimes "
+                + runtimes.collect { id, r -> "${id}(${r.classes.size()} classes)" }.join(', '))
+
+        List<String> findings = []
+        Set<String> unusedAllowances = new LinkedHashSet<>(allowed)
+        int scannedClasses = 0
+
+        classDirs.each { dir ->
+            File root = dir.get().asFile
+            if (!root.exists()) return
+            root.eachFileRecurse { File file ->
+                if (!file.name.endsWith('.class')) return
+                scannedClasses++
+                ClassFile parsed = new ClassReader(file.bytes).read()
+                String site = parsed.name.replace('/', '.')
+
+                runtimes.each { String runtimeId, Runtime runtime ->
+                    parsed.classRefs.findAll { it.startsWith('org/bukkit/') }.each { String ref ->
+                        if (!runtime.declares(ref)) {
+                            report(findings, unusedAllowances, allowed, runtimeId, 'class', ref, site,
+                                    'the class is not in that server at all')
+                        }
+                    }
+                    parsed.memberRefs.each { List<String> ref ->
+                        String tag = ref[0], owner = ref[1], name = ref[2], descriptor = ref[3]
+                        if (!owner.startsWith('org/bukkit/')) return
+                        Boolean ownerIsInterface = runtime.isInterface(owner)
+                        if (ownerIsInterface == null) return // already reported as a missing class
+                        boolean refWantsInterface = tag == 'InterfaceMethodref'
+                        if (tag != 'Fieldref' && refWantsInterface != ownerIsInterface) {
+                            report(findings, unusedAllowances, allowed, runtimeId, 'shape',
+                                    "${owner}.${name}${descriptor}", site,
+                                    "compiled against ${owner} as ${refWantsInterface ? 'an interface' : 'a class'},"
+                                            + " but that server declares it as ${ownerIsInterface ? 'an interface' : 'a class'}")
+                        } else if (!runtime.resolves(owner, name, descriptor)) {
+                            report(findings, unusedAllowances, allowed, runtimeId,
+                                    tag == 'Fieldref' ? 'field' : 'method',
+                                    "${owner}.${name}${descriptor}", site,
+                                    'that server declares no such member')
+                        }
+                    }
+                }
+            }
+        }
+
+        logger.lifecycle("checkLinkage: ${scannedClasses} compiled classes scanned,"
+                + " ${allowed.size()} allowlist entries, ${unusedAllowances.size()} of them unused")
+
+        if (!findings.isEmpty()) {
+            throw new GradleException("checkLinkage found ${findings.size()} reference(s) a supported"
+                    + " server cannot link:\n\n" + findings.join('\n') + '\n\n'
+                    + "Each one is a crash on that server the moment the line runs. Three ways out,"
+                    + " best first:\n"
+                    + "  1. reach the same thing through a type that did not change - then the"
+                    + " reference is simply gone;\n"
+                    + "  2. guard the branch by version and keep the symbol inside a class that only"
+                    + " loads when the guard passes - this works for an absent member, NOT for a"
+                    + " 'shape' finding, whose opcode is already frozen;\n"
+                    + "  3. move the code into a minecraft/modules/* artifact compiled against that"
+                    + " era, dispatched by Class.forName - the only cure for 'shape'.\n"
+                    + "Once it IS guarded, declare it in tools/linkage-allowlist.txt as"
+                    + " '<runtime> <kind> <reference>  # <the guard>'. A reference with no guard does"
+                    + " not belong in that file.")
+        }
+    }
+}
+
+/** Records a finding unless the allowlist already claims it, for this runtime or for every one. */
+void report(List<String> findings, Set<String> unusedAllowances, Set<String> allowed,
+            String runtimeId, String kind, String reference, String site, String why) {
+    String exact = "${runtimeId} ${kind} ${reference}"
+    String any = "* ${kind} ${reference}"
+    if (allowed.contains(exact)) {
+        unusedAllowances.remove(exact)
+        return
+    }
+    if (allowed.contains(any)) {
+        unusedAllowances.remove(any)
+        return
+    }
+    findings << "  [${runtimeId}] ${kind} ${reference}\n      at ${site} - ${why}"
+}

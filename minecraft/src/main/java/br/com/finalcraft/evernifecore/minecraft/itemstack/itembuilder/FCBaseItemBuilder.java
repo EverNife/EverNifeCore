@@ -29,7 +29,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -201,8 +201,9 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
     /** Hides part of the tooltip. Repeated calls pile up. */
     @Nonnull
     public B addItemFlags(@Nonnull final ItemFlag... flags) {
-        Set<ItemFlag> wanted = EnumSet.noneOf(ItemFlag.class);
-        wanted.addAll(Arrays.asList(flags));
+        //Not EnumSet.noneOf(ItemFlag.class): that loads ItemFlag right here, and 1.7.10 has no such
+        //class - the part that consumes this set is the one gated on a server that does.
+        Set<ItemFlag> wanted = new LinkedHashSet<>(Arrays.asList(flags));
         return add(StandardParts.HIDE_FLAGS, wanted);
     }
 

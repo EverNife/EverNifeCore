@@ -9,9 +9,35 @@ import org.bukkit.inventory.ItemStack;
 
 public class FCInventoryUtil {
 
+    /**
+     * The slots that hold items, without the armour and off-hand slots a player inventory also
+     * reports.
+     *
+     * <p>1.7.10 has no {@code getStorageContents()}; there the whole inventory already is the
+     * storage, so its contents are the same answer.</p>
+     */
+    private static ItemStack[] storageOf(Inventory inventory){
+        return MCVersion.isLowerEquals(MCVersion.v1_7_10)
+                ? inventory.getContents()
+                : inventory.getStorageContents();
+    }
+
+    /** Writes back an array that came from {@link #storageOf(Inventory)}, slot for slot. */
+    private static void writeStorage(Inventory inventory, ItemStack[] storage){
+        if (MCVersion.isLowerEquals(MCVersion.v1_7_10)){
+            //Not setContents: it clears every slot the array does not cover, which there means the
+            //armour. Writing slot by slot touches only what this array actually describes.
+            for (int slot = 0; slot < storage.length; slot++) {
+                inventory.setItem(slot, storage[slot]);
+            }
+            return;
+        }
+        inventory.setStorageContents(storage);
+    }
+
     public static int getAmount(Player player, ComparableItem comparableItem){
         int amount = 0;
-        for (ItemStack content : player.getInventory().getStorageContents()) {
+        for (ItemStack content : storageOf(player.getInventory())) {
             if (content != null && content.getType() != Material.AIR){
                 if (comparableItem.match(content)){
                     amount += content.getAmount();
@@ -24,7 +50,7 @@ public class FCInventoryUtil {
     public static boolean contains(Player player, ComparableItem comparableItem, int amount){
         assert amount > 0 : "Amount must be > 0";
 
-        for (ItemStack content : player.getInventory().getStorageContents()) {
+        for (ItemStack content : storageOf(player.getInventory())) {
             if (content != null && content.getType() != Material.AIR){
                 if (comparableItem.match(content)){
                     amount -= content.getAmount();
@@ -41,7 +67,7 @@ public class FCInventoryUtil {
     public static boolean removeFrom(Player player, ComparableItem comparableItem, int amount){
         assert amount > 0 : "Amount must be > 0";
 
-        ItemStack[] storage = player.getInventory().getStorageContents();
+        ItemStack[] storage = storageOf(player.getInventory());
         for (int i = 0; i < storage.length; i++) {
             ItemStack content = storage[i];
 
@@ -62,7 +88,7 @@ public class FCInventoryUtil {
         }
 
         if (amount == 0){
-            player.getInventory().setStorageContents(storage);
+            writeStorage(player.getInventory(), storage);
             return true;
         }
 
@@ -70,9 +96,7 @@ public class FCInventoryUtil {
     }
 
     public static int getMaxFitAmount(ComparableItem comparableItem, Inventory inv) {
-        ItemStack[] contents =
-                !MCVersion.isLowerEquals(MCVersion.v1_7_10) ? inv.getStorageContents()  //Ignore Armor and Shield slots if PlayerInventory
-                        : inv.getContents(); // 1.7.10 does not have "getStorageContents()"
+        ItemStack[] contents = storageOf(inv);
 
         int result = 0;
 
@@ -95,7 +119,7 @@ public class FCInventoryUtil {
 
     public static int getAmount(Player player, ItemStack itemStack){
         int amount = 0;
-        for (ItemStack content : player.getInventory().getStorageContents()) {
+        for (ItemStack content : storageOf(player.getInventory())) {
             if (content != null && content.getType() != Material.AIR){
                 if (content.isSimilar(itemStack)){
                     amount += content.getAmount();
@@ -108,7 +132,7 @@ public class FCInventoryUtil {
     public static boolean contains(Player player, ItemStack itemStack, int amount){
         assert amount > 0 : "Amount must be > 0";
 
-        for (ItemStack content : player.getInventory().getStorageContents()) {
+        for (ItemStack content : storageOf(player.getInventory())) {
             if (content != null && content.getType() != Material.AIR){
                 if (content.isSimilar(itemStack)){
                     amount -= content.getAmount();
@@ -125,7 +149,7 @@ public class FCInventoryUtil {
     public static boolean removeFrom(Player player, ItemStack itemStack, int amount){
         assert amount > 0 : "Amount must be > 0";
 
-        ItemStack[] storage = player.getInventory().getStorageContents();
+        ItemStack[] storage = storageOf(player.getInventory());
         for (int i = 0; i < storage.length; i++) {
             ItemStack content = storage[i];
 
@@ -146,7 +170,7 @@ public class FCInventoryUtil {
         }
 
         if (amount == 0){
-            player.getInventory().setStorageContents(storage);
+            writeStorage(player.getInventory(), storage);
             return true;
         }
 
@@ -154,9 +178,7 @@ public class FCInventoryUtil {
     }
 
     public static int getMaxFitAmount(ItemStack stack, Inventory inv) {
-        ItemStack[] contents =
-                !MCVersion.isLowerEquals(MCVersion.v1_7_10) ? inv.getStorageContents()  //Ignore Armor and Shield slots if PlayerInventory
-                        : inv.getContents(); // 1.7.10 does not have "getStorageContents()"
+        ItemStack[] contents = storageOf(inv);
 
         int result = 0;
 

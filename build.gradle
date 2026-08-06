@@ -149,3 +149,6 @@ configure([project(':minecraft:modules:v1_7_10'),
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 }
+
+apply from: 'tools/linkcheck.gradle'
+project(':minecraft').tasks.named('check') { dependsOn rootProject.tasks.named('checkLinkage') }
