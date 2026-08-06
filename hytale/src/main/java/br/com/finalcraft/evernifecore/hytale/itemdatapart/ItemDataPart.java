@@ -21,7 +21,13 @@ public abstract class ItemDataPart {
             PRIORITY_LATE = 80,
             PRIORITY_VERY_LATE = 100;
 
-    public static List<ItemDataPart> ALL_REGISTERED_TYPES = new ArrayList<>();
+    //private, and read-only from the outside: a registry anyone can reorder or empty is a registry
+    //nobody can reason about
+    private static final List<ItemDataPart> REGISTERED = new ArrayList<>();
+
+    public static List<ItemDataPart> getRegistered() {
+        return Collections.unmodifiableList(REGISTERED);
+    }
 
     public static ItemDataPart ITEM_ID          = registerType(new ItemDataPartItemId());
     public static ItemDataPart METADATA         = registerType(new ItemDataPartMetadata());
@@ -30,7 +36,7 @@ public abstract class ItemDataPart {
     public static ItemDataPart QUANTITY         = registerType(new ItemDataPartQuantity());
 
     public static @Nullable <DP extends ItemDataPart> DP registerType(@Nonnull DP type) {
-        ALL_REGISTERED_TYPES.add(type);
+        REGISTERED.add(type);
         return type;
     }
 
@@ -44,7 +50,7 @@ public abstract class ItemDataPart {
     }
 
     public static ItemDataPart detectType(String s) {
-        for (ItemDataPart type : ALL_REGISTERED_TYPES) {
+        for (ItemDataPart type : REGISTERED) {
             if (type.isType(s)) {
                 return type;
             }
@@ -99,7 +105,7 @@ public abstract class ItemDataPart {
             return null;
         }
         List<String> output = new ArrayList<>();
-        for (ItemDataPart part : ALL_REGISTERED_TYPES) {
+        for (ItemDataPart part : REGISTERED) {
             try {
                 output = part.read(item, output);
             } catch (Exception e) { //Seems like that ItemDataPart is not supported yet
@@ -113,7 +119,7 @@ public abstract class ItemDataPart {
         if (base_item == null || other_item == null) {
             return false;
         }
-        for (ItemDataPart part : ALL_REGISTERED_TYPES) {
+        for (ItemDataPart part : REGISTERED) {
             if (isException(exceptions, part)) {
                 continue;
             }

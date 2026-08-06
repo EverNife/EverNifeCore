@@ -1,7 +1,9 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.layout;
 
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.RegisteredPart;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.StandardParts;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
@@ -30,8 +32,9 @@ public final class IconLocale {
         if (line == null) {
             return false;
         }
-        ItemDataPart part = ItemDataPart.detectType(line.split(":", 2)[0].trim());
-        return part == ItemDataPart.NAME || part == ItemDataPart.LORE;
+        RegisteredPart part = ItemEngine.get().findByLine(line);
+        return part != null && (StandardParts.NAME.equals(part.getKey())
+                || StandardParts.LORE.equals(part.getKey()));
     }
 
     /** The item-data lines a name plus a lore make, which is what a language block holds on disk. */

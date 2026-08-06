@@ -8,6 +8,8 @@ import br.com.finalcraft.evernifecore.minecraft.inventory.invitem.InvItem;
 import br.com.finalcraft.evernifecore.minecraft.inventory.invitem.InvItemManager;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemDescription;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
 import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
 import br.com.finalcraft.everylibs.util.FCInputReader;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -232,8 +234,15 @@ public final class McConfigTypes {
      * files remain readable; only re-saves collapse an InvItem to its item-data list form.
      */
     private static void writeItemStack(ItemStack itemStack, JsonGenerator gen) throws IOException {
-        List<String> itemData = ItemDataPart.readItem(itemStack);
-        gen.writeObject(itemData);
+        ItemDescription description = ItemEngine.get().read(itemStack);
+        if (!description.isComplete() && ItemEngine.get().getRuntime().isLive()) {
+            //saving is the moment data is lost for good, so an incomplete read cannot pass quietly
+            EverNifeCore.getLog().warning("Saving an item this server could not fully read ("
+                    + itemStack.getType() + "): " + description.describeGaps()
+                    + ". What is missing will not be in the file. Fix the gap before saving again, or the "
+                    + "next load will bring back a smaller item than the one you had.");
+        }
+        gen.writeObject(description.getLines());
     }
 
     /**

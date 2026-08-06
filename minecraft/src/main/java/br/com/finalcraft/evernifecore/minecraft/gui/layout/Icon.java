@@ -3,8 +3,11 @@ package br.com.finalcraft.evernifecore.minecraft.gui.layout;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.ClickContext;
-import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemBase;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEdit;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.StandardParts;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder.FCItemBuilder;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
@@ -49,6 +52,8 @@ public class Icon {
 
     private final Map<String, ItemStack> states = new LinkedHashMap<>();
     private final CompoundReplacer scopes = new CompoundReplacer();
+    //a screen renders the same language block once per viewer per redraw; reading it is worth doing once
+    private final Map<String, List<ItemEdit>> localeEdits = new LinkedHashMap<>();
     private IconLocale locale;
     private ECPluginData localeOwner;
     private boolean integrateToPAPI = false;
@@ -258,6 +263,7 @@ public class Icon {
 
     public void setLocale(@Nullable IconLocale locale) {
         this.locale = locale;
+        this.localeEdits.clear();
     }
 
     /**
@@ -321,13 +327,30 @@ public class Icon {
     private ItemStack renderFor(Player viewer, ItemStack base) {
         ItemStack rendered = base.clone();
         if (locale != null) {
-            List<String> lines = locale.resolve(languageOf(viewer));
-            if (lines != null) {
-                rendered = ItemDataPart.transformItem(rendered, lines);
+            String lang = languageOf(viewer);
+            List<ItemEdit> edits = editsFor(lang);
+            if (edits != null) {
+                rendered = ItemEngine.get().materialize(ItemBase.of(rendered), edits).getItemStack();
             }
         }
         CompoundReplacer replacer = replacerFor(viewer);
         return replacer == null ? rendered : applyReplacer(rendered, replacer);
+    }
+
+    /** The language block of {@code lang}, read once and kept - a redraw asks for it constantly. */
+    @Nullable
+    private List<ItemEdit> editsFor(@Nullable String lang) {
+        String key = lang == null ? "" : lang;
+        List<ItemEdit> cached = localeEdits.get(key);
+        if (cached != null) {
+            return cached.isEmpty() ? null : cached;
+        }
+        List<String> lines = locale.resolve(lang);
+        List<ItemEdit> edits = lines == null
+                ? Collections.<ItemEdit>emptyList()
+                : ItemEngine.get().parse(lines).getEdits();
+        localeEdits.put(key, edits);
+        return edits.isEmpty() ? null : edits;
     }
 
     /**
@@ -406,7 +429,8 @@ public class Icon {
     /** Sets the raw nbt of this icon's stack, in the same {@code {CustomModelData:1042}} form the yml takes. */
     @Nonnull
     public Icon nbt(@Nonnull String nbt) {
-        setItemStack(ItemDataPart.transformItem(itemStack, "nbt:" + nbt));
+        setItemStack(ItemEngine.get().transform(itemStack,
+                Collections.singletonList(StandardParts.NBT + ":" + nbt)));
         return this;
     }
 

@@ -1,94 +1,64 @@
 package br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
-import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemLineException;
 import br.com.finalcraft.everylibs.util.FCInputReader;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.Damageable;
-import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.Collections;
 import java.util.List;
 
-public class ItemDataPartDurability extends ItemDataPart {
+/**
+ * Damage on a tool, or the data value that used to pick a colour before 1.13.
+ *
+ * <p>One call answers for both eras: {@code ItemStack.getDurability} is the field itself on the old
+ * versions and the metadata's damage on the new ones, and which one it is has never been this
+ * side's business.</p>
+ */
+public class ItemDataPartDurability extends ItemDataPart<Integer> {
 
+    @Nonnull
     @Override
-    public ItemStack transform(ItemStack item, String used_name, String argument) {
-        int damage = FCInputReader.parseInt(argument, -1);
+    public String getCanonicalKey() {
+        return "durability";
+    }
 
-        if (damage == -1) {
-            EverNifeCore.getLog().warning("Mistake in Config: '" + argument + "' is not a valid '" + used_name + "'. " +
-                    "It needs to be an integer number like '0', '5' or '200'. ");
-            return item;
+    @Nonnull
+    @Override
+    public Integer parse(@Nonnull String argument) throws ItemLineException {
+        Integer damage = FCInputReader.parseInt(argument.replace(" ", ""), null);
+        if (damage == null) {
+            throw ItemLineException.expecting(argument, "a whole number of damage points", "200");
         }
+        return damage;
+    }
 
-        if (MCVersion.isHigherEquals(MCVersion.v1_13)){
-            if (!(item.getItemMeta() instanceof Damageable)) {
-                EverNifeCore.getLog().warning("Mistake in Config: Unable to add damage/durability to items of type '" + item.getType() + "'.");
-                return item;
-            }
-            Damageable d = (Damageable) item.getItemMeta();
-            d.setDamage(damage);
+    @Nonnull
+    @Override
+    public List<String> format(@Nonnull Integer value) {
+        return Collections.singletonList(String.valueOf(value));
+    }
 
-            item.setItemMeta((ItemMeta) d);
-        }else {
-            item.setDurability((short) damage);;
-        }
-
+    @Nonnull
+    @Override
+    public ItemStack apply(@Nonnull Integer value, @Nonnull ItemStack item) {
+        item.setDurability(value.shortValue());
         return item;
     }
 
+    /** Undamaged is the default of every item, so it is not worth a line. */
+    @Nullable
     @Override
-    public boolean isSimilar(ItemStack base_item, ItemStack other_item) {
-        if (MCVersion.isHigherEquals(MCVersion.v1_13)){
-            if (base_item.getItemMeta() instanceof Damageable != other_item.getItemMeta() instanceof Damageable) {
-                return false;
-            }
-            if (base_item.getItemMeta() instanceof Damageable) {
-                Damageable a = (Damageable) base_item.getItemMeta();
-                Damageable b = (Damageable) other_item.getItemMeta();
-                if (a.getDamage() != b.getDamage()) {
-                    return false;
-                }
-            }
-            return true;
-        }else {
-            return base_item.getDurability() == other_item.getDurability();
-        }
-    }
-
-    @Override
-    public List<String> read(ItemStack itemStack, List<String> output) {
-        int damage = 0;
-        if (MCVersion.isHigherEquals(MCVersion.v1_13)){
-            if (itemStack.hasItemMeta()) {
-                if (itemStack.getItemMeta() instanceof Damageable) {
-                    Damageable d = (Damageable) itemStack.getItemMeta();
-                    damage = d.getDamage();
-                }
-            }
-        }else {
-            damage = itemStack.getDurability();
-        }
-        if (damage != 0){
-            output.add("durability:" + damage);
-        }
-        return output;
+    public Integer extract(@Nonnull ItemStack item) {
+        short durability = item.getDurability();
+        return durability == 0 ? null : (int) durability;
     }
 
     @Override
     public int getPriority() {
         return PRIORITY_EARLY;
-    }
-
-    @Override
-    public boolean removeSpaces() {
-        return true;
-    }
-
-    @Override
-    public String[] createNames() {
-        return new String[]{"damage", "durability", "subid"};
     }
 
 }

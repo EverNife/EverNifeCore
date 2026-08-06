@@ -7,7 +7,10 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.minecraft.gui.cfg.SettingsScanner;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.GuiType;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.SlotSet;
-import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.RegisteredPart;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.StandardParts;
 import br.com.finalcraft.evernifecore.minecraft.util.FCMaterialUtil;
 import br.com.finalcraft.everyconfig.config.Config;
 import jakarta.annotation.Nonnull;
@@ -108,11 +111,9 @@ public final class LayoutScanner {
             String path = (iconData.background() ? BACKGROUND : LAYOUT) + "." + field.getName();
             try {
                 Icon declared = iconOf(instance, field);
-                //Read first, seed second: what the file already says is the truth, and what it does not
-                //say is written from the object we are holding - never read back through its own text
+                seedIcon(base, path, declared, iconData);
                 Icon resolved = resolveIcon(plugin, declaration, iconData, declared, source, path);
                 SlotSet slots = resolveSlots(instance, field, source, path);
-                seedIcon(base, path, declared, iconData);
                 instance.putIcon(field.getName(), resolved, slots);
             } catch (Throwable failure) {
                 plugin.getLog().warning(type.getSimpleName() + "." + field.getName() + ": "
@@ -271,7 +272,7 @@ public final class LayoutScanner {
 
     /** The item-data lines of a stack, without the text ones when the text is a language block's job. */
     private static List<String> displayItemOf(ItemStack stack, boolean textLivesInLocale) {
-        List<String> lines = ItemDataPart.readItem(stack);
+        List<String> lines = ItemEngine.get().read(stack).getLines();
         if (!textLivesInLocale) {
             return lines;
         }
@@ -373,7 +374,8 @@ public final class LayoutScanner {
     private static ItemStack buildItem(List<String> itemData) {
         for (String line : itemData) {
             String[] parts = line.split(":", 2);
-            if (parts.length != 2 || ItemDataPart.detectType(parts[0].trim()) != ItemDataPart.MATERIAL) {
+            RegisteredPart part = parts.length == 2 ? ItemEngine.get().find(parts[0].trim()) : null;
+            if (part == null || !StandardParts.TYPE.equals(part.getKey())) {
                 continue;
             }
             String[] identifier = parts[1].trim().split(":");
@@ -384,7 +386,7 @@ public final class LayoutScanner {
                         + didYouMean(identifier[0], names(Material.values())));
             }
         }
-        return ItemDataPart.transformItem(itemData);
+        return FCItemFactory.from(itemData).build();
     }
 
     private static SlotSet resolveSlots(LayoutBase instance, Field field, LayoutSource source, String path) {
@@ -509,7 +511,7 @@ public final class LayoutScanner {
             collectPlaceholders(title, found);
         }
         for (LayoutBase.PlacedIcon placed : instance.getIcons().values()) {
-            for (String line : ItemDataPart.readItem(placed.getIcon().getItemStack())) {
+            for (String line : ItemEngine.get().read(placed.getIcon().getItemStack()).getLines()) {
                 collectPlaceholders(line, found);
             }
             IconLocale locale = placed.getIcon().getLocale();

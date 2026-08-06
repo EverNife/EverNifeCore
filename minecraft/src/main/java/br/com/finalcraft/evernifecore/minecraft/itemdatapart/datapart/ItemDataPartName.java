@@ -1,57 +1,56 @@
 package br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart;
 
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
-import org.bukkit.ChatColor;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemLineException;
+import br.com.finalcraft.evernifecore.util.FCColorUtil;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.Collections;
 import java.util.List;
 
-public class ItemDataPartName extends ItemDataPart {
+/** The name shown on the item. Written with {@code &} codes, held with the section character. */
+public class ItemDataPartName extends ItemDataPart<String> {
 
+    @Nonnull
     @Override
-    public ItemStack transform(ItemStack item, String used_name, String argument) {
-        return FCItemFactory.from(item)
-                .displayName(argument)
-                .build();
+    public String getCanonicalKey() {
+        return "name";
     }
 
+    @Nonnull
     @Override
-    public boolean isSimilar(ItemStack base_item, ItemStack other_item) {
-        ItemMeta ms = base_item.getItemMeta();
-        ItemMeta mp = other_item.getItemMeta();
-        if (ms.hasDisplayName()) {
-            if (!mp.hasDisplayName()) {
-                return false;
-            }
-            return ms.getDisplayName().equals(mp.getDisplayName());
-        }
-        return true;
+    public String parse(@Nonnull String argument) throws ItemLineException {
+        return FCColorUtil.colorfy(argument);
     }
 
+    @Nonnull
     @Override
-    public List<String> read(ItemStack i, List<String> output) {
-        ItemMeta meta = i.getItemMeta();
-        if (meta.hasDisplayName()) {
-            output.add("name:" + meta.getDisplayName().replaceAll(String.valueOf(ChatColor.COLOR_CHAR), "&"));
-        }
-        return output;
+    public List<String> format(@Nonnull String value) {
+        return Collections.singletonList(FCColorUtil.decolorfy(value));
+    }
+
+    @Nonnull
+    @Override
+    public ItemStack apply(@Nonnull String value, @Nonnull ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName(value);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    @Nullable
+    @Override
+    public String extract(@Nonnull ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        return meta != null && meta.hasDisplayName() ? meta.getDisplayName() : null;
     }
 
     @Override
     public int getPriority() {
         return PRIORITY_NORMAL;
-    }
-
-    @Override
-    public boolean removeSpaces() {
-        return false;
-    }
-
-    @Override
-    public String[] createNames() {
-        return new String[]{"name", "text", "title"};
     }
 
 }

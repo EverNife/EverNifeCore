@@ -1,112 +1,110 @@
 package br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemLineException;
 import br.com.finalcraft.everylibs.util.FCInputReader;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
+/**
+ * The enchantments, as {@code namespace:key:level}.
+ *
+ * <p>The value is the key as text, not a resolved {@link Enchantment}: the registry belongs to a
+ * running server and reading the line does not. The level is whatever follows the last {@code :},
+ * which is what lets the key keep its own namespace separator.</p>
+ */
+public class ItemDataPartEnchantment extends ItemDataPart<SortedMap<String, Integer>> {
 
-public class ItemDataPartEnchantment extends ItemDataPart {
-
+    @Nonnull
     @Override
-    public ItemStack transform(ItemStack item, String used_name, String argument) {
-        int idx = argument.lastIndexOf(':');
+    public String getCanonicalKey() {
+        return "enchant";
+    }
 
-        String enchantKey = idx != -1 ? argument.substring(0, idx) : argument;
-        String amountString = idx != -1 ? argument.substring(idx + 1) : null;
-
-        if (enchantKey == null || amountString == null) {
-            EverNifeCore.getLog().warning("Mistake in Config: '" + argument + "' is not a valid '" + used_name + "'.");
-            return item;
+    @Nonnull
+    @Override
+    public SortedMap<String, Integer> parse(@Nonnull String argument) throws ItemLineException {
+        String written = argument.replace(" ", "");
+        int separator = written.lastIndexOf(':');
+        if (separator <= 0) {
+            throw new ItemLineException("'" + argument + "' is missing the level. The value is "
+                    + "'<enchantment>:<level>' - for example 'minecraft:sharpness:5'.");
         }
 
-        Enchantment enchantment = Enchantment.getByKey(NamespacedKey.fromString(enchantKey));
-
-        if (enchantment == null) {
-            EverNifeCore.getLog().warning("Mistake in Config: '" + argument + "' is not a valid '" + used_name + "'.");
-            return item;
-        }
-
-        Integer level = FCInputReader.parseInt(amountString);
-
+        String key = written.substring(0, separator);
+        Integer level = FCInputReader.parseInt(written.substring(separator + 1), null);
         if (level == null) {
-            EverNifeCore.getLog().warning("Mistake in Config: '" + argument + "' is not a valid '" + used_name + "'.");
-            return item;
+            throw new ItemLineException("'" + written.substring(separator + 1) + "' is not a level. "
+                    + "The value is '<enchantment>:<level>' - for example 'minecraft:sharpness:5'.");
         }
 
-        item.addUnsafeEnchantment(enchantment, level);
+        SortedMap<String, Integer> enchants = new TreeMap<>();
+        enchants.put(key, level);
+        return enchants;
+    }
+
+    @Nonnull
+    @Override
+    public List<String> format(@Nonnull SortedMap<String, Integer> value) {
+        List<String> arguments = new ArrayList<>(value.size());
+        for (Map.Entry<String, Integer> entry : value.entrySet()) {
+            arguments.add(entry.getKey() + ":" + entry.getValue());
+        }
+        return arguments;
+    }
+
+    @Nonnull
+    @Override
+    public SortedMap<String, Integer> merge(@Nonnull SortedMap<String, Integer> previous,
+                                            @Nonnull SortedMap<String, Integer> next) {
+        SortedMap<String, Integer> joined = new TreeMap<>(previous);
+        joined.putAll(next);
+        return joined;
+    }
+
+    @Nonnull
+    @Override
+    public ItemStack apply(@Nonnull SortedMap<String, Integer> value, @Nonnull ItemStack item) {
+        for (Map.Entry<String, Integer> entry : value.entrySet()) {
+            NamespacedKey key = NamespacedKey.fromString(entry.getKey());
+            Enchantment enchantment = key == null ? null : Enchantment.getByKey(key);
+            if (enchantment == null) {
+                throw new ItemLineException("'" + entry.getKey() + "' is not an enchantment this server "
+                        + "has. Write the namespaced key the server registered, such as "
+                        + "'minecraft:sharpness'.");
+            }
+            item.addUnsafeEnchantment(enchantment, entry.getValue());
+        }
         return item;
     }
 
+    @Nullable
     @Override
-    public boolean isSimilar(ItemStack base_item, ItemStack other_item) {
-        ItemMeta baseMeta = base_item.getItemMeta();
-        ItemMeta oterMeta = other_item.getItemMeta();
-
-        if (baseMeta.hasEnchants()) {
-            if (!oterMeta.hasEnchants()) {
-                return false;
-            }
-
-            Map<Enchantment, Integer> baseEnchants = baseMeta.getEnchants();
-            Map<Enchantment, Integer> otherEnchants = oterMeta.getEnchants();
-
-            if (baseEnchants.size() != otherEnchants.size()) {
-                return false;
-            }
-
-            for (Map.Entry<Enchantment, Integer> entry : baseEnchants.entrySet()) {
-                Enchantment enchantment = entry.getKey();
-                Integer level = entry.getValue();
-
-                Integer otherLevel = otherEnchants.get(enchantment);
-                if (!level.equals(otherLevel)) {
-                    return false;
-                }
-            }
+    public SortedMap<String, Integer> extract(@Nonnull ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null || !meta.hasEnchants()) {
+            return null;
         }
-
-        return true;
-    }
-
-    @Override
-    public List<String> read(ItemStack itemStack, List<String> output) {
-
-        List<String> enchants = itemStack.getItemMeta().getEnchants().entrySet().stream()
-                .map(entry -> entry.getKey().getKey() + ":" + entry.getValue())
-                .collect(Collectors.toList());
-
-        Collections.sort(enchants);
-
-        for (String enchant : enchants) {
-            output.add("enchant:" + enchant);
+        SortedMap<String, Integer> enchants = new TreeMap<>();
+        for (Map.Entry<Enchantment, Integer> entry : meta.getEnchants().entrySet()) {
+            enchants.put(entry.getKey().getKey().toString(), entry.getValue());
         }
-
-        return output;
+        return enchants;
     }
 
     @Override
     public int getPriority() {
         return PRIORITY_EARLY - 1;
     }
-
-    @Override
-    public boolean removeSpaces() {
-        return true;
-    }
-
-    @Override
-    public String[] createNames() {
-        return new String[]{"enchant"};
-    }
-
 
 }

@@ -9,7 +9,8 @@ import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
-import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemDescription;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
 import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
@@ -96,8 +97,12 @@ public class CMDItemInfo {
                     .send(player);
         }
 
-        String itemDataPart = ItemDataPart.readItem(heldItem).stream()
+        ItemDescription description = ItemEngine.get().read(heldItem);
+        String itemDataPart = description.getLines().stream()
                 .collect(Collectors.joining("\n - ","\n - ",""));
+        if (!description.isComplete()) {
+            itemDataPart += "\n - (this server cannot read: " + description.describeGaps() + ")";
+        }
 
         BUKKIT_IDENTIFIER
                 .addPlaceholder("bukkit_identifier", FCItemUtils.getBukkitIdentifier(heldItem))

@@ -13,24 +13,24 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * The escape hatch: whatever the item carries that no other key has a name for.
+ * The typed side of the item, as 1.20.5 and up model it.
  *
- * <p>It always means custom data, on every version. From 1.20.5 on the server keeps that under
- * {@code minecraft:custom_data} and offers a typed side as well, but a block of lines written for
- * one server has to mean the same thing on another - so the typed side got its own key instead of
- * quietly taking this one over.</p>
- *
- * <p>What other keys already own is dropped on the way out. Emitting the name inside the tag as
- * well as under {@code name:} would make a round trip write it twice.</p>
+ * <p>This is where {@code nbt:} does not reach: a component is not free-form data the server keeps
+ * for whoever wrote it, it is a field the game itself understands. A server that has no components
+ * refuses this key by name and says so, instead of writing the data somewhere it will never be
+ * read from.</p>
  */
-public class ItemDataPartNBT extends ItemDataPart<List<String>> {
+public class ItemDataPartComponents extends ItemDataPart<List<String>> {
 
-    private static final String[] OWNED_ELSEWHERE = {"display", "Damage", "HideFlags", "ench", "Enchantments"};
+    private static final String[] OWNED_ELSEWHERE = {
+            "minecraft:custom_data", "minecraft:custom_name", "minecraft:lore",
+            "minecraft:damage", "minecraft:enchantments", "minecraft:custom_model_data"
+    };
 
     @Nonnull
     @Override
     public String getCanonicalKey() {
-        return "nbt";
+        return "components";
     }
 
     @Nonnull
@@ -38,8 +38,8 @@ public class ItemDataPartNBT extends ItemDataPart<List<String>> {
     public List<String> parse(@Nonnull String argument) throws ItemLineException {
         String snbt = argument.trim();
         if (!snbt.startsWith("{") || !snbt.endsWith("}")) {
-            throw ItemLineException.expecting(argument, "a compound in SNBT, braces included",
-                    "{CustomModelData:1042}");
+            throw ItemLineException.expecting(argument, "a compound of components in SNBT, braces included",
+                    "{\"minecraft:max_stack_size\":1}");
         }
         return Collections.singletonList(snbt);
     }
@@ -61,9 +61,9 @@ public class ItemDataPartNBT extends ItemDataPart<List<String>> {
     @Nonnull
     @Override
     public ItemStack apply(@Nonnull List<String> value, @Nonnull ItemStack item) {
-        NbtDoor.custom().modifyBatch(item, tag -> {
+        NbtDoor.components().modifyBatch(item, components -> {
             for (String snbt : value) {
-                tag.mergeCompound(NbtDoor.parse(snbt));
+                components.mergeCompound(NbtDoor.parse(snbt));
             }
         });
         return item;
@@ -72,14 +72,13 @@ public class ItemDataPartNBT extends ItemDataPart<List<String>> {
     @Nullable
     @Override
     public List<String> extract(@Nonnull ItemStack item) {
-        ReadWriteNBT tag = NbtDoor.custom().snapshot(item);
+        ReadWriteNBT components = NbtDoor.components().snapshot(item);
         for (String owned : OWNED_ELSEWHERE) {
-            tag.removeKey(owned);
+            components.removeKey(owned);
         }
-        return tag.getKeys().isEmpty() ? null : Collections.singletonList(tag.toString());
+        return components.getKeys().isEmpty() ? null : Collections.singletonList(components.toString());
     }
 
-    /** Reading a whole tag twice is expensive, so this only answers when it is asked to. */
     @Override
     public int getPriority() {
         return PRIORITY_VERY_LATE;

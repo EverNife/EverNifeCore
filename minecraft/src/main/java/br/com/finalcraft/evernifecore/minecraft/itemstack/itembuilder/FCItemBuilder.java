@@ -2,8 +2,9 @@ package br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder;
 
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.ClickContext;
-import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemBase;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ParsedBlock;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import jakarta.annotation.Nonnull;
 import org.bukkit.inventory.ItemStack;
@@ -15,7 +16,15 @@ import java.util.function.Supplier;
 public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
 
     public FCItemBuilder(@Nonnull ItemStack itemStack) {
-        super(itemStack);
+        super(ItemBase.of(itemStack));
+    }
+
+    public FCItemBuilder(@Nonnull ItemBase base) {
+        super(base);
+    }
+
+    public FCItemBuilder(@Nonnull ItemBase base, @Nonnull ParsedBlock block) {
+        super(base, block);
     }
 
     /**
@@ -86,29 +95,35 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
     }
 
     /**
-     * Applies the material of the given [Material or Minecraft identifier] to the builder if it exists.
+     * Starts the item over from {@code materialOrMinecraftIdentifier}, but only if this server has
+     * it - which is how an icon names a modded look and still works where the mod is absent.
      *
-     * @param materialOrMinecraftIdentifier The Minecraft identifier of the material.
+     * @param materialOrMinecraftIdentifier a bukkit name or a namespaced identifier
      * @return The FCItemBuilder object.
      */
     @Nonnull
     public FCItemBuilder applyMaterialIfExists(@Nonnull String materialOrMinecraftIdentifier){
         try {
-            return this.changeItemStack(FCItemFactory.from(materialOrMinecraftIdentifier).build());
-        }catch (Exception ignored){
-
+            ItemBase candidate = ItemBase.ofIdentifier(materialOrMinecraftIdentifier);
+            candidate.resolve();
+            setBase(candidate);
+        } catch (Exception | LinkageError absentHere) {
+            //asking "if it exists" means the answer "it does not" is ordinary, not a failure
         }
         return this;
     }
 
-
     /**
-     * Read the ItemStack to a DataPart String List
+     * Reads the item this recipe builds back into item-data lines.
+     *
+     * <p>It goes through the built item on purpose. Formatting the staged edits directly would be
+     * cheaper and would be a second way of writing the same text - and two ways of writing it is
+     * exactly how the key of a concept and the shape of its value used to drift apart.</p>
      *
      * @return A list of strings.
      */
     @Nonnull
     public List<String> toDataPart(){
-        return ItemDataPart.readItem(this.build());
+        return ItemEngine.get().read(this.build()).getLines();
     }
 }

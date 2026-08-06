@@ -1,89 +1,86 @@
 package br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart;
 
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemLineException;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import org.bukkit.ChatColor;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
+/**
+ * The text under the name, one line of the file per line of lore.
+ *
+ * <p>{@code #} is an ordinary character here. It used to break a line in two, which meant a lore
+ * reading "Rank #1" became two lines the moment anything re-read and re-wrote the item - and the
+ * config codec does exactly that on every load. Only {@code \n} breaks a line now.</p>
+ *
+ * <p>Many {@code lore:} lines pile up into one block, and that block replaces whatever the item
+ * already had. Appending was the old behaviour and it doubled the lore of any icon that was read
+ * and written back.</p>
+ */
+public class ItemDataPartLore extends ItemDataPart<List<String>> {
 
-public class ItemDataPartLore extends ItemDataPart {
-
+    @Nonnull
     @Override
-    public ItemStack transform(ItemStack item, String used_name, String argument) {
-        ItemMeta meta = item.getItemMeta();
+    public String getCanonicalKey() {
+        return "lore";
+    }
 
-        String argumentTransformed = ChatColor.translateAlternateColorCodes('&',argument);
-        String[] parts = argumentTransformed.split("[#\\n]");
-        List<String> lore = meta.getLore();
-        if (lore == null) {
-            lore = new ArrayList<>();
+    @Nonnull
+    @Override
+    public List<String> parse(@Nonnull String argument) throws ItemLineException {
+        return new ArrayList<>(Arrays.asList(FCColorUtil.colorfy(argument).split("\\R", -1)));
+    }
+
+    @Nonnull
+    @Override
+    public List<String> format(@Nonnull List<String> value) {
+        List<String> arguments = new ArrayList<>(value.size());
+        for (String line : value) {
+            arguments.add(FCColorUtil.decolorfy(line));
         }
-        for (String part : parts) {
-            lore.add(part);
-        }
-        meta.setLore(lore);
+        return arguments;
+    }
+
+    @Nonnull
+    @Override
+    public List<String> merge(@Nonnull List<String> previous, @Nonnull List<String> next) {
+        List<String> joined = new ArrayList<>(previous);
+        joined.addAll(next);
+        return joined;
+    }
+
+    @Nonnull
+    @Override
+    public ItemStack apply(@Nonnull List<String> value, @Nonnull ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        meta.setLore(value);
         item.setItemMeta(meta);
         return item;
     }
 
+    @Nullable
     @Override
-    public boolean isSimilar(ItemStack base_item, ItemStack other_item) {
-        ItemMeta ms = base_item.getItemMeta();
-        ItemMeta mp = other_item.getItemMeta();
-        if (ms.hasLore()) {
-            if (!mp.hasLore()) {
-                return false;
-            }
-
-            if (ms.getLore().size() > mp.getLore().size()) {
-                return false;
-            }
-            for (int i = 0; i < ms.getLore().size(); i++) {
-                String base_item_lore_line = ms.getLore().get(i);
-                if (!mp.getLore().get(i).equals(base_item_lore_line)) {
-                    return false;
-                }
-            }
-
+    public List<String> extract(@Nonnull ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null || !meta.hasLore()) {
+            return null;
         }
-        return true;
-    }
-
-    @Override
-    public List<String> read(ItemStack itemStack, List<String> output) {
-        if (itemStack.getItemMeta().hasLore()) {
-            for (String line : itemStack.getItemMeta().getLore()) {
-                String split[] = line.split("\\R", -1);
-                for (String splitedLine : split) {
-                    if (FCColorUtil.stripColor(splitedLine).isEmpty()){//Without colors, this line is empty!
-                        output.add("lore:");
-                    }else {
-                        output.add("lore:" + splitedLine.replaceAll(String.valueOf(ChatColor.COLOR_CHAR), "&"));
-                    }
-                }
-            }
+        List<String> lines = new ArrayList<>();
+        for (String line : meta.getLore()) {
+            lines.addAll(Arrays.asList(line.split("\\R", -1)));
         }
-        return output;
+        return lines;
     }
 
     @Override
     public int getPriority() {
         return PRIORITY_NORMAL;
     }
-
-    @Override
-    public boolean removeSpaces() {
-        return false;
-    }
-
-    @Override
-    public String[] createNames() {
-        return new String[]{"lore", "description"};
-    }
-
 
 }

@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.minecraft.util;
 
-import br.com.finalcraft.evernifecore.minecraft.itemstack.nbtutil.TrackedNBTContainer;
 import br.com.finalcraft.evernifecore.minecraft.nbt.NBTPlayer;
 import de.tr7zw.changeme.nbtapi.*;
 import jakarta.annotation.Nonnull;
@@ -21,7 +20,7 @@ public class FCNBTUtil {
     }
 
     public static @Nonnull NBTContainer getFrom(String nbt){
-        return new TrackedNBTContainer(nbt);
+        return new NBTContainer(nbt);
     }
 
     public static @Nonnull NBTPlayer getFrom(Player player){

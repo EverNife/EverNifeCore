@@ -1,46 +1,57 @@
 package br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
-import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemLineException;
 import br.com.finalcraft.everylibs.util.FCInputReader;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.Collections;
 import java.util.List;
 
-public class ItemDataPartCustomModelData extends ItemDataPart {
+/** Which model of a resource pack the item wears. */
+public class ItemDataPartCustomModelData extends ItemDataPart<Integer> {
 
+    @Nonnull
     @Override
-    public ItemStack transform(ItemStack item, String used_name, String argument) {
-        int custommodeldata = FCInputReader.parseInt(argument, -1);
-        if (custommodeldata == -1) {
-            EverNifeCore.getLog().warning("Mistake in Config: '" + argument + "' is not a valid '" + used_name + "'. It needs to be a number like '1', '12' or '64'.");
-            return item;
+    public String getCanonicalKey() {
+        return "CustomModelData";
+    }
+
+    @Nonnull
+    @Override
+    public Integer parse(@Nonnull String argument) throws ItemLineException {
+        Integer modelData = FCInputReader.parseInt(argument.replace(" ", ""), null);
+        if (modelData == null) {
+            throw ItemLineException.expecting(argument, "the whole number your resource pack gave the model",
+                    "1042");
         }
+        return modelData;
+    }
+
+    @Nonnull
+    @Override
+    public List<String> format(@Nonnull Integer value) {
+        return Collections.singletonList(String.valueOf(value));
+    }
+
+    @Nonnull
+    @Override
+    public ItemStack apply(@Nonnull Integer value, @Nonnull ItemStack item) {
         ItemMeta meta = item.getItemMeta();
-        meta.setCustomModelData(custommodeldata);
+        meta.setCustomModelData(value);
         item.setItemMeta(meta);
         return item;
     }
 
+    /** Asking for it when it is absent throws, so absence has to be checked and not compared to. */
+    @Nullable
     @Override
-    public boolean isSimilar(ItemStack base_item, ItemStack other_item) {
-        if (base_item.hasItemMeta() && other_item.hasItemMeta()) {
-            return base_item.getItemMeta().getCustomModelData() == other_item.getItemMeta().getCustomModelData();
-        }
-        return true;
-    }
-
-    @Override
-    public List<String> read(ItemStack itemStack, List<String> output) {
-        if (itemStack.hasItemMeta()) {
-            int d = itemStack.getItemMeta().getCustomModelData();
-            if (d != -1) {
-                output.add("CustomModelData:" + d);
-            }
-        }
-        return output;
+    public Integer extract(@Nonnull ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        return meta != null && meta.hasCustomModelData() ? meta.getCustomModelData() : null;
     }
 
     @Override
@@ -48,18 +59,4 @@ public class ItemDataPartCustomModelData extends ItemDataPart {
         return PRIORITY_NORMAL;
     }
 
-    @Override
-    public boolean removeSpaces() {
-        return false;
-    }
-
-    @Override
-    public String[] createNames() {
-        return new String[]{"CustomModelData"};
-    }
-
-    @Override
-    public MCDetailedVersion getMinimumVersion() {
-        return MCDetailedVersion.v1_14_R1;
-    }
 }

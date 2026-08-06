@@ -1,49 +1,62 @@
 package br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemLineException;
 import br.com.finalcraft.everylibs.util.FCInputReader;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Collections;
 import java.util.List;
 
-public class ItemDataPartAmount extends ItemDataPart {
+/**
+ * How many.
+ *
+ * <p>Emitted even when it is one. The canonical file is an editing surface, not a minimal dump: the
+ * amount is a field admins change constantly, and a line that is already there costs them one
+ * keystroke while an absent one costs them the whole line.</p>
+ */
+public class ItemDataPartAmount extends ItemDataPart<Integer> {
 
+    @Nonnull
     @Override
-    public ItemStack transform(ItemStack itemStack, String used_name, String argument) {
-        Integer amount = FCInputReader.parseInt(argument, null);
+    public String getCanonicalKey() {
+        return "amount";
+    }
+
+    @Nonnull
+    @Override
+    public Integer parse(@Nonnull String argument) throws ItemLineException {
+        Integer amount = FCInputReader.parseInt(argument.replace(" ", ""), null);
         if (amount == null) {
-            EverNifeCore.getLog().warning("Mistake in Config: '" + argument + "' is not a valid '" + used_name + "'. It needs to be a number like '1', '12' or '64'.");
-            return itemStack;
+            throw ItemLineException.expecting(argument, "a whole number of items", "16");
         }
-        itemStack.setAmount(amount);
-        return itemStack;
+        return amount;
     }
 
+    @Nonnull
     @Override
-    public boolean isSimilar(ItemStack base_item, ItemStack other_item) {
-        return base_item.getAmount() == other_item.getAmount();
+    public List<String> format(@Nonnull Integer value) {
+        return Collections.singletonList(String.valueOf(value));
     }
 
+    @Nonnull
     @Override
-    public List<String> read(ItemStack itemStack, List<String> output) {
-        output.add("amount:" + itemStack.getAmount());
-        return output;
+    public ItemStack apply(@Nonnull Integer value, @Nonnull ItemStack item) {
+        item.setAmount(value);
+        return item;
+    }
+
+    @Nullable
+    @Override
+    public Integer extract(@Nonnull ItemStack item) {
+        return item.getAmount();
     }
 
     @Override
     public int getPriority() {
         return PRIORITY_EARLY;
-    }
-
-    @Override
-    public boolean removeSpaces() {
-        return true;
-    }
-
-    @Override
-    public String[] createNames() {
-        return new String[]{"amount", "number"};
     }
 
 }

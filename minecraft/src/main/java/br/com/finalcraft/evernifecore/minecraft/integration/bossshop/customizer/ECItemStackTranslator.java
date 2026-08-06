@@ -32,9 +32,9 @@ public class ECItemStackTranslator extends ItemStackTranslator {
                     NBTContainer nbtContent = FCNBTUtil.getFrom(parsedNbtString);
 
                     itemStack = FCItemFactory.from(itemStack)
-                            .setNbt(nbtCompound -> {
-                                nbtCompound.removeKey(BSItemDataPartNBT.NBT_TAG);
-                                nbtCompound.mergeCompound(nbtContent);
+                            .editNbt(tag -> {
+                                tag.removeKey(BSItemDataPartNBT.NBT_TAG);
+                                tag.mergeCompound(nbtContent);
                             }).build();
                 }catch (Exception e){
                     e.printStackTrace();

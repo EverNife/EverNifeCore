@@ -1,14 +1,21 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder;
 
-import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.nbtutil.TrackedNBTContainer;
-import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
-import br.com.finalcraft.evernifecore.minecraft.util.FCNBTUtil;
+import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.BuiltItem;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemBase;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEdit;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemLineProblem;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemProbe;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemRequirement;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.NbtDoor;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ParsedBlock;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.StandardParts;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
-import de.tr7zw.changeme.nbtapi.NBTCompound;
-import de.tr7zw.changeme.nbtapi.NBTItem;
+import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadableNBT;
 import jakarta.annotation.Nonnull;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.Color;
@@ -16,7 +23,6 @@ import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -25,493 +31,380 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * Fluent {@link ItemStack} builder, with NBT and FCColorUtil support on top of the plain Bukkit meta.
+ * A recipe for an {@link ItemStack}: what it should start from and everything that should be done
+ * to it, remembered rather than performed.
  *
- * @param <B> The builder type so the methods can cast to the subtype
+ * <p>Nothing here touches a server. Every call stages an intention, and {@link #build()} is the one
+ * moment an item exists - which is what lets a recipe be written, passed around and inspected on a
+ * JVM with no Minecraft behind it. What cannot be judged without a server is deferred; what can is
+ * judged now, so a typo in a material still fails on the line that wrote it.</p>
+ *
+ * <p>{@link #material} replaces the base and the edits are replayed over it, so the flags, the dye
+ * and the tag of everything asked for before it survive the change. Copying a chosen handful of
+ * fields onto a new item was how each of those quietly did not.</p>
+ *
+ * @param <B> the builder type, so the methods can answer as the subtype
  */
 public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
 
-    private static final EnumSet<Material> LEATHER_ARMOR = EnumSet.of(
-            Material.LEATHER_HELMET, Material.LEATHER_CHESTPLATE, Material.LEATHER_LEGGINGS, Material.LEATHER_BOOTS
-    );
+    private ItemBase base;
+    private final List<ItemEdit> edits = new ArrayList<>();
+    private final List<ItemLineProblem> problems = new ArrayList<>();
 
-    protected @Nonnull ItemStack itemStack;
-    protected @Nonnull ItemMeta meta;
-    protected @Nonnull transient NBTCompound nbtCompound; //Only populated when needed
-
-    protected FCBaseItemBuilder(@Nonnull final ItemStack itemStack) {
-        Validate.notNull(itemStack, "Item can't be null!");
-        Validate.isTrue(itemStack.getType() != Material.AIR, "Item can't be AIR!");
-
-        this.itemStack = NMSUtils.get() != null ? NMSUtils.get().validateItemStackHandle(itemStack.clone()) : itemStack.clone();//Clone the item for this builder! Also, validade it!
-        this.meta = itemStack.getItemMeta();//getItemMeta is only null when the material is AIR
-        this.nbtCompound = FCNBTUtil.getFrom(FCNBTUtil.getFrom(itemStack).toString());//Create a copy of the NBTCompound of the itemStack
-        this.nbtCompound.removeKey("display");//Remove LORE and DisplayName, its redundant as they are saved on the meta
+    protected FCBaseItemBuilder(@Nonnull final ItemBase base) {
+        Validate.notNull(base, "Base can't be null!");
+        this.base = base;
     }
 
-    protected B changeItemStack(@Nonnull ItemStack newStack) {
-        //So let's create a new meta
-        ItemMeta newMeta = newStack.getItemMeta();
-
-        //And merge the old meta into the new meta
-        newMeta.setDisplayName(meta.getDisplayName());
-        newMeta.setLore(meta.getLore());
-        meta.getEnchants().forEach((enchantment, level) -> newMeta.addEnchant(enchantment, level, true));
-        if (MCVersion.getCurrent().isHigherEquals(MCDetailedVersion.v1_10_R1) && meta.isUnbreakable()) newMeta.setUnbreakable(true);
-        if (MCVersion.getCurrent().isHigherEquals(MCDetailedVersion.v1_14_R1)){
-            if (meta.hasCustomModelData()) newMeta.setCustomModelData(meta.getCustomModelData());
-            if (meta.hasAttributeModifiers()) newMeta.setAttributeModifiers(meta.getAttributeModifiers());
-        }
-
-        this.itemStack = newStack;
-        this.meta = newMeta;
-        //this.nbtCompound = ????; //There is no need to update the nbt! At least for now
-
-        if (MCVersion.isLowerEquals(MCVersion.v1_12)){
-            this.itemStack.setDurability(newStack.getDurability());
-        }else {
-            if (meta instanceof Damageable){
-                this.itemStack.setDurability(newStack.getDurability());
-            }
-        }
-
-        return (B) this;
+    /** A recipe that already carries what a block of item-data lines asked for. */
+    protected FCBaseItemBuilder(@Nonnull final ItemBase base, @Nonnull final ParsedBlock block) {
+        this(base);
+        this.edits.addAll(block.getEdits());
+        this.problems.addAll(block.getProblems());
     }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  What the item is
+    // -----------------------------------------------------------------------------------------------------------------
 
     /**
-     * Sets the material of the item. It acually
-     * creates a new ItemStack with that material, then
-     * copy every single entry of the previous MetaData
-     * to the new MetaData. There is no change to this
-     * builder's NBTTagCompound!
+     * Starts the item over from {@code material}, keeping everything the recipe asks for.
      *
-     * @param material The material of the item.
-     * @return The FCItemBuilder class
+     * @param material the material of the item
+     * @return this builder
      */
     @Nonnull
-    public B material(@Nonnull Material material) {
-        Validate.notNull(material, "Material can't be null!");
-        Validate.isTrue(itemStack.getType() != Material.AIR, "Material can't be AIR!");
-
-        //On modern versions there are no reliable way to change 'just the material'.
-        //It turns the ItemStack into AIR sometimes, at least I think it does!!!
-        //So let's create a new item
-        ItemStack newStack = FCItemFactory.from(material).build();
-        return this.changeItemStack(newStack);
+    public B material(@Nonnull final Material material) {
+        this.base = ItemBase.of(material);
+        return self();
     }
 
     /**
-     * Sets the material of the item. It acually
-     * creates a new ItemStack with that material, then
-     * copy every single entry of the previous MetaData
-     * to the new MetaData. There is no change to the
-     * builders NBTTagCompound!
+     * Starts the item over from a bukkit {@code NAME[:durability]} or a namespaced {@code mod:item}.
      *
-     * @param itemIdentifier The itemIdentifier of the item.
-     *                       can be a BukkitIdentifier
-     *                       or a Minecraft Identifier
-     * @return The FCItemBuilder object
+     * @param itemIdentifier the identifier of the item
+     * @return this builder
+     * @throws IllegalArgumentException when a bukkit name is not one this server has
      */
     @Nonnull
-    public B material(@Nonnull String itemIdentifier) {
-        ItemStack newStack = FCItemFactory.from(itemIdentifier).build();
-        return this.changeItemStack(newStack);
+    public B material(@Nonnull final String itemIdentifier) {
+        this.base = ItemBase.ofIdentifier(itemIdentifier);
+        return self();
     }
 
     /**
-     * Sets the material of the item. It acually
-     * creates a new ItemStack with that material, then
-     * copy every single entry of the previous MetaData
-     * to the new MetaData. There is no change to the
-     * builders NBTTagCompound!
+     * Starts the item over from another stack, keeping everything the recipe asks for.
      *
-     * @param itemStack The itemStack.
-     *
-     * @return The FCItemBuilder object
+     * @param itemStack the stack to start from
+     * @return this builder
      */
     @Nonnull
-    public B material(@Nonnull ItemStack itemStack) {
-        return this.changeItemStack(FCItemFactory.from(itemStack).build());
+    public B material(@Nonnull final ItemStack itemStack) {
+        this.base = ItemBase.of(itemStack);
+        return self();
     }
 
-    /**
-     * Sets the durability of the item.
-     *
-     * @param durability The durability of the item.
-     * @return The FCItemBuilder object.
-     */
+    /** Damage on a tool, or the data value that used to pick a colour before 1.13. */
     @Nonnull
     public B durability(final int durability) {
-        itemStack.setDurability((short) durability); //its deprecated since always, but works '-'
-        return (B) this;
+        return set(StandardParts.DURABILITY, durability);
     }
 
-    /**
-     * Sets the display name of the item using {@link String}
-     *
-     * @param name The {@link String} name
-     * @return this builder
-     */
-    @Nonnull
-    public B displayName(@Nonnull final String name) {
-        meta.setDisplayName(FCColorUtil.colorfy(name));
-        return (B) this;
-    }
-
-    /**
-     * Sets the amount of items
-     *
-     * @param amount the amount of items
-     * @return this builder
-     */
+    /** How many items the stack holds. */
     @Nonnull
     public B amount(final int amount) {
-        itemStack.setAmount(amount);
-        return (B) this;
+        return set(StandardParts.AMOUNT, amount);
     }
 
-    /**
-     * Set the lore lines of an item
-     * TranslateAlternateColorCodes before applying
-     * Also split at '\n'
-     *
-     * @param lore A {@link List} with the lore lines
-     * @return {@link FCItemBuilder}
-     */
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Text
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /** The name shown on the item, with {@code &} colour codes. */
+    @Nonnull
+    public B displayName(@Nonnull final String name) {
+        return set(StandardParts.NAME, FCColorUtil.colorfy(name));
+    }
+
+    /** The lore, one entry per line, with {@code &} colour codes. */
     @Nonnull
     public B lore(@Nonnull final String... lore) {
         return lore(Arrays.asList(lore));
     }
 
-    /**
-     * Set the lore lines of an item
-     * TranslateAlternateColorCodes before applying
-     * Also split at '\n'
-     *
-     * @param lore A {@link List} with the lore lines
-     * @return {@link FCItemBuilder}
-     */
+    /** The lore, one entry per line, with {@code &} colour codes. */
     @Nonnull
-    public B lore(@Nonnull final List<String> lore) {
-        meta.setLore(FCColorUtil.colorfy(lore));
-        return (B) this;
+    public B lore(final List<String> lore) {
+        if (lore == null || lore.isEmpty()) {
+            return set(StandardParts.LORE, new ArrayList<String>());
+        }
+        return set(StandardParts.LORE, FCColorUtil.colorfy(lore));
     }
 
     /**
-     * Consumer for freely editing to the lore
+     * Edits the lore in place.
      *
-     * @param lore A {@link Consumer} with the {@link List} of lore {@link String}
+     * @param lore a consumer over the lore the recipe holds so far
      * @return this builder
      */
     @Nonnull
     public B lore(@Nonnull final Consumer<List<String>> lore) {
-        final List<String> newLore = meta.hasLore() ? meta.getLore() : new ArrayList<>();
-        lore.accept(newLore);
-        return lore(newLore.isEmpty() ? null : newLore);
+        List<String> current = currentLore();
+        lore.accept(current);
+        return lore(current);
     }
 
     /**
-     * Function for freely editing to the lore
+     * Replaces the lore with whatever {@code lore} makes of it.
      *
-     * @param lore A {@link Function} with the {@link List} of lore {@link String}
+     * @param lore a function over the lore the recipe holds so far
      * @return this builder
      */
     @Nonnull
     public B lore(@Nonnull final Function<List<String>, List<String>> lore) {
-        List<String> newLore = meta.hasLore() ? meta.getLore() : new ArrayList<>();
-        newLore = lore.apply(newLore);
-        return lore(newLore.isEmpty() ? null : newLore);
+        return lore(lore.apply(currentLore()));
     }
 
-    /**
-     * Enchants the {@link ItemStack}
-     *
-     * @param enchantment            The {@link Enchantment} to add
-     * @param level                  The level of the {@link Enchantment}
-     * @param ignoreLevelRestriction If should or not ignore it
-     * @return this builder
-     */
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Metadata
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /** Enchants the item, past the level the enchantment normally allows. */
     @Nonnull
-    public B addEnchant(@Nonnull final Enchantment enchantment, final int level, final boolean ignoreLevelRestriction) {
-        meta.addEnchant(enchantment, level, ignoreLevelRestriction);
-        return (B) this;
+    public B addEnchant(@Nonnull final Enchantment enchantment, final int level,
+                        final boolean ignoreLevelRestriction) {
+        return meta("enchant " + enchantment.getName(), ItemDataPart.PRIORITY_EARLY,
+                meta -> meta.addEnchant(enchantment, level, ignoreLevelRestriction));
     }
 
-    /**
-     * Enchants the {@link ItemStack}
-     *
-     * @param enchantment The {@link Enchantment} to add
-     * @param level       The level of the {@link Enchantment}
-     * @return this builder
-     */
     @Nonnull
     public B addEnchant(@Nonnull final Enchantment enchantment, final int level) {
         return addEnchant(enchantment, level, true);
     }
 
-    /**
-     * Enchants the {@link ItemStack}
-     *
-     * @param enchantment The {@link Enchantment} to add
-     * @return this builder
-     */
     @Nonnull
     public B addEnchant(@Nonnull final Enchantment enchantment) {
         return addEnchant(enchantment, 1, true);
     }
 
-    /**
-     * Disenchants a certain {@link Enchantment} from the {@link ItemStack}
-     *
-     * @param enchantment The {@link Enchantment} to remove
-     * @return this builder
-     */
     @Nonnull
     public B removeEnchantment(@Nonnull final Enchantment enchantment) {
-        itemStack.removeEnchantment(enchantment);
-        return (B) this;
+        return meta("remove enchant " + enchantment.getName(), ItemDataPart.PRIORITY_EARLY,
+                meta -> meta.removeEnchant(enchantment));
     }
 
-    /**
-     * Add an {@link ItemFlag} to the item
-     *
-     * @param flags The {@link ItemFlag} to add
-     * @return this builder
-     */
+    /** Hides part of the tooltip. Repeated calls pile up. */
     @Nonnull
     public B addItemFlags(@Nonnull final ItemFlag... flags) {
-        meta.addItemFlags(flags);
-        return (B) this;
+        Set<ItemFlag> wanted = EnumSet.noneOf(ItemFlag.class);
+        wanted.addAll(Arrays.asList(flags));
+        return add(StandardParts.HIDE_FLAGS, wanted);
     }
 
-    /**
-     * Makes the {@link ItemStack} unbreakable
-     *
-     * @return this builder
-     */
     @Nonnull
     public B setUnbreakable() {
         return setUnbreakable(true);
     }
 
-    /**
-     * Sets the item as unbreakable
-     *
-     * @param unbreakable If should or not be unbreakable
-     * @return this builder
-     */
+    /** Makes the item survive use. Before 1.11 there was no metadata for it, only the tag. */
     @Nonnull
-    public B setUnbreakable(boolean unbreakable) {
-        if (MCVersion.isLower(MCDetailedVersion.v1_11_R1)) { //ItemMeta#setUnbreakable only exists from 1.11 on
-            return setNbt(nbtCompound -> {
-                if (unbreakable){
-                    nbtCompound.setBoolean("Unbreakable", true);
-                }else {
-                    nbtCompound.removeKey("Unbreakable");
-                }
-            });
-        }
-
-        meta.setUnbreakable(unbreakable);
-        return (B) this;
+    public B setUnbreakable(final boolean unbreakable) {
+        return stack("unbreakable", ItemRequirement.base().with(ItemProbe.ITEM_META),
+                ItemDataPart.PRIORITY_LATE, item -> {
+                    if (MCVersion.isLower(MCDetailedVersion.v1_11_R1)) {
+                        NbtDoor.custom().modifyBatch(item, tag -> {
+                            if (unbreakable) {
+                                tag.setBoolean("Unbreakable", true);
+                            } else {
+                                tag.removeKey("Unbreakable");
+                            }
+                        });
+                        return item;
+                    }
+                    ItemMeta meta = item.getItemMeta();
+                    meta.setUnbreakable(unbreakable);
+                    item.setItemMeta(meta);
+                    return item;
+                });
     }
 
-    /**
-     * Makes the {@link ItemStack} glow
-     *
-     * @return this builder
-     */
     @Nonnull
     public B setGlow() {
         return setGlow(true);
     }
 
-    /**
-     * Adds or removes the {@link ItemStack} glow
-     *
-     * @param glow Should the item glow
-     * @return this builder
-     */
+    /** The enchantment shimmer with no enchantment behind it. */
     @Nonnull
-    public B setGlow(boolean glow) {
-        if (MCVersion.isEqual(MCVersion.v1_7_10)) { //On 1.7.10 we tread glow as Durability enchantment.
-            if (glow) return addEnchant(Enchantment.DURABILITY);
-            else return removeEnchantment(Enchantment.DURABILITY);
-        }
-
-        if (glow) {
-            meta.addEnchant(Enchantment.LURE, 1, false);
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-            return (B) this;
-        }
-
-        for (final Enchantment enchantment : meta.getEnchants().keySet()) {
-            meta.removeEnchant(enchantment);
-        }
-
-        return (B) this;
+    public B setGlow(final boolean glow) {
+        return meta("glow", ItemDataPart.PRIORITY_LATE, meta -> {
+            if (MCVersion.isEqual(MCVersion.v1_7_10)) {
+                //1.7.10 has no way to hide an enchantment, so the shimmer has to come from a real one
+                if (glow) {
+                    meta.addEnchant(Enchantment.DURABILITY, 1, true);
+                } else {
+                    meta.removeEnchant(Enchantment.DURABILITY);
+                }
+                return;
+            }
+            if (glow) {
+                meta.addEnchant(Enchantment.LURE, 1, false);
+                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                return;
+            }
+            for (Enchantment enchantment : new ArrayList<>(meta.getEnchants().keySet())) {
+                meta.removeEnchant(enchantment);
+            }
+        });
     }
 
-    /**
-     * Consumer for applying {@link PersistentDataContainer} to the item
-     * This method will only work on versions above 1.14
-     *
-     * @param consumer The {@link Consumer} with the PDC
-     * @return this builder
-     */
-    @Nonnull
-    public B setPDC(@Nonnull final Consumer<PersistentDataContainer> consumer) {
-        consumer.accept(meta.getPersistentDataContainer());
-        return (B) this;
-    }
-
-    /**
-     * Sets the custom model data of the item
-     * Added in 1.13
-     *
-     * @param modelData The custom model data from the resource pack
-     * @return this builder
-     */
-    @Nonnull
-    public B setCustomModelData(final int modelData) {
-        if (MCVersion.isHigherEquals(MCDetailedVersion.v1_14_R1)) { //custom model data arrived in 1.14
-            meta.setCustomModelData(modelData);
-        }
-
-        return (B) this;
-    }
-
-    /**
-     * {@inheritDoc}
-     * @param color color
-     * @return this builder
-     */
+    /** The dye of leather armour. Ignored by every other material. */
     @Nonnull
     public B setColor(@Nonnull final Color color) {
-        if (LEATHER_ARMOR.contains(itemStack.getType())) {
-            final LeatherArmorMeta lam = (LeatherArmorMeta) getMeta();
+        return meta("colour", ItemDataPart.PRIORITY_NORMAL, meta -> {
+            if (meta instanceof LeatherArmorMeta) {
+                ((LeatherArmorMeta) meta).setColor(color);
+            }
+        });
+    }
 
-            lam.setColor(color);
-            setMeta(lam);
+    /** The plugin-owned data container the server keeps next to the item's own fields. */
+    @Nonnull
+    public B setPDC(@Nonnull final Consumer<PersistentDataContainer> consumer) {
+        return stack("persistent data", ItemRequirement.atLeast(MCDetailedVersion.v1_14_R1)
+                .with(ItemProbe.ITEM_META), ItemDataPart.PRIORITY_LATE, item -> {
+                    ItemMeta meta = item.getItemMeta();
+                    consumer.accept(meta.getPersistentDataContainer());
+                    item.setItemMeta(meta);
+                    return item;
+                });
+    }
+
+    /** Which model of a resource pack the item wears. */
+    @Nonnull
+    public B setCustomModelData(final int modelData) {
+        return set(StandardParts.CUSTOM_MODEL_DATA, modelData);
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  The tag
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Writes into the item's tag. Every call joins the same batch, so a recipe with ten of them
+     * still costs one round trip through the nbt library instead of ten.
+     *
+     * @param editor what to write
+     * @return this builder
+     */
+    @Nonnull
+    public B editNbt(@Nonnull final Consumer<ReadWriteNBT> editor) {
+        ItemEngine.get().stageNbt(edits, editor);
+        return self();
+    }
+
+    /**
+     * Reads the item's tag as the recipe stands.
+     *
+     * <p>A query has no reduced answer - either the tag can be read or the caller is asking for
+     * something that does not exist here - so this is the one door that refuses out loud.</p>
+     *
+     * @param reader what to read out of the tag
+     * @return whatever {@code reader} answered
+     * @throws IllegalStateException on a runtime with no working nbt access
+     */
+    public <T> T queryNbt(@Nonnull final Function<ReadableNBT, T> reader) {
+        if (!ItemEngine.get().getRuntime().has(ItemProbe.NBT)) {
+            throw new IllegalStateException("The item's tag cannot be read here: "
+                    + ItemProbe.NBT.getAbsence() + ". Run this where the nbt library works, or build the "
+                    + "item and ask whoever can read it.");
         }
-
-        return (B) this;
+        return NbtDoor.custom().read(build(), reader);
     }
 
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Ending the chain
+    // -----------------------------------------------------------------------------------------------------------------
 
     /**
-     * It returns an NBTCompound data of the ItemStack
-     * It will be applied only on build()
+     * Builds the item, applying whatever this runtime can.
      *
-     * @return The NBTItem object.
-     */
-    @Nonnull
-    public NBTCompound getNBTCompound(){
-        return this.nbtCompound;
-    }
-
-    /**
-     * Consumer for applying {@link NBTCompound} to the item
-     *
-     * @param consumer The {@link Consumer} with the NBTCompound
-     * @return this builder
-     */
-    @Nonnull
-    public B setNbt(@Nonnull final Consumer<NBTCompound> consumer) {
-        consumer.accept(this.nbtCompound);
-        return (B) this;
-    }
-
-    /**
-     * Set the {@link NBTCompound} of the item
-     *
-     * It will not actually change the nbt, it will
-     * clear the current and merge the new one!
-     *
-     * @param nbtCompound The {@link NBTCompound}
-     * @return this builder
-     */
-    @Nonnull
-    public B setNbt(@Nonnull final NBTCompound nbtCompound) {
-        this.nbtCompound.clearNBT();
-        this.nbtCompound.mergeCompound(nbtCompound);
-        return (B) this;
-    }
-
-    /**
-     * Builds the item into {@link ItemStack}
-     *
-     * @return The fully built {@link ItemStack}
+     * @return the item, always - a runtime that cannot do everything still builds what it can
      */
     @Nonnull
     public ItemStack build() {
-        if (FCNBTUtil.isEmpty(nbtCompound)){
-            ItemStack clone = this.itemStack.clone();
-            clone.setItemMeta(meta.clone());
-            return clone;
-        }else {
-            NBTItem cloneNBT = new NBTItem(this.itemStack);//NBTItem creates an internal clone
+        return materialize().getItemStack();
+    }
 
-//            cloneNBT.removeKey("display"); //Enforce the removal of the display key, so the 'this.meta' takes priority
+    /**
+     * Builds the item and says what was left out of it.
+     *
+     * @return the item next to every edit this runtime refused
+     */
+    @Nonnull
+    public BuiltItem materialize() {
+        return ItemEngine.get().materialize(base, edits, problems);
+    }
 
-            if (this.nbtCompound instanceof TrackedNBTContainer){
-                //Before Merging, remove all the keys that were removed from the original NBT manully
-                ((TrackedNBTContainer) this.nbtCompound).getRemovedTags().forEach(removedKey -> {
-                    cloneNBT.removeKey(removedKey);
-                });
-            }
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Staging
+    // -----------------------------------------------------------------------------------------------------------------
 
-            cloneNBT.getItem().setItemMeta(this.meta.clone());
-            cloneNBT.mergeCompound(this.nbtCompound);
+    /** Replaces what {@code key} asks for, which is what every setter on this class does. */
+    @Nonnull
+    protected B set(@Nonnull final String key, @Nonnull final Object value) {
+        ItemEngine.get().stage(edits, key, value, false);
+        return self();
+    }
 
-            return cloneNBT.getItem();
+    /** Joins what {@code key} already asks for, the way the part itself defines joining. */
+    @Nonnull
+    protected B add(@Nonnull final String key, @Nonnull final Object value) {
+        ItemEngine.get().stage(edits, key, value, true);
+        return self();
+    }
+
+    @Nonnull
+    protected B meta(@Nonnull final String name, final int priority,
+                     @Nonnull final Consumer<ItemMeta> editor) {
+        edits.add(ItemEdit.ofMeta(name, ItemRequirement.base().with(ItemProbe.ITEM_META), priority, editor));
+        return self();
+    }
+
+    @Nonnull
+    protected B stack(@Nonnull final String name, @Nonnull final ItemRequirement requirement,
+                      final int priority, @Nonnull final java.util.function.UnaryOperator<ItemStack> operation) {
+        edits.add(ItemEdit.ofStack(name, requirement, priority, operation));
+        return self();
+    }
+
+    /** The base this recipe starts from, for the subclasses that swap it. */
+    @Nonnull
+    protected ItemBase getBase() {
+        return base;
+    }
+
+    protected void setBase(@Nonnull final ItemBase base) {
+        this.base = base;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> currentLore() {
+        Object staged = ItemEngine.get().staged(edits, StandardParts.LORE);
+        if (staged != null) {
+            return new ArrayList<>((List<String>) staged);
         }
+        Object fromBase = ItemEngine.get().extract(base.resolve(), StandardParts.LORE);
+        return fromBase == null ? new ArrayList<>() : new ArrayList<>((List<String>) fromBase);
     }
 
-    // -----------------------------------------------------------------------------------------------------------------
-    //  Protected Methods
-    // -----------------------------------------------------------------------------------------------------------------
-
-    /**
-     * Package private getter for extended builders
-     *
-     * @return The ItemStack
-     */
-    @Nonnull
-    protected ItemStack getItemStack() {
-        return itemStack;
-    }
-
-    /**
-     * Package private setter for the extended builders
-     *
-     * @param itemStack The ItemStack
-     */
-    protected void setItemStack(@Nonnull final ItemStack itemStack) {
-        this.itemStack = itemStack;
-    }
-
-    /**
-     * Package private getter for extended builders
-     *
-     * @return The ItemMeta
-     */
-    @Nonnull
-    protected ItemMeta getMeta() {
-        return meta;
-    }
-
-    /**
-     * Package private setter for the extended builders
-     *
-     * @param meta The ItemMeta
-     */
-    protected void setMeta(@Nonnull final ItemMeta meta) {
-        this.meta = meta;
+    @SuppressWarnings("unchecked")
+    private B self() {
+        return (B) this;
     }
 
 }

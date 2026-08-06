@@ -8,6 +8,9 @@ import br.com.finalcraft.evernifecore.minecraft.gui.view.CloseReason;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.DetachedViews;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiView;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiViews;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemRuntime;
+import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.Plugins;
@@ -57,6 +60,11 @@ public final class GuiTestWorld implements AutoCloseable {
 
     private static final AtomicInteger UNIQUE_SUFFIX = new AtomicInteger();
 
+    //what the stubbed server below actually is: a modern version that answers none of the questions
+    //an item asks. Naming it here is what makes every reduced answer a named refusal instead of a
+    //surprise, and it is why the item path needs no reflection to be testable
+    private static final ItemRuntime RUNTIME = ItemRuntime.of(MCDetailedVersion.v1_21_R1);
+
     private final ECoreTestWorld platformWorld;
     private final String pluginName;
     private final SchedulerDouble scheduler = new SchedulerDouble();
@@ -81,10 +89,16 @@ public final class GuiTestWorld implements AutoCloseable {
 
         this.previousServer = Bukkit.getServer();
         setBukkitServer(buildServer());
+        ItemEngine.install(RUNTIME);
     }
 
     public static GuiTestWorld install(Path dataFolder) {
         return new GuiTestWorld(dataFolder);
+    }
+
+    /** The runtime this world's item engine stands on, for a test that wants to name what it lost. */
+    public ItemRuntime getItemRuntime() {
+        return RUNTIME;
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -234,6 +248,7 @@ public final class GuiTestWorld implements AutoCloseable {
             DetachedViews.release(view, CloseReason.SHUTDOWN);
         }
         GuiViews.closeAll();
+        ItemEngine.uninstall();
         setBukkitServer(previousServer);
         ECPluginManager.removePluginData(pluginName);
         platformWorld.close();
