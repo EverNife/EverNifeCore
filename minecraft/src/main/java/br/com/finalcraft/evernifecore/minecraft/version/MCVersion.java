@@ -7,7 +7,10 @@ public enum MCVersion {
     v1_16(MCDetailedVersion.v1_16_R3),
     v1_19(MCDetailedVersion.v1_19_R3),
     v1_20(MCDetailedVersion.v1_20_R1),
-    v1_21(MCDetailedVersion.v1_21_R1)
+    v1_21(MCDetailedVersion.v1_21_R1),
+    // Minecraft left the 1.x scheme behind: after 1.21.11 the releases are named by year, so this
+    // bucket is a whole year of them and not a single minor release like the ones above it.
+    v26(MCDetailedVersion.v26_1)
     ;
 
     public static MCDetailedVersion getCurrent() {
