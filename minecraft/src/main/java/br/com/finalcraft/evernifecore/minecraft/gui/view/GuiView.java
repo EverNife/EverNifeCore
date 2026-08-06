@@ -214,7 +214,7 @@ public final class GuiView {
             return;
         }
         ItemStack rendered = icon.getItemStack();
-        for (Integer slot : slots.resolve(geometry)) {
+        for (int slot : slots.resolve(geometry).toArray()) {
             if (!geometry.isInside(slot)) {
                 EverNifeCore.getLog().warning("A gui icon was bound to slot " + slot + ", outside a "
                         + geometry + ". The icon was skipped.");
@@ -244,7 +244,7 @@ public final class GuiView {
         staticIconsDirty = false;
         slotRegions = new Region[geometry.getSize()];
         for (Region region : gui.getRegions().values()) {
-            for (Integer slot : region.getSlots().resolve(geometry)) {
+            for (int slot : region.getSlots().resolve(geometry).toArray()) {
                 if (geometry.isInside(slot)) {
                     slotRegions[slot] = region;
                 }
@@ -521,7 +521,7 @@ public final class GuiView {
     public List<ItemStack> getContents(@Nonnull SlotSet slots) {
         SlotSet resolved = slots.resolve(geometry);
         List<ItemStack> contents = new ArrayList<>(resolved.size());
-        for (Integer slot : resolved) {
+        for (int slot : resolved.toArray()) {
             contents.add(surface.getItem(slot));
         }
         return contents;

@@ -55,7 +55,7 @@ public final class CloseContext {
     public List<ItemStack> getContents(@Nonnull SlotSet slots) {
         SlotSet resolved = slots.resolve(view.getGeometry());
         List<ItemStack> contents = new ArrayList<>(resolved.size());
-        for (Integer slot : resolved) {
+        for (int slot : resolved.toArray()) {
             contents.add(surface.getItem(slot));
         }
         return contents;

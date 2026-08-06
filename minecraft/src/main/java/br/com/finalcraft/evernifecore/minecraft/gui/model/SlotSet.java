@@ -2,10 +2,8 @@ package br.com.finalcraft.evernifecore.minecraft.gui.model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.function.Function;
 
 /**
@@ -20,7 +18,7 @@ import java.util.function.Function;
  * ({@code 45}) and an empty list; an empty set means "nowhere", which is a valid way to switch an
  * icon off, never an error.</p>
  */
-public final class SlotSet implements Iterable<Integer> {
+public final class SlotSet {
 
     public static final SlotSet EMPTY = new SlotSet(new int[0], null);
 
@@ -68,7 +66,14 @@ public final class SlotSet implements Iterable<Integer> {
         return new SlotSet(distinct(shape.apply(geometry)), null);
     }
 
-    /** @throws IllegalStateException when the set is still relative */
+    /**
+     * The slots, to walk with a plain {@code for}. This is deliberately the only way to enumerate
+     * them: a set that implemented {@code Iterable} would be written to disk as a YAML list by the
+     * config engine's collection fast path, which never reaches this type's codec - and the codec
+     * writing one canonical form is the whole point of {@link #serialize()}.
+     *
+     * @throws IllegalStateException when the set is still relative
+     */
     public int[] toArray() {
         requireFixed();
         return Arrays.copyOf(slots, slots.length);
@@ -94,27 +99,6 @@ public final class SlotSet implements Iterable<Integer> {
             }
         }
         return false;
-    }
-
-    @Override
-    public Iterator<Integer> iterator() {
-        requireFixed();
-        return new Iterator<Integer>() {
-            private int index = 0;
-
-            @Override
-            public boolean hasNext() {
-                return index < slots.length;
-            }
-
-            @Override
-            public Integer next() {
-                if (!hasNext()) {
-                    throw new NoSuchElementException();
-                }
-                return slots[index++];
-            }
-        };
     }
 
     /** The on-disk form: {@code "[1,2,3]"}, {@code "[]"} when empty. */
