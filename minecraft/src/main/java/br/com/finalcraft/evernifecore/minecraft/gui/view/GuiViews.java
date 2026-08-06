@@ -54,6 +54,22 @@ public final class GuiViews {
         return OPEN.size();
     }
 
+    /**
+     * Re-renders every screen that is open right now.
+     *
+     * <p>Nothing is written twice for it: a render pass commits only the slots whose rendered item
+     * changed, so a screen the reload did not touch costs one comparison and no packet.</p>
+     *
+     * @return how many screens were re-rendered
+     */
+    public static int refreshAll() {
+        List<GuiView> views = new ArrayList<>(OPEN.values());
+        for (GuiView view : views) {
+            view.refresh();
+        }
+        return views.size();
+    }
+
     /** See {@link Gui#open(Player)}. */
     @Nonnull
     public static CompletableFuture<GuiView> open(@Nonnull Gui gui, @Nonnull Player player) {

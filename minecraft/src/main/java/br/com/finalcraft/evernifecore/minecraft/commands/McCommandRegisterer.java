@@ -15,6 +15,7 @@ public class McCommandRegisterer {
         FinalCMDManager.registerCommand(ecPluginData, CMDEntityInfo.class);
         FinalCMDManager.registerCommand(ecPluginData, CMDItemInfo.class);
         FinalCMDManager.registerCommand(ecPluginData, CMDProtectionTest.class);
+        FinalCMDManager.registerCommand(ecPluginData, CMDGuiLayout.class);
 
         if (FCBukkitUtil.isModded()){
             try {

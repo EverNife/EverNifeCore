@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.minecraft.gui.util;
+package br.com.finalcraft.evernifecore.minecraft.gui.icons;
 
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder.FCItemBuilder;
@@ -6,7 +6,7 @@ import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-public enum EnumStainedGlassPane {
+public enum EnumWool {
     WHITE('7'),     //0
     ORANGE('6'),    //1
     MAGENTA('d'),   //2
@@ -29,13 +29,13 @@ public enum EnumStainedGlassPane {
     private final short damage;
     private final char colorCode;
 
-    EnumStainedGlassPane(char colorCode) {
+    EnumWool(char colorCode) {
         if (MCVersion.isHigherEquals(MCVersion.v1_13)) {
-            int firstGlassPaneOrdinal = Material.WHITE_STAINED_GLASS_PANE.ordinal();
+            int firstGlassPaneOrdinal = Material.WHITE_WOOL.ordinal();
             this.material = Material.values()[firstGlassPaneOrdinal + this.ordinal()];
             this.damage = 0;
         }else {
-            this.material = Material.matchMaterial("STAINED_GLASS_PANE");
+            this.material = Material.matchMaterial("WOOL");
             this.damage = (short) this.ordinal();
         }
         this.colorCode = colorCode;

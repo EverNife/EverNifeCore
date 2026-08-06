@@ -113,8 +113,9 @@ public abstract class ItemDataPart {
         for (ItemDataPart part : ALL_REGISTERED_TYPES) {
             try {
                 output = part.read(item, output);
-            } catch (Exception e) { //Seems like that ItemDataPart is not supported yet
-            } catch (NoSuchMethodError e) { //Seems like that ItemDataPart is not supported yet
+            } catch (Throwable unsupportedHere) {
+                //A part this runtime cannot answer (a missing method, a library that will not load)
+                //costs its own line and nothing else - the parts that CAN read still describe the item
             }
         }
         return output;

@@ -1,0 +1,595 @@
+package br.com.finalcraft.evernifecore.minecraft.gui.layout;
+
+import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.minecraft.gui.cfg.SettingsScanner;
+import br.com.finalcraft.evernifecore.minecraft.gui.model.GuiType;
+import br.com.finalcraft.evernifecore.minecraft.gui.model.SlotSet;
+import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.util.FCMaterialUtil;
+import br.com.finalcraft.everyconfig.config.Config;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
+
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Reads a layout class out of its yml, seeding whatever the file does not yet say.
+ *
+ * <p>The Java class is the DEFAULT and the file is the truth: every {@link IconData} field is written
+ * to the file the first time it is seen and read back from it forever after, so the admin moves,
+ * restyles, permissions or switches off any icon without the plugin knowing.</p>
+ *
+ * <p>Nothing here aborts a boot. A key the file got wrong costs the ONE icon it describes: the failure
+ * is logged naming the field, the file and what to do about it, and the screen opens without that
+ * icon. The only refusals that throw are declaration defects no file can fix - a layout class with no
+ * {@link GuiLayout}, or one that names the same icon through two channels.</p>
+ */
+public final class LayoutScanner {
+
+    public static final String SETTINGS = "Settings";
+    public static final String LAYOUT = "Layout";
+    public static final String BACKGROUND = "Background";
+    public static final String QUARANTINE = "_Quarentena";
+
+    private static final Pattern PLACEHOLDER = Pattern.compile("%[^%\\s]+%");
+
+    private LayoutScanner() {
+    }
+
+    /** The yml a layout class is seeded into, relative to the owning plugin's data folder. */
+    @Nonnull
+    public static String fileNameOf(@Nonnull Class<?> type) {
+        return "guis/" + type.getSimpleName() + ".yml";
+    }
+
+    /** The optional per-language overlay of a layout. The framework never creates this file. */
+    @Nonnull
+    public static String overlayFileNameOf(@Nonnull Class<?> type, @Nonnull String language) {
+        return "guis/locale/" + language + "/" + type.getSimpleName() + ".yml";
+    }
+
+    /** The overlay of {@code language}, or {@code null} when the admin did not write one. */
+    @Nullable
+    public static Config openOverlay(@Nonnull ECPluginData plugin, @Nonnull Class<?> type,
+                                     @Nullable String language) {
+        if (language == null) {
+            return null;
+        }
+        File file = new File(plugin.getMetaInfo().getDataFolder(), overlayFileNameOf(type, language));
+        return file.isFile() ? ConfigFactory.open(plugin, file) : null;
+    }
+
+    /**
+     * Reads {@code type} for {@code language} - {@code null} being the base file everyone else reads.
+     *
+     * @throws IllegalArgumentException when the class itself is malformed
+     */
+    @Nonnull
+    public static <T extends LayoutBase> T load(@Nonnull ECPluginData plugin, @Nonnull Class<T> type,
+                                                @Nullable String language) {
+        GuiLayout declaration = type.getAnnotation(GuiLayout.class);
+        if (declaration == null) {
+            throw new IllegalArgumentException(type.getName() + " is not a layout: it has no @GuiLayout. "
+                    + "Annotate the class with @GuiLayout(title = \"...\", rows = ...) - the annotation is what "
+                    + "names the window and the file the icons are seeded into.");
+        }
+
+        T instance = newInstance(type);
+        Config base = ConfigFactory.open(plugin, fileNameOf(type));
+        LayoutSource source = new LayoutSource(base, openOverlay(plugin, type, language));
+
+        List<Field> fields = iconFields(type);
+        seedSettings(base, declaration);
+        SettingsScanner.load(plugin, base, instance);
+        applySettings(instance, plugin, type, language, declaration, source);
+
+        for (Field field : fields) {
+            IconData iconData = field.getAnnotation(IconData.class);
+            String path = (iconData.background() ? BACKGROUND : LAYOUT) + "." + field.getName();
+            try {
+                Icon declared = iconOf(instance, field);
+                //Read first, seed second: what the file already says is the truth, and what it does not
+                //say is written from the object we are holding - never read back through its own text
+                Icon resolved = resolveIcon(plugin, declaration, iconData, declared, source, path);
+                SlotSet slots = resolveSlots(instance, field, source, path);
+                seedIcon(base, path, declared, iconData);
+                instance.putIcon(field.getName(), resolved, slots);
+            } catch (Throwable failure) {
+                plugin.getLog().warning(type.getSimpleName() + "." + field.getName() + ": "
+                        + failure.getMessage() + " Icon disabled. "
+                        + plugin.getMetaInfo().getName() + "/" + fileNameOf(type) + ", key " + path);
+            }
+        }
+
+        loadFileOnlyBackground(plugin, type, instance, source);
+        reportSlotDisputes(plugin, type, instance, disputeOrder(fields));
+        quarantineOrphans(plugin, base, fields);
+        base.setHeader(header(instance, declaration));
+        base.save();
+        return instance;
+    }
+
+    /**
+     * The {@link IconData} fields of the whole hierarchy, base class first and in declaration order -
+     * the same order the settings of the same file are seeded in, so one class reads top to bottom.
+     *
+     * <p>This is the single place the layout package reflects over fields; the level-by-level walk is
+     * what makes an inherited icon appear in the child's own file.</p>
+     */
+    @Nonnull
+    public static List<Field> iconFields(@Nonnull Class<?> type) {
+        List<Class<?>> hierarchy = new ArrayList<>();
+        for (Class<?> clazz = type; clazz != null && clazz != Object.class; clazz = clazz.getSuperclass()) {
+            hierarchy.add(0, clazz);
+        }
+        List<Field> fields = new ArrayList<>();
+        for (Class<?> clazz : hierarchy) {
+            for (Field field : clazz.getDeclaredFields()) {
+                if (field.isAnnotationPresent(IconData.class) && !Modifier.isStatic(field.getModifiers())) {
+                    fields.add(field);
+                }
+            }
+        }
+        return fields;
+    }
+
+    /**
+     * The order a contested slot is decided in: lowest {@code order()} first, the field name breaking a
+     * tie. Deliberately independent of declaration order, which the JVM does not promise to keep stable
+     * between runs - a screen that silently swapped two icons after a restart would be unexplainable.
+     */
+    private static List<Field> disputeOrder(List<Field> fields) {
+        List<Field> ordered = new ArrayList<>(fields);
+        Collections.sort(ordered, (left, right) -> {
+            int byOrder = Integer.compare(left.getAnnotation(IconData.class).order(),
+                    right.getAnnotation(IconData.class).order());
+            return byOrder != 0 ? byOrder : left.getName().compareTo(right.getName());
+        });
+        return ordered;
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Settings
+    // -----------------------------------------------------------------------------------------------------------------
+
+    private static void seedSettings(Config config, GuiLayout declaration) {
+        config.setValueIfAbsent(SETTINGS + ".title", declaration.title());
+        if (declaration.type() == GuiType.CHEST) {
+            config.setValueIfAbsent(SETTINGS + ".rows", declaration.rows());
+        } else {
+            config.setValueIfAbsent(SETTINGS + ".type", declaration.type().name());
+        }
+        config.setValueIfAbsent(SETTINGS + ".integrateToPAPI", declaration.integrateToPAPI());
+        for (FCLocale locale : declaration.locale()) {
+            config.setValueIfAbsent(SETTINGS + ".Locale." + LocaleType.normalize(locale.lang()) + ".title",
+                    locale.text());
+        }
+    }
+
+    private static void applySettings(LayoutBase instance, ECPluginData plugin, Class<?> type,
+                                      String language, GuiLayout declaration, LayoutSource source) {
+        GuiType guiType = declaration.type();
+        String declaredType = source.getString(SETTINGS + ".type");
+        if (declaredType != null) {
+            try {
+                guiType = parseGuiType(declaredType);
+            } catch (RuntimeException unknownType) {
+                plugin.getLog().warning(type.getSimpleName() + ": " + unknownType.getMessage()
+                        + " Keeping " + guiType.name() + ".");
+            }
+        }
+        String title = source.getString(SETTINGS + ".title");
+        instance.applySettings(plugin, type.getSimpleName(), language, guiType,
+                source.getInt(SETTINGS + ".rows", declaration.rows()),
+                source.getBoolean(SETTINGS + ".integrateToPAPI", declaration.integrateToPAPI()),
+                title == null ? declaration.title() : title);
+
+        Set<String> languages = new LinkedHashSet<>();
+        for (FCLocale locale : declaration.locale()) {
+            languages.add(LocaleType.normalize(locale.lang()));
+        }
+        languages.addAll(source.getKeys(SETTINGS + ".Locale"));
+        for (String lang : languages) {
+            String localizedTitle = source.getString(SETTINGS + ".Locale." + lang + ".title");
+            if (localizedTitle != null) {
+                instance.putTitle(lang, localizedTitle);
+            }
+        }
+    }
+
+    private static GuiType parseGuiType(String declared) {
+        String wanted = declared.trim().toUpperCase(Locale.ROOT);
+        for (GuiType candidate : GuiType.values()) {
+            if (candidate.name().equals(wanted)) {
+                return candidate;
+            }
+        }
+        throw new IllegalArgumentException("'" + declared + "' is not a window type. "
+                + didYouMean(wanted, names(GuiType.values()))
+                + "The types are CHEST, HOPPER, DISPENSER, BREWING and WORKBENCH.");
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Icons
+    // -----------------------------------------------------------------------------------------------------------------
+
+    private static Icon iconOf(LayoutBase instance, Field field) throws IllegalAccessException {
+        field.setAccessible(true);
+        Object value = field.get(instance);
+        if (!(value instanceof Icon)) {
+            throw new IllegalArgumentException("the field is annotated @IconData but holds "
+                    + (value == null ? "null" : value.getClass().getSimpleName())
+                    + ". Give it an Icon - FCItemFactory.from(Material.X)...asIcon().");
+        }
+        return (Icon) value;
+    }
+
+    /**
+     * Writes what the file does not say yet, icon by icon - never section by section, so a version that
+     * adds one icon adds one key to a file that already exists, background icons included.
+     */
+    private static void seedIcon(Config config, String path, Icon declared, IconData iconData) {
+        config.setValueIfAbsent(path + ".Slot", SlotSet.of(iconData.slot()));
+
+        String permission = iconData.permission().isEmpty() ? declared.getPermission() : iconData.permission();
+        if (!permission.isEmpty()) {
+            config.setValueIfAbsent(path + ".Permission", permission);
+        }
+
+        IconLocale locale = localeOf(declared, iconData);
+        config.setValueIfAbsent(path + ".DisplayItem", displayItemOf(declared.getItemStack(), locale != null));
+        for (String state : declared.getStateNames()) {
+            config.setValueIfAbsent(path + ".States." + state + ".DisplayItem",
+                    displayItemOf(declared.getState(state), false));
+        }
+        if (locale != null) {
+            for (String lang : locale.getLanguages()) {
+                config.setValueIfAbsent(path + ".Locale." + lang, locale.get(lang));
+            }
+        }
+    }
+
+    /** The item-data lines of a stack, without the text ones when the text is a language block's job. */
+    private static List<String> displayItemOf(ItemStack stack, boolean textLivesInLocale) {
+        List<String> lines = ItemDataPart.readItem(stack);
+        if (!textLivesInLocale) {
+            return lines;
+        }
+        List<String> kept = new ArrayList<>(lines.size());
+        for (String line : lines) {
+            if (!IconLocale.isTextLine(line)) {
+                kept.add(line);
+            }
+        }
+        return kept;
+    }
+
+    /**
+     * The icon's own language table plus whatever the annotation declares, or {@code null} when the icon
+     * carries a single text.
+     *
+     * @throws IllegalArgumentException when the same icon is named through both channels
+     */
+    @Nullable
+    private static IconLocale localeOf(Icon declared, IconData iconData) {
+        IconLocale locale = declared.getLocale();
+        if (iconData.locale().length > 0) {
+            locale = locale == null ? new IconLocale() : locale.copy();
+            for (FCLocale entry : iconData.locale()) {
+                locale.put(entry.lang(), IconLocale.linesOf(
+                        entry.text().isEmpty() ? null : entry.text(), loreOf(entry.hover())));
+            }
+        }
+        if (locale != null && declared.hasBakedText()) {
+            throw new IllegalArgumentException("it names the same icon in two places: @FCLocale and "
+                    + ".displayName()/.lore(). Pick one - drop the .displayName() to keep it multi-language, "
+                    + "or drop the locale = {...} to keep a single text.");
+        }
+        return locale;
+    }
+
+    /** A hover is one string with newlines, which is how the rest of the core writes a multi-line text. */
+    private static List<String> loreOf(String hover) {
+        if (hover == null || hover.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return Arrays.asList(hover.split("\n", -1));
+    }
+
+    private static Icon resolveIcon(ECPluginData plugin, GuiLayout declaration, IconData iconData,
+                                    Icon declared, LayoutSource source, String path) {
+        Icon resolved = declared.copy();
+        resolved.setBackground(iconData.background());
+        resolved.setLocaleOwner(plugin);
+        resolved.integrateToPAPI(declaration.integrateToPAPI());
+
+        IconLocale locale = localeOf(declared, iconData);
+        List<String> displayItem = source.getStringList(path + ".DisplayItem");
+        if (!displayItem.isEmpty()) {
+            resolved.setItemStack(buildItem(displayItem));
+        }
+
+        String permission = source.getString(path + ".Permission");
+        if (permission != null) {
+            resolved.setPermission(permission);
+        }
+
+        for (String state : source.getKeys(path + ".States")) {
+            List<String> stateItem = source.getStringList(path + ".States." + state + ".DisplayItem");
+            if (!stateItem.isEmpty()) {
+                resolved.addState(state, buildItem(stateItem));
+            }
+        }
+
+        for (String lang : source.getKeys(path + ".Locale")) {
+            List<String> lines = source.getStringList(path + ".Locale." + lang);
+            List<String> text = new ArrayList<>(lines.size());
+            for (String line : lines) {
+                if (IconLocale.isTextLine(line)) {
+                    text.add(line);
+                } else {
+                    plugin.getLog().warning("Ignoring '" + line + "' under " + path + ".Locale." + lang
+                            + ": a language block only carries name: and lore:. Material, nbt and durability "
+                            + "belong in DisplayItem, and a whole screen per language is guis/locale/" + lang
+                            + "/.");
+                }
+            }
+            if (locale == null) {
+                locale = new IconLocale();
+            }
+            locale.put(lang, text);
+        }
+        resolved.setLocale(locale);
+        return resolved;
+    }
+
+    /**
+     * Builds the stack of an item-data block, refusing a material this server does not have.
+     *
+     * <p>The material is checked before the transform runs so the complaint can name the line and offer
+     * the nearest known name; a modded identifier ({@code minecraft:diamond_sword}) is left to the
+     * server's own registry, which is the only thing that knows it.</p>
+     */
+    private static ItemStack buildItem(List<String> itemData) {
+        for (String line : itemData) {
+            String[] parts = line.split(":", 2);
+            if (parts.length != 2 || ItemDataPart.detectType(parts[0].trim()) != ItemDataPart.MATERIAL) {
+                continue;
+            }
+            String[] identifier = parts[1].trim().split(":");
+            boolean bukkitIdentifier = identifier.length == 1
+                    || identifier[1].matches("\\d+"); //anything else is a namespaced id only the server resolves
+            if (bukkitIdentifier && FCMaterialUtil.parseMaterial(identifier[0]) == null) {
+                throw new IllegalArgumentException("'" + line.trim() + "' is not a material this server has. "
+                        + didYouMean(identifier[0], names(Material.values())));
+            }
+        }
+        return ItemDataPart.transformItem(itemData);
+    }
+
+    private static SlotSet resolveSlots(LayoutBase instance, Field field, LayoutSource source, String path) {
+        SlotSet slots = source.getValue(path + ".Slot", SlotSet.class);
+        if (slots == null) {
+            slots = SlotSet.of(field.getAnnotation(IconData.class).slot());
+        }
+        int size = instance.getType().sizeOf(instance.getRows());
+        for (int slot : slots.toArray()) {
+            if (slot >= size) {
+                throw new IllegalArgumentException("Slot '" + slots.serialize() + "' is outside a screen of "
+                        + size + " slots (0-" + (size - 1) + ").");
+            }
+        }
+        return slots;
+    }
+
+    /** Names BOTH fields of a contested slot: the loser is invisible, and only the log says why. */
+    private static void reportSlotDisputes(ECPluginData plugin, Class<?> type, LayoutBase instance,
+                                           List<Field> byDisputeOrder) {
+        Map<Integer, String> ownerOfSlot = new LinkedHashMap<>();
+        for (Field field : byDisputeOrder) {
+            LayoutBase.PlacedIcon placed = instance.getIcons().get(field.getName());
+            if (placed == null) {
+                continue;
+            }
+            for (int slot : placed.getSlots().toArray()) {
+                String owner = ownerOfSlot.get(slot);
+                if (owner == null) {
+                    ownerOfSlot.put(slot, field.getName());
+                } else {
+                    plugin.getLog().warning(type.getSimpleName() + ": " + owner + " and " + field.getName()
+                            + " both claim slot " + slot + ". " + owner + " wins. Move one of them.");
+                }
+            }
+        }
+    }
+
+    /**
+     * Renders the decoration the file declares on its own.
+     *
+     * <p>Adding a pane to {@code Background} without touching the plugin has always worked, and it is
+     * the one place a key with no Java field is a feature rather than leftovers - which is why
+     * quarantine leaves that section alone.</p>
+     */
+    private static void loadFileOnlyBackground(ECPluginData plugin, Class<?> type, LayoutBase instance,
+                                               LayoutSource source) {
+        for (String key : source.getKeys(BACKGROUND)) {
+            if (instance.getIcons().containsKey(key)) {
+                continue;
+            }
+            String path = BACKGROUND + "." + key;
+            try {
+                Icon icon = Icon.of(buildItem(source.getStringList(path + ".DisplayItem"))).background();
+                icon.setPermission(source.getString(path + ".Permission"));
+                icon.setLocaleOwner(plugin);
+                SlotSet slots = source.getValue(path + ".Slot", SlotSet.class);
+                instance.putIcon(key, icon, slots == null ? SlotSet.EMPTY : slots);
+            } catch (Throwable failure) {
+                plugin.getLog().warning(type.getSimpleName() + "." + key + ": " + failure.getMessage()
+                        + " Icon disabled. " + plugin.getMetaInfo().getName() + "/" + fileNameOf(type)
+                        + ", key " + path);
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Quarantine - a key with no field left behind is a key the admin edits for nothing
+    // -----------------------------------------------------------------------------------------------------------------
+
+    private static void quarantineOrphans(ECPluginData plugin, Config config, List<Field> fields) {
+        Set<String> declared = new LinkedHashSet<>();
+        for (Field field : fields) {
+            declared.add(field.getName());
+        }
+        if (!config.contains(LAYOUT)) {
+            return;
+        }
+        for (String key : new ArrayList<>(config.getKeys(LAYOUT))) {
+            if (declared.contains(key)) {
+                continue;
+            }
+            config.migrateKey(LAYOUT + "." + key, QUARANTINE + "." + key);
+            config.setComment(QUARANTINE + "." + key, LocalDate.now()
+                    + "  no longer declared by the plugin. Kept so its customisation can be copied "
+                    + "into whichever key replaced it.");
+            plugin.getLog().warning("Moved " + LAYOUT + "." + key + " to " + QUARANTINE
+                    + ": the plugin no longer declares it. Nothing was deleted.");
+        }
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  The header, which is the only documentation the admin is guaranteed to read
+    // -----------------------------------------------------------------------------------------------------------------
+
+    private static String[] header(LayoutBase instance, GuiLayout declaration) {
+        List<String> lines = new ArrayList<>();
+        lines.add("Generated by EverNifeCore. What you write here beats the plugin's default.");
+        lines.add("");
+        lines.add("  Slot         where the icon shows up. Takes \"[10,11]\", a yaml list, or a bare number.");
+        lines.add("               An empty list switches the icon off.");
+        lines.add("  Permission   who sees the icon. Absent means everyone.");
+        lines.add("  DisplayItem  the item, one entry per line: type: name: lore: nbt: durability: ...");
+        lines.add("  States       an alternative look, picked by the plugin at runtime.");
+        lines.add("  Locale       name and lore per language. Overrides the name:/lore: of DisplayItem.");
+        lines.add("");
+
+        Set<String> placeholders = placeholdersOf(instance, declaration);
+        if (!placeholders.isEmpty()) {
+            lines.add("Placeholders on this screen:");
+            lines.add("  " + String.join("  ", placeholders));
+            lines.add("");
+        }
+        return lines.toArray(new String[0]);
+    }
+
+    /** Every {@code %placeholder%} the screen's own text mentions, so the admin knows what may be moved. */
+    private static Set<String> placeholdersOf(LayoutBase instance, GuiLayout declaration) {
+        Set<String> found = new LinkedHashSet<>();
+        collectPlaceholders(declaration.title(), found);
+        for (String title : instance.getTitleByLang().values()) {
+            collectPlaceholders(title, found);
+        }
+        for (LayoutBase.PlacedIcon placed : instance.getIcons().values()) {
+            for (String line : ItemDataPart.readItem(placed.getIcon().getItemStack())) {
+                collectPlaceholders(line, found);
+            }
+            IconLocale locale = placed.getIcon().getLocale();
+            if (locale != null) {
+                for (String lang : locale.getLanguages()) {
+                    for (String line : locale.get(lang)) {
+                        collectPlaceholders(line, found);
+                    }
+                }
+            }
+        }
+        return found;
+    }
+
+    private static void collectPlaceholders(String text, Set<String> found) {
+        if (text == null) {
+            return;
+        }
+        Matcher matcher = PLACEHOLDER.matcher(text);
+        while (matcher.find()) {
+            found.add(matcher.group());
+        }
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Helpers
+    // -----------------------------------------------------------------------------------------------------------------
+
+    private static <T extends LayoutBase> T newInstance(Class<T> type) {
+        try {
+            Constructor<T> constructor = type.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            return constructor.newInstance();
+        } catch (Exception uninstantiable) {
+            throw new IllegalArgumentException(type.getName() + " cannot be built: a layout needs a public "
+                    + "no-arg constructor, because the framework is what creates it - Layouts.of("
+                    + type.getSimpleName() + ".class), never new.", uninstantiable);
+        }
+    }
+
+    private static String[] names(Object[] constants) {
+        String[] names = new String[constants.length];
+        for (int i = 0; i < constants.length; i++) {
+            names[i] = String.valueOf(constants[i]);
+        }
+        return names;
+    }
+
+    /** The closest known name, when there is one close enough to be a typo rather than a different word. */
+    private static String didYouMean(String wanted, String[] candidates) {
+        String best = null;
+        int bestDistance = Integer.MAX_VALUE;
+        for (String candidate : candidates) {
+            int distance = distance(wanted, candidate);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = candidate;
+            }
+        }
+        return best != null && bestDistance <= Math.max(1, wanted.length() / 4)
+                ? "Did you mean '" + best + "'? " : "";
+    }
+
+    private static int distance(String left, String right) {
+        int[] previous = new int[right.length() + 1];
+        int[] current = new int[right.length() + 1];
+        for (int j = 0; j <= right.length(); j++) {
+            previous[j] = j;
+        }
+        for (int i = 1; i <= left.length(); i++) {
+            current[0] = i;
+            for (int j = 1; j <= right.length(); j++) {
+                int substitution = previous[j - 1] + (left.charAt(i - 1) == right.charAt(j - 1) ? 0 : 1);
+                current[j] = Math.min(substitution, Math.min(previous[j] + 1, current[j - 1] + 1));
+            }
+            int[] swap = previous;
+            previous = current;
+            current = swap;
+        }
+        return previous[right.length()];
+    }
+
+}
