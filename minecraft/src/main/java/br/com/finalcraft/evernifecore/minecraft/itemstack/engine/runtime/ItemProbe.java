@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.minecraft.itemstack.engine;
+package br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime;
 
 /**
  * One thing a runtime either can or cannot do with items, asked once by {@link ItemRuntime#probe()}.

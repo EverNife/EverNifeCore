@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart;
 
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemLineException;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.ItemLineException;
 import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
 import br.com.finalcraft.evernifecore.minecraft.util.FCMaterialUtil;
 import br.com.finalcraft.everylibs.util.FCInputReader;

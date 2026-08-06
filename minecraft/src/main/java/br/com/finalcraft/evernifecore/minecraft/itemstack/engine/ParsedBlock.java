@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack.engine;
 
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.ItemLineProblem;
 import jakarta.annotation.Nonnull;
 
 import java.util.ArrayList;

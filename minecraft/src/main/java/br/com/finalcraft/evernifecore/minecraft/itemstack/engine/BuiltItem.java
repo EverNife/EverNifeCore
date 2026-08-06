@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack.engine;
 
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.IncompleteItemException;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.ItemLineProblem;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.RefusedEdit;
 import jakarta.annotation.Nonnull;
 import org.bukkit.inventory.ItemStack;
 

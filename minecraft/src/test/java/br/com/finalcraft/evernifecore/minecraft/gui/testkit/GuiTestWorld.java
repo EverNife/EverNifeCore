@@ -9,7 +9,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.view.DetachedViews;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiView;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiViews;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemRuntime;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;

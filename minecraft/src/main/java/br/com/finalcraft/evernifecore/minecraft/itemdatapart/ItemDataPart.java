@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.itemdatapart;
 
-import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemLineException;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.ItemLineException;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.inventory.ItemStack;

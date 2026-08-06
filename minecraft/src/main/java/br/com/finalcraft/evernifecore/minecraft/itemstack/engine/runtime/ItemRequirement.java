@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.minecraft.itemstack.engine;
+package br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime;
 
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import jakarta.annotation.Nonnull;

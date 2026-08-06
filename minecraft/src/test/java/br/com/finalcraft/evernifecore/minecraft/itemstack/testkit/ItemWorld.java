@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack.testkit;
 
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemProbe;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemRuntime;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemProbe;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;

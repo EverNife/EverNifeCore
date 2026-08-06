@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack.engine;
 
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRequirement;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 

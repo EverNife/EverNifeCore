@@ -12,6 +12,14 @@ import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPa
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartMaterial;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartNBT;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartName;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.ItemLineException;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.ItemLineProblem;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.PartFailure;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.PartRefusal;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.RefusedEdit;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemProbe;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRequirement;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import jakarta.annotation.Nonnull;

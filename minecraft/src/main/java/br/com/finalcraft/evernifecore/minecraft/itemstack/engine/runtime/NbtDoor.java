@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.minecraft.itemstack.engine;
+package br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime;
 
 import de.tr7zw.changeme.nbtapi.NBT;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteItemNBT;

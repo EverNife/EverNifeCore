@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack.engine;
 
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.PartFailure;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.PartRefusal;
 import jakarta.annotation.Nonnull;
 
 import java.util.ArrayList;

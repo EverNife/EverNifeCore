@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack.engine;
 
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.PartRefusal;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 

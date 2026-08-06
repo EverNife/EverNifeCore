@@ -1,6 +1,9 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack.engine;
 
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemProbe;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRequirement;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.NbtDoor;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;

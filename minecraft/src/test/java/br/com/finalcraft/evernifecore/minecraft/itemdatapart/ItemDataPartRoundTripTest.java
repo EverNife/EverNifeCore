@@ -10,7 +10,7 @@ import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPa
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartMaterial;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartNBT;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartName;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemLineException;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.ItemLineException;
 import org.bukkit.inventory.ItemFlag;
 import org.junit.jupiter.api.Test;
 
