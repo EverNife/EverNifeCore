@@ -164,12 +164,12 @@ public enum MCDetailedVersion {
         }
 
         throw new IllegalArgumentException(String.format(
-                "%s declares \"%s\" as the lowest release it covers, but its name says otherwise. Name a "
-                        + "constant after the CraftBukkit revision its server package reports - v1_20_R4 "
-                        + "covers 1.20.5, so it is named %s<n> - or, when the package no longer carries a "
-                        + "revision, after the release itself: \"%s\" makes %s. Rename it, or fix the "
-                        + "release it declares.",
-                name(), lowestRelease, familyPrefix, lowestRelease, "v" + lowestRelease.replace('.', '_')
+                "%s declares \"%s\" as the lowest release it covers, but its name says otherwise. A "
+                        + "constant is named either after the CraftBukkit revision its server package "
+                        + "reports, which here would be %s<n> - v1_20_R4 covers 1.20.5 - or, when the "
+                        + "package no longer carries a revision, after the release itself, which here "
+                        + "would be %s. Rename it, or fix the release it declares.",
+                name(), lowestRelease, familyPrefix, "v" + lowestRelease.replace('.', '_')
         ));
     }
 
