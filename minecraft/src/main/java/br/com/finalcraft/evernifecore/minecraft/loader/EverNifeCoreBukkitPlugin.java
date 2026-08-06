@@ -147,8 +147,9 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
 
     @Override
     public void onECPluginShutdownPre() {
-        //screens close first, while GuiListener is still registered: it is InventoryCloseEvent that runs
-        //their onClose, and an editable screen still open at disable would spill its contents as loot
+        //closeAll runs each screen's onClose itself, and it has to happen while the rest of the
+        //framework is still up: that handler is what hands back whatever an editable screen was
+        //holding, and it needs storage and player data to still answer
         GuiViews.closeAll();
         //the inherited default is what unregisters listeners and commands; ECBukkitPlugin sits between
         //this class and IECPluginBootstrap, so the qualified `IECPluginBootstrap.super` form is illegal here
