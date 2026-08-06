@@ -369,6 +369,36 @@ class GuiClickTest {
         assertEquals(1, handlerRuns.get());
     }
 
+    // -----------------------------------------------------------------------------------------------------------------
+    //  The container is a seam, not a Bukkit type
+    // -----------------------------------------------------------------------------------------------------------------
+
+    @Test
+    void aViewKnowsItsOwnContainerWhateverImplementsIt() {
+        GuiView view = world.openDetached(Gui.of(3).icon(13, button(Material.DIAMOND)), player);
+        SurfaceDouble drawnOn = world.getSurface();
+
+        assertTrue(view.isSurface(drawnOn.asInventory()));
+        assertFalse(view.isSurface(new SurfaceDouble(27).asInventory()),
+                "a container of the same size is still a different window");
+        assertFalse(view.isSurface(null));
+    }
+
+    @Test
+    void aClickReachesAScreenDrawnOnAContainerTheServerNeverMade() {
+        GuiView view = world.openDetachedAndRegistered(
+                Gui.of(3).debounce(0).icon(13, button(Material.DIAMOND)), player);
+
+        InventoryClickEvent event = clicks.leftClick(player, 13);
+
+        assertTrue(event.isCancelled(), "the default screen lets nothing move, here as anywhere");
+        assertEquals(1, handlerRuns.get());
+        assertSame(view, seen.get(0).getView());
+
+        clicks.leftClick(player, 12);
+        assertEquals(1, handlerRuns.get(), "an empty slot of the same screen still resolves no icon");
+    }
+
     @Test
     void aKindNobodyClassifiedIsRefusedEvenOnAnOpenScreen() {
         Gui gui = Gui.of(3).addRegion(new Region("storage", Slots.of(13), Region.LAYER_CONTENT,

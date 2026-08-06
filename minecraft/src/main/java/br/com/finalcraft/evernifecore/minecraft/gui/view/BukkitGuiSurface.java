@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.view;
 
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -36,6 +37,12 @@ public final class BukkitGuiSurface implements GuiSurface {
     @Override
     public void clear(int slot) {
         inventory.setItem(slot, null);
+    }
+
+    /** By reference: two containers with the same contents are still two windows. */
+    @Override
+    public boolean isBackedBy(@Nullable Inventory inventory) {
+        return this.inventory == inventory;
     }
 
 }

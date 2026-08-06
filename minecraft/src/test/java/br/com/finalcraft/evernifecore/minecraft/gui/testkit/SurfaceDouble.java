@@ -20,7 +20,9 @@ import java.util.Set;
  * <p>{@link #asInventory()} is the same storage wearing the platform's interface, for the few places
  * that demand one - the server hands out an {@code Inventory} when a window is created, and a click
  * event resolves its raw slot through one. It delegates straight back here, so a write that arrives
- * that way is recorded exactly like a direct one; nothing about a real container is simulated.</p>
+ * that way is recorded exactly like a direct one; nothing about a real container is simulated. It is
+ * also the answer to {@link #isBackedBy(Inventory)}, which is how an event that names a container
+ * finds its way to a screen drawn on this one.</p>
  */
 public final class SurfaceDouble implements GuiSurface {
 
@@ -59,6 +61,11 @@ public final class SurfaceDouble implements GuiSurface {
     public void clear(int slot) {
         contents[slot] = null;
         writes.add(new Write(slot, null));
+    }
+
+    @Override
+    public boolean isBackedBy(Inventory inventory) {
+        return inventory != null && inventory == inventoryFace;
     }
 
     // -----------------------------------------------------------------------------------------------------------------

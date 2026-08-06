@@ -161,6 +161,21 @@ public final class GuiTestWorld implements AutoCloseable {
     }
 
     /**
+     * Opens detached and then makes the view reachable: the player gets the window, and the framework
+     * registers the view, so the real listener routes clicks to it.
+     *
+     * <p>This is the only way to click a screen whose container is not a Bukkit one. The framework's
+     * own open registers a view but always builds a Bukkit container; {@link #openDetached} hands over
+     * a {@link SurfaceDouble} but registers nothing.</p>
+     */
+    public GuiView openDetachedAndRegistered(Gui gui, PlayerDouble player) {
+        GuiView view = openDetached(gui, player);
+        player.asPlayer().openInventory(getSurface().asInventory());
+        DetachedViews.register(player.asPlayer(), view);
+        return view;
+    }
+
+    /**
      * Closes a detached view. The close event a player would send has nowhere to arrive - the view is
      * not in the registry that routes it - so the teardown is asked for directly.
      */

@@ -175,9 +175,7 @@ public final class GuiView {
 
     /** Whether this view is the one drawn on {@code inventory}. */
     public boolean isSurface(@Nullable Inventory inventory) {
-        return inventory != null
-                && surface instanceof BukkitGuiSurface
-                && ((BukkitGuiSurface) surface).getInventory() == inventory;
+        return inventory != null && surface.isBackedBy(inventory);
     }
 
     /** The icon painted at {@code slot} - the topmost layer that put one there - or {@code null}. */
