@@ -16,6 +16,15 @@ import java.util.Set;
  * know - {@code SWAP_OFFHAND} on 1.16+, whatever a future version adds - is denied until the caller
  * names it through {@link Builder#allowIfPresent(String)}, so a modern constant can never break the
  * class on an old server.</p>
+ *
+ * <p>The builder reads as a sequence of edits, not as a set of independent flags: every call changes
+ * what the previous one left, and the last word wins.</p>
+ *
+ * <pre>{@code
+ * ClickPolicy.builder().allowEverything().denyCreativeClone().build();   // everything but cloning
+ * ClickPolicy.builder().allowEverything().denyEverything()
+ *            .allowCreativeClone().build();                              // cloning and nothing else
+ * }</pre>
  */
 public final class ClickPolicy {
 
@@ -143,11 +152,36 @@ public final class ClickPolicy {
             return deny(ClickKind.DRAG);
         }
 
-        /** Take, place, swap, drop, hotbar, drag and moving out - everything a chest normally allows. */
+        /** The creative middle-click that duplicates a stack. */
+        public Builder allowCreativeClone() {
+            return allow(ClickKind.CLONE);
+        }
+
+        public Builder denyCreativeClone() {
+            return deny(ClickKind.CLONE);
+        }
+
+        /**
+         * Every kind this framework classifies, creative cloning included - the name is not a summary
+         * of a chest, it is literal. Narrow it afterwards with the {@code deny} of what is too much.
+         */
         public Builder allowEverything() {
-            return allow(ClickKind.TAKE, ClickKind.PLACE, ClickKind.SWAP, ClickKind.DROP,
-                    ClickKind.HOTBAR, ClickKind.DRAG, ClickKind.MOVE_TO_OTHER_INVENTORY,
-                    ClickKind.COLLECT_TO_CURSOR, ClickKind.NOTHING);
+            for (ClickKind kind : ClickKind.values()) {
+                if (kind != ClickKind.UNKNOWN) {
+                    allowedKinds.add(kind);
+                }
+            }
+            return this;
+        }
+
+        /**
+         * Takes every kind back, leaving the policy as shut as {@link ClickPolicy#DENY_ALL}. The click
+         * types named through {@link #allowIfPresent(String)} stay: they are the other axis, and with
+         * no kind allowed nothing goes through anyway.
+         */
+        public Builder denyEverything() {
+            allowedKinds.clear();
+            return this;
         }
 
         /**

@@ -3,6 +3,9 @@ package br.com.finalcraft.evernifecore.minecraft.gui.model;
 import org.bukkit.event.inventory.ClickType;
 import org.junit.jupiter.api.Test;
 
+import java.util.EnumMap;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -20,6 +23,21 @@ class ClickPolicyTest {
 
     /** No version of the game has ever sent this - it stands in for a name from the future. */
     private static final String ABSENT_CLICK_TYPE = "SWAP_WITH_SECOND_OFFHAND";
+
+    /** One action name per kind, so a policy can be asked about a kind the way a click asks. */
+    private static final Map<ClickKind, String> AN_ACTION_OF_EACH_KIND = new EnumMap<>(ClickKind.class);
+
+    static {
+        AN_ACTION_OF_EACH_KIND.put(ClickKind.NOTHING, "NOTHING");
+        AN_ACTION_OF_EACH_KIND.put(ClickKind.TAKE, "PICKUP_ALL");
+        AN_ACTION_OF_EACH_KIND.put(ClickKind.PLACE, "PLACE_ALL");
+        AN_ACTION_OF_EACH_KIND.put(ClickKind.SWAP, "SWAP_WITH_CURSOR");
+        AN_ACTION_OF_EACH_KIND.put(ClickKind.DROP, "DROP_ONE_SLOT");
+        AN_ACTION_OF_EACH_KIND.put(ClickKind.CLONE, "CLONE_STACK");
+        AN_ACTION_OF_EACH_KIND.put(ClickKind.HOTBAR, "HOTBAR_SWAP");
+        AN_ACTION_OF_EACH_KIND.put(ClickKind.MOVE_TO_OTHER_INVENTORY, "MOVE_TO_OTHER_INVENTORY");
+        AN_ACTION_OF_EACH_KIND.put(ClickKind.COLLECT_TO_CURSOR, "COLLECT_TO_CURSOR");
+    }
 
     @Test
     void theDefaultDeniesEverything() {
@@ -116,10 +134,61 @@ class ClickPolicyTest {
     }
 
     @Test
-    void creativeCloningStaysShutUntilItIsNamedOnItsOwn() {
-        assertFalse(ClickPolicy.builder().allowEverything().build().allows("MIDDLE", "CLONE_STACK"),
-                "allowEverything opens what a chest does, and duplicating an item is not that");
-        assertTrue(ClickPolicy.builder().allow(ClickKind.CLONE).build().allows("MIDDLE", "CLONE_STACK"));
+    void allowEverythingLeavesNothingOut() {
+        ClickPolicy everything = ClickPolicy.builder().allowEverything().build();
+
+        assertTrue(everything.allows("MIDDLE", "CLONE_STACK"),
+                "everything means everything - a name that opens all but one kind would be a lie");
+        assertTrue(everything.allowsDrag());
+        for (Map.Entry<ClickKind, String> entry : AN_ACTION_OF_EACH_KIND.entrySet()) {
+            assertTrue(everything.allows("LEFT", entry.getValue()),
+                    entry.getKey() + " was left out of allowEverything");
+        }
+    }
+
+    @Test
+    void theSweepAboveKnowsEveryKindThereIs() {
+        for (ClickKind kind : ClickKind.values()) {
+            if (kind == ClickKind.UNKNOWN || kind == ClickKind.DRAG) {
+                continue;//neither is reachable from an action name: one is the refusal, the other a gesture
+            }
+            assertTrue(AN_ACTION_OF_EACH_KIND.containsKey(kind), kind + " is a new kind with no action "
+                    + "name here, so the sweep over allowEverything silently stopped covering it");
+        }
+        for (Map.Entry<ClickKind, String> entry : AN_ACTION_OF_EACH_KIND.entrySet()) {
+            assertEquals(entry.getKey(), ClickKind.ofAction(entry.getValue()));
+        }
+    }
+
+    @Test
+    void eachCallEditsWhatTheOneBeforeItLeft() {
+        ClickPolicy allButCloning = ClickPolicy.builder().allowEverything().denyCreativeClone().build();
+
+        assertFalse(allButCloning.allows("MIDDLE", "CLONE_STACK"));
+        assertTrue(allButCloning.allows("LEFT", "PICKUP_ALL"));
+        assertTrue(allButCloning.allows("LEFT", "PLACE_ALL"));
+        assertTrue(allButCloning.allowsDrag());
+
+        ClickPolicy cloningOnly = ClickPolicy.builder()
+                .allowEverything()
+                .denyEverything()
+                .allowCreativeClone()
+                .build();
+
+        assertTrue(cloningOnly.allows("MIDDLE", "CLONE_STACK"), "the last call is what stands");
+        assertFalse(cloningOnly.allows("LEFT", "PICKUP_ALL"), "denyEverything wiped what allowEverything gave");
+        assertFalse(cloningOnly.allows("LEFT", "PLACE_ALL"));
+        assertFalse(cloningOnly.allowsDrag());
+        assertFalse(cloningOnly.isDenyAll());
+    }
+
+    @Test
+    void denyEverythingShutsAPolicyBackDown() {
+        ClickPolicy policy = ClickPolicy.builder().allowEverything().denyEverything().build();
+
+        assertTrue(policy.isDenyAll());
+        assertFalse(policy.allows("LEFT", "PICKUP_ALL"));
+        assertFalse(policy.allowsDrag());
     }
 
 }
