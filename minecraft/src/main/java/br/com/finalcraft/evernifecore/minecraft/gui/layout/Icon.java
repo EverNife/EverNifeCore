@@ -321,7 +321,7 @@ public class Icon {
     private ItemStack renderFor(Player viewer, ItemStack base) {
         ItemStack rendered = base.clone();
         if (locale != null) {
-            List<String> lines = locale.resolve(languageOf());
+            List<String> lines = locale.resolve(languageOf(viewer));
             if (lines != null) {
                 rendered = ItemDataPart.transformItem(rendered, lines);
             }
@@ -330,10 +330,17 @@ public class Icon {
         return replacer == null ? rendered : applyReplacer(rendered, replacer);
     }
 
-    /** The owning plugin's language, or {@code null} when the icon has no owner to ask. */
+    /**
+     * The language this icon reads to {@code viewer} in: theirs, the owning plugin's, and finally
+     * {@code null}, which leaves the first language the icon declared to answer.
+     */
     @Nullable
-    private String languageOf() {
-        return localeOwner == null ? null : FCLocaleManager.getLangOf(localeOwner);
+    private String languageOf(@Nullable Player viewer) {
+        if (localeOwner == null) {
+            return null;
+        }
+        return viewer == null ? FCLocaleManager.getLangOf(localeOwner)
+                : FCLocaleManager.getLangOf(FCBukkitUtil.adapt(viewer), localeOwner);
     }
 
     @Nullable

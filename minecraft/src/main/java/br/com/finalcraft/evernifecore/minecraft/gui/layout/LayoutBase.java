@@ -5,8 +5,10 @@ import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.GuiType;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.SlotSet;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
+import org.bukkit.entity.Player;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -70,6 +72,19 @@ public abstract class LayoutBase {
     public String getTitle() {
         String pluginTitle = titleByLang.get(FCLocaleManager.getLangOf(plugin));
         return pluginTitle != null ? pluginTitle : title;
+    }
+
+    /**
+     * The title in {@code viewer}'s own language, falling back to the plugin's and then to the one
+     * the class declared. Each viewer has their own window, so the title costs nothing to vary.
+     */
+    @Nonnull
+    public String getTitleFor(@Nullable Player viewer) {
+        if (viewer == null) {
+            return getTitle();
+        }
+        String viewerTitle = titleByLang.get(FCLocaleManager.getLangOf(FCBukkitUtil.adapt(viewer), plugin));
+        return viewerTitle != null ? viewerTitle : getTitle();
     }
 
     @Nonnull

@@ -2,9 +2,6 @@ package br.com.finalcraft.evernifecore.locale;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
-import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.config.settings.ECSettings;
-import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
@@ -130,23 +127,10 @@ public class LocaleMessageImp implements LocaleMessage {
 
     @Override
     public FancyText getFancyText(FCommandSender sender){
-        //Per-player language is opt-in and read straight from the player's LocalePDSection, which is
-        //hot-loaded on login - so this cache-only lookup never blocks nor touches storage. A player
-        //without the section (or without a chosen lang), or any non-player sender, falls back to the
-        //plugin's default, keeping the flag-off behaviour byte-identical to before.
-        if (ECSettings.PER_PLAYER_LOCALE && sender instanceof FPlayer){
-            PlayerData playerData = PlayerController.getLoaded(sender.getUniqueId());
-            if (playerData != null){
-                LocalePDSection localeSection = playerData.getPDSectionIfLoaded(LocalePDSection.class);
-                if (localeSection != null){
-                    FancyText perPlayer = getFancyText(localeSection.getLang());
-                    if (perPlayer != null){
-                        return perPlayer;
-                    }
-                }
-            }
-        }
-        return getDefaultFancyText();
+        //A message this sender's language has no translation for still has to render something, so the
+        //plugin default answers - which is also what the resolve itself falls back to.
+        FancyText perSender = getFancyText(FCLocaleManager.getLangOf(sender, this.plugin));
+        return perSender != null ? perSender : getDefaultFancyText();
     }
 
     @Override
