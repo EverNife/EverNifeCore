@@ -14,6 +14,7 @@ import br.com.finalcraft.everyconfig.ruleset.OneOf;
 import br.com.finalcraft.everyconfig.ruleset.OneOfSource;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -105,6 +106,15 @@ class SettingsScannerTest {
         @ConfigSetting(key = "Settings.chance")
         @Max(100)
         public Integer chance = 150;
+    }
+
+    /** A value the operator has to write down, seeded with one the rule beside it refuses. */
+    static class UnseedableSettings {
+
+        @ConfigSetting(key = "Settings.secret")
+        @Explicit
+        @NotBlank
+        public String secret = "";
     }
 
     //NEVER: see RegistrationSystemTest - the locale bootstrap's async saveAsync() can race JUnit's
@@ -211,6 +221,29 @@ class SettingsScannerTest {
 
         assertTrue(failure.getMessage().contains("code defect"), failure.getMessage());
         assertTrue(failure.getMessage().contains("BrokenDefault.chance"), failure.getMessage());
+    }
+
+    @Test
+    void aValueTheOperatorMustWriteDownCannotBeSeededWithOneItsOwnRuleRefuses() {
+        BindException failure = assertThrows(BindException.class,
+                () -> SettingsScanner.load(ecPluginData, config, new UnseedableSettings()));
+
+        String message = failure.getMessage();
+        assertTrue(message.contains("UnseedableSettings.secret"), message);
+        assertTrue(message.contains("@Explicit"), message);
+        assertTrue(message.contains("@NotBlank"), message);
+        assertTrue(message.contains("drop one of the two annotations"), "the message has to name the way "
+                + "out, and the way out is in the code: " + message);
+    }
+
+    @Test
+    void aFileThatAlreadyCarriesTheValueDoesNotHideTheContradiction() {
+        config.setValue("Settings.secret", "a-real-token");
+
+        assertThrows(BindException.class,
+                () -> SettingsScanner.load(ecPluginData, config, new UnseedableSettings()),
+                "the defect is in the code, so the one boot whose file happens to be filled in already "
+                        + "must not be the boot that lets it through");
     }
 
     @Test
