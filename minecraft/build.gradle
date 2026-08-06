@@ -42,9 +42,6 @@ dependencies {
     implementation libs.ecforgelistener
     implementation libs.libby.core
 
-    // Fork that restores NBT-API on Forge/Cauldron 1.7.10 (Crucible): upstream 2.15.7 renamed the
-    // COMPOUND_*_LEGACY reflection methods but left the Forge1710Mappings keys on the old names.
-    // TODO: back to the official de.tr7zw:item-nbt-api release once the fix is upstreamed.
     implementation libs.nbtapi
 
     implementation libs.bungeecord.chat // same API from 1.7.10 onwards
