@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiViews;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.Plugins;
+import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.event.inventory.InventoryType;
@@ -100,6 +101,11 @@ public final class GuiTestWorld implements AutoCloseable {
 
     public GuiEventBus getEvents() {
         return events;
+    }
+
+    /** The installed platform double, for the assertions a test makes on what was logged. */
+    public TestPlatform getPlatform() {
+        return platformWorld.platform();
     }
 
     public PlayerDouble newPlayer(String name) {
