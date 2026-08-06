@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.version;
 
 public enum MCVersion {
     v1_7_10(MCDetailedVersion.v1_7_R4),
-    v1_12(MCDetailedVersion.v1_12_R2),
+    v1_12(MCDetailedVersion.v1_12_R1),
     v1_13(MCDetailedVersion.v1_13_R2),
     v1_16(MCDetailedVersion.v1_16_R3),
     v1_19(MCDetailedVersion.v1_19_R3),

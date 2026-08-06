@@ -2,43 +2,53 @@ package br.com.finalcraft.evernifecore.minecraft.version;
 
 import org.bukkit.Bukkit;
 
-import java.util.Arrays;
-
+/**
+ * The CraftBukkit revisions this core knows about, each declaring the lowest Minecraft release it
+ * covers.
+ *
+ * <p>A revision spans a range of releases - {@code v1_20_R3} is 1.20.3 and 1.20.4, {@code v1_20_R4}
+ * is 1.20.5 and 1.20.6 - and a range ends where the next one begins, so the declared release is all
+ * the table needs. Everything else about a constant (its release family and its revision number) is
+ * read off its own name, which is also what {@link #resolve} matches the server package against.
+ */
 public enum MCDetailedVersion {
 
-    v1_7_R1(171, "v1_7"),
-    v1_7_R2(172, "v1_7"),
-    v1_7_R3(173, "v1_7"),
-    v1_7_R4(174, "v1_7"),
-    v1_8_R1(181, "v1_8"),
-    v1_8_R2(182, "v1_8"),
-    v1_8_R3(183, "v1_8"),
-    v1_9_R1(191, "v1_9"),
-    v1_9_R2(192, "v1_9"),
-    v1_10_R1(1101, "v1_10"),
-    v1_11_R1(1111, "v1_11"),
-    v1_11_R2(1112, "v1_11"),
-    v1_12_R1(1121, "v1_12"),
-    v1_12_R2(1122, "v1_12"),
-    v1_13_R1(1131, "v1_13"),
-    v1_13_R2(1132, "v1_13"),
-    v1_14_R1(1141, "v1_14"),
-    v1_14_R2(1142, "v1_14"),
-    v1_15_R1(1151, "v1_15"),
-    v1_15_R2(1152, "v1_15"),
-    v1_16_R1(1161, "v1_16"),
-    v1_16_R2(1162, "v1_16"),
-    v1_16_R3(1163, "v1_16"),
-    v1_17_R1(1171, "v1_17"),
-    v1_18_R1(1181, "v1_18"),
-    v1_18_R2(1182, "v1_18"),
-    v1_19_R1(1191, "v1_19"),
-    v1_19_R2(1192, "v1_19"),
-    v1_19_R3(1193, "v1_19"),
-    v1_20_R1(1201, "v1_20"),
-    v1_20_R2(1202, "v1_20"),
-    v1_20_R3(1203, "v1_20"),
-    v1_21_R1(1211, "v1_21"),
+    v1_7_R1("1.7"),
+    v1_7_R2("1.7.5"),
+    v1_7_R3("1.7.8"),
+    v1_7_R4("1.7.10"),
+    v1_8_R1("1.8"),
+    v1_8_R2("1.8.3"),
+    v1_8_R3("1.8.8"),
+    v1_9_R1("1.9"),
+    v1_9_R2("1.9.4"),
+    v1_10_R1("1.10"),
+    v1_11_R1("1.11"),
+    v1_12_R1("1.12"),
+    v1_13_R1("1.13"),
+    v1_13_R2("1.13.1"),
+    v1_14_R1("1.14"),
+    v1_15_R1("1.15"),
+    v1_16_R1("1.16"),
+    v1_16_R2("1.16.2"),
+    v1_16_R3("1.16.4"),
+    v1_17_R1("1.17"),
+    v1_18_R1("1.18"),
+    v1_18_R2("1.18.2"),
+    v1_19_R1("1.19"),
+    v1_19_R2("1.19.3"),
+    v1_19_R3("1.19.4"),
+    v1_20_R1("1.20"),
+    v1_20_R2("1.20.2"),
+    v1_20_R3("1.20.3"),
+    v1_20_R4("1.20.5"),
+    v1_21_R1("1.21"),
+    v1_21_R2("1.21.2"),
+    v1_21_R3("1.21.4"),
+    v1_21_R4("1.21.5"),
+    v1_21_R5("1.21.6"),
+    v1_21_R6("1.21.9"),
+    v1_21_R7("1.21.11"),
     ;
 
     private static MCDetailedVersion currentVersion;
@@ -47,62 +57,98 @@ public enum MCDetailedVersion {
      * Resolves the running server's version, preferring the CraftBukkit revision package and falling
      * back to the release it reports.
      *
-     * <p>The package is the sharper answer - it names the revision (R1/R2/...) directly - but it only
-     * exists while the server relocates CraftBukkit per version. From 1.20.5 onwards the package is a
-     * plain {@code org.bukkit.craftbukkit}, and reading it alone silently reported whatever the newest
-     * known version happened to be.
+     * <p>The package is the sharper answer - it names the revision directly - but it only exists while
+     * the server relocates CraftBukkit per version. From 1.20.5 onwards the package is a plain
+     * {@code org.bukkit.craftbukkit} and the reported release is the only evidence left. That release
+     * carries the patch, and the patch is exactly what tells two revisions of the same family apart.
      *
      * @return {@code null} when neither the package nor the release names anything known.
      */
     static MCDetailedVersion resolve(String serverPackageName, String bukkitVersion) {
         String revision = serverPackageName.substring(serverPackageName.lastIndexOf('.') + 1);
 
-        MCDetailedVersion byRevision = Arrays.stream(MCDetailedVersion.values())
-                .filter(version -> version.name().equalsIgnoreCase(revision))
-                .findFirst()
-                .orElse(null);
-
-        if (byRevision != null) {
-            return byRevision;
+        for (MCDetailedVersion version : values()) {
+            if (version.name().equalsIgnoreCase(revision)) {
+                return version;
+            }
         }
 
-        return newestOf(shortVersionOf(bukkitVersion));
+        return covering(bukkitVersion);
     }
 
-    /** {@code "1.21.1-R0.1-SNAPSHOT"} to {@code "v1_21"}, or {@code null} if it does not parse. */
-    private static String shortVersionOf(String bukkitVersion) {
-        if (bukkitVersion == null) return null;
+    /**
+     * The newest revision whose range starts at or below the reported release. A patch above every
+     * known range still answers the newest revision of that family, which is the closest the table
+     * can get to a release published after it was written.
+     *
+     * @return {@code null} when no known release family matches.
+     */
+    private static MCDetailedVersion covering(String bukkitVersion) {
+        int[] release = releaseOf(bukkitVersion);
+        if (release == null) return null;
 
-        String[] parts = bukkitVersion.split("[.\\-]");
+        MCDetailedVersion covering = null;
+        for (MCDetailedVersion version : values()) {
+            if (version.major == release[0] && version.minor == release[1] && version.lowestPatch <= release[2]) {
+                covering = version;
+            }
+        }
+        return covering;
+    }
+
+    /** {@code "1.20.5-R0.1-SNAPSHOT"} to {@code {1, 20, 5}}, or {@code null} if it does not parse. */
+    private static int[] releaseOf(String release) {
+        if (release == null) return null;
+
+        String[] parts = release.split("[.\\-]");
         if (parts.length < 2) return null;
 
         try {
-            return "v" + Integer.parseInt(parts[0]) + "_" + Integer.parseInt(parts[1]);
+            int major = Integer.parseInt(parts[0]);
+            int minor = Integer.parseInt(parts[1]);
+            return new int[]{major, minor, parts.length > 2 ? patchOf(parts[2]) : 0};
         } catch (NumberFormatException e) {
             return null;
         }
     }
 
-    /** The highest revision known for a release, since the release alone does not name one. */
-    private static MCDetailedVersion newestOf(String shortVersion) {
-        MCDetailedVersion newest = null;
-        for (MCDetailedVersion version : values()) {
-            if (version.getShortVersion().equals(shortVersion)) {
-                newest = version;
-            }
+    /** A release with no patch puts the API revision in that slot ({@code 1.21-R0.1}), and that is not one. */
+    private static int patchOf(String part) {
+        try {
+            return Integer.parseInt(part);
+        } catch (NumberFormatException e) {
+            return 0;
         }
-        return newest;
     }
 
     // Operations
-    private int value;
-    private int shortValue;
-    private String shortVersion;
+    private final int value;
+    private final int shortValue;
+    private final String shortVersion;
+    private final int major;
+    private final int minor;
+    private final int lowestPatch;
 
-    MCDetailedVersion(int value, String shortVersion) {
-        this.value = value;
-        this.shortValue = Integer.parseInt(shortVersion.replace("v", "").replace("_", ""));
-        this.shortVersion = shortVersion;
+    MCDetailedVersion(String lowestRelease) {
+        String[] familyAndRevision = name().substring(1).split("_R");
+        String[] family = familyAndRevision[0].split("_");
+
+        this.major = Integer.parseInt(family[0]);
+        this.minor = Integer.parseInt(family[1]);
+        this.shortVersion = "v" + major + "_" + minor;
+        this.shortValue = Integer.parseInt("" + major + minor);
+        this.value = shortValue * 10 + Integer.parseInt(familyAndRevision[1]);
+
+        int[] floor = releaseOf(lowestRelease);
+        if (floor == null || floor[0] != major || floor[1] != minor) {
+            throw new IllegalArgumentException(String.format(
+                    "%s declares '%s' as the lowest release it covers, but that is not a %s.%s release. "
+                            + "Declare the first release the revision shipped on, in its own family - v1_20_R4 "
+                            + "shipped on 1.20.5, so it declares \"1.20.5\".",
+                    name(), lowestRelease, major, minor
+            ));
+        }
+        this.lowestPatch = floor[2];
     }
 
     public int getValue() {

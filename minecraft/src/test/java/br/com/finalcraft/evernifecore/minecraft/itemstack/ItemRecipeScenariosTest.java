@@ -145,7 +145,7 @@ class ItemRecipeScenariosTest {
     @Test
     void anEnchantOnAnOldServerIsAnsweredWithTheVersionAndNotBlamedOnTheFile() {
         try (ItemWorld world = ItemWorld.install(
-                ItemRuntime.of(MCDetailedVersion.v1_12_R2, ItemProbe.ITEM_META))) {
+                ItemRuntime.of(MCDetailedVersion.v1_12_R1, ItemProbe.ITEM_META))) {
 
             BuiltItem built = FCItemFactory.from(Arrays.asList(
                     "type:DIAMOND_SWORD",
@@ -158,7 +158,7 @@ class ItemRecipeScenariosTest {
                     "the one line this server cannot honour is the one that is answered");
 
             String reason = built.getRefused().get(0).getReason();
-            assertTrue(reason.contains("1.13") && reason.contains("v1_12_R2"),
+            assertTrue(reason.contains("1.13") && reason.contains("v1_12_R1"),
                     "the answer names the version needed and the version running: " + reason);
             assertTrue(reason.contains("nbt:"),
                     "and offers the way to write it anyway on this server: " + reason);
