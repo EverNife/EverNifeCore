@@ -31,12 +31,19 @@ import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
 import org.bukkit.Bukkit;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  * Bukkit entry point. It dogfoods the shared {@link ECBukkitPlugin} bridge: the platform-agnostic
  * wiring runs in {@link #onECPluginEnable()} (delegating to {@link EverNifeCore}) and the Bukkit
  * extras in {@link #onECPluginEnablePost()}. The provider registration stays in the instance
  * initializer because other plugins may load EverNifeCore's classes before it and need the platform
  * providers in place before any bootstrap hook runs.
+ *
+ * <p>The runtime dependencies are fetched one step earlier still, from the class initializer, for the
+ * same reason taken to its limit: a plugin that depends on EverNifeCore can reach a class of it before
+ * EverNifeCore itself is enabled, and class initialization is the only hook that still runs then.</p>
  */
 @ECPlugin(
         spigotID = "97739",
@@ -48,9 +55,19 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
     static {
         //First thing to do when this class is loaded is to add REQUIRED dependencies, because there ara plugins that depends
         //on EverNifeCore and are loaded before it, for example, FinalEconomy
-        ECoreDependencies.initialize();
-        MinecraftVersion.disableBStats();
-        MinecraftVersion.disableUpdateCheck();
+        try {
+            ECoreDependencies.initialize();
+            MinecraftVersion.disableBStats();
+            MinecraftVersion.disableUpdateCheck();
+        } catch (Throwable e) {
+            //Nothing may escape a class initializer: an exception here makes this class - and so every
+            //static of it other code reaches for, EverNifeCoreBukkitPlugin.instance included - unusable
+            //for the rest of the JVM's life, with a NoClassDefFoundError that no longer names the cause.
+            //A degraded start that says what broke beats a plugin that cannot even report why it did.
+            Logger.getLogger("EverNifeCore").log(Level.SEVERE, "EverNifeCore could not prepare its runtime "
+                    + "dependencies. It will start anyway, and whatever needs a missing library will fail "
+                    + "with NoClassDefFoundError. The cause follows.", e);
+        }
     }
 
     {

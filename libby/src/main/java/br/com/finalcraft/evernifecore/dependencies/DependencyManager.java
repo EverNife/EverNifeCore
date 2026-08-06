@@ -17,6 +17,7 @@ import java.util.logging.Logger;
 public class DependencyManager extends LibraryManager {
 
 	private final URLClassLoaderHelper classLoader;
+	private final String whyNothingCanBeInjected;
 
 	public DependencyManager(String pluginName, File pluginRootFolder, String libsFolderName) {
 		this(pluginName, pluginRootFolder, libsFolderName, DependencyManager.class.getClassLoader());
@@ -28,7 +29,28 @@ public class DependencyManager extends LibraryManager {
                 pluginRootFolder.toPath(),
                 libsFolderName
         );
-        this.classLoader = new URLClassLoaderHelper((URLClassLoader) classLoader, this);
+        //Since Java 9 the application class loader is NOT a URLClassLoader; what makes this work is that
+        //Bukkit loads a plugin with a PluginClassLoader that happens to extend one, which is a premise
+        //borrowed from another project, not a contract. This runs from a class initializer, so finding
+        //out the premise is false has to leave a usable object behind - an exception thrown there kills
+        //the declaring class for the rest of the JVM's life, and everything that touches it after.
+        if (classLoader instanceof URLClassLoader urlClassLoader) {
+            this.classLoader = new URLClassLoaderHelper(urlClassLoader, this);
+            this.whyNothingCanBeInjected = null;
+        } else {
+            this.classLoader = null;
+            this.whyNothingCanBeInjected = "[" + pluginName + "] cannot add libraries to the classpath of "
+                    + describe(classLoader) + ": doing that at runtime needs a java.net.URLClassLoader and "
+                    + "this one is not. Every library below will be downloaded and then ignored. Put them "
+                    + "on the server's classpath yourself, or run on a server whose plugin class loader "
+                    + "extends URLClassLoader.";
+            logger.error(whyNothingCanBeInjected);
+        }
+    }
+
+    /** Whether libraries actually reach the classpath, or are downloaded and dropped. */
+    public boolean canInjectLibraries() {
+        return classLoader != null;
     }
 
     /**
@@ -38,7 +60,15 @@ public class DependencyManager extends LibraryManager {
      */
     @Override
     protected void addToClasspath(Path file) {
+        if (classLoader == null) {
+            logger.error("Not loaded: " + file + ". " + whyNothingCanBeInjected);
+            return;
+        }
         this.classLoader.addToClasspath(file);
+    }
+
+    private static String describe(ClassLoader classLoader) {
+        return classLoader == null ? "the bootstrap class loader" : classLoader.getClass().getName();
     }
 
     /**
