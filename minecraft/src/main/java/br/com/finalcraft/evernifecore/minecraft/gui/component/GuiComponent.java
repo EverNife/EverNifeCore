@@ -73,13 +73,27 @@ public final class GuiComponent {
     }
 
     /**
+     * {@link #watch(Supplier)} at a cadence of the caller's choosing: {@code intervalTicks} is how many
+     * ticks pass between two reads, so {@code 20} reads once a second. What is spaced out is the
+     * reading, not the drawing - a read that answers the same thing renders nothing either way, so a
+     * slower cadence is for a source that costs something to ask.
+     */
+    @Nonnull
+    public <T> State<T> watch(@Nonnull Supplier<T> snapshot, long intervalTicks) {
+        return install(new WatchState<>(snapshot, value -> value, intervalTicks));
+    }
+
+    /**
      * Watches an object whose {@code equals} cannot report a change, comparing {@code key} instead:
      * a version counter, a hash, the field the screen shows. Without a key, an object mutated in
      * place is invisible - see {@link WatchState}.
      */
     @Nonnull
     public <T> State<T> watch(@Nonnull Supplier<T> source, @Nonnull Function<T, ?> key) {
-        WatchState<T> state = new WatchState<>(source, key);
+        return install(new WatchState<>(source, key));
+    }
+
+    private <T> State<T> install(WatchState<T> state) {
         remember(state);
         view.addWatch(state);
         return state;

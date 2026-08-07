@@ -512,8 +512,9 @@ public final class GuiView {
     }
 
     /**
-     * Polls a watched value once per tick. One task serves every watch of the view, and it exists
-     * only while at least one watch does - a screen with no watch polls nothing.
+     * Takes a watch onto the view's clock. One task serves every watch of the view and ticks once, each
+     * watch counting its own interval, so a cadence is a watch's business and never the view's. The task
+     * exists only while at least one watch does - a screen with no watch polls nothing.
      */
     public void addWatch(@Nonnull WatchState<?> watch) {
         watches.add(watch);

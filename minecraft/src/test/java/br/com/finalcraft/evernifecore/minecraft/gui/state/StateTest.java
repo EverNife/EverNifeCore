@@ -11,14 +11,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * When a state says it went stale, and when it stays quiet.
  *
  * <p>A written state always says so, even when the new value equals the old one - the far end of the
  * pipeline deduplicates on rendered output, and an object mutated in place cannot prove it changed.
- * A watched state is the opposite: it says so only when its key moved, because it is polled every
- * tick and would otherwise repaint the screen forever.</p>
+ * A watched state is the opposite: it says so only when its key moved, because it is polled on a clock
+ * and would otherwise repaint the screen forever.</p>
  */
 class StateTest {
 
@@ -163,6 +165,41 @@ class StateTest {
 
         assertEquals(0, blindCounter.get(), "the same instance equals itself, so the default key never moves");
         assertEquals(1, keyedCounter.get(), "a key that moves with the object is what reports it");
+    }
+
+    @Test
+    void aWatchWithAnIntervalReadsItsSourceOncePerInterval() {
+        MutableState<String> source = State.of("a");
+        AtomicInteger reads = new AtomicInteger();
+        WatchState<String> watch = new WatchState<>(() -> {
+            reads.incrementAndGet();
+            return source.get();
+        }, value -> value, 20L);
+        Counter counter = new Counter();
+        watch.addListener(counter);
+
+        source.set("b");
+        for (int tick = 1; tick <= 19; tick++) {
+            watch.poll();
+        }
+
+        assertEquals(1, reads.get(), "the read at construction, and none of the nineteen ticks after it");
+        assertEquals(0, counter.get());
+
+        watch.poll();
+
+        assertEquals(2, reads.get(), "the twentieth tick is the one that costs a read");
+        assertEquals(1, counter.get());
+        assertEquals("b", watch.get());
+    }
+
+    @Test
+    void aWatchRefusesAnIntervalThatWouldNeverReadAnything() {
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+                () -> new WatchState<>(() -> "a", value -> value, 0L));
+
+        assertTrue(thrown.getMessage().contains("needs no watch at all"),
+                "the refusal has to point at the way out, not just at the number: " + thrown.getMessage());
     }
 
     @Test

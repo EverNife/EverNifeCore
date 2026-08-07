@@ -201,9 +201,10 @@ public class Icon {
      * menu deciding which of them is on screen. No predicate means always alive; a predicate that
      * answers {@code null} hides the icon, because a screen cannot invent an answer nobody gave.
      *
-     * <p>A {@link br.com.finalcraft.evernifecore.minecraft.gui.state.State} read inside the predicate
-     * does not redraw the screen on its own: the icon has to be rendered again, which a
-     * {@code refresh()} or a state the component already watches does.</p>
+     * <p>Asked again at every render is not the same as watched. What makes the screen look at the
+     * predicate on its own is the cadence of the binding that installed it - {@code IconBinder.visibleWhen}
+     * looks once a tick - so an icon bound straight to a slot, with no binder of its own, answers only
+     * when something else has already redrawn the screen.</p>
      */
     @Nonnull
     public Icon visibleWhen(@Nullable Supplier<Boolean> live) {

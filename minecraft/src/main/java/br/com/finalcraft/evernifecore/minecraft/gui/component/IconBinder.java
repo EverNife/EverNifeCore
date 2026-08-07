@@ -5,13 +5,17 @@ import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.IconStates;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.SlotSet;
 import br.com.finalcraft.evernifecore.minecraft.gui.state.MutableState;
+import br.com.finalcraft.evernifecore.minecraft.gui.state.State;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.ClickContext;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiView;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -28,8 +32,11 @@ public final class IconBinder {
     private final SlotSet slots;
     private final Icon template;
 
+    private final List<State<?>> dependencies = new ArrayList<>();
+
     private Supplier<String> state;
     private Supplier<Boolean> visibleWhen;
+    private long visibleWhenTicks;
     private Consumer<ClickContext> onClick;
     private CycleBinder<?> cycle;
     private long everyTicks = 0L;
@@ -68,17 +75,46 @@ public final class IconBinder {
     }
 
     /**
-     * Whether this icon is on screen right now, asked again at every render. It is what lets a group of
-     * icons share one slot with the menu deciding which of them is alive, and it composes with the
-     * permission: both have to say yes.
+     * Whether this icon is on screen right now, looked at once a tick while the screen is open. It is
+     * what lets a group of icons share one slot with the menu deciding which of them is alive, and it
+     * composes with the permission: both have to say yes.
      *
-     * <p>A state read inside the predicate does not redraw the screen on its own - this icon is
-     * repainted when its component renders again, so a change needs a {@code ctx.refresh()}, or a
-     * {@link #states(Class, Supplier)} on the same icon, whose supplier is polled every tick.</p>
+     * <p>Nobody has to announce a change: the screen asks the predicate itself, so a state read inside
+     * it, an item another player just bought and a permission that was revoked all reach the slot on
+     * their own. {@link #visibleWhen(Supplier, long)} is the form for a predicate too expensive to ask
+     * that often.</p>
      */
     @Nonnull
     public IconBinder visibleWhen(@Nullable Supplier<Boolean> live) {
+        return visibleWhen(live, 1L);
+    }
+
+    /**
+     * {@link #visibleWhen(Supplier)} at a cadence of the caller's choosing: {@code 20} looks once a
+     * second, and {@code 0} never looks on its own - then a {@link #dependsOn(State...)} or a
+     * {@code ctx.refresh()} is what brings the slot up to date.
+     *
+     * <p>This is not {@link #every(long)}: {@code every} redraws the icon every N ticks whatever
+     * happens, while a cadence only says how often the predicate is READ. One forces a write, the other
+     * a read - and a read that answers the same thing writes nothing.</p>
+     */
+    @Nonnull
+    public IconBinder visibleWhen(@Nullable Supplier<Boolean> live, long checkEveryTicks) {
         this.visibleWhen = live;
+        this.visibleWhenTicks = Math.max(0L, checkEveryTicks);
+        return this;
+    }
+
+    /**
+     * States that make this icon draw again: a mode two icons share, a filter, a counter the plugin
+     * bumps when the data behind an expensive predicate moves.
+     *
+     * <p>Reading a state inside a lambda subscribes to nothing - this is how the icon says it wants to
+     * be told. It is what makes {@code visibleWhen(predicate, 0)} keep up without ever being polled.</p>
+     */
+    @Nonnull
+    public IconBinder dependsOn(@Nonnull State<?>... states) {
+        Collections.addAll(dependencies, states);
         return this;
     }
 
@@ -163,12 +199,19 @@ public final class IconBinder {
         }
         if (visibleWhen != null) {
             icon.visibleWhen(visibleWhen);
+            if (visibleWhenTicks > 0) {
+                //looking at the predicate on a clock is what makes a change from outside this screen arrive
+                component.watch(visibleWhen, visibleWhenTicks);
+            }
         }
         if (click != null) {
             icon.onClick(click);
         }
         if (everyTicks > 0) {
             component.every(everyTicks);
+        }
+        for (State<?> dependency : dependencies) {
+            component.remember(dependency);
         }
         component.render(writer -> writer.icon(slots, icon));
     }
