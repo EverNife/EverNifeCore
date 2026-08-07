@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
@@ -70,8 +71,10 @@ public final class GuiView {
 
     private Cancellable watchTask;
     private Cancellable pendingCommit;
+    private CompletableFuture<Object> pendingResult;
     private boolean staticIconsDirty = true;
     private boolean swappingSurface = false;
+    private boolean suspended = false;
     private long clickToken = 0L;
     private long lastAcceptedClickAt = 0L;
     private boolean closed = false;
@@ -171,6 +174,14 @@ public final class GuiView {
 
     public boolean isClosed() {
         return closed;
+    }
+
+    /**
+     * Whether this screen is set aside: it still holds its state, its components and its tasks, but
+     * it has no window - a screen opened on top of it has one, or a prompt is waiting on chat.
+     */
+    public boolean isSuspended() {
+        return suspended;
     }
 
     /** Whether this view is the one drawn on {@code inventory}. */
@@ -295,7 +306,7 @@ public final class GuiView {
      * write, and a screen nobody is changing schedules nothing.
      */
     public synchronized void scheduleCommit() {
-        if (closed || pendingCommit != null) {
+        if (closed || suspended || pendingCommit != null) {
             return;
         }
         pendingCommit = scheduler.later(1L, this::runPass);
@@ -339,7 +350,7 @@ public final class GuiView {
 
     /** Writes the slots whose rendered output changed, right now. Main thread only. */
     public void commitNow() {
-        if (closed) {
+        if (closed || suspended) {
             return;
         }
         buffer.commit(surface);
@@ -347,7 +358,7 @@ public final class GuiView {
 
     /** Re-reads the whole container and puts back whatever stopped showing what this screen drew. */
     public void resync() {
-        if (closed) {
+        if (closed || suspended) {
             return;
         }
         buffer.adoptContainer(surface);
@@ -458,20 +469,61 @@ public final class GuiView {
     }
 
     // -----------------------------------------------------------------------------------------------------------------
+    //  Suspending - the screen outlives its window while another one, or a prompt, has the player
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /** Sets the screen aside. It keeps everything it holds and stops writing, having nowhere to write. */
+    void suspend() {
+        if (closed || suspended) {
+            return;
+        }
+        suspended = true;
+        if (pendingCommit != null) {
+            pendingCommit.cancel();
+            pendingCommit = null;
+        }
+    }
+
+    /** Brings the screen back onto a container it has never written into, so everything is drawn again. */
+    void resume(GuiSurface newSurface, String title) {
+        if (closed) {
+            return;
+        }
+        suspended = false;
+        currentTitle = title;
+        adoptSurface(newSurface);
+    }
+
+    /** The future whoever opened this screen is waiting on, or {@code null} when nobody is. */
+    @Nullable
+    CompletableFuture<Object> getPendingResult() {
+        return pendingResult;
+    }
+
+    void setPendingResult(@Nullable CompletableFuture<Object> pendingResult) {
+        this.pendingResult = pendingResult;
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
     //  Closing
     // -----------------------------------------------------------------------------------------------------------------
 
-    /** Closes the window now. The close event releases the view. */
+    /**
+     * Closes the window now. The close event releases the view.
+     *
+     * <p>A suspended screen has no window of its own, so it closes nothing: whatever the player is
+     * looking at belongs to another screen.</p>
+     */
     public void close() {
         Player player = this.viewer;
-        if (player != null && !closed) {
+        if (player != null && !closed && !suspended) {
             player.closeInventory();
         }
     }
 
     /** Closes on the next tick - the safe form from inside a click handler. */
     public void closeNextTick() {
-        if (closed) {
+        if (closed || suspended) {
             return;
         }
         scheduler.later(1L, this::close);

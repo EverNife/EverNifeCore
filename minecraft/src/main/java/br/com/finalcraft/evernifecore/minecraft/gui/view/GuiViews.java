@@ -74,15 +74,38 @@ public final class GuiViews {
     @Nonnull
     public static CompletableFuture<GuiView> open(@Nonnull Gui<?> gui, @Nonnull Player player) {
         CompletableFuture<GuiView> future = new CompletableFuture<>();
-        if (FCBukkitUtil.isMainThread()) {
-            openOnMainThread(gui, player, future);
-        } else {
-            McFCScheduler.INSTANCE.runSync(() -> openOnMainThread(gui, player, future));
-        }
+        onMainThread(() -> {
+            //an open nobody navigated to starts a journey rather than continuing one
+            GuiNavigation.discard(player.getUniqueId());
+            openOnMainThread(gui, player, future, true);
+        });
         return future;
     }
 
-    private static void openOnMainThread(Gui<?> gui, Player player, CompletableFuture<GuiView> future) {
+    /** Opens a screen inside the chain the player is already in - see {@link GuiNavigation}. */
+    @Nonnull
+    static CompletableFuture<GuiView> openWithinChain(Gui<?> gui, Player player) {
+        CompletableFuture<GuiView> future = new CompletableFuture<>();
+        openOnMainThread(gui, player, future, false);
+        return future;
+    }
+
+    /**
+     * Runs {@code task} on the main thread, right now when that is already where we are.
+     *
+     * <p>The hop everything that touches a screen from somewhere else has to take: a chat answer, a
+     * timeout, a database callback.</p>
+     */
+    public static void onMainThread(@Nonnull Runnable task) {
+        if (FCBukkitUtil.isMainThread()) {
+            task.run();
+        } else {
+            McFCScheduler.INSTANCE.runSync(task);
+        }
+    }
+
+    private static void openOnMainThread(Gui<?> gui, Player player, CompletableFuture<GuiView> future,
+                                         boolean root) {
         try {
             if (!player.isOnline()) {
                 refuse(gui, player, future, "the player is no longer online");
@@ -109,6 +132,9 @@ public final class GuiViews {
                 displaced.release(CloseReason.REQUESTED);
             }
 
+            if (root) {
+                GuiNavigation.root(view);
+            }
             view.start();
             view.render();
             view.commitNow();
@@ -127,7 +153,7 @@ public final class GuiViews {
     }
 
     /** Opens {@code inventory} and answers whether the server confirmed it through its own event. */
-    private static boolean attemptOpen(Player player, Inventory inventory) {
+    static boolean attemptOpen(Player player, Inventory inventory) {
         PendingOpen previous = pending;
         PendingOpen attempt = new PendingOpen(player.getUniqueId(), inventory);
         pending = attempt;
@@ -167,7 +193,7 @@ public final class GuiViews {
         }
     }
 
-    private static Inventory createInventory(Gui<?> gui, String title) {
+    static Inventory createInventory(Gui<?> gui, String title) {
         GuiType type = gui.getType();
         if (type.isChest()) {
             return Bukkit.createInventory(null, type.sizeOf(gui.getRows()), title);
@@ -182,7 +208,7 @@ public final class GuiViews {
         return Bukkit.createInventory(null, inventoryType, title);
     }
 
-    private static String trimTitle(String title) {
+    static String trimTitle(String title) {
         if (title.length() > LEGACY_TITLE_LIMIT && MCVersion.isLowerEquals(MCDetailedVersion.v1_8_R3)) {
             return title.substring(0, LEGACY_TITLE_LIMIT);
         }
@@ -206,14 +232,26 @@ public final class GuiViews {
             return;
         }
         OPEN.remove(player.getUniqueId());
+        GuiNavigation.discard(player.getUniqueId());
         view.release(CloseReason.PLAYER_CLOSED);
     }
 
     static void handleRelease(Player player, CloseReason reason) {
         GuiView view = OPEN.remove(player.getUniqueId());
+        GuiNavigation.discard(player.getUniqueId());
         if (view != null) {
             view.release(reason);
         }
+    }
+
+    /** Drops {@code view} from the registry without tearing it down - it is being set aside. */
+    static void forget(GuiView view) {
+        OPEN.remove(view.getViewerId(), view);
+    }
+
+    /** Makes {@code view} the screen the listener routes {@code viewer}'s events to. */
+    static void remember(GuiView view) {
+        OPEN.put(view.getViewerId(), view);
     }
 
     /**
@@ -222,6 +260,7 @@ public final class GuiViews {
      * would turn its contents into free loot.
      */
     public static void closeAll() {
+        GuiNavigation.discardAll();
         if (OPEN.isEmpty()) {
             return;
         }

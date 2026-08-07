@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.view;
 
 import br.com.finalcraft.evernifecore.minecraft.gui.Gui;
+import br.com.finalcraft.evernifecore.minecraft.gui.ResultGui;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -8,6 +9,8 @@ import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
+
+import java.util.concurrent.CompletableFuture;
 
 /**
  * One click, as the handler sees it: who clicked, where, how, and what it may do about it.
@@ -129,6 +132,52 @@ public final class ClickContext {
         if (isAlive() && viewer != null && sound != null) {
             viewer.playSound(viewer.getLocation(), sound, volume, pitch);
         }
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Navigating
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Opens {@code gui} on top of this screen. This one is set aside whole - its page, its filter and
+     * everything its components remembered - and {@link #back()} gives it back exactly as it was.
+     *
+     * @return the value the opened screen hands back through {@code back(value)}. It is cancelled
+     *         instead when the player walks away without answering, so a {@code thenAccept} only ever
+     *         runs on an answer somebody actually gave.
+     */
+    @Nonnull
+    public CompletableFuture<Object> open(@Nonnull Gui<?> gui) {
+        return GuiNavigation.open(view, gui);
+    }
+
+    /** {@link #open(Gui)} onto a screen that says what it answers with - see {@link ResultGui}. */
+    @Nonnull
+    @SuppressWarnings("unchecked")
+    public <R> CompletableFuture<R> open(@Nonnull ResultGui<R, ?> gui) {
+        return (CompletableFuture<R>) GuiNavigation.open(view, gui);
+    }
+
+    /** Leaves this screen for the one underneath it, with nothing to say to it. */
+    public void back() {
+        back(null);
+    }
+
+    /**
+     * Leaves this screen for the one underneath it, handing {@code value} to whoever opened this one.
+     * At the bottom of a chain there is nothing underneath, so the screen simply closes.
+     */
+    public void back(@Nullable Object value) {
+        GuiNavigation.back(view, value);
+    }
+
+    /**
+     * Puts {@code gui} where this screen is: the one underneath is untouched, so a later
+     * {@link #back()} goes there and not to the screen just replaced. Whoever was waiting on this step
+     * of the chain now waits on {@code gui}.
+     */
+    public void replace(@Nonnull Gui<?> gui) {
+        GuiNavigation.replace(view, gui);
     }
 
 }
