@@ -3,6 +3,10 @@ package br.com.finalcraft.evernifecore.minecraft.gui.view;
 import br.com.finalcraft.evernifecore.minecraft.gui.Gui;
 import br.com.finalcraft.evernifecore.minecraft.gui.ResultGui;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
+import br.com.finalcraft.evernifecore.minecraft.gui.view.prompt.ChatPrompt;
+import br.com.finalcraft.evernifecore.minecraft.gui.view.prompt.ChatPromptChannel;
+import br.com.finalcraft.evernifecore.minecraft.gui.view.prompt.PromptParser;
+import br.com.finalcraft.evernifecore.minecraft.gui.view.prompt.PromptResult;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.Sound;
@@ -11,6 +15,7 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 /**
  * One click, as the handler sees it: who clicked, where, how, and what it may do about it.
@@ -178,6 +183,48 @@ public final class ClickContext {
      */
     public void replace(@Nonnull Gui<?> gui) {
         GuiNavigation.replace(view, gui);
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Asking for a value no button can express
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Asks the player to type the answer in chat. The screen goes away while the question is out and
+     * comes back with its state intact once it is answered, called off or timed out.
+     *
+     * <pre>{@code
+     * icon(l -> l.EDIT_PRICE).onClick(ctx -> ctx.askOnChat(
+     *         ChatPrompt.of("§eType the new price, or 'cancel':")
+     *                 .parse(Double::parseDouble)
+     *                 .cancelWord("cancel"))
+     *         .thenAccept(price -> auction.setPrice(price)));
+     * }</pre>
+     *
+     * @return the answer, completed on the main thread. Cancelled when there was none - the player
+     *         said the cancel word, ran out of time or left - so {@code thenAccept} runs on answers
+     *         only. The prompt's own {@code onTimeout} and {@code onQuit} are how those are handled.
+     */
+    @Nonnull
+    public <T> CompletableFuture<T> askOnChat(@Nonnull ChatPrompt<T> prompt) {
+        CompletableFuture<T> answered = new CompletableFuture<>();
+        ChatPromptChannel.get().ask(view, prompt).thenAccept(result -> {
+            if (result.getKind() == PromptResult.Kind.VALUE) {
+                answered.complete(result.getValue());
+            } else {
+                answered.cancel(false);
+            }
+        });
+        return answered;
+    }
+
+    /** {@link #askOnChat(ChatPrompt)} with the defaults - the short form of the same question. */
+    @Nonnull
+    public <T> CompletableFuture<T> askOnChat(@Nonnull String question, @Nonnull PromptParser<T> parser,
+                                              @Nonnull Consumer<T> onAnswer) {
+        CompletableFuture<T> answered = askOnChat(ChatPrompt.of(question).parse(parser));
+        answered.thenAccept(onAnswer);
+        return answered;
     }
 
 }
