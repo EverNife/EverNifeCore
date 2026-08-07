@@ -89,10 +89,10 @@ public final class GuiViews {
                 return;
             }
 
-            String title = trimTitle(gui.getTitle());
-            Inventory inventory = createInventory(gui, title);
+            String title = gui.getTitleFor(player);
+            Inventory inventory = createInventory(gui, trimTitle(title));
             GuiView view = new GuiView(gui, player, new BukkitGuiSurface(inventory),
-                    BukkitGuiScheduler.INSTANCE, gui.getTitle());
+                    BukkitGuiScheduler.INSTANCE, title);
 
             if (!attemptOpen(player, inventory)) {
                 refuse(gui, player, future, "the server did not open the window "

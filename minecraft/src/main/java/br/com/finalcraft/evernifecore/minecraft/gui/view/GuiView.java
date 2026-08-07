@@ -213,7 +213,7 @@ public final class GuiView {
         }
         //Text and state are resolved here, not when the icon was declared: this is the first moment the
         //viewer is known, and it is what lets one icon read differently to two players
-        ItemStack rendered = icon.renderFor(viewer, icon.getCurrentState());
+        ItemStack rendered = icon.renderFor(viewer, icon.getCurrentState(), gui.getReplacer());
         for (int slot : slots.resolve(geometry).toArray()) {
             if (!geometry.isInside(slot)) {
                 EverNifeCore.getLog().warning("A gui icon was bound to slot " + slot + ", outside a "
@@ -328,7 +328,7 @@ public final class GuiView {
     }
 
     private void applyTitleIfChanged() {
-        String wanted = gui.getTitle();
+        String wanted = gui.getTitleFor(viewer);
         if (wanted.equals(currentTitle)) {
             return;
         }

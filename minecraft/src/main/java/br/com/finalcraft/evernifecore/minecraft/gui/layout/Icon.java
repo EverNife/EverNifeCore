@@ -365,25 +365,32 @@ public class Icon {
 
     /**
      * What {@code viewer} actually sees: the canonical stack with the language block of their own
-     * language applied over it, then the icon's scopes, then PlaceholderAPI when asked for.
+     * language applied over it, then the icon's scopes, then the screen's replacers, then
+     * PlaceholderAPI when asked for.
      *
      * <p>An icon with no language block and no scope answers a plain copy, so the late path costs
      * nothing for the icons that do not need it.</p>
      */
     @Nonnull
     public ItemStack renderFor(@Nullable Player viewer) {
-        return renderFor(viewer, itemStack);
+        return renderFor(viewer, (String) null);
     }
 
     /** {@link #renderFor(Player)} over a named state instead of the default appearance. */
     @Nonnull
     public ItemStack renderFor(@Nullable Player viewer, @Nullable String stateName) {
-        ItemStack state = stateName == null ? null : states.get(stateName);
-        return renderFor(viewer, state == null ? itemStack : state);
+        return renderFor(viewer, stateName, null);
     }
 
-    private ItemStack renderFor(Player viewer, ItemStack base) {
-        ItemStack rendered = base.clone();
+    /**
+     * {@link #renderFor(Player, String)} with the placeholders of the screen around this icon, which
+     * resolve after the icon's own scopes and before PlaceholderAPI.
+     */
+    @Nonnull
+    public ItemStack renderFor(@Nullable Player viewer, @Nullable String stateName,
+                               @Nullable CompoundReplacer menuReplacer) {
+        ItemStack state = stateName == null ? null : states.get(stateName);
+        ItemStack rendered = (state == null ? itemStack : state).clone();
         if (locale != null) {
             String lang = languageOf(viewer);
             List<ItemEdit> edits = editsFor(lang);
@@ -391,7 +398,7 @@ public class Icon {
                 rendered = ItemEngine.get().materialize(ItemBase.of(rendered), edits).getItemStack();
             }
         }
-        CompoundReplacer replacer = replacerFor(viewer);
+        CompoundReplacer replacer = replacerFor(viewer, menuReplacer);
         return replacer == null ? rendered : applyReplacer(rendered, replacer);
     }
 
@@ -445,11 +452,15 @@ public class Icon {
     }
 
     @Nullable
-    private CompoundReplacer replacerFor(@Nullable Player viewer) {
-        if (scopes.isEmpty() && !integrateToPAPI) {
+    private CompoundReplacer replacerFor(@Nullable Player viewer, @Nullable CompoundReplacer menuReplacer) {
+        boolean fromMenu = menuReplacer != null && !menuReplacer.isEmpty();
+        if (scopes.isEmpty() && !fromMenu && !integrateToPAPI) {
             return null;
         }
         CompoundReplacer replacer = scopes.copy();
+        if (fromMenu) {
+            replacer.appendReplacer(menuReplacer);
+        }
         if (integrateToPAPI && viewer != null) {
             replacer.usePAPI(FCBukkitUtil.adapt(viewer));
         }

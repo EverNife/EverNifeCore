@@ -15,6 +15,9 @@ import br.com.finalcraft.evernifecore.minecraft.gui.model.Slots;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.CloseContext;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiView;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiViews;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
+import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.entity.Player;
@@ -65,6 +68,7 @@ public class Gui<L extends LayoutBase> {
     private final List<IconBinding> iconBindings = new ArrayList<>();
     private final List<Consumer<GuiComponent>> componentDeclarations = new ArrayList<>();
     private final Map<String, Region> regions = new LinkedHashMap<>();
+    private final CompoundReplacer replacers = new CompoundReplacer();
     private Consumer<CloseContext> onClose;
 
     protected Gui(GuiType type, int rows, @Nullable L layout) {
@@ -234,6 +238,31 @@ public class Gui<L extends LayoutBase> {
         return this;
     }
 
+    /**
+     * Registers placeholders the whole screen answers for - its title and every icon on it, whether
+     * the icon came from the layout, from a list or from a raw slot.
+     *
+     * <p>Replacers add up: a second call composes with the first, and neither drops what an icon
+     * registered on its own with {@code Icon.addScope(...)}. What they cannot do is outrank each
+     * other - a key two of them answer is resolved by the first that was registered.</p>
+     */
+    @Nonnull
+    public Gui<L> addReplacer(@Nonnull CompoundReplacer replacer) {
+        if (replacer == null) {
+            throw new IllegalArgumentException("A screen cannot add a null replacer. Build one with "
+                    + "myRegexReplacer.compound(theObject), or drop the call.");
+        }
+        replacers.appendReplacer(replacer);
+        return this;
+    }
+
+    /** {@link #addReplacer(CompoundReplacer)} over the object the replacer speaks about. */
+    @Nonnull
+    public <O> Gui<L> addReplacer(@Nonnull RegexReplacer<O> replacer, @Nonnull O object) {
+        replacers.appendReplacer(replacer, object);
+        return this;
+    }
+
     /** The policy applied to any slot no region claims. */
     @Nonnull
     public Gui<L> policy(@Nonnull ClickPolicy policy) {
@@ -339,10 +368,42 @@ public class Gui<L extends LayoutBase> {
         return new GuiGeometry(type, type.sizeOf(rows));
     }
 
+    /**
+     * The placeholders this screen answers for, as a replacer of its own: the ones
+     * {@link #addReplacer(CompoundReplacer)} registered, and then, on a screen that has a subject,
+     * the ones about that subject.
+     *
+     * <p>A fresh instance every call, so composing it with an icon's own scopes cannot write back
+     * into the screen.</p>
+     */
+    @Nonnull
+    public CompoundReplacer getReplacer() {
+        return replacers.copy();
+    }
+
+    /** Whether PlaceholderAPI runs over this screen's text. It is the layout that asks for it. */
+    public boolean isIntegrateToPAPI() {
+        return layout != null && layout.isIntegrateToPAPI();
+    }
+
+    /** The title with this screen's placeholders resolved, and no viewer to resolve them against. */
     @Nonnull
     public String getTitle() {
+        return getTitleFor(null);
+    }
+
+    /** The title as {@code viewer} reads it: this screen's placeholders, then theirs from PAPI. */
+    @Nonnull
+    public String getTitleFor(@Nullable Player viewer) {
         String resolved = title.get();
-        return resolved == null ? "" : resolved;
+        if (resolved == null) {
+            return "";
+        }
+        CompoundReplacer replacer = getReplacer();
+        if (viewer != null && isIntegrateToPAPI()) {
+            replacer.usePAPI(FCBukkitUtil.adapt(viewer));
+        }
+        return replacer.isEmpty() ? resolved : replacer.apply(resolved);
     }
 
     @Nonnull
