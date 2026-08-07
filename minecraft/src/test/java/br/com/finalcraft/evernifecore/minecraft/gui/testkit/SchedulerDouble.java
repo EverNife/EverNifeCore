@@ -19,6 +19,10 @@ import java.util.List;
  * <p>It answers both interfaces the framework can reach it through: {@link GuiScheduler}, for a view
  * built with it directly, and {@link #asBukkitScheduler()}, for the production path that goes
  * {@code BukkitGuiScheduler -> McFCScheduler -> Bukkit.getScheduler()}.</p>
+ *
+ * <p>Every method is synchronized. Scheduling is how anything off the main thread - a chat answer, a
+ * timeout, a database callback - hands work back to it, so a queue only the test thread could touch
+ * would drop those or corrupt itself instead of exercising the hop.</p>
  */
 public final class SchedulerDouble implements GuiScheduler {
 
@@ -32,12 +36,12 @@ public final class SchedulerDouble implements GuiScheduler {
     //  The clock
     // -----------------------------------------------------------------------------------------------------------------
 
-    public long getCurrentTick() {
+    public synchronized long getCurrentTick() {
         return currentTick;
     }
 
     /** Runs one tick at a time, so a task scheduled inside a tick waits for the next one. */
-    public void advanceTicks(long ticks) {
+    public synchronized void advanceTicks(long ticks) {
         for (long i = 0; i < ticks; i++) {
             currentTick++;
             for (Task task : new ArrayList<>(tasks)) {
@@ -55,7 +59,7 @@ public final class SchedulerDouble implements GuiScheduler {
     }
 
     /** Everything still scheduled: one-shots not yet due and repetitions not yet cancelled. */
-    public int getActiveTaskCount() {
+    public synchronized int getActiveTaskCount() {
         int count = 0;
         for (Task task : tasks) {
             if (!task.cancelled) {
@@ -65,7 +69,7 @@ public final class SchedulerDouble implements GuiScheduler {
         return count;
     }
 
-    public int getPeriodicTaskCount() {
+    public synchronized int getPeriodicTaskCount() {
         int count = 0;
         for (Task task : tasks) {
             if (!task.cancelled && task.periodTicks > 0) {
@@ -80,16 +84,16 @@ public final class SchedulerDouble implements GuiScheduler {
     // -----------------------------------------------------------------------------------------------------------------
 
     @Override
-    public Cancellable later(long ticks, Runnable task) {
+    public synchronized Cancellable later(long ticks, Runnable task) {
         return schedule(ticks, 0L, task)::cancel;
     }
 
     @Override
-    public Cancellable repeat(long ticks, Runnable task) {
+    public synchronized Cancellable repeat(long ticks, Runnable task) {
         return schedule(ticks, ticks, task)::cancel;
     }
 
-    private Task schedule(long delayTicks, long periodTicks, Runnable body) {
+    private synchronized Task schedule(long delayTicks, long periodTicks, Runnable body) {
         Task task = new Task(nextTaskId++, currentTick + Math.max(1L, delayTicks), periodTicks, body);
         tasks.add(task);
         return task;
@@ -99,7 +103,7 @@ public final class SchedulerDouble implements GuiScheduler {
     //  The platform's face of the same clock
     // -----------------------------------------------------------------------------------------------------------------
 
-    public BukkitScheduler asBukkitScheduler() {
+    public synchronized BukkitScheduler asBukkitScheduler() {
         if (bukkitFace == null) {
             bukkitFace = Doubles.of(BukkitScheduler.class)
                     .on("runTask", args -> taskFace(schedule(1L, 0L, (Runnable) args[1])))
@@ -125,7 +129,7 @@ public final class SchedulerDouble implements GuiScheduler {
                 .build();
     }
 
-    private void cancelById(int id) {
+    private synchronized void cancelById(int id) {
         for (Task task : new ArrayList<>(tasks)) {
             if (task.id == id) {
                 task.cancel();
@@ -150,8 +154,10 @@ public final class SchedulerDouble implements GuiScheduler {
         }
 
         private void cancel() {
-            cancelled = true;
-            tasks.remove(this);
+            synchronized (SchedulerDouble.this) {
+                cancelled = true;
+                tasks.remove(this);
+            }
         }
 
     }

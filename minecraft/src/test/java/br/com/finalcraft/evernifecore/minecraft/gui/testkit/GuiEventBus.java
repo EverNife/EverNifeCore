@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.testkit;
 
 import br.com.finalcraft.evernifecore.minecraft.chat.ChatExpectationListener;
-import br.com.finalcraft.evernifecore.minecraft.chat.ExpectedChat;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiListener;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -10,9 +9,7 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.InventoryView;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 
 /**
  * Delivers a platform event straight to the framework's own listeners.
@@ -61,27 +58,6 @@ public final class GuiEventBus {
         AsyncPlayerChatEvent event = new AsyncPlayerChatEvent(true, player, message, new HashSet<Player>());
         offTheMainThread(() -> ChatExpectationListener.get().onPlayerChat(event));
         return event;
-    }
-
-    /**
-     * Runs out the clock on what {@code player} is being waited for, the way the expiration the core
-     * scheduled does: off the main thread, and only while the wait has not already settled.
-     *
-     * @return whether anything was still being waited for - a timeout nobody was waiting on proves
-     *         nothing about what a timeout does
-     */
-    public boolean expireChatWait(Player player) {
-        List<ExpectedChat> waiting = new ArrayList<>(
-                ChatExpectationListener.get().getChatListeners().get(player.getUniqueId()));
-        for (ExpectedChat expectation : waiting) {
-            if (expectation.wasConsumed() || expectation.wasCancelled()
-                    || expectation.getOnExpireAction() == null) {
-                continue;
-            }
-            offTheMainThread(expectation.getOnExpireAction());
-            return true;
-        }
-        return false;
     }
 
     /**

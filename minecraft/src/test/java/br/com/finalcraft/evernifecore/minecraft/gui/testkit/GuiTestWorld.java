@@ -177,6 +177,36 @@ public final class GuiTestWorld implements AutoCloseable {
         scheduler.advanceTicks(ticks);
     }
 
+    /**
+     * Runs the clock until {@code pending} answers, for the paths a real background thread sets off -
+     * a prompt timing out on the core's own scheduler, a database callback - rather than the test.
+     *
+     * <p>The work still lands on the main thread through {@link #advanceTicks(long)}; what is being
+     * waited for is the hand-over, which no amount of ticking makes happen sooner.</p>
+     *
+     * @throws AssertionError when nothing answered within {@code timeoutMillis}
+     */
+    public <T> T awaitOnTheClock(CompletableFuture<T> pending, long timeoutMillis) {
+        long deadline = System.currentTimeMillis() + timeoutMillis;
+        while (!pending.isDone()) {
+            if (System.currentTimeMillis() > deadline) {
+                throw new AssertionError("Nothing answered within " + timeoutMillis + "ms of running the clock");
+            }
+            scheduler.advanceTicks(1L);
+            try {
+                Thread.sleep(1L);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError("Interrupted while running the clock", interrupted);
+            }
+        }
+        try {
+            return pending.get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new AssertionError("The work the clock was run for failed", e);
+        }
+    }
+
     // -----------------------------------------------------------------------------------------------------------------
     //  Opening
     // -----------------------------------------------------------------------------------------------------------------
