@@ -109,8 +109,8 @@ public class Icon {
     }
 
     /** {@link #compareForSlot(int, String, int, String)} over two icons: the winner of a slot comes first. */
-    public static final Comparator<Icon> BY_SLOT_PRIORITY =
-            (left, right) -> compareForSlot(left.order, left.name, right.order, right.name);
+    public static final Comparator<Icon> BY_SLOT_PRIORITY = (left, right) ->
+            compareForSlot(left.getOrder(), left.getName(), right.getOrder(), right.getName());
 
     @Nonnull
     public ItemStack getItemStack() {
