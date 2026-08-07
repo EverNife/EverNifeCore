@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Several icons over one slot, which is what every 2.x catalogue layout was made of: the file says
@@ -281,6 +282,22 @@ class SharedSlotTest {
         assertEquals(Material.GOLD_INGOT, surface.getItem(14).getType(),
                 "and a lower order wins even against the alphabet");
         assertEquals(Material.GOLD_INGOT, view.getIconAt(14).getItemStack().getType());
+    }
+
+    @Test
+    void theArithmeticRanksAnIconThatHasNoLayoutKeyLastWithoutBreakingDown() {
+        Icon named = Icon.of(new ItemStack(Material.PAPER));
+        named.setName("ALPHA");
+        Icon loose = Icon.of(new ItemStack(Material.PAPER)); //bound straight to a slot: there is no key
+
+        assertTrue(Icon.BY_SLOT_PRIORITY.compare(named, loose) < 0, "a claim with no name to compare loses");
+        assertTrue(Icon.BY_SLOT_PRIORITY.compare(loose, named) > 0,
+                "and it loses from either side - an asymmetric comparator takes the sort down with it");
+        assertEquals(0, Icon.BY_SLOT_PRIORITY.compare(loose, loose.copy()), "two nameless claims tie");
+
+        loose.setOrder(-1);
+
+        assertTrue(Icon.BY_SLOT_PRIORITY.compare(loose, named) < 0, "the order is read before the name is");
     }
 
     // -----------------------------------------------------------------------------------------------------------------
