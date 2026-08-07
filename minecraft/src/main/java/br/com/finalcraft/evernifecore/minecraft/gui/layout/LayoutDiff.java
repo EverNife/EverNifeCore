@@ -139,7 +139,8 @@ public final class LayoutDiff {
 
         List<Entry> entries = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
-        Map<Integer, String> ownerOfSlot = new LinkedHashMap<>();
+        Map<Integer, String> ownerOfContentSlot = new LinkedHashMap<>();
+        Map<Integer, String> ownerOfBackgroundSlot = new LinkedHashMap<>();
 
         for (Map.Entry<String, String> declared : sectionOfField.entrySet()) {
             String key = declared.getKey();
@@ -154,7 +155,9 @@ public final class LayoutDiff {
             entries.add(new Entry(key, verdict, declared.getValue(), slots,
                     source.isFromOverlay(path), detailOf(source, path)));
             if (slots != null) {
-                reportDisputes(key, slots, ownerOfSlot, warnings);
+                //a background and the content above it are two layers, not two claims to one slot
+                reportDisputes(key, slots, LayoutScanner.BACKGROUND.equals(declared.getValue())
+                        ? ownerOfBackgroundSlot : ownerOfContentSlot, warnings);
             }
         }
 

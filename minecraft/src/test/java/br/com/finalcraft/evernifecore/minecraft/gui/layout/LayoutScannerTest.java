@@ -67,6 +67,17 @@ class LayoutScannerTest {
         public Icon ALPHA = Icon.of(new ItemStack(Material.BARRIER));
     }
 
+    /** A backdrop with a button on top of it - the arrangement almost every real screen has. */
+    @GuiLayout(title = "Stacked", rows = 3)
+    public static class StackedLayout extends LayoutBase {
+
+        @IconData(slot = {0, 1, 2}, background = true)
+        public Icon PANE = Icon.of(new ItemStack(Material.BLACK_STAINED_GLASS_PANE));
+
+        @IconData(slot = {1})
+        public Icon BUTTON = Icon.of(new ItemStack(Material.BARRIER));
+    }
+
     @BeforeEach
     void setup() {
         world = GuiTestWorld.install(tempDir);
@@ -190,6 +201,23 @@ class LayoutScannerTest {
                 "a screen that swapped two icons after a restart would be unexplainable: " + distinct);
         assertEquals("ClashLayout: ALPHA and ZEBRA both claim slot 13. ALPHA wins. Move one of them.",
                 distinct.iterator().next(), "the loser is invisible, and only the log says who it is");
+    }
+
+    @Test
+    void aButtonOverABackdropStacksAndOnlyTheSameLayerIsReported() {
+        LayoutScanner.load(plugin, StackedLayout.class, null);
+        LayoutScanner.load(plugin, ClashLayout.class, null);
+
+        List<String> disputes = new ArrayList<>();
+        for (String line : world.getPlatform().getLoggedMessages()) {
+            if (line.contains("both claim slot")) {
+                disputes.add(line);
+            }
+        }
+
+        assertEquals(Arrays.asList(
+                        "ClashLayout: ALPHA and ZEBRA both claim slot 13. ALPHA wins. Move one of them."),
+                disputes, "the pane under BUTTON is a floor, not a rival - only ClashLayout contests");
     }
 
     // -----------------------------------------------------------------------------------------------------------------

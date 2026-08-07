@@ -405,15 +405,23 @@ public final class LayoutScanner {
         return slots;
     }
 
-    /** Names BOTH fields of a contested slot: the loser is invisible, and only the log says why. */
+    /**
+     * Names BOTH fields of a contested slot: the loser is invisible, and only the log says why.
+     *
+     * <p>Only icons on the same layer contest a slot. A background under content is the stacking the
+     * layers exist for, and every screen with a full backdrop would report it.</p>
+     */
     private static void reportSlotDisputes(ECPluginData plugin, Class<?> type, LayoutBase instance,
                                            List<Field> byDisputeOrder) {
-        Map<Integer, String> ownerOfSlot = new LinkedHashMap<>();
+        Map<Integer, String> ownerOfContentSlot = new LinkedHashMap<>();
+        Map<Integer, String> ownerOfBackgroundSlot = new LinkedHashMap<>();
         for (Field field : byDisputeOrder) {
             LayoutBase.PlacedIcon placed = instance.getIcons().get(field.getName());
             if (placed == null) {
                 continue;
             }
+            Map<Integer, String> ownerOfSlot = placed.getIcon().isBackground()
+                    ? ownerOfBackgroundSlot : ownerOfContentSlot;
             for (int slot : placed.getSlots().toArray()) {
                 String owner = ownerOfSlot.get(slot);
                 if (owner == null) {

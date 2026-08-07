@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -272,7 +273,7 @@ class LayoutSeedTest {
     }
 
     @Test
-    void theDiffTellsTheFourFatesOfAKeyApartAndNamesADisputedSlot() throws IOException {
+    void theDiffTellsTheFourFatesOfAKeyApartAndLeavesStackingAlone() throws IOException {
         LayoutScanner.load(plugin, ShopLayout.class, null);
         rewrite(seededPath(), "  UPGRADE:", "  OLD_UPGRADE:");
         rewrite(seededPath(), "Slot: \"[45]\"", "Slot: \"[]\"");
@@ -286,7 +287,18 @@ class LayoutSeedTest {
                 "the key the file no longer holds is waiting to be seeded, not missing");
         assertEquals(Arrays.asList("OLD_UPGRADE"), namesOf(diff, LayoutDiff.Verdict.ORPHAN));
         assertEquals(Arrays.asList("EDIT"), namesOf(diff, LayoutDiff.Verdict.SILENCED));
-        assertEquals(Arrays.asList("PRODUCT and BACKDROP both claim slot 0. PRODUCT wins."),
+        assertEquals(Collections.emptyList(), diff.getWarnings(),
+                "PRODUCT landed on a slot the BACKDROP pane covers, which is what a background is for");
+    }
+
+    @Test
+    void twoIconsOfTheSameLayerContestASlotAndTheDiffNamesBoth() throws IOException {
+        LayoutScanner.load(plugin, ShopLayout.class, null);
+        rewrite(seededPath(), "Slot: \"[22]\"", "Slot: \"[10]\"");
+
+        LayoutDiff diff = LayoutDiff.of(plugin, ShopLayout.class, null);
+
+        assertEquals(Arrays.asList("PRODUCT and UPGRADE both claim slot 10. PRODUCT wins."),
                 diff.getWarnings(), "a contested slot is invisible on screen and only the report says why");
     }
 
