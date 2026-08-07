@@ -55,7 +55,7 @@ public final class CycleBinder<T> {
     }
 
     @Nonnull
-    public IconBinder getIcon() {
+    public IconBinder getBinder() {
         return icon;
     }
 

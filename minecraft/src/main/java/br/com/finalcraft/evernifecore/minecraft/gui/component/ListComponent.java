@@ -61,6 +61,9 @@ public final class ListComponent<T, L extends LayoutBase> {
     private SlotSet nextSlots;
     private Icon previousIcon;
     private Icon nextIcon;
+    //built on first use and kept: an arrow the framework supplies costs a trip through the item factory
+    private Icon defaultPrevious;
+    private Icon defaultNext;
 
     private final List<State<?>> dependencies = new ArrayList<>();
     private Pager shared;
@@ -240,9 +243,21 @@ public final class ListComponent<T, L extends LayoutBase> {
     }
 
     private Icon button(Icon declared, boolean backwards, Consumer<ClickContext> onClick) {
-        Icon icon = declared != null ? declared.copy()
-                : backwards ? DefaultIcons.previousPage() : DefaultIcons.nextPage();
-        return icon.onClick(onClick);
+        Icon source = declared != null ? declared : defaultArrow(backwards);
+        return source.copy().onClick(onClick);
+    }
+
+    private Icon defaultArrow(boolean backwards) {
+        if (backwards) {
+            if (defaultPrevious == null) {
+                defaultPrevious = DefaultIcons.previousPage();
+            }
+            return defaultPrevious;
+        }
+        if (defaultNext == null) {
+            defaultNext = DefaultIcons.nextPage();
+        }
+        return defaultNext;
     }
 
 }
