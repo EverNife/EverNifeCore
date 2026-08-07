@@ -21,6 +21,7 @@ import org.bukkit.inventory.ItemStack;
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -553,6 +554,17 @@ public final class LayoutScanner {
             Constructor<T> constructor = type.getDeclaredConstructor();
             constructor.setAccessible(true);
             return constructor.newInstance();
+        } catch (InvocationTargetException thrownByTheLayoutItself) {
+            //The constructor exists and it RAN: what its field initializers threw is the whole news.
+            //Advice about writing a no-arg constructor would bury it under a defect the class does not have
+            Throwable cause = thrownByTheLayoutItself.getCause();
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            if (cause instanceof Error) {
+                throw (Error) cause;
+            }
+            throw new IllegalStateException(type.getName() + " failed while being built: " + cause, cause);
         } catch (Exception uninstantiable) {
             throw new IllegalArgumentException(type.getName() + " cannot be built: a layout needs a public "
                     + "no-arg constructor, because the framework is what creates it - Layouts.of("
