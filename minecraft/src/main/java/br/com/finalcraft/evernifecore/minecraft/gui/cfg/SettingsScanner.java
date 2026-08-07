@@ -94,7 +94,7 @@ public class SettingsScanner {
             ValueSource source = fromFile ? ValueSource.FILE : ValueSource.DEFAULT;
             Object value = defaultValue;
             if (fromFile) {
-                Object stored = storedValue(config, key, field, defaultValue);
+                Object stored = storedValue(ecPluginData, type, config, key, field, defaultValue);
                 if (stored == null) {
                     //A value the file supplied and the read then discarded is still file-sourced: the type
                     //is already the complaint, and calling it a default would make @Explicit fire on top of it
@@ -210,15 +210,25 @@ public class SettingsScanner {
      * The stored value read as the default's own type, or null when the file holds something that cannot be
      * read as it. A list is read element-typed - from the field's type argument, since the default may be
      * empty - and an empty list IS an answer, because emptying a list is how an admin removes every entry.
+     *
+     * <p>A list degrades one entry at a time: an entry the file got wrong costs that entry and the rest of
+     * the list still loads. The reading itself is silent about it, so the count is reported here - a menu
+     * that quietly lost a button is a menu nobody knows is broken.</p>
      */
-    private static Object storedValue(Config config, String key, Field field, Object defaultValue) {
+    private static Object storedValue(ECPluginData ecPluginData, Class<?> type, Config config, String key,
+                                      Field field, Object defaultValue) {
         if (defaultValue instanceof List) {
-            List<?> stored = config.getList(key, elementType(field, (List<?>) defaultValue));
-            if (!stored.isEmpty()) {
-                return stored;
-            }
+            Class<?> elementType = elementType(field, (List<?>) defaultValue);
+            List<?> stored = config.getList(key, elementType);
             JsonNode node = config.getNode(key);
-            return node != null && node.isArray() ? stored : null;
+            boolean isList = node != null && node.isArray();
+            if (isList && node.size() > stored.size()) {
+                warnOnce(ecPluginData, type, key, "entries", (node.size() - stored.size()) + " of the "
+                        + node.size() + " entries at '" + key + "' cannot be read as "
+                        + elementType.getSimpleName() + " and were left out. The others are in use; fix or "
+                        + "delete the broken ones.");
+            }
+            return stored.isEmpty() && !isList ? null : stored;
         }
         return config.getValue(key, defaultValue.getClass());
     }

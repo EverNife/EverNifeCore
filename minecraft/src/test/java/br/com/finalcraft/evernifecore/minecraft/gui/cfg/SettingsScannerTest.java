@@ -100,6 +100,12 @@ class SettingsScannerTest {
         public List<Integer> levels = Arrays.asList(1, 2, 3);
     }
 
+    static class ButtonListSettings {
+
+        @ConfigSetting(key = "Settings.buttons")
+        public List<Integer> buttons = Arrays.asList(1, 2, 3);
+    }
+
     static class TypedSettings {
 
         @ConfigSetting(key = "Gui.rows")
@@ -386,6 +392,19 @@ class SettingsScannerTest {
         ListSettings emptied = new ListSettings();
         SettingsScanner.load(ecPluginData, config, emptied);
         assertEquals(Collections.emptyList(), emptied.levels, "erasing every entry means none, not the default");
+    }
+
+    @Test
+    void anEntryTheFileGotWrongCostsThatEntryAndIsReported() {
+        config.setValue("Settings.buttons", Arrays.asList(10, "not-a-number", 30));
+        ButtonListSettings settings = new ButtonListSettings();
+
+        SettingsScanner.load(ecPluginData, config, settings);
+
+        assertEquals(Arrays.asList(10, 30), settings.buttons, "the entries that do read still open the menu");
+        assertTrue(anyContains("1 of the 3 entries at 'Settings.buttons'"),
+                "a list that silently lost an entry is a menu nobody knows is missing a button: "
+                        + world.platform().getLoggedMessages());
     }
 
     @Test
