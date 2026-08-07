@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.gui;
 
 import br.com.finalcraft.evernifecore.minecraft.gui.component.GuiComponent;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.IconBinder;
+import br.com.finalcraft.evernifecore.minecraft.gui.component.ListComponent;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutBase;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Layouts;
@@ -165,6 +166,38 @@ public class Gui<L extends LayoutBase> {
         IconBinder binder = new IconBinder(this, placed.getSlots(), placed.getIcon());
         component(binder::bind);
         return binder;
+    }
+
+    /**
+     * A list poured into a region, one entry per slot, paginated by the size of the region itself.
+     *
+     * <p>The source is read whenever the list renders. What makes it render again is a state it
+     * {@link ListComponent#dependsOn(br.com.finalcraft.evernifecore.minecraft.gui.state.State...)},
+     * a page turn or a refresh - never a poll of the source.</p>
+     */
+    @Nonnull
+    public <T> ListComponent<T, L> list(@Nonnull Supplier<List<T>> source) {
+        return declare(new ListComponent<T, L>(this, source, null));
+    }
+
+    /** {@link #list(Supplier)} over a list that is already in hand. */
+    @Nonnull
+    public <T> ListComponent<T, L> list(@Nonnull List<T> source) {
+        return list(() -> source);
+    }
+
+    /**
+     * A source that answers one page at a time, for a catalogue too big to materialise. It needs
+     * {@link ListComponent#total(Supplier)}: one page cannot say how many pages there are.
+     */
+    @Nonnull
+    public <T> ListComponent<T, L> list(@Nonnull ListComponent.PageSource<T> source) {
+        return declare(new ListComponent<T, L>(this, null, source));
+    }
+
+    private <T> ListComponent<T, L> declare(ListComponent<T, L> list) {
+        component(list::bind);
+        return list;
     }
 
     /**
