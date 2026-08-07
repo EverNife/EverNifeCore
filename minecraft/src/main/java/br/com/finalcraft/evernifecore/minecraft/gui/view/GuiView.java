@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.gui.view;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.minecraft.gui.Gui;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.GuiComponent;
+import br.com.finalcraft.evernifecore.minecraft.gui.component.StorageBinding;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.Cancellable;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.ClickPolicy;
@@ -10,14 +11,17 @@ import br.com.finalcraft.evernifecore.minecraft.gui.model.GuiGeometry;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.Region;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.SlotSet;
 import br.com.finalcraft.evernifecore.minecraft.gui.state.WatchState;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -54,6 +58,7 @@ public final class GuiView {
     private final GuiScheduler scheduler;
 
     private final List<GuiComponent> components = new ArrayList<>();
+    private final List<StorageView> storages = new ArrayList<>();
     private final Set<GuiComponent> dirtyComponents = Collections.newSetFromMap(new ConcurrentHashMap<>());
     //copy-on-write so a watch that registers another watch while being polled neither breaks the pass
     //in flight nor is lost: the newcomer joins the next one
@@ -67,6 +72,8 @@ public final class GuiView {
     private GuiSurface surface;
     private Player viewer;
     private Region[] slotRegions;
+    private StorageView[] slotStorages;
+    private Icon closedBy;
     private String currentTitle;
 
     private Cancellable watchTask;
@@ -93,6 +100,7 @@ public final class GuiView {
 
     /** Builds the components and arms whatever they asked to be armed. Runs once, right after opening. */
     void start() {
+        startStorages();
         for (Gui.IconBinding binding : gui.getIconBindings()) {
             Icon icon = binding.getIcon();
             if (!icon.isAnimated()) {
@@ -114,6 +122,61 @@ public final class GuiView {
             declaration.accept(component);
             component.start();
         }
+    }
+
+    /**
+     * Takes the editable areas over: their slots leave the buffer's hands and each store is written into
+     * the container. Before any component is built, so nothing can draw over a slot the player now owns.
+     */
+    private void startStorages() {
+        List<StorageBinding> declared = gui.getStorages();
+        if (declared.isEmpty()) {
+            return;
+        }
+        slotStorages = new StorageView[geometry.getSize()];
+        for (StorageBinding binding : declared) {
+            if (binding.getBacking() == null) {
+                throw new IllegalStateException("The storage region [" + binding.getName() + "] of ["
+                        + gui.getTitle() + "] has no store to keep its contents in: call backedBy(...) on it "
+                        + "with the GenericInventory the plugin persists. A region without one would open "
+                        + "empty and throw away whatever the player put in it.");
+            }
+            int[] claimed = claimSlotsOf(binding);
+            StorageView storage = new StorageView(this, binding, claimed);
+            for (int slot : claimed) {
+                slotStorages[slot] = storage;
+                buffer.disown(slot);
+            }
+            storages.add(storage);
+            storage.seed(surface);
+        }
+    }
+
+    /** The slots of {@code binding} that this window actually has, and that no other region claimed. */
+    private int[] claimSlotsOf(StorageBinding binding) {
+        int[] resolved = binding.getSlots().resolve(geometry).toArray();
+        int[] claimed = new int[resolved.length];
+        int size = 0;
+        for (int slot : resolved) {
+            if (!geometry.isInside(slot)) {
+                EverNifeCore.getLog().warning("The storage region [" + binding.getName() + "] was given slot "
+                        + slot + ", outside a " + geometry + ". The slot was skipped.");
+                continue;
+            }
+            if (slotStorages[slot] != null) {
+                throw new IllegalStateException("Slot " + slot + " is claimed by the storage region ["
+                        + slotStorages[slot].getBinding().getName() + "] and by [" + binding.getName()
+                        + "] at once. Two editable areas sharing a slot would each read the other's items "
+                        + "into their own store, so give each region slots of its own.");
+            }
+            claimed[size++] = slot;
+        }
+        if (size == 0) {
+            EverNifeCore.getLog().warning("The storage region [" + binding.getName() + "] of ["
+                    + gui.getTitle() + "] has no slots, so nothing of its store is reachable. The yml switched "
+                    + "the icon off - give it back its Slot list to make the area exist again.");
+        }
+        return Arrays.copyOf(claimed, size);
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -204,13 +267,56 @@ public final class GuiView {
         return null;
     }
 
-    /** The policy ruling {@code slot}: the region's when one claims it, the gui's otherwise. */
+    /**
+     * The policy ruling {@code slot}: the editable area's when one holds it, then a region's, then the
+     * gui's.
+     */
     @Nonnull
     public ClickPolicy getPolicyAt(int slot) {
+        StorageView storage = getStorageAt(slot);
+        if (storage != null) {
+            return storage.getPolicy();
+        }
         if (slotRegions != null && slot >= 0 && slot < slotRegions.length && slotRegions[slot] != null) {
             return slotRegions[slot].getPolicy();
         }
         return gui.getPolicy();
+    }
+
+    /** The editable area {@code slot} belongs to, or {@code null} when the framework still owns it. */
+    @Nullable
+    public StorageView getStorageAt(int slot) {
+        if (slotStorages == null || slot < 0 || slot >= slotStorages.length) {
+            return null;
+        }
+        return slotStorages[slot];
+    }
+
+    /** This screen's editable areas, in the order they were declared. */
+    @Nonnull
+    public List<StorageView> getStorages() {
+        return Collections.unmodifiableList(storages);
+    }
+
+    /** Whether anything on this screen may be taken from or put into at all. */
+    public boolean hasStorage() {
+        return !storages.isEmpty();
+    }
+
+    /**
+     * The icon whose handler asked for the close, or {@code null} when nothing did - which is what the
+     * escape key looks like. See {@link CloseContext#wasClosedBy(java.util.function.Function)}.
+     */
+    @Nullable
+    public Icon getClosedBy() {
+        return closedBy;
+    }
+
+    /** Remembers the icon a close was asked from, so the close handler can tell which gesture it was. */
+    void markClosedBy(@Nullable Icon icon) {
+        if (!closed) {
+            this.closedBy = icon;
+        }
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -224,6 +330,9 @@ public final class GuiView {
      * put on that layer at that slot stays, which is what makes the next icon in line appear when the
      * one that owns the slot is not alive. Blanking is a whole layer's job - {@link #clearLayer(int)},
      * which every render pass runs before drawing.</p>
+     *
+     * <p>A slot inside an editable area is skipped whole: it holds what the player put there, and an
+     * icon painted over it would be an item destroyed.</p>
      */
     public void paint(int layer, @Nonnull SlotSet slots, @Nonnull Icon icon) {
         if (!icon.isVisibleTo(viewer)) {
@@ -236,6 +345,9 @@ public final class GuiView {
             if (!geometry.isInside(slot)) {
                 EverNifeCore.getLog().warning("A gui icon was bound to slot " + slot + ", outside a "
                         + geometry + ". The icon was skipped.");
+                continue;
+            }
+            if (!buffer.owns(slot)) {
                 continue;
             }
             buffer.write(layer, slot, rendered);
@@ -469,8 +581,15 @@ public final class GuiView {
         this.swappingSurface = false;
     }
 
-    /** Adopts the replacement container. It starts empty, so everything is written again. */
+    /**
+     * Adopts the replacement container. It starts empty, so everything is written again - including what
+     * an editable area holds, which the framework does not redraw and the old container is the only copy
+     * of.
+     */
     void adoptSurface(GuiSurface newSurface) {
+        for (StorageView storage : storages) {
+            storage.carryOver(surface, newSurface);
+        }
         this.surface = newSurface;
         buffer.forgetCommitted();
     }
@@ -537,8 +656,9 @@ public final class GuiView {
     }
 
     /**
-     * Tears the view down: tasks cancelled, subscriptions dropped, {@code onClose} run, {@code Player}
-     * released. Idempotent.
+     * Tears the view down: tasks cancelled, subscriptions dropped, editable areas read back into their
+     * stores, whatever is on the cursor given back, {@code onClose} run, {@code Player} released.
+     * Idempotent.
      */
     void release(CloseReason reason) {
         if (closed) {
@@ -562,20 +682,68 @@ public final class GuiView {
         subscriptions.clear();
         dirtyComponents.clear();
 
+        //while the container is still readable, and before the close handler, so it reads a store that
+        //already agrees with what is on screen
         try {
-            if (gui.getOnClose() != null) {
-                gui.getOnClose().accept(new CloseContext(this, surface, viewer, reason));
+            for (StorageView storage : storages) {
+                storage.syncNow(true);
             }
+            returnCarriedItem();
+        } catch (Throwable e) {
+            EverNifeCore.getLog().severe("An editable region of a gui could not be closed cleanly for ["
+                    + viewerName + "]: " + e);
+            e.printStackTrace();
+        }
+
+        try {
+            fireOnClose(reason);
         } catch (Throwable e) {
             EverNifeCore.getLog().severe("The onClose handler of a gui failed for [" + viewerName + "]: " + e);
             e.printStackTrace();
         }
 
+        for (StorageView storage : storages) {
+            storage.teardown();
+        }
+        storages.clear();
+
         this.viewer = null;
         this.slotRegions = null;
+        this.slotStorages = null;
         this.iconLayers.clear();
         this.animatedIcons.clear();
         this.components.clear();
+    }
+
+    //the handler was registered on a Gui<L>, and this view only ever knows Gui<?> - the layout the
+    //context hands back is the one that Gui was built from either way
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void fireOnClose(CloseReason reason) {
+        Consumer handler = gui.getOnClose();
+        if (handler != null) {
+            handler.accept(new CloseContext<>(this, surface, viewer, reason));
+        }
+    }
+
+    /**
+     * Gives the viewer back whatever they are still holding on the cursor.
+     *
+     * <p>Only a screen with an editable area can have put anything there. The platform's own answer to a
+     * window torn down mid-gesture is to drop the stack on the ground - and to a player already gone,
+     * nothing at all - so it is taken off the cursor first and handed over afterwards, which is also what
+     * stops the platform from giving out a second copy of it.</p>
+     */
+    private void returnCarriedItem() {
+        Player player = this.viewer;
+        if (storages.isEmpty() || player == null) {
+            return;
+        }
+        ItemStack carried = player.getItemOnCursor();
+        if (GuiBuffer.isEmpty(carried)) {
+            return;
+        }
+        player.setItemOnCursor(new ItemStack(Material.AIR));
+        FCBukkitUtil.giveItemsTo(player, carried);
     }
 
     /** What the container holds at those slots right now. */

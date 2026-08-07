@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.gui;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.GuiComponent;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.IconBinder;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.ListComponent;
+import br.com.finalcraft.evernifecore.minecraft.gui.component.StorageBinding;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutBase;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Layouts;
@@ -68,9 +69,10 @@ public class Gui<L extends LayoutBase> {
     private final Set<String> claimedIcons = new LinkedHashSet<>();
     private final List<IconBinding> iconBindings = new ArrayList<>();
     private final List<Consumer<GuiComponent>> componentDeclarations = new ArrayList<>();
+    private final List<StorageBinding> storages = new ArrayList<>();
     private final Map<String, Region> regions = new LinkedHashMap<>();
     private final CompoundReplacer replacers = new CompoundReplacer();
-    private Consumer<CloseContext> onClose;
+    private Consumer<CloseContext<L>> onClose;
 
     protected Gui(GuiType type, int rows, @Nullable L layout) {
         this.type = type;
@@ -206,6 +208,35 @@ public class Gui<L extends LayoutBase> {
     }
 
     /**
+     * Hands the slots of one layout icon over to the viewer: an area they may really take items out of
+     * and put items into, kept in a {@code GenericInventory}.
+     *
+     * <p>The icon is the region's declaration, not its appearance - {@code Icon.empty()} is what an area
+     * whose contents come from elsewhere is drawn with. Nothing paints over these slots from here on,
+     * and nothing moves in them until {@link StorageBinding#policy} says which gesture may.</p>
+     */
+    @Nonnull
+    public StorageBinding storage(@Nonnull Function<L, Icon> selector) {
+        LayoutBase.PlacedIcon placed = takeOver(selector);
+        return declare(new StorageBinding(placed.getName(), placed.getSlots()));
+    }
+
+    /** {@link #storage(Function)} over raw slots - see {@link Slots} - on a screen sized by hand. */
+    @Nonnull
+    public StorageBinding storage(@Nonnull SlotSet slots) {
+        if (slots == null) {
+            throw new IllegalArgumentException("A storage region needs the slots it occupies. Slots.box(2, 2, 5, 8) "
+                    + "is the rectangular form, and storage(l -> l.AREA) is the one a layout names.");
+        }
+        return declare(new StorageBinding("storage#" + (storages.size() + 1), slots));
+    }
+
+    private StorageBinding declare(StorageBinding storage) {
+        storages.add(storage);
+        return storage;
+    }
+
+    /**
      * Declares a group of slots that render together and re-render alone.
      *
      * <p>The lambda runs once per viewer, when their view is built, so a state created inside it
@@ -290,7 +321,7 @@ public class Gui<L extends LayoutBase> {
      * an item back in the player's hands.
      */
     @Nonnull
-    public Gui<L> onClose(@Nullable Consumer<CloseContext> onClose) {
+    public Gui<L> onClose(@Nullable Consumer<CloseContext<L>> onClose) {
         this.onClose = onClose;
         return this;
     }
@@ -451,8 +482,14 @@ public class Gui<L extends LayoutBase> {
         return Collections.unmodifiableMap(regions);
     }
 
+    /** The editable areas of this screen, in the order they were declared. */
+    @Nonnull
+    public List<StorageBinding> getStorages() {
+        return Collections.unmodifiableList(storages);
+    }
+
     @Nullable
-    public Consumer<CloseContext> getOnClose() {
+    public Consumer<CloseContext<L>> getOnClose() {
         return onClose;
     }
 

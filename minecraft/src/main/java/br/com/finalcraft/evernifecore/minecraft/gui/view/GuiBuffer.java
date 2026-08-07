@@ -22,6 +22,9 @@ import java.util.TreeMap;
  *       output, never the identity of whatever produced it, so an object mutated in place still
  *       repaints and an unchanged list still costs zero writes.</li>
  * </ul>
+ *
+ * <p>A slot the buffer {@link #disown(int) disowns} is outside both: it belongs to the player, and the
+ * buffer neither writes it nor claims to know what is in it.</p>
  */
 public final class GuiBuffer {
 
@@ -29,20 +32,45 @@ public final class GuiBuffer {
     private final TreeMap<Integer, ItemStack[]> layers = new TreeMap<>();
     private final ItemStack[] committed;
     private final BitSet dirty;
+    private final BitSet disowned;
 
     public GuiBuffer(int size) {
         this.size = size;
         this.committed = new ItemStack[size];
         this.dirty = new BitSet(size);
+        this.disowned = new BitSet(size);
     }
 
     public int getSize() {
         return size;
     }
 
+    /**
+     * Hands {@code slot} over to the player: from here on nothing paints over it and nothing erases it,
+     * whatever a render, a resync or a replaced container would otherwise do.
+     *
+     * <p>This is what an editable region rests on. A slot the buffer still owned would be blanked the
+     * moment the picture it drew and the item the player left there disagreed - which is every moment
+     * after the first take.</p>
+     */
+    public void disown(int slot) {
+        requireInside(slot);
+        disowned.set(slot);
+        dirty.clear(slot);
+    }
+
+    /** Whether this buffer is the one that decides what {@code slot} shows. */
+    public boolean owns(int slot) {
+        requireInside(slot);
+        return !disowned.get(slot);
+    }
+
     /** Paints {@code item} at {@code slot} on {@code layer}. A {@code null} item erases that layer only. */
     public void write(int layer, int slot, ItemStack item) {
         requireInside(slot);
+        if (disowned.get(slot)) {
+            return;
+        }
         ItemStack[] target = layers.get(layer);
         if (target == null) {
             if (item == null) {
@@ -142,6 +170,9 @@ public final class GuiBuffer {
 
         int writes = 0;
         for (int slot = dirty.nextSetBit(0); slot >= 0; slot = dirty.nextSetBit(slot + 1)) {
+            if (disowned.get(slot)) {
+                continue;
+            }
             ItemStack rendered = resolve(slot);
             if (isSameOutput(committed[slot], rendered)) {
                 continue;

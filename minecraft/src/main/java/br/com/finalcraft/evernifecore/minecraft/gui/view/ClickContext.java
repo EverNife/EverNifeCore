@@ -113,9 +113,15 @@ public final class ClickContext {
         return moveAllowed;
     }
 
-    /** Closes the screen, on the next tick - closing a container from inside its own click is not safe. */
+    /**
+     * Closes the screen, on the next tick - closing a container from inside its own click is not safe.
+     *
+     * <p>Which icon asked for it is remembered, so the close handler can tell a button from the escape
+     * key: see {@link CloseContext#wasClosedBy(java.util.function.Function)}.</p>
+     */
     public void close() {
         if (isAlive()) {
+            view.markClosedBy(icon);
             view.closeNextTick();
         }
     }
@@ -172,6 +178,7 @@ public final class ClickContext {
      * At the bottom of a chain there is nothing underneath, so the screen simply closes.
      */
     public void back(@Nullable Object value) {
+        view.markClosedBy(icon);
         GuiNavigation.back(view, value);
     }
 
