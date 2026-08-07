@@ -6,7 +6,6 @@ import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.minecraft.gui.cfg.ConfigSetting;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
-import br.com.finalcraft.evernifecore.minecraft.loader.imp.McConfigTypes;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.bukkit.Material;
@@ -25,6 +24,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -39,8 +40,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * anything downstream of that is proved on a real server and not here.</p>
  */
 class LayoutSeedTest {
-
-    private static boolean typesRegistered = false;
 
     //NEVER: the locale bootstrap's async saveAsync() can race JUnit's default @TempDir cleanup on Windows
     @TempDir(cleanup = CleanupMode.NEVER)
@@ -81,15 +80,41 @@ class LayoutSeedTest {
         public Icon BACKDROP = Icon.of(new ItemStack(Material.BLACK_STAINED_GLASS_PANE));
     }
 
+    /** Two icons per section, so a file that already holds one of each can be asked for the other. */
+    @GuiLayout(title = "Bank", rows = 6)
+    public static class BankLayout extends LayoutBase {
+
+        @IconData(slot = {10})
+        public Icon DEPOSIT = Icon.of(new ItemStack(Material.CHEST));
+
+        @IconData(slot = {12})
+        public Icon WITHDRAW = Icon.of(new ItemStack(Material.HOPPER));
+
+        @IconData(slot = {0, 1}, background = true)
+        public Icon TOP = Icon.of(new ItemStack(Material.BLACK_STAINED_GLASS_PANE));
+
+        @IconData(slot = {45, 46}, background = true)
+        public Icon BOTTOM = Icon.of(new ItemStack(Material.GRAY_STAINED_GLASS_PANE));
+    }
+
+    @GuiLayout(title = "Base", rows = 3)
+    public static class BaseScreen extends LayoutBase {
+
+        @IconData(slot = {0})
+        public Icon CLOSE = Icon.of(new ItemStack(Material.BARRIER));
+    }
+
+    @GuiLayout(title = "Child", rows = 3)
+    public static class ChildScreen extends BaseScreen {
+
+        @IconData(slot = {8})
+        public Icon HELP = Icon.of(new ItemStack(Material.PAPER));
+    }
+
     @BeforeEach
     void setup() {
         world = GuiTestWorld.install(tempDir);
         plugin = ECPluginManager.getOrCreateECorePluginData(new Object());
-        if (!typesRegistered) {
-            //the registry is process-wide; a second registration would be the bootstrap running twice
-            McConfigTypes.register();
-            typesRegistered = true;
-        }
         Layouts.clear();
     }
 
@@ -187,6 +212,90 @@ class LayoutSeedTest {
 
         assertEquals(Arrays.asList("UPGRADE"), namesOf(diff, LayoutDiff.Verdict.SILENCED),
                 "an empty slot list is deliberate, and the operator has to be able to see it");
+    }
+
+    @Test
+    void aVersionThatAddsOneIconAddsOneKeyToAFileThatAlreadyExists() throws IOException {
+        Path file = tempDir.resolve("guis/BankLayout.yml");
+        Files.createDirectories(file.getParent());
+        Files.write(file, Arrays.asList(
+                "Layout:",
+                "  DEPOSIT:",
+                "    Slot: \"[10]\"",
+                "    DisplayItem:",
+                "    - type:CHEST",
+                "Background:",
+                "  TOP:",
+                "    Slot: \"[0,1]\"",
+                "    DisplayItem:",
+                "    - type:BLACK_STAINED_GLASS_PANE"
+        ), StandardCharsets.UTF_8);
+
+        LayoutScanner.load(plugin, BankLayout.class, null);
+
+        String yaml = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
+        assertTrue(yaml.contains("WITHDRAW:"), "the icon the file never heard of is written:\n" + yaml);
+        assertTrue(yaml.contains("BOTTOM:"), "a Background that already holds a sibling is not taken for "
+                + "complete: seeding is per icon, never per section:\n" + yaml);
+        assertTrue(yaml.contains("Slot: \"[45,46]\""), yaml);
+    }
+
+    @Test
+    void anIconInheritedFromABaseLayoutIsSeededIntoTheChildsOwnFile() throws IOException {
+        ChildScreen child = LayoutScanner.load(plugin, ChildScreen.class, null);
+
+        String yaml = new String(Files.readAllBytes(tempDir.resolve("guis/ChildScreen.yml")),
+                StandardCharsets.UTF_8);
+        assertTrue(yaml.contains("CLOSE:") && yaml.contains("HELP:"),
+                "the child's file carries what it inherited too:\n" + yaml);
+        assertTrue(yaml.indexOf("CLOSE:") < yaml.indexOf("HELP:"),
+                "and reads base class first, like the settings of the same file:\n" + yaml);
+        assertNotNull(child.getIcon("CLOSE"));
+        assertNotNull(child.getIcon("HELP"));
+        assertFalse(Files.exists(tempDir.resolve("guis/BaseScreen.yml")),
+                "a base nobody opened is not a screen, so it gets no file of its own");
+    }
+
+    @Test
+    void aQuarantinedKeyIsNeitherMovedAgainNorDuplicatedByALaterLoad() throws IOException {
+        LayoutScanner.load(plugin, ShopLayout.class, null);
+        rewrite(seededPath(), "  UPGRADE:", "  OLD_UPGRADE:");
+        LayoutScanner.load(plugin, ShopLayout.class, null);
+        String afterTheMove = seededFile();
+
+        LayoutScanner.load(plugin, ShopLayout.class, null);
+        LayoutScanner.load(plugin, ShopLayout.class, null);
+
+        String yaml = seededFile();
+        assertEquals(1, occurrencesOf(yaml, "OLD_UPGRADE:"), "one copy of the admin's work, not three:\n" + yaml);
+        assertEquals(afterTheMove, yaml, "a load with nothing left to move leaves the file untouched");
+    }
+
+    @Test
+    void theDiffTellsTheFourFatesOfAKeyApartAndNamesADisputedSlot() throws IOException {
+        LayoutScanner.load(plugin, ShopLayout.class, null);
+        rewrite(seededPath(), "  UPGRADE:", "  OLD_UPGRADE:");
+        rewrite(seededPath(), "Slot: \"[45]\"", "Slot: \"[]\"");
+        rewrite(seededPath(), "Slot: \"[10,11,12]\"", "Slot: \"[0]\"");
+
+        //the very entry point the /ecoregui command reads, so what an operator is shown is what is asserted
+        LayoutDiff diff = LayoutDiff.of(plugin, ShopLayout.class, null);
+
+        assertEquals(Arrays.asList("PRODUCT", "BACKDROP"), namesOf(diff, LayoutDiff.Verdict.MATCHED));
+        assertEquals(Arrays.asList("UPGRADE"), namesOf(diff, LayoutDiff.Verdict.NEW),
+                "the key the file no longer holds is waiting to be seeded, not missing");
+        assertEquals(Arrays.asList("OLD_UPGRADE"), namesOf(diff, LayoutDiff.Verdict.ORPHAN));
+        assertEquals(Arrays.asList("EDIT"), namesOf(diff, LayoutDiff.Verdict.SILENCED));
+        assertEquals(Arrays.asList("PRODUCT and BACKDROP both claim slot 0. PRODUCT wins."),
+                diff.getWarnings(), "a contested slot is invisible on screen and only the report says why");
+    }
+
+    private static int occurrencesOf(String text, String fragment) {
+        int found = 0;
+        for (int at = text.indexOf(fragment); at >= 0; at = text.indexOf(fragment, at + 1)) {
+            found++;
+        }
+        return found;
     }
 
     private static String slotsOf(LayoutDiff diff, String key) {

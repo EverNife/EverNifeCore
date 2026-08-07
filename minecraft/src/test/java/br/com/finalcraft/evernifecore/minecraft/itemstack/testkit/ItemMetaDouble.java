@@ -28,9 +28,9 @@ import java.util.Set;
  * order edits are applied in observable. And asking for a custom model data that was never set
  * throws, the way Bukkit does: reading it as a sentinel is the defect this exists to catch.</p>
  */
-final class ItemMetaDouble implements InvocationHandler {
+public final class ItemMetaDouble implements InvocationHandler {
 
-    static ItemMeta create() {
+    public static ItemMeta create() {
         return new ItemMetaDouble().asMeta();
     }
 

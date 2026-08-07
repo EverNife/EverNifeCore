@@ -9,7 +9,10 @@ import br.com.finalcraft.evernifecore.minecraft.gui.view.DetachedViews;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiView;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiViews;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemProbe;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.testkit.ItemMetaDouble;
+import br.com.finalcraft.evernifecore.minecraft.loader.imp.McConfigTypes;
 import br.com.finalcraft.evernifecore.minecraft.testkit.BukkitRegistries;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
@@ -18,6 +21,7 @@ import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
+import org.bukkit.UnsafeValues;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemFactory;
 import org.bukkit.inventory.Inventory;
@@ -64,10 +68,17 @@ public final class GuiTestWorld implements AutoCloseable {
     //what the stubbed server below actually is: a modern version that answers none of the questions
     //an item asks. Naming it here is what makes every reduced answer a named refusal instead of a
     //surprise, and it is why the item path needs no reflection to be testable
-    private static final ItemRuntime RUNTIME = ItemRuntime.of(MCDetailedVersion.v1_21_R1);
+    private static final ItemRuntime SILENT_ITEMS = ItemRuntime.of(MCDetailedVersion.v1_21_R1);
+
+    /** The same server, answering metadata: the runtime a screen made of text has to stand on. */
+    private static final ItemRuntime SPEAKING_ITEMS = ItemRuntime.of(MCDetailedVersion.v1_21_R1,
+            ItemProbe.ITEM_META, ItemProbe.ENCHANT_REGISTRY);
+
+    private static boolean configTypesRegistered = false;
 
     private final ECoreTestWorld platformWorld;
     private final String pluginName;
+    private final ItemRuntime runtime;
     private final SchedulerDouble scheduler = new SchedulerDouble();
     private final GuiEventBus events = new GuiEventBus();
     private final ClickSimulator clicks = new ClickSimulator(events);
@@ -78,8 +89,9 @@ public final class GuiTestWorld implements AutoCloseable {
 
     private boolean closed = false;
 
-    private GuiTestWorld(Path dataFolder) {
+    private GuiTestWorld(Path dataFolder, ItemRuntime runtime) {
         this.pluginName = "GuiTest_" + UNIQUE_SUFFIX.incrementAndGet();
+        this.runtime = runtime;
         this.platformWorld = Platforms.lenient().install()
                 .withPluginExtractor(Plugins.fake(pluginName, dataFolder.toFile()));
 
@@ -90,16 +102,39 @@ public final class GuiTestWorld implements AutoCloseable {
 
         this.previousServer = Bukkit.getServer();
         setBukkitServer(buildServer());
-        ItemEngine.install(RUNTIME);
+        ItemEngine.install(runtime);
+        registerConfigTypes();
     }
 
+    /** A screen over items that carry no metadata - two stacks then compare by type and amount alone. */
     public static GuiTestWorld install(Path dataFolder) {
-        return new GuiTestWorld(dataFolder);
+        return new GuiTestWorld(dataFolder, SILENT_ITEMS);
+    }
+
+    /**
+     * A screen over items that remember a name, a lore and a flag.
+     *
+     * <p>This is what a test about TEXT needs: an icon's language block, an admin's {@code name:} line
+     * and a placeholder all land in metadata, and a runtime that answers none refuses those parts
+     * outright - which would leave every such assertion reading an item that never got its text.</p>
+     */
+    public static GuiTestWorld installWithItemMetadata(Path dataFolder) {
+        return new GuiTestWorld(dataFolder, SPEAKING_ITEMS);
     }
 
     /** The runtime this world's item engine stands on, for a test that wants to name what it lost. */
     public ItemRuntime getItemRuntime() {
-        return RUNTIME;
+        return runtime;
+    }
+
+    /** The platform's own config codecs - slot lists, item stacks, locations - which a layout file is
+     *  unreadable without. The registry is process-wide, so a second pass would be the bootstrap
+     *  running twice. */
+    private static synchronized void registerConfigTypes() {
+        if (!configTypesRegistered) {
+            configTypesRegistered = true;
+            McConfigTypes.register();
+        }
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -204,15 +239,27 @@ public final class GuiTestWorld implements AutoCloseable {
     // -----------------------------------------------------------------------------------------------------------------
 
     private Server buildServer() {
+        boolean metadata = runtime.has(ItemProbe.ITEM_META);
         ItemFactory itemFactory = Doubles.of(ItemFactory.class)
-                .on("getItemMeta", args -> null)
+                .on("getItemMeta", args -> metadata ? ItemMetaDouble.create() : null)
+                .on("isApplicable", args -> true)
+                .on("asMetaFor", args -> args[0])
+                .on("updateMaterial", args -> args[1])
                 //ItemStack asks this with two metas; with none ever produced, both are null and equal
-                .on("equals", args -> args.length == 2 && args[0] == args[1])
+                .on("equals", args -> args.length == 2
+                        && (args[0] == args[1] || (args[0] != null && args[0].equals(args[1]))))
+                .build();
+
+        //Material.matchMaterial(name, legacy) asks the server to map a legacy name even when there is
+        //nothing to map, so a server that answers no UnsafeValues turns a mistyped material into an NPE
+        UnsafeValues unsafe = Doubles.of(UnsafeValues.class)
+                .on("fromLegacy", args -> null)
                 .build();
 
         return Doubles.of(Server.class)
                 .on("isPrimaryThread", args -> Thread.currentThread() == mainThread)
                 .on("getItemFactory", args -> itemFactory)
+                .on("getUnsafe", args -> unsafe)
                 .on("getRegistry", args -> BukkitRegistries.forType((Class<?>) args[0]))
                 .on("getScheduler", args -> scheduler.asBukkitScheduler())
                 .on("getLogger", args -> Logger.getLogger(pluginName))
