@@ -211,9 +211,9 @@ public final class GuiView {
         if (!icon.isVisibleTo(viewer)) {
             return;
         }
-        //Text is resolved here, not when the icon was declared: this is the first moment the viewer
-        //is known, and it is what lets one icon read differently to two players
-        ItemStack rendered = icon.renderFor(viewer);
+        //Text and state are resolved here, not when the icon was declared: this is the first moment the
+        //viewer is known, and it is what lets one icon read differently to two players
+        ItemStack rendered = icon.renderFor(viewer, icon.getCurrentState());
         for (int slot : slots.resolve(geometry).toArray()) {
             if (!geometry.isInside(slot)) {
                 EverNifeCore.getLog().warning("A gui icon was bound to slot " + slot + ", outside a "

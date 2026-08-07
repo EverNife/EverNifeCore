@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * One item on a screen, with what happens when it is clicked and who is allowed to see it.
@@ -51,6 +52,7 @@ public class Icon {
     private Consumer<Icon> renderer;
 
     private final Map<String, ItemStack> states = new LinkedHashMap<>();
+    private Supplier<String> currentState;
     private final CompoundReplacer scopes = new CompoundReplacer();
     //a screen renders the same language block once per viewer per redraw; reading it is worth doing once
     private final Map<String, List<ItemEdit>> localeEdits = new LinkedHashMap<>();
@@ -210,6 +212,26 @@ public class Icon {
         return this;
     }
 
+    /**
+     * The typed form of {@link #addState(String, ItemStack)}: the constant names the state, and the
+     * yml key is {@link IconStates#keyOf(Enum)} of it.
+     */
+    @Nonnull
+    public Icon addState(@Nonnull Enum<?> state, @Nonnull FCItemBuilder item) {
+        return addState(state, item.build());
+    }
+
+    @Nonnull
+    public Icon addState(@Nonnull Enum<?> state, @Nonnull ItemStack item) {
+        String name = IconStates.keyOf(state);
+        if (name.isEmpty()) {
+            throw new IllegalArgumentException(state.name() + " names the icon's own appearance, not an "
+                    + "alternative one. Build it with FCItemFactory.from(...) as the icon itself, and keep "
+                    + "addState for the other constants.");
+        }
+        return addState(name, item);
+    }
+
     /** The stack of a named state, or {@code null} when this icon has no such state. */
     @Nullable
     public ItemStack getState(@Nonnull String name) {
@@ -224,6 +246,42 @@ public class Icon {
     @Nonnull
     public Set<String> getStateNames() {
         return Collections.unmodifiableSet(states.keySet());
+    }
+
+    /**
+     * Which state this icon draws, asked again at every render.
+     *
+     * <p>This is the dynamic form, for a state name computed at runtime; {@link #states(Class,
+     * Supplier)} is the one to reach for otherwise, because it is checked by the compiler and by the
+     * scan.</p>
+     */
+    @Nonnull
+    public Icon state(@Nullable Supplier<String> state) {
+        this.currentState = state;
+        return this;
+    }
+
+    /**
+     * Which state this icon draws, chosen from {@code type}'s constants. A key under {@code States:}
+     * that no constant answers to is reported here, which is where both halves are known.
+     */
+    @Nonnull
+    public <E extends Enum<E>> Icon states(@Nonnull Class<E> type, @Nonnull Supplier<E> state) {
+        IconStates.warnUnknownKeys(type, states.keySet(), toString());
+        return state(() -> {
+            E chosen = state.get();
+            return chosen == null ? null : IconStates.keyOf(chosen);
+        });
+    }
+
+    /** The state to draw right now, or {@code null} for this icon's own appearance. */
+    @Nullable
+    public String getCurrentState() {
+        if (currentState == null) {
+            return null;
+        }
+        String name = currentState.get();
+        return name == null || name.isEmpty() ? null : name;
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -417,6 +475,32 @@ public class Icon {
     //  Editing the item - the same vocabulary as the factory, so a render function needs no second type
     // -----------------------------------------------------------------------------------------------------------------
 
+    /**
+     * Replaces what this icon looks like, keeping what it does: permission, handlers, scopes and
+     * language block all survive. It is how a list entry starts from the template and then says which
+     * item it actually is.
+     */
+    @Nonnull
+    public Icon from(@Nonnull FCItemBuilder item) {
+        return from(item.build());
+    }
+
+    @Nonnull
+    public Icon from(@Nonnull ItemStack item) {
+        setItemStack(item);
+        return this;
+    }
+
+    /** {@link #from(ItemStack)} plus the other icon's named states - its whole appearance. */
+    @Nonnull
+    public Icon from(@Nonnull Icon item) {
+        setItemStack(item.itemStack);
+        for (Map.Entry<String, ItemStack> state : item.states.entrySet()) {
+            states.put(state.getKey(), state.getValue().clone());
+        }
+        return this;
+    }
+
     /** Runs the full item factory over this icon's stack and keeps the result. */
     @Nonnull
     public Icon edit(@Nonnull Consumer<FCItemBuilder> edit) {
@@ -470,6 +554,7 @@ public class Icon {
         copy.everyTicks = this.everyTicks;
         copy.renderer = this.renderer;
         copy.states.putAll(this.states);
+        copy.currentState = this.currentState;
         copy.scopes.appendReplacer(this.scopes);
         copy.locale = this.locale == null ? null : this.locale.copy();
         copy.localeOwner = this.localeOwner;
