@@ -29,6 +29,7 @@ public final class IconBinder {
     private final Icon template;
 
     private Supplier<String> state;
+    private Supplier<Boolean> visibleWhen;
     private Consumer<ClickContext> onClick;
     private CycleBinder<?> cycle;
     private long everyTicks = 0L;
@@ -63,6 +64,21 @@ public final class IconBinder {
     @Nonnull
     public IconBinder state(@Nullable Supplier<String> state) {
         this.state = state;
+        return this;
+    }
+
+    /**
+     * Whether this icon is on screen right now, asked again at every render. It is what lets a group of
+     * icons share one slot with the menu deciding which of them is alive, and it composes with the
+     * permission: both have to say yes.
+     *
+     * <p>A state read inside the predicate does not redraw the screen on its own - this icon is
+     * repainted when its component renders again, so a change needs a {@code ctx.refresh()}, or a
+     * {@link #states(Class, Supplier)} on the same icon, whose supplier is polled every tick.</p>
+     */
+    @Nonnull
+    public IconBinder visibleWhen(@Nullable Supplier<Boolean> live) {
+        this.visibleWhen = live;
         return this;
     }
 
@@ -144,6 +160,9 @@ public final class IconBinder {
             icon.state(chosen);
             //the poll is what makes a value nobody told the screen about still reach it
             component.watch(chosen);
+        }
+        if (visibleWhen != null) {
+            icon.visibleWhen(visibleWhen);
         }
         if (click != null) {
             icon.onClick(click);

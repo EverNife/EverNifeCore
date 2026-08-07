@@ -51,6 +51,7 @@ public class Icon {
     private boolean background = false;
     private int order = 0;
     private Consumer<ClickContext> onClick;
+    private Supplier<Boolean> visibleWhen;
     private long everyTicks = 0L;
     private Consumer<Icon> renderer;
 
@@ -172,8 +173,14 @@ public class Icon {
         this.onClick = onClick;
     }
 
-    /** Whether {@code viewer} may see this icon at all. An icon without a permission is public. */
+    /**
+     * Whether {@code viewer} sees this icon right now: the predicate AND the permission. An icon with
+     * neither is public.
+     */
     public boolean isVisibleTo(@Nullable Player viewer) {
+        if (visibleWhen != null && !Boolean.TRUE.equals(visibleWhen.get())) {
+            return false;
+        }
         return permission.isEmpty() || (viewer != null && viewer.hasPermission(permission));
     }
 
@@ -185,6 +192,22 @@ public class Icon {
     @Nonnull
     public Icon permission(@Nullable String permission) {
         setPermission(permission);
+        return this;
+    }
+
+    /**
+     * Whether this icon is alive right now, asked again at every render - the runtime half of who sees
+     * it, next to {@link #permission(String)}, and what lets several icons share one position with the
+     * menu deciding which of them is on screen. No predicate means always alive; a predicate that
+     * answers {@code null} hides the icon, because a screen cannot invent an answer nobody gave.
+     *
+     * <p>A {@link br.com.finalcraft.evernifecore.minecraft.gui.state.State} read inside the predicate
+     * does not redraw the screen on its own: the icon has to be rendered again, which a
+     * {@code refresh()} or a state the component already watches does.</p>
+     */
+    @Nonnull
+    public Icon visibleWhen(@Nullable Supplier<Boolean> live) {
+        this.visibleWhen = live;
         return this;
     }
 
@@ -619,6 +642,7 @@ public class Icon {
         copy.background = this.background;
         copy.order = this.order;
         copy.onClick = this.onClick;
+        copy.visibleWhen = this.visibleWhen;
         copy.everyTicks = this.everyTicks;
         copy.renderer = this.renderer;
         copy.states.putAll(this.states);

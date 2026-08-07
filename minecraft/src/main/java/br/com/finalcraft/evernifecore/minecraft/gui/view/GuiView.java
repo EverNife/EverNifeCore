@@ -217,7 +217,14 @@ public final class GuiView {
     //  Painting
     // -----------------------------------------------------------------------------------------------------------------
 
-    /** Paints one icon over every slot of {@code slots}, on {@code layer}. */
+    /**
+     * Paints one icon over every slot of {@code slots}, on {@code layer}.
+     *
+     * <p>An icon this viewer cannot see paints nothing and erases nothing: what another icon already
+     * put on that layer at that slot stays, which is what makes the next icon in line appear when the
+     * one that owns the slot is not alive. Blanking is a whole layer's job - {@link #clearLayer(int)},
+     * which every render pass runs before drawing.</p>
+     */
     public void paint(int layer, @Nonnull SlotSet slots, @Nonnull Icon icon) {
         if (!icon.isVisibleTo(viewer)) {
             return;
