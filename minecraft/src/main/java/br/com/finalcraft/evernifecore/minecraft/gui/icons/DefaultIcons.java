@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.icons;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
@@ -157,6 +158,9 @@ public class DefaultIcons {
         if (message == null) {
             return icon; //asked for before the core registered its own locales: the material still answers
         }
+        //These texts are the core's own, and without an owner an icon has no language to resolve
+        //against - it would hand every viewer whichever block happened to be declared first
+        icon.setLocaleOwner(EverNifeCore.getEcPluginData());
         for (String lang : LocaleType.values()) {
             FancyText text = message.getFancyText(lang);
             if (text != null) {
