@@ -42,6 +42,18 @@ public final class ClickPolicy {
     /** Cancels everything. The gui default, and the answer to any slot nobody opened up. */
     public static final ClickPolicy DENY_ALL = builder().build();
 
+    /**
+     * Everything a player needs in order to move an item, and neither of the two gestures that
+     * duplicate one: the creative clone, and the double click that gathers every matching stack of the
+     * whole window at once.
+     */
+    public static final ClickPolicy EDIT_ALL = builder()
+            .allowEverything()
+            .denyCreativeClone()
+            .deny(ClickKind.COLLECT_TO_CURSOR)
+            .allowIfPresent("SWAP_OFFHAND")
+            .build();
+
     private final Set<ClickKind> allowedKinds;
     private final Set<String> extraClickTypes;
 
@@ -60,8 +72,15 @@ public final class ClickPolicy {
      * <p>An unknown action, an unknown click type or a kind nobody allowed all answer {@code false}.</p>
      */
     public boolean allows(String clickTypeName, String actionName) {
-        ClickKind kind = ClickKind.ofAction(actionName);
-        if (kind == ClickKind.UNKNOWN) {
+        return allowsKind(clickTypeName, ClickKind.ofAction(actionName));
+    }
+
+    /**
+     * Whether this click goes through, when the caller has already decided what the click is trying to
+     * do - a shift-move judged as the take or the place it actually is, depending on which way it goes.
+     */
+    public boolean allowsKind(String clickTypeName, ClickKind kind) {
+        if (kind == null || kind == ClickKind.UNKNOWN) {
             return false;
         }
         if (!allowedKinds.contains(kind)) {
