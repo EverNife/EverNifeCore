@@ -440,7 +440,15 @@ public final class LayoutScanner {
             }
             String path = BACKGROUND + "." + key;
             try {
-                Icon icon = Icon.of(buildItem(source.getStringList(path + ".DisplayItem"))).background();
+                List<String> displayItem = source.getStringList(path + ".DisplayItem");
+                if (displayItem.isEmpty()) {
+                    //no field behind the key means no default to fall back on, and building from nothing
+                    //would paint whatever the factory starts out as
+                    throw new IllegalArgumentException("the key says where to put an icon but never says "
+                            + "which one, and no plugin field stands behind it to supply one. Give it a "
+                            + "DisplayItem - a single 'type:STONE' line is enough - or delete the key.");
+                }
+                Icon icon = Icon.of(buildItem(displayItem)).background();
                 icon.setPermission(source.getString(path + ".Permission"));
                 icon.setLocaleOwner(plugin);
                 SlotSet slots = source.getValue(path + ".Slot", SlotSet.class);
