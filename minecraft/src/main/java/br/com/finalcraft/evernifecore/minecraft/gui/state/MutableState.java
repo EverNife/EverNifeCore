@@ -32,8 +32,10 @@ public class MutableState<T> extends AbstractState<T> {
         invalidate();
     }
 
+    /** Writes what {@code mutator} makes of the current value. It reads through {@link #get()}, so a
+     *  state whose value lives elsewhere updates the value that is actually there. */
     public void update(Function<T, T> mutator) {
-        set(mutator.apply(value));
+        set(mutator.apply(get()));
     }
 
     @Override
