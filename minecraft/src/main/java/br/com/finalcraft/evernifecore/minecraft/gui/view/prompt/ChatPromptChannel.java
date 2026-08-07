@@ -60,8 +60,11 @@ public final class ChatPromptChannel implements PromptChannel {
             return;
         }
 
-        abandonOutstanding(view);
-        if (!GuiNavigation.suspend(view)) {
+        //the question just called off is the one that set this screen aside, so it stays aside and this
+        //question takes it over; asking for a window nobody has would refuse the replacement and strand
+        //the screen with no window and nothing outstanding to bring it back
+        boolean alreadySetAside = abandonOutstanding(view);
+        if (!alreadySetAside && !GuiNavigation.suspend(view)) {
             answer.complete(PromptResult.<T>quit());
             return;
         }
@@ -135,14 +138,19 @@ public final class ChatPromptChannel implements PromptChannel {
         });
     }
 
-    /** Calls off the question a screen already had out, so questions never stack on one screen. */
-    private void abandonOutstanding(GuiView view) {
+    /**
+     * Calls off the question a screen already had out, so questions never stack on one screen.
+     *
+     * @return whether there was one, which is also whether the screen is already set aside
+     */
+    private boolean abandonOutstanding(GuiView view) {
         Outstanding previous = outstanding.remove(view);
         if (previous == null) {
-            return;
+            return false;
         }
-        previous.expectation.cancel();
+        ChatExpectationListener.get().stopExpecting(previous.expectation);
         previous.abandon.run();
+        return true;
     }
 
     private static final class Outstanding {
