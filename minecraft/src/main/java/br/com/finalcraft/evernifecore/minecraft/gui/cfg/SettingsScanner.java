@@ -3,6 +3,8 @@ package br.com.finalcraft.evernifecore.minecraft.gui.cfg;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.everyconfig.binding.BindException;
+import br.com.finalcraft.everyconfig.binding.BindResult;
+import br.com.finalcraft.everyconfig.binding.LoadIssue;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.everyconfig.rule.RuleEvaluation;
 import br.com.finalcraft.everyconfig.rule.RuleEvaluator;
@@ -212,25 +214,40 @@ public class SettingsScanner {
      * empty - and an empty list IS an answer, because emptying a list is how an admin removes every entry.
      *
      * <p>A list degrades one entry at a time: an entry the file got wrong costs that entry and the rest of
-     * the list still loads. The reading itself is silent about it, so the count is reported here - a menu
-     * that quietly lost a button is a menu nobody knows is broken.</p>
+     * the list still loads. The reading itself is silent about it, so the loss is reported here, naming the
+     * entries that caused it - a menu that quietly lost a button is a menu nobody knows is broken.</p>
      */
     private static Object storedValue(ECPluginData ecPluginData, Class<?> type, Config config, String key,
                                       Field field, Object defaultValue) {
         if (defaultValue instanceof List) {
             Class<?> elementType = elementType(field, (List<?>) defaultValue);
-            List<?> stored = config.getList(key, elementType);
+            BindResult<? extends List<?>> result = config.getListResult(key, elementType);
+            List<?> stored = result.value();
             JsonNode node = config.getNode(key);
             boolean isList = node != null && node.isArray();
             if (isList && node.size() > stored.size()) {
                 warnOnce(ecPluginData, type, key, "entries", (node.size() - stored.size()) + " of the "
                         + node.size() + " entries at '" + key + "' cannot be read as "
-                        + elementType.getSimpleName() + " and were left out. The others are in use; fix or "
+                        + elementType.getSimpleName() + " and were left out"
+                        + brokenEntries(result.issues()) + ". The others are in use; fix or "
                         + "delete the broken ones.");
             }
             return stored.isEmpty() && !isList ? null : stored;
         }
         return config.getValue(key, defaultValue.getClass());
+    }
+
+    /** The keys of the entries the read refused, as ' (Layout[1], Layout[3])' - empty when the read lost an
+     *  entry without naming one, so the count above is all the message can honestly claim. */
+    private static String brokenEntries(List<LoadIssue> issues) {
+        if (issues.isEmpty()) {
+            return "";
+        }
+        List<String> keys = new ArrayList<>();
+        for (LoadIssue issue : issues) {
+            keys.add(issue.key());
+        }
+        return " (" + String.join(", ", keys) + ")";
     }
 
     /** The declared type argument of a list field, falling back to what the default holds and finally to

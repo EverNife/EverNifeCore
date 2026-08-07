@@ -405,6 +405,9 @@ class SettingsScannerTest {
         assertTrue(anyContains("1 of the 3 entries at 'Settings.buttons'"),
                 "a list that silently lost an entry is a menu nobody knows is missing a button: "
                         + world.platform().getLoggedMessages());
+        assertTrue(anyContains("(Settings.buttons[1])"),
+                "the count alone leaves the operator hunting for which entry: "
+                        + world.platform().getLoggedMessages());
     }
 
     @Test
