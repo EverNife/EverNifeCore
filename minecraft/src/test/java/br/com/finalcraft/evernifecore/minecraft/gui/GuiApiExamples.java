@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.layout.GuiLayout;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.IconData;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutBase;
+import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutGui;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Layouts;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.ClickKind;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.ClickPolicy;
@@ -18,12 +19,16 @@ import br.com.finalcraft.evernifecore.minecraft.gui.model.Region;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.Slots;
 import br.com.finalcraft.evernifecore.minecraft.gui.state.MutableState;
 import br.com.finalcraft.evernifecore.minecraft.gui.state.State;
+import br.com.finalcraft.evernifecore.minecraft.gui.view.ClickContext;
+import br.com.finalcraft.evernifecore.minecraft.gui.view.prompt.ChatPrompt;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -334,7 +339,189 @@ final class GuiApiExamples {
                 .open(player);
     }
 
+    // ---- a screen about one player, opened by another, with navigation and a chat prompt ----
+
+    /** Whatever the plugin's own player data looks like. The screen only needs it to be one. */
+    public interface ShopPlayerData extends IPlayerData {
+
+        double getBalance();
+
+    }
+
+    @GuiLayout(title = "§9Loja de §f%playerdata_name% §7- %category_name%", rows = 6, integrateToPAPI = true)
+    public static class ShopLayout extends LayoutBase {
+
+        @IconData(slot = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25})
+        public Icon PRODUCT = FCItemFactory.from(Material.PAPER)
+                .displayName("§a%product_name%")
+                .lore("§7Preço: §6$%product_price%", "§7Vendedor: §f%playerdata_name%")
+                .asIcon();
+
+        @IconData(slot = {45})
+        public Icon PREVIOUS = DefaultIcons.previousPage();
+
+        @IconData(slot = {53})
+        public Icon NEXT = DefaultIcons.nextPage();
+
+        @IconData(slot = {49})
+        public Icon BACK = DefaultIcons.back();
+
+    }
+
+    @GuiLayout(title = "§9%product_name%", rows = 3)
+    public static class ProductLayout extends LayoutBase {
+
+        @IconData(slot = {11})
+        public Icon TYPE_AMOUNT = FCItemFactory.from(Material.PAPER).displayName("§eDigitar quantidade").asIcon();
+
+        @IconData(slot = {15})
+        public Icon BUY = FCItemFactory.from(Material.EMERALD).displayName("§aComprar").asIcon();
+
+        @IconData(slot = {22})
+        public Icon BACK = DefaultIcons.back();
+
+    }
+
+    private static final RegexReplacer<Category> CATEGORY = new RegexReplacer<Category>()
+            .addParser("category_name", Category::getName);
+
+    private static final RegexReplacer<Product> PRODUCT = new RegexReplacer<Product>()
+            .addParser("product_name", Product::getName)
+            .addParser("product_price", Product::getPrice);
+
+    /** The viewer is whoever has it open; the player data is whoever it is about. Not the same person. */
+    public static class ShopGui extends LayoutGui<ShopPlayerData, ShopLayout> {
+
+        public ShopGui(ShopPlayerData subject, Category category) {
+            super(Layouts.of(ShopLayout.class), subject);
+            addReplacer(CATEGORY, category);
+
+            icon(l -> l.BACK).onClick(ClickContext::back);
+
+            list(category::getProducts)
+                    .into(l -> l.PRODUCT)
+                    .pagedBy(l -> l.PREVIOUS, l -> l.NEXT)
+                    .render((product, icon) -> icon
+                            .addScope(PRODUCT, product)
+                            .onClick(ctx -> ctx.open(new ProductGui(getPlayerData(), product))));
+        }
+
+    }
+
+    public static class ProductGui extends LayoutGui<ShopPlayerData, ProductLayout> {
+
+        private final Product product;
+        private final MutableState<Integer> amount = State.of(1);
+
+        public ProductGui(ShopPlayerData subject, Product product) {
+            super(Layouts.of(ProductLayout.class), subject);
+            this.product = product;
+            addReplacer(PRODUCT.compound(product));
+
+            icon(l -> l.BACK).onClick(ClickContext::back);
+
+            icon(l -> l.TYPE_AMOUNT).onClick(ctx -> ctx.askOnChat(
+                    ChatPrompt.of("§eDigite a quantidade (1-" + product.getStock() + "), ou 'cancelar':")
+                            .parse(input -> {
+                                int typed = Integer.parseInt(input);
+                                if (typed < 1 || typed > product.getStock()) {
+                                    throw new IllegalArgumentException("§cEntre 1 e " + product.getStock());
+                                }
+                                return typed;
+                            })
+                            .timeout(Duration.ofSeconds(45))
+                            .onTimeout(view -> view.getViewer().sendMessage("§cTempo esgotado."))
+                            .onQuit(() -> note("desistiu no meio"))
+                            .cancelWord("cancelar"))
+                    .thenAccept(amount::set));
+
+            icon(l -> l.BUY).onClick(this::buy);
+        }
+
+        private void buy(ClickContext ctx) {
+            ctx.open(ConfirmGui.of("§eComprar §f" + amount.get() + "x " + product.getName() + "§e?")
+                            .display(product.getDisplay())
+                            .dangerous())
+                    .thenAccept(yes -> {
+                        if (!yes) {
+                            return;
+                        }
+                        ctx.getViewer().sendMessage("§aCompra realizada.");
+                        ctx.back();          //back to the shop, on the page and category it was left on
+                    });
+        }
+
+    }
+
+    /** Opening it for somebody else is the whole reason viewer and player data are two things. */
+    static void openForStaff(Player staff, ShopPlayerData subject, Category category) {
+        new ShopGui(subject, category).open(staff);
+    }
+
+    /** The short form of the prompt, when the defaults are enough. */
+    static void askTheShortWay(ClickContext ctx) {
+        ctx.askOnChat("§eQual o motivo?", reason -> reason, reason -> note(reason));
+    }
+
+    // ---- a screen of one's own that answers with a value ----
+
+    public enum Answer {KEEP, DROP}
+
+    public static class KeepOrDropGui extends ResultGui<Answer, LayoutBase> {
+
+        public KeepOrDropGui() {
+            super(GuiType.CHEST, 3, null);
+            title("§9Guardar ou descartar?");
+            icon(11, FCItemFactory.from(Material.CHEST)
+                    .displayName("§aGuardar")
+                    .onClick(ctx -> ctx.back(Answer.KEEP)));
+            icon(15, FCItemFactory.from(Material.BUCKET)
+                    .displayName("§cDescartar")
+                    .onClick(ctx -> ctx.back(Answer.DROP)));
+        }
+
+    }
+
+    /** The answer arrives typed, because the screen said what it answers with. */
+    static void askAndAct(ClickContext ctx) {
+        ctx.open(new KeepOrDropGui()).thenAccept(answer -> {
+            if (answer == Answer.DROP) {
+                note("descartado");
+            }
+        });
+    }
+
+    /** Swapping the current screen out: back() still goes to whatever was under this one. */
+    static void swapInPlace(ClickContext ctx) {
+        ctx.replace(new KeepOrDropGui());
+    }
+
     // ---- stand-ins for whatever the plugin actually has ----
+
+    private static void note(String message) {
+
+    }
+
+    private interface Category {
+
+        String getName();
+
+        List<Product> getProducts();
+
+    }
+
+    private interface Product {
+
+        String getName();
+
+        double getPrice();
+
+        int getStock();
+
+        ItemStack getDisplay();
+
+    }
+
 
     private static UpgradeState stateOf(UpgradeOption option) {
         return UpgradeState.DEFAULT;
