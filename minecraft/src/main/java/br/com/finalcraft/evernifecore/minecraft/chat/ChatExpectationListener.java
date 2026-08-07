@@ -54,7 +54,9 @@ public class ChatExpectationListener implements Listener {
     /**
      * @param expiration         milliseconds to wait, or {@code 0} to wait indefinitely.
      * @param onExpireAction     run once the wait elapses, if it does. Also what makes the
-     *                           expiration schedulable at all - without it nothing is scheduled.
+     *                           expiration schedulable at all: without it nothing is scheduled, and
+     *                           the expectation is dropped lazily instead - the next time that
+     *                           player chats, and never if they do not.
      * @param onPlayerQuitAction run if the player leaves while still being waited on.
      */
     public ExpectedChat expectPlayerChat(Player player, IChatAction chatAction, long expiration, @Nullable Runnable onExpireAction, @Nullable Runnable onPlayerQuitAction) {
@@ -109,6 +111,10 @@ public class ChatExpectationListener implements Listener {
                 case SUCCESS:
                     settle(player, expectedChat);
                     continue;
+
+                case CONSUME_AND_CONTINUE:
+                    e.setCancelled(true);
+                    return;   //the message was claimed by a wait that is still on; nobody else sees it
 
                 case IGNORE_CURRENT_MESSAGE:
                     //still waiting, maybe the next message is the one

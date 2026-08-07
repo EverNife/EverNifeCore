@@ -11,7 +11,13 @@ public interface IChatAction {
         /** Not what was being waited for; keep expecting the next message. */
         IGNORE_CURRENT_MESSAGE,
         /** Handled; stop expecting and swallow the message so it never reaches chat. */
-        SUCCESS_AND_CONSUME
+        SUCCESS_AND_CONSUME,
+        /**
+         * Not an answer, but the message belongs to this wait: swallow it and keep expecting. It is
+         * what a question that asks again on bad input needs, so the rejected attempt does not show
+         * up in public chat.
+         */
+        CONSUME_AND_CONTINUE
     }
 
 }
