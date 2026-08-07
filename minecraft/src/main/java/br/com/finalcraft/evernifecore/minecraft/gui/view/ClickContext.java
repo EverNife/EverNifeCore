@@ -6,7 +6,6 @@ import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.prompt.ChatPrompt;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.prompt.ChatPromptChannel;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.prompt.PromptParser;
-import br.com.finalcraft.evernifecore.minecraft.gui.view.prompt.PromptResult;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.Sound;
@@ -209,7 +208,7 @@ public final class ClickContext {
     public <T> CompletableFuture<T> askOnChat(@Nonnull ChatPrompt<T> prompt) {
         CompletableFuture<T> answered = new CompletableFuture<>();
         ChatPromptChannel.get().ask(view, prompt).thenAccept(result -> {
-            if (result.getKind() == PromptResult.Kind.VALUE) {
+            if (result.hasValue()) {
                 answered.complete(result.getValue());
             } else {
                 answered.cancel(false);

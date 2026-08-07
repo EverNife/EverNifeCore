@@ -36,12 +36,6 @@ public final class GuiNavigation {
 
     }
 
-    /** How many screens deep {@code player} currently is, counting the one they are looking at. */
-    public static int getDepth(@Nullable Player player) {
-        NavStack<GuiView> chain = player == null ? null : CHAINS.get(player.getUniqueId());
-        return chain == null ? 0 : chain.size();
-    }
-
     /** Starts a chain at {@code view}, which is what an open outside any chain produces. */
     static void root(GuiView view) {
         NavStack<GuiView> chain = new NavStack<>();
