@@ -25,6 +25,7 @@ import org.bukkit.UnsafeValues;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemFactory;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.plugin.PluginManager;
 
 import java.lang.reflect.Field;
 import java.nio.file.Path;
@@ -256,12 +257,17 @@ public final class GuiTestWorld implements AutoCloseable {
                 .on("fromLegacy", args -> null)
                 .build();
 
+        //a listener the core registers on first use - the chat one - asks for this before it will hear
+        //anything; nothing here routes events, which GuiEventBus does by calling the listener directly
+        PluginManager pluginManager = Doubles.of(PluginManager.class).build();
+
         return Doubles.of(Server.class)
                 .on("isPrimaryThread", args -> Thread.currentThread() == mainThread)
                 .on("getItemFactory", args -> itemFactory)
                 .on("getUnsafe", args -> unsafe)
                 .on("getRegistry", args -> BukkitRegistries.forType((Class<?>) args[0]))
                 .on("getScheduler", args -> scheduler.asBukkitScheduler())
+                .on("getPluginManager", args -> pluginManager)
                 .on("getLogger", args -> Logger.getLogger(pluginName))
                 .on("createInventory", args -> createInventory(args))
                 .build();
