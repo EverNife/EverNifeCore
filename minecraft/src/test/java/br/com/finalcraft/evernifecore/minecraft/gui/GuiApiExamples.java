@@ -10,7 +10,6 @@ import br.com.finalcraft.evernifecore.minecraft.gui.layout.GuiLayout;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.IconData;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutBase;
-import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutGui;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Layouts;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.ClickKind;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.ClickPolicy;
@@ -32,6 +31,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Queue;
 
 /**
  * The documented gui API, written out exactly as the manual shows it, so that the compiler is what
@@ -494,6 +494,53 @@ final class GuiApiExamples {
     /** Swapping the current screen out: back() still goes to whatever was under this one. */
     static void swapInPlace(ClickContext ctx) {
         ctx.replace(new KeepOrDropGui());
+    }
+
+    // ---- a screen that is about a player AND answers a value ----
+
+    public enum Punishment {BAN, MUTE}
+
+    /** The two things at once. answer(ctx, ...) is back(value) with the compiler checking the value. */
+    public static class PunishGui extends LayoutResultGui<Punishment, ShopPlayerData, ProductLayout> {
+
+        public PunishGui(ShopPlayerData accused) {
+            super(Layouts.of(ProductLayout.class), accused);
+
+            icon(l -> l.BUY).onClick(ctx -> confirm(ctx, Punishment.BAN));
+            icon(l -> l.BACK).onClick(ClickContext::back);
+        }
+
+        private void confirm(ClickContext ctx, Punishment kind) {
+            ctx.open(ConfirmGui.of("§e" + kind + " em " + getPlayerData().getName() + "§e?").dangerous())
+                    .thenAccept(yes -> {
+                        if (yes) {
+                            answer(ctx, kind);
+                        }
+                    });
+        }
+
+    }
+
+    /** Opened from a profile screen, and the choice comes back typed. */
+    static void punishFromProfile(ClickContext ctx, ShopPlayerData accused) {
+        ctx.open(new PunishGui(accused)).thenAccept(kind -> note("aplicou " + kind));
+    }
+
+    /** The same screen, another subject: no new Gui, so the page and the filter stay where they are. */
+    public static class ReportQueueGui extends LayoutGui<ShopPlayerData, ProductLayout> {
+
+        private final Queue<ShopPlayerData> queue;
+
+        public ReportQueueGui(ShopPlayerData first, Queue<ShopPlayerData> queue) {
+            super(Layouts.of(ProductLayout.class), first);
+            this.queue = queue;
+
+            icon(l -> l.BACK).onClick(ctx -> {
+                setPlayerData(queue.poll());
+                ctx.refresh();
+            });
+        }
+
     }
 
     // ---- stand-ins for whatever the plugin actually has ----

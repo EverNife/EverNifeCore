@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.gui;
 
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutBase;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.GuiType;
+import br.com.finalcraft.evernifecore.minecraft.gui.view.ClickContext;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
@@ -32,6 +33,15 @@ public abstract class ResultGui<R, L extends LayoutBase> extends Gui<L> {
     /** Sized, titled and decorated by {@code layout} - the {@link Gui#of(LayoutBase)} of this base. */
     protected ResultGui(@Nonnull L layout) {
         super(layout.getType(), layout.getRows(), layout);
+    }
+
+    /**
+     * Leaves this screen answering {@code value}. The same as {@code ctx.back(value)}, except that
+     * {@code back} takes an {@code Object} - here the compiler checks the answer against {@code R},
+     * which is the whole reason this screen declared one.
+     */
+    protected void answer(@Nonnull ClickContext ctx, @Nullable R value) {
+        ctx.back(value);
     }
 
 }
