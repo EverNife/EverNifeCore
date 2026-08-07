@@ -24,6 +24,7 @@ import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -415,7 +416,15 @@ public class Gui<L extends LayoutBase> {
         return debounceMillis;
     }
 
-    /** The layout's own icons that no binding took over, then the ones bound by hand. */
+    /**
+     * The layout's own icons that no binding took over, in the order they are to be PAINTED, and then
+     * the ones bound by hand.
+     *
+     * <p>The layout's part is sorted by {@link Icon#BY_SLOT_PRIORITY} reversed, because within one
+     * layer the last write is the one left showing: painting the winner of a contested slot last is
+     * what makes the screen agree with the winner the log and the {@code diff} named. The icons bound
+     * by hand stay at the end - explicit code beats the file.</p>
+     */
     @Nonnull
     public List<IconBinding> getIconBindings() {
         if (layoutIcons.isEmpty()) {
@@ -427,6 +436,7 @@ public class Gui<L extends LayoutBase> {
                 bindings.add(entry.getValue());
             }
         }
+        bindings.sort(Comparator.comparing(IconBinding::getIcon, Icon.BY_SLOT_PRIORITY).reversed());
         bindings.addAll(iconBindings);
         return Collections.unmodifiableList(bindings);
     }

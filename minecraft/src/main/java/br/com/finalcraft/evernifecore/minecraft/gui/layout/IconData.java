@@ -30,6 +30,9 @@ public @interface IconData {
     /** Who wins a slot two icons claim - lowest first, the field name breaking a tie. */
     int order() default 0;
 
+    /** Icons that knowingly share a position: same group never disputes, anything outside it still does. */
+    String group() default "";
+
     /** Name and lore per language; {@code text} is the name and {@code hover} the lore. Declaring any
      *  language forbids naming the same icon through the builder - pick one channel. */
     FCLocale[] locale() default {};

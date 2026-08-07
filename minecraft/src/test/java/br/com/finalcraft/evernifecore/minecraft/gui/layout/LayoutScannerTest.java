@@ -199,7 +199,9 @@ class LayoutScannerTest {
         assertEquals(10, reported, "every load says it, because every load is a chance to fix it");
         assertEquals(1, distinct.size(),
                 "a screen that swapped two icons after a restart would be unexplainable: " + distinct);
-        assertEquals("ClashLayout: ALPHA and ZEBRA both claim slot 13. ALPHA wins. Move one of them.",
+        assertEquals("ClashLayout: ALPHA and ZEBRA both claim slot 13. ALPHA wins. Move one of them, or give"
+                        + " both the same group = \"...\" when they are meant to share the slot and the menu"
+                        + " picks which one is alive.",
                 distinct.iterator().next(), "the loser is invisible, and only the log says who it is");
     }
 
@@ -216,7 +218,9 @@ class LayoutScannerTest {
         }
 
         assertEquals(Arrays.asList(
-                        "ClashLayout: ALPHA and ZEBRA both claim slot 13. ALPHA wins. Move one of them."),
+                        "ClashLayout: ALPHA and ZEBRA both claim slot 13. ALPHA wins. Move one of them, or give"
+                                + " both the same group = \"...\" when they are meant to share the slot and the"
+                                + " menu picks which one is alive."),
                 disputes, "the pane under BUTTON is a floor, not a rival - only ClashLayout contests");
     }
 

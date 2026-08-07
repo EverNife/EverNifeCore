@@ -50,14 +50,17 @@ public final class LayoutDiff {
         private final SlotSet slots;
         private final boolean fromOverlay;
         private final String detail;
+        private final String group;
 
-        Entry(String key, Verdict verdict, String section, SlotSet slots, boolean fromOverlay, String detail) {
+        Entry(String key, Verdict verdict, String section, SlotSet slots, boolean fromOverlay, String detail,
+              String group) {
             this.key = key;
             this.verdict = verdict;
             this.section = section;
             this.slots = slots;
             this.fromOverlay = fromOverlay;
             this.detail = detail;
+            this.group = group;
         }
 
         @Nonnull
@@ -91,6 +94,15 @@ public final class LayoutDiff {
         @Nonnull
         public String getDetail() {
             return detail;
+        }
+
+        /**
+         * The group this key shares its position with on purpose, or an empty string. Three icons over
+         * one slot look like a defect until the report says they were meant to.
+         */
+        @Nonnull
+        public String getGroup() {
+            return group;
         }
 
         @Override
@@ -130,52 +142,53 @@ public final class LayoutDiff {
     @Nonnull
     public static LayoutDiff of(@Nonnull Class<? extends LayoutBase> type, @Nonnull LayoutSource source,
                                 @Nullable String language) {
-        Map<String, String> sectionOfField = new LinkedHashMap<>();
-        for (Field field : LayoutScanner.iconFields(type)) {
-            IconData iconData = field.getAnnotation(IconData.class);
-            sectionOfField.put(field.getName(),
-                    iconData.background() ? LayoutScanner.BACKGROUND : LayoutScanner.LAYOUT);
+        List<Field> fields = LayoutScanner.iconFields(type);
+        Map<String, Field> fieldOfKey = new LinkedHashMap<>();
+        for (Field field : fields) {
+            fieldOfKey.put(field.getName(), field);
         }
 
         List<Entry> entries = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
-        Map<Integer, String> ownerOfContentSlot = new LinkedHashMap<>();
-        Map<Integer, String> ownerOfBackgroundSlot = new LinkedHashMap<>();
+        Map<String, SlotSet> claimedSlots = new LinkedHashMap<>();
 
-        for (Map.Entry<String, String> declared : sectionOfField.entrySet()) {
+        for (Map.Entry<String, Field> declared : fieldOfKey.entrySet()) {
             String key = declared.getKey();
-            String path = declared.getValue() + "." + key;
+            IconData iconData = declared.getValue().getAnnotation(IconData.class);
+            String section = iconData.background() ? LayoutScanner.BACKGROUND : LayoutScanner.LAYOUT;
+            String path = section + "." + key;
             if (!source.contains(path)) {
-                entries.add(new Entry(key, Verdict.NEW, declared.getValue(), null, false,
-                        "will be seeded on the next save"));
+                entries.add(new Entry(key, Verdict.NEW, section, null, false,
+                        "will be seeded on the next save", iconData.group()));
                 continue;
             }
             SlotSet slots = slotsOf(source, path, warnings, key);
             Verdict verdict = slots != null && slots.isEmpty() ? Verdict.SILENCED : Verdict.MATCHED;
-            entries.add(new Entry(key, verdict, declared.getValue(), slots,
-                    source.isFromOverlay(path), detailOf(source, path)));
+            entries.add(new Entry(key, verdict, section, slots, source.isFromOverlay(path),
+                    detailOf(source, path), iconData.group()));
             if (slots != null) {
-                //a background and the content above it are two layers, not two claims to one slot
-                reportDisputes(key, slots, LayoutScanner.BACKGROUND.equals(declared.getValue())
-                        ? ownerOfBackgroundSlot : ownerOfContentSlot, warnings);
+                claimedSlots.put(key, slots);
             }
         }
+        //the claims are confronted in the order the SCREEN resolves them, never in declaration order:
+        //a report that named the other winner is worse than no report at all
+        reportDisputes(fields, claimedSlots, warnings);
 
         for (String key : source.getKeys(LayoutScanner.LAYOUT)) {
-            if (!sectionOfField.containsKey(key)) {
+            if (!fieldOfKey.containsKey(key)) {
                 entries.add(new Entry(key, Verdict.ORPHAN, LayoutScanner.LAYOUT, null,
                         source.isFromOverlay(LayoutScanner.LAYOUT + "." + key),
-                        "the plugin no longer declares it"));
+                        "the plugin no longer declares it", ""));
             }
         }
         //Decoration the file added on its own is a feature, not leftovers: it renders, so it matches
         for (String key : source.getKeys(LayoutScanner.BACKGROUND)) {
-            if (!sectionOfField.containsKey(key)) {
+            if (!fieldOfKey.containsKey(key)) {
                 String path = LayoutScanner.BACKGROUND + "." + key;
                 SlotSet slots = slotsOf(source, path, warnings, key);
                 entries.add(new Entry(key, slots != null && slots.isEmpty() ? Verdict.SILENCED
                         : Verdict.MATCHED, LayoutScanner.BACKGROUND, slots, source.isFromOverlay(path),
-                        "declared by the file only"));
+                        "declared by the file only", ""));
             }
         }
 
@@ -210,14 +223,33 @@ public final class LayoutDiff {
         return String.join(", ", detail);
     }
 
-    private static void reportDisputes(String key, SlotSet slots, Map<Integer, String> ownerOfSlot,
+    /**
+     * The slots more than one key claims, as the screen would resolve them: same layer, different
+     * groups. What the log says at load and what this answers are the same sentence.
+     */
+    private static void reportDisputes(List<Field> fields, Map<String, SlotSet> claimedSlots,
                                        List<String> warnings) {
-        for (int slot : slots.toArray()) {
-            String owner = ownerOfSlot.get(slot);
-            if (owner == null) {
-                ownerOfSlot.put(slot, key);
-            } else {
-                warnings.add(owner + " and " + key + " both claim slot " + slot + ". " + owner + " wins.");
+        Map<Integer, Field> ownerOfContentSlot = new LinkedHashMap<>();
+        Map<Integer, Field> ownerOfBackgroundSlot = new LinkedHashMap<>();
+        for (Field field : LayoutScanner.byDisputePriority(fields)) {
+            SlotSet slots = claimedSlots.get(field.getName());
+            if (slots == null) {
+                continue;
+            }
+            //a background and the content above it are two layers, not two claims to one slot
+            Map<Integer, Field> ownerOfSlot = field.getAnnotation(IconData.class).background()
+                    ? ownerOfBackgroundSlot : ownerOfContentSlot;
+            for (int slot : slots.toArray()) {
+                Field owner = ownerOfSlot.get(slot);
+                if (owner == null) {
+                    ownerOfSlot.put(slot, field);
+                } else if (!LayoutScanner.sharesGroup(owner, field)) {
+                    String dispute = LayoutScanner.slotDisputeMessage(LayoutScanner.claimantOf(owner),
+                            LayoutScanner.claimantOf(field), slot);
+                    if (!warnings.contains(dispute)) { //a whole group against one outsider is one sentence
+                        warnings.add(dispute);
+                    }
+                }
             }
         }
     }

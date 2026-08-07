@@ -114,6 +114,10 @@ public class CMDGuiLayout {
             if (entry.getSlots() != null) {
                 columns.add("Slot " + entry.getSlots().serialize());
             }
+            if (!entry.getGroup().isEmpty()) {
+                //three icons over one slot read as a defect until the report says they share it on purpose
+                columns.add("group " + entry.getGroup());
+            }
             if (!entry.getDetail().isEmpty()) {
                 columns.add(entry.getDetail());
             }

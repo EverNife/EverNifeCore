@@ -22,6 +22,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,8 +46,10 @@ import java.util.function.Supplier;
 public class Icon {
 
     private ItemStack itemStack;
+    private String name;
     private String permission = "";
     private boolean background = false;
+    private int order = 0;
     private Consumer<ClickContext> onClick;
     private long everyTicks = 0L;
     private Consumer<Icon> renderer;
@@ -78,6 +81,36 @@ public class Icon {
         return new Icon(new ItemStack(Material.AIR));
     }
 
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Who wins a slot two icons claim - the one arithmetic, read by both reports and by the screen
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Which of two claims to the same slot of the same layer is the one that shows: lowest
+     * {@code order} first, the name breaking a tie, a nameless icon last.
+     *
+     * <p>Deliberately independent of declaration order, which the JVM does not promise to keep stable
+     * between runs - a screen that silently swapped two icons after a restart would be
+     * unexplainable. The static form is here because the reports decide a slot before any {@code Icon}
+     * exists: they hold a field and an annotation.</p>
+     */
+    public static int compareForSlot(int leftOrder, @Nullable String leftName,
+                                     int rightOrder, @Nullable String rightName) {
+        int byOrder = Integer.compare(leftOrder, rightOrder);
+        if (byOrder != 0) {
+            return byOrder;
+        }
+        if (leftName == null || rightName == null) {
+            //an icon bound straight to a slot has no key to compare, and loses to one that has
+            return leftName == rightName ? 0 : leftName == null ? 1 : -1;
+        }
+        return leftName.compareTo(rightName);
+    }
+
+    /** {@link #compareForSlot(int, String, int, String)} over two icons: the winner of a slot comes first. */
+    public static final Comparator<Icon> BY_SLOT_PRIORITY =
+            (left, right) -> compareForSlot(left.order, left.name, right.order, right.name);
+
     @Nonnull
     public ItemStack getItemStack() {
         return itemStack.clone();
@@ -89,6 +122,19 @@ public class Icon {
                     + "bind it to an empty SlotSet or give it a permission nobody has.");
         }
         this.itemStack = itemStack.clone();
+    }
+
+    /**
+     * The layout key this icon answers to - the field name, which is also its key in the yml - or
+     * {@code null} for an icon bound straight to a slot.
+     */
+    @Nullable
+    public String getName() {
+        return name;
+    }
+
+    public void setName(@Nullable String name) {
+        this.name = name;
     }
 
     @Nonnull
@@ -106,6 +152,15 @@ public class Icon {
 
     public void setBackground(boolean background) {
         this.background = background;
+    }
+
+    /** Where this icon stands among the icons claiming the same slot - see {@link #compareForSlot}. */
+    public int getOrder() {
+        return order;
+    }
+
+    public void setOrder(int order) {
+        this.order = order;
     }
 
     @Nullable
@@ -559,8 +614,10 @@ public class Icon {
     @Nonnull
     public Icon copy() {
         Icon copy = new Icon(itemStack);
+        copy.name = this.name;
         copy.permission = this.permission;
         copy.background = this.background;
+        copy.order = this.order;
         copy.onClick = this.onClick;
         copy.everyTicks = this.everyTicks;
         copy.renderer = this.renderer;

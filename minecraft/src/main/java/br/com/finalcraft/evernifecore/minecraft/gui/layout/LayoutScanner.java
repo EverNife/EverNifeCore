@@ -113,7 +113,8 @@ public final class LayoutScanner {
             try {
                 Icon declared = iconOf(instance, field);
                 seedIcon(base, path, declared, iconData);
-                Icon resolved = resolveIcon(plugin, declaration, iconData, declared, source, path);
+                Icon resolved = resolveIcon(plugin, declaration, iconData, declared, source, path,
+                        field.getName());
                 SlotSet slots = resolveSlots(instance, field, source, path);
                 instance.putIcon(field.getName(), resolved, slots);
             } catch (Throwable failure) {
@@ -124,7 +125,7 @@ public final class LayoutScanner {
         }
 
         loadFileOnlyBackground(plugin, type, instance, source);
-        reportSlotDisputes(plugin, type, instance, disputeOrder(fields));
+        reportSlotDisputes(plugin, type, instance, fields);
         quarantineOrphans(plugin, base, fields);
         base.setHeader(header(instance, declaration));
         base.save();
@@ -155,19 +156,44 @@ public final class LayoutScanner {
         return fields;
     }
 
-    /**
-     * The order a contested slot is decided in: lowest {@code order()} first, the field name breaking a
-     * tie. Deliberately independent of declaration order, which the JVM does not promise to keep stable
-     * between runs - a screen that silently swapped two icons after a restart would be unexplainable.
-     */
-    private static List<Field> disputeOrder(List<Field> fields) {
+    /** The fields of a layout in the order a contested slot is decided in - see {@link Icon#compareForSlot}. */
+    @Nonnull
+    static List<Field> byDisputePriority(@Nonnull List<Field> fields) {
         List<Field> ordered = new ArrayList<>(fields);
-        Collections.sort(ordered, (left, right) -> {
-            int byOrder = Integer.compare(left.getAnnotation(IconData.class).order(),
-                    right.getAnnotation(IconData.class).order());
-            return byOrder != 0 ? byOrder : left.getName().compareTo(right.getName());
-        });
+        Collections.sort(ordered, (left, right) -> Icon.compareForSlot(
+                left.getAnnotation(IconData.class).order(), left.getName(),
+                right.getAnnotation(IconData.class).order(), right.getName()));
         return ordered;
+    }
+
+    /** The one sentence a contested slot is reported with, so the log and the diff cannot name two winners. */
+    @Nonnull
+    static String slotDisputeMessage(@Nonnull String winner, @Nonnull String loser, int slot) {
+        return winner + " and " + loser + " both claim slot " + slot + ". " + winner + " wins.";
+    }
+
+    /**
+     * How a claim is named in a report: the group when the icon declares one, the key otherwise.
+     *
+     * <p>A group is named as a whole on purpose - naming one of its members would make the text depend
+     * on which member happens to come first, and the operator has to read the intention, not the
+     * roster.</p>
+     */
+    @Nonnull
+    static String claimantOf(@Nonnull Field field) {
+        String group = groupOf(field);
+        return group.isEmpty() ? field.getName() : "group [" + group + "]";
+    }
+
+    /** Whether two icons declare the same group, which is how a shared position stops being a dispute. */
+    static boolean sharesGroup(@Nonnull Field left, @Nonnull Field right) {
+        String group = groupOf(left);
+        return !group.isEmpty() && group.equals(groupOf(right));
+    }
+
+    @Nonnull
+    static String groupOf(@Nonnull Field field) {
+        return field.getAnnotation(IconData.class).group().trim();
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -319,9 +345,11 @@ public final class LayoutScanner {
     }
 
     private static Icon resolveIcon(ECPluginData plugin, GuiLayout declaration, IconData iconData,
-                                    Icon declared, LayoutSource source, String path) {
+                                    Icon declared, LayoutSource source, String path, String name) {
         Icon resolved = declared.copy();
+        resolved.setName(name);
         resolved.setBackground(iconData.background());
+        resolved.setOrder(iconData.order());
         resolved.setLocaleOwner(plugin);
         resolved.integrateToPAPI(declaration.integrateToPAPI());
 
@@ -406,29 +434,36 @@ public final class LayoutScanner {
     }
 
     /**
-     * Names BOTH fields of a contested slot: the loser is invisible, and only the log says why.
+     * Names BOTH sides of a contested slot: the loser is invisible, and only the log says why.
      *
-     * <p>Only icons on the same layer contest a slot. A background under content is the stacking the
-     * layers exist for, and every screen with a full backdrop would report it.</p>
+     * <p>Two arrangements are not disputes. Only icons on the same layer contest a slot - a background
+     * under content is the stacking the layers exist for, and every screen with a full backdrop would
+     * report it. And icons that declare the same {@link IconData#group()} share the position on
+     * purpose; which of them is on screen is the menu's call, not a mistake.</p>
      */
     private static void reportSlotDisputes(ECPluginData plugin, Class<?> type, LayoutBase instance,
-                                           List<Field> byDisputeOrder) {
-        Map<Integer, String> ownerOfContentSlot = new LinkedHashMap<>();
-        Map<Integer, String> ownerOfBackgroundSlot = new LinkedHashMap<>();
-        for (Field field : byDisputeOrder) {
+                                           List<Field> fields) {
+        Map<Integer, Field> ownerOfContentSlot = new LinkedHashMap<>();
+        Map<Integer, Field> ownerOfBackgroundSlot = new LinkedHashMap<>();
+        Set<String> reported = new LinkedHashSet<>();
+        for (Field field : byDisputePriority(fields)) {
             LayoutBase.PlacedIcon placed = instance.getIcons().get(field.getName());
             if (placed == null) {
                 continue;
             }
-            Map<Integer, String> ownerOfSlot = placed.getIcon().isBackground()
+            Map<Integer, Field> ownerOfSlot = placed.getIcon().isBackground()
                     ? ownerOfBackgroundSlot : ownerOfContentSlot;
             for (int slot : placed.getSlots().toArray()) {
-                String owner = ownerOfSlot.get(slot);
+                Field owner = ownerOfSlot.get(slot);
                 if (owner == null) {
-                    ownerOfSlot.put(slot, field.getName());
-                } else {
-                    plugin.getLog().warning(type.getSimpleName() + ": " + owner + " and " + field.getName()
-                            + " both claim slot " + slot + ". " + owner + " wins. Move one of them.");
+                    ownerOfSlot.put(slot, field);
+                } else if (!sharesGroup(owner, field)) {
+                    String dispute = slotDisputeMessage(claimantOf(owner), claimantOf(field), slot);
+                    if (reported.add(dispute)) { //a whole group against one outsider is one sentence, said once
+                        plugin.getLog().warning(type.getSimpleName() + ": " + dispute + " Move one of them,"
+                                + " or give both the same group = \"...\" when they are meant to share the"
+                                + " slot and the menu picks which one is alive.");
+                    }
                 }
             }
         }
@@ -458,6 +493,7 @@ public final class LayoutScanner {
                             + "DisplayItem - a single 'type:STONE' line is enough - or delete the key.");
                 }
                 Icon icon = Icon.of(buildItem(displayItem)).background();
+                icon.setName(key); //the yml key is all the identity a decoration with no field behind it has
                 icon.setPermission(source.getString(path + ".Permission"));
                 icon.setLocaleOwner(plugin);
                 SlotSet slots = source.getValue(path + ".Slot", SlotSet.class);
