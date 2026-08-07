@@ -278,7 +278,7 @@ final class GuiApiExamples {
 
     public enum Tab {DEFAULT, SELLING}
 
-    public enum Sorting {DEFAULT, PRECO_ASC, PRECO_DESC}
+    public enum Sorting {DEFAULT, PRICE_ASC, PRICE_DESC}
 
     @GuiLayout(title = "§9Leilão", rows = 6)
     public static class AuctionLayout extends LayoutBase {
@@ -291,14 +291,14 @@ final class GuiApiExamples {
                 .addState(Tab.SELLING, FCItemFactory.from(Material.ENDER_CHEST)
                         .displayName("§eVendo: §6Vendendo"));
 
-        /** PRECO_ASC is written {@code precoAsc} in the yml. */
+        /** PRICE_ASC is written {@code priceAsc} in the yml. */
         @IconData(slot = {51})
         public Icon SORT = FCItemFactory.from(Material.HOPPER)
                 .displayName("§eOrdem: §fMais recente")
                 .asIcon()
-                .addState(Sorting.PRECO_ASC, FCItemFactory.from(Material.HOPPER)
+                .addState(Sorting.PRICE_ASC, FCItemFactory.from(Material.HOPPER)
                         .displayName("§eOrdem: §fMenor preço"))
-                .addState(Sorting.PRECO_DESC, FCItemFactory.from(Material.HOPPER)
+                .addState(Sorting.PRICE_DESC, FCItemFactory.from(Material.HOPPER)
                         .displayName("§eOrdem: §fMaior preço"));
 
         @IconData(slot = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25})

@@ -250,8 +250,8 @@ class DataComponentTest {
     void anEnumConstantNamesItsOwnKeyInTheYml() {
         assertEquals("", IconStates.keyOf(Availability.DEFAULT), "DEFAULT is the icon's own appearance");
         assertEquals("locked", IconStates.keyOf(Availability.LOCKED));
-        assertEquals("semEstoque", IconStates.keyOf("SEM_ESTOQUE"));
-        assertEquals("precoAsc", IconStates.keyOf("PRECO_ASC"));
+        assertEquals("outOfStock", IconStates.keyOf("OUT_OF_STOCK"));
+        assertEquals("priceAsc", IconStates.keyOf("PRICE_ASC"));
         assertEquals(Availability.LOCKED, IconStates.constantOf(Availability.class, "locked"));
     }
 
