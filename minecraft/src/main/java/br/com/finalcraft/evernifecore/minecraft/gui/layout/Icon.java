@@ -345,12 +345,32 @@ public class Icon {
         if (cached != null) {
             return cached.isEmpty() ? null : cached;
         }
-        List<String> lines = locale.resolve(lang);
+        List<String> lines = linesFor(lang);
         List<ItemEdit> edits = lines == null
                 ? Collections.<ItemEdit>emptyList()
                 : ItemEngine.get().parse(lines).getEdits();
         localeEdits.put(key, edits);
         return edits.isEmpty() ? null : edits;
+    }
+
+    /**
+     * The block that answers for {@code lang}: their own, then the owning plugin's, then whatever the
+     * icon declared first. The middle step is the one worth having - a viewer whose language nobody
+     * wrote reads the language the server itself runs in, not the first one the developer typed.
+     */
+    @Nullable
+    private List<String> linesFor(@Nullable String lang) {
+        List<String> own = lang == null ? null : locale.get(lang);
+        if (own != null) {
+            return own;
+        }
+        if (localeOwner != null) {
+            List<String> serverWide = locale.get(FCLocaleManager.getLangOf(localeOwner));
+            if (serverWide != null) {
+                return serverWide;
+            }
+        }
+        return locale.resolve(null);
     }
 
     /**
