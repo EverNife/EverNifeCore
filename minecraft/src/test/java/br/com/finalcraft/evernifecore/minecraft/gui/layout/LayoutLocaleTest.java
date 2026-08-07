@@ -170,7 +170,7 @@ class LayoutLocaleTest {
     @Test
     void twoViewersReadOneIconInTheirOwnLanguageAndItsPlaceholderTheSameWay() {
         Icon buy = Layouts.of(MarketLayout.class).getIcon("BUY").addScope(OFFER, new Offer("9.50"));
-        Gui gui = Gui.of(3).icon(0, buy);
+        Gui<?> gui = Gui.of(3).icon(0, buy);
 
         world.openDetached(gui, viewerSpeaking("Steve", LocaleType.EN_US));
         SurfaceDouble english = world.getSurface();
@@ -193,7 +193,7 @@ class LayoutLocaleTest {
         List<String> baked = ItemEngine.get().read(price.getItemStack()).getLines();
         assertTrue(baked.contains("name:Now: %price%"), baked.toString());
 
-        Gui gui = Gui.of(3).icon(0, buy).icon(1, price);
+        Gui<?> gui = Gui.of(3).icon(0, buy).icon(1, price);
         world.openDetached(gui, viewerSpeaking("Steve", LocaleType.EN_US));
         SurfaceDouble drawn = world.getSurface();
         world.openDetached(gui, viewerSpeaking("Alberto", LocaleType.PT_BR));
@@ -211,7 +211,7 @@ class LayoutLocaleTest {
     @Test
     void aViewerWithoutThePermissionSeesTheLayerBelowRatherThanAHole() {
         MarketLayout layout = Layouts.of(MarketLayout.class);
-        Gui gui = Gui.of(3)
+        Gui<?> gui = Gui.of(3)
                 .icon(4, Icon.of(new ItemStack(Material.GRAY_STAINED_GLASS_PANE)).background())
                 .icon(4, layout.getIcon("EDIT"));
 
@@ -263,7 +263,7 @@ class LayoutLocaleTest {
         rewrite("- name:Buy", "- name:Purchase");
         Layouts.clear();
 
-        Gui base = Gui.of(3).icon(0, Layouts.of(MarketLayout.class).getIcon("BUY"));
+        Gui<?> base = Gui.of(3).icon(0, Layouts.of(MarketLayout.class).getIcon("BUY"));
         world.openDetached(base, viewerSpeaking("Steve", LocaleType.EN_US));
         assertEquals("Purchase", nameAt(world.getSurface(), 0),
                 "what the admin wrote in the file outranks what the plugin declared in Java");
@@ -277,7 +277,7 @@ class LayoutLocaleTest {
         ));
         Layouts.clear();
 
-        Gui localized = Gui.of(3)
+        Gui<?> localized = Gui.of(3)
                 .icon(0, Layouts.of(MarketLayout.class, LocaleType.EN_US).getIcon("BUY"));
         world.openDetached(localized, viewerSpeaking("Alex", LocaleType.EN_US));
         assertEquals("Acquire", nameAt(world.getSurface(), 0),
@@ -348,7 +348,7 @@ class LayoutLocaleTest {
     void aLanguageNobodyWroteFallsBackToTheOneTheServerRunsIn() {
         assertEquals(LocaleType.EN_US, plugin.getPluginLanguage(),
                 "the whole point of this case is that the server's language is not the first declared");
-        Gui gui = Gui.of(3).icon(0, Layouts.of(FallbackLayout.class).getIcon("BUY"));
+        Gui<?> gui = Gui.of(3).icon(0, Layouts.of(FallbackLayout.class).getIcon("BUY"));
 
         world.openDetached(gui, viewerSpeaking("Wei", LocaleType.ZH_CN));
 
@@ -359,7 +359,7 @@ class LayoutLocaleTest {
 
     @Test
     void anIconWithASingleTextReadsTheSameToEveryone() {
-        Gui gui = Gui.of(3).icon(0, Layouts.of(PlainLayout.class).getIcon("LABEL"));
+        Gui<?> gui = Gui.of(3).icon(0, Layouts.of(PlainLayout.class).getIcon("LABEL"));
 
         world.openDetached(gui, viewerSpeaking("Steve", LocaleType.EN_US));
         SurfaceDouble english = world.getSurface();
@@ -373,7 +373,7 @@ class LayoutLocaleTest {
     @Test
     void theBackButtonSpeaksTheViewersLanguage() {
         FCLocaleManager.loadLocale(plugin, DefaultIcons.class);
-        Gui gui = Gui.of(3).icon(0, DefaultIcons.back());
+        Gui<?> gui = Gui.of(3).icon(0, DefaultIcons.back());
 
         world.openDetached(gui, viewerSpeaking("Steve", LocaleType.EN_US));
         SurfaceDouble english = world.getSurface();

@@ -76,7 +76,7 @@ class GuiRenderDiffTest {
     @Test
     void aStateChangeRewritesOnlyTheSlotsOfTheComponentThatReadsIt() {
         MutableState<Integer> counter = State.of(1);
-        Gui gui = Gui.of(3)
+        Gui<?> gui = Gui.of(3)
                 .component(c -> {
                     c.remember(counter);
                     c.render(slots -> slots.icon(0, paper(counter.get())));
@@ -99,7 +99,7 @@ class GuiRenderDiffTest {
     @Test
     void aRenderThatDrawsTheSamePictureCostsNoWrite() {
         MutableState<String> unrelated = State.of("a");
-        Gui gui = Gui.of(3)
+        Gui<?> gui = Gui.of(3)
                 .icon(4, stone())
                 .component(c -> {
                     c.remember(unrelated);
@@ -122,7 +122,7 @@ class GuiRenderDiffTest {
     @Test
     void anObjectMutatedInPlaceStillRepaintsWhenItIsWatchedByAKey() {
         AtomicInteger score = new AtomicInteger(1);
-        Gui gui = Gui.of(3).component(c -> {
+        Gui<?> gui = Gui.of(3).component(c -> {
             State<AtomicInteger> watched = c.watch(() -> score, AtomicInteger::get);
             c.render(slots -> slots.icon(11, paper(watched.get().get())));
         });
@@ -141,7 +141,7 @@ class GuiRenderDiffTest {
     @Test
     void refreshRepaintsAnObjectNoKeyCouldHaveReported() {
         AtomicInteger score = new AtomicInteger(1);
-        Gui gui = Gui.of(3).component(c -> c.render(slots -> slots.icon(11, paper(score.get()))));
+        Gui<?> gui = Gui.of(3).component(c -> c.render(slots -> slots.icon(11, paper(score.get()))));
 
         GuiView view = world.openDetached(gui, world.newPlayer("Steve"));
         SurfaceDouble surface = world.getSurface();
@@ -161,7 +161,7 @@ class GuiRenderDiffTest {
     @Test
     void everyChangeMadeInOneTickCostsOneWritePerSlot() {
         MutableState<Integer> counter = State.of(1);
-        Gui gui = Gui.of(3).component(c -> {
+        Gui<?> gui = Gui.of(3).component(c -> {
             c.remember(counter);
             c.render(slots -> slots.icon(4, paper(counter.get())));
         });
@@ -187,7 +187,7 @@ class GuiRenderDiffTest {
     @Test
     void clearingAComponentUncoversTheBackgroundInsteadOfEmptyingTheSlot() {
         MutableState<Boolean> showing = State.of(true);
-        Gui gui = Gui.of(3)
+        Gui<?> gui = Gui.of(3)
                 .icon(Slots.all(), Icon.of(new ItemStack(Material.GRAY_STAINED_GLASS_PANE)).background())
                 .component(c -> {
                     c.remember(showing);
@@ -214,7 +214,7 @@ class GuiRenderDiffTest {
     @Test
     void aSlotWithNothingUnderneathIsClearedRatherThanFilledWithAir() {
         MutableState<Boolean> showing = State.of(true);
-        Gui gui = Gui.of(3).component(c -> {
+        Gui<?> gui = Gui.of(3).component(c -> {
             c.remember(showing);
             c.render(slots -> {
                 if (showing.get()) {
@@ -266,7 +266,7 @@ class GuiRenderDiffTest {
     void aTitleChangeReopensTheWindowOnceAndTheScreenSurvivesIt() {
         MutableState<Integer> page = State.of(1);
         List<MutableState<Integer>> perViewer = new ArrayList<>();
-        Gui gui = Gui.of(3)
+        Gui<?> gui = Gui.of(3)
                 .title(() -> "Page " + page.get())
                 .component(c -> {
                     MutableState<Integer> visits = c.remember(7);
@@ -305,7 +305,7 @@ class GuiRenderDiffTest {
     @Test
     void aTitleThatDoesNotChangeCostsNoReopen() {
         MutableState<Integer> counter = State.of(1);
-        Gui gui = Gui.of(3)
+        Gui<?> gui = Gui.of(3)
                 .title("Fixed")
                 .component(c -> {
                     c.remember(counter);
@@ -369,7 +369,7 @@ class GuiRenderDiffTest {
     @Test
     void aStateRememberedByValueBelongsToOneViewerAlone() {
         List<MutableState<Integer>> perViewer = new ArrayList<>();
-        Gui gui = Gui.of(3).component(c -> {
+        Gui<?> gui = Gui.of(3).component(c -> {
             MutableState<Integer> own = c.remember(1);
             perViewer.add(own);
             c.render(slots -> slots.icon(0, paper(own.get())));
@@ -394,7 +394,7 @@ class GuiRenderDiffTest {
     @Test
     void aStateCreatedOutsideIsSharedAndMovesEveryScreenThatRemembersIt() {
         CountingState<Integer> shared = new CountingState<>(1);
-        Gui gui = Gui.of(3).component(c -> {
+        Gui<?> gui = Gui.of(3).component(c -> {
             c.remember(shared);
             c.render(slots -> slots.icon(8, paper(shared.get())));
         });
@@ -418,7 +418,7 @@ class GuiRenderDiffTest {
     @Test
     void closingOneScreenDropsItsSubscriptionAndLeavesTheStateToTheOther() {
         CountingState<Integer> shared = new CountingState<>(1);
-        Gui gui = Gui.of(3).component(c -> {
+        Gui<?> gui = Gui.of(3).component(c -> {
             c.remember(shared);
             c.render(slots -> slots.icon(8, paper(shared.get())));
         });

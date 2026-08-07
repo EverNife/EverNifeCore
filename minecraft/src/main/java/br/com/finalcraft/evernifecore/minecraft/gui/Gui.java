@@ -1,7 +1,10 @@
 package br.com.finalcraft.evernifecore.minecraft.gui;
 
 import br.com.finalcraft.evernifecore.minecraft.gui.component.GuiComponent;
+import br.com.finalcraft.evernifecore.minecraft.gui.component.IconBinder;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
+import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutBase;
+import br.com.finalcraft.evernifecore.minecraft.gui.layout.Layouts;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.ClickPolicy;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.GuiGeometry;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.GuiType;
@@ -18,10 +21,13 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -34,40 +40,75 @@ import java.util.function.Supplier;
  *
  * <p>Nothing is clickable until it is opened up: the default policy is {@link ClickPolicy#DENY_ALL},
  * so items cannot be taken, placed, dragged or shift-moved out of a screen until a region says so.</p>
+ *
+ * <p>{@code L} is the layout this screen was built from. {@link #of(LayoutBase)} paints every icon the
+ * file resolved and types {@link #icon(Function)}, so {@code icon(l -> l.UPGRADE)} is checked by the
+ * compiler and refactors with the field. A screen sized by hand has no layout and only the raw-slot
+ * forms.</p>
  */
-public class Gui {
+public class Gui<L extends LayoutBase> {
 
     /** Enough to swallow a double click, short enough to be invisible to a human. {@code 0} switches it off. */
     public static final long DEFAULT_DEBOUNCE_MILLIS = 200L;
 
     private final GuiType type;
     private final int rows;
+    private final L layout;
 
     private Supplier<String> title = () -> "";
     private ClickPolicy policy = ClickPolicy.DENY_ALL;
     private long debounceMillis = DEFAULT_DEBOUNCE_MILLIS;
 
+    private final Map<String, IconBinding> layoutIcons = new LinkedHashMap<>();
+    private final Set<String> claimedIcons = new LinkedHashSet<>();
     private final List<IconBinding> iconBindings = new ArrayList<>();
     private final List<Consumer<GuiComponent>> componentDeclarations = new ArrayList<>();
     private final Map<String, Region> regions = new LinkedHashMap<>();
     private Consumer<CloseContext> onClose;
 
-    protected Gui(GuiType type, int rows) {
+    protected Gui(GuiType type, int rows, @Nullable L layout) {
         this.type = type;
         this.rows = rows;
+        this.layout = layout;
         type.sizeOf(rows); //fail here, on the line the caller wrote, not later when the window is asked for
+        if (layout != null) {
+            title(layout::getTitle);
+            for (LayoutBase.PlacedIcon placed : layout.getIcons().values()) {
+                if (placed.isVisible()) {
+                    layoutIcons.put(placed.getName(), new IconBinding(placed.getSlots(), placed.getIcon()));
+                }
+            }
+        }
     }
 
     /** A chest of {@code rows} rows. */
     @Nonnull
-    public static Gui of(int rows) {
-        return new Gui(GuiType.CHEST, rows);
+    public static Gui<LayoutBase> of(int rows) {
+        return new Gui<>(GuiType.CHEST, rows, null);
     }
 
     /** A window of another type - hopper, dispenser, brewing stand or workbench. */
     @Nonnull
-    public static Gui of(@Nonnull GuiType type) {
-        return new Gui(type, GuiType.MAX_CHEST_ROWS);
+    public static Gui<LayoutBase> of(@Nonnull GuiType type) {
+        return new Gui<>(type, GuiType.MAX_CHEST_ROWS, null);
+    }
+
+    /**
+     * A screen sized, titled and decorated by {@code layout}: every icon the file resolved is already
+     * painted, and {@link #icon(Function)} is how one of them gains behaviour.
+     *
+     * <p>The title is the one the owning plugin's language answers with. A title that follows each
+     * viewer needs the viewer, which a description does not have.</p>
+     */
+    @Nonnull
+    public static <L extends LayoutBase> Gui<L> of(@Nonnull L layout) {
+        return new Gui<>(layout.getType(), layout.getRows(), layout);
+    }
+
+    /** {@link #of(LayoutBase)} over {@link Layouts#of(Class)} - the form that reads the file itself. */
+    @Nonnull
+    public static <L extends LayoutBase> Gui<L> of(@Nonnull Class<L> layoutType) {
+        return of(Layouts.of(layoutType));
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -75,7 +116,7 @@ public class Gui {
     // -----------------------------------------------------------------------------------------------------------------
 
     @Nonnull
-    public Gui title(@Nonnull String title) {
+    public Gui<L> title(@Nonnull String title) {
         return title(() -> title);
     }
 
@@ -89,26 +130,41 @@ public class Gui {
      * all preserved. A screen whose title changes on every tick will flicker on every tick.</p>
      */
     @Nonnull
-    public Gui title(@Nonnull Supplier<String> title) {
+    public Gui<L> title(@Nonnull Supplier<String> title) {
         this.title = title;
         return this;
     }
 
     /** Puts {@code icon} on one raw, 0-based slot. */
     @Nonnull
-    public Gui icon(int slot, @Nonnull Icon icon) {
+    public Gui<L> icon(int slot, @Nonnull Icon icon) {
         return icon(Slots.of(slot), icon);
     }
 
     /** Puts {@code icon} on every slot of {@code slots} - see {@link Slots}. */
     @Nonnull
-    public Gui icon(@Nonnull SlotSet slots, @Nonnull Icon icon) {
+    public Gui<L> icon(@Nonnull SlotSet slots, @Nonnull Icon icon) {
         if (slots == null || icon == null) {
             throw new IllegalArgumentException("Both the slots and the icon are required. "
                     + "To leave a slot empty, simply do not bind an icon to it.");
         }
         iconBindings.add(new IconBinding(slots, icon));
         return this;
+    }
+
+    /**
+     * Gives one icon of the layout a behaviour of its own - a click, a state, a cycle - on the slots
+     * the file put it on.
+     *
+     * <p>The binding works on a copy, per viewer, so two screens sharing the same cached layout never
+     * write into each other, and the plain copy the layout painted stops being drawn.</p>
+     */
+    @Nonnull
+    public IconBinder icon(@Nonnull Function<L, Icon> selector) {
+        LayoutBase.PlacedIcon placed = takeOver(selector);
+        IconBinder binder = new IconBinder(this, placed.getSlots(), placed.getIcon());
+        component(binder::bind);
+        return binder;
     }
 
     /**
@@ -119,7 +175,7 @@ public class Gui {
      * in a {@code State.of(...)} that several components remember.</p>
      */
     @Nonnull
-    public Gui component(@Nonnull Consumer<GuiComponent> declaration) {
+    public Gui<L> component(@Nonnull Consumer<GuiComponent> declaration) {
         if (declaration == null) {
             throw new IllegalArgumentException("A component needs a declaration - the lambda that "
                     + "remembers its state and says what it renders.");
@@ -134,7 +190,7 @@ public class Gui {
      * @throws IllegalArgumentException when the name is already taken
      */
     @Nonnull
-    public Gui addRegion(@Nonnull Region region) {
+    public Gui<L> addRegion(@Nonnull Region region) {
         Region previous = regions.put(region.getName(), region);
         if (previous != null) {
             regions.put(region.getName(), previous);
@@ -147,7 +203,7 @@ public class Gui {
 
     /** The policy applied to any slot no region claims. */
     @Nonnull
-    public Gui policy(@Nonnull ClickPolicy policy) {
+    public Gui<L> policy(@Nonnull ClickPolicy policy) {
         this.policy = policy == null ? ClickPolicy.DENY_ALL : policy;
         return this;
     }
@@ -160,7 +216,7 @@ public class Gui {
      * player out of their own menu.</p>
      */
     @Nonnull
-    public Gui debounce(long millis) {
+    public Gui<L> debounce(long millis) {
         this.debounceMillis = Math.max(0L, millis);
         return this;
     }
@@ -171,9 +227,38 @@ public class Gui {
      * an item back in the player's hands.
      */
     @Nonnull
-    public Gui onClose(@Nullable Consumer<CloseContext> onClose) {
+    public Gui<L> onClose(@Nullable Consumer<CloseContext> onClose) {
         this.onClose = onClose;
         return this;
+    }
+
+    /**
+     * The layout icon {@code selector} names, handed over to whatever binding asked for it: from here
+     * on the screen no longer paints it on its own.
+     *
+     * @throws IllegalArgumentException when the screen has no layout, or the selector answers
+     *                                  something that is not one of its icons
+     */
+    @Nonnull
+    public LayoutBase.PlacedIcon takeOver(@Nonnull Function<L, Icon> selector) {
+        if (layout == null) {
+            throw new IllegalArgumentException("This screen has no layout, so an icon cannot be selected "
+                    + "by field. Build it with Gui.of(MyLayout.class) to address icons by name, or bind "
+                    + "them to raw slots with icon(slot, icon).");
+        }
+        String name = layout.getIconName(selector.apply(layout));
+        if (name == null) {
+            throw new IllegalArgumentException("The selector did not answer an icon of "
+                    + layout.getLayoutName() + ". It has to return one of the @IconData fields of the layout "
+                    + "itself - l -> l.UPGRADE - and not an icon built on the spot.");
+        }
+        LayoutBase.PlacedIcon placed = layout.getIcons().get(name);
+        if (placed == null) {
+            throw new IllegalArgumentException(layout.getLayoutName() + "." + name + " failed to load and was "
+                    + "dropped, so nothing can be bound to it. The log says which key of the yml broke it.");
+        }
+        claimedIcons.add(name);
+        return placed;
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -209,6 +294,12 @@ public class Gui {
         return rows;
     }
 
+    /** The layout this screen was built from, or {@code null} when it was sized by hand. */
+    @Nullable
+    public L getLayout() {
+        return layout;
+    }
+
     /** The nominal measurements. A view measures the container it actually got instead. */
     @Nonnull
     public GuiGeometry getGeometry() {
@@ -230,9 +321,20 @@ public class Gui {
         return debounceMillis;
     }
 
+    /** The layout's own icons that no binding took over, then the ones bound by hand. */
     @Nonnull
     public List<IconBinding> getIconBindings() {
-        return Collections.unmodifiableList(iconBindings);
+        if (layoutIcons.isEmpty()) {
+            return Collections.unmodifiableList(iconBindings);
+        }
+        List<IconBinding> bindings = new ArrayList<>(layoutIcons.size() + iconBindings.size());
+        for (Map.Entry<String, IconBinding> entry : layoutIcons.entrySet()) {
+            if (!claimedIcons.contains(entry.getKey())) {
+                bindings.add(entry.getValue());
+            }
+        }
+        bindings.addAll(iconBindings);
+        return Collections.unmodifiableList(bindings);
     }
 
     @Nonnull

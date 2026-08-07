@@ -36,7 +36,7 @@ public final class CloseContext {
     }
 
     @Nonnull
-    public Gui getGui() {
+    public Gui<?> getGui() {
         return view.getGui();
     }
 

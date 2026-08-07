@@ -50,7 +50,7 @@ public final class ClickContext {
     }
 
     @Nonnull
-    public Gui getGui() {
+    public Gui<?> getGui() {
         return view.getGui();
     }
 

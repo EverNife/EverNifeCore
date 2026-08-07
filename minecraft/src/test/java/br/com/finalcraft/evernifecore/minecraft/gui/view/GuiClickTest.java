@@ -112,7 +112,7 @@ class GuiClickTest {
 
     @Test
     void aRegionCanOpenUpItsOwnSlotsWithoutOpeningTheScreen() {
-        Gui gui = Gui.of(3)
+        Gui<?> gui = Gui.of(3)
                 .icon(0, button(Material.DIAMOND))
                 .addRegion(new Region("storage", Slots.of(10, 11), Region.LAYER_CONTENT,
                         ClickPolicy.builder().allowTake().build()));
@@ -181,7 +181,7 @@ class GuiClickTest {
 
     @Test
     void aRegionThatAllowsDraggingIsDraggedInto() {
-        Gui gui = Gui.of(3).addRegion(new Region("storage", Slots.of(13), Region.LAYER_CONTENT,
+        Gui<?> gui = Gui.of(3).addRegion(new Region("storage", Slots.of(13), Region.LAYER_CONTENT,
                 ClickPolicy.builder().allowDrag().build()));
         open(gui);
 
@@ -268,7 +268,7 @@ class GuiClickTest {
 
     @Test
     void aSlotWithNoHandlerDoesNotSpendTheWindow() {
-        Gui gui = Gui.of(3)
+        Gui<?> gui = Gui.of(3)
                 .debounce(Gui.DEFAULT_DEBOUNCE_MILLIS)
                 .icon(0, Icon.of(new ItemStack(Material.STONE)))
                 .icon(13, button(Material.DIAMOND));
@@ -328,7 +328,7 @@ class GuiClickTest {
     @Test
     void theContextCarriesTheClickWithoutCarryingTheEvent() {
         player.holding(new ItemStack(Material.EMERALD, 3));
-        Gui gui = Gui.of(3).debounce(0).icon(13, button(Material.DIAMOND));
+        Gui<?> gui = Gui.of(3).debounce(0).icon(13, button(Material.DIAMOND));
         GuiView view = open(gui);
 
         clicks.click(player, 13, ClickType.RIGHT, InventoryAction.PICKUP_HALF);
@@ -401,7 +401,7 @@ class GuiClickTest {
 
     @Test
     void aKindNobodyClassifiedIsRefusedEvenOnAnOpenScreen() {
-        Gui gui = Gui.of(3).addRegion(new Region("storage", Slots.of(13), Region.LAYER_CONTENT,
+        Gui<?> gui = Gui.of(3).addRegion(new Region("storage", Slots.of(13), Region.LAYER_CONTENT,
                 ClickPolicy.builder().allow(ClickKind.TAKE, ClickKind.PLACE).build()));
         open(gui);
 

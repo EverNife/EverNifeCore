@@ -45,7 +45,7 @@ public final class GuiView {
     /** Icons declared straight on the gui sit here; each component gets its own layer above it. */
     private static final int FIRST_COMPONENT_LAYER = Region.LAYER_CONTENT + 1;
 
-    private final Gui gui;
+    private final Gui<?> gui;
     private final UUID viewerId;
     private final String viewerName;
     private final GuiGeometry geometry;
@@ -76,7 +76,7 @@ public final class GuiView {
     private long lastAcceptedClickAt = 0L;
     private boolean closed = false;
 
-    GuiView(Gui gui, Player viewer, GuiSurface surface, GuiScheduler scheduler, String title) {
+    GuiView(Gui<?> gui, Player viewer, GuiSurface surface, GuiScheduler scheduler, String title) {
         this.gui = gui;
         this.viewer = viewer;
         this.viewerId = viewer.getUniqueId();
@@ -118,7 +118,7 @@ public final class GuiView {
     // -----------------------------------------------------------------------------------------------------------------
 
     @Nonnull
-    public Gui getGui() {
+    public Gui<?> getGui() {
         return gui;
     }
 

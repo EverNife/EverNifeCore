@@ -181,7 +181,7 @@ public final class GuiTestWorld implements AutoCloseable {
     // -----------------------------------------------------------------------------------------------------------------
 
     /** Opens {@code gui} and hands back the view, failing the test if the open was refused. */
-    public GuiView open(Gui gui, PlayerDouble player) {
+    public GuiView open(Gui<?> gui, PlayerDouble player) {
         try {
             return gui.open(player.asPlayer()).get();
         } catch (InterruptedException | ExecutionException e) {
@@ -190,7 +190,7 @@ public final class GuiTestWorld implements AutoCloseable {
     }
 
     /** Opens without demanding success - for the tests that are about the refusal. */
-    public CompletableFuture<GuiView> tryOpen(Gui gui, PlayerDouble player) {
+    public CompletableFuture<GuiView> tryOpen(Gui<?> gui, PlayerDouble player) {
         return gui.open(player.asPlayer());
     }
 
@@ -202,7 +202,7 @@ public final class GuiTestWorld implements AutoCloseable {
      * not registered with the framework, so a test about clicks or about the shutdown sweep uses
      * {@link #open(Gui, PlayerDouble)} instead - see {@link DetachedViews}.</p>
      */
-    public GuiView openDetached(Gui gui, PlayerDouble player) {
+    public GuiView openDetached(Gui<?> gui, PlayerDouble player) {
         SurfaceDouble surface = new SurfaceDouble(gui.getType().sizeOf(gui.getRows()));
         createdSurfaces.add(surface);
         GuiView view = DetachedViews.open(gui, player.asPlayer(), surface, scheduler);
@@ -218,7 +218,7 @@ public final class GuiTestWorld implements AutoCloseable {
      * own open registers a view but always builds a Bukkit container; {@link #openDetached} hands over
      * a {@link SurfaceDouble} but registers nothing.</p>
      */
-    public GuiView openDetachedAndRegistered(Gui gui, PlayerDouble player) {
+    public GuiView openDetachedAndRegistered(Gui<?> gui, PlayerDouble player) {
         GuiView view = openDetached(gui, player);
         player.asPlayer().openInventory(getSurface().asInventory());
         DetachedViews.register(player.asPlayer(), view);

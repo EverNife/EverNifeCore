@@ -72,7 +72,7 @@ public final class GuiViews {
 
     /** See {@link Gui#open(Player)}. */
     @Nonnull
-    public static CompletableFuture<GuiView> open(@Nonnull Gui gui, @Nonnull Player player) {
+    public static CompletableFuture<GuiView> open(@Nonnull Gui<?> gui, @Nonnull Player player) {
         CompletableFuture<GuiView> future = new CompletableFuture<>();
         if (FCBukkitUtil.isMainThread()) {
             openOnMainThread(gui, player, future);
@@ -82,7 +82,7 @@ public final class GuiViews {
         return future;
     }
 
-    private static void openOnMainThread(Gui gui, Player player, CompletableFuture<GuiView> future) {
+    private static void openOnMainThread(Gui<?> gui, Player player, CompletableFuture<GuiView> future) {
         try {
             if (!player.isOnline()) {
                 refuse(gui, player, future, "the player is no longer online");
@@ -120,7 +120,7 @@ public final class GuiViews {
         }
     }
 
-    private static void refuse(Gui gui, Player player, CompletableFuture<GuiView> future, String why) {
+    private static void refuse(Gui<?> gui, Player player, CompletableFuture<GuiView> future, String why) {
         String message = "The gui [" + gui.getTitle() + "] did not open for [" + player.getName() + "]: " + why + ".";
         EverNifeCore.getLog().warning(message);
         future.completeExceptionally(new IllegalStateException(message));
@@ -167,7 +167,7 @@ public final class GuiViews {
         }
     }
 
-    private static Inventory createInventory(Gui gui, String title) {
+    private static Inventory createInventory(Gui<?> gui, String title) {
         GuiType type = gui.getType();
         if (type.isChest()) {
             return Bukkit.createInventory(null, type.sizeOf(gui.getRows()), title);

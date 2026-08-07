@@ -77,7 +77,7 @@ class GuiLifecycleTest {
     @Test
     void anOpenTheServerRefusedRegistersNothingAndSchedulesNothing() {
         PlayerDouble player = world.newPlayer("Steve").refuseOpens(true);
-        Gui gui = Gui.of(3).component(component -> {
+        Gui<?> gui = Gui.of(3).component(component -> {
             component.every(20);
             component.render(slots -> slots.icon(4, stone()));
         });
@@ -125,7 +125,7 @@ class GuiLifecycleTest {
     @Test
     void aClosedScreenLeavesNoTaskRunning() {
         AtomicInteger redraws = new AtomicInteger();
-        Gui gui = Gui.of(3)
+        Gui<?> gui = Gui.of(3)
                 .icon(4, Icon.of(new ItemStack(Material.CLOCK)).every(20).render(icon -> redraws.incrementAndGet()))
                 .component(component -> {
                     component.watch(redraws::get);
@@ -163,7 +163,7 @@ class GuiLifecycleTest {
     @Test
     void aComponentRedrawsOnItsOwnPeriod() {
         AtomicInteger renders = new AtomicInteger();
-        Gui gui = Gui.of(3).component(component -> {
+        Gui<?> gui = Gui.of(3).component(component -> {
             component.every(20);
             component.render(slots -> {
                 renders.incrementAndGet();
@@ -187,7 +187,7 @@ class GuiLifecycleTest {
         Icon clock = Icon.of(new ItemStack(Material.CLOCK, 1))
                 .every(20)
                 .render(icon -> icon.setItemStack(new ItemStack(Material.CLOCK, icon.getItemStack().getAmount() + 1)));
-        Gui gui = Gui.of(3).icon(4, clock);
+        Gui<?> gui = Gui.of(3).icon(4, clock);
 
         world.openDetached(gui, world.newPlayer("Steve"));
         world.advanceTicks(60);
@@ -234,7 +234,7 @@ class GuiLifecycleTest {
     void theShutdownSweepClosesEveryScreenAndRunsEachOnClose() {
         List<CloseReason> reasons = new ArrayList<>();
         List<Material> returned = new ArrayList<>();
-        Gui gui = Gui.of(3)
+        Gui<?> gui = Gui.of(3)
                 .icon(0, stone())
                 .onClose(context -> {
                     reasons.add(context.getReason());

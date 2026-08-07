@@ -10,6 +10,7 @@ import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.entity.Player;
 
+import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -103,6 +104,36 @@ public abstract class LayoutBase {
     public Icon getIcon(@Nonnull String fieldName) {
         PlacedIcon placed = icons.get(fieldName);
         return placed == null ? null : placed.getIcon();
+    }
+
+    /**
+     * The name {@code icon} is known by here, or {@code null} when it belongs to another layout.
+     *
+     * <p>A field of the class holds the icon the plugin DECLARED, while {@link #getIcons()} holds the
+     * one the file resolved. Both answer, which is what lets a selector written against the class -
+     * {@code l -> l.UPGRADE} - reach whatever the admin configured under that key.</p>
+     */
+    @Nullable
+    public String getIconName(@Nullable Icon icon) {
+        if (icon == null) {
+            return null;
+        }
+        for (Map.Entry<String, PlacedIcon> entry : icons.entrySet()) {
+            if (entry.getValue().getIcon() == icon) {
+                return entry.getKey();
+            }
+        }
+        for (Field field : LayoutScanner.iconFields(getClass())) {
+            try {
+                field.setAccessible(true);
+                if (field.get(this) == icon) {
+                    return field.getName();
+                }
+            } catch (IllegalAccessException unreadable) {
+                //a field the jvm refuses to hand over cannot be the one the selector just read
+            }
+        }
+        return null;
     }
 
     // -----------------------------------------------------------------------------------------------------------------
