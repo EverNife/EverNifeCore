@@ -75,6 +75,47 @@ public class ArgParserManager {
     }
 
     /**
+     * A copy of the registry as it stands right now, to be handed back to
+     * {@link #restoreRegistry(RegistrySnapshot)} later.
+     * <p>
+     * The registry is process-wide and lives as long as the JVM, so a parser registered anywhere
+     * answers every lookup that follows it. A caller whose registrations have a bounded lifetime -
+     * a harness driving the framework in a reused JVM, a plugin that comes and goes - takes one of
+     * these before registering, and what it added stops answering once the snapshot goes back.
+     */
+    public static RegistrySnapshot snapshotRegistry(){
+        return new RegistrySnapshot(GLOBAL_CONTEXT_PARSER, PLUGIN_CONTEXT_MAP);
+    }
+
+    /** Puts back exactly what the snapshot captured, dropping every registration made after it. */
+    public static void restoreRegistry(RegistrySnapshot snapshot){
+        GLOBAL_CONTEXT_PARSER = new ParserContext(snapshot.global);
+        PLUGIN_CONTEXT_MAP = copyOf(snapshot.pluginContexts);
+    }
+
+    private static Map<String,ParserContext> copyOf(Map<String,ParserContext> source){
+        Map<String,ParserContext> copy = new HashMap<>();
+        for (Map.Entry<String,ParserContext> entry : source.entrySet()) {
+            copy.put(entry.getKey(), new ParserContext(entry.getValue()));
+        }
+        return copy;
+    }
+
+    /**
+     * The registry captured at one point in time. Copied on the way in and on the way out, so
+     * neither side can reach the other's parsers - see {@link #snapshotRegistry()}.
+     */
+    public static final class RegistrySnapshot {
+        private final ParserContext global;
+        private final Map<String,ParserContext> pluginContexts;
+
+        private RegistrySnapshot(ParserContext global, Map<String,ParserContext> pluginContexts){
+            this.global = new ParserContext(global);
+            this.pluginContexts = copyOf(pluginContexts);
+        }
+    }
+
+    /**
      * One registry, read in two passes: the type ITSELF first, and only then the registered types it
      * can be assigned to, in registration order.
      * <p>
@@ -89,6 +130,16 @@ public class ArgParserManager {
         private final Map<Class, Class<? extends ArgParserContextual>> exactContextualParsers = new LinkedHashMap<>();
         private final List<Tuple<Class, Class<? extends ArgParser>>> argParsers = new ArrayList<>();
         private final List<Tuple<Class, Class<? extends ArgParserContextual>>> contextualArgParsers = new ArrayList<>();
+
+        private ParserContext(){
+        }
+
+        private ParserContext(ParserContext other){
+            exactParsers.putAll(other.exactParsers);
+            exactContextualParsers.putAll(other.exactContextualParsers);
+            argParsers.addAll(other.argParsers);
+            contextualArgParsers.addAll(other.contextualArgParsers);
+        }
 
         public void addParser(Class argument, Class<? extends ArgParser> parser){
             Class<? extends ArgParser> previous = exactParsers.put(argument, parser);

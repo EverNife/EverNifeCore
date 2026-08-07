@@ -18,8 +18,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 
 /**
  * How the registry answers "which parser reads this type": the type ITSELF first, the types it can be
- * assigned to afterwards. Every fixture here uses types nothing else registers, so the global registry
- * this exercises is not shared with any other test.
+ * assigned to afterwards. Each test registers into the global registry and the harness puts it back
+ * on close, so what one of them registers cannot answer for another's lookup.
  */
 class ArgParserRegistrySystemTest {
 

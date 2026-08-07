@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.testing;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgMountException;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.FCDefaultExecutor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
@@ -25,8 +26,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * {@link ECPluginData} (backed by the caller-supplied {@code @TempDir}), so tests never leak
  * registered commands or locale state into one another. Create one per test (or per test class, if
  * the tests within it are fine sharing the same fake plugin) and {@link #close()} it in
- * {@code @AfterEach}/{@code @AfterAll} - closing puts the previous platform and plugin extractor
- * back, so the isolation this javadoc promises also holds for the global providers.
+ * {@code @AfterEach}/{@code @AfterAll} - closing puts the previous platform, plugin extractor and
+ * arg-parser registry back, so the isolation this javadoc promises also holds for the process-wide
+ * state the framework keeps. A parser registered during one test cannot answer for another's
+ * argument, whatever order the two run in.
  */
 public class FinalCmdTestHarness implements AutoCloseable {
 
@@ -37,6 +40,7 @@ public class FinalCmdTestHarness implements AutoCloseable {
     public final ECPluginData ecPluginData;
 
     private final ECoreTestWorld world;
+    private final ArgParserManager.RegistrySnapshot parserRegistry;
 
     public FinalCmdTestHarness(String namePrefix, Path dataFolder) {
         this.pluginName = namePrefix + "_" + UNIQUE_SUFFIX.incrementAndGet();
@@ -57,6 +61,10 @@ public class FinalCmdTestHarness implements AutoCloseable {
         //Explicit, because a test may only ever scan a tree: nothing on that path would touch
         //FinalCMDManager, and every default parser lookup would come back null
         FinalCMDManager.registerBuiltinParsers();
+
+        //Taken AFTER the builtins: they are registered once per JVM behind a latch, so restoring a
+        //registry from before them would leave every later harness without a single default parser
+        this.parserRegistry = ArgParserManager.snapshotRegistry();
 
         //These core classes carry static @FCLocale fields (permission/help/parameter-error messages)
         //that the real bootstrap loads through ConfigManager.initialize(); that method also boots
@@ -132,6 +140,7 @@ public class FinalCmdTestHarness implements AutoCloseable {
 
     @Override
     public void close() {
+        ArgParserManager.restoreRegistry(parserRegistry);
         ECPluginManager.removePluginData(pluginName);
         world.close();
     }
