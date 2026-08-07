@@ -4,14 +4,21 @@ import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutBase;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.everyconfig.binding.BindException;
 import br.com.finalcraft.everyconfig.config.Config;
+import br.com.finalcraft.everyconfig.rule.ConfigRule;
+import br.com.finalcraft.everyconfig.rule.RuleContext;
+import br.com.finalcraft.everyconfig.rule.RuleHandler;
+import br.com.finalcraft.everyconfig.rule.RuleSite;
 import br.com.finalcraft.everyconfig.ruleset.Explicit;
 import br.com.finalcraft.everyconfig.ruleset.OneOf;
 import br.com.finalcraft.everyconfig.ruleset.OneOfSource;
+import br.com.finalcraft.everyconfig.ruleset.support.Violations;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -21,6 +28,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
@@ -29,6 +40,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -101,6 +113,22 @@ class SettingsScannerTest {
         public String token = "";
     }
 
+    static class WrittenTokenSettings {
+
+        @ConfigSetting(key = "Settings.writtenToken")
+        @Explicit
+        public String token = "";
+    }
+
+    /** The same key again, from a second holder: the scanner warns once per site, and two holders are two
+     *  sites - which is what makes the silence after the key is written mean something. */
+    static class FilledTokenSettings {
+
+        @ConfigSetting(key = "Settings.writtenToken")
+        @Explicit
+        public String token = "";
+    }
+
     static class BrokenDefault {
 
         @ConfigSetting(key = "Settings.chance")
@@ -115,6 +143,92 @@ class SettingsScannerTest {
         @Explicit
         @NotBlank
         public String secret = "";
+    }
+
+    static class DoubleSettings {
+
+        @ConfigSetting(key = "Settings.multiplier")
+        public Double multiplier = 1.5D;
+    }
+
+    /** A layout is a settings holder like any other; nothing about the scanner asks for the base class. */
+    static class ScreenSettings extends LayoutBase {
+
+        @ConfigSetting(key = "Screen.rows")
+        public Integer rows = 3;
+    }
+
+    static class BilingualSettings {
+
+        @ConfigSetting(key = "Settings.radius", comment = {
+                @FCLocale(lang = LocaleType.EN_US, text = "How far the shop reaches"),
+                @FCLocale(lang = LocaleType.PT_BR, text = "Ate onde a loja alcanca")
+        })
+        public Integer radius = 8;
+    }
+
+    static class RepeatedlyLoadedSettings {
+
+        @ConfigSetting(key = "Settings.slots")
+        @Max(9)
+        public Integer slots = 5;
+    }
+
+    static class ProviderCountingSettings {
+
+        @ConfigSetting(key = "Settings.region")
+        @OneOf(provider = CountingWorlds.class)
+        public String region = "spawn";
+    }
+
+    /** A provider that also says how often it was asked - the only way to see a cached answer. */
+    public static final class CountingWorlds implements OneOfSource {
+
+        static final AtomicInteger CALLS = new AtomicInteger();
+
+        @Override
+        public Collection<String> values() {
+            CALLS.incrementAndGet();
+            return Arrays.asList("spawn", "arena");
+        }
+    }
+
+    /** A rule that answers its own refusal instead of leaving the field's default as the only way out. */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    @ConfigRule(ClampedHandler.class)
+    public @interface Clamped {
+
+        int max();
+    }
+
+    public static final class ClampedHandler implements RuleHandler {
+
+        @Override
+        public void check(RuleContext context) {
+            if (!(context.value() instanceof Number)) {
+                return;
+            }
+            int max = ((Clamped) context.site().rule()).max();
+            int actual = ((Number) context.value()).intValue();
+            if (actual <= max) {
+                return;
+            }
+            context.correct(max);
+            Violations.report(context, "must be at most " + max + ", so " + actual + " was trimmed to it");
+        }
+
+        @Override
+        public List<String> describe(RuleSite site) {
+            return Collections.singletonList("At most " + ((Clamped) site.rule()).max() + ", trimmed when larger.");
+        }
+    }
+
+    static class ClampedSettings {
+
+        @ConfigSetting(key = "Settings.viewDistance")
+        @Clamped(max = 16)
+        public Integer viewDistance = 8;
     }
 
     //NEVER: see RegistrationSystemTest - the locale bootstrap's async saveAsync() can race JUnit's
@@ -274,12 +388,126 @@ class SettingsScannerTest {
         assertEquals(Collections.emptyList(), emptied.levels, "erasing every entry means none, not the default");
     }
 
+    @Test
+    void aClassThatIsNotALayoutCarriesSettingsJustLikeOneThatIs() {
+        config.setValue("Gui.rows", 5);
+        config.setValue("Screen.rows", 4);
+
+        TypedSettings plain = new TypedSettings();
+        ScreenSettings screen = new ScreenSettings();
+        SettingsScanner.load(ecPluginData, config, plain);
+        SettingsScanner.load(ecPluginData, config, screen);
+
+        assertEquals(5, plain.rows, "a plain class is a settings holder");
+        assertEquals(4, screen.rows, "and so is a layout, by the same code path");
+    }
+
+    @Test
+    void aHandlerThatCorrectsHandsBackTheCorrectedValueAndStillSaysWhatItDid() {
+        config.setValue("Settings.viewDistance", 64);
+        ClampedSettings settings = new ClampedSettings();
+
+        SettingsScanner.load(ecPluginData, config, settings);
+
+        assertEquals(16, settings.viewDistance,
+                "a handler that answered its own refusal wins over the field's default");
+        assertTrue(anyContains("rejects the file value '64'"),
+                "correcting does not silence: " + world.platform().getLoggedMessages());
+        assertTrue(anyContains("The value in use is '16'"),
+                "and the operator is told what is running meanwhile: "
+                        + world.platform().getLoggedMessages());
+    }
+
+    @Test
+    void whatARuleDocumentsIncludesWhatACustomHandlerSaysAboutItself() {
+        SettingsScanner.load(ecPluginData, config, new ClampedSettings());
+
+        String comment = config.getComment("Settings.viewDistance");
+        assertNotNull(comment, "a rule with a describe() has to reach the file");
+        assertTrue(comment.contains("At most 16, trimmed when larger."), comment);
+    }
+
+    @Test
+    void aStringWhereADoubleIsExpectedFallsBackToTheDefaultInsteadOfBreakingTheLoad() {
+        config.setValue("Settings.multiplier", "abc");
+        DoubleSettings settings = new DoubleSettings();
+
+        SettingsScanner.load(ecPluginData, config, settings);
+
+        assertEquals(1.5D, settings.multiplier);
+        assertTrue(anyContains("cannot be read as Double"), world.platform().getLoggedMessages().toString());
+    }
+
+    @Test
+    void aRuntimeSetIsAskedAgainOnEveryEvaluationRatherThanRemembered() {
+        CountingWorlds.CALLS.set(0);
+        config.setValue("Settings.region", "arena");
+
+        SettingsScanner.load(ecPluginData, config, new ProviderCountingSettings());
+        assertEquals(1, CountingWorlds.CALLS.get(), "the first load asks the provider");
+
+        SettingsScanner.load(ecPluginData, config, new ProviderCountingSettings());
+        assertEquals(2, CountingWorlds.CALLS.get(),
+                "a set only the running server knows cannot be cached: it is asked again");
+    }
+
+    @Test
+    void aValueTheOperatorWroteDownSatisfiesTheRuleThatDemandedIt() {
+        WrittenTokenSettings missing = new WrittenTokenSettings();
+        SettingsScanner.load(ecPluginData, config, missing);
+        assertEquals(1, countContaining("Settings.writtenToken"),
+                world.platform().getLoggedMessages().toString());
+
+        //the seeded file, once the operator has filled the key in and saved it
+        config.setValue("Settings.writtenToken", "a-real-token");
+        FilledTokenSettings written = new FilledTokenSettings();
+        SettingsScanner.load(ecPluginData, config, written);
+
+        assertEquals("a-real-token", written.token);
+        assertEquals(1, countContaining("Settings.writtenToken"),
+                "a second holder of the same key would be warned about all over again if the rule still "
+                        + "fired; the key is in the file now, so there is nothing left to ask for: "
+                        + world.platform().getLoggedMessages());
+    }
+
+    @Test
+    void theSeededCommentIsTheOneWrittenForThePluginsOwnLanguage() {
+        Plugins.setLanguage(ecPluginData, LocaleType.PT_BR);
+        assertEquals(LocaleType.PT_BR, ecPluginData.getPluginLanguage());
+
+        SettingsScanner.load(ecPluginData, config, new BilingualSettings());
+
+        String comment = config.getComment("Settings.radius");
+        assertTrue(comment.contains("Ate onde a loja alcanca"),
+                "the plugin's language picks which comment is written: " + comment);
+        assertTrue(!comment.contains("How far the shop reaches"),
+                "and the other languages stay out of the file: " + comment);
+    }
+
+    @Test
+    void aBrokenLineIsReportedOnceNoMatterHowOftenTheFileIsLoaded() {
+        config.setValue("Settings.slots", 40);
+
+        for (int load = 0; load < 5; load++) {
+            SettingsScanner.load(ecPluginData, config, new RepeatedlyLoadedSettings());
+        }
+
+        assertEquals(1, countContaining("Settings.slots"),
+                "the same broken line on every reload teaches nothing new: "
+                        + world.platform().getLoggedMessages());
+    }
+
     private boolean anyContains(String fragment) {
+        return countContaining(fragment) > 0;
+    }
+
+    private int countContaining(String fragment) {
+        int found = 0;
         for (String line : world.platform().getLoggedMessages()) {
             if (line.contains(fragment)) {
-                return true;
+                found++;
             }
         }
-        return false;
+        return found;
     }
 }

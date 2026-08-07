@@ -110,17 +110,20 @@ public class SettingsScanner {
             for (RuleSite site : sites) {
                 RuleEvaluation evaluation = EVALUATOR.evaluate(site, config.getConfigSection(key), value,
                         source, instance);
+                //A handler that corrected has answered its own refusal; one that merely refused leaves the
+                //field's default as the only value left to use
+                Object surviving = evaluation.corrected() ? evaluation.value()
+                        : evaluation.findings().isEmpty() ? value : defaultValue;
                 for (RuleFinding finding : evaluation.findings()) {
                     if (finding.severity() == RulePolicy.Severity.THROW) {
                         throw new BindException(finding.message());
                     }
+                    //what the rule refused is only half the news; the other half is what the server is
+                    //running on until someone acts on it
                     warnOnce(ecPluginData, type, key, site.rule().annotationType().getName(),
-                            finding.message());
+                            finding.message() + " The value in use is '" + surviving + "'.");
                 }
-                //A handler that corrected has answered its own refusal; one that merely refused leaves the
-                //field's default as the only value left to use
-                value = evaluation.corrected() ? evaluation.value()
-                        : evaluation.findings().isEmpty() ? value : defaultValue;
+                value = surviving;
             }
 
             inject(ecPluginData, field, instance, value);
