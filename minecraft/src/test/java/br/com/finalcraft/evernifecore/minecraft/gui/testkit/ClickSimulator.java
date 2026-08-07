@@ -5,6 +5,7 @@ import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.LinkedHashMap;
@@ -63,6 +64,35 @@ public final class ClickSimulator {
             added.put(rawSlot, dragged);
         }
         InventoryDragEvent event = new InventoryDragEvent(player.getOpenView(), null, dragged, false, added);
+        events.getListener().onInventoryDrag(event);
+        return event;
+    }
+
+    /**
+     * An even drag: the stack is divided between {@code rawSlots} and what is left stays on the cursor.
+     *
+     * <p>The map a server hands the event holds what each slot would END with, not what it receives -
+     * {@code getNewItems()} on a slot already holding two of the same item reads four, not two - so a
+     * test that means to divide a stack has to build it that way.</p>
+     */
+    public InventoryDragEvent dragEvenly(PlayerDouble player, ItemStack dragged, int... rawSlots) {
+        InventoryView view = player.getOpenView();
+        int share = dragged.getAmount() / rawSlots.length;
+        Map<Integer, ItemStack> ending = new LinkedHashMap<>();
+        for (int rawSlot : rawSlots) {
+            ItemStack held = view.getItem(rawSlot);
+            ItemStack result = dragged.clone();
+            result.setAmount(share + (held == null ? 0 : held.getAmount()));
+            ending.put(rawSlot, result);
+        }
+
+        int leftOver = dragged.getAmount() - share * rawSlots.length;
+        ItemStack cursor = null;
+        if (leftOver > 0) {
+            cursor = dragged.clone();
+            cursor.setAmount(leftOver);
+        }
+        InventoryDragEvent event = new InventoryDragEvent(view, cursor, dragged, false, ending);
         events.getListener().onInventoryDrag(event);
         return event;
     }

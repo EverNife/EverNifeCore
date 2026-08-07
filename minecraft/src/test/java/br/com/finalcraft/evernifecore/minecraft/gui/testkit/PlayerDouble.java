@@ -6,10 +6,13 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -23,6 +26,9 @@ import java.util.UUID;
  */
 public final class PlayerDouble {
 
+    /** What a stack holds here. The real number comes from a server registry this rig does not have. */
+    private static final int STACK = 64;
+
     private final UUID uniqueId = UUID.randomUUID();
     private final String name;
     private final Set<String> permissions = new LinkedHashSet<>();
@@ -33,6 +39,7 @@ public final class PlayerDouble {
 
     private ItemStack cursor;
     private InventoryView openView;
+    private PlayerInventory inventoryFace;
     private boolean online = true;
     private boolean refuseOpens = false;
 
@@ -45,6 +52,11 @@ public final class PlayerDouble {
                 .on("isOnline", args -> online)
                 .on("hasPermission", args -> args[0] instanceof String && permissions.contains(args[0]))
                 .on("getItemOnCursor", args -> cursor)
+                .on("setItemOnCursor", args -> {
+                    cursor = (ItemStack) args[0];
+                    return null;
+                })
+                .on("getInventory", args -> playerInventoryFace())
                 .on("getOpenInventory", args -> openView)
                 .on("openInventory", args -> open((Inventory) args[0]))
                 .on("closeInventory", args -> {
@@ -107,6 +119,69 @@ public final class PlayerDouble {
 
     public SurfaceDouble getPlayerInventory() {
         return playerInventory;
+    }
+
+    /**
+     * The player's own inventory, as much of it as a gui ever asks for: one slot read, one slot written,
+     * and {@code addItem}, which is how the framework gives an item back.
+     *
+     * <p>{@code addItem} tops up the stacks already there before filling an empty slot and answers
+     * whatever did not fit, the same shape the platform answers with. A stack is 64 here whatever the
+     * material is - measuring one needs a server registry, and no gui asks about that.</p>
+     */
+    private PlayerInventory playerInventoryFace() {
+        if (inventoryFace == null) {
+            inventoryFace = Doubles.of(PlayerInventory.class)
+                    .on("getSize", args -> playerInventory.getSize())
+                    .on("getItem", args -> playerInventory.getItem((Integer) args[0]))
+                    .on("setItem", args -> {
+                        playerInventory.set((Integer) args[0], (ItemStack) args[1]);
+                        return null;
+                    })
+                    .on("addItem", args -> addItems((ItemStack[]) args[0]))
+                    .build();
+        }
+        return inventoryFace;
+    }
+
+    private Map<Integer, ItemStack> addItems(ItemStack[] items) {
+        HashMap<Integer, ItemStack> leftovers = new HashMap<>();
+        for (int index = 0; index < items.length; index++) {
+            ItemStack left = pourIn(items[index]);
+            if (left != null) {
+                leftovers.put(index, left);
+            }
+        }
+        return leftovers;
+    }
+
+    private ItemStack pourIn(ItemStack item) {
+        if (item == null || item.getAmount() <= 0) {
+            return null;
+        }
+        int left = item.getAmount();
+        for (int slot = 0; slot < playerInventory.getSize() && left > 0; slot++) {
+            ItemStack held = playerInventory.getItem(slot);
+            if (held == null) {
+                int given = Math.min(left, STACK);
+                ItemStack put = item.clone();
+                put.setAmount(given);
+                playerInventory.set(slot, put);
+                left -= given;
+            } else if (held.isSimilar(item) && held.getAmount() < STACK) {
+                int given = Math.min(left, STACK - held.getAmount());
+                ItemStack merged = held.clone();
+                merged.setAmount(held.getAmount() + given);
+                playerInventory.set(slot, merged);
+                left -= given;
+            }
+        }
+        if (left <= 0) {
+            return null;
+        }
+        ItemStack over = item.clone();
+        over.setAmount(left);
+        return over;
     }
 
     private InventoryView open(Inventory inventory) {
