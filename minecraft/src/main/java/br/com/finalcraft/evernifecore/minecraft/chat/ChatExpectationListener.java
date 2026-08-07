@@ -87,6 +87,22 @@ public class ChatExpectationListener implements Listener {
         return expectedChat;
     }
 
+    /**
+     * Calls {@code expectedChat} off and stops routing to it right away.
+     *
+     * <p>{@link ExpectedChat#cancel()} on its own only marks it: it stays registered until the next
+     * message that player sends sweeps it, and until then it is still offered every message - so a
+     * caller that has finished with a wait unregisters it here.</p>
+     */
+    public void stopExpecting(ExpectedChat expectedChat) {
+        if (expectedChat == null) {
+            return;
+        }
+
+        expectedChat.cancel();
+        chatListeners.remove(expectedChat.getPlayer().getUniqueId(), expectedChat);
+    }
+
     @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent e) {
         Player player = e.getPlayer();
