@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.cfg.ConfigSetting;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.ListComponent;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.Pager;
 import br.com.finalcraft.evernifecore.minecraft.gui.icons.DefaultIcons;
+import br.com.finalcraft.evernifecore.minecraft.gui.icons.EnumStainedGlassPane;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.GuiLayout;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.IconData;
@@ -20,9 +21,12 @@ import br.com.finalcraft.evernifecore.minecraft.gui.state.MutableState;
 import br.com.finalcraft.evernifecore.minecraft.gui.state.State;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.ClickContext;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.prompt.ChatPrompt;
+import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventory;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.playerdata.PDSection;
+import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -543,7 +547,210 @@ final class GuiApiExamples {
 
     }
 
+    // ---- the one screen where the player really takes items out and puts items in ----
+
+    /** Whatever the plugin keeps a backpack in: a plain section with a {@code GenericInventory} in it. */
+    public static class BackpackSection extends PDSection {
+
+        private GenericInventory contents = new GenericInventory();
+        private int size = 27;
+
+        public BackpackSection() {                            //Jackson
+
+        }
+
+        public GenericInventory getContents() {
+            return contents;
+        }
+
+        public int getSize() {
+            return size;
+        }
+
+        public void setSize(int size) {
+            this.size = size;
+            markDirty();
+        }
+
+    }
+
+    @GuiLayout(title = "§9Mochila de §f%playerdata_name%", rows = 6)
+    public static class BackpackLayout extends LayoutBase {
+
+        /** The editable area. The admin resizes the backpack by moving these slots. */
+        @IconData(slot = {10, 11, 12, 13, 14, 15, 16,
+                19, 20, 21, 22, 23, 24, 25,
+                28, 29, 30, 31, 32, 33, 34})
+        public Icon AREA = Icon.empty();                      //no item: it is an area, not a button
+
+        @IconData(slot = {49})
+        public Icon CLOSE = DefaultIcons.back();
+
+        @IconData(slot = {45})
+        public Icon HELP = FCItemFactory.from(Material.PAPER)
+                .displayName("§eMochila")
+                .lore("§7Arraste itens para dentro e para fora.",
+                        "§7Tudo é salvo automaticamente.")
+                .asIcon();
+
+        @IconData(slot = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 17, 18, 26, 27, 35,
+                36, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47, 48, 50, 51, 52, 53}, background = true)
+        public Icon BACKGROUND = EnumStainedGlassPane.BLUE.asIcon();
+
+    }
+
+    /** No listener, no {@code InventoryHolder}, no close handler saving by hand. */
+    public static class BackpackGui extends LayoutGui<IPlayerData, BackpackLayout> {
+
+        public BackpackGui(IPlayerData data, BackpackSection backpack) {
+            super(Layouts.of(BackpackLayout.class), data);
+
+            icon(l -> l.CLOSE).onClick(ClickContext::close);
+
+            storage(l -> l.AREA)
+                    .backedBy(backpack.getContents())
+                    .policy(ClickPolicy.builder()
+                            .allowTake()
+                            .allowPlace()
+                            .allowSwap()
+                            .allowDrag()
+                            .build())
+                    .denyPlace(item -> isBlacklisted(item))
+                    .onChange(ctx -> backpack.markDirty());
+        }
+
+    }
+
+    /** Opening it: the section is read first, and the screen is built on the answer. */
+    static void openBackpack(Player player) {
+        PlayerController.getPlayerData(player.getUniqueId())
+                .thenCompose(data -> data.getPDSection(BackpackSection.class)
+                        .thenApply(backpack -> new BackpackGui(data, backpack)))
+                .thenAccept(gui -> gui.open(player));
+    }
+
+    @GuiLayout(title = "§9Editando kit", rows = 6)
+    public static class KitLayout extends LayoutBase {
+
+        @IconData(slot = {10, 11, 12, 13, 14, 15, 16})
+        public Icon AREA = Icon.empty();
+
+        @IconData(slot = {48})
+        public Icon SAVE = FCItemFactory.from(Material.EMERALD).displayName("§aSalvar").asIcon();
+
+        @IconData(slot = {50})
+        public Icon CANCEL = FCItemFactory.from(Material.BARRIER).displayName("§cCancelar").asIcon();
+
+    }
+
+    /** What the admin builds becomes config, so closing without saving has to discard instead of save. */
+    static void editKit(Player admin, Kit kit) {
+        Gui<KitLayout> editor = Gui.of(KitLayout.class);
+
+        editor.storage(l -> l.AREA)
+                .backedBy(kit.getContents())
+                .policy(ClickPolicy.EDIT_ALL)
+                .onChange(ctx -> note("mexeu no kit"));       //nothing is written per click
+
+        editor.icon(l -> l.SAVE).onClick(ctx -> {
+            kit.save();
+            ctx.getViewer().sendMessage("§aKit §f" + kit.getName() + " §asalvo.");
+            ctx.close();
+        });
+
+        editor.icon(l -> l.CANCEL).onClick(ctx -> {
+            kit.reload();
+            ctx.close();
+        });
+
+        //an editor that cannot tell "emptied on purpose" from "closed without saving" erases the kit
+        //whenever the admin walks away from an empty screen
+        editor.onClose(ctx -> {
+            if (!ctx.wasClosedBy(l -> l.SAVE)) {
+                kit.reload();
+            }
+        });
+
+        editor.open(admin);
+    }
+
+    public enum DepositState {DEFAULT, EMPTY}
+
+    @GuiLayout(title = "§9Depósito", rows = 6)
+    public static class DepositLayout extends LayoutBase {
+
+        @IconData(slot = {10, 11, 12, 13})
+        public Icon INPUT = Icon.empty();
+
+        @IconData(slot = {28, 29, 30, 31})
+        public Icon STORED = Icon.empty();
+
+        @IconData(slot = {49})
+        public Icon PROCESS = FCItemFactory.from(Material.FURNACE)
+                .displayName("§aProcessar")
+                .asIcon()
+                .addState(DepositState.EMPTY, FCItemFactory.from(Material.BARRIER)
+                        .displayName("§7Nada para processar"));
+
+    }
+
+    /** Three areas, three policies, one screen - and not a single {@code if} in a handler. */
+    public static class DepositGui extends LayoutGui<ShopPlayerData, DepositLayout> {
+
+        public DepositGui(ShopPlayerData data, Deposit deposit) {
+            super(Layouts.of(DepositLayout.class), data);
+
+            storage(l -> l.INPUT)                             //takes items in, never hands them back
+                    .backedBy(deposit.getInput())
+                    .policy(ClickPolicy.builder().allowPlace().denyTake().allowDrag().build())
+                    .onChange(ctx -> deposit.markDirty());
+
+            storage(l -> l.STORED)                            //read only
+                    .backedBy(deposit.getStored())
+                    .policy(ClickPolicy.DENY_ALL);
+
+            icon(l -> l.PROCESS)
+                    .states(DepositState.class,
+                            () -> deposit.isEmpty() ? DepositState.EMPTY : DepositState.DEFAULT)
+                    .onClick(ctx -> {
+                        deposit.process();
+                        ctx.refresh();
+                    });
+        }
+
+    }
+
     // ---- stand-ins for whatever the plugin actually has ----
+
+    private static boolean isBlacklisted(ItemStack item) {
+        return false;
+    }
+
+    private interface Kit {
+
+        String getName();
+
+        GenericInventory getContents();
+
+        void save();
+
+        void reload();
+
+    }
+
+    private interface Deposit {
+
+        GenericInventory getInput();
+
+        GenericInventory getStored();
+
+        boolean isEmpty();
+
+        void process();
+
+        void markDirty();
+
+    }
 
     private static void note(String message) {
 

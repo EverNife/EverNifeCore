@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.icons;
 
+import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder.FCItemBuilder;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
@@ -62,5 +63,10 @@ public enum EnumStainedGlassPane {
         ItemStack itemStack = new ItemStack(material);
         if (damage != 0) itemStack.setDurability(damage);
         return itemStack;
+    }
+
+    /** This pane as an icon, which is the form a screen's background is written in. */
+    public Icon asIcon(){
+        return asFactory().asIcon();
     }
 }
