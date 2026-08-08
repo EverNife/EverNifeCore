@@ -22,7 +22,17 @@ public final class Plugins {
 
     /** An extractor that answers for a single fake plugin, whatever object is handed to it. */
     public static IECPluginExtractor fake(String pluginName, File dataFolder) {
-        return new FakePluginExtractor(pluginName, dataFolder);
+        return new FakePluginExtractor(pluginName, dataFolder, null);
+    }
+
+    /**
+     * As {@link #fake(String, File)}, but only {@code thePlugin} counts as a plugin - the way a real
+     * extractor answers {@code plugin instanceof JavaPlugin}. Anything else is refused by
+     * {@code IECPluginExtractor#validateJavaPlugin}, which is what registering a stray object looks
+     * like on a server.
+     */
+    public static IECPluginExtractor fakeRecognisingOnly(String pluginName, File dataFolder, Object thePlugin) {
+        return new FakePluginExtractor(pluginName, dataFolder, thePlugin);
     }
 
     /**
@@ -45,10 +55,12 @@ public final class Plugins {
     private static final class FakePluginExtractor implements IECPluginExtractor {
         private final String pluginName;
         private final File dataFolder;
+        private final Object recognised;
 
-        FakePluginExtractor(String pluginName, File dataFolder) {
+        FakePluginExtractor(String pluginName, File dataFolder, Object recognised) {
             this.pluginName = pluginName;
             this.dataFolder = dataFolder;
+            this.recognised = recognised;
         }
 
         @Override
@@ -58,7 +70,8 @@ public final class Plugins {
 
         @Override
         public boolean isJavaPlugin(Object plugin) {
-            return true;
+            //no object was singled out: this extractor speaks for whatever it is handed
+            return recognised == null || recognised == plugin;
         }
 
         @Override
