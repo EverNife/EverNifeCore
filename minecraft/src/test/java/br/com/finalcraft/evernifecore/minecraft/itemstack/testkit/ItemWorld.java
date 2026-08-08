@@ -29,6 +29,10 @@ import java.lang.reflect.Proxy;
  * <p>What cannot be faked is not faked. Item tags come from a library that reaches into the server's
  * own classes, so no headless JVM has them and this rig never claims to - a test that wants the tag
  * asks for a runtime without it and proves the refusal instead.</p>
+ *
+ * <p>The main thread is whichever thread installed this rig, and no other. Answering everyone yes
+ * would be the same rig quietly disarming every main-thread guard in the code under test, for as long
+ * as it is installed - the answer follows the thread that asks.</p>
  */
 public final class ItemWorld implements AutoCloseable {
 
@@ -48,7 +52,7 @@ public final class ItemWorld implements AutoCloseable {
 
     private ItemWorld(ItemRuntime runtime) {
         this.previousServer = Bukkit.getServer();
-        setBukkitServer(buildServer(runtime));
+        setBukkitServer(buildServer(runtime, Thread.currentThread()));
         this.engine = ItemEngine.install(runtime);
     }
 
@@ -70,7 +74,7 @@ public final class ItemWorld implements AutoCloseable {
     //  The described server
     // -----------------------------------------------------------------------------------------------------------------
 
-    private static Server buildServer(ItemRuntime runtime) {
+    private static Server buildServer(ItemRuntime runtime, Thread mainThread) {
         ItemFactory itemFactory = (ItemFactory) Proxy.newProxyInstance(
                 ItemFactory.class.getClassLoader(), new Class<?>[]{ItemFactory.class},
                 new InvocationHandler() {
@@ -118,7 +122,7 @@ public final class ItemWorld implements AutoCloseable {
                             case "getVersion":
                                 return bukkitVersion;
                             case "isPrimaryThread":
-                                return true;
+                                return Thread.currentThread() == mainThread;
                             case "hashCode":
                                 return System.identityHashCode(proxy);
                             case "equals":
