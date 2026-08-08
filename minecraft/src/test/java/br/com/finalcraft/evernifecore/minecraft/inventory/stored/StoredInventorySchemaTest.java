@@ -211,6 +211,22 @@ class StoredInventorySchemaTest {
         assertEquals(4, StoredInventorySchema.versionOf(envelope(4)));
     }
 
+    @Test
+    void aVersionThatIsNotANumberIsRefusedRatherThanReadAsTheOldestShape() {
+        ObjectNode broken = JsonNodeFactory.instance.objectNode();
+        broken.put(StoredInventorySchema.VERSION_KEY, "two");
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class,
+                () -> StoredInventorySchema.versionOf(broken));
+
+        assertTrue(failure.getMessage().contains("keep nothing of it"), failure.getMessage());
+
+        ObjectNode quoted = JsonNodeFactory.instance.objectNode();
+        quoted.put(StoredInventorySchema.VERSION_KEY, String.valueOf(StoredInventorySchema.VERSION));
+        assertEquals(StoredInventorySchema.VERSION, StoredInventorySchema.versionOf(quoted),
+                "a number somebody typed in quotes is still that number");
+    }
+
     private static ObjectNode envelope(int version) {
         ObjectNode node = JsonNodeFactory.instance.objectNode();
         node.put(StoredInventorySchema.VERSION_KEY, version);

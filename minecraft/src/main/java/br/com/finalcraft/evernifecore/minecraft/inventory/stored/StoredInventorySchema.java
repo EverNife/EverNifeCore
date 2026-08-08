@@ -80,10 +80,27 @@ public final class StoredInventorySchema {
         MIGRATIONS.put(fromVersion, migration);
     }
 
-    /** The version {@code stored} was written with; a file with no version is a bare slot map. */
+    /**
+     * The version {@code stored} was written with. A file with no version at all is a bare slot map -
+     * that is the only thing it can be. A file whose version is there but unreadable is neither, and
+     * reading it as the oldest shape would quietly empty it, so it is refused.
+     */
     public static int versionOf(@Nonnull JsonNode stored) {
         JsonNode version = stored == null ? null : stored.get(VERSION_KEY);
-        return version == null || !version.isInt() ? LEGACY_SLOT_MAP_VERSION : version.asInt();
+        if (version == null || version.isNull()) {
+            return LEGACY_SLOT_MAP_VERSION;
+        }
+        if (version.canConvertToInt()) {
+            return version.asInt();
+        }
+        int written = slotNumberOf(version.asText());
+        if (written >= 0) {
+            return written;
+        }
+        throw new IllegalStateException("A stored inventory says it was written with schema version ["
+                + version.asText() + "], which is not a number. Put the number back - reading the file as "
+                + "if it had no version at all would read it as the oldest shape there is and keep nothing "
+                + "of it.");
     }
 
     /**
