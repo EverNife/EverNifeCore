@@ -21,12 +21,12 @@ import java.util.UUID;
  * the platform uuid and {@code members} holds the single identity. Only {@code /ecaccount link} (see
  * {@link Accounts}) merges two accounts, at which point one {@code accountId} becomes canonical.</p>
  *
- * <p>Persisted as a storage entity keyed by {@link #getAccountId()}, in its own collection on the
+ * <p>Persisted as a storage entity keyed by {@code getAccountId()}, in its own collection on the
  * shared account backend (see {@link Accounts}).</p>
  *
  * <p><b>Alias rows.</b> The collection is only ever looked up by primary key, so a linked identity
  * must stay resolvable by its OWN uuid: linking writes, for each non-canonical member, an alias row
- * keyed by the member uuid whose {@link #getAliasOf()} points at the canonical account. Resolution
+ * keyed by the member uuid whose {@code getAliasOf()} points at the canonical account. Resolution
  * follows that pointer one hop (see {@link Accounts#account(UUID)}) - no index or scan needed.</p>
  */
 @Getter

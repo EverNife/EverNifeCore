@@ -16,7 +16,7 @@ import java.util.List;
  * This runs the core compound operations so any breakage surfaces as a clear PASS/FAIL at startup.
  * The report always lists all {@link #STEPS}: the failing one shows the reason and every later one
  * is marked {@code ERROR}. {@link #run()} never throws - a missing NMS (a headless unit-test JVM)
- * is reported as {@link Result#isEnvironmentUnavailable()} so callers can treat it as skipped.
+ * is reported as {@link Result}{@code .isEnvironmentUnavailable()} so callers can treat it as skipped.
  */
 public final class NBTSelfTest {
 

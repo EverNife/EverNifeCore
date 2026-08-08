@@ -21,7 +21,7 @@ import java.util.List;
  * lifecycle is fixed (resident while any member is online, refreshed on login, released after the
  * last member quits) and hot-load always happens on login.
  *
- * <p>Always built through {@link #builder(ECPluginData, Class)}.</p>
+ * <p>Always built through {@link #builder(ECPluginData, Class, String)}.</p>
  */
 @Getter
 public class AccountSectionConfiguration<T extends AccountSection<T>> {
@@ -65,7 +65,7 @@ public class AccountSectionConfiguration<T extends AccountSection<T>> {
     }
 
     /**
-     * @param sectionId the section's stable storage identity (see {@link #getSectionId()}); a
+     * @param sectionId the section's stable storage identity (see {@code getSectionId()}); a
      *                  positional argument on purpose - it must not be forgettable
      */
     public static <T extends AccountSection<T>> Builder<T> builder(ECPluginData pluginData, Class<T> sectionClass,

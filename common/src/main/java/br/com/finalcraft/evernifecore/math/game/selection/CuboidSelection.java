@@ -440,7 +440,7 @@ public class CuboidSelection {
     /**
      * Deserializes patterns like:
      *
-     *   x1|y1|z1 <> x2|y2|z2
+     *   {@code x1|y1|z1 <> x2|y2|z2}
      *
      */
     public static CuboidSelection deserialize(String s) {

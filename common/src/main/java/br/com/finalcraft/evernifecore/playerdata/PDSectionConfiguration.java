@@ -28,7 +28,7 @@ import java.util.function.Function;
  * is {@link Builder#allowedBackendTypes(BackendType...)} - e.g. an ephemeral section that must never
  * be persisted to a database, only an in-memory backend.</p>
  *
- * <p>Always built through {@link #builder(ECPluginData, Class)}.</p>
+ * <p>Always built through {@link #builder(ECPluginData, Class, String)}.</p>
  */
 @Getter
 public class PDSectionConfiguration<S extends PDSection> {
@@ -113,7 +113,7 @@ public class PDSectionConfiguration<S extends PDSection> {
     }
 
     /**
-     * @param sectionId the section's stable storage identity (see {@link #getSectionId()}); a
+     * @param sectionId the section's stable storage identity (see {@code getSectionId()}); a
      *                  positional argument on purpose - it must not be forgettable
      */
     public static <S extends PDSection> Builder<S> builder(ECPluginData pluginData, Class<S> pdSectionClass,

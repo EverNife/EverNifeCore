@@ -19,7 +19,7 @@ import java.util.TreeMap;
  * Progress file of the one-time legacy YAML import, written NEXT TO {@code storage.yml} - never
  * inside {@code PlayerData/}, which the import itself drains.
  *
- * <p>This file is the single source of truth of the import trigger: {@link #isComplete()} answers
+ * <p>This file is the single source of truth of the import trigger: {@code isComplete()} answers
  * "is there anything left to migrate?" without ever touching the storage backend. Counting rows on
  * the backend cannot answer it, because a second run legitimately happens over an
  * already-populated collection (a plugin installed later brings its own adapter along).</p>

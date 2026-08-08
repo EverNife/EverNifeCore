@@ -567,7 +567,7 @@ public class PlayerController {
 
     /**
      * Registers a section with the framework defaults, under the stable {@code sectionId} that names
-     * its collection and its storage.yml entry (see {@link PDSectionConfiguration#getSectionId()}).
+     * its collection and its storage.yml entry (see {@link PDSectionConfiguration}{@code .getSectionId()}).
      */
     public static void registerPDSectionCfg(ECPluginData ecPluginData, Class<? extends PDSection> pdSectionClass,
                                             String sectionId){

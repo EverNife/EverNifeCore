@@ -7,7 +7,7 @@ import java.util.Map;
  *
  * <p>The two maps ARE the storage filter: {@link #getPersistedCooldowns()} is what the row encodes,
  * {@link #getTransientCooldowns()} holds the entries a caller asked not to persist, so an entry whose
- * {@link CooldownEntry#isPersist()} is false can never reach a backend by accident. Both must be real
+ * {@link CooldownEntry}{@code .isPersist()} is false can never reach a backend by accident. Both must be real
  * fields of the implementing row - the transient one declared {@code @JsonIgnore transient} so neither
  * the encoder nor the conflict machinery can pick it up - and {@link #fileCooldown} is what moves an
  * entry between them when its persist flag changes.</p>

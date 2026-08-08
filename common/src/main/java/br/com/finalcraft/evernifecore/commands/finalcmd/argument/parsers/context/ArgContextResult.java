@@ -16,7 +16,7 @@ public class ArgContextResult {
 
     /**
      * This function will split a string with the following format:
-     *    "<[key1=value1|key2=value2|key3=value3]>"
+     *    {@code "<[key1=value1|key2=value2|key3=value3]>"}
      *
      *    into a LinkedHashMap with the following format:
      *       key1 -> value1

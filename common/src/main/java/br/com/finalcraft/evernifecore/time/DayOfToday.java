@@ -51,11 +51,9 @@ public class DayOfToday {
     /**
      * It returns the time of the day (in millis) of the last daily-cycle
      *
-     * @param cycleReferenceTime The time of the day in milliseconds. For example, if you want to get the last timeframe (millis)
-     * it was 13:00 of a day, you would pass 46800000L. Use {@link br.com.finalcraft.everylibs.util.FCTimeUtil}
-     * to help on conversions.
-     *
-     *  @Range(from = 0, to = 86400000) long cycleReferenceTime
+     * @param cycleReferenceTime The time of the day in milliseconds, from 0 to 86400000. For example, if you want to
+     * get the last timeframe (millis) it was 13:00 of a day, you would pass 46800000L.
+     * Use {@link br.com.finalcraft.everylibs.util.FCTimeUtil} to help on conversions.
      *
      *  For example:
      *     - if you pass '13:00' and right now is '14:00' it will return "TimeOfRightNow less 1 hour"
