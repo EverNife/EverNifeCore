@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.testkit;
 
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
@@ -29,6 +31,10 @@ import java.util.function.Function;
  * that storage and names ITS wrapper from then on, so this double asks for one too - and a screen that
  * kept hold of the object it created would find every later event pointing at a container it does not
  * recognise.</p>
+ *
+ * <p>They are also standing somewhere, in a world that can be given an item. That only matters once
+ * their inventory is full - see {@link #withFullInventory(ItemStack)} - because the ground is where the
+ * framework puts what it could not hand over.</p>
  */
 public final class PlayerDouble {
 
@@ -40,6 +46,9 @@ public final class PlayerDouble {
     private final Set<String> permissions = new LinkedHashSet<>();
     private final SurfaceDouble playerInventory = new SurfaceDouble(36);
     private final List<String> messages = new ArrayList<>();
+    private final List<Drop> drops = new ArrayList<>();
+    private final World world;
+    private final Location standingAt;
     private final Player face;
     private final GuiEventBus events;
     private final Function<Inventory, Inventory> serverWindowOver;
@@ -54,11 +63,21 @@ public final class PlayerDouble {
         this.name = name;
         this.events = events;
         this.serverWindowOver = serverWindowOver;
+        this.world = Doubles.of(World.class)
+                .on("getName", args -> "world")
+                .on("dropItem", args -> {
+                    drops.add(new Drop((Location) args[0], (ItemStack) args[1]));
+                    return null;
+                })
+                .build();
+        this.standingAt = new Location(world, 0.5D, 64D, 0.5D);
         this.face = Doubles.of(Player.class)
                 .on("getUniqueId", args -> uniqueId)
                 .on("getName", args -> name)
                 .on("isOnline", args -> online)
                 .on("hasPermission", args -> args[0] instanceof String && permissions.contains(args[0]))
+                .on("getWorld", args -> world)
+                .on("getLocation", args -> standingAt)
                 .on("getItemOnCursor", args -> cursor)
                 .on("setItemOnCursor", args -> {
                     cursor = (ItemStack) args[0];
@@ -112,8 +131,31 @@ public final class PlayerDouble {
         return this;
     }
 
+    /**
+     * Fills every slot of their own inventory with a full stack of {@code filler}, so that the next
+     * item handed to them has nowhere left to go.
+     */
+    public PlayerDouble withFullInventory(ItemStack filler) {
+        for (int slot = 0; slot < playerInventory.getSize(); slot++) {
+            ItemStack stack = filler.clone();
+            stack.setAmount(STACK);
+            playerInventory.placeWithoutRecording(slot, stack);
+        }
+        return this;
+    }
+
     public ItemStack getCursor() {
         return cursor;
+    }
+
+    /** Where this player is standing - the spot an item they could not hold lands on. */
+    public Location getStandingAt() {
+        return standingAt;
+    }
+
+    /** Everything the platform dropped on the ground for this player, in order. */
+    public List<Drop> getDrops() {
+        return new ArrayList<>(drops);
     }
 
     public List<String> getMessages() {
@@ -267,6 +309,24 @@ public final class PlayerDouble {
         }
         int slot = rawSlot - top.getSize();
         return slot >= 27 ? slot - 27 : slot + 9;
+    }
+
+    /** One item that ended up on the ground: where it landed, and what it was. */
+    public static final class Drop {
+
+        public final Location location;
+        public final ItemStack item;
+
+        Drop(Location location, ItemStack item) {
+            this.location = location;
+            this.item = item;
+        }
+
+        @Override
+        public String toString() {
+            return "Drop{" + (item == null ? "nothing" : item.getType() + " x" + item.getAmount())
+                    + " at " + location + "}";
+        }
     }
 
 }

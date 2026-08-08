@@ -81,6 +81,7 @@ public final class GuiTestWorld implements AutoCloseable {
 
     private final ECoreTestWorld platformWorld;
     private final String pluginName;
+    private final ECPluginData ecPluginData;
     private final ItemRuntime runtime;
     private final SchedulerDouble scheduler = new SchedulerDouble();
     private final GuiEventBus events = new GuiEventBus();
@@ -100,7 +101,7 @@ public final class GuiTestWorld implements AutoCloseable {
 
         //EverNifeCore.getLog() is what the gui reports a refused open or a broken handler through,
         //and only the real bootstrap ever sets it
-        ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(new Object());
+        this.ecPluginData = ECPluginManager.getOrCreateECorePluginData(new Object());
         EverNifeCore.instance.onLoaderInstantiate(ecPluginData);
 
         this.previousServer = Bukkit.getServer();
@@ -159,6 +160,14 @@ public final class GuiTestWorld implements AutoCloseable {
     /** The installed platform double, for the assertions a test makes on what was logged. */
     public TestPlatform getPlatform() {
         return platformWorld.platform();
+    }
+
+    /**
+     * This world's plugin, for the setup a real enable would have done and this one does not - loading
+     * the {@code @FCLocale} fields of a core class the test is about to walk through, say.
+     */
+    public ECPluginData getPluginData() {
+        return ecPluginData;
     }
 
     public PlayerDouble newPlayer(String name) {
