@@ -24,6 +24,11 @@ public class ActionBarMessage {
         return System.currentTimeMillis() >= timeToEnd;
     }
 
+    /** When this bar stops being shown, as a wall-clock stamp. */
+    public long getTimeToEnd() {
+        return timeToEnd;
+    }
+
     public String getActionBarID() {
         return actionBarID;
     }
@@ -48,6 +53,10 @@ public class ActionBarMessage {
     }
 
     public static class Builder{
+
+        //spelled out because the literal that used to live inline was 0050, which Java reads as octal 40
+        private static final long MILLIS_PER_TICK = 50L;
+
         private String actionBarID = "";
         private final String actionBarText;
         private int priority = 0;
@@ -81,7 +90,7 @@ public class ActionBarMessage {
             return new ActionBarMessage(
                     this.actionBarID,
                     this.actionBarText,
-                    System.currentTimeMillis() + (0050 * this.ticks),
+                    System.currentTimeMillis() + (MILLIS_PER_TICK * this.ticks),
                     this.priority
             );
         }

@@ -126,4 +126,31 @@ class ActionBarDeliveryTest {
         assertTrue(textsOnScreen().contains(""),
                 "an action bar goes away by being overwritten with nothing: " + textsOnScreen());
     }
+
+    @Test
+    void aBarLastsTheWholeTimeItWasAskedFor() {
+        long askedFor = 3000L;
+
+        long before = System.currentTimeMillis();
+        ActionBarMessage message = ActionBarMessage.of("§ethree seconds").setSeconds(3).build();
+        long after = System.currentTimeMillis();
+
+        //a tick is 50ms, so 3 seconds is 60 ticks; the window below is only the clock moving while
+        //the builder ran, which is why both bounds are anchored on the two readings around it
+        assertTrue(message.getTimeToEnd() >= before + askedFor,
+                "three seconds has to last three seconds, and this one ends "
+                        + (before + askedFor - message.getTimeToEnd()) + "ms early");
+        assertTrue(message.getTimeToEnd() <= after + askedFor,
+                "and it must not last longer than it was asked for either");
+    }
+
+    @Test
+    void ticksAndSecondsAgreeOnHowLongTheyAre() {
+        ActionBarMessage bySeconds = ActionBarMessage.of("§a").setSeconds(1).build();
+        ActionBarMessage byTicks = ActionBarMessage.of("§a").setTicks(20).build();
+
+        assertEquals(bySeconds.getTimeToEnd(), byTicks.getTimeToEnd(), 20d,
+                "one second and twenty ticks are the same duration; if they drift, one of the two "
+                        + "conversions is wrong");
+    }
 }
