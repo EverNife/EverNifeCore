@@ -31,14 +31,22 @@ import java.util.function.Consumer;
  * }</pre>
  *
  * <h2>The thread contract</h2>
- * <b>Every change happens on the server main thread.</b> A change attempted from anywhere else throws
- * instead of landing, naming the thread that tried: an inventory written from two threads is a
- * duplicated item, and a duplicated item found weeks later is unattributable. <b>Reading is allowed
- * from any thread</b> and answers a snapshot: a slot is written and copied under the same lock, so a
- * reader gets the whole stack before a change or the whole stack after it, never a stack being edited.
- * What a reader cannot have is a promise that the snapshot is still true by the time it is used -
- * nothing outside the main thread can have that, and a lock held across a decision would only move the
- * race somewhere harder to see.
+ * <b>Moving an item happens on the server main thread.</b> {@link #setItem(UpdateCause, int, ItemStack)},
+ * {@link #setItemSilently(int, ItemStack)} and {@link #setCapacity(int)} throw from anywhere else instead
+ * of landing, naming the thread that tried: an inventory written from two threads is a duplicated item,
+ * and a duplicated item found weeks later is unattributable. Nothing is refused before the server is up,
+ * because the question is put to the server and there is none yet to answer it.
+ *
+ * <p><b>Describing one is not moving anything</b>, and carries no such rule.
+ * {@link #setMaxStackSize(int, int)}, {@link #onPreUpdate(Consumer)} and {@link #onPostUpdate(Consumer)}
+ * answer from any thread: none of the three can put an item anywhere, and a plugin that lays its
+ * inventories out while loading is not on the main thread when it does it.</p>
+ *
+ * <p><b>Reading is allowed from any thread</b> and answers a snapshot: a slot is written and copied under
+ * the same lock, so a reader gets the whole stack before a change or the whole stack after it, never a
+ * stack being edited. What a reader cannot have is a promise that the snapshot is still true by the time
+ * it is used - nothing outside the main thread can have that, and a lock held across a decision would
+ * only move the race somewhere harder to see.</p>
  *
  * <p>The rule protects an inventory somebody already holds. One being rebuilt out of bytes is held by
  * nobody, and storage never answers on the main thread, so {@link #restoring(int)} is how a read fills
@@ -417,8 +425,8 @@ public final class StoredInventory implements ItemStore {
     }
 
     /**
-     * Refuses a change made from anywhere but the main thread. A server that is not up yet answers
-     * nothing, and then there is no other thread to be on.
+     * Refuses a change made from anywhere but the main thread. With no server up there is nobody to put
+     * the question to, and the change goes through.
      */
     private static void requireMainThread(String action) {
         Server server = Bukkit.getServer();
