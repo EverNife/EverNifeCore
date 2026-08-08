@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.testkit;
 
+import org.bukkit.Material;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -8,7 +9,9 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -84,24 +87,37 @@ public final class ClickSimulator {
     }
 
     /**
-     * An even drag: the stack is divided between {@code rawSlots} and what is left stays on the cursor.
+     * An even drag: the stack is divided between the slots of {@code rawSlots} that can take it, and
+     * what is left stays on the cursor.
      *
      * <p>The map a server hands the event holds what each slot would END with, not what it receives -
      * {@code getNewItems()} on a slot already holding two of the same item reads four, not two - so a
      * test that means to divide a stack has to build it that way.</p>
+     *
+     * <p>A slot already holding something ELSE is left out of the event entirely, and the share is
+     * divided between the rest. A client never drags a stack into a slot that cannot merge with it, and
+     * an event that said it did would be saying the item in the way had turned into the dragged one.</p>
      */
     public InventoryDragEvent dragEvenly(PlayerDouble player, ItemStack dragged, int... rawSlots) {
         InventoryView view = player.getOpenView();
-        int share = dragged.getAmount() / rawSlots.length;
-        Map<Integer, ItemStack> ending = new LinkedHashMap<>();
+        List<Integer> accepting = new ArrayList<>();
         for (int rawSlot : rawSlots) {
+            ItemStack held = view.getItem(rawSlot);
+            if (held == null || held.getType() == Material.AIR || held.isSimilar(dragged)) {
+                accepting.add(rawSlot);
+            }
+        }
+
+        int share = accepting.isEmpty() ? 0 : dragged.getAmount() / accepting.size();
+        Map<Integer, ItemStack> ending = new LinkedHashMap<>();
+        for (int rawSlot : accepting) {
             ItemStack held = view.getItem(rawSlot);
             ItemStack result = dragged.clone();
             result.setAmount(share + (held == null ? 0 : held.getAmount()));
             ending.put(rawSlot, result);
         }
 
-        int leftOver = dragged.getAmount() - share * rawSlots.length;
+        int leftOver = dragged.getAmount() - share * accepting.size();
         ItemStack cursor = null;
         if (leftOver > 0) {
             cursor = dragged.clone();
