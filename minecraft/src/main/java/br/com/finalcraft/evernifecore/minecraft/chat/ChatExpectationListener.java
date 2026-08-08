@@ -52,7 +52,8 @@ public class ChatExpectationListener implements Listener {
     }
 
     /**
-     * @param expiration         milliseconds to wait, or {@code 0} to wait indefinitely.
+     * @param expiration         milliseconds to wait, or {@code 0} to wait indefinitely - a wait with
+     *                           no end has nothing to schedule, so {@code onExpireAction} never runs.
      * @param onExpireAction     run once the wait elapses, if it does. Also what makes the
      *                           expiration schedulable at all: without it nothing is scheduled, and
      *                           the expectation is dropped lazily instead - the next time that
@@ -71,7 +72,8 @@ public class ChatExpectationListener implements Listener {
 
         ExpectedChat expectedChat = new ExpectedChat(player, chatAction, expiration, onExpireAction, onPlayerQuitAction, possibleFuture);
 
-        if (onExpireAction != null) {
+        //a delay of zero fires on the same tick, ending the very wait it was meant to bound
+        if (expiration > 0 && onExpireAction != null) {
             ScheduledFuture<?> future = FCScheduler.getScheduler().schedule(() -> {
                 if (expectedChat.wasConsumed() || expectedChat.wasCancelled()) {
                     return;
