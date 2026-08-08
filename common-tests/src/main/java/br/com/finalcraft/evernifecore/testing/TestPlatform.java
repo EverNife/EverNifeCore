@@ -36,6 +36,9 @@ public class TestPlatform extends AbstractTestPlatform {
     private final Map<String, FinalCMDPluginCommand> capturedByLabel = new LinkedHashMap<>();
     private final List<FinalCMDPluginCommand> registrationOrder = new ArrayList<>();
     private final List<String> unregisteredLabels = new ArrayList<>();
+    private final List<String> consoleCommands = new ArrayList<>();
+    private final List<DispatchedCommand> senderCommands = new ArrayList<>();
+    private final List<ActionBarSend> actionBars = new ArrayList<>();
     private final List<String> infoMessages = new ArrayList<>();
     //appended from whatever thread logs (flusher, idle sweep, cache-sync), so never a plain ArrayList
     private final List<String> loggedMessages = new CopyOnWriteArrayList<>();
@@ -83,6 +86,24 @@ public class TestPlatform extends AbstractTestPlatform {
         return unregisteredLabels;
     }
 
+    /**
+     * Every command handed to {@code makeConsoleExecuteCommand}, in order. Forwarding a command is the
+     * whole effect of some code - a locale button, an alias - so this list is all there is to assert on.
+     */
+    public List<String> getConsoleCommands() {
+        return consoleCommands;
+    }
+
+    /** Every command handed to {@code makePlayerExecuteCommand}, in order, with the sender it was run as. */
+    public List<DispatchedCommand> getSenderCommands() {
+        return senderCommands;
+    }
+
+    /** Every action bar handed to this platform, in order - what a real one would have put on screen. */
+    public List<ActionBarSend> getActionBars() {
+        return actionBars;
+    }
+
     /** Every {@code info}-level line logged through an adapter this platform created. */
     public List<String> getInfoMessages() {
         return infoMessages;
@@ -112,6 +133,9 @@ public class TestPlatform extends AbstractTestPlatform {
         capturedByLabel.clear();
         registrationOrder.clear();
         unregisteredLabels.clear();
+        consoleCommands.clear();
+        senderCommands.clear();
+        actionBars.clear();
         infoMessages.clear();
         loggedMessages.clear();
         shutdownReasons.clear();
@@ -164,12 +188,20 @@ public class TestPlatform extends AbstractTestPlatform {
 
     @Override
     public boolean makeConsoleExecuteCommand(String command) {
-        return capturingCommands != null ? false : super.makeConsoleExecuteCommand(command);
+        if (capturingCommands == null) {
+            return super.makeConsoleExecuteCommand(command);
+        }
+        consoleCommands.add(command);
+        return true;
     }
 
     @Override
     public boolean makePlayerExecuteCommand(FCommandSender sender, String command) {
-        return capturingCommands != null ? false : super.makePlayerExecuteCommand(sender, command);
+        if (capturingCommands == null) {
+            return super.makePlayerExecuteCommand(sender, command);
+        }
+        senderCommands.add(new DispatchedCommand(sender, command));
+        return true;
     }
 
     @Override
@@ -265,7 +297,9 @@ public class TestPlatform extends AbstractTestPlatform {
     public void sendActionBarMessage(FPlayer player, FancyText fancyText) {
         if (actionBarSupported == null) {
             super.sendActionBarMessage(player, fancyText);
+            return;
         }
+        actionBars.add(new ActionBarSend(player, fancyText.getText()));
     }
 
     @Override
@@ -325,6 +359,40 @@ public class TestPlatform extends AbstractTestPlatform {
             return;
         }
         shutdownReasons.add(reason);
+    }
+
+    /** One command this platform was asked to run as somebody: who it ran as, and the line. */
+    public static final class DispatchedCommand {
+
+        public final FCommandSender sender;
+        public final String command;
+
+        DispatchedCommand(FCommandSender sender, String command) {
+            this.sender = sender;
+            this.command = command;
+        }
+
+        @Override
+        public String toString() {
+            return (sender == null ? "?" : sender.getName()) + " -> /" + command;
+        }
+    }
+
+    /** One action bar this platform was handed: who it was for, and the text it carried. */
+    public static final class ActionBarSend {
+
+        public final FPlayer player;
+        public final String text;
+
+        ActionBarSend(FPlayer player, String text) {
+            this.player = player;
+            this.text = text;
+        }
+
+        @Override
+        public String toString() {
+            return (player == null ? "?" : player.getName()) + " <- [" + text + "]";
+        }
     }
 
     /** The chat adapter a lenient platform answers with: every question says "no opinion". */

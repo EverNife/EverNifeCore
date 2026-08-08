@@ -93,6 +93,14 @@ public final class Platforms {
         return this;
     }
 
+    /**
+     * Whether this server can show an action bar at all - 1.7.10 without NecroTempus cannot, and the
+     * code that sends one asks before building anything.
+     *
+     * <p>It does not decide what is recorded: either way, an action bar that does reach this platform
+     * is kept for {@link TestPlatform#getActionBars()}, the same as a real one would have written the
+     * packet without asking again.</p>
+     */
     public Platforms actionBarSupported(boolean actionBarSupported) {
         platform.actionBarSupported = actionBarSupported;
         return this;
@@ -154,7 +162,12 @@ public final class Platforms {
         return this;
     }
 
-    /** Captures command registration/unregistration so a test can assert on the dispatch flow. */
+    /**
+     * Captures command registration/unregistration so a test can assert on the dispatch flow, and the
+     * commands the code under test asks the server to RUN - see {@link TestPlatform#getConsoleCommands()}
+     * and {@link TestPlatform#getSenderCommands()}. Both answer {@code true}, which is what a server
+     * that took the command answers.
+     */
     public Platforms capturingCommands() {
         platform.capturingCommands = Boolean.TRUE;
         return this;
