@@ -367,13 +367,16 @@ public final class McConfigTypes {
         JsonNode items = envelope.get(StoredInventorySchema.ITEMS_KEY);
         JsonNode size = envelope.get(StoredInventorySchema.SIZE_KEY);
 
-        StoredInventory inventory = new StoredInventory(Math.max(1, size == null ? 0 : size.asInt()));
+        //storage answers on a worker thread, and an inventory being rebuilt is nobody's until it is
+        //returned - StoredInventory.Restoring is the door that says so
+        StoredInventory.Restoring restoring =
+                StoredInventory.restoring(Math.max(1, size == null ? 0 : size.asInt()));
         if (items != null && items.isObject()) {
             for (Iterator<Map.Entry<String, JsonNode>> fields = items.fields(); fields.hasNext(); ) {
                 Map.Entry<String, JsonNode> field = fields.next();
                 int slot = StoredInventorySchema.slotNumberOf(field.getKey());
-                if (slot >= 0 && slot < inventory.getSize()) {
-                    inventory.setItemSilently(slot, readItemStack(field.getValue()));
+                if (slot >= 0 && slot < restoring.getSize()) {
+                    restoring.setItem(slot, readItemStack(field.getValue()));
                 }
             }
         }
@@ -383,12 +386,12 @@ public final class McConfigTypes {
             for (Iterator<Map.Entry<String, JsonNode>> fields = maximums.fields(); fields.hasNext(); ) {
                 Map.Entry<String, JsonNode> field = fields.next();
                 int slot = StoredInventorySchema.slotNumberOf(field.getKey());
-                if (slot >= 0 && slot < inventory.getSize()) {
-                    inventory.setMaxStackSize(slot, field.getValue().asInt());
+                if (slot >= 0 && slot < restoring.getSize()) {
+                    restoring.setMaxStackSize(slot, field.getValue().asInt());
                 }
             }
         }
-        return inventory;
+        return restoring.build();
     }
 
     // GenericInventory and FCPlayerInventory are self-describing bound entities (see their @JsonAnyGetter /

@@ -40,6 +40,10 @@ import java.util.function.Consumer;
  * nothing outside the main thread can have that, and a lock held across a decision would only move the
  * race somewhere harder to see.
  *
+ * <p>The rule protects an inventory somebody already holds. One being rebuilt out of bytes is held by
+ * nobody, and storage never answers on the main thread, so {@link #restoring(int)} is how a read fills
+ * one and hands it over finished - see {@link Restoring}.</p>
+ *
  * <h2>The stored form</h2>
  * It persists as an envelope carrying its schema version, so a file written today is still readable
  * after the shape changes - see {@link StoredInventorySchema}. The oldest shape it reads is a bare
@@ -292,6 +296,85 @@ public final class StoredInventory implements ItemStore {
     @Override
     public String toString() {
         return "StoredInventory{" + getOccupiedSlots().length + "/" + getSize() + " slots filled}";
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Restoring - filling one nobody can see yet
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /** An inventory of {@code size} slots to fill and then hand over. See {@link Restoring}. */
+    @Nonnull
+    public static Restoring restoring(int size) {
+        return new Restoring(size);
+    }
+
+    /**
+     * An inventory being rebuilt from what was stored, filled before anybody can see it.
+     *
+     * <pre>{@code
+     * StoredInventory.Restoring restoring = StoredInventory.restoring(27);
+     * restoring.setItem(0, stored.itemAt(0));
+     * StoredInventory backpack = restoring.build();
+     * }</pre>
+     *
+     * <p>Storage answers on a worker thread and never on the main one, so a read that went through
+     * {@link StoredInventory#setItemSilently(int, ItemStack)} would be refused by the thread rule and
+     * the inventory would come back empty - which the next save then writes over the real one. There is
+     * nothing for the rule to protect here: what is being filled is reachable only from the thread
+     * filling it, so no second thread can be writing it and no window can be showing it.</p>
+     *
+     * <p>{@link #build()} is where that stops being true. It hands the inventory over and refuses to
+     * fill another slot, so the one door that skips the thread rule closes exactly when the inventory
+     * becomes somebody's.</p>
+     */
+    public static final class Restoring {
+
+        private StoredInventory restored;
+
+        private Restoring(int size) {
+            this.restored = new StoredInventory(size);
+        }
+
+        /** How many slots there are to fill - a stored slot past it belongs to no inventory. */
+        public int getSize() {
+            return unpublished().getSize();
+        }
+
+        /** Puts {@code item} in {@code slot}. No handler is asked and no maximum is measured against:
+         *  there are no handlers yet, and what was stored is what was already in the world. */
+        @Nonnull
+        public Restoring setItem(int slot, @Nullable ItemStack item) {
+            StoredInventory inventory = unpublished();
+            inventory.requireInside(slot, "restore");
+            inventory.writeSlot(slot, item);
+            return this;
+        }
+
+        /** Caps how much {@code slot} holds - see {@link StoredInventory#setMaxStackSize(int, int)}. */
+        @Nonnull
+        public Restoring setMaxStackSize(int slot, int max) {
+            unpublished().setMaxStackSize(slot, max);
+            return this;
+        }
+
+        /** The finished inventory, once. */
+        @Nonnull
+        public StoredInventory build() {
+            StoredInventory finished = unpublished();
+            this.restored = null;
+            return finished;
+        }
+
+        private StoredInventory unpublished() {
+            if (restored == null) {
+                throw new IllegalStateException("This inventory was handed over by build() already, so "
+                        + "somebody holds it now and it is changed like any other: from the main thread, "
+                        + "through setItem or setItemSilently. Restoring another one starts with a new "
+                        + "StoredInventory.restoring(int).");
+            }
+            return restored;
+        }
+
     }
 
     // -----------------------------------------------------------------------------------------------------------------
