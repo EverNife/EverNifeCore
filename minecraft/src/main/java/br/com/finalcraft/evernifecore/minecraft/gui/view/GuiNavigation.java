@@ -196,13 +196,13 @@ public final class GuiNavigation {
         }
         Gui<?> gui = view.getGui();
         String title = gui.getTitleFor(player);
-        Inventory inventory = GuiViews.createInventory(gui, GuiViews.trimTitle(title));
-        if (!GuiViews.attemptOpen(player, inventory)) {
+        Inventory opened = GuiViews.attemptOpen(player, GuiViews.createInventory(gui, GuiViews.trimTitle(title)));
+        if (opened == null) {
             EverNifeCore.getLog().warning("The screen [" + title + "] could not be given back to ["
                     + player.getName() + "]; the server refused to open the window.");
             return false;
         }
-        view.resume(new BukkitGuiSurface(inventory), title);
+        view.resume(new BukkitGuiSurface(opened), title);
         GuiViews.remember(view);
         view.render();
         view.commitNow();

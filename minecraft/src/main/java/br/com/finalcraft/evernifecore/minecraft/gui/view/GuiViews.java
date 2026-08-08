@@ -113,15 +113,15 @@ public final class GuiViews {
             }
 
             String title = gui.getTitleFor(player);
-            Inventory inventory = createInventory(gui, trimTitle(title));
-            GuiView view = new GuiView(gui, player, new BukkitGuiSurface(inventory),
-                    BukkitGuiScheduler.INSTANCE, title);
-
-            if (!attemptOpen(player, inventory)) {
+            Inventory opened = attemptOpen(player, createInventory(gui, trimTitle(title)));
+            if (opened == null) {
                 refuse(gui, player, future, "the server did not open the window "
                         + "(the player may be sleeping or leaving, or another plugin cancelled the open)");
                 return;
             }
+
+            GuiView view = new GuiView(gui, player, new BukkitGuiSurface(opened),
+                    BukkitGuiScheduler.INSTANCE, title);
 
             //almost never fires: openInventory closes the previous window before returning, so its
             //InventoryCloseEvent already went through handleClose (as PLAYER_CLOSED) by the time this
@@ -152,17 +152,25 @@ public final class GuiViews {
         future.completeExceptionally(new IllegalStateException(message));
     }
 
-    /** Opens {@code inventory} and answers whether the server confirmed it through its own event. */
-    static boolean attemptOpen(Player player, Inventory inventory) {
+    /**
+     * Opens {@code inventory} and answers the container the server ended up showing, or {@code null}
+     * when it refused to show one.
+     *
+     * <p>The answer is rarely the object handed over: opening a chest makes the platform build its own
+     * container and hand out a fresh wrapper over the same storage. Everything that follows - a click,
+     * a close, a render - names THAT one, so it is the one a view is drawn on.</p>
+     */
+    @Nullable
+    static Inventory attemptOpen(Player player, Inventory inventory) {
         PendingOpen previous = pending;
-        PendingOpen attempt = new PendingOpen(player.getUniqueId(), inventory);
+        PendingOpen attempt = new PendingOpen(player.getUniqueId());
         pending = attempt;
         try {
             player.openInventory(inventory);
         } finally {
             pending = previous;
         }
-        return attempt.confirmed;
+        return attempt.opened;
     }
 
     /**
@@ -181,12 +189,13 @@ public final class GuiViews {
         Inventory inventory = createInventory(view.getGui(), trimTitle(title));
         view.beginSurfaceSwap();
         try {
-            if (!attemptOpen(player, inventory)) {
+            Inventory opened = attemptOpen(player, inventory);
+            if (opened == null) {
                 EverNifeCore.getLog().warning("The gui of [" + player.getName() + "] could not be reopened "
                         + "to change its title; it keeps the previous one.");
                 return false;
             }
-            view.adoptSurface(new BukkitGuiSurface(inventory));
+            view.adoptSurface(new BukkitGuiSurface(opened));
             return true;
         } finally {
             view.endSurfaceSwap();
@@ -219,10 +228,11 @@ public final class GuiViews {
     //  Called by GuiListener
     // -----------------------------------------------------------------------------------------------------------------
 
-    /** Confirms the open in flight. Anything else that opens a window is not ours. */
+    /** Confirms the open in flight, with the container it turned out to be. Anything else is not ours. */
     static void confirmOpen(UUID viewerId, Inventory inventory) {
-        if (pending != null && pending.viewerId.equals(viewerId) && pending.inventory == inventory) {
-            pending.confirmed = true;
+        if (pending != null && pending.viewerId.equals(viewerId)) {
+            //the last window opened inside the call is the one the player is left looking at
+            pending.opened = inventory;
         }
     }
 
@@ -282,12 +292,10 @@ public final class GuiViews {
     private static final class PendingOpen {
 
         private final UUID viewerId;
-        private final Inventory inventory;
-        private boolean confirmed = false;
+        private Inventory opened;
 
-        private PendingOpen(UUID viewerId, Inventory inventory) {
+        private PendingOpen(UUID viewerId) {
             this.viewerId = viewerId;
-            this.inventory = inventory;
         }
 
     }
