@@ -1,7 +1,10 @@
 package br.com.finalcraft.evernifecore.config.factory;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.everyconfig.binding.BindResult;
 import br.com.finalcraft.everyconfig.binding.ConfigLifecycle;
+import br.com.finalcraft.everyconfig.binding.LoadIssue;
 import br.com.finalcraft.everyconfig.binding.introspect.EveryConfigModule;
 import br.com.finalcraft.everyconfig.binding.merge.LifecycleGraphWalker;
 import br.com.finalcraft.everyconfig.config.Config;
@@ -30,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -69,8 +73,9 @@ import java.util.Set;
  *       the intermediary so the binding layer fires the hooks. On encode, {@code host.bind(type).write("")}
  *       fires {@code PRE_SAVE}/{@code POST_SAVE} (plus the nested walk) - materializing hook-written subtrees
  *       into the host tree - and the {@code byteEdge} then serializes that tree. On decode, the {@code
- *       byteEdge} parses the bytes into a tree, the host adopts it, and {@code host.bind(type).read("")}
- *       fires the load hooks that reconstruct manually-managed state.</li>
+ *       byteEdge} parses the bytes into a tree, the host adopts it, and {@code
+ *       host.bind(type).readResult("")} fires the load hooks that reconstruct manually-managed state and
+ *       answers what the bind refused along with the entity - see {@link #reportRefusedValues(List)}.</li>
  * </ul>
  *
  * <h2>Type-registry staleness</h2>
@@ -200,10 +205,28 @@ public final class ConfigFactoryCodec<V> implements Codec<V>, ObjectMapperAware 
             if (node instanceof ObjectNode) {
                 host.getRoot().setAll((ObjectNode) node);
             }
-            return host.bind(type).read("");                       // fires PRE/POST_LOAD + nested walk
+            final BindResult<V> bound = host.bind(type).readResult("");  // fires PRE/POST_LOAD + nested walk
+            reportRefusedValues(bound.issues());
+            return bound.value();
         } catch (final Exception e) {
             throw new CodecException("Failed to decode " + type.getSimpleName(), e);
         }
+    }
+
+    /**
+     * Says out loud what the lenient bind kept to itself. A value the bind refuses is replaced by the
+     * default a fresh entity carries and the load goes on - which on the fast path would have been a
+     * {@link CodecException}, and which here would otherwise be indistinguishable from bytes that never
+     * held the value at all, right up until the next save writes the defaults over what is stored.
+     */
+    private void reportRefusedValues(final List<LoadIssue> issues) {
+        if (issues.isEmpty()) {
+            return;
+        }
+        EverNifeCore.getLog().warning("Reading a " + type.getSimpleName() + " out of storage refused "
+                + issues.size() + " of its values, which now hold what a brand new one holds: " + issues
+                + ". Storage still has the real ones; the next save of this entity is what replaces them "
+                + "with these, so fix what each issue names before it saves again.");
     }
 
     @Override

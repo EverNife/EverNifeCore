@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.inventory.stored;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
+import br.com.finalcraft.evernifecore.testing.Logs;
 import br.com.finalcraft.everyconfig.config.Config;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -18,7 +19,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -229,6 +232,32 @@ class StoredInventorySchemaTest {
                 () -> StoredInventorySchema.migrate(envelope(stuckVersion)));
 
         assertTrue(failure.getMessage().contains("run it forever"), failure.getMessage());
+    }
+
+    @Test
+    void anInventoryTheReadRefusesIsSaidOutLoudInsteadOfComingBackEmpty() {
+        byte[] unreadable = ("{\"vault\":{\"version\":" + (StoredInventorySchema.VERSION + 1000)
+                + ",\"size\":9,\"items\":{}}}").getBytes(StandardCharsets.UTF_8);
+
+        ConfigFactoryCodec<VaultedItems> codec = ConfigFactoryCodec.json(VaultedItems.class);
+        AtomicReference<VaultedItems> read = new AtomicReference<>();
+        List<String> logged = Logs.capture(() -> read.set(codec.decode(unreadable)));
+
+        assertTrue(read.get().vault.isEmpty(), "the entity still loads and the field keeps the default, "
+                + "which is exactly what an inventory nobody ever filled looks like");
+        assertTrue(anyContains(logged, "VaultedItems"), logged.toString());
+        assertTrue(anyContains(logged, "vault"), "the report names the field that was lost: " + logged);
+        assertTrue(anyContains(logged, "Update the plugin"), "and why it was: " + logged);
+        assertTrue(anyContains(logged, "next save"), "and what the loss costs if nothing is done: " + logged);
+    }
+
+    private static boolean anyContains(List<String> logged, String fragment) {
+        for (String line : logged) {
+            if (line.contains(fragment)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Test
