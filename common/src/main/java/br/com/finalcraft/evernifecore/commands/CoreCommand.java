@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
+import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
 
 import java.util.ArrayList;
 
@@ -18,6 +19,33 @@ import java.util.ArrayList;
         aliases = {"evernifecore","ecore"}
 )
 public class CoreCommand {
+
+    /** Built on the first {@code /ecore info}, for the same reason {@code CMDList.Page} is. */
+    private static final class Page {
+
+        static final PageViewer<ECPluginData> INSTALLED_PLUGINS = PageViewer.of(ECPluginData.class)
+                .id("evernifecore:info")
+                .source(() -> new ArrayList<>(ECPluginManager.getECPluginsMap().values()))
+                .unlimitedEntries()
+                .orderBy(ecPluginData -> ecPluginData.getMetaInfo().getName()).ascending()
+                .setFormatLine(
+                        FancyText.of("§7# ${number}: §e§l◆ §a ${value} §7§o(${version})").setHover("${plugin_info}")
+                                .append("${can_update}").setHover("§aClique to go to DownloadLink").setClickLink("${update_link}")
+                )
+                .addRowPlaceholder("version", ecPlugin -> ecPlugin.getMetaInfo().getVersion())
+                .addRowPlaceholder("can_update", ecPlugin -> ecPlugin.hasUpdate() ? "§b  [Update]" : "")
+                .addRowPlaceholder("update_link", ecPlugin -> ecPlugin.hasUpdate() ? ecPlugin.getUpdateLink() : "")
+                .addRowPlaceholder("plugin_info", ecPlugin -> {
+                    StringBuilder stringBuilder = new StringBuilder();
+                    stringBuilder.append("\n§d ▲ Name: §a" + ecPlugin.getMetaInfo().getName());
+                    stringBuilder.append("\n§d ▲ Version: §a" + ecPlugin.getMetaInfo().getVersion());
+                    stringBuilder.append("\n\n§d ▲ Is Up To Date: " + (ecPlugin.hasUpdate() ? "§c" : "§b") + !ecPlugin.hasUpdate());
+                    stringBuilder.append("\n");
+                    return stringBuilder.toString();
+                })
+                .theme(PageTheme.classic().withTotalCount())
+                .build();
+    }
 
     @FinalCMD.SubCMD(
             subcmd = "info",
@@ -28,27 +56,7 @@ public class CoreCommand {
             permission = PermissionNodes.EVERNIFECORE_COMMAND_INFO
     )
     public void info(FCommandSender sender, @Arg(value = "[page]", context = "[1:*]") Integer page){
-        PageViewer.targeting(ECPluginData.class)
-                .withSuplier(() -> new ArrayList<>(ECPluginManager.getECPluginsMap().values()))
-                .extracting(ecPluginData -> ecPluginData.getMetaInfo().getName())
-                .setFormatLine(
-                        FancyText.of("§7# ${number}: §e§l◆ §a ${value} §7§o(${version})").setHover("${plugin_info}")
-                                .append("${can_update}").setHover("§aClique to go to DownloadLink").setClickLink("${update_link}")
-                )
-                .addPlaceholder("version", ecPlugin -> ecPlugin.getMetaInfo().getVersion())
-                .addPlaceholder("can_update", ecPlugin -> ecPlugin.hasUpdate() ? "§b  [Update]" : "")
-                .addPlaceholder("update_link", ecPlugin -> ecPlugin.hasUpdate() ? ecPlugin.getUpdateLink() : "")
-                .addPlaceholder("plugin_info", ecPlugin -> {
-                    StringBuilder stringBuilder = new StringBuilder();
-                    stringBuilder.append("\n§d ▲ Name: §a" + ecPlugin.getMetaInfo().getName());
-                    stringBuilder.append("\n§d ▲ Version: §a" + ecPlugin.getMetaInfo().getVersion());
-                    stringBuilder.append("\n\n§d ▲ Is Up To Date: " + (ecPlugin.hasUpdate() ? "§c" : "§b") + !ecPlugin.hasUpdate());
-                    stringBuilder.append("\n");
-                    return stringBuilder.toString();
-                })
-                .setIncludeTotalCount(true)
-                .build()
-                .send(page, sender);
+        Page.INSTALLED_PLUGINS.send(page, sender);
     }
 
     @FinalCMD.SubCMD(
