@@ -31,6 +31,7 @@ public class TestFPlayerSender implements FPlayer {
     private final Set<String> permissions = new HashSet<>();
     private final List<String> messages = new ArrayList<>();
     private final List<Component> components = new ArrayList<>();
+    private boolean online = true;
 
     public TestFPlayerSender(String name, UUID uniqueId) {
         this.name = name;
@@ -46,9 +47,15 @@ public class TestFPlayerSender implements FPlayer {
         return this;
     }
 
+    /** Whether this player is still connected - the answer anything that keeps ticking for them reads. */
+    public TestFPlayerSender online(boolean online) {
+        this.online = online;
+        return this;
+    }
+
     @Override
     public boolean isOnline() {
-        return true;
+        return online;
     }
 
     @Override
