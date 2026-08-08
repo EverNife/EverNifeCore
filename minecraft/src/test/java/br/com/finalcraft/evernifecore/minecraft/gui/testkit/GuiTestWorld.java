@@ -56,11 +56,13 @@ import java.util.logging.Logger;
  * {@link SurfaceDouble} wearing the platform's interface, so a window opened through the framework's
  * real entry point still records every write.</p>
  *
- * <p>There are two ways in, and which one a test wants depends on whether it needs the clock.
- * {@link #open(Gui, PlayerDouble)} goes through {@code GuiViews}, so the view is registered and
- * clicks reach it - but its tasks go to the server scheduler, which no headless JVM has.
- * {@link #openDetached(Gui, PlayerDouble)} hands the view a {@link SchedulerDouble} instead, and
- * then nothing happens until {@link #advanceTicks(long)} says a tick passed.</p>
+ * <p>There are two ways in, and what separates them is registration, not the clock: both end up on
+ * the same {@link SchedulerDouble}, so either way nothing happens until {@link #advanceTicks(long)}
+ * says a tick passed. {@link #open(Gui, PlayerDouble)} goes through {@code GuiViews}, so the view is
+ * registered and the real listener routes clicks to it, and it reaches the clock the long way round -
+ * {@code BukkitGuiScheduler -> McFCScheduler -> Bukkit.getScheduler()}, which this world answers with.
+ * {@link #openDetached(Gui, PlayerDouble)} is handed the clock directly and registers nothing, which
+ * is the form a test about rendering wants.</p>
  */
 public final class GuiTestWorld implements AutoCloseable {
 
