@@ -4,6 +4,8 @@ import br.com.finalcraft.evernifecore.minecraft.gui.model.ClickPolicy;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.SlotSet;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.StorageContext;
 import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventory;
+import br.com.finalcraft.evernifecore.minecraft.inventory.ItemStore;
+import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventory;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.inventory.ItemStack;
@@ -12,8 +14,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /**
- * An area the viewer may really take items out of and put items into, kept in a
- * {@link GenericInventory}.
+ * An area the viewer may really take items out of and put items into, kept in an {@link ItemStore}.
  *
  * <p>It is the one place in the framework where a click is not cancelled, so the rule is the reverse
  * of everywhere else: nothing is allowed until it is named, one gesture at a time.
@@ -33,6 +34,11 @@ import java.util.function.Predicate;
  * is cloned before it reaches the open window, and what the window holds is cloned before it reaches
  * the store, so the live stack of neither is ever the stack of the other.</p>
  *
+ * <p>There are two kinds of store, and the region works the same over both. A {@link GenericInventory}
+ * is the plain one. A {@link StoredInventory} additionally knows how big it is, how much each of its
+ * slots holds, and how to be asked: its {@code onPreUpdate} handler sees a gesture before the platform
+ * carries it out and may refuse it, and its {@code onPostUpdate} handler is told what really changed.</p>
+ *
  * <p><b>The invariant.</b> Over any sequence of clicks the sum of the region, the viewer's own
  * inventory and their cursor does not change: nothing is created and nothing is lost. Three things buy
  * it. Nothing paints over an editable slot - the buffer disowns it, so a render, a resync or a replaced
@@ -51,7 +57,7 @@ public final class StorageBinding {
     private final String name;
     private final SlotSet slots;
 
-    private GenericInventory backing;
+    private ItemStore backing;
     private ClickPolicy policy = ClickPolicy.DENY_ALL;
     private Predicate<ItemStack> placeFilter;
     private Consumer<StorageContext> onChange;
@@ -72,6 +78,19 @@ public final class StorageBinding {
      * a store built on the spot is thrown away with the screen.</p>
      */
     @Nonnull
+    public StorageBinding backedBy(@Nonnull ItemStore backing) {
+        if (backing == null) {
+            throw new IllegalArgumentException("The storage region [" + name + "] was given no store to "
+                    + "keep its contents in. Hand over the StoredInventory or GenericInventory the plugin "
+                    + "persists - backedBy(backpack.getContents()) - or the region has nowhere to read from "
+                    + "and nowhere to write back to.");
+        }
+        this.backing = backing;
+        return this;
+    }
+
+    /** {@link #backedBy(ItemStore)} over a plain {@link GenericInventory}, wrapped as one. */
+    @Nonnull
     public StorageBinding backedBy(@Nonnull GenericInventory backing) {
         if (backing == null) {
             throw new IllegalArgumentException("The storage region [" + name + "] was given no store to "
@@ -79,8 +98,7 @@ public final class StorageBinding {
                     + "backedBy(backpack.getContents()) - or the region has nowhere to read from and "
                     + "nowhere to write back to.");
         }
-        this.backing = backing;
-        return this;
+        return backedBy(ItemStore.of(backing));
     }
 
     /**
@@ -147,7 +165,7 @@ public final class StorageBinding {
 
     /** The store, or {@code null} while nobody has said which one it is. */
     @Nullable
-    public GenericInventory getBacking() {
+    public ItemStore getBacking() {
         return backing;
     }
 

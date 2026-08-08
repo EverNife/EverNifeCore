@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.PlayerDouble;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.SurfaceDouble;
 import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventory;
+import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventoryStore;
 import org.bukkit.Material;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
@@ -475,8 +476,8 @@ class StorageRegionTest {
         world.advanceTicks(1);
 
         assertSame(player.asPlayer(), changes.get(0).getViewer());
-        assertSame(store, changes.get(0).getBacking(), "which is what tells two regions apart when one "
-                + "handler serves both");
+        assertSame(store, ((GenericInventoryStore) changes.get(0).getBacking()).getInventory(),
+                "which is what tells two regions apart when one handler serves both");
     }
 
     @Test

@@ -261,8 +261,17 @@ public final class GuiTestWorld implements AutoCloseable {
      * not in the registry that routes it - so the teardown is asked for directly.
      */
     public void closeDetached(GuiView view) {
+        releaseDetached(view, CloseReason.PLAYER_CLOSED);
+    }
+
+    /**
+     * As {@link #closeDetached(GuiView)}, for the endings that are not a player closing a window:
+     * {@link CloseReason#DISCONNECTED}, a world change, a shutdown. The framework tears the view down
+     * the same way and the reason is what the close handler is told.
+     */
+    public void releaseDetached(GuiView view, CloseReason reason) {
         detachedViews.remove(view);
-        DetachedViews.release(view, CloseReason.PLAYER_CLOSED);
+        DetachedViews.release(view, reason);
     }
 
     // -----------------------------------------------------------------------------------------------------------------

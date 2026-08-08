@@ -6,6 +6,8 @@ import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.SlotSet;
 import br.com.finalcraft.evernifecore.minecraft.inventory.invitem.InvItem;
 import br.com.finalcraft.evernifecore.minecraft.inventory.invitem.InvItemManager;
+import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventory;
+import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventorySchema;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemDescription;
@@ -19,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -27,6 +30,7 @@ import org.bukkit.inventory.ItemStack;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +55,10 @@ import java.util.regex.Pattern;
  * The deserializer reads every shape. The serializer always writes the item-data string-list form - see the
  * note on {@link #writeItemStack} for the one intentional write-shape narrowing versus the legacy engine.
  *
+ * <p><b>StoredInventory</b> persists as the versioned envelope of {@link StoredInventorySchema}, and reading
+ * one runs the registered schema migrations first - which is what lets a file written as a bare slot map, the
+ * only shape that existed before, still load.
+ *
  * <p>The {@code GenericInventory}/{@code FCPlayerInventory} families are NOT registered here: they self-describe
  * as bound entities ({@code @JsonAnyGetter} + {@code ConfigLifecycle}), so nesting composes for free. The
  * config-value-shaped {@link InvItem} still routes its nested pieces back through the shared type-aware
@@ -67,6 +75,7 @@ public final class McConfigTypes {
         registerLocation();
         registerItemStack();
         registerSlotSet();
+        registerStoredInventory();
     }
 
     // ==================== SlotSet ====================
@@ -290,6 +299,96 @@ public final class McConfigTypes {
 
         // 4. A bare Bukkit ("MINECRAFT_STONE") or Minecraft ("minecraft:stone") identifier string.
         return FCItemFactory.from(node.asText()).build();
+    }
+
+    // ==================== StoredInventory ====================
+
+    /**
+     * The versioned envelope of {@link StoredInventorySchema}. Unlike {@code GenericInventory}, this one is
+     * NOT self-describing: what it stores has to carry the number of the schema it was written with, and the
+     * read side has to run the registered migrations before binding anything.
+     *
+     * <p>Every stack inside routes through the {@code ItemStack} pair above, so an inventory written here
+     * reads the same on-disk shapes an item written anywhere else does.</p>
+     */
+    private static void registerStoredInventory() {
+        ConfigFactory.register(StoredInventory.class).jackson(
+                new JsonSerializer<StoredInventory>() {
+                    @Override
+                    public void serialize(StoredInventory value, JsonGenerator gen, SerializerProvider provider)
+                            throws IOException {
+                        writeStoredInventory(value, gen);
+                    }
+                },
+                new StdDeserializer<StoredInventory>(StoredInventory.class) {
+                    @Override
+                    public StoredInventory deserialize(JsonParser parser, DeserializationContext context)
+                            throws IOException {
+                        return readStoredInventory(parser.readValueAsTree());
+                    }
+                }
+        );
+    }
+
+    private static void writeStoredInventory(StoredInventory inventory, JsonGenerator gen) throws IOException {
+        gen.writeStartObject();
+        gen.writeNumberField(StoredInventorySchema.VERSION_KEY, StoredInventorySchema.VERSION);
+        gen.writeNumberField(StoredInventorySchema.SIZE_KEY, inventory.getSize());
+
+        gen.writeObjectFieldStart(StoredInventorySchema.ITEMS_KEY);
+        for (int slot : inventory.getOccupiedSlots()) {
+            gen.writeFieldName(String.valueOf(slot));
+            writeItemStack(inventory.getItem(slot), gen);
+        }
+        gen.writeEndObject();
+
+        Map<String, Integer> declaredMaximums = new LinkedHashMap<>();
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            int max = inventory.getMaxStackSize(slot);
+            if (max != StoredInventory.ITEM_DEFAULT) {
+                declaredMaximums.put(String.valueOf(slot), max);
+            }
+        }
+        if (!declaredMaximums.isEmpty()) {
+            gen.writeObjectFieldStart(StoredInventorySchema.MAX_STACK_SIZES_KEY);
+            for (Map.Entry<String, Integer> entry : declaredMaximums.entrySet()) {
+                gen.writeNumberField(entry.getKey(), entry.getValue());
+            }
+            gen.writeEndObject();
+        }
+        gen.writeEndObject();
+    }
+
+    private static StoredInventory readStoredInventory(JsonNode stored) {
+        if (stored == null || !stored.isObject()) {
+            return null;
+        }
+        ObjectNode envelope = StoredInventorySchema.migrate((ObjectNode) stored);
+        JsonNode items = envelope.get(StoredInventorySchema.ITEMS_KEY);
+        JsonNode size = envelope.get(StoredInventorySchema.SIZE_KEY);
+
+        StoredInventory inventory = new StoredInventory(Math.max(1, size == null ? 0 : size.asInt()));
+        if (items != null && items.isObject()) {
+            for (Iterator<Map.Entry<String, JsonNode>> fields = items.fields(); fields.hasNext(); ) {
+                Map.Entry<String, JsonNode> field = fields.next();
+                int slot = StoredInventorySchema.slotNumberOf(field.getKey());
+                if (slot >= 0 && slot < inventory.getSize()) {
+                    inventory.setItemSilently(slot, readItemStack(field.getValue()));
+                }
+            }
+        }
+
+        JsonNode maximums = envelope.get(StoredInventorySchema.MAX_STACK_SIZES_KEY);
+        if (maximums != null && maximums.isObject()) {
+            for (Iterator<Map.Entry<String, JsonNode>> fields = maximums.fields(); fields.hasNext(); ) {
+                Map.Entry<String, JsonNode> field = fields.next();
+                int slot = StoredInventorySchema.slotNumberOf(field.getKey());
+                if (slot >= 0 && slot < inventory.getSize()) {
+                    inventory.setMaxStackSize(slot, field.getValue().asInt());
+                }
+            }
+        }
+        return inventory;
     }
 
     // GenericInventory and FCPlayerInventory are self-describing bound entities (see their @JsonAnyGetter /

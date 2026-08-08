@@ -148,19 +148,41 @@ public class GuiListener implements ECListener {
     }
 
     /**
-     * A click inside an editable area: the area's policy says whether the gesture goes through and its
-     * filter whether the item may come in. Nothing else happens - the platform moves the item, and the
-     * area reads the result back on the next tick.
+     * A click inside an editable area: the area's policy says whether the gesture goes through, its
+     * filter whether the item may come in, and its store - when the store judges its own updates - what
+     * the slot is about to become. Nothing else happens: the platform moves the item, and the area reads
+     * the result back on the next tick.
      */
     private void processStorageClick(StorageView storage, InventoryClickEvent event, String clickTypeName,
                                      ClickKind kind) {
         //a shift-move out of the region is a take; the place is the one arriving from the inventory below
         ClickKind judged = kind == ClickKind.MOVE_TO_OTHER_INVENTORY ? ClickKind.TAKE : kind;
-        if (!storage.getPolicy().allowsKind(clickTypeName, judged) || !incomingIsAllowed(storage, event, kind)) {
+        if (!storage.getPolicy().allowsKind(clickTypeName, judged) || !incomingIsAllowed(storage, event, kind)
+                || !storeAcceptsClick(storage, event)) {
             event.setCancelled(true);
             return;
         }
         storage.scheduleSync();
+    }
+
+    /** Whether the store agrees to what this click is about to leave in the slot. */
+    private static boolean storeAcceptsClick(StorageView storage, InventoryClickEvent event) {
+        if (!storage.vetsUpdates()) {
+            return true;
+        }
+        SlotOutcome outcome = SlotOutcome.afterClick(event.getAction().name(), event.getCurrentItem(),
+                event.getCursor(), hotbarItemOf(event));
+        if (outcome.isUnchanged()) {
+            return true;
+        }
+        return outcome.isKnown() && storage.mayAccept(event.getRawSlot(), outcome.getItem());
+    }
+
+    /** What the number key pressed on this click points at, or {@code null} when none was. */
+    private static ItemStack hotbarItemOf(InventoryClickEvent event) {
+        PlayerInventory inventory = event.getWhoClicked().getInventory();
+        int button = event.getHotbarButton();
+        return inventory == null || button < 0 ? null : inventory.getItem(button);
     }
 
     /** Whether what this click would put INTO the region is an item that region accepts. */
@@ -227,6 +249,10 @@ public class GuiListener implements ECListener {
      * and only into an editable area. A slot the buffer still owns is drawn by the screen, so a dragged
      * item written there would be an item the next render erases; a mixed gesture touching one is refused
      * entirely, as it always was. Whatever is not placed stays on the cursor.</p>
+     *
+     * <p>A store that judges its own updates never has a drag applied by the platform, even when every
+     * slot would accept it: the framework takes the gesture apart so each slot can be asked with the
+     * amount it is about to receive, which is the only moment that number exists.</p>
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
     public void onInventoryDrag(InventoryDragEvent event) {
@@ -244,6 +270,7 @@ public class GuiListener implements ECListener {
         List<Integer> shares = new ArrayList<>();
         Set<StorageView> touched = new LinkedHashSet<>();
         boolean refusedAny = false;
+        boolean divideHere = false;
 
         for (Integer rawSlot : event.getRawSlots()) {
             if (rawSlot == null || rawSlot < 0 || rawSlot >= size) {
@@ -259,10 +286,11 @@ public class GuiListener implements ECListener {
             if (storage != null) {
                 shares.add(rawSlot);
                 touched.add(storage);
+                divideHere |= storage.vetsUpdates();
             }
         }
 
-        if (!refusedAny) {
+        if (!refusedAny && !divideHere) {
             for (StorageView storage : touched) {
                 storage.scheduleSync();
             }

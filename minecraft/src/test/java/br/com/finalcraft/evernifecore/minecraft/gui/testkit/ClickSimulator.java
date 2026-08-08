@@ -38,6 +38,21 @@ public final class ClickSimulator {
         return event;
     }
 
+    /**
+     * A number-key click: the same gesture as {@link #click}, plus the hotbar slot the key names.
+     *
+     * <p>{@code hotbarButton} is an index into the player's own hotbar, {@code 0..8}, which is what the
+     * protocol sends and what {@code getHotbarButton()} answers - it is not a slot of either
+     * container.</p>
+     */
+    public InventoryClickEvent clickWithHotbarKey(PlayerDouble player, int rawSlot, ClickType clickType,
+                                                  InventoryAction action, int hotbarButton) {
+        InventoryClickEvent event = new InventoryClickEvent(player.getOpenView(),
+                InventoryType.SlotType.CONTAINER, rawSlot, clickType, action, hotbarButton);
+        events.getListener().onInventoryClick(event);
+        return event;
+    }
+
     /** The everyday case: a plain left click that picks nothing up. */
     public InventoryClickEvent leftClick(PlayerDouble player, int rawSlot) {
         return click(player, rawSlot, ClickType.LEFT, InventoryAction.PICKUP_ALL);

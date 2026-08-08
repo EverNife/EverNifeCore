@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.view;
 
-import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventory;
+import br.com.finalcraft.evernifecore.minecraft.inventory.ItemStore;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.entity.Player;
@@ -36,7 +36,7 @@ public final class StorageContext {
      * what tells two regions apart when one handler serves both.
      */
     @Nonnull
-    public GenericInventory getBacking() {
+    public ItemStore getBacking() {
         return storage.getBinding().getBacking();
     }
 

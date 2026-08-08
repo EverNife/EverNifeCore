@@ -4,8 +4,8 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.StorageBinding;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.Cancellable;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.ClickPolicy;
-import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventory;
-import br.com.finalcraft.evernifecore.minecraft.inventory.data.ItemInSlot;
+import br.com.finalcraft.evernifecore.minecraft.inventory.ItemStore;
+import br.com.finalcraft.evernifecore.minecraft.inventory.UpdateCause;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.inventory.ItemStack;
@@ -25,14 +25,16 @@ import java.util.function.Predicate;
  * the store, then stops writing those slots at all - {@link GuiBuffer#disown(int)} - and reads them back
  * into the store on the tick after every accepted change. That is the whole safety argument of an
  * editable area: the player and the framework never write the same slot in the same tick.</p>
+ *
+ * <p>A store that {@link ItemStore#vetsUpdates() vets its updates} is asked one step earlier than that,
+ * while the click is still cancellable and nothing has moved. Reading the result back afterwards would
+ * be too late to refuse anything, which is why the framework models what the gesture is about to do
+ * instead of waiting to see it.</p>
  */
 public final class StorageView {
 
-    /** What a stack is assumed to hold when the server cannot say. Every vanilla stack fits in it. */
-    private static final int FALLBACK_MAX_STACK = 64;
-
     /** Which store each open region is reading and writing, so a second screen on one can be reported. */
-    private static final Map<GenericInventory, StorageView> CLAIMED = new IdentityHashMap<>();
+    private static final Map<Object, StorageView> CLAIMED = new IdentityHashMap<>();
 
     private final GuiView view;
     private final StorageBinding binding;
@@ -67,6 +69,11 @@ public final class StorageView {
         return binding.getPolicy();
     }
 
+    @Nonnull
+    public ItemStore getStore() {
+        return binding.getBacking();
+    }
+
     /** Whether {@code item} may enter here - see {@link StorageBinding#denyPlace}. Nothing always may. */
     public boolean mayHold(@Nullable ItemStack item) {
         return item == null || placeFilter == null || placeFilter.test(item);
@@ -75,6 +82,41 @@ public final class StorageView {
     /** Whether anything is filtered at all, which is what makes an item nobody can read worth refusing. */
     public boolean hasPlaceFilter() {
         return placeFilter != null;
+    }
+
+    /** Whether the store behind this region judges a change before it happens. */
+    public boolean vetsUpdates() {
+        return getStore().vetsUpdates();
+    }
+
+    /** This region's own index for a raw slot of the window, or {@code -1} when it holds no such slot. */
+    public int indexOf(int rawSlot) {
+        for (int index = 0; index < slots.length; index++) {
+            if (slots[index] == rawSlot) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Whether {@code rawSlot} may become {@code next}: it has to fit the slot, and then the store has to
+     * agree. The slot's current content is what the container shows, which is what the player is acting
+     * on.
+     *
+     * <p>A stack too big for the slot is refused without asking - there is nothing to decide about a
+     * gesture that cannot happen, and the pre-update handler is for decisions.</p>
+     */
+    public boolean mayAccept(int rawSlot, @Nullable ItemStack next) {
+        int index = indexOf(rawSlot);
+        if (index < 0) {
+            return true;
+        }
+        ItemStore store = getStore();
+        if (!GuiBuffer.isEmpty(next) && next.getAmount() > store.getMaxStackSize(index, next)) {
+            return false;
+        }
+        return store.mayUpdate(UpdateCause.PLAYER, index, view.getSurface().getItem(rawSlot), next);
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -86,11 +128,12 @@ public final class StorageView {
      * touched - a fresh container is already empty.
      */
     void seed(GuiSurface surface) {
-        GenericInventory store = binding.getBacking();
+        ItemStore store = getStore();
+        requireRoomForTheRegion(store);
         for (int index = 0; index < slots.length; index++) {
             ItemStack stored = store.getItem(index);
             if (!GuiBuffer.isEmpty(stored)) {
-                surface.set(slots[index], stored.clone());
+                surface.set(slots[index], stored);
             }
         }
         reportItemsPastCapacity(store);
@@ -130,22 +173,28 @@ public final class StorageView {
     /**
      * Reads the region back into the store right now.
      *
+     * <p>The store is written first and told afterwards: a post-update handler that reads the inventory
+     * it was called about has to find the change already in it, and one that reads a neighbouring slot
+     * has to find that one settled too.</p>
+     *
      * @param last whether the screen is going away, making this the last change it reports
      */
     void syncNow(boolean last) {
         cancelPendingSync();
-        GenericInventory store = binding.getBacking();
+        ItemStore store = getStore();
         GuiSurface surface = view.getSurface();
         List<ItemStack> contents = new ArrayList<>(slots.length);
+        List<ItemStack> replaced = new ArrayList<>(slots.length);
         for (int index = 0; index < slots.length; index++) {
             ItemStack shown = surface.getItem(slots[index]);
-            if (GuiBuffer.isEmpty(shown)) {
-                store.removeItem(index);
-                contents.add(null);
-            } else {
-                //two copies: one the store keeps, one the handler may do as it likes with
-                store.setItem(index, shown.clone());
-                contents.add(shown.clone());
+            replaced.add(store.getItem(index));
+            //two copies: one the store keeps, one the handler may do as it likes with
+            store.setItemSilently(index, GuiBuffer.isEmpty(shown) ? null : shown.clone());
+            contents.add(GuiBuffer.isEmpty(shown) ? null : shown.clone());
+        }
+        for (int index = 0; index < slots.length; index++) {
+            if (!GuiBuffer.isSameOutput(replaced.get(index), contents.get(index))) {
+                store.reportUpdate(UpdateCause.PLAYER, index, replaced.get(index), contents.get(index));
             }
         }
         fire(contents, last);
@@ -183,35 +232,39 @@ public final class StorageView {
     // -----------------------------------------------------------------------------------------------------------------
 
     /**
-     * Adds up to {@code amount} of {@code source} at one of this region's slots.
+     * Adds up to {@code amount} of {@code source} at one of this region's slots, as far as the slot's own
+     * maximum allows and as far as the store agrees.
      *
      * @return how much actually went in, which is what the caller has to take off the source
      */
     int addAt(int rawSlot, ItemStack source, int amount) {
-        if (amount <= 0 || GuiBuffer.isEmpty(source) || !mayHold(source)) {
+        int index = indexOf(rawSlot);
+        if (index < 0 || amount <= 0 || GuiBuffer.isEmpty(source) || !mayHold(source)) {
             return 0;
         }
         GuiSurface surface = view.getSurface();
         ItemStack current = surface.getItem(rawSlot);
-        int max = maxStackSizeOf(source);
+        int max = getStore().getMaxStackSize(index, source);
+        ItemStack merged;
         if (GuiBuffer.isEmpty(current)) {
-            int given = Math.min(amount, max);
-            ItemStack put = source.clone();
-            put.setAmount(given);
-            surface.set(rawSlot, put);
-            return given;
+            merged = source.clone();
+            merged.setAmount(Math.min(amount, max));
+        } else {
+            if (!current.isSimilar(source)) {
+                return 0;
+            }
+            int given = Math.min(amount, max - current.getAmount());
+            if (given <= 0) {
+                return 0;
+            }
+            merged = current.clone();
+            merged.setAmount(current.getAmount() + given);
         }
-        if (!current.isSimilar(source)) {
+        if (merged.getAmount() <= 0 || !mayAccept(rawSlot, merged)) {
             return 0;
         }
-        int given = Math.min(amount, max - current.getAmount());
-        if (given <= 0) {
-            return 0;
-        }
-        ItemStack merged = current.clone();
-        merged.setAmount(current.getAmount() + given);
         surface.set(rawSlot, merged);
-        return given;
+        return merged.getAmount() - (GuiBuffer.isEmpty(current) ? 0 : current.getAmount());
     }
 
     /**
@@ -242,27 +295,24 @@ public final class StorageView {
         return placed;
     }
 
-    /** What one stack of {@code item} holds on this server, or {@link #FALLBACK_MAX_STACK} when it will not say. */
-    static int maxStackSizeOf(ItemStack item) {
-        try {
-            int max = item.getMaxStackSize();
-            if (max > 0) {
-                return max;
-            }
-        } catch (Throwable unanswerable) {
-            //an item type this server cannot measure still has to be movable
-        }
-        return FALLBACK_MAX_STACK;
-    }
-
     // -----------------------------------------------------------------------------------------------------------------
     //  What the plugin has to be told about
     // -----------------------------------------------------------------------------------------------------------------
 
-    private void reportItemsPastCapacity(GenericInventory store) {
+    /** A region wider than its store would write past the end of it the first time a player filled it. */
+    private void requireRoomForTheRegion(ItemStore store) {
+        if (store.getCapacity() < slots.length) {
+            throw new IllegalStateException("The storage region [" + binding.getName() + "] has "
+                    + slots.length + " slots and its store holds " + store.getCapacity() + ". The region would "
+                    + "have nowhere to put what a player leaves in the slots past that - give the store as many "
+                    + "slots as the region, with setCapacity(" + slots.length + "), or give the region fewer.");
+        }
+    }
+
+    private void reportItemsPastCapacity(ItemStore store) {
         int hidden = 0;
-        for (ItemInSlot itemInSlot : store.getItems()) {
-            if (itemInSlot.getSlot() >= slots.length) {
+        for (int occupied : store.getOccupiedSlots()) {
+            if (occupied >= slots.length) {
                 hidden++;
             }
         }
@@ -274,8 +324,8 @@ public final class StorageView {
         }
     }
 
-    private void claim(GenericInventory store) {
-        StorageView previous = CLAIMED.put(store, this);
+    private void claim(ItemStore store) {
+        StorageView previous = CLAIMED.put(store.getSharedSource(), this);
         if (previous != null && previous != this) {
             EverNifeCore.getLog().warning("The storage region [" + binding.getName() + "] opened for ["
                     + view.getViewerName() + "] reads the same store ["
@@ -285,9 +335,9 @@ public final class StorageView {
         }
     }
 
-    private void unclaim(GenericInventory store) {
-        if (store != null && CLAIMED.get(store) == this) {
-            CLAIMED.remove(store);
+    private void unclaim(ItemStore store) {
+        if (store != null && CLAIMED.get(store.getSharedSource()) == this) {
+            CLAIMED.remove(store.getSharedSource());
         }
     }
 
