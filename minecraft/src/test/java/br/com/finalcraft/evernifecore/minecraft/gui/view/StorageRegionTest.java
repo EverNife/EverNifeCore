@@ -384,6 +384,61 @@ class StorageRegionTest {
     }
 
     // -----------------------------------------------------------------------------------------------------------------
+    //  The arithmetic, step by step rather than at the end
+    // -----------------------------------------------------------------------------------------------------------------
+
+    @Test
+    void everyStepOfASequenceLeavesTheSameNumberOfItemsInReach() {
+        player.getPlayerInventory().placeWithoutRecording(9, diamonds(8));
+        player.holding(diamonds(4));
+        GuiView view = open(screen(ClickPolicy.EDIT_ALL));
+        int startedWith = diamondsWithinReach();
+        assertEquals(12, startedWith, "eight in the player's own inventory and four on the cursor");
+
+        //raw slot 27 is the player's first slot, which their own inventory numbers 9
+        clicks.clickPlayerInventory(player, 0, ClickType.SHIFT_LEFT, InventoryAction.MOVE_TO_OTHER_INVENTORY);
+        assertEquals(startedWith, diamondsWithinReach(), "after the stack was poured into the region");
+
+        //slot 9 is outside the region, so the gesture is one the framework has to carry out itself
+        clicks.dragEvenly(player, player.getCursor(), 9, 11);
+        assertEquals(startedWith, diamondsWithinReach(), "after a drag the region took only half of");
+
+        clicks.dragEvenly(player, player.getCursor(), 9, 12);
+        assertEquals(startedWith, diamondsWithinReach(), "after the same again with what was left");
+
+        world.advanceTicks(1);
+        assertEquals(startedWith, diamondsWithinReach(), "after the region was written back to its store");
+
+        world.closeDetached(view);
+        assertEquals(startedWith, diamondsWithinReach(), "after the screen went away");
+
+        //without this the count above would hold for a sequence in which nothing ever moved
+        assertEquals(8, world.getSurface().getItem(10).getAmount());
+        assertEquals(2, world.getSurface().getItem(11).getAmount());
+        assertEquals(1, world.getSurface().getItem(12).getAmount());
+        assertTrue(GuiBuffer.isEmpty(player.getCursor()), "and the last one came off the cursor");
+        assertEquals(1, player.getPlayerInventory().getItem(0).getAmount(), "into their own inventory");
+    }
+
+    /** Every diamond the player can still reach: the editable area, their own inventory, and the cursor. */
+    private int diamondsWithinReach() {
+        int total = 0;
+        SurfaceDouble surface = world.getSurface();
+        for (int slot : AREA) {
+            total += diamondsIn(surface.getItem(slot));
+        }
+        SurfaceDouble own = player.getPlayerInventory();
+        for (int slot = 0; slot < own.getSize(); slot++) {
+            total += diamondsIn(own.getItem(slot));
+        }
+        return total + diamondsIn(player.getCursor());
+    }
+
+    private static int diamondsIn(ItemStack item) {
+        return GuiBuffer.isEmpty(item) || item.getType() != Material.DIAMOND ? 0 : item.getAmount();
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
     //  Closing
     // -----------------------------------------------------------------------------------------------------------------
 
