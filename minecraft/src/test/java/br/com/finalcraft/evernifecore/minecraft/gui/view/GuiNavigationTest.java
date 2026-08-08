@@ -337,6 +337,30 @@ class GuiNavigationTest {
     }
 
     @Test
+    void onlyTheScreenOnDisplayCanBeSetAsideAndOnlyASetAsideOneComesBack() {
+        GuiView view = world.open(screen("A", Material.IRON_INGOT), player);
+
+        assertTrue(GuiNavigation.suspend(view));
+        assertTrue(view.isSuspended());
+        assertFalse(GuiNavigation.suspend(view), "a screen already set aside has no window left to give up");
+
+        assertTrue(GuiNavigation.resume(view));
+        assertFalse(view.isSuspended());
+        assertFalse(GuiNavigation.resume(view), "and one that has a window has nothing to be given back");
+
+        GuiView other = world.open(screen("B", Material.GOLD_INGOT), player);
+
+        assertTrue(view.isClosed(), "an open outside the chain took the window from the first screen");
+        assertFalse(GuiNavigation.suspend(view), "and a screen that is gone cannot be set aside");
+        assertTrue(GuiNavigation.suspend(other));
+
+        player.online(false);
+
+        assertFalse(GuiNavigation.resume(other), "there is nobody left to give it back to");
+        assertTrue(other.isSuspended(), "so it stays set aside rather than pretending it is on screen");
+    }
+
+    @Test
     void closingTheWindowMidChainLeavesNoScreenNoTaskAndNobodyWaiting() {
         Gui<?> third = screen("C", Material.EMERALD);
         Gui<?> second = screen("B", Material.GOLD_INGOT).icon(1, opens(third));
