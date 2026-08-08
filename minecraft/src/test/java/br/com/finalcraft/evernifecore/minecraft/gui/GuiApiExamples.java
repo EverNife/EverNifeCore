@@ -22,6 +22,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.state.State;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.ClickContext;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.prompt.ChatPrompt;
 import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventory;
+import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventory;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
@@ -627,6 +628,57 @@ final class GuiApiExamples {
                 .thenCompose(data -> data.getPDSection(BackpackSection.class)
                         .thenApply(backpack -> new BackpackGui(data, backpack)))
                 .thenAccept(gui -> gui.open(player));
+    }
+
+    // ---- the same area over the store that answers back ----
+
+    /** A {@link StoredInventory} is a field like any other: the registered codec writes the envelope. */
+    public static class VaultSection extends PDSection {
+
+        private StoredInventory contents = new StoredInventory(27);
+
+        public VaultSection() {                               //Jackson
+
+        }
+
+        public StoredInventory getContents() {
+            return contents;
+        }
+
+    }
+
+    @GuiLayout(title = "§9Cofre", rows = 6)
+    public static class VaultLayout extends LayoutBase {
+
+        @IconData(slot = {9, 10, 11, 12, 13, 14, 15, 16, 17,
+                18, 19, 20, 21, 22, 23, 24, 25, 26,
+                27, 28, 29, 30, 31, 32, 33, 34, 35})
+        public Icon AREA = Icon.empty();
+
+        @IconData(slot = {49})
+        public Icon CLOSE = DefaultIcons.back();
+
+    }
+
+    /**
+     * What the store adds over a plain one: a slot that holds one of anything, a change refused before
+     * it happens, and one told afterwards - which is where saving belongs, because it only ever runs for
+     * a change that really happened.
+     */
+    public static class VaultGui extends LayoutGui<IPlayerData, VaultLayout> {
+
+        public VaultGui(IPlayerData data, VaultSection vault) {
+            super(Layouts.of(VaultLayout.class), data);
+
+            StoredInventory contents = vault.getContents();
+            contents.setMaxStackSize(0, 1);                   //the display slot: one of anything
+            contents.onPreUpdate(event -> event.setCancelled(isBlacklisted(event.getNewItem())));
+            contents.onPostUpdate(event -> vault.markDirty());
+
+            icon(l -> l.CLOSE).onClick(ClickContext::close);
+            storage(l -> l.AREA).backedBy(contents).policy(ClickPolicy.EDIT_ALL);
+        }
+
     }
 
     @GuiLayout(title = "§9Editando kit", rows = 6)

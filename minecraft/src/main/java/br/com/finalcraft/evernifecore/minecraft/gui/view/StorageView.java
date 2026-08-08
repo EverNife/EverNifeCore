@@ -105,7 +105,10 @@ public final class StorageView {
      * on.
      *
      * <p>A stack too big for the slot is refused without asking - there is nothing to decide about a
-     * gesture that cannot happen, and the pre-update handler is for decisions.</p>
+     * gesture that cannot happen, and the pre-update handler is for decisions. What "too big" means is
+     * only ever about GROWING: a slot that already holds more than it should - filled before anybody said
+     * how much it takes - can still be emptied, halved and taken from, or the items in it would be
+     * stranded there by the very rule meant to limit them.</p>
      */
     public boolean mayAccept(int rawSlot, @Nullable ItemStack next) {
         int index = indexOf(rawSlot);
@@ -113,10 +116,12 @@ public final class StorageView {
             return true;
         }
         ItemStore store = getStore();
-        if (!GuiBuffer.isEmpty(next) && next.getAmount() > store.getMaxStackSize(index, next)) {
+        ItemStack shown = view.getSurface().getItem(rawSlot);
+        if (!GuiBuffer.isEmpty(next) && next.getAmount() > store.getMaxStackSize(index, next)
+                && next.getAmount() > (GuiBuffer.isEmpty(shown) ? 0 : shown.getAmount())) {
             return false;
         }
-        return store.mayUpdate(UpdateCause.PLAYER, index, view.getSurface().getItem(rawSlot), next);
+        return store.mayUpdate(UpdateCause.PLAYER, index, shown, next);
     }
 
     // -----------------------------------------------------------------------------------------------------------------

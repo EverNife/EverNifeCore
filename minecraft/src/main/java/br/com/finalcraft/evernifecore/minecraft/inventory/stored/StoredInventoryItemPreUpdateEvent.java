@@ -14,9 +14,11 @@ import org.bukkit.inventory.ItemStack;
  * });
  * }</pre>
  *
- * <p>Cancelling refuses the whole gesture, not the slot: the click never reaches the world, so nothing
- * leaves the cursor and nothing leaves the slot. That is the only answer that keeps the count right -
- * letting half a gesture through is how an item is duplicated or lost.</p>
+ * <p>Cancelling a click refuses the whole click: it never reaches the world, so nothing leaves the
+ * cursor and nothing leaves the slot. A gesture the framework has to take apart itself - a drag divided
+ * between slots, a shift-click poured over them - is refused one slot at a time instead: the slot that
+ * says no receives nothing and its share stays where it was. Either way the count is untouched, which is
+ * the property that matters.</p>
  *
  * <p>A handler that throws is read as a refusal. It is a bug either way, and of the two ways to be
  * wrong, a screen that will not move an item is the one that can be seen.</p>

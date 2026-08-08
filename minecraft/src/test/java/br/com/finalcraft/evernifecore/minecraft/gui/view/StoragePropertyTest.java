@@ -394,12 +394,23 @@ class StoragePropertyTest {
 
         /** The ending every screen has, whether the player asked for it or their connection did. */
         private void disconnect() {
+            List<ItemStack> shown = new ArrayList<>();
+            for (int slot : AREA) {
+                shown.add(surface.getItem(slot));
+            }
+
             world.releaseDetached(view, CloseReason.DISCONNECTED);
             history.add("disconnected");
 
             assertEquals(expected, inReach(), describe("after the connection dropped"));
             assertTrue(GuiBuffer.isEmpty(player.getCursor()), describe("the cursor was still holding "
                     + describeItem(player.getCursor()) + " after the player left"));
+            for (int index = 0; index < AREA.length; index++) {
+                assertTrue(GuiBuffer.isSameOutput(shown.get(index), store.getItem(index)),
+                        describe("the window was showing " + describeItem(shown.get(index)) + " at slot "
+                                + index + " when the player left, and the store kept "
+                                + describeItem(store.getItem(index))));
+            }
         }
 
         // -------------------------------------------------------------------------------------------------------------
