@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.inventory.stored;
 
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
 import br.com.finalcraft.everyconfig.config.Config;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -119,6 +120,32 @@ class StoredInventorySchemaTest {
         assertNull(reloaded.getItem(1), "a slot nothing was in stays empty");
         assertEquals(16, reloaded.getMaxStackSize(4), "and a slot that holds less than the item says so");
         assertEquals(StoredInventory.ITEM_DEFAULT, reloaded.getMaxStackSize(0));
+    }
+
+    @Test
+    void anInventoryCrossesToStorageThroughTheSameTypeAuthority() {
+        VaultedItems saved = new VaultedItems();
+        saved.vault.setItemSilently(2, new ItemStack(Material.DIAMOND, 4));
+        saved.vault.setMaxStackSize(0, 1);
+
+        ConfigFactoryCodec<VaultedItems> codec = ConfigFactoryCodec.json(VaultedItems.class);
+        VaultedItems read = codec.decode(codec.encode(saved));
+
+        assertEquals(9, read.vault.getSize(), "a storage backend writes bytes, not a config file, and the "
+                + "envelope has to survive that road too - it is the one a plugin persists through");
+        assertEquals(4, read.vault.getItem(2).getAmount());
+        assertEquals(1, read.vault.getMaxStackSize(0));
+    }
+
+    /** A persisted entity with an inventory in it, which is the shape a plugin actually stores. */
+    public static class VaultedItems {
+
+        public StoredInventory vault = new StoredInventory(9);
+
+        public VaultedItems() {                               //Jackson
+
+        }
+
     }
 
     // -----------------------------------------------------------------------------------------------------------------
