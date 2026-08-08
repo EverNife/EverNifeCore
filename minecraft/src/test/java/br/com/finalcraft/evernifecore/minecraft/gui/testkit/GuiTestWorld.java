@@ -160,7 +160,21 @@ public final class GuiTestWorld implements AutoCloseable {
     }
 
     public PlayerDouble newPlayer(String name) {
-        return new PlayerDouble(name, events);
+        return new PlayerDouble(name, events, this::windowOver);
+    }
+
+    /**
+     * The container this world's server names once it has opened a window over {@code inventory}: a
+     * fresh face of the same storage, the way a real one answers its own wrapper rather than the object
+     * it was handed. A container this world did not create is passed through untouched.
+     */
+    private Inventory windowOver(Inventory inventory) {
+        for (SurfaceDouble surface : createdSurfaces) {
+            if (surface.isBackedBy(inventory)) {
+                return surface.newFace();
+            }
+        }
+        return inventory;
     }
 
     /** Every container the framework asked the server for, oldest first - a title change adds one. */

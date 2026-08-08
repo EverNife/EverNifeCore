@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 
 /**
  * A viewer: an identity, a set of permissions, a cursor, and the window they currently have open.
@@ -23,6 +24,11 @@ import java.util.UUID;
  * {@code InventoryOpenEvent}, and the framework treats that event - not the call - as the moment the
  * window exists. {@link #refuseOpens(boolean)} is how a test plays the server that says no: the call
  * returns, no event follows, and nothing is supposed to be registered or scheduled.</p>
+ *
+ * <p>The event does not carry the container it was handed, either. A server builds its own window over
+ * that storage and names ITS wrapper from then on, so this double asks for one too - and a screen that
+ * kept hold of the object it created would find every later event pointing at a container it does not
+ * recognise.</p>
  */
 public final class PlayerDouble {
 
@@ -36,6 +42,7 @@ public final class PlayerDouble {
     private final List<String> messages = new ArrayList<>();
     private final Player face;
     private final GuiEventBus events;
+    private final Function<Inventory, Inventory> serverWindowOver;
 
     private ItemStack cursor;
     private InventoryView openView;
@@ -43,9 +50,10 @@ public final class PlayerDouble {
     private boolean online = true;
     private boolean refuseOpens = false;
 
-    PlayerDouble(String name, GuiEventBus events) {
+    PlayerDouble(String name, GuiEventBus events, Function<Inventory, Inventory> serverWindowOver) {
         this.name = name;
         this.events = events;
+        this.serverWindowOver = serverWindowOver;
         this.face = Doubles.of(Player.class)
                 .on("getUniqueId", args -> uniqueId)
                 .on("getName", args -> name)
@@ -185,7 +193,7 @@ public final class PlayerDouble {
     }
 
     private InventoryView open(Inventory inventory) {
-        InventoryView view = joinedView(inventory, playerInventory.asInventory(), face);
+        InventoryView view = joinedView(serverWindowOver.apply(inventory), playerInventory.asInventory(), face);
         if (refuseOpens) {
             return view;
         }

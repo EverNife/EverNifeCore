@@ -20,17 +20,20 @@ import java.util.Set;
  * <p>{@link #asInventory()} is the same storage wearing the platform's interface, for the few places
  * that demand one - the server hands out an {@code Inventory} when a window is created, and a click
  * event resolves its raw slot through one. It delegates straight back here, so a write that arrives
- * that way is recorded exactly like a direct one; nothing about a real container is simulated. It is
- * also the answer to {@link #isBackedBy(Inventory)}, which is how an event that names a container
- * finds its way to a screen drawn on this one.</p>
+ * that way is recorded exactly like a direct one; nothing about a real container is simulated.</p>
+ *
+ * <p>There can be MORE than one such face, because a server hands out more than one: opening a window
+ * over a container answers a fresh wrapper around it, and every event that follows names that wrapper
+ * instead of the object the caller created. {@link #newFace()} is that second wrapper, and
+ * {@link #isBackedBy(Inventory)} answers for all of them - which is how an event that names any of the
+ * container's faces finds its way to a screen drawn on this one.</p>
  */
 public final class SurfaceDouble implements GuiSurface {
 
     private final int size;
     private final ItemStack[] contents;
     private final List<Write> writes = new ArrayList<>();
-
-    private Inventory inventoryFace;
+    private final List<Inventory> faces = new ArrayList<>();
 
     public SurfaceDouble(int size) {
         this.size = size;
@@ -65,7 +68,7 @@ public final class SurfaceDouble implements GuiSurface {
 
     @Override
     public boolean isBackedBy(Inventory inventory) {
-        return inventory != null && inventory == inventoryFace;
+        return inventory != null && faces.contains(inventory);
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -115,19 +118,24 @@ public final class SurfaceDouble implements GuiSurface {
     //  The platform's face of the same storage
     // -----------------------------------------------------------------------------------------------------------------
 
+    /** The face a caller creating this container gets. */
     public Inventory asInventory() {
-        if (inventoryFace == null) {
-            inventoryFace = Doubles.of(Inventory.class)
-                    .on("getSize", args -> size)
-                    .on("getItem", args -> getItem((Integer) args[0]))
-                    .on("setItem", args -> {
-                        set((Integer) args[0], (ItemStack) args[1]);
-                        return null;
-                    })
-                    .on("getContents", args -> contents.clone())
-                    .build();
-        }
-        return inventoryFace;
+        return faces.isEmpty() ? newFace() : faces.get(0);
+    }
+
+    /** Another face of the same storage: what a server names once it has opened a window over it. */
+    public Inventory newFace() {
+        Inventory face = Doubles.of(Inventory.class)
+                .on("getSize", args -> size)
+                .on("getItem", args -> getItem((Integer) args[0]))
+                .on("setItem", args -> {
+                    set((Integer) args[0], (ItemStack) args[1]);
+                    return null;
+                })
+                .on("getContents", args -> contents.clone())
+                .build();
+        faces.add(face);
+        return face;
     }
 
     /** One write the gui made: which slot, and what landed there ({@code null} for a clear). */
