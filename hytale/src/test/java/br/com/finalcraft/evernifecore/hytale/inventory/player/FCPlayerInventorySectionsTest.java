@@ -111,17 +111,33 @@ class FCPlayerInventorySectionsTest {
         }
     }
 
-    /** Naming an item is all a real ItemStack cannot do here: resolving an id needs the server's asset store. */
+    /**
+     * Naming an item is all a real ItemStack cannot do here: resolving an id needs the server's asset
+     * store, and {@code isValid()} is that lookup. It is answered by hand, so a test can have both an
+     * id the store knows and one it does not.
+     */
     private static class FakeItemStack extends ItemStack {
+        private final boolean valid;
+
         FakeItemStack(String itemId) {
+            this(itemId, true);
+        }
+
+        FakeItemStack(String itemId, boolean valid) {
             this.itemId = itemId;
             this.quantity = 1;
+            this.valid = valid;
         }
 
         @Override
         public boolean isValid() {
-            return true;
+            return valid;
         }
+    }
+
+    /** What is left in a slot after the mod that added the item is gone: an id nothing answers for. */
+    private static FakeItemStack unresolvable(String itemId) {
+        return new FakeItemStack(itemId, false);
     }
 
     private static FakeInventory inventoryWithAnItemInEverySection() {
@@ -212,6 +228,23 @@ class FCPlayerInventorySectionsTest {
             assertEquals(itemIdAt(section.container.apply(source), 0), itemIdAt(section.container.apply(target), 0),
                     section + " did not survive the round trip");
         }
+    }
+
+    /**
+     * A snapshot is what will be written back, so an id nothing answers for has to be dropped on the way
+     * in - restoring it would put an item into the world that the server has no asset for.
+     */
+    @Test
+    void anItemTheAssetStoreCannotResolveIsLeftOutOfTheSnapshot() {
+        FakeInventory source = new FakeInventory();
+        source.getStorage().setItemStackForSlot((short) 0, new FakeItemStack("storage-item"));
+        source.getStorage().setItemStackForSlot((short) 1, unresolvable("removed-mod:ancient-pickaxe"));
+
+        FCPlayerInventory snapshot = new FCPlayerInventory();
+        snapshot.snapshotSectionsFrom(source);
+
+        assertEquals("storage-item", itemIdAt(snapshot.getStorage(), 0), "the item that does resolve is kept");
+        assertNull(itemIdAt(snapshot.getStorage(), 1), "the one that does not is not an item at all");
     }
 
     /**
