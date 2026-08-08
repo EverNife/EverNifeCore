@@ -22,6 +22,39 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   call grammar, the declarative flag matrix and the marker grammar, the tree help and its locale
   keys, the registry file and the access contract, the builtin commands against their own framework,
   and each platform's own parsers against the registry.
+- **A page speaks the reader's language.** `setFormatHeader`/`setFormatLine`/`setFormatFooter` accept
+  a `LocaleMessage`, and the header, the count and the navigation bar are resolved per recipient
+  instead of in the plugin's default language.
+- **Two named levels of placeholder.** `addRowPlaceholder` is computed once per entry and shared by
+  everyone reading the page; the new `addViewerPlaceholder` is computed once per entry per reader, so
+  a line can highlight the reader's own row or answer for their own state.
+- **`PageSnapshot`, `CachePolicy` and `invalidate()`.** A page caches one ordered read of its source -
+  the half nobody's language changes - with a policy declared where the cost is known: `ttl`,
+  `none` or `manual`.
+- **Three navigation strategies.** `PageNavigation.command("/finaljobs top %page%")` re-runs the
+  caller's own line, `registered("plugin:name")` navigates by name through the new `/ecpage`, and
+  `session()` keeps a ten-minute handle that only its own reader may use.
+- **`PageTheme`, and an empty state.** The chrome is a theme (`classic()`, `autoFit()`, `none()`)
+  instead of three booleans, and a page with no entries says so instead of printing buttons pointing
+  at page 1 of 0.
+
+### Changed
+
+- **`PageViewer` takes one type parameter and a step builder that asks for the ceiling.**
+  `PageViewer.of(Class).source(...)` then `maxEntries(...)` or `unlimitedEntries()`; there is no
+  default ceiling to be surprised by. Ordering is declared with `orderBy(...).ascending()` /
+  `.descending()` and is the order that was asked for - the fixed `Collections.reverse` and the
+  comparator nobody asked for are gone. Without `orderBy`, entries come out as the source returned
+  them.
+- **`showAll` shows all of it.** `maxEntries` caps the read and `pageSize` slices the message; what
+  the ceiling left out is counted and announced in the hover of the total, costing no line of chat.
+
+### Removed
+
+- **`Settings.PageViewers` is gone from `config.yml`** - both `REFRESH_TIME` (now a `CachePolicy`
+  declared on the page) and `FULL_LOCALIZATION` (the localized chrome is the only path now).
+- **The per-send dynamic command links.** A page no longer schedules three `DynamicCommand` entries
+  per send, each retaining the viewer for thirty minutes.
 
 ## [3.0.1-alpha.32] - 2026-07-31
 

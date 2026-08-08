@@ -96,6 +96,14 @@ public class McTextMetricsTest {
         assertTrue(metrics.widthOf(line) <= metrics.chatLineWidth());
     }
 
+    // The rule a page prints above its entries is written out as a literal rather than measured, so
+    // the number of dashes in it has to be pinned against these metrics somewhere - here.
+    @Test
+    public void fiftyThreeDashesFillTheChatLineAndFiftyFourOverflowIt() {
+        assertTrue(metrics.widthOf(FCTextUtil.repeatString("-", 53)) <= metrics.chatLineWidth());
+        assertTrue(metrics.widthOf(FCTextUtil.repeatString("-", 54)) > metrics.chatLineWidth());
+    }
+
     @Test
     public void centringPadsWithHalfTheLeftoverWidth() {
         String centred = FCTextUtil.alignCenter(metrics, "AAAA");

@@ -23,13 +23,9 @@ public class ECSettings {
     public static String ZONE_ID_OF_DAY_OF_TODAY;
     public static DateTimeFormatter SIMPLE_DATE_FORMAT = FCTimeUtil.FORMATTER_DATE_REVERSE;
     public static DateTimeFormatter DATE_FORMAT_WITH_HOURS = FCTimeUtil.FORMATTER_DATETIME_REVERSE;
-    public static int PAGEVIEWERS_REFRESH_TIME;
 
     //Guis
     public static int DEFAULT_GUI_UPDATE_TIME = 2;
-
-    //PageViewer
-    public static boolean PAGEVIEWERS_FULL_LOCALIZATION = false;
 
     //Locale
     public static boolean PER_PLAYER_LOCALE = false;
@@ -64,23 +60,6 @@ public class ECSettings {
         );
         DATE_FORMAT_WITH_HOURS = DateTimeFormatter.ofPattern(
                 ConfigManager.getMainConfig().getOrSetValueIfAbsent("Settings.Time.DATE_FORMAT_WITH_HOURS", "dd/MM/yyyy HH:mm")
-        );
-
-        PAGEVIEWERS_REFRESH_TIME = ConfigManager.getMainConfig().getOrSetValueIfAbsent("Settings.PageViewers.REFRESH_TIME", 5,
-                "The default amount of time the result of a '/top' command should be cached." +
-                        "\nFor example, when using FinalEconomy, the '/baltop' may be cached to prevent lag for X amount of seconds." +
-                        "\nIncrease this value if you find lag related to this feature! (very unlikely)" +
-                        "\nIf going to decrease, I suggest to at least keep to 1 second");
-
-        PAGEVIEWERS_FULL_LOCALIZATION = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
-                "Settings.PageViewers.FULL_LOCALIZATION",
-                false,
-                "If you want to enable the localization of the PageViewer's messages, set this to true." +
-                        "\nThis will allow you to change the messages that are displayed on the PageViewer." +
-                        "\n" +
-                        "\nBy default the PageViewers will try to adjust to the content-size, but on non latin" +
-                        "\nlanguages this may not work as expected. If you are having issues with the PageViewer" +
-                        "\nmessages, enable this and customize the messages to fit your needs."
         );
 
         PER_PLAYER_LOCALE = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
