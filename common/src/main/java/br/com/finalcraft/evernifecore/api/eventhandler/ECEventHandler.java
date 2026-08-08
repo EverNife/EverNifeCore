@@ -36,8 +36,9 @@ public @interface ECEventHandler {
     /**
      * Define if the handler ignores a cancelled event.
      * <p>
-     * If ignoreCancelled is true and the event is cancelled, the method is
-     * not called. Otherwise, the method is always called.
+     * On a platform event that can be cancelled, a true value keeps the method from being called once
+     * something else cancelled it. On an {@code IECEvent} it decides nothing: that marker carries no
+     * cancellation contract, so the handler is called either way.
      *
      * @return whether cancelled events should be ignored
      */

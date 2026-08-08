@@ -11,10 +11,9 @@ public class FCStringUtil {
      * @param prefix Prefix of string to compare
      * @return true if provided string starts with, ignoring case, the prefix
      *     provided
-     * @throws NullPointerException if prefix is null
-     * @throws IllegalArgumentException if string is null
+     * @throws NullPointerException if either string or prefix is null
      */
-    public static boolean startsWithIgnoreCase(final String string, final String prefix) throws IllegalArgumentException, NullPointerException {
+    public static boolean startsWithIgnoreCase(final String string, final String prefix) throws NullPointerException {
         if (string.length() < prefix.length()) {
             return false;
         }
