@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * Storage a player may really take from and fill: a fixed number of slots, a maximum stack size per
+ * Storage a player may really take from and fill: a number of slots it knows, a maximum stack size per
  * slot, handlers that see a change coming and may refuse it, and a serialized form that carries the
  * number of the schema it was written with.
  *
@@ -66,14 +66,6 @@ public final class StoredInventory implements ItemStore {
         requireSize(size);
         this.items = new ItemStack[size];
         this.maxStackSizes = new int[size];
-    }
-
-    /** An inventory of {@code size} slots holding what {@code contents} holds, index for index. */
-    public StoredInventory(int size, @Nonnull List<ItemStack> contents) {
-        this(size);
-        for (int slot = 0; slot < contents.size() && slot < size; slot++) {
-            this.items[slot] = copyOf(contents.get(slot));
-        }
     }
 
     // -----------------------------------------------------------------------------------------------------------------
