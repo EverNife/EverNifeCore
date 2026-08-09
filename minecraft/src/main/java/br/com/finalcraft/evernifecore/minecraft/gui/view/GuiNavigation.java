@@ -57,7 +57,9 @@ public final class GuiNavigation {
     @Nonnull
     public static CompletableFuture<Object> open(@Nonnull GuiView current, @Nonnull Gui<?> next) {
         CompletableFuture<Object> result = new CompletableFuture<>();
-        GuiViews.onMainThread(() -> openOnMainThread(current, next, result));
+        //one tick out, never within the click that asked: the server applies the click against the
+        //window that is open when the event ends, and by then it must still be the old one
+        current.getScheduler().later(1L, () -> openOnMainThread(current, next, result));
         return result;
     }
 
@@ -92,7 +94,8 @@ public final class GuiNavigation {
      * @param value what the screen underneath's opener was waiting for, or {@code null}
      */
     public static void back(@Nonnull GuiView current, @Nullable Object value) {
-        GuiViews.onMainThread(() -> backOnMainThread(current, value));
+        //same one-tick hop as open(): never swap windows inside the click being answered
+        current.getScheduler().later(1L, () -> backOnMainThread(current, value));
     }
 
     private static void backOnMainThread(GuiView current, Object value) {
@@ -126,7 +129,8 @@ public final class GuiNavigation {
      * still waiting, and it is {@code next} that will answer them.</p>
      */
     public static void replace(@Nonnull GuiView current, @Nonnull Gui<?> next) {
-        GuiViews.onMainThread(() -> replaceOnMainThread(current, next));
+        //same one-tick hop as open(): never swap windows inside the click being answered
+        current.getScheduler().later(1L, () -> replaceOnMainThread(current, next));
     }
 
     private static void replaceOnMainThread(GuiView current, Gui<?> next) {

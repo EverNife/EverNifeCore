@@ -122,6 +122,12 @@ class GuiNavigationTest {
         world.advanceTicks(1);
     }
 
+    /** Clicks a button that navigates: the window swap happens one tick after the click, never inside it. */
+    private void navigate(int slot) {
+        clicks.leftClick(player, slot);
+        world.advanceTicks(1);
+    }
+
     /** What slot 0 of the window the player is looking at right now holds. */
     private ItemStack onScreen() {
         return world.getSurface().getItem(0);
@@ -147,20 +153,20 @@ class GuiNavigationTest {
 
         GuiView viewA = world.open(first, player);
         counterOf("A", 7);
-        clicks.leftClick(player, 1);
+        navigate(1);
 
         GuiView viewB = GuiViews.getOpenView(player.asPlayer());
         assertNotSame(viewA, viewB, "the second screen is a screen of its own, not the first redrawn");
         assertTrue(viewA.isSuspended(), "the screen underneath keeps everything it holds and stops drawing");
         counterOf("B", 5);
-        clicks.leftClick(player, 1);
+        navigate(1);
 
         GuiView viewC = GuiViews.getOpenView(player.asPlayer());
         assertTrue(viewB.isSuspended());
         assertEquals(2, answers.size());
         assertFalse(answers.get(0).isDone(), "the first step is still waiting on the second");
 
-        clicks.leftClick(player, 2);
+        navigate(2);
 
         assertEquals("from C", valueOf(answers.get(1)));
         assertTrue(viewC.isClosed(), "the screen walked out of is torn down, not set aside");
@@ -169,7 +175,7 @@ class GuiNavigationTest {
         assertEquals(Material.GOLD_INGOT, onScreen().getType());
         assertEquals(5, onScreen().getAmount(), "the second screen came back on the count it was left on");
 
-        clicks.leftClick(player, 2);
+        navigate(2);
 
         assertEquals("from B", valueOf(answers.get(0)));
         assertSame(viewA, GuiViews.getOpenView(player.asPlayer()));
@@ -181,10 +187,27 @@ class GuiNavigationTest {
     }
 
     @Test
+    void theWindowIsNeverSwappedInsideTheClickThatAskedForIt() {
+        Gui<?> second = screen("B", Material.GOLD_INGOT);
+        GuiView viewA = world.open(screen("A", Material.IRON_INGOT).icon(1, opens(second)), player);
+
+        clicks.leftClick(player, 1);
+
+        assertSame(viewA, GuiViews.getOpenView(player.asPlayer()), "the server applies the click against "
+                + "the window that is open when the event ends, so it must still be the old one");
+        assertFalse(viewA.isSuspended());
+
+        world.advanceTicks(1);
+
+        assertNotSame(viewA, GuiViews.getOpenView(player.asPlayer()), "the swap lands one tick later");
+        assertTrue(viewA.isSuspended());
+    }
+
+    @Test
     void leavingTheBottomOfTheChainSimplyClosesTheWindow() {
         GuiView only = world.open(screen("A", Material.IRON_INGOT).icon(2, goesBackWith("nobody asked")), player);
 
-        clicks.leftClick(player, 2);
+        navigate(2);
 
         assertTrue(only.isClosed());
         assertNull(GuiViews.getOpenView(player.asPlayer()), "there was nothing underneath to reveal");
@@ -195,7 +218,7 @@ class GuiNavigationTest {
     void anOpenNobodyNavigatedToStartsOverInsteadOfContinuingTheChain() {
         Gui<?> second = screen("B", Material.GOLD_INGOT).icon(2, goesBackWith("from B"));
         GuiView viewA = world.open(screen("A", Material.IRON_INGOT).icon(1, opens(second)), player);
-        clicks.leftClick(player, 1);
+        navigate(1);
         assertTrue(viewA.isSuspended());
 
         //a command, not a button: the player is sent somewhere the chain knows nothing about
@@ -221,15 +244,15 @@ class GuiNavigationTest {
                 .onClick(context -> context.open(ConfirmGui.of("§eSell it?")).thenAccept(answered::add)));
         GuiView viewMenu = world.open(menu, player);
 
-        clicks.leftClick(player, 1);
-        clicks.leftClick(player, denySlot());
+        navigate(1);
+        navigate(denySlot());
 
         assertEquals(1, answered.size());
         assertEquals(Boolean.FALSE, answered.get(0), "denying is an answer, not a walk away");
         assertSame(viewMenu, GuiViews.getOpenView(player.asPlayer()), "and it gives the screen back");
 
-        clicks.leftClick(player, 1);
-        clicks.leftClick(player, confirmSlot());
+        navigate(1);
+        navigate(confirmSlot());
 
         assertEquals(2, answered.size());
         assertEquals(Boolean.TRUE, answered.get(1));
@@ -247,7 +270,7 @@ class GuiNavigationTest {
                     answer.thenAccept(answered::add);
                 }));
         world.open(menu, player);
-        clicks.leftClick(player, 1);
+        navigate(1);
 
         player.asPlayer().closeInventory();
 
@@ -265,10 +288,10 @@ class GuiNavigationTest {
 
         GuiView viewRoot = world.open(root, player);
         counterOf("Root", 4);
-        clicks.leftClick(player, 1);
+        navigate(1);
         GuiView viewMiddle = GuiViews.getOpenView(player.asPlayer());
 
-        clicks.leftClick(player, 3);
+        navigate(3);
 
         GuiView viewReplacement = GuiViews.getOpenView(player.asPlayer());
         assertNotSame(viewMiddle, viewReplacement);
@@ -277,7 +300,7 @@ class GuiNavigationTest {
         assertFalse(answers.get(0).isDone(), "whoever opened this step is still waiting - now on the "
                 + "replacement, which inherited the debt");
 
-        clicks.leftClick(player, 2);
+        navigate(2);
 
         assertEquals("from the replacement", valueOf(answers.get(0)));
         assertSame(viewRoot, GuiViews.getOpenView(player.asPlayer()), "the step back skipped the screen that "
@@ -306,7 +329,7 @@ class GuiNavigationTest {
         GuiView viewA = world.open(first, player);
         counterOf("A", 7);
         SurfaceDouble setAside = world.getSurface();
-        clicks.leftClick(player, 1);
+        navigate(1);
         assertEquals(1, underneath.get());
         assertTrue(viewA.isSuspended());
 
@@ -325,7 +348,7 @@ class GuiNavigationTest {
                 + "the player is looking at answered");
         assertEquals(1, onTop.get());
 
-        clicks.leftClick(player, 2);
+        navigate(2);
 
         assertFalse(viewA.isSuspended(), "picked up again");
         assertSame(viewA, GuiViews.getOpenView(player.asPlayer()));
@@ -371,9 +394,9 @@ class GuiNavigationTest {
         third.component(component -> component.every(2).render(slots -> { }));
 
         GuiView viewA = world.open(first, player);
-        clicks.leftClick(player, 1);
+        navigate(1);
         GuiView viewB = GuiViews.getOpenView(player.asPlayer());
-        clicks.leftClick(player, 1);
+        navigate(1);
         GuiView viewC = GuiViews.getOpenView(player.asPlayer());
         assertEquals(3, world.getScheduler().getPeriodicTaskCount(), "three screens, three clocks");
 

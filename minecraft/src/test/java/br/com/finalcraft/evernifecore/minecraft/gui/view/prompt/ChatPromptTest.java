@@ -112,6 +112,7 @@ class ChatPromptTest {
                         .onClick(context -> stepIntoTheDeeperScreen = context.open(deeper)));
         world.open(menu, player);
         clicks.leftClick(player, 1);
+        world.advanceTicks(1); //the step into the deeper screen lands one tick after the click
         return GuiViews.getOpenView(player.asPlayer());
     }
 
@@ -177,6 +178,7 @@ class ChatPromptTest {
         assertEquals(7, onScreen().getAmount(), "on the count it was left on");
 
         clicks.leftClick(player, 2);
+        world.advanceTicks(1); //the step back out is a one-tick hop too
         assertEquals("left the auction", stepIntoTheDeeperScreen.getNow(null),
                 "and the chain survived the question, so the way out still leads to the menu");
     }
