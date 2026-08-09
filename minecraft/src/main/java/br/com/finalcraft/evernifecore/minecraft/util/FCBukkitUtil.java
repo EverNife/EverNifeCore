@@ -17,6 +17,7 @@ import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFCommandSender;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
+import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCServerType;
 import br.com.finalcraft.evernifecore.ontime.OntimeManager;
@@ -306,7 +307,8 @@ public class FCBukkitUtil {
     }
 
     public static void setPlayersHeldItem(Player player, ItemStack itemStack) {
-        if (MCVersion.isLowerEquals(MCVersion.v1_7_10)) {
+        //the main-hand pair arrived with the off hand in 1.9; before that the held item IS the hand
+        if (MCVersion.isLower(MCDetailedVersion.v1_9_R1)) {
             player.setItemInHand(itemStack);
         } else {
             player.getInventory().setItemInMainHand(itemStack);
@@ -316,7 +318,7 @@ public class FCBukkitUtil {
     public static ItemStack getPlayersHeldItem(Player player) {
         final ItemStack heldItem;
 
-        if (MCVersion.isLowerEquals(MCVersion.v1_7_10)) {
+        if (MCVersion.isLower(MCDetailedVersion.v1_9_R1)) {
             heldItem = player.getItemInHand();
         } else {
             heldItem = player.getInventory().getItemInMainHand();

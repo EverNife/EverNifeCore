@@ -17,13 +17,12 @@
 * shape org/bukkit/block/Biome.name()Ljava/lang/String;           # idem
 
 # ---------------------------------------------------------------------------------------------
-# Types that arrived after 1.7.10.
+# Types that arrived after some supported era.
 # ---------------------------------------------------------------------------------------------
-1.7.10 class org/bukkit/NamespacedKey                # ItemDataPartEnchantment: ItemEngine registers it behind ItemRequirement.atLeast(v1_13_R1), and RegisteredPart never instantiates a refused part. ItemRuntime: inside try/catch(Exception|LinkageError)
+* class org/bukkit/NamespacedKey                     # arrived in 1.12. ItemDataPartEnchantment: ItemEngine registers it behind ItemRequirement.atLeast(v1_13_R1), and RegisteredPart never instantiates a refused part. ItemRuntime: inside try/catch(Exception|LinkageError)
 1.7.10 class org/bukkit/inventory/ItemFlag           # FCBaseItemBuilder:256 sits after the isEqual(v1_7_10) early return; ItemDataPartItemflags is registered behind ItemRequirement.atLeast(v1_8_R1)
-1.7.10 class org/bukkit/Particle                     # CMDProtectionTest$ParticleCompat, a nested class only loaded when the isHigherEquals(v1_13) branch runs
-1.7.10 class org/bukkit/Particle$DustOptions         # idem
-1.12.2 class org/bukkit/Particle$DustOptions         # idem - dust options arrived in 1.13, the same guard covers it
+* class org/bukkit/Particle                          # arrived in 1.9. CMDProtectionTest$ParticleCompat, a nested class only loaded when the isHigherEquals(v1_13) branch runs
+* class org/bukkit/Particle$DustOptions              # arrived in 1.13, same guard as above
 
 # ---------------------------------------------------------------------------------------------
 # Constants renamed or added along the way. All resolved by a version branch that picks the
@@ -60,11 +59,12 @@
 * method org/bukkit/entity/Entity.getCustomName()Ljava/lang/String;                                   # PlayerInteractListener:118, inside try/catch(NoSuchMethodError)
 * method org/bukkit/entity/Player$Spigot.sendMessage(Lnet/md_5/bungee/api/ChatMessageType;[Lnet/md_5/bungee/api/chat/BaseComponent;)V  # FCMinecraftAdventureUtil:125, inside try/catch(Throwable)
 * method org/bukkit/entity/Player.getTargetBlock(Ljava/util/Set;I)Lorg/bukkit/block/Block;             # FCBukkitUtil:342, the else of isLowerEquals(v1_7_10)
-* method org/bukkit/entity/Player.resetTitle()V                                                       # TitleAPI:32 returns early on isLowerEquals(v1_7_10); PlayerTitleManager is only ever constructed past that same check
-* method org/bukkit/entity/Player.sendTitle(Ljava/lang/String;Ljava/lang/String;III)V                  # idem
+* method org/bukkit/entity/Player.resetTitle()V                                                       # TitleAPI.send/clear return early on isLowerEquals(v1_7_10), so no PlayerTitleManager ever exists there; the member is present from 1.8.8 on
+* method org/bukkit/entity/Player.sendTitle(Ljava/lang/String;Ljava/lang/String;)V                     # same early return - and this pair form is exactly what PlayerTitleManager.run sends below 1.11
+* method org/bukkit/entity/Player.sendTitle(Ljava/lang/String;Ljava/lang/String;III)V                  # PlayerTitleManager.run picks the pair form on isLower(v1_11_R1); the timed form only runs from 1.11 on
 * method org/bukkit/entity/Player.spawnParticle(Lorg/bukkit/Particle;Lorg/bukkit/Location;ILjava/lang/Object;)V  # CMDProtectionTest$ParticleCompat, loaded only when the isHigherEquals(v1_13) branch runs
-* method org/bukkit/inventory/PlayerInventory.getItemInMainHand()Lorg/bukkit/inventory/ItemStack;      # FCBukkitUtil:321, the else of isLowerEquals(v1_7_10)
-* method org/bukkit/inventory/PlayerInventory.setItemInMainHand(Lorg/bukkit/inventory/ItemStack;)V     # FCBukkitUtil:311, the else of isLowerEquals(v1_7_10)
+* method org/bukkit/inventory/PlayerInventory.getItemInMainHand()Lorg/bukkit/inventory/ItemStack;      # FCBukkitUtil.getPlayersHeldItem, the else of isLower(v1_9_R1) - the main-hand pair arrived in 1.9
+* method org/bukkit/inventory/PlayerInventory.setItemInMainHand(Lorg/bukkit/inventory/ItemStack;)V     # FCBukkitUtil.setPlayersHeldItem, the else of isLower(v1_9_R1)
 * method org/bukkit/inventory/PlayerInventory.getItemInOffHand()Lorg/bukkit/inventory/ItemStack;       # ArgParserContextualItemStack:93, the isLowerEquals(v1_8_R3) ternary yields null below 1.9
-* method org/bukkit/inventory/Inventory.getStorageContents()[Lorg/bukkit/inventory/ItemStack;          # FCInventoryUtil.storageOf, the only reader, falls back to getContents() on isLowerEquals(v1_7_10)
-* method org/bukkit/inventory/Inventory.setStorageContents([Lorg/bukkit/inventory/ItemStack;)V         # FCInventoryUtil.writeStorage, the only writer, writes slot by slot on isLowerEquals(v1_7_10)
+* method org/bukkit/inventory/Inventory.getStorageContents()[Lorg/bukkit/inventory/ItemStack;          # FCInventoryUtil.storageOf, the only reader, falls back to getContents() on isLower(v1_9_R1) - the member arrived in 1.9
+* method org/bukkit/inventory/Inventory.setStorageContents([Lorg/bukkit/inventory/ItemStack;)V         # FCInventoryUtil.writeStorage, the only writer, writes slot by slot on isLower(v1_9_R1)

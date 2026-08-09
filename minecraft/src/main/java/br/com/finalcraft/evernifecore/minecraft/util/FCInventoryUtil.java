@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.util;
 
 import br.com.finalcraft.evernifecore.minecraft.itemstack.ComparableItem;
+import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -13,18 +14,18 @@ public class FCInventoryUtil {
      * The slots that hold items, without the armour and off-hand slots a player inventory also
      * reports.
      *
-     * <p>1.7.10 has no {@code getStorageContents()}; there the whole inventory already is the
-     * storage, so its contents are the same answer.</p>
+     * <p>{@code getStorageContents()} only arrived in 1.9; on 1.7.10 and 1.8 the whole inventory
+     * already is the storage, so its contents are the same answer.</p>
      */
     private static ItemStack[] storageOf(Inventory inventory){
-        return MCVersion.isLowerEquals(MCVersion.v1_7_10)
+        return MCVersion.isLower(MCDetailedVersion.v1_9_R1)
                 ? inventory.getContents()
                 : inventory.getStorageContents();
     }
 
     /** Writes back an array that came from {@link #storageOf(Inventory)}, slot for slot. */
     private static void writeStorage(Inventory inventory, ItemStack[] storage){
-        if (MCVersion.isLowerEquals(MCVersion.v1_7_10)){
+        if (MCVersion.isLower(MCDetailedVersion.v1_9_R1)){
             //Not setContents: it clears every slot the array does not cover, which there means the
             //armour. Writing slot by slot touches only what this array actually describes.
             for (int slot = 0; slot < storage.length; slot++) {

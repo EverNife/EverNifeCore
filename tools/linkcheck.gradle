@@ -38,9 +38,14 @@ repositories {
 // classes, and it is already the runtime this project targets there.
 ext.linkageTargets = [
         '1.7.10' : [name: 'Crucible'],
+        '1.8.8'  : 'org.spigotmc:spigot-api:1.8.8-R0.1-SNAPSHOT',
+        '1.9.4'  : 'org.spigotmc:spigot-api:1.9.4-R0.1-SNAPSHOT',
         '1.12.2' : 'org.spigotmc:spigot-api:1.12.2-R0.1-SNAPSHOT',
+        '1.13.2' : 'org.spigotmc:spigot-api:1.13.2-R0.1-SNAPSHOT',
         '1.16.5' : 'org.spigotmc:spigot-api:1.16.5-R0.1-SNAPSHOT',
+        '1.18.2' : 'org.spigotmc:spigot-api:1.18.2-R0.1-SNAPSHOT',
         '1.19.2' : 'org.spigotmc:spigot-api:1.19.2-R0.1-SNAPSHOT',
+        '1.20.6' : 'org.spigotmc:spigot-api:1.20.6-R0.1-SNAPSHOT',
         '1.21.11': 'org.spigotmc:spigot-api:1.21.11-R0.2-SNAPSHOT',
         '26.2'   : 'org.spigotmc:spigot-api:26.2-R0.1-SNAPSHOT',
 ]

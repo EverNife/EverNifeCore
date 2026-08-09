@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.title;
 
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
+import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
+import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -106,7 +108,12 @@ public class PlayerTitleManager extends BukkitRunnable {
         if (doReset){
             player.resetTitle();
         } else if (doSend){
-            player.sendTitle(titleText, subTitleText, fadeInTicks, stayTicks, fadeOutTicks);
+            if (MCVersion.isLower(MCDetailedVersion.v1_11_R1)) {
+                //the timed form only arrived in 1.11; before that the server takes the pair alone
+                player.sendTitle(titleText, subTitleText);
+            } else {
+                player.sendTitle(titleText, subTitleText, fadeInTicks, stayTicks, fadeOutTicks);
+            }
         }
     }
 }
