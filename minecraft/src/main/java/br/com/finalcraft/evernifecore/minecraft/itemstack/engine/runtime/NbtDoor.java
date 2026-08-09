@@ -65,7 +65,9 @@ public final class NbtDoor {
     /** A detached copy of the item's tag, which is what a value read out of an item is made of. */
     @Nonnull
     public ReadWriteNBT snapshot(@Nonnull ItemStack item) {
-        return read(item, nbt -> NBT.parseNBT(nbt.toString()));
+        //only a String may leave the scoped read: the library throws on any ReadableNBT returned
+        //from it, even a detached one. The tag is rebuilt from the text on the outside.
+        return NBT.parseNBT(read(item, ReadableNBT::toString));
     }
 
     /** Text into a tag, the leaf form the {@code nbt:} and {@code components:} lines carry. */
