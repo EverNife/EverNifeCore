@@ -32,7 +32,7 @@ public abstract class ECHytalePlugin extends JavaPlugin implements IECPluginBoot
     @Override
     protected void start() {
         //The server reached the start phase: every plugin finished setup() and (per the Hytale
-        //lifecycle) all worlds are loaded. Release the tasks IPlatform.runOnMainThread buffered before
+        //lifecycle) all worlds are loaded. Release the tasks IPlatform.runOnMainThreadNextTick buffered before
         //the start phase - the closest Hytale has to Bukkit's "first tick after all plugins enabled".
         //Idempotent across plugins; if worlds turn out to load after this, AllWorldsLoadedEvent is the
         //alternative trigger.

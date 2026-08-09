@@ -52,7 +52,7 @@ public class HyPlatform implements IPlatform {
 
     private HyPlatformVecAdapter VEC_ADAPTER = new HyPlatformVecAdapter();
 
-    //runOnMainThread tasks submitted before the start phase (every plugin set up, all worlds loaded)
+    //runOnMainThreadNextTick tasks submitted before the start phase (every plugin set up, all worlds loaded)
     //are buffered on a gate here; flushPendingMainThreadTasks() opens them once, then tasks run at once.
     private static final CompletableFuture<Void> READY_GATE = CompletableFuture.completedFuture(null);
     private final Object startGateLock = new Object();
@@ -282,14 +282,26 @@ public class HyPlatform implements IPlatform {
 
     @Override
     public CompletableFuture<Void> runOnMainThread(Runnable task) {
-        return runOnMainThread(() -> {
+        //there is no main thread here to test against, so "right now" and "next opportunity"
+        //are the same path on this platform
+        return runOnMainThreadNextTick(task);
+    }
+
+    @Override
+    public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task) {
+        return runOnMainThreadNextTick(task);
+    }
+
+    @Override
+    public CompletableFuture<Void> runOnMainThreadNextTick(Runnable task) {
+        return runOnMainThreadNextTick(() -> {
             task.run();
             return null;
         });
     }
 
     @Override
-    public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task) {
+    public <T> CompletableFuture<T> runOnMainThreadNextTick(Supplier<T> task) {
         //Hytale has no single main thread (schedulers are per-world). Before the start phase we buffer
         //a gate the flush opens once every plugin has set up and all worlds are loaded; after it, the
         //gate is already open. Either way the task then runs on a background thread.
@@ -306,8 +318,8 @@ public class HyPlatform implements IPlatform {
     }
 
     /**
-     * Releases every task {@link #runOnMainThread(Runnable)} buffered before the start phase - called
-     * from {@code ECHytalePlugin.start()}, which the server runs once every plugin has finished
+     * Releases every task {@link #runOnMainThreadNextTick(Runnable)} buffered before the start phase -
+     * called from {@code ECHytalePlugin.start()}, which the server runs once every plugin has finished
      * {@code setup()} and all worlds are loaded. Idempotent: repeated (or per-plugin) calls find
      * nothing left to release.
      */

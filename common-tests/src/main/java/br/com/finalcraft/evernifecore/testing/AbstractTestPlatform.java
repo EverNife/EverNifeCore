@@ -158,6 +158,16 @@ public abstract class AbstractTestPlatform implements IPlatform {
     }
 
     @Override
+    public CompletableFuture<Void> runOnMainThreadNextTick(Runnable task) {
+        throw notConfigured("runOnMainThreadNextTick(Runnable)", "Platforms.strict().mainThreadInline()");
+    }
+
+    @Override
+    public <T> CompletableFuture<T> runOnMainThreadNextTick(Supplier<T> task) {
+        throw notConfigured("runOnMainThreadNextTick(Supplier)", "Platforms.strict().mainThreadInline()");
+    }
+
+    @Override
     public void shutdown(String reason) {
         throw notConfigured("shutdown", "Platforms.strict().recordingShutdowns()");
     }

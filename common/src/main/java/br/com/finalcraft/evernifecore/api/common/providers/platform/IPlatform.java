@@ -63,27 +63,43 @@ public interface IPlatform {
     public IPlatformChatAdapter getChatAdapter();
 
     /**
-     * Runs the task on the platform's main/server thread and returns a future that completes when it
-     * finishes (exceptionally if it throws). When called from another thread - or during enable - the
-     * task is deferred to the next opportunity rather than run in place. Timing is platform-specific:
+     * Runs the task on the platform's main/server thread: inline, right now, when the calling thread
+     * already is it; deferred exactly like {@link #runOnMainThreadNextTick(Runnable)} when it is not.
+     * On a platform with no single main thread (Hytale) the two forms are the same call.
+     *
+     * <p>For work that must wait for the next tick even when already on the main thread - what
+     * enable-time bootstrap relies on - use {@link #runOnMainThreadNextTick(Runnable)}.</p>
+     */
+    public CompletableFuture<Void> runOnMainThread(Runnable task);
+
+    /**
+     * The value-returning form of {@link #runOnMainThread(Runnable)}: same thread contract, and the
+     * future completes with the supplier's result (exceptionally if it throws).
+     */
+    public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task);
+
+    /**
+     * Runs the task on the platform's main/server thread, always deferred - never in place, even when
+     * already called from it. Timing is platform-specific:
      * <ul>
-     *   <li><b>Bukkit:</b> the server main thread. On the next tick when called from enable or another
-     *       thread, so a task scheduled during enable fires on the first tick, after every plugin has
-     *       enabled. Running there holds the tick until the task finishes - the first-boot legacy
-     *       import relies on that to freeze the server while it migrates.</li>
+     *   <li><b>Bukkit:</b> the server main thread, on the next tick. A task scheduled during enable
+     *       fires on the first tick, after every plugin has enabled. Running there holds the tick
+     *       until the task finishes - the first-boot legacy import relies on that to freeze the
+     *       server while it migrates.</li>
      *   <li><b>Hytale:</b> there is no single main thread (schedulers are per-world), so the task runs
      *       on a background thread. It still waits for the start phase - once every plugin has finished
      *       {@code setup()} and all worlds are loaded: tasks submitted before that are buffered and
      *       released then; tasks submitted afterwards run right away.</li>
      * </ul>
      */
-    public CompletableFuture<Void> runOnMainThread(Runnable task);
+    public CompletableFuture<Void> runOnMainThreadNextTick(Runnable task);
 
     /**
-     * The value-returning form of {@link #runOnMainThread(Runnable)}: runs the supplier under the same
-     * per-platform contract and completes the future with its result (exceptionally if it throws).
+     * The value-returning form of {@link #runOnMainThreadNextTick(Runnable)}: runs the supplier under
+     * the same per-platform contract and completes the future with its result (exceptionally if it
+     * throws).
      */
-    public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task);
+    public <T> CompletableFuture<T> runOnMainThreadNextTick(Supplier<T> task);
 
     /**
      * Registers the platform's config types (Bukkit {@code ItemStack}/{@code Location}, Hytale vectors, ...)

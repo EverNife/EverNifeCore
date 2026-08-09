@@ -150,7 +150,7 @@ public final class Platforms {
         return this;
     }
 
-    /** Runs main-thread tasks in place, which is what makes a boot sequence deterministic in a test. */
+    /** Runs both main-thread forms (inline and next-tick) in place, which is what makes a boot sequence deterministic in a test. */
     public Platforms mainThreadInline() {
         platform.mainThreadInline = Boolean.TRUE;
         return this;

@@ -108,11 +108,11 @@ public interface IECPluginBootstrap {
     // ------------------------------------------------------------------
 
     /**
-     * Returns a task handed to {@link IPlatform#runOnMainThread(Runnable)} once enable finishes, or
-     * {@code null} (the default) to run nothing. It runs as soon as the platform is ready: on Bukkit
-     * the next tick (after every plugin enabled) on the server main thread; on Hytale once all plugins
-     * have set up and all worlds are loaded. See {@link IPlatform#runOnMainThread(Runnable)} for the
-     * exact contract.
+     * Returns a task handed to {@link IPlatform#runOnMainThreadNextTick(Runnable)} once enable
+     * finishes, or {@code null} (the default) to run nothing. It runs as soon as the platform is
+     * ready: on Bukkit the next tick (after every plugin enabled) on the server main thread; on
+     * Hytale once all plugins have set up and all worlds are loaded. See
+     * {@link IPlatform#runOnMainThreadNextTick(Runnable)} for the exact contract.
      */
     public default Runnable runOnFirstTick() {
         return null;
@@ -138,8 +138,8 @@ public interface IECPluginBootstrap {
 
         Runnable firstTick = runOnFirstTick();
         if (firstTick != null) {
-            //fire-and-forget: runOnMainThread already prints any failure of the task
-            EverNifeCore.getPlatform().runOnMainThread(firstTick);
+            //fire-and-forget: runOnMainThreadNextTick already prints any failure of the task
+            EverNifeCore.getPlatform().runOnMainThreadNextTick(firstTick);
         }
     }
 

@@ -210,6 +210,8 @@ public class FCLocaleScannerContractTest {
         @Override public IPlatformChatAdapter getChatAdapter() { return delegate.getChatAdapter(); }
         @Override public CompletableFuture<Void> runOnMainThread(Runnable task) { return delegate.runOnMainThread(task); }
         @Override public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task) { return delegate.runOnMainThread(task); }
+        @Override public CompletableFuture<Void> runOnMainThreadNextTick(Runnable task) { return delegate.runOnMainThreadNextTick(task); }
+        @Override public <T> CompletableFuture<T> runOnMainThreadNextTick(Supplier<T> task) { return delegate.runOnMainThreadNextTick(task); }
         @Override public void registerConfigTypes() { delegate.registerConfigTypes(); }
         @Override public void registerArgParsers() { delegate.registerArgParsers(); }
         @Override public void shutdown(String reason) { delegate.shutdown(reason); }

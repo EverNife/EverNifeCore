@@ -337,8 +337,7 @@ public class TestPlatform extends AbstractTestPlatform {
         if (mainThreadInline == null) {
             return super.runOnMainThread(task);
         }
-        //inline: makes the first-tick legacy import deterministic in tests
-        //(PlayerController.bootstrap blocks until the import + load finish)
+        //inline: tests have no server thread to be off of
         task.run();
         return CompletableFuture.completedFuture(null);
     }
@@ -348,7 +347,25 @@ public class TestPlatform extends AbstractTestPlatform {
         if (mainThreadInline == null) {
             return super.runOnMainThread(task);
         }
-        //inline: tests have no server thread
+        return CompletableFuture.completedFuture(task.get());
+    }
+
+    @Override
+    public CompletableFuture<Void> runOnMainThreadNextTick(Runnable task) {
+        if (mainThreadInline == null) {
+            return super.runOnMainThreadNextTick(task);
+        }
+        //inline too - tests have no tick. It makes the first-tick legacy import deterministic
+        //(PlayerController.bootstrap blocks until the import + load finish)
+        task.run();
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public <T> CompletableFuture<T> runOnMainThreadNextTick(Supplier<T> task) {
+        if (mainThreadInline == null) {
+            return super.runOnMainThreadNextTick(task);
+        }
         return CompletableFuture.completedFuture(task.get());
     }
 

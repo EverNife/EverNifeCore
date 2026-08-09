@@ -69,10 +69,12 @@ class PlatformsTest {
         TestPlatform platform = Platforms.lenient().build();
         StringBuilder ran = new StringBuilder();
 
-        platform.runOnMainThread(() -> ran.append("ran"));
+        platform.runOnMainThread(() -> ran.append("now,"));
+        platform.runOnMainThreadNextTick(() -> ran.append("next"));
 
-        assertEquals("ran", ran.toString());
+        assertEquals("now,next", ran.toString());
         assertEquals("value", platform.runOnMainThread(() -> "value").join());
+        assertEquals("value", platform.runOnMainThreadNextTick(() -> "value").join());
     }
 
     @Test

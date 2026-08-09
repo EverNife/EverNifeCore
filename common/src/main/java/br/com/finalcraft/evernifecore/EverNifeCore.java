@@ -63,7 +63,7 @@ public class EverNifeCore {
      * during enable would be a false alarm.
      */
     private void checkEconomyOnFirstTick() {
-        getPlatform().runOnMainThread(() -> {
+        getPlatform().runOnMainThreadNextTick(() -> {
             IEconomyProvider economy = getProviders().getEconomyOrNull();
             if (economy == null) {
                 //Nobody registered one. This is a wiring bug in the platform module, NOT a server

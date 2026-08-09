@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * {@link FCScheduler#runAsyncFuture(Runnable)} - a background-thread building block (the same one
- * {@code HyPlatform.runOnMainThread} builds on): it runs the task off the caller thread and reports
+ * {@code HyPlatform.runOnMainThreadNextTick} builds on): it runs the task off the caller thread and reports
  * the outcome through the returned future.
  */
 class FCSchedulerTest {

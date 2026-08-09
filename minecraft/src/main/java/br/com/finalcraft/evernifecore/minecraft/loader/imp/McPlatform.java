@@ -276,10 +276,33 @@ public class McPlatform implements IPlatform {
 
     @Override
     public <T> CompletableFuture<T> runOnMainThread(Supplier<T> task) {
-        //Runs on the server main thread: on the next tick when called from enable or another thread,
-        //so a task scheduled during enable fires on the first tick (after every plugin has enabled).
-        //It runs ON that thread and holds the tick until it finishes - the first-boot legacy import
-        //relies on that to freeze the server while it migrates.
+        if (!FCBukkitUtil.isMainThread()) {
+            return runOnMainThreadNextTick(task);
+        }
+        CompletableFuture<T> future = new CompletableFuture<>();
+        try {
+            future.complete(task.get());
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+            future.completeExceptionally(throwable);
+        }
+        return future;
+    }
+
+    @Override
+    public CompletableFuture<Void> runOnMainThreadNextTick(Runnable task) {
+        return runOnMainThreadNextTick(() -> {
+            task.run();
+            return null;
+        });
+    }
+
+    @Override
+    public <T> CompletableFuture<T> runOnMainThreadNextTick(Supplier<T> task) {
+        //Always the next tick, even when already on the main thread: a task scheduled during enable
+        //fires on the first tick (after every plugin has enabled). It runs ON that thread and holds
+        //the tick until it finishes - the first-boot legacy import relies on that to freeze the
+        //server while it migrates.
         CompletableFuture<T> future = new CompletableFuture<>();
         FCScheduler.getMinecraftScheduler().runSync(() -> {
             try {
