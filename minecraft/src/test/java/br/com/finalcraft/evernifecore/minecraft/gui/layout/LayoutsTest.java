@@ -99,7 +99,7 @@ class LayoutsTest {
     @Test
     void reloadingDropsTheCachedCopyAndRedrawsTheScreensThatAreOpen() throws IOException {
         //a screen that reads the layout while rendering is what makes a reload visible without reopening
-        Gui<?> gui = Gui.of(3).component(component -> component.render(
+        Gui<?> gui = Gui.of(3).addComponent(component -> component.render(
                 slots -> slots.icon(0, Layouts.of(ReloadableLayout.class).getIcon("BUTTON"))));
 
         world.openDetachedAndRegistered(gui, world.newPlayer("Steve"));

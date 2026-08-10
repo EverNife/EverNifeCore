@@ -263,7 +263,7 @@ class DataComponentTest {
                 .addState(Availability.MAXED, new ItemStack(Material.DIAMOND))
                 .states(Availability.class, availability::get);
 
-        world.openDetached(Gui.of(3).component(component -> {
+        world.openDetached(Gui.of(3).addComponent(component -> {
             component.remember(availability);
             component.render(writer -> writer.icon(13, icon));
         }), world.newPlayer("Steve"));
@@ -299,7 +299,7 @@ class DataComponentTest {
                 .addState(Availability.LOCKED, new ItemStack(Material.BARRIER))
                 .addState(Availability.MAXED, new ItemStack(Material.DIAMOND)));
         binder.cycle(Availability.class, bound).onCycle(seen::add);
-        gui.component(binder::bind);
+        gui.addComponent(binder::bind);
 
         PlayerDouble player = world.newPlayer("Steve");
         world.openDetachedAndRegistered(gui, player);
@@ -333,7 +333,7 @@ class DataComponentTest {
         Icon icon = Icon.of(new ItemStack(Material.ANVIL))
                 .addState(Availability.LOCKED, new ItemStack(Material.BARRIER))
                 .states(Availability.class, bound::get);
-        world.openDetached(Gui.of(3).component(component -> {
+        world.openDetached(Gui.of(3).addComponent(component -> {
             component.remember(bound);
             component.render(writer -> writer.icon(13, icon));
         }), world.newPlayer("Steve"));

@@ -28,6 +28,11 @@ import java.util.TreeMap;
  */
 public final class GuiBuffer {
 
+    /** Where a background writes. Anything painted over it uses a higher layer. */
+    public static final int LAYER_BACKGROUND = 0;
+    /** Where an ordinary icon writes. */
+    public static final int LAYER_CONTENT = 100;
+
     private final int size;
     private final TreeMap<Integer, ItemStack[]> layers = new TreeMap<>();
     private final ItemStack[] committed;

@@ -67,9 +67,18 @@ public final class IconBinder {
         });
     }
 
-    /** The dynamic form of {@link #states(Class, Supplier)}, for a state name computed at runtime. */
+    /**
+     * The dynamic form of {@link #states(Class, Supplier)}, for a state name computed at runtime.
+     *
+     * @throws IllegalStateException when this icon was already told which state it draws
+     */
     @Nonnull
     public IconBinder state(@Nullable Supplier<String> state) {
+        if (this.state != null) {
+            throw new IllegalStateException("This icon was already told which state it draws, and a second "
+                    + "answer would silently replace the first. Compose the two conditions into one "
+                    + "supplier, or bind the second appearance to an icon of its own.");
+        }
         this.state = state;
         return this;
     }
@@ -153,6 +162,11 @@ public final class IconBinder {
     }
 
     private <T> CycleBinder<T> install(CycleBinder<T> binder) {
+        if (this.cycle != null) {
+            throw new IllegalStateException("This icon already cycles through a set of states, and a second "
+                    + "cycle would silently replace the first - clicks would advance one walk while the icon "
+                    + "drew the other. One cycle per icon: put the second one on an icon of its own.");
+        }
         this.cycle = binder;
         return binder;
     }

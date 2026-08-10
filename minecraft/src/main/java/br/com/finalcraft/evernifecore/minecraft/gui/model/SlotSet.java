@@ -9,7 +9,7 @@ import java.util.function.Function;
 /**
  * An ordered set of raw slot indexes, in the order they were declared and without repetition.
  *
- * <p>A set is either <b>fixed</b> - the indexes are known, which is what a config file ever holds -
+ * <p>A set is either <b>fixed</b> - the indexes are known, which is all a config file ever holds -
  * or <b>relative</b>, a shape ("column 3", "the border") that only becomes indexes once the window
  * it is applied to is measured. {@link #resolve(GuiGeometry)} turns the second into the first;
  * on a fixed set it is the identity.</p>
@@ -17,7 +17,14 @@ import java.util.function.Function;
  * <p>The on-disk form is always {@code "[1,2,3]"}. {@link #parse(String)} also reads a bare scalar
  * ({@code 45}) and an empty list; an empty set means "nowhere", which is a valid way to switch an
  * icon off, never an error.</p>
+ *
+ * <p>Two fixed sets are equal when they hold the same indexes in the same order. A relative one is
+ * equal only to itself: two shapes are the same shape only if they are the same object, so
+ * {@code Slots.border()} does not equal another {@code Slots.border()}. Resolve them first to
+ * compare what they mean.</p>
  */
+//deliberately not Iterable: the config engine's collection fast path would write an Iterable to disk
+//as a YAML list without ever reaching this type's codec, and one canonical on-disk form is the point
 public final class SlotSet {
 
     public static final SlotSet EMPTY = new SlotSet(new int[0], null);
@@ -67,10 +74,7 @@ public final class SlotSet {
     }
 
     /**
-     * The slots, to walk with a plain {@code for}. This is deliberately the only way to enumerate
-     * them: a set that implemented {@code Iterable} would be written to disk as a YAML list by the
-     * config engine's collection fast path, which never reaches this type's codec - and the codec
-     * writing one canonical form is the whole point of {@link #serialize()}.
+     * The slots, to walk with a plain {@code for} - the only way to enumerate them.
      *
      * @throws IllegalStateException when the set is still relative
      */
@@ -115,8 +119,10 @@ public final class SlotSet {
     }
 
     /**
-     * Reads the two textual forms a config may hold: the bracketed list {@code "[1,2,3]"} and a bare
-     * scalar {@code "45"}. Blank text and {@code "[]"} both mean the empty set.
+     * Reads what a config may hold: the bracketed list {@code "[1,2,3]"} that {@link #serialize()}
+     * writes, a bare scalar {@code "45"}, and the same list with the brackets left off
+     * ({@code "1,2,3"}) - a hand-written file still means what it says. Blank text and {@code "[]"}
+     * both mean the empty set.
      *
      * @throws IllegalArgumentException naming the offending text, so the file can be fixed
      */

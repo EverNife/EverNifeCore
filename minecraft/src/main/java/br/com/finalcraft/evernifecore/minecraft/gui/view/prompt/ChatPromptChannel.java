@@ -9,8 +9,8 @@ import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiViews;
 import jakarta.annotation.Nonnull;
 import org.bukkit.entity.Player;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -26,8 +26,12 @@ public final class ChatPromptChannel implements PromptChannel {
 
     private static final ChatPromptChannel INSTANCE = new ChatPromptChannel();
 
-    /** What each screen has outstanding, so a second question calls the first one off. */
-    private final Map<GuiView, Outstanding> outstanding = new WeakHashMap<>();
+    /**
+     * What each screen has outstanding, so a second question calls the first one off. Every ending -
+     * answer, cancel word, timeout, quit, replacement - removes its entry through {@code settle} or
+     * {@code abandonOutstanding}; there is no collector to fall back on.
+     */
+    private final Map<GuiView, Outstanding> outstanding = new HashMap<>();
 
     private ChatPromptChannel() {
 
@@ -44,7 +48,8 @@ public final class ChatPromptChannel implements PromptChannel {
         CompletableFuture<PromptResult<T>> answer = new CompletableFuture<>();
         Player player = view.getViewer();
         if (player == null || !player.isOnline() || view.isClosed()) {
-            answer.complete(PromptResult.<T>quit());
+            //the SPI promises completion on the main thread, the refusal included
+            GuiViews.onMainThread(() -> answer.complete(PromptResult.<T>quit()));
             return answer;
         }
         //a click is still being answered when this runs, and closing a container from inside its own
@@ -122,7 +127,12 @@ public final class ChatPromptChannel implements PromptChannel {
             if (answer.isDone()) {
                 return;
             }
-            outstanding.remove(view);
+            Outstanding settled = outstanding.remove(view);
+            if (settled != null) {
+                //a timeout fired by the clock never told the listener; left there, the expectation
+                //would keep holding the Player and swallowing what they type next
+                ChatExpectationListener.get().stopExpecting(settled.expectation);
+            }
             if (result.getKind() == PromptResult.Kind.QUIT) {
                 if (spec.getOnQuit() != null) {
                     spec.getOnQuit().run();
@@ -133,7 +143,11 @@ public final class ChatPromptChannel implements PromptChannel {
             if (result.getKind() == PromptResult.Kind.TIMEOUT && spec.getOnTimeout() != null) {
                 spec.getOnTimeout().accept(view);
             }
-            GuiNavigation.resume(view);
+            if (!GuiNavigation.resume(view)) {
+                //the screen could not be given back (the server refused the window, or the player is
+                //gone): a chain left behind would keep the suspended views and their tasks alive
+                GuiNavigation.discard(view.getViewerId());
+            }
             answer.complete(result);
         });
     }

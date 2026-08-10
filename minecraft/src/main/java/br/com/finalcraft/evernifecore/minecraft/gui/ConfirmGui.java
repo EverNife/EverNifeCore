@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.IconData;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutBase;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Layouts;
+import br.com.finalcraft.evernifecore.minecraft.gui.model.GuiGeometry;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.Slots;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.ClickContext;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
@@ -59,11 +60,15 @@ public final class ConfirmGui extends ResultGui<Boolean, ConfirmGui.ConfirmLayou
         return new ConfirmGui(Layouts.of(ConfirmLayout.class), question);
     }
 
-    /** Shows what the question is about, in the middle of the screen. */
+    /**
+     * Shows what the question is about, in the middle of the screen - wherever the middle is on the
+     * window the admin's file asked for.
+     */
     @Nonnull
     public ConfirmGui display(@Nullable ItemStack item) {
         if (item != null) {
-            icon(Slots.at(getRows() / 2 + 1, 5), Icon.of(item));
+            GuiGeometry geometry = getGeometry();
+            icon(Slots.at(geometry.getRows() / 2 + 1, geometry.getWidth() / 2 + 1), Icon.of(item));
         }
         return this;
     }

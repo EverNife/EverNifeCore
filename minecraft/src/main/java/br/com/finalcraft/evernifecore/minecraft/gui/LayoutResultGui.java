@@ -26,30 +26,26 @@ import jakarta.annotation.Nonnull;
  * @param <P> whose data it shows
  * @param <L> the layout it was built from
  */
-public class LayoutResultGui<R, P extends IPlayerData, L extends LayoutBase> extends ResultGui<R, L> {
+public class LayoutResultGui<R, P extends IPlayerData, L extends LayoutBase> extends ResultGui<R, L>
+        implements SubjectHolder<P> {
 
     private final Subject<P> subject;
 
     public LayoutResultGui(@Nonnull L layout, @Nonnull P playerData) {
-        super(LayoutGui.required(layout));
+        super(layout);
         this.subject = new Subject<>(playerData);
     }
 
-    /** Whose data this screen shows. Not the viewer, and not necessarily online. */
+    @Override
     @Nonnull
-    public P getPlayerData() {
-        return subject.get();
-    }
-
-    /** As {@link LayoutGui#setPlayerData(IPlayerData)}. */
-    protected void setPlayerData(@Nonnull P playerData) {
-        subject.set(playerData);
+    public Subject<P> getSubject() {
+        return subject;
     }
 
     @Override
     @Nonnull
     public CompoundReplacer getReplacer() {
-        return subject.appendTo(super.getReplacer());
+        return withSubject(super.getReplacer());
     }
 
 }

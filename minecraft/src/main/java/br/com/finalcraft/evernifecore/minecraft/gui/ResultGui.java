@@ -32,7 +32,7 @@ public abstract class ResultGui<R, L extends LayoutBase> extends Gui<L> {
 
     /** Sized, titled and decorated by {@code layout} - the {@link Gui#of(LayoutBase)} of this base. */
     protected ResultGui(@Nonnull L layout) {
-        super(layout.getType(), layout.getRows(), layout);
+        super(requiredLayout(layout).getType(), layout.getRows(), layout);
     }
 
     /**

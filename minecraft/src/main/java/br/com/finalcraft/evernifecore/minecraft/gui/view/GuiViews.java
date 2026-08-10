@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.view;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.color.ColorEnum;
 import br.com.finalcraft.evernifecore.minecraft.gui.Gui;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.GuiType;
 import br.com.finalcraft.evernifecore.minecraft.scheduler.McFCScheduler;
@@ -106,6 +107,7 @@ public final class GuiViews {
 
     private static void openOnMainThread(Gui<?> gui, Player player, CompletableFuture<GuiView> future,
                                          boolean root) {
+        GuiView opening = null;
         try {
             if (!player.isOnline()) {
                 refuse(gui, player, future, "the player is no longer online");
@@ -122,6 +124,7 @@ public final class GuiViews {
 
             GuiView view = new GuiView(gui, player, new BukkitGuiSurface(opened),
                     BukkitGuiScheduler.INSTANCE, title);
+            opening = view;
 
             //almost never fires: openInventory closes the previous window before returning, so its
             //InventoryCloseEvent already went through handleClose (as PLAYER_CLOSED) by the time this
@@ -140,8 +143,18 @@ public final class GuiViews {
             view.commitNow();
             future.complete(view);
         } catch (Throwable e) {
-            EverNifeCore.getLog().severe("Failed to open a gui for [" + player.getName() + "]: " + e);
-            e.printStackTrace();
+            EverNifeCore.getLog().severe("Failed to open a gui for [" + player.getName() + "]", e);
+            //a half-built screen is worse than none: the window is already in front of the player, and
+            //nothing has rendered into it. Take it back before anybody sees a skeleton they can click
+            if (opening != null) {
+                OPEN.remove(player.getUniqueId(), opening);
+                if (root) {
+                    //the chain started at this very view, so nothing under it is being thrown away
+                    GuiNavigation.discard(player.getUniqueId());
+                }
+                opening.release(CloseReason.REQUESTED);
+                player.closeInventory();
+            }
             future.completeExceptionally(e);
         }
     }
@@ -218,10 +231,16 @@ public final class GuiViews {
     }
 
     static String trimTitle(String title) {
-        if (title.length() > LEGACY_TITLE_LIMIT && MCVersion.isLowerEquals(MCDetailedVersion.v1_8_R3)) {
-            return title.substring(0, LEGACY_TITLE_LIMIT);
+        if (title.length() <= LEGACY_TITLE_LIMIT || !MCVersion.isLowerEquals(MCDetailedVersion.v1_8_R3)) {
+            return title;
         }
-        return title;
+        //a colour code is two characters and the client reads them together: cutting between them
+        //would leave a lone section sign, which is drawn as a glyph instead of colouring anything
+        int end = LEGACY_TITLE_LIMIT;
+        if (title.charAt(end - 1) == ColorEnum.COLOR_CHAR) {
+            end--;
+        }
+        return title.substring(0, end);
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -281,7 +300,8 @@ public final class GuiViews {
             try {
                 view.release(CloseReason.SHUTDOWN);
             } catch (Throwable e) {
-                e.printStackTrace();
+                EverNifeCore.getLog().severe("A gui of [" + view.getViewerName() + "] failed to close during "
+                        + "shutdown; the screens after it are still being closed", e);
             }
             if (player != null && player.isOnline()) {
                 player.closeInventory();

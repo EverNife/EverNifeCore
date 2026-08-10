@@ -77,7 +77,7 @@ class GuiLifecycleTest {
     @Test
     void anOpenTheServerRefusedRegistersNothingAndSchedulesNothing() {
         PlayerDouble player = world.newPlayer("Steve").refuseOpens(true);
-        Gui<?> gui = Gui.of(3).component(component -> {
+        Gui<?> gui = Gui.of(3).addComponent(component -> {
             component.every(20);
             component.render(slots -> slots.icon(4, stone()));
         });
@@ -92,6 +92,23 @@ class GuiLifecycleTest {
                 "the periodic redraw belongs to a view that was never confirmed");
         assertEquals(0, world.getSurface().getWriteCount(), "and nothing was drawn into the container either");
         assertNull(player.getOpenView());
+    }
+
+    @Test
+    void aScreenThatBreaksWhileStartingTakesItsWindowBackInsteadOfLeavingASkeleton() {
+        PlayerDouble player = world.newPlayer("Steve");
+        Gui<?> gui = Gui.of(3).icon(0, stone());
+        //an editable area with nowhere to keep its contents: the failure happens after the window opened
+        gui.storage(Slots.of(10, 11));
+
+        CompletableFuture<GuiView> future = world.tryOpen(gui, player);
+
+        ExecutionException failure = assertThrows(ExecutionException.class, future::get);
+        assertTrue(failure.getCause().getMessage().contains("backedBy"), failure.getCause().getMessage());
+        assertNull(player.getOpenView(), "the player is left looking at nothing rather than at an empty screen");
+        assertEquals(0, GuiViews.getOpenCount(), "and no view is left for the listener to route clicks to");
+        assertEquals(0, world.getScheduler().getActiveTaskCount());
+        assertEquals(0, world.getSurface().getWriteCount(), "nothing was ever drawn into the container");
     }
 
     @Test
@@ -127,7 +144,7 @@ class GuiLifecycleTest {
         AtomicInteger redraws = new AtomicInteger();
         Gui<?> gui = Gui.of(3)
                 .icon(4, Icon.of(new ItemStack(Material.CLOCK)).every(20).render(icon -> redraws.incrementAndGet()))
-                .component(component -> {
+                .addComponent(component -> {
                     component.watch(redraws::get);
                     component.render(slots -> slots.icon(0, stone()));
                 });
@@ -163,7 +180,7 @@ class GuiLifecycleTest {
     @Test
     void aComponentRedrawsOnItsOwnPeriod() {
         AtomicInteger renders = new AtomicInteger();
-        Gui<?> gui = Gui.of(3).component(component -> {
+        Gui<?> gui = Gui.of(3).addComponent(component -> {
             component.every(20);
             component.render(slots -> {
                 renders.incrementAndGet();

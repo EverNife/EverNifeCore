@@ -25,42 +25,26 @@ import jakarta.annotation.Nonnull;
  * }
  * }</pre>
  */
-public class LayoutGui<P extends IPlayerData, L extends LayoutBase> extends Gui<L> {
+public class LayoutGui<P extends IPlayerData, L extends LayoutBase> extends Gui<L>
+        implements SubjectHolder<P> {
 
     private final Subject<P> subject;
 
     public LayoutGui(@Nonnull L layout, @Nonnull P playerData) {
-        super(required(layout).getType(), layout.getRows(), layout);
+        super(requiredLayout(layout).getType(), layout.getRows(), layout);
         this.subject = new Subject<>(playerData);
     }
 
-    /** Whose data this screen shows. Not the viewer, and not necessarily online. */
+    @Override
     @Nonnull
-    public P getPlayerData() {
-        return subject.get();
-    }
-
-    /**
-     * Points this screen at another player. The next {@code refresh()} draws it: the replacer is built
-     * fresh on every render, so nothing else has to be rebuilt - and the page, the filter and whatever
-     * the components remembered stay where they are, because the screen itself never left.
-     */
-    protected void setPlayerData(@Nonnull P playerData) {
-        subject.set(playerData);
+    public Subject<P> getSubject() {
+        return subject;
     }
 
     @Override
     @Nonnull
     public CompoundReplacer getReplacer() {
-        return subject.appendTo(super.getReplacer());
-    }
-
-    static <L extends LayoutBase> L required(L layout) {
-        if (layout == null) {
-            throw new IllegalArgumentException("A screen about a player is sized and decorated by its "
-                    + "layout, so it cannot be built without one. Read it with Layouts.of(MyLayout.class).");
-        }
-        return layout;
+        return withSubject(super.getReplacer());
     }
 
 }

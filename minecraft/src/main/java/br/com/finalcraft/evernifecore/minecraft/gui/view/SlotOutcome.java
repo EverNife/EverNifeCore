@@ -58,9 +58,12 @@ final class SlotOutcome {
             case "CLONE_STACK":
                 return UNCHANGED;
             case "PICKUP_ALL":
-            case "MOVE_TO_OTHER_INVENTORY":
             case "DROP_ALL_SLOT":
                 return of(null);
+            case "MOVE_TO_OTHER_INVENTORY":
+                //the platform moves as much of the stack as fits somewhere else, and how much that is
+                //exists only after the click has been applied
+                return UNKNOWN;
             case "PICKUP_HALF":
                 //the cursor takes the bigger half of an odd stack
                 return of(sized(current, held / 2));

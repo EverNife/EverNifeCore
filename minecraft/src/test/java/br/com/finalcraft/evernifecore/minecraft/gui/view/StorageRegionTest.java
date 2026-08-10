@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.testkit.PlayerDouble;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.SurfaceDouble;
 import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventory;
 import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventoryStore;
+import br.com.finalcraft.evernifecore.minecraft.inventory.ItemStore;
 import org.bukkit.Material;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
@@ -367,6 +368,34 @@ class StorageRegionTest {
     }
 
     @Test
+    void aDragOverAnIconAndAnEditableSlotIsRefusedWholeAndLosesNothing() {
+        //the screen itself is open too, which is the only arrangement in which a drag over an icon is
+        //not already refused by the policy
+        Gui<LayoutBase> gui = screen(ClickPolicy.EDIT_ALL).policy(ClickPolicy.EDIT_ALL);
+        //an icon of the very item being dragged: a client only ever aims a drag at a slot it can merge with
+        gui.icon(9, Icon.of(diamonds(1)));
+        GuiView view = open(gui);
+        SurfaceDouble surface = world.getSurface();
+        player.holding(diamonds(2));
+        int startedWith = diamondsWithinReach();
+
+        InventoryDragEvent event = clicks.dragEvenly(player, player.getCursor(), 9, 10);
+
+        assertTrue(event.isCancelled(), "the screen draws slot 9, so the platform cannot have the gesture");
+        assertEquals(1, surface.getItem(9).getAmount(),
+                "the icon is left as it was - an item written over it is one the next render erases");
+        assertEquals(1, surface.getItem(10).getAmount(), "only the editable slot took a share");
+        assertEquals(1, player.getCursor().getAmount(), "and exactly that much left the cursor");
+        assertEquals(startedWith, diamondsWithinReach());
+
+        view.resync();
+        world.advanceTicks(1);
+
+        assertEquals(startedWith, diamondsWithinReach(), "and the render that follows loses none of it");
+        assertEquals(1, surface.getItem(9).getAmount());
+    }
+
+    @Test
     void aDragOfAnItemTheFilterRefusesIsRefusedWhole() {
         Gui<LayoutBase> gui = Gui.of(3).debounce(0);
         gui.storage(Slots.of(AREA))
@@ -454,6 +483,50 @@ class StorageRegionTest {
         assertEquals(1, changes.size());
         assertTrue(changes.get(0).isLast(), "which is what a plugin that saves lazily flushes on");
         assertEquals(AREA.length, changes.get(0).getContents().size());
+    }
+
+    @Test
+    void aStoreThatBreaksOnTheWayOutCostsOnlyItsOwnContents() {
+        GenericInventory sound = new GenericInventory();
+        Gui<LayoutBase> gui = Gui.of(3).debounce(0);
+        gui.storage(Slots.of(10)).backedBy(new BrokenStore()).policy(ClickPolicy.EDIT_ALL);
+        gui.storage(Slots.of(11)).backedBy(sound).policy(ClickPolicy.EDIT_ALL);
+        GuiView view = open(gui);
+        world.getSurface().placeWithoutRecording(11, diamonds(2));
+        player.holding(diamonds(4));
+
+        world.closeDetached(view);
+
+        assertEquals(2, sound.getItem(0).getAmount(), "the region next to the broken one was still read back");
+        assertTrue(GuiBuffer.isEmpty(player.getCursor()), "and what the player was holding was still taken "
+                + "off the cursor");
+        assertEquals(4, player.getPlayerInventory().getItem(0).getAmount(),
+                "and handed back - a broken store must not cost the player what they were carrying");
+    }
+
+    /** A store that cannot be written: the region behind it fails on the way out, and only it does. */
+    private static final class BrokenStore implements ItemStore {
+
+        @Override
+        public int getCapacity() {
+            return 1;
+        }
+
+        @Override
+        public ItemStack getItem(int slot) {
+            return null;
+        }
+
+        @Override
+        public void setItemSilently(int slot, ItemStack item) {
+            throw new IllegalStateException("this store cannot be written");
+        }
+
+        @Override
+        public int[] getOccupiedSlots() {
+            return new int[0];
+        }
+
     }
 
     @Test

@@ -93,7 +93,7 @@ class GuiNavigationTest {
     private Gui<LayoutBase> screen(String title, Material material) {
         declarations.put(title, new AtomicInteger());
         Gui<LayoutBase> gui = Gui.of(3).title(title).debounce(0);
-        gui.component(component -> {
+        gui.addComponent(component -> {
             MutableState<Integer> counter = component.remember(1);
             counters.put(title, counter);
             declarations.get(title).incrementAndGet();
@@ -389,9 +389,9 @@ class GuiNavigationTest {
         Gui<?> second = screen("B", Material.GOLD_INGOT).icon(1, opens(third));
         Gui<?> first = screen("A", Material.IRON_INGOT).icon(1, opens(second));
         //something for each screen to keep alive, so "no task left" is a measurement and not a vacuum
-        first.component(component -> component.every(2).render(slots -> { }));
-        second.component(component -> component.every(2).render(slots -> { }));
-        third.component(component -> component.every(2).render(slots -> { }));
+        first.addComponent(component -> component.every(2).render(slots -> { }));
+        second.addComponent(component -> component.every(2).render(slots -> { }));
+        third.addComponent(component -> component.every(2).render(slots -> { }));
 
         GuiView viewA = world.open(first, player);
         navigate(1);

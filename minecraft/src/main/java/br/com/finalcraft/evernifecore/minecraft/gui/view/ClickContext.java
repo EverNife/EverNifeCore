@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.view;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.minecraft.gui.Gui;
 import br.com.finalcraft.evernifecore.minecraft.gui.ResultGui;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
@@ -229,7 +230,13 @@ public final class ClickContext {
     public <T> CompletableFuture<T> askOnChat(@Nonnull String question, @Nonnull PromptParser<T> parser,
                                               @Nonnull Consumer<T> onAnswer) {
         CompletableFuture<T> answered = askOnChat(ChatPrompt.of(question).parse(parser));
-        answered.thenAccept(onAnswer);
+        answered.thenAccept(onAnswer).exceptionally(failure -> {
+            //the future this handler hangs off is thrown away, so a handler that throws would fail in
+            //silence - and the caller never sees this stage to attach anything of their own to it
+            EverNifeCore.getLog().severe("The handler of a chat answer failed for ["
+                    + view.getViewerName() + "]", failure);
+            return null;
+        });
         return answered;
     }
 

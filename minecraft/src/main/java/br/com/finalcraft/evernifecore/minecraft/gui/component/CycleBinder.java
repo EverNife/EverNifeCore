@@ -3,13 +3,16 @@ package br.com.finalcraft.evernifecore.minecraft.gui.component;
 import br.com.finalcraft.evernifecore.minecraft.gui.Gui;
 import br.com.finalcraft.evernifecore.minecraft.gui.state.MutableState;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.ClickContext;
+import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiView;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
+import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -54,6 +57,7 @@ public final class CycleBinder<T> {
         return this;
     }
 
+    /** The icon this cycle was started from, to keep configuring it after the cycle is declared. */
     @Nonnull
     public IconBinder getBinder() {
         return icon;
@@ -62,6 +66,12 @@ public final class CycleBinder<T> {
     @Nonnull
     public Gui<?> getGui() {
         return icon.getGui();
+    }
+
+    /** Opens the screen this icon belongs to - the chain's way out, as on {@link IconBinder}. */
+    @Nonnull
+    public CompletableFuture<GuiView> open(@Nonnull Player player) {
+        return icon.open(player);
     }
 
     /** This viewer's own cursor over the states, unless the binder was given one to share. */

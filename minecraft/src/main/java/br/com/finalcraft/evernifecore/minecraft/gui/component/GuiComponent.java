@@ -13,7 +13,7 @@ import java.util.function.Supplier;
 /**
  * A group of slots that renders together and re-renders alone.
  *
- * <p>A component exists per viewer, not per screen: the lambda handed to {@code Gui.component(...)}
+ * <p>A component exists per viewer, not per screen: the lambda handed to {@code Gui.addComponent(...)}
  * runs once for each view, so a state created with {@link #remember(Object)} belongs to that one
  * player. State meant to be shared is created outside, with {@code State.of(...)}, and handed to
  * {@link #remember(State)} by every component that reads it.</p>

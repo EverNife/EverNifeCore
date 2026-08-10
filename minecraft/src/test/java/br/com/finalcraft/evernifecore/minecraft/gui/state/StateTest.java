@@ -1,8 +1,14 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.state;
 
 import br.com.finalcraft.evernifecore.minecraft.gui.model.Cancellable;
+import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.CleanupMode;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -23,6 +29,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * and would otherwise repaint the screen forever.</p>
  */
 class StateTest {
+
+    //NEVER: the locale bootstrap's async saveAsync() can race JUnit's default @TempDir cleanup on Windows
+    @TempDir(cleanup = CleanupMode.NEVER)
+    Path tempDir;
+
+    //a listener that throws is reported through EverNifeCore's log, which only a world installs
+    private GuiTestWorld world;
+
+    @BeforeEach
+    void setup() {
+        world = GuiTestWorld.install(tempDir);
+    }
+
+    @AfterEach
+    void teardown() {
+        if (world != null) world.close();
+    }
 
     private static class Counter implements Runnable {
 
@@ -92,6 +115,28 @@ class StateTest {
 
         assertEquals(1, counter.get(), "cancelling twice is a no-op, not a second removal");
         assertEquals(2, state.get());
+    }
+
+    @Test
+    void twoSubscriptionsOfOneCallbackAreCancelledOneAtATime() {
+        MutableState<Integer> state = State.of(0);
+        Counter shared = new Counter();
+        Cancellable firstOwner = state.addListener(shared);
+        Cancellable secondOwner = state.addListener(shared);
+
+        state.set(1);
+        assertEquals(2, shared.get(), "one callback, subscribed twice, is told twice");
+
+        firstOwner.cancel();
+        firstOwner.cancel();
+        state.set(2);
+
+        assertEquals(3, shared.get(), "cancelling one subscription twice drops that one and only that one");
+
+        secondOwner.cancel();
+        state.set(3);
+
+        assertEquals(3, shared.get(), "and the second owner is still the one who ends theirs");
     }
 
     @Test

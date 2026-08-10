@@ -43,9 +43,10 @@ public final class ClickPolicy {
     public static final ClickPolicy DENY_ALL = builder().build();
 
     /**
-     * Everything a player needs in order to move an item, and neither of the two gestures that
-     * duplicate one: the creative clone, and the double click that gathers every matching stack of the
-     * whole window at once.
+     * Everything a player needs in order to move an item, without the creative clone, which
+     * duplicates a stack, and without the double click, which gathers every matching stack of the
+     * whole window at once - the screen's own icons included. Gathering does not duplicate anything;
+     * it is denied because no per-slot rule can express a gesture that reaches every slot there is.
      */
     public static final ClickPolicy EDIT_ALL = builder()
             .allowEverything()

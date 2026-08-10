@@ -100,7 +100,7 @@ class ChatPromptTest {
      */
     private GuiView openTheScreenThatAsks(Consumer<ClickContext> ask) {
         Gui<LayoutBase> deeper = Gui.of(3).title("Auction").debounce(0);
-        deeper.component(component -> {
+        deeper.addComponent(component -> {
             counter = component.remember(1);
             component.render(slots -> slots.icon(0, Icon.of(new ItemStack(Material.IRON_INGOT, counter.get()))));
         });
@@ -271,6 +271,55 @@ class ChatPromptTest {
         assertFalse(view.isSuspended());
         assertEquals(containersBefore + 1, containersOpened());
         assertEquals(3, onScreen().getAmount(), "a screen nobody answered for is still the screen they left");
+    }
+
+    @Test
+    void aQuestionThatRanOutStopsTheCoreWaitingForAnAnswer() {
+        List<CompletableFuture<PromptResult<String>>> outcomes = new ArrayList<>();
+        openTheScreenThatAsks(context -> outcomes.add(ChatPromptChannel.get()
+                .ask(context.getView(), ChatPrompt.of("§eName it:").timeout(SOON))));
+        askTheQuestion();
+
+        world.awaitOnTheClock(outcomes.get(0), 5_000L);
+
+        assertFalse(ChatExpectationListener.get().hasAnyExpectedChat(player.asPlayer()),
+                "a wait the clock ended and nobody told the listener about would hold the Player and "
+                        + "swallow the next thing they type");
+        assertTrue(waitsOn().isEmpty());
+
+        AsyncPlayerChatEvent smallTalk = world.getEvents().typeInChat(player.asPlayer(), "hello everyone");
+
+        assertFalse(smallTalk.isCancelled(), "so what they say next is the server's business again");
+    }
+
+    @Test
+    void aQuestionThatRanOutOnAScreenNobodyWillReopenLeavesNothingRunning() {
+        List<CompletableFuture<PromptResult<String>>> outcomes = new ArrayList<>();
+        Gui<LayoutBase> screen = Gui.of(3).title("Auction").debounce(0);
+        //a screen that redraws once a tick, so there is something running for a suspended view to keep alive
+        screen.addComponent(component -> {
+            component.every(1);
+            component.render(slots -> slots.icon(0, Icon.of(new ItemStack(Material.IRON_INGOT))));
+        });
+        screen.icon(1, Icon.of(new ItemStack(Material.ARROW)).onClick(context -> outcomes.add(
+                ChatPromptChannel.get().ask(context.getView(), ChatPrompt.of("§eName it:").timeout(SOON)))));
+        GuiView view = world.open(screen, player);
+        assertEquals(1, world.getScheduler().getPeriodicTaskCount());
+
+        clicks.leftClick(player, 1);
+        world.advanceTicks(1);
+        assertTrue(view.isSuspended(), "the screen is set aside while the question is out");
+        //from here on the server will not open a window, so giving the screen back is going to fail
+        player.refuseOpens(true);
+
+        PromptResult<String> outcome = world.awaitOnTheClock(outcomes.get(0), 5_000L);
+
+        assertEquals(PromptResult.Kind.TIMEOUT, outcome.getKind());
+        assertTrue(view.isClosed(), "a screen that cannot be given back is torn down, not left set aside "
+                + "forever holding its state and the player");
+        assertEquals(0, GuiViews.getOpenCount());
+        assertEquals(0, world.getScheduler().getPeriodicTaskCount(),
+                "and its once-a-tick task died with it, instead of running forever against no window");
     }
 
     @Test

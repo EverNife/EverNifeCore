@@ -62,6 +62,7 @@ public class Gui<L extends LayoutBase> {
     private final L layout;
 
     private Supplier<String> title = () -> "";
+    private boolean titleOverridden = false;
     private ClickPolicy policy = ClickPolicy.DENY_ALL;
     private long debounceMillis = DEFAULT_DEBOUNCE_MILLIS;
 
@@ -76,11 +77,11 @@ public class Gui<L extends LayoutBase> {
 
     protected Gui(GuiType type, int rows, @Nullable L layout) {
         this.type = type;
-        this.rows = rows;
+        //only a chest is sized by rows; every other type has a fixed size of its own
+        this.rows = type.isChest() ? rows : 0;
         this.layout = layout;
-        type.sizeOf(rows); //fail here, on the line the caller wrote, not later when the window is asked for
+        type.sizeOf(this.rows); //fail here, on the line the caller wrote, not later when the window is asked for
         if (layout != null) {
-            title(layout::getTitle);
             for (LayoutBase.PlacedIcon placed : layout.getIcons().values()) {
                 if (placed.isVisible()) {
                     layoutIcons.put(placed.getName(), new IconBinding(placed.getSlots(), placed.getIcon()));
@@ -105,8 +106,8 @@ public class Gui<L extends LayoutBase> {
      * A screen sized, titled and decorated by {@code layout}: every icon the file resolved is already
      * painted, and {@link #icon(Function)} is how one of them gains behaviour.
      *
-     * <p>The title is the one the owning plugin's language answers with. A title that follows each
-     * viewer needs the viewer, which a description does not have.</p>
+     * <p>The title follows each viewer's own language, exactly like the icons already do. A
+     * {@link #title(String)} set by hand wins over the layout's, for every viewer.</p>
      */
     @Nonnull
     public static <L extends LayoutBase> Gui<L> of(@Nonnull L layout) {
@@ -117,6 +118,16 @@ public class Gui<L extends LayoutBase> {
     @Nonnull
     public static <L extends LayoutBase> Gui<L> of(@Nonnull Class<L> layoutType) {
         return of(Layouts.of(layoutType));
+    }
+
+    /** {@code layout}, or the refusal that teaches - for a subclass constructor that reads it before super(). */
+    @Nonnull
+    protected static <L extends LayoutBase> L requiredLayout(@Nullable L layout) {
+        if (layout == null) {
+            throw new IllegalArgumentException("A screen built from a layout cannot be built without one. "
+                    + "Read it with Layouts.of(MyLayout.class).");
+        }
+        return layout;
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -140,6 +151,7 @@ public class Gui<L extends LayoutBase> {
     @Nonnull
     public Gui<L> title(@Nonnull Supplier<String> title) {
         this.title = title;
+        this.titleOverridden = true;
         return this;
     }
 
@@ -171,7 +183,7 @@ public class Gui<L extends LayoutBase> {
     public IconBinder icon(@Nonnull Function<L, Icon> selector) {
         LayoutBase.PlacedIcon placed = takeOver(selector);
         IconBinder binder = new IconBinder(this, placed.getSlots(), placed.getIcon());
-        component(binder::bind);
+        addComponent(binder::bind);
         return binder;
     }
 
@@ -203,7 +215,7 @@ public class Gui<L extends LayoutBase> {
     }
 
     private <T> ListComponent<T, L> declare(ListComponent<T, L> list) {
-        component(list::bind);
+        addComponent(list::bind);
         return list;
     }
 
@@ -244,7 +256,7 @@ public class Gui<L extends LayoutBase> {
      * in a {@code State.of(...)} that several components remember.</p>
      */
     @Nonnull
-    public Gui<L> component(@Nonnull Consumer<GuiComponent> declaration) {
+    public Gui<L> addComponent(@Nonnull Consumer<GuiComponent> declaration) {
         if (declaration == null) {
             throw new IllegalArgumentException("A component needs a declaration - the lambda that "
                     + "remembers its state and says what it renders.");
@@ -260,13 +272,16 @@ public class Gui<L extends LayoutBase> {
      */
     @Nonnull
     public Gui<L> addRegion(@Nonnull Region region) {
-        Region previous = regions.put(region.getName(), region);
-        if (previous != null) {
-            regions.put(region.getName(), previous);
+        if (region == null) {
+            throw new IllegalArgumentException("A screen cannot add a null region. Build one with "
+                    + "new Region(name, slots, policy), or drop the call.");
+        }
+        if (regions.containsKey(region.getName())) {
             throw new IllegalArgumentException("This gui already has a region named ["
-                    + region.getName() + "]. Region names are how clicks and layouts address an area, "
+                    + region.getName() + "]. Region names are how clicks address an area, "
                     + "so they have to be unique within a screen.");
         }
+        regions.put(region.getName(), region);
         return this;
     }
 
@@ -291,6 +306,10 @@ public class Gui<L extends LayoutBase> {
     /** {@link #addReplacer(CompoundReplacer)} over the object the replacer speaks about. */
     @Nonnull
     public <O> Gui<L> addReplacer(@Nonnull RegexReplacer<O> replacer, @Nonnull O object) {
+        if (replacer == null || object == null) {
+            throw new IllegalArgumentException("A screen cannot add a null replacer or subject. Pass the "
+                    + "RegexReplacer and the object it speaks about, or drop the call.");
+        }
         replacers.appendReplacer(replacer, object);
         return this;
     }
@@ -384,6 +403,7 @@ public class Gui<L extends LayoutBase> {
         return type;
     }
 
+    /** The declared chest rows. Zero for every other type - measure {@link #getGeometry()} instead. */
     public int getRows() {
         return rows;
     }
@@ -424,10 +444,12 @@ public class Gui<L extends LayoutBase> {
         return getTitleFor(null);
     }
 
-    /** The title as {@code viewer} reads it: this screen's placeholders, then theirs from PAPI. */
+    /** The title as {@code viewer} reads it: their language when a layout titles the screen, then placeholders. */
     @Nonnull
     public String getTitleFor(@Nullable Player viewer) {
-        String resolved = title.get();
+        String resolved = layout != null && !titleOverridden
+                ? layout.getTitleFor(viewer)   //the viewer's own language, like every icon already does
+                : title.get();
         if (resolved == null) {
             return "";
         }
@@ -459,7 +481,7 @@ public class Gui<L extends LayoutBase> {
     @Nonnull
     public List<IconBinding> getIconBindings() {
         if (layoutIcons.isEmpty()) {
-            return Collections.unmodifiableList(iconBindings);
+            return Collections.unmodifiableList(new ArrayList<>(iconBindings));
         }
         List<IconBinding> bindings = new ArrayList<>(layoutIcons.size() + iconBindings.size());
         for (Map.Entry<String, IconBinding> entry : layoutIcons.entrySet()) {

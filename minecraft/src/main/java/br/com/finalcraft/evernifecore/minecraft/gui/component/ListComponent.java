@@ -112,7 +112,10 @@ public final class ListComponent<T, L extends LayoutBase> {
         return this;
     }
 
-    /** The page buttons, on raw slots, drawn with the framework's own arrows. */
+    /**
+     * The page buttons, on raw slots, drawn with the framework's own arrows. This is the form that can
+     * leave one out: a {@code null} slot set draws no button on that side.
+     */
     @Nonnull
     public ListComponent<T, L> pagedBy(@Nullable SlotSet previous, @Nullable SlotSet next) {
         this.previousSlots = previous;
@@ -120,7 +123,11 @@ public final class ListComponent<T, L extends LayoutBase> {
         return this;
     }
 
-    /** The page buttons, named by the layout icons that carry their look and their slots. */
+    /**
+     * The page buttons, named by the layout icons that carry their look and their slots. Both are
+     * required here - an icon is what says where the button goes, so there is no way to name one
+     * button and mean "and no other". Use {@link #pagedBy(SlotSet, SlotSet)} for that.
+     */
     @Nonnull
     public ListComponent<T, L> pagedBy(@Nonnull Function<L, Icon> previous, @Nonnull Function<L, Icon> next) {
         LayoutBase.PlacedIcon back = gui.takeOver(previous);

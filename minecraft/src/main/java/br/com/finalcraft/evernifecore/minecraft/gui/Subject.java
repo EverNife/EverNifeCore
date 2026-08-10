@@ -9,10 +9,8 @@ import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import jakarta.annotation.Nonnull;
 
 /**
- * Whose data a screen is showing, and how that answers {@code %playerdata_*%}.
- *
- * <p>Held by {@link LayoutGui} and {@link LayoutResultGui}, which cannot share a base class: this is
- * what keeps the two of them from drifting apart.</p>
+ * Whose data a screen is showing, and how that answers {@code %playerdata_*%}. See
+ * {@link SubjectHolder} for the screens that have one.
  *
  * @param <P> the concrete player data the screen speaks of
  */

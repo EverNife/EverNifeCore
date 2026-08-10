@@ -17,7 +17,6 @@ import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -138,8 +137,7 @@ public class GuiListener implements ECListener {
             icon.getOnClick().accept(context);
         } catch (Throwable e) {
             EverNifeCore.getLog().severe("A gui click handler failed for [" + view.getViewerName()
-                    + "] on slot " + slot + ": " + e);
-            e.printStackTrace();
+                    + "] on slot " + slot, e);
         }
 
         if (context.isMoveAllowed()) {
@@ -180,9 +178,8 @@ public class GuiListener implements ECListener {
 
     /** What the number key pressed on this click points at, or {@code null} when none was. */
     private static ItemStack hotbarItemOf(InventoryClickEvent event) {
-        PlayerInventory inventory = event.getWhoClicked().getInventory();
         int button = event.getHotbarButton();
-        return inventory == null || button < 0 ? null : inventory.getItem(button);
+        return button < 0 ? null : event.getWhoClicked().getInventory().getItem(button);
     }
 
     /** Whether what this click would put INTO the region is an item that region accepts. */
@@ -194,10 +191,8 @@ public class GuiListener implements ECListener {
             return storage.mayHold(event.getCursor());
         }
         if (kind == ClickKind.HOTBAR) {
-            PlayerInventory inventory = event.getWhoClicked().getInventory();
             int button = event.getHotbarButton();
-            //an item the filter cannot even read is one that does not get in
-            return inventory != null && button >= 0 && storage.mayHold(inventory.getItem(button));
+            return button >= 0 && storage.mayHold(event.getWhoClicked().getInventory().getItem(button));
         }
         return true;
     }
@@ -287,6 +282,8 @@ public class GuiListener implements ECListener {
                 shares.add(rawSlot);
                 touched.add(storage);
                 divideHere |= storage.vetsUpdates();
+            } else if (view.getBuffer().owns(rawSlot)) {
+                refusedAny = true;   //the screen draws this slot; a drag written here is erased next render
             }
         }
 

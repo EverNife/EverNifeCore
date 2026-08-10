@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.gui;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.minecraft.gui.cfg.ConfigSetting;
+import br.com.finalcraft.evernifecore.minecraft.gui.component.CycleBinder;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.ListComponent;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.Pager;
 import br.com.finalcraft.evernifecore.minecraft.gui.icons.DefaultIcons;
@@ -87,7 +88,7 @@ final class GuiApiExamples {
     static void cookieClicker(Player player) {
         Gui.of(3)
                 .title("§9Cookie Clicker")
-                .component(c -> {
+                .addComponent(c -> {
                     MutableState<Integer> clicks = c.remember(0);
 
                     c.render(slots -> slots.icon(13, FCItemFactory.from(Material.COOKIE)
@@ -102,12 +103,12 @@ final class GuiApiExamples {
         MutableState<String> filter = State.of("");
 
         Gui.of(6)
-                .component(c -> {
+                .addComponent(c -> {
                     //typed on purpose: it pins remember(State) as the overload a shared state picks
                     State<String> shared = c.remember(filter);
                     c.render(slots -> slots.icon(4, filterIcon(shared.get())));
                 })
-                .component(c -> {
+                .addComponent(c -> {
                     c.remember(filter);
                     c.render(slots -> slots.icon(Slots.box(2, 1, 5, 9), resultIcon(filter.get())));
                 })
@@ -117,11 +118,11 @@ final class GuiApiExamples {
     /** Watching a domain object instead of mirroring it into a state. */
     static void watchingAnObject(Player player, Arena arena) {
         Gui.of(6)
-                .component(c -> {
+                .addComponent(c -> {
                     State<ArenaSnapshot> snapshot = c.watch(arena::snapshot);
                     c.render(slots -> slots.icon(22, arenaIcon(snapshot.get())));
                 })
-                .component(c -> {
+                .addComponent(c -> {
                     //the object is mutated in place, so equals cannot report it: compare a key that moves
                     State<ArenaSnapshot> live = c.watch(arena::current, ArenaSnapshot::getVersion);
                     c.every(20);
@@ -134,7 +135,7 @@ final class GuiApiExamples {
     static void titleAsState(Player player, MutableState<Integer> page) {
         Gui.of(6)
                 .title(() -> "§9Página " + page.get())
-                .component(c -> {
+                .addComponent(c -> {
                     c.remember(page);
                     c.render(slots -> slots.icon(Slots.at(6, 5), FCItemFactory.from(Material.ARROW)
                             .onClick(ctx -> {
@@ -149,7 +150,7 @@ final class GuiApiExamples {
     static void clickPolicyAndDebounce(Player player) {
         Gui.of(3)
                 .debounce(200)
-                .addRegion(new Region("storage", Slots.box(2, 2, 2, 8), Region.LAYER_CONTENT,
+                .addRegion(new Region("storage", Slots.box(2, 2, 2, 8),
                         ClickPolicy.builder()
                                 .allowTake()
                                 .denyPlace()
@@ -188,6 +189,38 @@ final class GuiApiExamples {
                         .displayName("§a" + member)
                         .onClick(ctx -> ctx.getViewer().sendMessage(member)))
                 .open(player);
+    }
+
+    /** Page buttons of the plugin's own, drawn only while there is somewhere to go. */
+    static void memberListWithItsOwnArrows(Player player, List<String> members) {
+        Pager pager = new Pager();
+
+        Gui<LayoutBase> gui = Gui.of(6)
+                .title(() -> "§9Membros - " + pager.getTotalEntries() + " no total");
+        gui.list(members)
+                .pager(pager)
+                .into(Slots.box(2, 2, 5, 8))
+                .render((member, icon) -> icon
+                        .from(FCItemFactory.from(Material.PAPER))
+                        .displayName("§a" + member));
+        //the buttons remember the pager, so turning a page redraws them along with the list
+        gui.addComponent(component -> {
+            component.remember(pager);
+            component.render(slots -> {
+                if (pager.hasPrevious()) {
+                    slots.icon(Slots.at(6, 2), DefaultIcons.previousPage()
+                            .displayName("§7Primeira página")
+                            .onClick(ctx -> pager.first()));
+                    slots.icon(Slots.at(6, 3), DefaultIcons.previousPage()
+                            .onClick(ctx -> pager.previous()));
+                }
+                if (pager.hasNext()) {
+                    slots.icon(Slots.at(6, 7), DefaultIcons.nextPage()
+                            .onClick(ctx -> pager.next()));
+                }
+            });
+        });
+        gui.open(player);
     }
 
     /** The source too big to materialise: one page at a time, plus the count nothing else can answer. */
@@ -332,16 +365,18 @@ final class GuiApiExamples {
                 .states(Tab.class, tab::get)
                 .onClick(ctx -> tab.set(tab.get() == Tab.DEFAULT ? Tab.SELLING : Tab.DEFAULT));
 
-        gui.icon(l -> l.SORT)
-                .cycle(Sorting.class, sorting)
-                .onCycle(chosen -> player.sendMessage("§7" + chosen));
-
         gui.list(() -> lots(tab.get(), sorting.get()))
                 .dependsOn(tab, sorting)
                 .into(l -> l.LOT)
                 .pagedBy(l -> l.PREVIOUS, l -> l.NEXT)
-                .render((lot, icon) -> icon.displayName("§a" + lot))
-                .open(player);
+                .render((lot, icon) -> icon.displayName("§a" + lot));
+
+        CycleBinder<Sorting> sort = gui.icon(l -> l.SORT)
+                .cycle(Sorting.class, sorting)
+                .onCycle(chosen -> player.sendMessage("§7" + chosen));
+        //the cycle hands its icon back, so the icon keeps being configured after the walk is declared
+        sort.getBinder().every(20);
+        sort.open(player);
     }
 
     // ---- a screen about one player, opened by another, with navigation and a chat prompt ----

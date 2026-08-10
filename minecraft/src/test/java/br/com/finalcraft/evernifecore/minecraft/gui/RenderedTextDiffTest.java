@@ -50,7 +50,7 @@ class RenderedTextDiffTest {
      * answers how many times the slot was written for it.
      */
     private int writesCausedByRenaming(MutableState<String> label) {
-        Gui<?> gui = Gui.of(3).component(c -> {
+        Gui<?> gui = Gui.of(3).addComponent(c -> {
             c.remember(label);
             c.render(slots -> slots.icon(13, labelled(label.get())));
         });

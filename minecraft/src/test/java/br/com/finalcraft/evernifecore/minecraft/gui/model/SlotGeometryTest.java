@@ -78,6 +78,34 @@ class SlotGeometryTest {
     }
 
     @Test
+    void aWindowWhoseLastRowIsPartialAnswersTheSlotsItHas() {
+        //10 slots over a width of 3, and 5 over a width of 4: both windows end mid-row
+        GuiGeometry workbench = new GuiGeometry(GuiType.WORKBENCH, 10);
+        GuiGeometry brewing = new GuiGeometry(GuiType.BREWING, 5);
+
+        assertArrayEquals(new int[]{9}, resolve(Slots.row(4), workbench),
+                "the workbench's last row is the one slot it really has");
+        assertArrayEquals(new int[]{0, 3, 6, 9}, resolve(Slots.column(1), workbench));
+        assertArrayEquals(new int[]{2, 5, 8}, resolve(Slots.column(3), workbench),
+                "and a column that would run past the end stops at it");
+
+        assertArrayEquals(new int[]{4}, resolve(Slots.row(2), brewing));
+        assertArrayEquals(new int[]{0, 4}, resolve(Slots.column(1), brewing));
+        assertArrayEquals(new int[]{1}, resolve(Slots.column(2), brewing));
+    }
+
+    @Test
+    void aRowOrColumnTheWindowDoesNotHaveIsRefusedWithItsSize() {
+        IllegalArgumentException noSuchRow = assertThrows(IllegalArgumentException.class,
+                () -> resolve(Slots.row(4), CHEST_3));
+        assertTrue(noSuchRow.getMessage().contains("has 3 of them"), noSuchRow.getMessage());
+
+        IllegalArgumentException noSuchColumn = assertThrows(IllegalArgumentException.class,
+                () -> resolve(Slots.column(10), CHEST_3));
+        assertTrue(noSuchColumn.getMessage().contains("9 wide"), noSuchColumn.getMessage());
+    }
+
+    @Test
     void boxIsTheInclusiveRectangle() {
         assertArrayEquals(new int[]{10, 11, 12}, resolve(Slots.box(2, 2, 2, 4), CHEST_3));
         assertEquals(28, resolve(Slots.box(2, 2, 5, 8), CHEST_6).length, "4 rows by 7 columns");

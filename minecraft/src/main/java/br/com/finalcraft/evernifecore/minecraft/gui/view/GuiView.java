@@ -44,11 +44,15 @@ import java.util.function.Consumer;
  *
  * <p>Everything a screen changes lands in the buffer first and reaches the container once per tick,
  * so any number of state changes inside one tick cost one pass and only over the slots that differ.</p>
+ *
+ * <p>Drawing happens on the main thread, but a state may go stale on any thread, so the flags another
+ * thread reads or writes - {@code closed}, {@code suspended}, the click token - are {@code volatile}
+ * and the scheduled pass is held under this view's monitor.</p>
  */
 public final class GuiView {
 
     /** Icons declared straight on the gui sit here; each component gets its own layer above it. */
-    private static final int FIRST_COMPONENT_LAYER = Region.LAYER_CONTENT + 1;
+    private static final int FIRST_COMPONENT_LAYER = GuiBuffer.LAYER_CONTENT + 1;
 
     private final Gui<?> gui;
     private final UUID viewerId;
@@ -81,10 +85,10 @@ public final class GuiView {
     private CompletableFuture<Object> pendingResult;
     private boolean staticIconsDirty = true;
     private boolean swappingSurface = false;
-    private boolean suspended = false;
-    private long clickToken = 0L;
+    private volatile boolean suspended = false;
+    private volatile long clickToken = 0L;
     private long lastAcceptedClickAt = 0L;
-    private boolean closed = false;
+    private volatile boolean closed = false;
 
     GuiView(Gui<?> gui, Player viewer, GuiSurface surface, GuiScheduler scheduler, String title) {
         this.gui = gui;
@@ -173,8 +177,9 @@ public final class GuiView {
         }
         if (size == 0) {
             EverNifeCore.getLog().warning("The storage region [" + binding.getName() + "] of ["
-                    + gui.getTitle() + "] has no slots, so nothing of its store is reachable. The yml switched "
-                    + "the icon off - give it back its Slot list to make the area exist again.");
+                    + gui.getTitle() + "] resolved to no slot at all, so nothing of its store is reachable. "
+                    + "Give it slots that this window has - through the Slot list of the layout icon it was "
+                    + "declared from, or through the SlotSet handed to storage(...).");
         }
         return Arrays.copyOf(claimed, size);
     }
@@ -298,7 +303,10 @@ public final class GuiView {
         return Collections.unmodifiableList(storages);
     }
 
-    /** Whether anything on this screen may be taken from or put into at all. */
+    /**
+     * Whether this screen declares an editable area at all. It says nothing about what any gesture is
+     * allowed to do there - that is the area's own {@link ClickPolicy}.
+     */
     public boolean hasStorage() {
         return !storages.isEmpty();
     }
@@ -381,11 +389,11 @@ public final class GuiView {
             }
         }
 
-        clearLayer(Region.LAYER_BACKGROUND);
-        clearLayer(Region.LAYER_CONTENT);
+        clearLayer(GuiBuffer.LAYER_BACKGROUND);
+        clearLayer(GuiBuffer.LAYER_CONTENT);
         for (Gui.IconBinding binding : gui.getIconBindings()) {
-            Icon icon = animatedIcons.containsKey(binding) ? animatedIcons.get(binding) : binding.getIcon();
-            paint(icon.isBackground() ? Region.LAYER_BACKGROUND : Region.LAYER_CONTENT,
+            Icon icon = animatedIcons.getOrDefault(binding, binding.getIcon());
+            paint(icon.isBackground() ? GuiBuffer.LAYER_BACKGROUND : GuiBuffer.LAYER_CONTENT,
                     binding.getSlots(), icon);
         }
     }
@@ -452,8 +460,7 @@ public final class GuiView {
             applyTitleIfChanged();
             commitNow();
         } catch (Throwable e) {
-            EverNifeCore.getLog().severe("A gui render pass failed for [" + viewerName + "]: " + e);
-            e.printStackTrace();
+            EverNifeCore.getLog().severe("A gui render pass failed for [" + viewerName + "]", e);
         }
     }
 
@@ -517,6 +524,9 @@ public final class GuiView {
      * exists only while at least one watch does - a screen with no watch polls nothing.
      */
     public void addWatch(@Nonnull WatchState<?> watch) {
+        if (closed) {
+            return;
+        }
         watches.add(watch);
         if (watchTask == null) {
             watchTask = repeat(1L, this::pollWatches);
@@ -528,8 +538,7 @@ public final class GuiView {
             try {
                 watch.poll();
             } catch (Throwable e) {
-                EverNifeCore.getLog().severe("A gui watch failed for [" + viewerName + "]: " + e);
-                e.printStackTrace();
+                EverNifeCore.getLog().severe("A gui watch failed for [" + viewerName + "]", e);
             }
         }
     }
@@ -605,6 +614,11 @@ public final class GuiView {
             return;
         }
         suspended = true;
+        cancelPendingCommit();
+    }
+
+    /** Drops the pass that was scheduled, if any. Under the monitor {@link #scheduleCommit()} takes. */
+    private synchronized void cancelPendingCommit() {
         if (pendingCommit != null) {
             pendingCommit.cancel();
             pendingCommit = null;
@@ -667,10 +681,7 @@ public final class GuiView {
         }
         closed = true;
 
-        if (pendingCommit != null) {
-            pendingCommit.cancel();
-            pendingCommit = null;
-        }
+        cancelPendingCommit();
         for (Cancellable task : tasks) {
             task.cancel();
         }
@@ -684,23 +695,27 @@ public final class GuiView {
         dirtyComponents.clear();
 
         //while the container is still readable, and before the close handler, so it reads a store that
-        //already agrees with what is on screen
-        try {
-            for (StorageView storage : storages) {
+        //already agrees with what is on screen. One region at a time: a store that throws costs its own
+        //contents and nothing else, and the cursor is given back whatever any of them did
+        for (StorageView storage : storages) {
+            try {
                 storage.syncNow(true);
+            } catch (Throwable e) {
+                EverNifeCore.getLog().severe("The editable region [" + storage.getBinding().getName()
+                        + "] of a gui could not be read back for [" + viewerName + "]", e);
             }
+        }
+        try {
             returnCarriedItem();
         } catch (Throwable e) {
-            EverNifeCore.getLog().severe("An editable region of a gui could not be closed cleanly for ["
-                    + viewerName + "]: " + e);
-            e.printStackTrace();
+            EverNifeCore.getLog().severe("What [" + viewerName + "] was holding on the cursor could not be "
+                    + "given back", e);
         }
 
         try {
             fireOnClose(reason);
         } catch (Throwable e) {
-            EverNifeCore.getLog().severe("The onClose handler of a gui failed for [" + viewerName + "]: " + e);
-            e.printStackTrace();
+            EverNifeCore.getLog().severe("The onClose handler of a gui failed for [" + viewerName + "]", e);
         }
 
         for (StorageView storage : storages) {
@@ -747,7 +762,7 @@ public final class GuiView {
         FCBukkitUtil.giveItemsTo(player, carried);
     }
 
-    /** What the container holds at those slots right now. */
+    /** What the container holds at those slots right now, empty slots included as {@code null}. */
     @Nonnull
     public List<ItemStack> getContents(@Nonnull SlotSet slots) {
         SlotSet resolved = slots.resolve(geometry);

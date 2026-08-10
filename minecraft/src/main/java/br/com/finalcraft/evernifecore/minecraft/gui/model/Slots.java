@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.model;
 
+import java.util.Arrays;
+
 /**
  * The geometry vocabulary of a gui.
  *
@@ -46,27 +48,44 @@ public final class Slots {
         });
     }
 
-    /** A whole row, 1-based. */
+    /**
+     * A whole row, 1-based. A window whose last row is partial - a workbench, a 1.9 brewing stand -
+     * answers the slots that row really has, and no ghost cell.
+     */
     public static SlotSet row(int row) {
         return SlotSet.relative(geometry -> {
+            requireRow(geometry, row);
             int width = geometry.getWidth();
-            int[] result = new int[width];
+            int[] buffer = new int[width];
+            int found = 0;
             for (int column = 1; column <= width; column++) {
-                result[column - 1] = indexOf(geometry, row, column);
+                int slot = (row - 1) * width + (column - 1);
+                if (geometry.isInside(slot)) {
+                    buffer[found++] = slot;
+                }
             }
-            return result;
+            return Arrays.copyOf(buffer, found);
         });
     }
 
-    /** A whole column, 1-based. */
+    /**
+     * A whole column, 1-based. It stops where the window does, so a column that runs past a partial
+     * last row is that many slots short instead of a refusal.
+     */
     public static SlotSet column(int column) {
         return SlotSet.relative(geometry -> {
+            requireColumn(geometry, column);
+            int width = geometry.getWidth();
             int rows = geometry.getRows();
-            int[] result = new int[rows];
+            int[] buffer = new int[rows];
+            int found = 0;
             for (int row = 1; row <= rows; row++) {
-                result[row - 1] = indexOf(geometry, row, column);
+                int slot = (row - 1) * width + (column - 1);
+                if (geometry.isInside(slot)) {
+                    buffer[found++] = slot;
+                }
             }
-            return result;
+            return Arrays.copyOf(buffer, found);
         });
     }
 
@@ -102,6 +121,22 @@ public final class Slots {
             }
             return result;
         });
+    }
+
+    private static void requireRow(GuiGeometry geometry, int row) {
+        int rows = geometry.getRows();
+        if (row < 1 || row > rows) {
+            throw new IllegalArgumentException("Row " + row + " does not exist in a " + geometry
+                    + ". Rows start at 1 and this window has " + rows + " of them.");
+        }
+    }
+
+    private static void requireColumn(GuiGeometry geometry, int column) {
+        int width = geometry.getWidth();
+        if (column < 1 || column > width) {
+            throw new IllegalArgumentException("Column " + column + " does not exist in a " + geometry
+                    + ". Columns start at 1 and this window is " + width + " wide.");
+        }
     }
 
     private static int indexOf(GuiGeometry geometry, int row, int column) {

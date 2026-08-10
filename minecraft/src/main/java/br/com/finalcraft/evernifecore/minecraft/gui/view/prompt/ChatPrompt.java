@@ -52,16 +52,16 @@ public final class ChatPrompt<T> implements PromptSpec<T> {
      * exception's message, the question is put again, and the wait is not restarted.
      */
     @Nonnull
-    @SuppressWarnings("unchecked")
     public <R> ChatPrompt<R> parse(@Nonnull PromptParser<R> parser) {
         if (parser == null) {
             throw new IllegalArgumentException("A chat prompt needs a parser, or none at all - leave the "
                     + "call out and the answer arrives as the String the player typed.");
         }
-        //the builder is consumed by the chain it is written in, so re-typing it in place has no reader
-        //left holding the old type
-        ChatPrompt<R> retyped = (ChatPrompt<R>) this;
-        retyped.parser = parser;
+        ChatPrompt<R> retyped = new ChatPrompt<>(question, parser);
+        retyped.timeoutMillis = timeoutMillis;
+        retyped.onTimeout = onTimeout;
+        retyped.onQuit = onQuit;
+        retyped.cancelWord = cancelWord;
         return retyped;
     }
 

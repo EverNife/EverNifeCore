@@ -22,7 +22,11 @@ public enum GuiType {
     DISPENSER(3, 9),
     /** 4 slots on 1.7-1.8, 5 from 1.9 on (fuel). */
     BREWING(4, 4),
-    /** The crafting result plus a 3x3 grid. */
+    /**
+     * The crafting result plus a 3x3 grid, in that order: slot 0 is the RESULT, so row 1 starts on it
+     * and the grid is {@code Slots.at(1, 2)} through {@code Slots.at(4, 1)}. Row 4 holds one slot -
+     * {@code Slots.row(4)} answers that one and nothing else.
+     */
     WORKBENCH(3, 10);
 
     public static final int MIN_CHEST_ROWS = 1;

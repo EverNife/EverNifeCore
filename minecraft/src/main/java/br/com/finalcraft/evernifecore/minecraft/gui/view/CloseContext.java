@@ -92,12 +92,7 @@ public final class CloseContext<L extends LayoutBase> {
     /** What the container holds at those slots right now, empty slots included as {@code null}. */
     @Nonnull
     public List<ItemStack> getContents(@Nonnull SlotSet slots) {
-        SlotSet resolved = slots.resolve(view.getGeometry());
-        List<ItemStack> contents = new ArrayList<>(resolved.size());
-        for (int slot : resolved.toArray()) {
-            contents.add(surface.getItem(slot));
-        }
-        return contents;
+        return view.getContents(slots);
     }
 
     /** What the whole container holds right now. */

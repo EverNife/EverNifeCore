@@ -114,7 +114,7 @@ class GuiClickTest {
     void aRegionCanOpenUpItsOwnSlotsWithoutOpeningTheScreen() {
         Gui<?> gui = Gui.of(3)
                 .icon(0, button(Material.DIAMOND))
-                .addRegion(new Region("storage", Slots.of(10, 11), Region.LAYER_CONTENT,
+                .addRegion(new Region("storage", Slots.of(10, 11),
                         ClickPolicy.builder().allowTake().build()));
         open(gui);
 
@@ -180,12 +180,14 @@ class GuiClickTest {
     }
 
     @Test
-    void aRegionThatAllowsDraggingIsDraggedInto() {
-        Gui<?> gui = Gui.of(3).addRegion(new Region("storage", Slots.of(13), Region.LAYER_CONTENT,
+    void aRegionThatAllowsDraggingStillCannotBeDraggedIntoWithoutAStore() {
+        Gui<?> gui = Gui.of(3).addRegion(new Region("storage", Slots.of(13),
                 ClickPolicy.builder().allowDrag().build()));
         open(gui);
 
-        assertFalse(clicks.drag(player, new ItemStack(Material.DIRT), 13).isCancelled());
+        assertTrue(clicks.drag(player, new ItemStack(Material.DIRT), 13).isCancelled(),
+                "the screen still draws that slot, so an item left there is one the next render erases - "
+                        + "an area a player may really drag into is declared with storage(...)");
         assertTrue(clicks.drag(player, new ItemStack(Material.DIRT), 12, 13).isCancelled(),
                 "one slot of the gesture outside the region refuses all of it");
     }
@@ -401,7 +403,7 @@ class GuiClickTest {
 
     @Test
     void aKindNobodyClassifiedIsRefusedEvenOnAnOpenScreen() {
-        Gui<?> gui = Gui.of(3).addRegion(new Region("storage", Slots.of(13), Region.LAYER_CONTENT,
+        Gui<?> gui = Gui.of(3).addRegion(new Region("storage", Slots.of(13),
                 ClickPolicy.builder().allow(ClickKind.TAKE, ClickKind.PLACE).build()));
         open(gui);
 

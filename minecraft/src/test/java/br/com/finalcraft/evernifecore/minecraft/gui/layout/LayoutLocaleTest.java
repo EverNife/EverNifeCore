@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.icons.DefaultIcons;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.PlayerDouble;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.SurfaceDouble;
+import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiView;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
@@ -236,6 +237,27 @@ class LayoutLocaleTest {
         assertEquals("Market", layout.getTitleFor(viewerSpeaking("Steve", LocaleType.EN_US).asPlayer()));
         assertEquals("Mercado", layout.getTitleFor(viewerSpeaking("Alberto", LocaleType.PT_BR).asPlayer()));
         assertEquals("Market", layout.getTitle(), "with nobody looking, the plugin's own language answers");
+    }
+
+    @Test
+    void oneScreenOpenedTwiceTitlesEachWindowInItsOwnViewersLanguage() {
+        Gui<MarketLayout> gui = Gui.of(MarketLayout.class);
+
+        GuiView english = world.open(gui, viewerSpeaking("Steve", LocaleType.EN_US));
+        GuiView brazilian = world.open(gui, viewerSpeaking("Alberto", LocaleType.PT_BR));
+
+        assertEquals("Market", english.getCurrentTitle());
+        assertEquals("Mercado", brazilian.getCurrentTitle(),
+                "the same description, and the window each of them got says so");
+    }
+
+    @Test
+    void aTitleSetByHandIsWhatEveryViewerReads() {
+        Gui<MarketLayout> gui = Gui.of(MarketLayout.class).title("Flash sale");
+
+        assertEquals("Flash sale", world.open(gui, viewerSpeaking("Steve", LocaleType.EN_US)).getCurrentTitle());
+        assertEquals("Flash sale", world.open(gui, viewerSpeaking("Alberto", LocaleType.PT_BR)).getCurrentTitle(),
+                "a title the plugin insisted on outranks the file's, whoever is reading");
     }
 
     // -----------------------------------------------------------------------------------------------------------------
