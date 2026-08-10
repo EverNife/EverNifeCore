@@ -13,7 +13,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
-## [Unreleased]
+## [3.0.1-alpha.33] - 2026-08-10
+
+The GUI framework, rebuilt in-house from title to teardown.
 
 ### Added
 
@@ -61,6 +63,12 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`PageTheme`, and an empty state.** The chrome is a theme (`classic()`, `autoFit()`, `none()`)
   instead of three booleans, and a page with no entries says so instead of printing buttons pointing
   at page 1 of 0.
+- **The test engine refuses like a server.** The platform doubles refuse what a real server refuses,
+  conserve items through drags and let a test player go offline, and the pieces needed to run the
+  apparatus without a server are published.
+- **Coverage for the gui framework.** Geometry and the slot codec, the click path from surface guard
+  to dispatch, open refusal and teardown, render diff and layers, layout seeding and reload,
+  per-viewer language, storage regions and the editable region, navigation and the chat prompt.
 
 ### Changed
 
@@ -84,6 +92,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   them.
 - **`showAll` shows all of it.** `maxEntries` caps the read and `pageSize` slices the message; what
   the ceiling left out is counted and announced in the hover of the total, costing no line of chat.
+
+### Fixed
+
+- **An action bar lasts as long as it was asked to.**
+- **The dependency loader survives a class loader libraries cannot be injected into.**
 
 ### Removed
 
