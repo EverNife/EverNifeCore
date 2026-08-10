@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -272,6 +273,122 @@ class PageViewerContractTest {
     }
 
     // ------------------------------------------------------------------
+    //  ordering
+    // ------------------------------------------------------------------
+
+    /** A tier with behaviour of its own per constant, which is a subclass of the enum per constant. */
+    private enum Rank {
+        GOLD {
+            @Override
+            String medal() {
+                return "1st";
+            }
+        },
+        SILVER {
+            @Override
+            String medal() {
+                return "2nd";
+            }
+        },
+        BRONZE;
+
+        String medal() {
+            return "3rd";
+        }
+    }
+
+    @Test
+    void aLongPageOrderedByAnEnumWithBodiesComesOutInTheOrderItWasDeclaredIn() {
+        TestCommandSender console = new TestCommandSender("CONSOLE");
+
+        //past 32 entries the sort merges runs, which is where a comparison that holds one way and
+        //not the other stops being a wrong order and becomes a refusal to sort at all
+        List<String> members = new ArrayList<>();
+        for (int index = 0; index < 42; index++) {
+            members.add("member-" + index);
+        }
+
+        bareOf(members)
+                .orderBy(member -> Rank.values()[Integer.parseInt(member.substring("member-".length())) % 3])
+                .ascending()
+                .setFormatLine("${value}")
+                .setPageSize(members.size())
+                .build()
+                .send(console);
+
+        List<String> expected = new ArrayList<>();
+        for (Rank rank : Rank.values()) {
+            for (int index = 0; index < 14; index++) {
+                expected.add(rank.name());
+            }
+        }
+        assertEquals(expected, console.getMessages(),
+                "constants of one enum order the way the enum declares them, bodies or not");
+        assertEquals("1st", Rank.GOLD.medal(), "the bodies are what make each constant its own class");
+    }
+
+    @Test
+    void textOrdersTheWayAReaderReadsItWhateverTheCaseIs() {
+        TestCommandSender console = new TestCommandSender("CONSOLE");
+
+        bareOf(Arrays.asList("Zoe", "alice", "Bob"))
+                .orderBy(entry -> entry).ascending()
+                .setFormatLine("${value}")
+                .build()
+                .send(console);
+
+        assertEquals(Arrays.asList("alice", "Bob", "Zoe"), console.getMessages(),
+                "uppercase is not a place in the alphabet");
+    }
+
+    // ------------------------------------------------------------------
+    //  what a page keeps, and what it draws under itself
+    // ------------------------------------------------------------------
+
+    @Test
+    void aReadThePolicyWillNotVouchForAgainIsNotKept() {
+        List<PageSnapshot<?>> asked = new ArrayList<>();
+        CachePolicy neverValid = snapshot -> {
+            asked.add(snapshot);
+            return false;
+        };
+
+        PageViewer<String> viewer = bareOf(Collections.singletonList("alpha"))
+                .cache(neverValid)
+                .build();
+
+        viewer.snapshot();
+        int afterTheFirstRead = asked.size();
+        viewer.snapshot();
+
+        assertNull(asked.get(afterTheFirstRead),
+                "a read nobody may serve again must not be held: the second read found the first "
+                        + "one still in the page");
+    }
+
+    @Test
+    void aPageThatNamesNoLineWritesOnlyWhatItCanAnswerFor() {
+        TestCommandSender console = new TestCommandSender("CONSOLE");
+
+        PageViewer.of(String.class)
+                .source(() -> Arrays.asList("alpha", "beta"))
+                .unlimitedEntries()
+                .theme(PageTheme.none())
+                .navigation(PageNavigation.none())
+                .build()
+                .send(console);
+
+        for (String message : console.getMessages()) {
+            assertFalse(message.contains("${"),
+                    "a page of plain entries has no player and no order, so the default line cannot "
+                            + "cite either: " + message);
+        }
+        assertTrue(console.getMessages().get(0).contains("alpha")
+                        && console.getMessages().get(0).contains("1"),
+                "and it still says which entry this is: " + console.getMessages());
+    }
+
+    // ------------------------------------------------------------------
     //  the two levels
     // ------------------------------------------------------------------
 
@@ -344,6 +461,53 @@ class PageViewerContractTest {
         assertEquals(0, hiddenViewerCalls.get(),
                 "a viewer placeholder the line never cites must never be invoked");
         assertEquals(2, shownCalls.get(), "one call per line for the key the line does cite");
+    }
+
+    // ------------------------------------------------------------------
+    //  one line per row, never the same instance twice
+    // ------------------------------------------------------------------
+
+    @Test
+    void aFunctionThatHandsBackTheSameTextForEveryEntryStillGetsALinePerEntry() {
+        TestCommandSender console = new TestCommandSender("CONSOLE");
+
+        //one text, handed back for every entry - what memoizing a template by type or by rank looks
+        //like. The row's values are baked in, so a shared instance would carry the first row forever
+        FancyText shared = new FancySegment("[${entry}]");
+
+        bareOf(Arrays.asList("alpha", "beta"))
+                .setFormatLine(entry -> shared)
+                .addRowPlaceholder("entry", entry -> entry)
+                .build()
+                .send(console);
+
+        assertEquals(Arrays.asList("[alpha]", "[beta]"), console.getMessages());
+    }
+
+    @Test
+    void aDecoratedMessageIsALineLikeAnyOtherHoverAppendAndAll() {
+        LocaleMessage title = Locales.message(harness.ecPluginData, "PageViewerContract.TITLE",
+                LocaleType.EN_US, "§e${entry}", LocaleType.PT_BR, "§e${entry}");
+        LocaleMessage suffix = Locales.message(harness.ecPluginData, "PageViewerContract.SUFFIX",
+                LocaleType.EN_US, "§7 (#${number})", LocaleType.PT_BR, "§7 (#${number})");
+
+        TestFPlayerSender reader = new TestFPlayerSender("Steve");
+
+        bareOf(Arrays.asList("alpha", "beta"))
+                .setFormatLine(title.custom()
+                        .setHover("§7Click for details of ${entry}")
+                        .append(suffix))
+                .addRowPlaceholder("entry", entry -> entry)
+                .build()
+                .send(reader);
+
+        assertEquals(Arrays.asList("§ealpha§7 (#1)", "§ebeta§7 (#2)"), reader.getMessages(),
+                "both halves of the appended message are the line, each resolved for its own row");
+
+        assertEquals("§7Click for details of alpha", reader.hoverTextOfMessageContaining("alpha"),
+                "the decoration the caller put on the message reaches the page");
+        assertEquals("§7Click for details of beta", reader.hoverTextOfMessageContaining("beta"),
+                "and the second line is not the first line's bake wearing another number");
     }
 
     // ------------------------------------------------------------------

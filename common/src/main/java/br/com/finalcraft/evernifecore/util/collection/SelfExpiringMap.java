@@ -48,9 +48,22 @@ public class SelfExpiringMap<K, V> extends LinkedHashMap<K, V> {
     @Override
     public V put(K key, V value) {
         purgeExpired();
-        V previous = super.put(key, value);
+        //re-inserted rather than overwritten in place: the sweep walks insertion order and stops at
+        //the first live entry, so a key that kept its old position with a new deadline would shelter
+        //every expired entry behind it for as long as it goes on being renewed
+        V previous = super.remove(key);
+        expireAtByKey.remove(key);
+        super.put(key, value);
         expireAtByKey.put(key, nowSupplier.getAsLong() + ttlMillis);
         return previous;
+    }
+
+    /**
+     * Drops what has already expired, so a count or an iteration that follows sees only live
+     * entries. Writes sweep on their own; this is for a reader that has to be exact.
+     */
+    public void sweepExpired() {
+        purgeExpired();
     }
 
     @Override

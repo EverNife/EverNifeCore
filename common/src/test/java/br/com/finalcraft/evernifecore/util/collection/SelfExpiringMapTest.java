@@ -46,6 +46,43 @@ class SelfExpiringMapTest {
     }
 
     @Test
+    void anEntryKeptAliveByBeingWrittenAgainDoesNotShelterTheOnesBehindIt() {
+        AtomicLong clock = new AtomicLong(0);
+        SelfExpiringMap<String, String> map = new SelfExpiringMap<>(1000, -1, clock::get);
+
+        map.put("reader", "session");
+        map.put("first", "1");
+        map.put("second", "2");
+
+        //the reader keeps clicking: written again and again, always ahead of everyone else's deadline
+        for (int renewal = 1; renewal <= 5; renewal++) {
+            clock.set(renewal * 100L);
+            map.put("reader", "session");
+        }
+
+        clock.set(1400); //the other two are long gone, the renewed one still has a hundred to go
+        map.put("third", "3");
+
+        assertEquals(2, map.size(), "the entries behind a renewed key have to be swept too: " + map);
+        assertTrue(map.containsKey("reader"), "and the renewed key itself is still alive");
+        assertTrue(map.containsKey("third"));
+    }
+
+    @Test
+    void sweepingByHandDropsWhatExpiredWithoutWaitingForAWrite() {
+        AtomicLong clock = new AtomicLong(0);
+        SelfExpiringMap<String, String> map = new SelfExpiringMap<>(1000, -1, clock::get);
+
+        map.put("a", "1");
+        map.put("b", "2");
+        clock.set(1500);
+
+        assertEquals(2, map.size(), "nothing has swept yet, so the count still includes both");
+        map.sweepExpired();
+        assertEquals(0, map.size(), "a reader that has to be exact sweeps first");
+    }
+
+    @Test
     void unexpiredEntryStays() {
         AtomicLong clock = new AtomicLong(0);
         SelfExpiringMap<String, String> map = new SelfExpiringMap<>(1000, -1, clock::get);

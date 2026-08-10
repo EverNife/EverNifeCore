@@ -14,7 +14,11 @@ import java.util.function.Function;
  * differs only in where a click leads, so the look of navigation is translated and restyled in one
  * place.
  */
-public class PVExtraMessages {
+public final class PVExtraMessages {
+
+    private PVExtraMessages() {
+
+    }
 
     @FCLocale(lang = LocaleType.EN_US, children = {
             @FCLocale.Child(text = "                 &r"),
@@ -42,7 +46,7 @@ public class PVExtraMessages {
 
     @FCLocale(lang = LocaleType.EN_US,
             text = "§ePage [${current_page}/${last_page}]§r",
-            hover = "\n§a Refresh page [${current_page}]"
+            hover = "\n§aRefresh page [${current_page}]"
                   + "\n§7You are §e#${my_rank}§7 of §e${total}\n",
             click = "%on_refresh_page_click%")
     @FCLocale(lang = LocaleType.PT_BR,

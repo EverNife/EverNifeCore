@@ -168,8 +168,7 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         //framework is still up: that handler is what hands back whatever an editable screen was
         //holding, and it needs storage and player data to still answer
         GuiViews.closeAll();
-        //the inherited default is what unregisters listeners and commands; ECBukkitPlugin sits between
-        //this class and IECPluginBootstrap, so the qualified `IECPluginBootstrap.super` form is illegal here
+        //and only then the inherited default, which is what unregisters listeners and commands
         super.onECPluginShutdownPre();
     }
 

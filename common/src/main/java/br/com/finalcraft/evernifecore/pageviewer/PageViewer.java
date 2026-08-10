@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.fancytext.MessagePlaceholders;
 import br.com.finalcraft.evernifecore.fancytext.MessageScope;
 import br.com.finalcraft.evernifecore.fancytext.RenderContext;
 import br.com.finalcraft.evernifecore.locale.ChainPiece;
+import br.com.finalcraft.evernifecore.locale.ILocaleMessageBase;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.pageviewer.nav.PageNavigation;
 import br.com.finalcraft.evernifecore.pageviewer.theme.PageContext;
@@ -117,15 +118,26 @@ public class PageViewer<OBJ> {
             return current;
         }
         synchronized (this) {
-            if (!cachePolicy.isValid(cachedSnapshot)) {
-                cachedSnapshot = buildSnapshot();
+            if (cachePolicy.isValid(cachedSnapshot)) {
+                return cachedSnapshot;
             }
-            return cachedSnapshot;
+            PageSnapshot<OBJ> built = buildSnapshot();
+            //held only if the policy would vouch for it again: a policy that never revalidates - or
+            //a lifetime already spent - would otherwise keep a read nobody may serve, and a page of
+            //ten thousand rows is ten thousand rows of memory nobody will ever look at
+            cachedSnapshot = cachePolicy.isValid(built) ? built : null;
+            return built;
         }
     }
 
-    /** Discards the cached read, so the next send consults the source again. */
-    public void invalidate() {
+    /**
+     * Discards the cached read, so the next send consults the source again.
+     *
+     * <p>Under the same lock {@link #snapshot()} takes: without it, a read already inside the lock
+     * can publish what it built after this call returned, and with {@code CachePolicy.manual()} that
+     * stale read is then served forever.</p>
+     */
+    public synchronized void invalidate() {
         this.cachedSnapshot = null;
     }
 
@@ -173,7 +185,8 @@ public class PageViewer<OBJ> {
     public void send(@Nullable RenderContext context, int page, @Nonnull FCommandSender... recipients) {
         PageSnapshot<OBJ> snapshot = snapshot();
         int current = boundPage(page, snapshot);
-        deliver(snapshot, context, current, (current - 1) * pageSize, current * pageSize, recipients);
+        deliver(snapshot, context, navigation, current,
+                (current - 1) * pageSize, current * pageSize, recipients);
     }
 
     public void send(@Nullable PageVisualization pageVisualization, @Nonnull FCommandSender... recipients) {
@@ -186,18 +199,21 @@ public class PageViewer<OBJ> {
 
         if (pageVisualization.isShowAll()) {
             //Everything the page holds, which is everything maxEntries let in - the count in the
-            //header still says how many the source returned.
-            deliver(snapshot, null, 1, 0, snapshot.getShownCount(), recipients);
+            //header still says how many the source returned. No bar under it: every row is already
+            //above it, so an arrow to "page 2" would offer a subset of what was just read.
+            deliver(snapshot, null, PageNavigation.none(), 1, 0, snapshot.getShownCount(), recipients);
             return;
         }
 
         int firstPage = boundPage(pageVisualization.getPageStart(), snapshot);
         int lastPage = boundPage(pageVisualization.getPageEnd(), snapshot);
-        deliver(snapshot, null, firstPage, (firstPage - 1) * pageSize, lastPage * pageSize, recipients);
+        deliver(snapshot, null, navigation, firstPage,
+                (firstPage - 1) * pageSize, lastPage * pageSize, recipients);
     }
 
     private void deliver(PageSnapshot<OBJ> snapshot,
                          @Nullable RenderContext explicitContext,
+                         PageNavigation bar,
                          int page,
                          int rowStart,
                          int rowEnd,
@@ -243,9 +259,9 @@ public class PageViewer<OBJ> {
                 for (int index = from; index < to; index++) {
                     renderRow(rows.get(index), recipient).send(context, recipient);
                 }
-                FancyText bar = navigation.render(pageContext);
-                if (bar != null) {
-                    bar.send(context, recipient);
+                FancyText renderedBar = bar.render(pageContext);
+                if (renderedBar != null) {
+                    renderedBar.send(context, recipient);
                 }
             }
 
@@ -340,6 +356,10 @@ public class PageViewer<OBJ> {
         if (order != null) {
             //Read off the row rather than extracted again: the ordering already asked this question.
             declareIfAbsent(replacer, VALUE_KEY, Row::getOrderValue);
+        } else {
+            //no ordering was declared, so there is no extracted value to read: what the entry says
+            //about itself is the closest thing to one, and it beats handing the reader a raw token
+            declareIfAbsent(replacer, VALUE_KEY, Row::getObject);
         }
 
         //One question, one answer: what the page targets decides this, and it goes on deciding it
@@ -426,19 +446,36 @@ public class PageViewer<OBJ> {
 
         IBuilder<O> setFormatHeader(LocaleMessage... header);
 
+        /**
+         * A header out of anything sendable, which is what {@code custom()} hands back: a message
+         * with a hover, a click, or two locale messages appended into one line.
+         */
+        IBuilder<O> setFormatHeader(ILocaleMessageBase... header);
+
         IBuilder<O> setFormatHeader(FancyText... header);
 
         IBuilder<O> setFormatHeader(String... header);
 
         IBuilder<O> setFormatLine(LocaleMessage line);
 
+        /** The line out of anything sendable - see {@link #setFormatHeader(ILocaleMessageBase...)}. */
+        IBuilder<O> setFormatLine(ILocaleMessageBase line);
+
         IBuilder<O> setFormatLine(FancyText line);
 
         IBuilder<O> setFormatLine(String line);
 
+        /**
+         * The line built per entry. What the function hands back is copied before it is used, so a
+         * function that memoizes - one text per rank, one per type - is safe: the copy is what gets
+         * this row's values baked into it, never the instance the caller kept.
+         */
         IBuilder<O> setFormatLine(Function<O, FancyText> line);
 
         IBuilder<O> setFormatFooter(LocaleMessage... footer);
+
+        /** A footer out of anything sendable - see {@link #setFormatHeader(ILocaleMessageBase...)}. */
+        IBuilder<O> setFormatFooter(ILocaleMessageBase... footer);
 
         IBuilder<O> setFormatFooter(FancyText... footer);
 
@@ -489,7 +526,7 @@ public class PageViewer<OBJ> {
         //ChainPiece is how a header line answers for the reader in front of it, and it stays an
         //implementation detail: nothing public here is spelled in terms of it.
         private List<ChainPiece> formatHeader = Collections.emptyList();
-        private RowTemplate<O> formatLine = (object, reader) -> new FancySegment("§7#  ${number}:   §e${player}§f - §a${value}");
+        private RowTemplate<O> formatLine = null;
         private List<ChainPiece> formatFooter = Collections.emptyList();
 
         protected PageTheme theme = PageTheme.classic();
@@ -558,6 +595,12 @@ public class PageViewer<OBJ> {
         }
 
         @Override
+        public BuilderImp<O> setFormatHeader(ILocaleMessageBase... header) {
+            this.formatHeader = piecesOf(header);
+            return this;
+        }
+
+        @Override
         public BuilderImp<O> setFormatHeader(FancyText... header) {
             this.formatHeader = piecesOf(header);
             return this;
@@ -576,6 +619,12 @@ public class PageViewer<OBJ> {
         }
 
         @Override
+        public BuilderImp<O> setFormatLine(ILocaleMessageBase line) {
+            this.formatLine = (object, reader) -> line.getFancyText(reader).copy();
+            return this;
+        }
+
+        @Override
         public BuilderImp<O> setFormatLine(FancyText line) {
             this.formatLine = (object, reader) -> line.copy();//new instance for every call
             return this;
@@ -589,12 +638,20 @@ public class PageViewer<OBJ> {
 
         @Override
         public BuilderImp<O> setFormatLine(Function<O, FancyText> line) {
-            this.formatLine = (object, reader) -> line.apply(object);
+            //copied here, not left to the caller: every other overload hands back a fresh instance,
+            //and a line that is baked with this row's values must not be a text somebody kept
+            this.formatLine = (object, reader) -> line.apply(object).copy();
             return this;
         }
 
         @Override
         public BuilderImp<O> setFormatFooter(LocaleMessage... footer) {
+            this.formatFooter = piecesOf(footer);
+            return this;
+        }
+
+        @Override
+        public BuilderImp<O> setFormatFooter(ILocaleMessageBase... footer) {
             this.formatFooter = piecesOf(footer);
             return this;
         }
@@ -651,6 +708,9 @@ public class PageViewer<OBJ> {
 
         @Override
         public PageViewer<O> build() {
+            if (formatLine == null) {
+                formatLine = defaultLine();
+            }
             PageViewer<O> pageViewer = new PageViewer<>(this);
             if (id != null) {
                 PageRegistry.register(id, pageViewer);
@@ -658,9 +718,41 @@ public class PageViewer<OBJ> {
             return pageViewer;
         }
 
+        /**
+         * The line for a page that never said what a line looks like: the number, then whoever the
+         * entry is about, then what the page was ordered by.
+         *
+         * <p>Built from what this page actually declares. A page of strings with no order has no
+         * {@code ${player}} and no {@code ${value}} to answer with, and writing them anyway is how a
+         * reader ends up looking at the token instead of at their data.</p>
+         */
+        private RowTemplate<O> defaultLine() {
+            boolean aboutPlayers = FPlayer.class.isAssignableFrom(target)
+                    || IPlayerData.class.isAssignableFrom(target);
+
+            List<String> written = new ArrayList<>(2);
+            if (aboutPlayers) {
+                written.add("§e${player}");
+            }
+            if (order != null || !aboutPlayers) {
+                written.add("§a${value}");
+            }
+
+            String text = "§7#  ${number}:   " + String.join("§f - ", written);
+            return (object, reader) -> new FancySegment(text);
+        }
+
         private static List<ChainPiece> piecesOf(LocaleMessage... messages) {
             List<ChainPiece> pieces = new ArrayList<>(messages.length);
             for (LocaleMessage message : messages) {
+                pieces.add(ChainPiece.of(message));
+            }
+            return pieces;
+        }
+
+        private static List<ChainPiece> piecesOf(ILocaleMessageBase... messages) {
+            List<ChainPiece> pieces = new ArrayList<>(messages.length);
+            for (ILocaleMessageBase message : messages) {
                 pieces.add(ChainPiece.of(message));
             }
             return pieces;

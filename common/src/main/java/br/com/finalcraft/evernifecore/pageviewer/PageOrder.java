@@ -37,9 +37,18 @@ public final class PageOrder<OBJ> {
     }
 
     /**
-     * Numbers compare numerically whatever boxes they arrived in, two values of the same
-     * {@link Comparable} type compare the way that type says, and anything else compares as text.
-     * A null sorts first ascending, which is the same place natural ordering would put "nothing".
+     * Numbers compare numerically whatever boxes they arrived in, constants of one enum compare in
+     * the order they were declared in, two values of the very same {@link Comparable} type compare
+     * the way that type says, and anything else compares as text - case-insensitively, in every
+     * branch that reaches text, so "Zoe" and "alice" land where a reader expects them.
+     *
+     * <p>Every branch answers the same for both operands or is not taken at all. A comparison that
+     * holds one way and not the other is what a sort of more than a handful of entries reports as
+     * "Comparison method violates its general contract!" - and, below that size, as an order nobody
+     * asked for.</p>
+     *
+     * <p>A null sorts first ascending, which is the same place natural ordering would put
+     * "nothing".</p>
      */
     @SuppressWarnings("unchecked")
     private static int compareValues(@Nullable Object left, @Nullable Object right) {
@@ -50,7 +59,16 @@ public final class PageOrder<OBJ> {
         if (left instanceof Number && right instanceof Number) {
             return Double.compare(((Number) left).doubleValue(), ((Number) right).doubleValue());
         }
-        if (left instanceof Comparable && left.getClass().isInstance(right)) {
+        if (left instanceof CharSequence && right instanceof CharSequence) {
+            return String.CASE_INSENSITIVE_ORDER.compare(left.toString(), right.toString());
+        }
+        //asked of the declaring enum and not of the value's own class: a constant with a body is a
+        //subclass of its enum, so two of them are two different classes carrying one order
+        if (left instanceof Enum && right instanceof Enum
+                && ((Enum<?>) left).getDeclaringClass() == ((Enum<?>) right).getDeclaringClass()) {
+            return Integer.compare(((Enum<?>) left).ordinal(), ((Enum<?>) right).ordinal());
+        }
+        if (left instanceof Comparable && left.getClass() == right.getClass()) {
             return ((Comparable<Object>) left).compareTo(right);
         }
         return String.CASE_INSENSITIVE_ORDER.compare(String.valueOf(left), String.valueOf(right));

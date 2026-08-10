@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.hytale.inventory;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.hytale.inventory.data.ItemInSlot;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
@@ -28,9 +29,18 @@ public class GenericInventory {
     public GenericInventory(ItemContainer itemContainer){
         for (short slot = 0; slot < itemContainer.getCapacity(); slot++) {
             ItemStack itemStack = itemContainer.getItemStack(slot);
-            if (itemStack != null && itemStack.isValid()){
-                this.items.put((int) slot, new ItemInSlot(slot, itemStack));
+            if (itemStack == null){
+                continue;
             }
+            if (!itemStack.isValid()){
+                //an id the asset store cannot resolve cannot be written and cannot come back: saying
+                //which one it was is the difference between a removed mod and an item that vanished
+                EverNifeCore.getLog().warning("Item '" + itemStack.getItemId() + "' in slot " + slot
+                        + " is not an item this server can resolve, so it was left out of the saved "
+                        + "inventory.");
+                continue;
+            }
+            this.items.put((int) slot, new ItemInSlot(slot, itemStack));
         }
     }
 

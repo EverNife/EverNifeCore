@@ -54,7 +54,7 @@ public class ActionBarMessage {
 
     public static class Builder{
 
-        //spelled out because the literal that used to live inline was 0050, which Java reads as octal 40
+        //50ms per tick - never as a leading-zero literal, which Java reads as octal
         private static final long MILLIS_PER_TICK = 50L;
 
         private String actionBarID = "";

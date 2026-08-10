@@ -23,9 +23,9 @@ public final class ClassicPageTheme implements PageTheme {
 
     /**
      * 53 dashes: {@code -} advances 6 pixels and the chat line is 320 wide, so
-     * {@code floor(320/6) = 53} fills it without overflowing - see {@code McTextMetricsTest}.
-     * Written out rather than measured because the measurement depends on the CLIENT, and the colour
-     * has to sit INSIDE the repeated unit or the reset that closes it cancels the strikethrough.
+     * {@code floor(320/6) = 53} fills it without overflowing. Written out rather than measured
+     * because the width belongs to the CLIENT, and the colour sits INSIDE the repeated unit because
+     * a reset closing the run would cancel the strikethrough.
      */
     @FCLocale(lang = LocaleType.EN_US, text = "§a§m-----------------------------------------------------")
     @FCLocale(lang = LocaleType.PT_BR, text = "§a§m-----------------------------------------------------")

@@ -178,6 +178,25 @@ class PageNavigationTest {
     }
 
     @Test
+    void everythingAtOnceDrawsNoArrowToAPageTheReaderHasAlreadyRead() {
+        TestFPlayerSender everything = new TestFPlayerSender("Steve");
+        TestFPlayerSender onePage = new TestFPlayerSender("Alex");
+
+        PageViewer<String> viewer = pageOf(null, Arrays.asList("a", "b", "c"))
+                .navigation(PageNavigation.command("/top %page%"))
+                .build();
+
+        viewer.send(new PageVisualization(1, 1, true), everything);
+        viewer.send(1, onePage);
+
+        assertEquals(Arrays.asList("a", "b", "c"), everything.getMessages(),
+                "everything at once is the entries and nothing else: a bar under them would offer a "
+                        + "page the reader has just read");
+        assertTrue(onePage.anyMessageContains("Page ["),
+                "while a single page still offers the way to the others: " + onePage.getMessages());
+    }
+
+    @Test
     void theCommandStrategyRunsTheLineTheCallerWroteWithThePageNumberInIt() {
         TestFPlayerSender reader = new TestFPlayerSender("Steve");
 

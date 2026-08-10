@@ -5,17 +5,11 @@ import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * A console-like {@link FCommandSender} (no {@link java.util.UUID}, so {@code isPlayer() == false})
@@ -28,8 +22,7 @@ public class TestCommandSender implements FCommandSender {
 
     private final String name;
     private final Set<String> permissions = new HashSet<>();
-    private final List<String> messages = new ArrayList<>();
-    private final List<Component> components = new ArrayList<>();
+    private final CapturedMessages captured = new CapturedMessages();
 
     public TestCommandSender(String name) {
         this.name = name;
@@ -57,8 +50,7 @@ public class TestCommandSender implements FCommandSender {
 
     @Override
     public void sendMessage(@Nonnull Component component) {
-        components.add(component);
-        messages.add(FCColorUtil.componentToString(component));
+        captured.record(component);
     }
 
     @Override
@@ -66,84 +58,38 @@ public class TestCommandSender implements FCommandSender {
         return this;
     }
 
+    /** What this sender was told, for the assertions the shortcuts below do not cover. */
+    public CapturedMessages getCaptured() {
+        return captured;
+    }
+
     public List<String> getMessages() {
-        return messages;
+        return captured.getMessages();
     }
 
     public void clearMessages() {
-        messages.clear();
+        captured.clear();
     }
 
     public boolean anyMessageContains(String snippet) {
-        return messages.stream().anyMatch(message -> message.contains(snippet));
+        return captured.anyContains(snippet);
     }
 
     public void assertAnyMessageContains(String snippet) {
-        if (!anyMessageContains(snippet)) {
-            fail("Expected a message containing [" + snippet + "] but got: " + messages);
-        }
+        captured.assertAnyContains(snippet);
     }
 
     public void assertNoMessageSent() {
-        assertTrue(messages.isEmpty(), "Expected no message to be sent, but got: " + messages);
+        captured.assertNothingSent();
     }
 
-    /**
-     * The hover text (plain legacy-formatted, every {@link HoverEvent} found joined by newlines)
-     * attached anywhere in the FIRST sent message whose visible text contains
-     * {@code visibleTextSnippet}, or {@code null} if no such message was sent or it carries no hover
-     * at all. A {@link HoverEvent} isn't part of {@link FCColorUtil#componentToString}'s output
-     * (legacy serialization only covers the visible text), so hover assertions (help-line
-     * descriptions) need this instead of {@link #assertAnyMessageContains}. Searched recursively:
-     * a {@code FancyFormatter} (e.g. an @Arg-built help line) attaches each segment's hover to that
-     * segment's own child {@link Component}, not to the message's root component.
-     */
+    /** See {@link CapturedMessages#hoverTextOfMessageContaining(String)}. */
     public @Nullable String hoverTextOfMessageContaining(String visibleTextSnippet) {
-        for (int i = 0; i < components.size(); i++) {
-            if (messages.get(i).contains(visibleTextSnippet)) {
-                StringBuilder collected = new StringBuilder();
-                collectHoverText(components.get(i), collected);
-                return collected.length() == 0 ? null : collected.toString();
-            }
-        }
-        return null;
+        return captured.hoverTextOfMessageContaining(visibleTextSnippet);
     }
 
-    /**
-     * The click value attached anywhere in the FIRST sent message whose visible text contains
-     * {@code visibleTextSnippet}, or {@code null} when there is none. A {@link ClickEvent} is no more
-     * part of the legacy serialization than a hover is - see
-     * {@link #hoverTextOfMessageContaining(String)} - and the value travels raw, uncoloured.
-     */
+    /** See {@link CapturedMessages#clickValueOfMessageContaining(String)}. */
     public @Nullable String clickValueOfMessageContaining(String visibleTextSnippet) {
-        for (int i = 0; i < components.size(); i++) {
-            if (messages.get(i).contains(visibleTextSnippet)) {
-                return firstClickValue(components.get(i));
-            }
-        }
-        return null;
-    }
-
-    private static @Nullable String firstClickValue(Component component) {
-        ClickEvent clickEvent = component.clickEvent();
-        if (clickEvent != null) {
-            return clickEvent.value();
-        }
-        for (Component child : component.children()) {
-            String found = firstClickValue(child);
-            if (found != null) return found;
-        }
-        return null;
-    }
-
-    private static void collectHoverText(Component component, StringBuilder out) {
-        HoverEvent<?> hoverEvent = component.hoverEvent();
-        if (hoverEvent != null && hoverEvent.value() instanceof Component) {
-            if (out.length() > 0) out.append('\n');
-            out.append(FCColorUtil.componentToString((Component) hoverEvent.value()));
-        }
-        for (Component child : component.children()) {
-            collectHoverText(child, out);
-        }
+        return captured.clickValueOfMessageContaining(visibleTextSnippet);
     }
 }

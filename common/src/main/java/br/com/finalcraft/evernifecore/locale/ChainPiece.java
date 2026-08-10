@@ -24,6 +24,19 @@ public interface ChainPiece {
                 : localeMessage.getFancyText(sender)).copy();
     }
 
+    /**
+     * Anything sendable as a piece: what {@code send()} would deliver to this recipient, copied.
+     * This is what carries a decorated message - a {@code custom()} with a hover, or two messages
+     * appended into one - into a chain.
+     */
+    static ChainPiece of(ILocaleMessageBase message) {
+        //a locale message keeps the language fallback, which only it can answer for
+        if (message instanceof LocaleMessage) {
+            return of((LocaleMessage) message);
+        }
+        return sender -> message.getFancyText(sender).copy();
+    }
+
     static ChainPiece of(FancyText fancyText) {
         return sender -> fancyText.copy();
     }

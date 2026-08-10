@@ -7,8 +7,6 @@ import br.com.finalcraft.evernifecore.util.collection.SelfExpiringMap;
 import jakarta.annotation.Nullable;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -18,9 +16,10 @@ public final class PageSessionManager {
     private static final long TTL = TimeUnit.MINUTES.toMillis(10);
 
     // Renewed on use, not on creation: SelfExpiringMap stamps the deadline on put and get does not
-    // renew it, so every navigation puts the session back.
-    private static final Map<UUID, PageSession> SESSIONS =
-            Collections.synchronizedMap(new SelfExpiringMap<UUID, PageSession>(TTL));
+    // renew it, so every navigation puts the session back. Held as the concrete type - a reader
+    // that has to be exact sweeps it first - and every access below takes its monitor, which is
+    // what a map that is not thread-safe needs from the one place that owns it.
+    private static final SelfExpiringMap<UUID, PageSession> SESSIONS = new SelfExpiringMap<>(TTL);
 
     private PageSessionManager() {
     }
@@ -41,29 +40,45 @@ public final class PageSessionManager {
         //the reader's own entry instead of opening a second one beside it.
         UUID handle = handleOf(viewer, reader.getUniqueId());
         PageSession session = new PageSession(handle, reader.getUniqueId(), viewer, origin);
-        SESSIONS.put(handle, session);
+        synchronized (SESSIONS) {
+            SESSIONS.put(handle, session);
+        }
         return session;
     }
 
     /** The session {@code handle} names, or {@code null} when it expired or was never a handle at all. */
     public static @Nullable PageSession find(String handle) {
         UUID uuid = uuidOf(handle);
-        return uuid == null ? null : SESSIONS.get(uuid);
+        if (uuid == null) {
+            return null;
+        }
+        synchronized (SESSIONS) {
+            return SESSIONS.get(uuid);
+        }
     }
 
     /** Puts the deadline ten more minutes away, which is what using a session means. */
     public static void renew(PageSession session) {
-        SESSIONS.put(session.getHandle(), session);
+        synchronized (SESSIONS) {
+            SESSIONS.put(session.getHandle(), session);
+        }
     }
 
     /** How many sessions are alive - what tells a strategy that allocates nothing from one that does. */
     public static int openSessions() {
-        return SESSIONS.size();
+        synchronized (SESSIONS) {
+            //counted after the sweep: an expired session is gone, and a count that includes it is
+            //the difference between "this strategy holds nothing" and a leak that is not there
+            SESSIONS.sweepExpired();
+            return SESSIONS.size();
+        }
     }
 
     /** Drops every open session, so one test's readers are never another's. */
     public static void clear() {
-        SESSIONS.clear();
+        synchronized (SESSIONS) {
+            SESSIONS.clear();
+        }
     }
 
     private static UUID handleOf(PageViewer<?> viewer, UUID reader) {

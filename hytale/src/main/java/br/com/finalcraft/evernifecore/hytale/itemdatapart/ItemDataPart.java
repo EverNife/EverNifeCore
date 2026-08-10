@@ -21,13 +21,9 @@ public abstract class ItemDataPart {
             PRIORITY_LATE = 80,
             PRIORITY_VERY_LATE = 100;
 
-    //private, and read-only from the outside: a registry anyone can reorder or empty is a registry
-    //nobody can reason about
+    //private: a registry anyone can reorder or empty is a registry nobody can reason about. What a
+    //caller needs from it is a part by name, which detectType answers
     private static final List<ItemDataPart> REGISTERED = new ArrayList<>();
-
-    public static List<ItemDataPart> getRegistered() {
-        return Collections.unmodifiableList(REGISTERED);
-    }
 
     public static ItemDataPart ITEM_ID          = registerType(new ItemDataPartItemId());
     public static ItemDataPart METADATA         = registerType(new ItemDataPartMetadata());

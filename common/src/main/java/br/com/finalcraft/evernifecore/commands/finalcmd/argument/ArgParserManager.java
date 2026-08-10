@@ -15,8 +15,10 @@ import java.util.Map;
 
 public class ArgParserManager {
 
-    private static ParserContext GLOBAL_CONTEXT_PARSER = new ParserContext();
-    private static Map<String,ParserContext> PLUGIN_CONTEXT_MAP = new HashMap<>();
+    //volatile: restoreRegistry replaces both of these wholesale, and a command dispatch reads them
+    //from whatever thread it arrived on
+    private static volatile ParserContext GLOBAL_CONTEXT_PARSER = new ParserContext();
+    private static volatile Map<String,ParserContext> PLUGIN_CONTEXT_MAP = new HashMap<>();
 
     public static <T> void addGlobalParser(Class<? extends T> clazz, Class<? extends ArgParser<T>> parser){
         GLOBAL_CONTEXT_PARSER.addParser(clazz, parser);
@@ -87,7 +89,14 @@ public class ArgParserManager {
         return new RegistrySnapshot(GLOBAL_CONTEXT_PARSER, PLUGIN_CONTEXT_MAP);
     }
 
-    /** Puts back exactly what the snapshot captured, dropping every registration made after it. */
+    /**
+     * Puts back exactly what the snapshot captured, dropping every registration made after it.
+     *
+     * <p>The swap is atomic per field, not per dispatch: a command already resolving its arguments
+     * goes on reading the registry it started with, and the next one reads the restored one. Restore
+     * where no dispatch is in flight - between tests, or while the plugin that registered them is
+     * being unloaded.</p>
+     */
     public static void restoreRegistry(RegistrySnapshot snapshot){
         GLOBAL_CONTEXT_PARSER = new ParserContext(snapshot.global);
         PLUGIN_CONTEXT_MAP = copyOf(snapshot.pluginContexts);

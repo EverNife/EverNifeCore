@@ -20,7 +20,10 @@ import java.util.ArrayList;
 )
 public class CoreCommand {
 
-    /** Built on the first {@code /ecore info}, for the same reason {@code CMDList.Page} is. */
+    /**
+     * Built on the first {@code /ecore info}: the executor is instantiated before its locale fields
+     * are filled, so a page built there would carry a message that is still null.
+     */
     private static final class Page {
 
         static final PageViewer<ECPluginData> INSTALLED_PLUGINS = PageViewer.of(ECPluginData.class)

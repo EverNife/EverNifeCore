@@ -22,9 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The rule above a page. Its width is a number the server can state and the client cannot be asked
- * for, and its colour has to survive the reset that closes a generated run - which is exactly what
- * the old computed default got wrong.
+ * The rule above a page: a width the server states because the client cannot be asked for one, and
+ * a colour that has to survive the reset closing a generated run.
  */
 @ECoreTest
 class PageThemeTest {
