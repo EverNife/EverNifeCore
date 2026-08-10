@@ -27,7 +27,11 @@ import java.util.List;
  * And the text: the buttons carry {@code pt_BR} and {@code en_US} out of the box, so what a player
  * reads follows the player, and the admin still sees both blocks in the generated yml.</p>
  */
-public class DefaultIcons {
+public final class DefaultIcons {
+
+    private DefaultIcons() {
+
+    }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§e§l<§e<§l<§7 Previous Page", hover = "\n§7§l§o Previous Page!\n ")
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l<§e<§l<§7 Página Anterior", hover = "\n§7§l§o Página Anterior!\n ")
@@ -143,7 +147,8 @@ public class DefaultIcons {
                 .applyMaterialIfExists("EVERNIFEWORLDRPG_CUSTOMICON:20"), INFORMATION_BUTTON);
     }
 
-    /** The admin's way into a screen: the button a layout puts behind a permission. */
+    /** The admin's way into a screen. It carries no permission of its own: who sees it is the
+     *  layout's call, like every other icon. */
     @Nonnull
     public static Icon wrench() {
         return localized(FCItemFactory.from(Material.ANVIL), WRENCH_BUTTON);

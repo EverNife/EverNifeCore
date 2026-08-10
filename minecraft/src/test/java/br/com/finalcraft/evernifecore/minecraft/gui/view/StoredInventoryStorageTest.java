@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.view;
 
+import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.minecraft.gui.Gui;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutBase;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.ClickPolicy;
@@ -8,6 +9,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.testkit.ClickSimulator;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.PlayerDouble;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.SurfaceDouble;
+import br.com.finalcraft.evernifecore.minecraft.inventory.ItemStore;
 import br.com.finalcraft.evernifecore.minecraft.inventory.UpdateCause;
 import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventoryItemPostUpdateEvent;
 import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventoryItemPreUpdateEvent;
@@ -24,12 +26,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -232,6 +238,19 @@ class StoredInventoryStorageTest {
                 "what is already there is never cut down to size, and never locked in either");
     }
 
+    @Test
+    void anOverfilledSlotDoesNotLetSomethingElseInAtTheSameSize() {
+        store.setItemSilently(0, diamonds(20));
+        store.setMaxStackSize(0, 4);
+        open();
+        player.holding(new ItemStack(Material.DIRT, 20));
+
+        assertTrue(clicks.click(player, 10, ClickType.LEFT, InventoryAction.SWAP_WITH_CURSOR).isCancelled(),
+                "what a slot over its maximum may still do is be emptied, not be refilled with something "
+                        + "else the same size - a different item is a new stack, and a new stack has to fit");
+        assertEquals(Material.DIAMOND, world.getSurface().getItem(10).getType());
+    }
+
     // -----------------------------------------------------------------------------------------------------------------
     //  The drag, which a store that vets never leaves to the platform
     // -----------------------------------------------------------------------------------------------------------------
@@ -273,14 +292,97 @@ class StoredInventoryStorageTest {
     // -----------------------------------------------------------------------------------------------------------------
 
     @Test
-    void aRegionWiderThanItsStoreRefusesToOpenAndSaysHowToFixIt() {
+    void aRegionWiderThanItsStoreGrowsTheStoreItCanGrow() {
+        StoredInventory smaller = new StoredInventory(3);
+        smaller.setItemSilently(2, diamonds(4));
         Gui<LayoutBase> gui = Gui.of(3);
-        gui.storage(Slots.of(10, 11, 12, 13, 14)).backedBy(new StoredInventory(3));
+        gui.storage(Slots.of(10, 11, 12, 13, 14)).backedBy(smaller).policy(ClickPolicy.EDIT_ALL);
+
+        world.openDetachedAndRegistered(gui, player);
+
+        assertEquals(5, smaller.getCapacity(), "the region is what declares how big the area is");
+        assertEquals(4, world.getSurface().getItem(12).getAmount(), "and growing one loses nothing");
+    }
+
+    @Test
+    void aStoreThatCannotGrowStillRefusesToOpenAndSaysWhereToGrowIt() {
+        Gui<LayoutBase> gui = Gui.of(3);
+        gui.storage(Slots.of(10, 11, 12, 13, 14)).backedBy(new BoundedStore(3));
 
         IllegalStateException failure = assertThrows(IllegalStateException.class,
                 () -> world.openDetachedAndRegistered(gui, player));
 
-        assertTrue(failure.getMessage().contains("setCapacity(5)"), failure.getMessage());
+        assertTrue(failure.getMessage().contains("grow the store to 5 slots"), failure.getMessage());
+        assertTrue(failure.getMessage().contains("main thread"), "growing one is a main-thread change, and "
+                + "the message is where the caller finds that out: " + failure.getMessage());
+    }
+
+    @Test
+    void aStoreThatCameBackSmallerThanTheRegionShowsEverythingItHeld() throws IOException {
+        Path file = tempDir.resolve("backpack.yml");
+        Files.write(file, versionOneFileFilledUpToSlotTen().getBytes(StandardCharsets.UTF_8));
+        StoredInventory restored = ConfigFactory.open(file).getValue("backpack", StoredInventory.class);
+        assertEquals(11, restored.getCapacity(), "the shape before the envelope ends where its items do");
+
+        int[] wholeScreen = new int[27];
+        for (int slot = 0; slot < wholeScreen.length; slot++) {
+            wholeScreen[slot] = slot;
+        }
+        Gui<LayoutBase> gui = Gui.of(3);
+        gui.storage(Slots.of(wholeScreen)).backedBy(restored).policy(ClickPolicy.EDIT_ALL);
+
+        world.openDetachedAndRegistered(gui, player);
+
+        assertEquals(27, restored.getCapacity(), "a backpack whose owner only ever filled ten slots is "
+                + "still a backpack of twenty-seven, and the region is what remembers that");
+        for (int slot = 0; slot <= 10; slot++) {
+            assertNotNull(world.getSurface().getItem(slot), "slot " + slot + " was in the file");
+            assertEquals(slot + 1, world.getSurface().getItem(slot).getAmount(), "slot " + slot);
+        }
+    }
+
+    /** The shape every inventory was stored in before the envelope: a bare slot map, filled to slot 10. */
+    private static String versionOneFileFilledUpToSlotTen() {
+        StringBuilder file = new StringBuilder("backpack:\n");
+        for (int slot = 0; slot <= 10; slot++) {
+            file.append("  '").append(slot).append("':\n")
+                    .append("  - 'type: DIAMOND'\n")
+                    .append("  - 'amount: ").append(slot + 1).append("'\n");
+        }
+        return file.toString();
+    }
+
+    /** A store with a capacity it cannot change - every store that is not a {@link StoredInventory}. */
+    private static final class BoundedStore implements ItemStore {
+
+        private final ItemStack[] items;
+
+        private BoundedStore(int capacity) {
+            this.items = new ItemStack[capacity];
+        }
+
+        @Override
+        public int getCapacity() {
+            return items.length;
+        }
+
+        @Override
+        public ItemStack getItem(int slot) {
+            return slot >= 0 && slot < items.length ? items[slot] : null;
+        }
+
+        @Override
+        public void setItemSilently(int slot, ItemStack item) {
+            if (slot >= 0 && slot < items.length) {
+                items[slot] = item;
+            }
+        }
+
+        @Override
+        public int[] getOccupiedSlots() {
+            return new int[0];
+        }
+
     }
 
     @Test

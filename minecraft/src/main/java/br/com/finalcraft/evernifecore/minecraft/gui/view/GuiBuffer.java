@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.view;
 
+import br.com.finalcraft.evernifecore.minecraft.inventory.ItemStore;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
-import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.BitSet;
@@ -211,7 +211,7 @@ public final class GuiBuffer {
 
     /** A container answers an empty slot as {@code null} on some versions and as AIR on others. */
     public static boolean isEmpty(ItemStack item) {
-        return item == null || item.getType() == Material.AIR || item.getAmount() <= 0;
+        return ItemStore.isEmpty(item);
     }
 
     private void requireInside(int slot) {

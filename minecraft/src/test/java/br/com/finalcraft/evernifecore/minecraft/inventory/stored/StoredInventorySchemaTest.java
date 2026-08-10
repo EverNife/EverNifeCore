@@ -115,7 +115,7 @@ class StoredInventorySchemaTest {
         StoredInventory reloaded = read(file);
 
         assertNotNull(reloaded);
-        assertEquals(9, reloaded.getSize());
+        assertEquals(9, reloaded.getCapacity());
         assertEquals(Material.DIAMOND, reloaded.getItem(0).getType());
         assertEquals(5, reloaded.getItem(0).getAmount());
         assertEquals(Material.DIRT, reloaded.getItem(8).getType());
@@ -134,7 +134,7 @@ class StoredInventorySchemaTest {
         ConfigFactoryCodec<VaultedItems> codec = ConfigFactoryCodec.json(VaultedItems.class);
         VaultedItems read = codec.decode(codec.encode(saved));
 
-        assertEquals(9, read.vault.getSize(), "a storage backend writes bytes, not a config file, and the "
+        assertEquals(9, read.vault.getCapacity(), "a storage backend writes bytes, not a config file, and the "
                 + "envelope has to survive that road too - it is the one a plugin persists through");
         assertEquals(4, read.vault.getItem(2).getAmount());
         assertEquals(1, read.vault.getMaxStackSize(0));
@@ -163,7 +163,7 @@ class StoredInventorySchemaTest {
         assertEquals(Material.DIAMOND, loaded.getItem(0).getType());
         assertEquals(5, loaded.getItem(0).getAmount());
         assertEquals(Material.DIRT, loaded.getItem(3).getType());
-        assertEquals(4, loaded.getSize(), "the old shape never said how big it was, so it ends where its "
+        assertEquals(4, loaded.getCapacity(), "the old shape never said how big it was, so it ends where its "
                 + "items do - slot 3 is the last one, which makes four");
     }
 
@@ -198,7 +198,7 @@ class StoredInventorySchemaTest {
 
         assertNotNull(loaded);
         assertEquals(7, loaded.getItem(2).getAmount(), "zero became one, and one became the shape of today");
-        assertEquals(3, loaded.getSize());
+        assertEquals(3, loaded.getCapacity());
     }
 
     // -----------------------------------------------------------------------------------------------------------------

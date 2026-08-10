@@ -129,6 +129,40 @@ class LayoutLocaleTest {
         public Icon PRICE = Icon.of(new ItemStack(Material.PAPER)).displayName("Now: %price%");
     }
 
+    /** More than one of everything an overlay can name a single key of: two background keys, two states,
+     *  two language blocks, and a title language only the file knows about. */
+    @GuiLayout(title = "Locker", rows = 3, locale = {
+            @FCLocale(lang = LocaleType.EN_US, text = "Locker"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Armario")
+    })
+    public static class LockerLayout extends LayoutBase {
+
+        @IconData(slot = {0}, locale = {
+                @FCLocale(lang = LocaleType.EN_US, text = "Open"),
+                @FCLocale(lang = LocaleType.PT_BR, text = "Abrir")
+        })
+        public Icon OPEN = Icon.of(new ItemStack(Material.EMERALD))
+                .addState("locked", new ItemStack(Material.BARRIER))
+                .addState("maxed", new ItemStack(Material.NETHER_STAR));
+
+        @IconData(slot = {1}, background = true)
+        public Icon LEFT_PANE = Icon.of(new ItemStack(Material.GRAY_STAINED_GLASS_PANE));
+    }
+
+    /** An icon whose alternative appearance has words of its own, in more than one language. */
+    @GuiLayout(title = "Forge", rows = 3)
+    public static class ForgeLayout extends LayoutBase {
+
+        @IconData(slot = {0}, locale = {
+                @FCLocale(lang = LocaleType.EN_US, text = "Smelt"),
+                @FCLocale(lang = LocaleType.PT_BR, text = "Fundir")
+        })
+        public Icon SMELT = Icon.of(new ItemStack(Material.FURNACE))
+                .addState("busy", new ItemStack(Material.BARRIER))
+                .addStateLocale("busy", LocaleType.EN_US, "Working")
+                .addStateLocale("busy", LocaleType.PT_BR, "Trabalhando");
+    }
+
     /** A language the plugin does not run in, declared FIRST: the only shape that tells "the server's
      *  language" apart from "whatever the developer typed first". */
     @GuiLayout(title = "Fallback", rows = 3)
@@ -362,6 +396,172 @@ class LayoutLocaleTest {
                 "the framework never creates the overlay folder, however many languages are declared");
     }
 
+    @Test
+    void anIconShowingAStateReadsThatStatesOwnWordsInTheViewersLanguage() {
+        Icon smelt = Layouts.of(ForgeLayout.class).getIcon("SMELT").state(() -> "busy");
+        Gui<?> gui = Gui.of(3).icon(0, smelt);
+
+        world.openDetached(gui, viewerSpeaking("Steve", LocaleType.EN_US));
+        SurfaceDouble english = world.getSurface();
+        world.openDetached(gui, viewerSpeaking("Alberto", LocaleType.PT_BR));
+        SurfaceDouble brazilian = world.getSurface();
+
+        assertEquals(Material.BARRIER, english.getItem(0).getType(), "the state decides the item");
+        assertEquals("Working", nameAt(english, 0),
+                "and its own words, not the ones the default appearance reads");
+        assertEquals("Trabalhando", nameAt(brazilian, 0), "in the language of whoever is looking");
+    }
+
+    @Test
+    void aViewerWithAnOverlayGetsAWindowPaintedFromTheirOwnCopyOfTheLayout() throws IOException {
+        Layouts.of(MarketLayout.class);
+        writeOverlay(LocaleType.PT_BR, Arrays.asList(
+                "Layout:",
+                "  BUY:",
+                "    DisplayItem:",
+                "    - type:DIAMOND"
+        ));
+        Layouts.clear();
+
+        Gui<MarketLayout> gui = Gui.of(MarketLayout.class);
+        world.openDetached(gui, viewerSpeaking("Alberto", LocaleType.PT_BR));
+        SurfaceDouble brazilian = world.getSurface();
+        world.openDetached(gui, viewerSpeaking("Steve", LocaleType.EN_US));
+        SurfaceDouble english = world.getSurface();
+
+        assertEquals(Material.DIAMOND, brazilian.getItem(0).getType(),
+                "the screen a whole file was written for is the screen that viewer opens");
+        assertEquals(Material.EMERALD, english.getItem(0).getType(),
+                "and a language nobody wrote a file for still reads the one everybody shares");
+    }
+
+    @Test
+    void anOverlayIsFoundWhateverCaseTheLanguageWasTypedIn() throws IOException {
+        Layouts.of(MarketLayout.class);
+        writeOverlay(LocaleType.PT_BR, Arrays.asList("Layout:", "  BUY:", "    Slot: \"[2]\""));
+
+        assertTrue(LayoutDiff.of(plugin, MarketLayout.class, "pt_br").hasOverlay(),
+                "an operator types the language, and a case-sensitive filesystem is not their problem");
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  An overlay answers for KEYS, never for whole sections
+    // -----------------------------------------------------------------------------------------------------------------
+
+    @Test
+    void anOverlayThatRestylesOneBackgroundKeyLeavesTheDecorationBesideItAlone() throws IOException {
+        writeBase("LockerLayout", Arrays.asList(
+                "Background:",
+                "  LEFT_PANE:",
+                "    Slot: \"[1]\"",
+                "    DisplayItem:",
+                "    - type:GRAY_STAINED_GLASS_PANE",
+                "  SIDE_PANE:",
+                "    Slot: \"[2]\"",
+                "    DisplayItem:",
+                "    - type:PAPER"
+        ));
+        writeOverlay("LockerLayout", LocaleType.PT_BR, Arrays.asList(
+                "Background:",
+                "  LEFT_PANE:",
+                "    DisplayItem:",
+                "    - type:DIAMOND_BLOCK"
+        ));
+
+        LockerLayout localized = Layouts.of(LockerLayout.class, LocaleType.PT_BR);
+
+        assertEquals(Material.DIAMOND_BLOCK, localized.getIcon("LEFT_PANE").getItemStack().getType(),
+                "the overlay answers for the key it names");
+        assertNotNull(localized.getIcon("SIDE_PANE"),
+                "and the decoration next to it, which only the base file knows about, is still drawn");
+    }
+
+    @Test
+    void anOverlayThatRestylesOneStateLeavesTheOtherStatesAsTheFileLeftThem() throws IOException {
+        writeBase("LockerLayout", Arrays.asList(
+                "Layout:",
+                "  OPEN:",
+                "    Slot: \"[0]\"",
+                "    States:",
+                "      locked:",
+                "        DisplayItem:",
+                "        - type:IRON_INGOT",
+                "      maxed:",
+                "        DisplayItem:",
+                "        - type:GOLD_BLOCK"
+        ));
+        writeOverlay("LockerLayout", LocaleType.PT_BR, Arrays.asList(
+                "Layout:",
+                "  OPEN:",
+                "    States:",
+                "      locked:",
+                "        DisplayItem:",
+                "        - type:DIAMOND"
+        ));
+
+        Icon open = Layouts.of(LockerLayout.class, LocaleType.PT_BR).getIcon("OPEN");
+
+        assertEquals(Material.DIAMOND, open.getState("locked").getType(), "the state the overlay restyled");
+        assertEquals(Material.GOLD_BLOCK, open.getState("maxed").getType(),
+                "and the one it did not, which the admin restyled in the file everyone shares");
+    }
+
+    @Test
+    void anOverlayThatWritesOneLanguageBlockLeavesTheOtherLanguagesOfTheBaseAlone() throws IOException {
+        writeBase("LockerLayout", Arrays.asList(
+                "Layout:",
+                "  OPEN:",
+                "    Slot: \"[0]\"",
+                "    Locale:",
+                "      EN_US:",
+                "      - name:Unlock",
+                "      PT_BR:",
+                "      - name:Abrir"
+        ));
+        writeOverlay("LockerLayout", LocaleType.PT_BR, Arrays.asList(
+                "Layout:",
+                "  OPEN:",
+                "    Locale:",
+                "      PT_BR:",
+                "      - name:Destrancar"
+        ));
+
+        Gui<?> gui = Gui.of(3).icon(0, Layouts.of(LockerLayout.class, LocaleType.PT_BR).getIcon("OPEN"));
+        world.openDetached(gui, viewerSpeaking("Alberto", LocaleType.PT_BR));
+        SurfaceDouble brazilian = world.getSurface();
+        world.openDetached(gui, viewerSpeaking("Steve", LocaleType.EN_US));
+        SurfaceDouble english = world.getSurface();
+
+        assertEquals("Destrancar", nameAt(brazilian, 0), "the block the overlay wrote");
+        assertEquals("Unlock", nameAt(english, 0),
+                "and the block it did not write still reads what the base file says, not the Java default");
+    }
+
+    @Test
+    void aTitleLanguageOnlyTheBaseFileKnowsAboutIsStillReadUnderAnOverlay() throws IOException {
+        writeBase("LockerLayout", Arrays.asList(
+                "Settings:",
+                "  title: Locker",
+                "  Locale:",
+                "    ZH_CN:",
+                "      title: Guizi"
+        ));
+        writeOverlay("LockerLayout", LocaleType.PT_BR, Arrays.asList(
+                "Settings:",
+                "  Locale:",
+                "    PT_BR:",
+                "      title: Armario da Loja"
+        ));
+
+        LockerLayout localized = Layouts.of(LockerLayout.class, LocaleType.PT_BR);
+
+        assertEquals("Armario da Loja",
+                localized.getTitleFor(viewerSpeaking("Alberto", LocaleType.PT_BR).asPlayer()),
+                "the title the overlay wrote");
+        assertEquals("Guizi", localized.getTitleFor(viewerSpeaking("Wei", LocaleType.ZH_CN).asPlayer()),
+                "and a language only the base file declares is still one of the languages this screen has");
+    }
+
     // -----------------------------------------------------------------------------------------------------------------
     //  When a language has nothing to say
     // -----------------------------------------------------------------------------------------------------------------
@@ -464,9 +664,20 @@ class LayoutLocaleTest {
     }
 
     private void writeOverlay(String language, List<String> lines) throws IOException {
-        Path overlay = tempDir.resolve("guis/locale/" + language + "/MarketLayout.yml");
+        writeOverlay("MarketLayout", language, lines);
+    }
+
+    private void writeOverlay(String layoutName, String language, List<String> lines) throws IOException {
+        Path overlay = tempDir.resolve("guis/locale/" + language + "/" + layoutName + ".yml");
         Files.createDirectories(overlay.getParent());
         Files.write(overlay, lines, StandardCharsets.UTF_8);
+    }
+
+    /** The base file as an admin who edits by hand leaves it: only the keys the test is about. */
+    private void writeBase(String layoutName, List<String> lines) throws IOException {
+        Path file = tempDir.resolve("guis/" + layoutName + ".yml");
+        Files.createDirectories(file.getParent());
+        Files.write(file, lines, StandardCharsets.UTF_8);
     }
 
     private String overlayFile(String language) throws IOException {

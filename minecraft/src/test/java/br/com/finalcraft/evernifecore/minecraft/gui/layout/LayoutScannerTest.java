@@ -67,6 +67,25 @@ class LayoutScannerTest {
         public Icon ALPHA = Icon.of(new ItemStack(Material.BARRIER));
     }
 
+    /** The states this screen's own enum names, so a key the admin mistypes has something to miss. */
+    public enum Stock {
+        DEFAULT, LOW, SOLD_OUT
+    }
+
+    /** An icon whose states are typed, plus a static field nothing can ever draw. */
+    @GuiLayout(title = "Stall", rows = 3)
+    public static class StallLayout extends LayoutBase {
+
+        @IconData(slot = {0})
+        public static Icon NEVER_DRAWN = Icon.of(new ItemStack(Material.BEDROCK));
+
+        @IconData(slot = {4})
+        public Icon PRODUCT = Icon.of(new ItemStack(Material.CHEST))
+                .addState(Stock.LOW, new ItemStack(Material.PAPER))
+                .addState(Stock.SOLD_OUT, new ItemStack(Material.BARRIER))
+                .states(Stock.class, () -> Stock.DEFAULT);
+    }
+
     /** A backdrop with a button on top of it - the arrangement almost every real screen has. */
     @GuiLayout(title = "Stacked", rows = 3)
     public static class StackedLayout extends LayoutBase {
@@ -122,7 +141,7 @@ class LayoutScannerTest {
 
         assertNull(layout.getIcon("KEY"));
         assertNotNull(layout.getIcon("GOLD"));
-        assertTrue(logged("Slot '[60]' is outside a screen of 54 slots (0-53)."), logs());
+        assertTrue(logged("Slot 60 of '[60]' is outside a screen of 54 slots (0-53)."), logs());
         assertTrue(logged("VaultLayout.KEY"), logs());
     }
 
@@ -175,6 +194,72 @@ class LayoutScannerTest {
                 "there is no Java default to fall back on: the key describes nothing at all");
         assertTrue(logged("VaultLayout.PAINTED_BY_HAND"), logs());
         assertTrue(logged("key Background.PAINTED_BY_HAND"), logs());
+    }
+
+    @Test
+    void anUnreadableSlotListCostsItsOwnIconAndIsNeverReadAsAnEmptyOne() throws IOException {
+        LayoutScanner.load(plugin, VaultLayout.class, null);
+        rewrite("Slot: \"[10]\"", "Slot: \"[10,ten]\"");
+
+        VaultLayout layout = LayoutScanner.load(plugin, VaultLayout.class, null);
+
+        assertNull(layout.getIcon("KEY"), "text nothing can read is not a slot list, so there is no icon");
+        assertNotNull(layout.getIcon("GOLD"));
+        assertTrue(logged("VaultLayout.KEY"), logs());
+        assertTrue(logged("key Layout.KEY"), "the log names the file and the key: " + logs());
+    }
+
+    @Test
+    void anUnreadableSlotListIsReportedByTheDiffAsBrokenRatherThanAsSwitchedOff() throws IOException {
+        LayoutScanner.load(plugin, VaultLayout.class, null);
+        rewrite("Slot: \"[10]\"", "Slot: \"[10,ten]\"");
+
+        LayoutDiff diff = LayoutDiff.of(plugin, VaultLayout.class, null);
+
+        assertEquals(Arrays.asList(), namesOf(diff, LayoutDiff.Verdict.SILENCED),
+                "an empty list is deliberate; a broken one is not, and reading them the same way hides it");
+        assertEquals(1, diff.getWarnings().size(), diff.getWarnings().toString());
+        assertTrue(diff.getWarnings().get(0).contains("KEY has an unreadable slot list"),
+                diff.getWarnings().toString());
+        assertTrue(diff.getWarnings().get(0).contains("guis/VaultLayout.yml"),
+                "and it names the file to open: " + diff.getWarnings());
+    }
+
+    @Test
+    void aRowCountTheWindowCannotHaveCostsOneWarningAndTheScreenStillOpens() throws IOException {
+        LayoutScanner.load(plugin, VaultLayout.class, null);
+        rewrite("rows: 6", "rows: 9");
+
+        VaultLayout layout = LayoutScanner.load(plugin, VaultLayout.class, null);
+
+        assertEquals(6, layout.getRows(), "the row count the plugin declared is what the screen opens with");
+        assertNotNull(layout.getIcon("KEY"), "and no icon is blamed for a setting none of them wrote");
+        assertEquals(1, occurrencesOf("Settings.rows"), "one line about it, not one per icon: " + logs());
+        assertTrue(logged("A CHEST gui has 1 to 6 rows, got [9]"), logs());
+    }
+
+    @Test
+    void aStateKeyNoConstantAnswersToIsReportedOnceTheFileHasBeenRead() throws IOException {
+        LayoutScanner.load(plugin, StallLayout.class, null);
+        Files.write(tempDir.resolve("guis/StallLayout.yml"),
+                new String(Files.readAllBytes(tempDir.resolve("guis/StallLayout.yml")), StandardCharsets.UTF_8)
+                        .replace("soldOut:", "soldout:").getBytes(StandardCharsets.UTF_8));
+
+        LayoutScanner.load(plugin, StallLayout.class, null);
+
+        assertTrue(logged("The state 'soldout' of StallLayout.PRODUCT"),
+                "the typo is the admin's, and only a load that has read the file can see it: " + logs());
+        assertTrue(logged("matches no constant of Stock"), logs());
+    }
+
+    @Test
+    void aStaticIconFieldIsReportedInsteadOfBeingDroppedInSilence() {
+        LayoutScanner.load(plugin, StallLayout.class, null);
+
+        assertNull(LayoutScanner.load(plugin, StallLayout.class, null).getIcon("NEVER_DRAWN"),
+                "the field is not part of any instance, so no file was ever written for it");
+        assertTrue(logged("StallLayout.NEVER_DRAWN"), logs());
+        assertTrue(logged("Make it an instance field"), "the message names the way out: " + logs());
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -246,7 +331,7 @@ class LayoutScannerTest {
         assertTrue(extra.isBackground());
         assertEquals(Material.GRAY_STAINED_GLASS_PANE, extra.getItemStack().getType());
         assertEquals("[7,8]", layout.getIcons().get("EXTRA_PANE").getSlots().serialize());
-        assertFalse(seededFile().contains("_Quarentena"),
+        assertFalse(seededFile().contains(LayoutScanner.QUARANTINE),
                 "a key with no field is only leftovers under Layout; under Background it is the point");
     }
 
@@ -277,12 +362,17 @@ class LayoutScannerTest {
     }
 
     private boolean logged(String fragment) {
+        return occurrencesOf(fragment) > 0;
+    }
+
+    private int occurrencesOf(String fragment) {
+        int found = 0;
         for (String line : world.getPlatform().getLoggedMessages()) {
             if (line.contains(fragment)) {
-                return true;
+                found++;
             }
         }
-        return false;
+        return found;
     }
 
     private String logs() {

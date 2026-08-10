@@ -31,8 +31,8 @@ public enum EnumWool {
 
     EnumWool(char colorCode) {
         if (MCVersion.isHigherEquals(MCVersion.v1_13)) {
-            int firstGlassPaneOrdinal = Material.WHITE_WOOL.ordinal();
-            this.material = Material.values()[firstGlassPaneOrdinal + this.ordinal()];
+            int firstWoolOrdinal = Material.WHITE_WOOL.ordinal();
+            this.material = Material.values()[firstWoolOrdinal + this.ordinal()];
             this.damage = 0;
         }else {
             this.material = Material.matchMaterial("WOOL");

@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.minecraft.inventory.stored;
 
+import br.com.finalcraft.evernifecore.minecraft.inventory.ItemStore;
 import br.com.finalcraft.evernifecore.minecraft.inventory.UpdateCause;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
-import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 /**
@@ -94,7 +94,7 @@ public abstract class StoredInventoryItemUpdateEvent {
     }
 
     static boolean isEmpty(ItemStack item) {
-        return item == null || item.getAmount() <= 0 || item.getType() == Material.AIR;
+        return ItemStore.isEmpty(item);
     }
 
 }

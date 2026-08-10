@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.inventory;
 import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventory;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
+import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 /**
@@ -96,6 +97,15 @@ public interface ItemStore {
     @Nonnull
     static ItemStore of(@Nonnull GenericInventory inventory) {
         return new GenericInventoryStore(inventory);
+    }
+
+    /**
+     * Whether {@code item} is nothing at all: no stack, an empty one, or the AIR a container answers
+     * with instead of {@code null} on some versions. The three ways of holding nothing, in one place,
+     * because a slot judged empty by one rule and occupied by another is how an item goes missing.
+     */
+    static boolean isEmpty(@Nullable ItemStack item) {
+        return item == null || item.getType() == Material.AIR || item.getAmount() <= 0;
     }
 
     /** What one stack of {@code item} holds on this server, or 64 when it will not say. */

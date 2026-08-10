@@ -151,6 +151,15 @@ class SettingsScannerTest {
         public String secret = "";
     }
 
+    /** Two rules over one value, and neither the file's nor the field's own satisfies both of them. */
+    static class UnusableWorldSettings {
+
+        @ConfigSetting(key = "Settings.homeWorld")
+        @NotBlank
+        @OneOf(provider = LoadedWorlds.class)
+        public String homeWorld = "";
+    }
+
     static class DoubleSettings {
 
         @ConfigSetting(key = "Settings.multiplier")
@@ -354,6 +363,18 @@ class SettingsScannerTest {
         assertTrue(message.contains("@NotBlank"), message);
         assertTrue(message.contains("drop one of the two annotations"), "the message has to name the way "
                 + "out, and the way out is in the code: " + message);
+    }
+
+    @Test
+    void onceTheFilesValueIsGoneTheRulesLeftJudgeTheDefaultAsTheDefaultItNowIs() {
+        config.setValue("Settings.homeWorld", "   ");
+
+        BindException failure = assertThrows(BindException.class,
+                () -> SettingsScanner.load(ecPluginData, config, new UnusableWorldSettings()),
+                "the first refusal put the field's own value in use, and a default nothing accepts is a "
+                        + "defect no file can fix");
+
+        assertTrue(failure.getMessage().contains("UnusableWorldSettings.homeWorld"), failure.getMessage());
     }
 
     @Test

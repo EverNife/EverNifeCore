@@ -382,8 +382,8 @@ class StoragePropertyTest {
 
         private void saveAndLoad() {
             StoredInventory reloaded = roundTrip(store);
-            assertEquals(store.getSize(), reloaded.getSize());
-            for (int slot = 0; slot < store.getSize(); slot++) {
+            assertEquals(store.getCapacity(), reloaded.getCapacity());
+            for (int slot = 0; slot < store.getCapacity(); slot++) {
                 assertTrue(GuiBuffer.isSameOutput(store.getItem(slot), reloaded.getItem(slot)),
                         describe("slot " + slot + " came back from the file as "
                                 + describeItem(reloaded.getItem(slot)) + " instead of "

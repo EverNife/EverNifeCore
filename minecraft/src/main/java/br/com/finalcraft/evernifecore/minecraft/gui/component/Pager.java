@@ -82,12 +82,18 @@ public final class Pager extends AbstractState<Integer> {
 
     /**
      * What the render just measured: how many slots the region has and how many entries the source
-     * answered. It never invalidates - a render that redrew itself for having rendered would not stop.
+     * answered. Measuring does not invalidate - a render that redrew itself for having rendered would
+     * not stop - unless the measurement MOVED the page, which is a change like any other and is what
+     * whoever reads the page number is waiting for.
      */
     void measure(int pageSize, int totalEntries) {
         this.pageSize = Math.max(0, pageSize);
         this.totalEntries = Math.max(0, totalEntries);
-        this.page = Math.min(Math.max(1, page), getTotalPages());
+        int within = Math.min(Math.max(1, page), getTotalPages());
+        if (within != this.page) {
+            this.page = within;
+            invalidate();
+        }
     }
 
     @Override

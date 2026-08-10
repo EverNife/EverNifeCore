@@ -93,7 +93,8 @@ public final class IconStates {
         Set<String> named = new LinkedHashSet<>(known);
         named.remove("");
         for (String declared : declaredKeys) {
-            if (known.contains(declared) || !WARNED.add(type.getName() + '#' + declared)) {
+            //the same enum with the same wrong key on two screens is two files to fix, so two warnings
+            if (known.contains(declared) || !WARNED.add(type.getName() + '#' + declared + '#' + where)) {
                 continue;
             }
             EverNifeCore.getLog().warning("The state '" + declared + "' of " + where + " matches no constant of "

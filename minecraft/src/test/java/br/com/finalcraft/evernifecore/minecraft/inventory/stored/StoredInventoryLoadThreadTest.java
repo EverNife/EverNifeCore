@@ -25,17 +25,25 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Which thread a stored inventory is read back on.
+ * Which thread a stored inventory is read back on, and what a save sees while it is being written.
  *
  * <p>Storage answers on a worker thread and never on the main one - a database callback, a file read, a
  * player's data arriving while the server ticks something else. An inventory being rebuilt there is
  * nobody's yet: no window shows it, no other thread holds it, and the thread rule that keeps a live one
  * from being written twice has nothing to protect. What it must not do is come back empty, because the
  * next save writes that emptiness over the real thing.</p>
+ *
+ * <p>Saving is the same worker over an inventory that is NOT nobody's: a player may be moving items in
+ * it on the main thread at that very moment. What is written then has to be one reading of the whole
+ * thing - a file whose size and contents were taken at two different moments describes an inventory
+ * that never existed.</p>
  */
 class StoredInventoryLoadThreadTest {
 
     private static final AtomicInteger UNIQUE_FILE = new AtomicInteger();
+
+    /** A race is not a thing one run can rule out, so the save-while-used case runs this many times. */
+    private static final int WRITE_ROUNDS = 50;
 
     //NEVER: the locale bootstrap's async saveAsync() can race JUnit's default @TempDir cleanup on Windows
     @TempDir(cleanup = CleanupMode.NEVER)
@@ -68,7 +76,7 @@ class StoredInventoryLoadThreadTest {
 
     private static void assertHoldsWhatWasSaved(StoredInventory reloaded) {
         assertNotNull(reloaded, "an inventory read back is an inventory");
-        assertEquals(27, reloaded.getSize());
+        assertEquals(27, reloaded.getCapacity());
         assertNotNull(reloaded.getItem(2), "slot 2 held four diamonds when it was written");
         assertEquals(Material.DIAMOND, reloaded.getItem(2).getType());
         assertEquals(4, reloaded.getItem(2).getAmount());
@@ -106,6 +114,51 @@ class StoredInventoryLoadThreadTest {
                 () -> ConfigFactory.open(file).getValue("backpack", StoredInventory.class));
 
         assertHoldsWhatWasSaved(reloaded);
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  And written while somebody is using it
+    // -----------------------------------------------------------------------------------------------------------------
+
+    @Test
+    void anInventoryWrittenWhileItIsBeingUsedIsWrittenAsItWasAtOneMoment() {
+        VaultedItems holder = new VaultedItems();
+        StoredInventory backpack = holder.vault;
+        ConfigFactoryCodec<VaultedItems> codec = ConfigFactoryCodec.json(VaultedItems.class);
+
+        for (int round = 0; round < WRITE_ROUNDS; round++) {
+            CompletableFuture<byte[]> written = new CompletableFuture<>();
+            Thread saving = new Thread(() -> {
+                try {
+                    written.complete(codec.encode(holder));
+                } catch (Throwable thrown) {
+                    written.completeExceptionally(thrown);
+                }
+            }, "storage-writer");
+            saving.start();
+
+            //the main thread does what a player does: fills and empties slots while the save runs
+            for (int move = 0; move < 200; move++) {
+                backpack.setItemSilently(move % backpack.getCapacity(),
+                        move % 2 == 0 ? diamonds(1 + move % 8) : null);
+            }
+
+            VaultedItems reloaded = codec.decode(awaitBytes(saving, written));
+            assertEquals(27, reloaded.vault.getCapacity(), "a save reads the whole inventory once, so the "
+                    + "size it wrote is the size the items it wrote came from");
+        }
+    }
+
+    private static byte[] awaitBytes(Thread saving, CompletableFuture<byte[]> written) {
+        try {
+            saving.join();
+            return written.get();
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError("Interrupted while waiting for the save", interrupted);
+        } catch (ExecutionException failed) {
+            throw new AssertionError("The save failed while the inventory was being used", failed.getCause());
+        }
     }
 
     // -----------------------------------------------------------------------------------------------------------------

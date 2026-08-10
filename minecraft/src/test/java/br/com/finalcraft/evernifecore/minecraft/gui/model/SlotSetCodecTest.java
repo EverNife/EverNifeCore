@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -29,8 +30,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * and writes one.
  *
  * <p>The bare scalar is the reason this exists. It used to be parsed somewhere that expected a list,
- * came back empty, and left an icon missing from a menu with nothing in the log to say why - so it
- * gets a case of its own here, and so does the text that is none of the three.</p>
+ * came back empty, and left an icon missing from a menu with nothing to say why - so it gets a case of
+ * its own here, and so does the text that is none of the three: an empty list is how an admin switches
+ * an icon off, so text nothing can read must never arrive as one.</p>
  */
 class SlotSetCodecTest {
 
@@ -132,7 +134,7 @@ class SlotSetCodecTest {
     }
 
     // -----------------------------------------------------------------------------------------------------------------
-    //  Nowhere is a decision; nonsense is a log line
+    //  Nowhere is a decision; nonsense is a refusal
     // -----------------------------------------------------------------------------------------------------------------
 
     @Test
@@ -143,12 +145,23 @@ class SlotSetCodecTest {
     }
 
     @Test
-    void unreadableTextIsLoggedInsteadOfLeavingAnIconMysteriouslyAbsent() {
-        assertEquals(0, readAfterWriting("second row, third column").size(),
-                "the screen still opens; the icon is simply not placed");
+    void unreadableTextIsRefusedNamingItself() {
+        RuntimeException refused = assertThrows(RuntimeException.class,
+                () -> readAfterWriting("second row, third column"),
+                "reading it as the empty list would make a broken key look like a deliberate one");
 
-        assertTrue(world.platform().getLoggedMessages().stream().anyMatch(line -> line.contains("slot list")),
-                "the file's own text has to reach the log: " + world.platform().getLoggedMessages());
+        String message = rootCauseOf(refused).getMessage();
+        assertTrue(message.contains("second row"), "the file's own text travels with the refusal: " + message);
+        assertTrue(message.contains("A slot list is written as"), message);
+    }
+
+    /** The failure that actually knows: a read that fails inside a codec is wrapped on its way out. */
+    private static Throwable rootCauseOf(Throwable failure) {
+        Throwable deepest = failure;
+        while (deepest.getCause() != null && deepest.getCause() != deepest) {
+            deepest = deepest.getCause();
+        }
+        return deepest;
     }
 
 }

@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.model.Cancellable;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.ClickPolicy;
 import br.com.finalcraft.evernifecore.minecraft.inventory.ItemStore;
 import br.com.finalcraft.evernifecore.minecraft.inventory.UpdateCause;
+import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventory;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.inventory.ItemStack;
@@ -39,6 +40,11 @@ public final class StorageView {
     private final GuiView view;
     private final StorageBinding binding;
     private final int[] slots;
+    //a binding is shared by every viewer of the screen and stays writable after one of them opened it:
+    //what a click is judged by has to be what was there when the window was filled, or a region would
+    //seed one store and write back into another
+    private final ItemStore store;
+    private final ClickPolicy policy;
     private final Predicate<ItemStack> placeFilter;
 
     private Cancellable pendingSync;
@@ -47,7 +53,20 @@ public final class StorageView {
         this.view = view;
         this.binding = binding;
         this.slots = slots;
+        this.store = requireStore(view, binding);
+        this.policy = binding.getPolicy();
         this.placeFilter = binding.getPlaceFilter();
+    }
+
+    private static ItemStore requireStore(GuiView view, StorageBinding binding) {
+        ItemStore backing = binding.getBacking();
+        if (backing == null) {
+            throw new IllegalStateException("The storage region [" + binding.getName() + "] of ["
+                    + view.getGui().getTitle() + "] has no store to keep its contents in: call backedBy(...) "
+                    + "on it with the GenericInventory the plugin persists. A region without one would open "
+                    + "empty and throw away whatever the player put in it.");
+        }
+        return backing;
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -64,14 +83,16 @@ public final class StorageView {
         return view;
     }
 
+    /** What gestures go through here, as the binding declared them when this window was filled. */
     @Nonnull
     public ClickPolicy getPolicy() {
-        return binding.getPolicy();
+        return policy;
     }
 
+    /** The store this region reads and writes - the one it was filled from, for as long as it is open. */
     @Nonnull
     public ItemStore getStore() {
-        return binding.getBacking();
+        return store;
     }
 
     /** Whether {@code item} may enter here - see {@link StorageBinding#denyPlace}. Nothing always may. */
@@ -86,7 +107,7 @@ public final class StorageView {
 
     /** Whether the store behind this region judges a change before it happens. */
     public boolean vetsUpdates() {
-        return getStore().vetsUpdates();
+        return store.vetsUpdates();
     }
 
     /** This region's own index for a raw slot of the window, or {@code -1} when it holds no such slot. */
@@ -106,19 +127,19 @@ public final class StorageView {
      *
      * <p>A stack too big for the slot is refused without asking - there is nothing to decide about a
      * gesture that cannot happen, and the pre-update handler is for decisions. What "too big" means is
-     * only ever about GROWING: a slot that already holds more than it should - filled before anybody said
-     * how much it takes - can still be emptied, halved and taken from, or the items in it would be
-     * stranded there by the very rule meant to limit them.</p>
+     * only ever about GROWING what is already there: a slot that holds more than it should - filled
+     * before anybody said how much it takes - can still be emptied, halved and taken from, or the items
+     * in it would be stranded there by the very rule meant to limit them. Putting something ELSE in it
+     * is not that: a different item is a new stack, and a new stack has to fit.</p>
      */
     public boolean mayAccept(int rawSlot, @Nullable ItemStack next) {
         int index = indexOf(rawSlot);
         if (index < 0) {
             return true;
         }
-        ItemStore store = getStore();
         ItemStack shown = view.getSurface().getItem(rawSlot);
         if (!GuiBuffer.isEmpty(next) && next.getAmount() > store.getMaxStackSize(index, next)
-                && next.getAmount() > (GuiBuffer.isEmpty(shown) ? 0 : shown.getAmount())) {
+                && !(next.isSimilar(shown) && next.getAmount() <= shown.getAmount())) {
             return false;
         }
         return store.mayUpdate(UpdateCause.PLAYER, index, shown, next);
@@ -133,7 +154,6 @@ public final class StorageView {
      * touched - a fresh container is already empty.
      */
     void seed(GuiSurface surface) {
-        ItemStore store = getStore();
         requireRoomForTheRegion(store);
         for (int index = 0; index < slots.length; index++) {
             ItemStack stored = store.getItem(index);
@@ -186,7 +206,6 @@ public final class StorageView {
      */
     void syncNow(boolean last) {
         cancelPendingSync();
-        ItemStore store = getStore();
         GuiSurface surface = view.getSurface();
         List<ItemStack> contents = new ArrayList<>(slots.length);
         List<ItemStack> replaced = new ArrayList<>(slots.length);
@@ -208,7 +227,7 @@ public final class StorageView {
     /** Gives up the store and stops any read that was still coming. */
     void teardown() {
         cancelPendingSync();
-        unclaim(binding.getBacking());
+        unclaim(store);
     }
 
     private void fire(List<ItemStack> contents, boolean last) {
@@ -248,7 +267,7 @@ public final class StorageView {
         }
         GuiSurface surface = view.getSurface();
         ItemStack current = surface.getItem(rawSlot);
-        int max = getStore().getMaxStackSize(index, source);
+        int max = store.getMaxStackSize(index, source);
         ItemStack merged;
         if (GuiBuffer.isEmpty(current)) {
             merged = source.clone();
@@ -303,14 +322,28 @@ public final class StorageView {
     //  What the plugin has to be told about
     // -----------------------------------------------------------------------------------------------------------------
 
-    /** A region wider than its store would write past the end of it the first time a player filled it. */
+    /**
+     * Makes sure the store has room for every slot of the region, which is what says how big this area
+     * is: a region wider than its store would write past the end of it the first time a player filled it.
+     *
+     * <p>An inventory that can be grown simply is. It comes back from an older stored shape as big as
+     * the slots that were filled in it, so a backpack of 27 whose owner only ever used ten is read back
+     * with ten - and growing it loses nothing, while refusing it makes the screen impossible to open.</p>
+     */
     private void requireRoomForTheRegion(ItemStore store) {
-        if (store.getCapacity() < slots.length) {
-            throw new IllegalStateException("The storage region [" + binding.getName() + "] has "
-                    + slots.length + " slots and its store holds " + store.getCapacity() + ". The region would "
-                    + "have nowhere to put what a player leaves in the slots past that - give the store as many "
-                    + "slots as the region, with setCapacity(" + slots.length + "), or give the region fewer.");
+        if (store.getCapacity() >= slots.length) {
+            return;
         }
+        if (store instanceof StoredInventory) {
+            //open() runs on the main thread, which is the only place a capacity may change
+            ((StoredInventory) store).setCapacity(slots.length);
+            return;
+        }
+        throw new IllegalStateException("The storage region [" + binding.getName() + "] has "
+                + slots.length + " slots and its store holds " + store.getCapacity() + ". The region would "
+                + "have nowhere to put what a player leaves in the slots past that - grow the store to "
+                + slots.length + " slots before the screen opens, on the main thread, or give the region "
+                + "fewer slots.");
     }
 
     private void reportItemsPastCapacity(ItemStore store) {

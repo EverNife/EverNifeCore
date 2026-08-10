@@ -43,17 +43,17 @@ import java.util.regex.Pattern;
  * to the file the first time it is seen and read back from it forever after, so the admin moves,
  * restyles, permissions or switches off any icon without the plugin knowing.</p>
  *
- * <p>Nothing here aborts a boot. A key the file got wrong costs the ONE icon it describes: the failure
- * is logged naming the field, the file and what to do about it, and the screen opens without that
- * icon. The only refusals that throw are declaration defects no file can fix - a layout class with no
- * {@link GuiLayout}, or one that names the same icon through two channels.</p>
+ * <p>Nothing here aborts a boot. A key the file got wrong costs the ONE icon it describes, and so does
+ * an icon named through two channels at once: the failure is logged naming the field, the file and what
+ * to do about it, and the screen opens without that icon. What throws is the class itself being
+ * unusable - no {@link GuiLayout} on it, or no constructor the framework can build it with.</p>
  */
 public final class LayoutScanner {
 
     public static final String SETTINGS = "Settings";
     public static final String LAYOUT = "Layout";
     public static final String BACKGROUND = "Background";
-    public static final String QUARANTINE = "_Quarentena";
+    public static final String QUARANTINE = "_Quarantine";
 
     private static final Pattern PLACEHOLDER = Pattern.compile("%[^%\\s]+%");
 
@@ -72,14 +72,19 @@ public final class LayoutScanner {
         return "guis/locale/" + language + "/" + type.getSimpleName() + ".yml";
     }
 
-    /** The overlay of {@code language}, or {@code null} when the admin did not write one. */
+    /**
+     * The overlay of {@code language}, or {@code null} when the admin did not write one. The language is
+     * normalized on the way in, so a case-sensitive filesystem answers {@code pt_br} and {@code PT_BR}
+     * the same way every other door of the framework does.
+     */
     @Nullable
     public static Config openOverlay(@Nonnull ECPluginData plugin, @Nonnull Class<?> type,
                                      @Nullable String language) {
         if (language == null) {
             return null;
         }
-        File file = new File(plugin.getMetaInfo().getDataFolder(), overlayFileNameOf(type, language));
+        File file = new File(plugin.getMetaInfo().getDataFolder(),
+                overlayFileNameOf(type, LocaleType.normalize(language)));
         return file.isFile() ? ConfigFactory.open(plugin, file) : null;
     }
 
@@ -101,9 +106,15 @@ public final class LayoutScanner {
         T instance = newInstance(type);
         Config base = ConfigFactory.open(plugin, fileNameOf(type));
         LayoutSource source = new LayoutSource(base, openOverlay(plugin, type, language));
+        //the base file belongs to the copy every viewer shares: a per-language read writes nothing into
+        //it, or the header, the seed and the warnings would all be whichever language loaded first
+        boolean baseCopy = language == null;
 
         List<Field> fields = iconFields(type);
-        seedSettings(base, declaration);
+        if (baseCopy) {
+            warnStaticIcons(plugin, type);
+            seedSettings(base, declaration);
+        }
         SettingsScanner.load(plugin, base, instance);
         applySettings(instance, plugin, type, language, declaration, source);
 
@@ -112,24 +123,53 @@ public final class LayoutScanner {
             String path = (iconData.background() ? BACKGROUND : LAYOUT) + "." + field.getName();
             try {
                 Icon declared = iconOf(instance, field);
-                seedIcon(base, path, declared, iconData);
-                Icon resolved = resolveIcon(plugin, declaration, iconData, declared, source, path,
-                        field.getName());
+                IconLocale locale = localeOf(declared, iconData);
+                if (baseCopy) {
+                    seedIcon(base, path, declared, iconData, locale);
+                }
+                Icon resolved = resolveIcon(plugin, type, declaration, iconData, declared, locale, source,
+                        path, field.getName());
                 SlotSet slots = resolveSlots(instance, field, source, path);
                 instance.putIcon(field.getName(), resolved, slots);
             } catch (Throwable failure) {
                 plugin.getLog().warning(type.getSimpleName() + "." + field.getName() + ": "
-                        + failure.getMessage() + " Icon disabled. "
+                        + reasonOf(failure) + " Icon disabled. "
                         + plugin.getMetaInfo().getName() + "/" + fileNameOf(type) + ", key " + path);
             }
         }
 
         loadFileOnlyBackground(plugin, type, instance, source);
-        reportSlotDisputes(plugin, type, instance, fields);
-        quarantineOrphans(plugin, base, fields);
-        base.setHeader(header(instance, declaration));
-        base.save();
+        if (baseCopy) {
+            reportSlotDisputes(plugin, type, instance, fields);
+            quarantineOrphans(plugin, base, fields);
+            base.setHeader(header(instance, declaration));
+            base.save();
+        }
         return instance;
+    }
+
+    /** What a failure says, or what it IS when it says nothing - an NPE has no message to report. */
+    @Nonnull
+    private static String reasonOf(Throwable failure) {
+        String message = failure.getMessage();
+        return message == null ? failure.toString() : message;
+    }
+
+    /**
+     * Reports a {@code static} field carrying {@link IconData}: it is never seeded and never drawn,
+     * because the file is written against an instance and a static field belongs to none.
+     */
+    private static void warnStaticIcons(ECPluginData plugin, Class<?> type) {
+        for (Class<?> clazz = type; clazz != null && clazz != Object.class; clazz = clazz.getSuperclass()) {
+            for (Field field : clazz.getDeclaredFields()) {
+                if (field.isAnnotationPresent(IconData.class) && Modifier.isStatic(field.getModifiers())) {
+                    plugin.getLog().warning("The icon " + type.getSimpleName() + "." + field.getName()
+                            + " is never seeded and never drawn: a static field is not an icon of the "
+                            + "screen, which is read into an instance. Make it an instance field, or drop "
+                            + "the @IconData.");
+                }
+            }
+        }
     }
 
     /**
@@ -200,13 +240,15 @@ public final class LayoutScanner {
     //  Settings
     // -----------------------------------------------------------------------------------------------------------------
 
+    /**
+     * Both keys that describe the window are written, whichever type it is: an admin who turns a chest
+     * into a hopper needs {@code type} to be there to change, and one who turns a hopper into a chest
+     * needs {@code rows}. Which of the two the other type ignores is what the header explains.
+     */
     private static void seedSettings(Config config, GuiLayout declaration) {
         config.setValueIfAbsent(SETTINGS + ".title", declaration.title());
-        if (declaration.type() == GuiType.CHEST) {
-            config.setValueIfAbsent(SETTINGS + ".rows", declaration.rows());
-        } else {
-            config.setValueIfAbsent(SETTINGS + ".type", declaration.type().name());
-        }
+        config.setValueIfAbsent(SETTINGS + ".type", declaration.type().name());
+        config.setValueIfAbsent(SETTINGS + ".rows", declaration.rows());
         config.setValueIfAbsent(SETTINGS + ".integrateToPAPI", declaration.integrateToPAPI());
         for (FCLocale locale : declaration.locale()) {
             config.setValueIfAbsent(SETTINGS + ".Locale." + LocaleType.normalize(locale.lang()) + ".title",
@@ -228,7 +270,7 @@ public final class LayoutScanner {
         }
         String title = source.getString(SETTINGS + ".title");
         instance.applySettings(plugin, type.getSimpleName(), language, guiType,
-                source.getInt(SETTINGS + ".rows", declaration.rows()),
+                rowsOf(plugin, type, guiType, declaration, source),
                 source.getBoolean(SETTINGS + ".integrateToPAPI", declaration.integrateToPAPI()),
                 title == null ? declaration.title() : title);
 
@@ -245,6 +287,28 @@ public final class LayoutScanner {
         }
     }
 
+    /**
+     * The row count the window is built with: the file's when it describes a window this type can have,
+     * the declared one otherwise.
+     *
+     * <p>Read and judged here, once, so a number out of range costs one line naming {@code Settings.rows}
+     * instead of a warning per icon blaming icons that are fine - and so that it is caught before the
+     * screen is built, where the same refusal would reach the plugin as a broken open.</p>
+     */
+    private static int rowsOf(ECPluginData plugin, Class<?> type, GuiType guiType, GuiLayout declaration,
+                              LayoutSource source) {
+        try {
+            int rows = source.getInt(SETTINGS + ".rows", declaration.rows());
+            guiType.sizeOf(rows);
+            return rows;
+        } catch (RuntimeException unusable) {
+            plugin.getLog().warning(type.getSimpleName() + ", " + SETTINGS + ".rows: "
+                    + reasonOf(unusable) + " Keeping the " + declaration.rows() + " the plugin declared. "
+                    + plugin.getMetaInfo().getName() + "/" + fileNameOf(type));
+            return declaration.rows();
+        }
+    }
+
     private static GuiType parseGuiType(String declared) {
         String wanted = declared.trim().toUpperCase(Locale.ROOT);
         for (GuiType candidate : GuiType.values()) {
@@ -254,7 +318,7 @@ public final class LayoutScanner {
         }
         throw new IllegalArgumentException("'" + declared + "' is not a window type. "
                 + didYouMean(wanted, names(GuiType.values()))
-                + "The types are CHEST, HOPPER, DISPENSER, BREWING and WORKBENCH.");
+                + "The types are " + GuiType.names() + ".");
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -276,7 +340,8 @@ public final class LayoutScanner {
      * Writes what the file does not say yet, icon by icon - never section by section, so a version that
      * adds one icon adds one key to a file that already exists, background icons included.
      */
-    private static void seedIcon(Config config, String path, Icon declared, IconData iconData) {
+    private static void seedIcon(Config config, String path, Icon declared, IconData iconData,
+                                 IconLocale locale) {
         config.setValueIfAbsent(path + ".Slot", SlotSet.of(iconData.slot()));
 
         String permission = iconData.permission().isEmpty() ? declared.getPermission() : iconData.permission();
@@ -284,16 +349,22 @@ public final class LayoutScanner {
             config.setValueIfAbsent(path + ".Permission", permission);
         }
 
-        IconLocale locale = localeOf(declared, iconData);
         config.setValueIfAbsent(path + ".DisplayItem", displayItemOf(declared.getItemStack(), locale != null));
         for (String state : declared.getStateNames()) {
+            IconLocale stateLocale = declared.getStateLocale(state);
             config.setValueIfAbsent(path + ".States." + state + ".DisplayItem",
-                    displayItemOf(declared.getState(state), false));
+                    displayItemOf(declared.getState(state), stateLocale != null));
+            seedLocale(config, path + ".States." + state, stateLocale);
         }
-        if (locale != null) {
-            for (String lang : locale.getLanguages()) {
-                config.setValueIfAbsent(path + ".Locale." + lang, locale.get(lang));
-            }
+        seedLocale(config, path, locale);
+    }
+
+    private static void seedLocale(Config config, String path, IconLocale locale) {
+        if (locale == null) {
+            return;
+        }
+        for (String lang : locale.getLanguages()) {
+            config.setValueIfAbsent(path + ".Locale." + lang, locale.get(lang));
         }
     }
 
@@ -344,8 +415,9 @@ public final class LayoutScanner {
         return Arrays.asList(hover.split("\n", -1));
     }
 
-    private static Icon resolveIcon(ECPluginData plugin, GuiLayout declaration, IconData iconData,
-                                    Icon declared, LayoutSource source, String path, String name) {
+    private static Icon resolveIcon(ECPluginData plugin, Class<?> type, GuiLayout declaration,
+                                    IconData iconData, Icon declared, IconLocale locale,
+                                    LayoutSource source, String path, String name) {
         Icon resolved = declared.copy();
         resolved.setName(name);
         resolved.setBackground(iconData.background());
@@ -353,7 +425,6 @@ public final class LayoutScanner {
         resolved.setLocaleOwner(plugin);
         resolved.integrateToPAPI(declaration.integrateToPAPI());
 
-        IconLocale locale = localeOf(declared, iconData);
         List<String> displayItem = source.getStringList(path + ".DisplayItem");
         if (!displayItem.isEmpty()) {
             resolved.setItemStack(buildItem(displayItem));
@@ -365,12 +436,32 @@ public final class LayoutScanner {
         }
 
         for (String state : source.getKeys(path + ".States")) {
-            List<String> stateItem = source.getStringList(path + ".States." + state + ".DisplayItem");
+            String statePath = path + ".States." + state;
+            List<String> stateItem = source.getStringList(statePath + ".DisplayItem");
             if (!stateItem.isEmpty()) {
                 resolved.addState(state, buildItem(stateItem));
             }
+            IconLocale stateLocale = resolveLocale(plugin, source, statePath,
+                    declared.getStateLocale(state));
+            if (stateLocale != null) {
+                resolved.setStateLocale(state, stateLocale);
+            }
         }
 
+        resolved.setLocale(resolveLocale(plugin, source, path, locale));
+        if (resolved.getStateType() != null) {
+            //the yml's own keys, which the declaration-time check could not have seen
+            IconStates.warnUnknownKeys(resolved.getStateType(), resolved.getStateNames(),
+                    type.getSimpleName() + "." + name);
+        }
+        return resolved;
+    }
+
+    /** {@code declared} with the language blocks the file holds under {@code path} written over it. */
+    @Nullable
+    private static IconLocale resolveLocale(ECPluginData plugin, LayoutSource source, String path,
+                                            IconLocale declared) {
+        IconLocale locale = declared;
         for (String lang : source.getKeys(path + ".Locale")) {
             List<String> lines = source.getStringList(path + ".Locale." + lang);
             List<String> text = new ArrayList<>(lines.size());
@@ -389,8 +480,7 @@ public final class LayoutScanner {
             }
             locale.put(lang, text);
         }
-        resolved.setLocale(locale);
-        return resolved;
+        return locale;
     }
 
     /**
@@ -426,8 +516,8 @@ public final class LayoutScanner {
         int size = instance.getType().sizeOf(instance.getRows());
         for (int slot : slots.toArray()) {
             if (slot >= size) {
-                throw new IllegalArgumentException("Slot '" + slots.serialize() + "' is outside a screen of "
-                        + size + " slots (0-" + (size - 1) + ").");
+                throw new IllegalArgumentException("Slot " + slot + " of '" + slots.serialize()
+                        + "' is outside a screen of " + size + " slots (0-" + (size - 1) + ").");
             }
         }
         return slots;
@@ -499,7 +589,7 @@ public final class LayoutScanner {
                 SlotSet slots = source.getValue(path + ".Slot", SlotSet.class);
                 instance.putIcon(key, icon, slots == null ? SlotSet.EMPTY : slots);
             } catch (Throwable failure) {
-                plugin.getLog().warning(type.getSimpleName() + "." + key + ": " + failure.getMessage()
+                plugin.getLog().warning(type.getSimpleName() + "." + key + ": " + reasonOf(failure)
                         + " Icon disabled. " + plugin.getMetaInfo().getName() + "/" + fileNameOf(type)
                         + ", key " + path);
             }
@@ -539,11 +629,16 @@ public final class LayoutScanner {
         List<String> lines = new ArrayList<>();
         lines.add("Generated by EverNifeCore. What you write here beats the plugin's default.");
         lines.add("");
+        lines.add("  Settings.type  the window: " + GuiType.names() + ".");
+        lines.add("  Settings.rows  how many rows a CHEST has, " + GuiType.MIN_CHEST_ROWS + " to "
+                + GuiType.MAX_CHEST_ROWS + ". Every other type has a size of its own and ignores it.");
+        lines.add("");
         lines.add("  Slot         where the icon shows up. Takes \"[10,11]\", a yaml list, or a bare number.");
         lines.add("               An empty list switches the icon off.");
         lines.add("  Permission   who sees the icon. Absent means everyone.");
         lines.add("  DisplayItem  the item, one entry per line: type: name: lore: nbt: durability: ...");
-        lines.add("  States       an alternative look, picked by the plugin at runtime.");
+        lines.add("  States       an alternative look, picked by the plugin at runtime. Each one takes a");
+        lines.add("               DisplayItem and a Locale of its own.");
         lines.add("  Locale       name and lore per language. Overrides the name:/lore: of DisplayItem.");
         lines.add("");
 

@@ -56,7 +56,9 @@ public class Icon {
     private Consumer<Icon> renderer;
 
     private final Map<String, ItemStack> states = new LinkedHashMap<>();
+    private final Map<String, IconLocale> stateLocales = new LinkedHashMap<>();
     private Supplier<String> currentState;
+    private Class<? extends Enum<?>> stateType;
     private final CompoundReplacer scopes = new CompoundReplacer();
     //a screen renders the same language block once per viewer per redraw; reading it is worth doing once
     private final Map<String, List<ItemEdit>> localeEdits = new LinkedHashMap<>();
@@ -117,7 +119,7 @@ public class Icon {
         return itemStack.clone();
     }
 
-    public void setItemStack(@Nonnull ItemStack itemStack) {
+    public void setItemStack(ItemStack itemStack) {
         if (itemStack == null) {
             throw new IllegalArgumentException("An Icon needs an ItemStack. To hide the icon instead, "
                     + "bind it to an empty SlotSet or give it a permission nobody has.");
@@ -275,6 +277,10 @@ public class Icon {
     /**
      * Declares an alternative appearance under {@code name}. The state carries a whole item, so it
      * may differ in material as well as in text, and it is restyled on its own in the YAML.
+     *
+     * <p>Its text is its own too: while a state is on screen, the language block that answers is the
+     * one declared for THAT state - see {@link #addStateLocale(String, String, String, String...)} -
+     * and never the icon's, which would put the default appearance's words on another item.</p>
      */
     @Nonnull
     public Icon addState(@Nonnull String name, @Nonnull FCItemBuilder item) {
@@ -283,12 +289,16 @@ public class Icon {
 
     @Nonnull
     public Icon addState(@Nonnull String name, @Nonnull ItemStack item) {
+        states.put(requireStateName(name), item.clone());
+        return this;
+    }
+
+    private static String requireStateName(String name) {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("A state needs a name - it is the key the menu selects it by "
                     + "and the key the admin restyles it under in the yml.");
         }
-        states.put(name.trim(), item.clone());
-        return this;
+        return name.trim();
     }
 
     /**
@@ -328,6 +338,52 @@ public class Icon {
     }
 
     /**
+     * Declares the name and lore state {@code state} reads in {@code lang}, the way
+     * {@link #addLocale(String, String, String...)} does for the icon's own appearance.
+     */
+    @Nonnull
+    public Icon addStateLocale(@Nonnull String state, @Nonnull String lang, @Nullable String name,
+                               @Nonnull String... lore) {
+        return addStateLocale(state, lang, IconLocale.linesOf(name, Arrays.asList(lore)));
+    }
+
+    /** Declares a state's language block in its item-data form, which is how the yml holds it. */
+    @Nonnull
+    public Icon addStateLocale(@Nonnull String state, @Nonnull String lang,
+                               @Nonnull List<String> itemDataLines) {
+        String key = requireStateName(state);
+        IconLocale stateLocale = stateLocales.get(key);
+        if (stateLocale == null) {
+            stateLocale = new IconLocale();
+            stateLocales.put(key, stateLocale);
+        }
+        stateLocale.put(lang, itemDataLines);
+        localeEdits.clear();
+        return this;
+    }
+
+    /** The per-language text of {@code state}, or {@code null} while it has none. */
+    @Nullable
+    public IconLocale getStateLocale(@Nonnull String state) {
+        return stateLocales.get(state);
+    }
+
+    public void setStateLocale(@Nonnull String state, @Nullable IconLocale stateLocale) {
+        if (stateLocale == null) {
+            stateLocales.remove(state);
+        } else {
+            stateLocales.put(state, stateLocale);
+        }
+        localeEdits.clear();
+    }
+
+    /** The enum whose constants name this icon's states, or {@code null} when nothing typed them. */
+    @Nullable
+    public Class<? extends Enum<?>> getStateType() {
+        return stateType;
+    }
+
+    /**
      * Which state this icon draws, asked again at every render.
      *
      * <p>This is the dynamic form, for a state name computed at runtime; {@link #states(Class,
@@ -346,6 +402,8 @@ public class Icon {
      */
     @Nonnull
     public <E extends Enum<E>> Icon states(@Nonnull Class<E> type, @Nonnull Supplier<E> state) {
+        //kept so the file's own keys can be checked against it once the yml has been read into the icon
+        this.stateType = type;
         IconStates.warnUnknownKeys(type, states.keySet(), toString());
         return state(() -> {
             E chosen = state.get();
@@ -389,6 +447,8 @@ public class Icon {
             locale = new IconLocale();
         }
         locale.put(lang, itemDataLines);
+        //a language nobody wrote falls back to another one, so one new block can change any of them
+        localeEdits.clear();
         return this;
     }
 
@@ -448,7 +508,9 @@ public class Icon {
      * PlaceholderAPI when asked for.
      *
      * <p>An icon with no language block and no scope answers a plain copy, so the late path costs
-     * nothing for the icons that do not need it.</p>
+     * nothing for the icons that do not need it. While a named state is on screen the language block
+     * that answers is the one declared for that state, so a state's own words are never overwritten
+     * by the ones the default appearance reads.</p>
      */
     @Nonnull
     public ItemStack renderFor(@Nullable Player viewer) {
@@ -470,9 +532,9 @@ public class Icon {
                                @Nullable CompoundReplacer menuReplacer) {
         ItemStack state = stateName == null ? null : states.get(stateName);
         ItemStack rendered = (state == null ? itemStack : state).clone();
-        if (locale != null) {
-            String lang = languageOf(viewer);
-            List<ItemEdit> edits = editsFor(lang);
+        IconLocale spoken = state == null ? locale : stateLocales.get(stateName);
+        if (spoken != null) {
+            List<ItemEdit> edits = editsFor(spoken, stateName, languageOf(viewer));
             if (edits != null) {
                 rendered = ItemEngine.get().materialize(ItemBase.of(rendered), edits).getItemStack();
             }
@@ -483,13 +545,13 @@ public class Icon {
 
     /** The language block of {@code lang}, read once and kept - a redraw asks for it constantly. */
     @Nullable
-    private List<ItemEdit> editsFor(@Nullable String lang) {
-        String key = lang == null ? "" : lang;
+    private List<ItemEdit> editsFor(IconLocale spoken, @Nullable String stateName, @Nullable String lang) {
+        String key = (stateName == null ? "" : stateName) + '\n' + (lang == null ? "" : lang);
         List<ItemEdit> cached = localeEdits.get(key);
         if (cached != null) {
             return cached.isEmpty() ? null : cached;
         }
-        List<String> lines = linesFor(lang);
+        List<String> lines = linesFor(spoken, lang);
         List<ItemEdit> edits = lines == null
                 ? Collections.<ItemEdit>emptyList()
                 : ItemEngine.get().parse(lines).getEdits();
@@ -503,18 +565,18 @@ public class Icon {
      * wrote reads the language the server itself runs in, not the first one the developer typed.
      */
     @Nullable
-    private List<String> linesFor(@Nullable String lang) {
-        List<String> own = lang == null ? null : locale.get(lang);
+    private List<String> linesFor(IconLocale spoken, @Nullable String lang) {
+        List<String> own = lang == null ? null : spoken.get(lang);
         if (own != null) {
             return own;
         }
         if (localeOwner != null) {
-            List<String> serverWide = locale.get(FCLocaleManager.getLangOf(localeOwner));
+            List<String> serverWide = spoken.get(FCLocaleManager.getLangOf(localeOwner));
             if (serverWide != null) {
                 return serverWide;
             }
         }
-        return locale.resolve(null);
+        return spoken.resolve(null);
     }
 
     /**
@@ -581,13 +643,17 @@ public class Icon {
         return this;
     }
 
-    /** {@link #from(ItemStack)} plus the other icon's named states - its whole appearance. */
+    /** {@link #from(ItemStack)} plus the other icon's named states, text of their own included. */
     @Nonnull
     public Icon from(@Nonnull Icon item) {
         setItemStack(item.itemStack);
         for (Map.Entry<String, ItemStack> state : item.states.entrySet()) {
             states.put(state.getKey(), state.getValue().clone());
         }
+        for (Map.Entry<String, IconLocale> stateLocale : item.stateLocales.entrySet()) {
+            stateLocales.put(stateLocale.getKey(), stateLocale.getValue().copy());
+        }
+        localeEdits.clear();
         return this;
     }
 
@@ -647,7 +713,11 @@ public class Icon {
         copy.everyTicks = this.everyTicks;
         copy.renderer = this.renderer;
         copy.states.putAll(this.states);
+        for (Map.Entry<String, IconLocale> stateLocale : this.stateLocales.entrySet()) {
+            copy.stateLocales.put(stateLocale.getKey(), stateLocale.getValue().copy());
+        }
         copy.currentState = this.currentState;
+        copy.stateType = this.stateType;
         copy.scopes.appendReplacer(this.scopes);
         copy.locale = this.locale == null ? null : this.locale.copy();
         copy.localeOwner = this.localeOwner;

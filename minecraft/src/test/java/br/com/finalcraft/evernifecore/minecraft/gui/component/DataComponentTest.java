@@ -221,6 +221,59 @@ class DataComponentTest {
     }
 
     @Test
+    void aSourceThatThrowsCostsThePageAndNotTheScreen() {
+        Gui<?> gui = Gui.of(3);
+        gui.list(() -> {
+                    throw new IllegalStateException("the database went away");
+                })
+                .into(Slots.of(0, 1, 2))
+                .render((entry, icon) -> icon.from(new ItemStack(Material.PAPER)));
+        gui.icon(8, Icon.of(new ItemStack(Material.ANVIL)));
+
+        world.openDetached(gui, world.newPlayer("Steve"));
+        SurfaceDouble surface = world.getSurface();
+
+        assertTrue(isEmpty(surface, 0), "a page nothing could be read for is drawn empty");
+        assertEquals(Material.ANVIL, surface.getItem(8).getType(), "and the screen around it still opens");
+        assertTrue(world.getPlatform().getLoggedMessages().toString().contains("the database went away"),
+                "an empty list and a broken one look the same, so only the log tells them apart: "
+                        + world.getPlatform().getLoggedMessages());
+    }
+
+    @Test
+    void aListThatShrankUnderTheReaderTellsWhoeverWasReadingThePage() {
+        List<Integer> entries = new ArrayList<>(numbers(7));
+        MutableState<Integer> version = State.of(0);
+        Pager pager = new Pager();
+        Gui<?> gui = Gui.of(3);
+        gui.list(entries)
+                .pager(pager)
+                .dependsOn(version)
+                .into(Slots.of(0, 1, 2))
+                .render((entry, icon) -> icon.from(new ItemStack(Material.PAPER, entry)));
+        //a second component reading the page, which is what a title that says "1/3" really is
+        gui.addComponent(component -> {
+            component.remember(pager);
+            component.render(writer -> writer.icon(8, Icon.of(new ItemStack(Material.BOOK, pager.getPage()))));
+        });
+
+        world.openDetached(gui, world.newPlayer("Steve"));
+        pager.last();
+        world.advanceTicks(1);
+        assertEquals(3, world.getSurface().getItem(8).getAmount(), "the reader is on the last page");
+
+        entries.subList(3, entries.size()).clear();
+        version.set(1);   //only the list is told; the page reader has to hear it from the pager
+        world.advanceTicks(1);
+        assertEquals(1, pager.getPage(), "the page they were on no longer exists");
+
+        world.advanceTicks(1);   //being told is a change like any other, and it lands on the next tick
+
+        assertEquals(1, world.getSurface().getItem(8).getAmount(),
+                "a page number nobody was told about is a screen that reads one and shows another");
+    }
+
+    @Test
     void aPageSourceIsAskedForOnePageAndCountedApart() {
         AtomicReference<int[]> asked = new AtomicReference<>();
         Pager pager = new Pager();

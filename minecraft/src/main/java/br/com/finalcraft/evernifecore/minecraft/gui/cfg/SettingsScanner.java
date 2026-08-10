@@ -47,7 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * value in it: the field's value is both the default written to a fresh file and the type the stored value
  * is read back as.
  */
-public class SettingsScanner {
+public final class SettingsScanner {
 
     /** The standard vocabulary under this scanner's policy: file data warns instead of failing the boot, a
      *  default that breaks its own rule still throws, and a handler may correct what it refused. */
@@ -59,6 +59,10 @@ public class SettingsScanner {
     /** What has already been warned about, so a file nobody fixed does not repeat itself on every reload. */
     private static final Set<String> WARNED =
             Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+
+    private SettingsScanner() {
+
+    }
 
     /**
      * Load every {@link ConfigSetting} of {@code instance} - its own and the ones it inherits - from
@@ -100,10 +104,9 @@ public class SettingsScanner {
                 if (stored == null) {
                     //A value the file supplied and the read then discarded is still file-sourced: the type
                     //is already the complaint, and calling it a default would make @Explicit fire on top of it
-                    warnOnce(ecPluginData, type, key, "unreadable",
-                            "The value at '" + key + "' cannot be read as "
-                                    + defaultValue.getClass().getSimpleName() + ". Fix it in the file; "
-                                    + "until then the default " + defaultValue + " is in use.");
+                    warnOnce(ecPluginData, type, key, "unreadable", "The value at '" + key + "' "
+                            + unreadableAs(field, defaultValue) + ". Fix it in the file; until then the "
+                            + "default " + defaultValue + " is in use.");
                 } else {
                     value = stored;
                 }
@@ -114,8 +117,9 @@ public class SettingsScanner {
                         source, instance);
                 //A handler that corrected has answered its own refusal; one that merely refused leaves the
                 //field's default as the only value left to use
+                boolean fellBack = !evaluation.corrected() && !evaluation.findings().isEmpty();
                 Object surviving = evaluation.corrected() ? evaluation.value()
-                        : evaluation.findings().isEmpty() ? value : defaultValue;
+                        : fellBack ? defaultValue : value;
                 for (RuleFinding finding : evaluation.findings()) {
                     if (finding.severity() == RulePolicy.Severity.THROW) {
                         throw new BindException(finding.message());
@@ -126,6 +130,11 @@ public class SettingsScanner {
                             finding.message() + " The value in use is '" + surviving + "'.");
                 }
                 value = surviving;
+                if (fellBack) {
+                    //from here on the value being judged is the field's own, and a default that breaks a
+                    //rule is a code defect no file can fix
+                    source = ValueSource.DEFAULT;
+                }
             }
 
             inject(ecPluginData, field, instance, value);
@@ -235,6 +244,15 @@ public class SettingsScanner {
             return stored.isEmpty() && !isList ? null : stored;
         }
         return config.getValue(key, defaultValue.getClass());
+    }
+
+    /** What is wrong with a value the read gave back nothing for, in the shape the field asked for it:
+     *  a list complains about not being one, anything else about the type it could not be read as. */
+    private static String unreadableAs(Field field, Object defaultValue) {
+        if (defaultValue instanceof List) {
+            return "is not a list of " + elementType(field, (List<?>) defaultValue).getSimpleName();
+        }
+        return "cannot be read as " + defaultValue.getClass().getSimpleName();
     }
 
     /** The keys of the entries the read refused, as ' (Layout[1], Layout[3])' - empty when the read lost an

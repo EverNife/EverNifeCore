@@ -8,6 +8,7 @@ import jakarta.annotation.Nonnull;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.UnaryOperator;
 
@@ -19,8 +20,8 @@ import java.util.function.UnaryOperator;
  * version: 2
  * size: 27
  * items:
- *   '0': [ 'material: DIAMOND', 'amount: 5' ]
- *   '4': [ 'material: DIRT' ]
+ *   '0': [ 'type:DIAMOND', 'amount:5' ]
+ *   '4': [ 'type:DIRT' ]
  * maxStackSizes:
  *   '0': 16
  * }</pre>
@@ -30,13 +31,16 @@ import java.util.function.UnaryOperator;
  * no {@code version} key IS a version 1 file - there is no other way to read one, and no file will ever
  * be written that way again.</p>
  *
- * <p>A change to the shape gets a new number and a function that turns the previous one into it:</p>
+ * <p>A change to the shape gets a new number and a function that turns the previous one into it. The
+ * one below is the migration this class registers for the shape that came before the envelope, and it
+ * is what any of them looks like: it is handed the whole stored object and answers the whole stored
+ * object, with its version raised to one this reader knows how to read.</p>
  *
  * <pre>{@code
- * StoredInventorySchema.registerMigration(2, stored -> {
- *     stored.put("version", 3);
- *     ... // whatever 3 says that 2 did not
- *     return stored;
+ * StoredInventorySchema.registerMigration(1, stored -> {
+ *     ObjectNode envelope = ...;   // whatever the new version says that the old one did not
+ *     envelope.put("version", 2);
+ *     return envelope;
  * });
  * }</pre>
  *
@@ -75,7 +79,10 @@ public final class StoredInventorySchema {
     public static void registerMigration(int fromVersion, @Nonnull UnaryOperator<ObjectNode> migration) {
         if (migration == null) {
             throw new IllegalArgumentException("A schema migration from version " + fromVersion + " needs a "
-                    + "function to run. Drop the call if there is nothing to change between the two versions.");
+                    + "function to run: it is what carries a file written with that version up to the next "
+                    + "one. A version with nothing to change still needs one - a function that raises '"
+                    + VERSION_KEY + "' and answers what it was given - because a version with no way up is "
+                    + "refused, and every file still on version " + fromVersion + " with it.");
         }
         MIGRATIONS.put(fromVersion, migration);
     }
@@ -86,21 +93,26 @@ public final class StoredInventorySchema {
      * reading it as the oldest shape would quietly empty it, so it is refused.
      */
     public static int versionOf(@Nonnull JsonNode stored) {
-        JsonNode version = stored == null ? null : stored.get(VERSION_KEY);
+        Objects.requireNonNull(stored, "A schema version was asked of nothing at all. Whether a stored "
+                + "inventory exists is the caller's own question: an absent one has no version, and "
+                + "answering the oldest there is would rebuild it empty over whatever is really there.");
+        JsonNode version = stored.get(VERSION_KEY);
         if (version == null || version.isNull()) {
             return LEGACY_SLOT_MAP_VERSION;
         }
         if (version.canConvertToInt()) {
             return version.asInt();
         }
-        int written = slotNumberOf(version.asText());
-        if (written >= 0) {
-            return written;
+        try {
+            //a version is any whole number, negatives included - migrate() is what refuses the ones with
+            //no way up, and it names the version it was actually given
+            return Integer.parseInt(version.asText().trim());
+        } catch (NumberFormatException notANumber) {
+            throw new IllegalStateException("A stored inventory says it was written with schema version ["
+                    + version.asText() + "], which is not a number. Put the number back - reading the file "
+                    + "as if it had no version at all would read it as the oldest shape there is and keep "
+                    + "nothing of it.");
         }
-        throw new IllegalStateException("A stored inventory says it was written with schema version ["
-                + version.asText() + "], which is not a number. Put the number back - reading the file as "
-                + "if it had no version at all would read it as the oldest shape there is and keep nothing "
-                + "of it.");
     }
 
     /**

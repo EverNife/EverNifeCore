@@ -7,7 +7,6 @@ import br.com.finalcraft.evernifecore.minecraft.inventory.UpdateCause;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.inventory.ItemStack;
 
@@ -71,8 +70,10 @@ public final class StoredInventory implements ItemStore {
     private ItemStack[] items;
     private int[] maxStackSizes;
 
-    private Consumer<StoredInventoryItemPreUpdateEvent> preUpdate;
-    private Consumer<StoredInventoryItemPostUpdateEvent> postUpdate;
+    //written from wherever the inventory is described and read while a click is being judged on the main
+    //thread: without this a veto declared on a worker could stay invisible to the thread that enforces it
+    private volatile Consumer<StoredInventoryItemPreUpdateEvent> preUpdate;
+    private volatile Consumer<StoredInventoryItemPostUpdateEvent> postUpdate;
 
     public StoredInventory(int size) {
         requireSize(size);
@@ -84,14 +85,56 @@ public final class StoredInventory implements ItemStore {
     //  Reading - allowed from any thread, answered as a snapshot
     // -----------------------------------------------------------------------------------------------------------------
 
-    /** How many slots there are. Same as {@link #getCapacity()}, which is the name the seam uses. */
-    public synchronized int getSize() {
-        return items.length;
-    }
-
     @Override
     public synchronized int getCapacity() {
         return items.length;
+    }
+
+    /**
+     * Everything the stored form needs, taken under one hold of the monitor: how many slots there are,
+     * what each of them holds, and the maximums declared for them.
+     *
+     * <p>Saving runs on a worker thread while a player may be moving items on the main one. Read piece
+     * by piece, the pieces would not agree with each other - a slot reported occupied that answers
+     * nothing a moment later, a size that no longer matches the contents - and what gets written is a
+     * file nobody ever had.</p>
+     */
+    @Nonnull
+    public synchronized Snapshot snapshotForWrite() {
+        ItemStack[] copied = new ItemStack[items.length];
+        for (int slot = 0; slot < items.length; slot++) {
+            copied[slot] = copyOf(items[slot]);
+        }
+        return new Snapshot(copied, maxStackSizes.clone());
+    }
+
+    /** One reading of a whole inventory: what {@link #snapshotForWrite()} answered, and nothing live. */
+    public static final class Snapshot {
+
+        private final ItemStack[] items;
+        private final int[] maxStackSizes;
+
+        private Snapshot(ItemStack[] items, int[] maxStackSizes) {
+            this.items = items;
+            this.maxStackSizes = maxStackSizes;
+        }
+
+        public int getCapacity() {
+            return items.length;
+        }
+
+        /** What {@code slot} held, or {@code null} for a slot that held nothing. */
+        @Nullable
+        public ItemStack getItem(int slot) {
+            return slot >= 0 && slot < items.length ? items[slot] : null;
+        }
+
+        /** The maximum declared for {@code slot}, or {@link StoredInventory#ITEM_DEFAULT} when the
+         *  item decides. */
+        public int getMaxStackSize(int slot) {
+            return slot >= 0 && slot < maxStackSizes.length ? maxStackSizes[slot] : ITEM_DEFAULT;
+        }
+
     }
 
     @Override
@@ -278,8 +321,7 @@ public final class StoredInventory implements ItemStore {
             handler.accept(event);
         } catch (Throwable e) {
             EverNifeCore.getLog().severe("The onPreUpdate handler of a stored inventory failed for slot "
-                    + slot + ", so the change was refused: " + e);
-            e.printStackTrace();
+                    + slot + ", so the change was refused", e);
             return false;
         }
         return !event.isCancelled();
@@ -296,14 +338,13 @@ public final class StoredInventory implements ItemStore {
             handler.accept(new StoredInventoryItemPostUpdateEvent(this, cause, slot, previous, next));
         } catch (Throwable e) {
             EverNifeCore.getLog().severe("The onPostUpdate handler of a stored inventory failed for slot "
-                    + slot + ": " + e);
-            e.printStackTrace();
+                    + slot, e);
         }
     }
 
     @Override
     public String toString() {
-        return "StoredInventory{" + getOccupiedSlots().length + "/" + getSize() + " slots filled}";
+        return "StoredInventory{" + getOccupiedSlots().length + "/" + getCapacity() + " slots filled}";
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -344,8 +385,8 @@ public final class StoredInventory implements ItemStore {
         }
 
         /** How many slots there are to fill - a stored slot past it belongs to no inventory. */
-        public int getSize() {
-            return unpublished().getSize();
+        public int getCapacity() {
+            return unpublished().getCapacity();
         }
 
         /** Puts {@code item} in {@code slot}. No handler is asked and no maximum is measured against:
@@ -400,7 +441,7 @@ public final class StoredInventory implements ItemStore {
     private void requireInside(int slot, String action) {
         if (!isInside(slot)) {
             throw new IndexOutOfBoundsException("Slot " + slot + " is outside a stored inventory of "
-                    + getSize() + " slots, so there is nothing to " + action + " there. Slots count from 0, "
+                    + getCapacity() + " slots, so there is nothing to " + action + " there. Slots count from 0, "
                     + "and setCapacity(int) is how one gets more of them.");
         }
     }
@@ -443,7 +484,7 @@ public final class StoredInventory implements ItemStore {
     }
 
     private static boolean isVoid(ItemStack item) {
-        return item == null || item.getAmount() <= 0 || item.getType() == Material.AIR;
+        return ItemStore.isEmpty(item);
     }
 
 }

@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.Gui;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.GuiComponent;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.StorageBinding;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
+import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutBase;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.Cancellable;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.ClickPolicy;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.GuiGeometry;
@@ -55,6 +56,7 @@ public final class GuiView {
     private static final int FIRST_COMPONENT_LAYER = GuiBuffer.LAYER_CONTENT + 1;
 
     private final Gui<?> gui;
+    private final LayoutBase layout;
     private final UUID viewerId;
     private final String viewerName;
     private final GuiGeometry geometry;
@@ -92,6 +94,8 @@ public final class GuiView {
 
     GuiView(Gui<?> gui, Player viewer, GuiSurface surface, GuiScheduler scheduler, String title) {
         this.gui = gui;
+        //asked once, here: resolving it costs a look at the filesystem, and a render costs none
+        this.layout = gui.getLayoutFor(viewer);
         this.viewer = viewer;
         this.viewerId = viewer.getUniqueId();
         this.viewerName = viewer.getName();
@@ -105,7 +109,7 @@ public final class GuiView {
     /** Builds the components and arms whatever they asked to be armed. Runs once, right after opening. */
     void start() {
         startStorages();
-        for (Gui.IconBinding binding : gui.getIconBindings()) {
+        for (Gui.IconBinding binding : gui.getIconBindings(layout)) {
             Icon icon = binding.getIcon();
             if (!icon.isAnimated()) {
                 continue;
@@ -139,12 +143,6 @@ public final class GuiView {
         }
         slotStorages = new StorageView[geometry.getSize()];
         for (StorageBinding binding : declared) {
-            if (binding.getBacking() == null) {
-                throw new IllegalStateException("The storage region [" + binding.getName() + "] of ["
-                        + gui.getTitle() + "] has no store to keep its contents in: call backedBy(...) on it "
-                        + "with the GenericInventory the plugin persists. A region without one would open "
-                        + "empty and throw away whatever the player put in it.");
-            }
             int[] claimed = claimSlotsOf(binding);
             StorageView storage = new StorageView(this, binding, claimed);
             for (int slot : claimed) {
@@ -191,6 +189,15 @@ public final class GuiView {
     @Nonnull
     public Gui<?> getGui() {
         return gui;
+    }
+
+    /**
+     * The layout this window was painted from: the copy resolved for the viewer's own language when the
+     * admin wrote an overlay of it, and {@code null} on a screen sized by hand.
+     */
+    @Nullable
+    public LayoutBase getLayout() {
+        return layout;
     }
 
     /** The player, or {@code null} once the view has been released. */
@@ -391,7 +398,7 @@ public final class GuiView {
 
         clearLayer(GuiBuffer.LAYER_BACKGROUND);
         clearLayer(GuiBuffer.LAYER_CONTENT);
-        for (Gui.IconBinding binding : gui.getIconBindings()) {
+        for (Gui.IconBinding binding : gui.getIconBindings(layout)) {
             Icon icon = animatedIcons.getOrDefault(binding, binding.getIcon());
             paint(icon.isBackground() ? GuiBuffer.LAYER_BACKGROUND : GuiBuffer.LAYER_CONTENT,
                     binding.getSlots(), icon);

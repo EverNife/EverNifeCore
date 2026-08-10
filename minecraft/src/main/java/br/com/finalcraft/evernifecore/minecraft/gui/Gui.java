@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.gui;
 
+import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.GuiComponent;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.IconBinder;
 import br.com.finalcraft.evernifecore.minecraft.gui.component.ListComponent;
@@ -81,13 +82,19 @@ public class Gui<L extends LayoutBase> {
         this.rows = type.isChest() ? rows : 0;
         this.layout = layout;
         type.sizeOf(this.rows); //fail here, on the line the caller wrote, not later when the window is asked for
+        layoutIcons.putAll(paintedIconsOf(layout));
+    }
+
+    private static Map<String, IconBinding> paintedIconsOf(LayoutBase layout) {
+        Map<String, IconBinding> painted = new LinkedHashMap<>();
         if (layout != null) {
             for (LayoutBase.PlacedIcon placed : layout.getIcons().values()) {
                 if (placed.isVisible()) {
-                    layoutIcons.put(placed.getName(), new IconBinding(placed.getSlots(), placed.getIcon()));
+                    painted.put(placed.getName(), new IconBinding(placed.getSlots(), placed.getIcon()));
                 }
             }
         }
+        return painted;
     }
 
     /** A chest of {@code rows} rows. */
@@ -414,6 +421,24 @@ public class Gui<L extends LayoutBase> {
         return layout;
     }
 
+    /**
+     * The layout as {@code viewer} reads it: the copy resolved for their own language when the admin
+     * wrote an overlay of it, and the one every viewer shares otherwise.
+     *
+     * <p>A view asks this once, when it opens, and paints the icons of whatever it gets - which is how a
+     * {@code guis/locale/<lang>/} file reaches a screen. An icon a binder or a list took over keeps the
+     * copy the plugin bound, because that copy is the plugin's to edit and the overlay's answer would
+     * throw those edits away.</p>
+     */
+    @Nullable
+    public LayoutBase getLayoutFor(@Nullable Player viewer) {
+        if (layout == null || viewer == null) {
+            return layout;
+        }
+        return Layouts.of(layout.getClass(),
+                FCLocaleManager.getLangOf(FCBukkitUtil.adapt(viewer), layout.getPlugin()));
+    }
+
     /** The nominal measurements. A view measures the container it actually got instead. */
     @Nonnull
     public GuiGeometry getGeometry() {
@@ -480,6 +505,17 @@ public class Gui<L extends LayoutBase> {
      */
     @Nonnull
     public List<IconBinding> getIconBindings() {
+        return getIconBindings(layout);
+    }
+
+    /**
+     * {@link #getIconBindings()} over the copy of the layout {@code exemplar} answers for, which is how
+     * a per-language overlay decides what a viewer's own window paints.
+     */
+    @Nonnull
+    public List<IconBinding> getIconBindings(@Nullable LayoutBase exemplar) {
+        Map<String, IconBinding> layoutIcons = exemplar == null || exemplar == layout
+                ? this.layoutIcons : paintedIconsOf(exemplar);
         if (layoutIcons.isEmpty()) {
             return Collections.unmodifiableList(new ArrayList<>(iconBindings));
         }

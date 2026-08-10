@@ -5,6 +5,7 @@ import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -80,10 +81,25 @@ public final class LayoutSource {
         return contains(path) ? configOf(path).getStringList(path) : Collections.<String>emptyList();
     }
 
-    /** The child keys of {@code path}, from whichever file answers for it. */
+    /**
+     * The child keys of {@code path}: the overlay's first, then the ones only the base names.
+     *
+     * <p>A section is answered key by key like a leaf is - naming one icon of a section in one language
+     * does not take its siblings away from that language.</p>
+     */
     @Nonnull
     public Set<String> getKeys(@Nonnull String path) {
-        return contains(path) ? configOf(path).getKeys(path) : Collections.<String>emptySet();
+        if (!contains(path)) {
+            return Collections.<String>emptySet();
+        }
+        Set<String> merged = new LinkedHashSet<>();
+        if (isFromOverlay(path)) {
+            merged.addAll(overlay.getKeys(path));
+        }
+        if (base.contains(path)) {
+            merged.addAll(base.getKeys(path));
+        }
+        return merged;
     }
 
 }

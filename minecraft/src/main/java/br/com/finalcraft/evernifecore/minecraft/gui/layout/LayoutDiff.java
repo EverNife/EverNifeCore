@@ -148,6 +148,7 @@ public final class LayoutDiff {
             fieldOfKey.put(field.getName(), field);
         }
 
+        String fileName = LayoutScanner.fileNameOf(type);
         List<Entry> entries = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
         Map<String, SlotSet> claimedSlots = new LinkedHashMap<>();
@@ -162,7 +163,7 @@ public final class LayoutDiff {
                         "will be seeded on the next save", iconData.group()));
                 continue;
             }
-            SlotSet slots = slotsOf(source, path, warnings, key);
+            SlotSet slots = slotsOf(source, path, warnings, key, fileName);
             Verdict verdict = slots != null && slots.isEmpty() ? Verdict.SILENCED : Verdict.MATCHED;
             entries.add(new Entry(key, verdict, section, slots, source.isFromOverlay(path),
                     detailOf(source, path), iconData.group()));
@@ -185,25 +186,42 @@ public final class LayoutDiff {
         for (String key : source.getKeys(LayoutScanner.BACKGROUND)) {
             if (!fieldOfKey.containsKey(key)) {
                 String path = LayoutScanner.BACKGROUND + "." + key;
-                SlotSet slots = slotsOf(source, path, warnings, key);
+                SlotSet slots = slotsOf(source, path, warnings, key, fileName);
                 entries.add(new Entry(key, slots != null && slots.isEmpty() ? Verdict.SILENCED
                         : Verdict.MATCHED, LayoutScanner.BACKGROUND, slots, source.isFromOverlay(path),
                         "declared by the file only", ""));
             }
         }
 
-        return new LayoutDiff(type.getSimpleName(), LayoutScanner.fileNameOf(type), language,
+        return new LayoutDiff(type.getSimpleName(), fileName, language,
                 source.hasOverlay(), entries, warnings);
     }
 
+    /**
+     * Where the file puts {@code path}, or {@code null} when it holds a slot list nothing can read -
+     * which is reported as the defect it is, never as the empty list that switches an icon off.
+     */
     @Nullable
-    private static SlotSet slotsOf(LayoutSource source, String path, List<String> warnings, String key) {
+    private static SlotSet slotsOf(LayoutSource source, String path, List<String> warnings, String key,
+                                   String fileName) {
         try {
             return source.getValue(path + ".Slot", SlotSet.class);
         } catch (RuntimeException unreadable) {
-            warnings.add(key + " has an unreadable slot list: " + unreadable.getMessage());
+            warnings.add(key + " has an unreadable slot list, so where it goes is unknown: "
+                    + reasonOf(unreadable) + " Fix " + path + ".Slot in " + fileName + ".");
             return null;
         }
+    }
+
+    /** What a failure says, following it down to the one that actually knows - a read that fails deep
+     *  inside a codec is wrapped by every layer on the way out. */
+    private static String reasonOf(Throwable failure) {
+        Throwable deepest = failure;
+        while (deepest.getCause() != null && deepest.getCause() != deepest) {
+            deepest = deepest.getCause();
+        }
+        String message = deepest.getMessage();
+        return message == null ? deepest.toString() : message;
     }
 
     private static String detailOf(LayoutSource source, String path) {

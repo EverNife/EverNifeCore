@@ -36,7 +36,8 @@ import java.util.function.Supplier;
  * entries costs zero writes.</p>
  *
  * <p>An entry whose render function throws costs that one entry: it is logged with its index and the
- * rest of the page is drawn. A single bad row in a config-driven list never takes the screen down.</p>
+ * rest of the page is drawn. A source that throws costs the page, which is drawn empty. A single bad
+ * row in a config-driven list never takes the screen down, and neither does a source that went away.</p>
  */
 public final class ListComponent<T, L extends LayoutBase> {
 
@@ -207,16 +208,15 @@ public final class ListComponent<T, L extends LayoutBase> {
         }
 
         List<T> entries;
-        if (paged != null) {
-            Integer counted = total.get();
-            pager.measure(pageSize, counted == null ? 0 : counted);
-            entries = paged.get(pager.getPage(), pageSize);
-        } else {
-            List<T> all = materialized.get();
-            pager.measure(pageSize, all == null ? 0 : all.size());
-            int from = (pager.getPage() - 1) * pageSize;
-            entries = all == null ? Collections.<T>emptyList()
-                    : all.subList(Math.min(from, all.size()), Math.min(from + pageSize, all.size()));
+        try {
+            entries = entriesOf(pager, pageSize);
+        } catch (Throwable failure) {
+            //the source is as much of a plugin's own code as the render function is, and a screen frozen
+            //on the page before is worse than an empty one: the log is what says which of the two happened
+            EverNifeCore.getLog().warning("A gui list could not read its source, so the page was left "
+                    + "empty: " + failure + ".");
+            pager.measure(pageSize, 0);
+            entries = Collections.emptyList();
         }
 
         int[] target = slots.toArray();
@@ -234,6 +234,22 @@ public final class ListComponent<T, L extends LayoutBase> {
         }
 
         renderPageButtons(writer, pager);
+    }
+
+    /** The entries of the page {@code pager} is on, having told it how big the page and the source are. */
+    private List<T> entriesOf(Pager pager, int pageSize) {
+        if (paged != null) {
+            Integer counted = total.get();
+            pager.measure(pageSize, counted == null ? 0 : counted);
+            return paged.get(pager.getPage(), pageSize);
+        }
+        List<T> all = materialized.get();
+        pager.measure(pageSize, all == null ? 0 : all.size());
+        if (all == null) {
+            return Collections.<T>emptyList();
+        }
+        int from = (pager.getPage() - 1) * pageSize;
+        return all.subList(Math.min(from, all.size()), Math.min(from + pageSize, all.size()));
     }
 
     /** The arrows, drawn only while there is somewhere to go: one page needs no navigation. */

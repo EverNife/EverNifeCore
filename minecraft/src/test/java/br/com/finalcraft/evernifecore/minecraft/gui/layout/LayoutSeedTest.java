@@ -176,7 +176,8 @@ class LayoutSeedTest {
         LayoutScanner.load(plugin, ShopLayout.class, null);
 
         String yaml = seededFile();
-        assertTrue(yaml.contains("_Quarentena:"), "the orphan key was moved, not dropped:\n" + yaml);
+        assertTrue(yaml.contains(LayoutScanner.QUARANTINE + ":"),
+                "the orphan key was moved, not dropped:\n" + yaml);
         assertTrue(yaml.contains("OLD_UPGRADE:"), "the admin's own work is still there to copy:\n" + yaml);
     }
 

@@ -62,7 +62,7 @@ class StoredInventoryTest {
     void anInventoryHasAsManySlotsAsItWasGivenAndNoMore() {
         StoredInventory inventory = new StoredInventory(9);
 
-        assertEquals(9, inventory.getSize());
+        assertEquals(9, inventory.getCapacity());
         assertEquals(9, inventory.getCapacity(), "the seam and the type answer the same number");
 
         IndexOutOfBoundsException failure = assertThrows(IndexOutOfBoundsException.class,
@@ -77,17 +77,17 @@ class StoredInventoryTest {
         inventory.setItemSilently(1, diamonds(3));
 
         inventory.setCapacity(5);
-        assertEquals(5, inventory.getSize());
+        assertEquals(5, inventory.getCapacity());
         assertEquals(3, inventory.getItem(1).getAmount(), "what it held is where it was");
 
         inventory.setItemSilently(4, new ItemStack(Material.DIRT));
         IllegalStateException failure = assertThrows(IllegalStateException.class, () -> inventory.setCapacity(3));
         assertTrue(failure.getMessage().contains("slot 4"), failure.getMessage());
-        assertEquals(5, inventory.getSize(), "and the refusal left it as it was");
+        assertEquals(5, inventory.getCapacity(), "and the refusal left it as it was");
 
         inventory.setItemSilently(4, null);
         inventory.setCapacity(3);
-        assertEquals(3, inventory.getSize(), "over an empty slot there is nothing to lose");
+        assertEquals(3, inventory.getCapacity(), "over an empty slot there is nothing to lose");
     }
 
     @Test
@@ -317,7 +317,7 @@ class StoredInventoryTest {
         assertTrue(offThread(() -> inventory.setItem(UpdateCause.PLUGIN, 0, diamonds(1)))
                 instanceof IllegalStateException);
         assertTrue(offThread(() -> inventory.setCapacity(9)) instanceof IllegalStateException);
-        assertEquals(3, inventory.getSize());
+        assertEquals(3, inventory.getCapacity());
     }
 
     @Test

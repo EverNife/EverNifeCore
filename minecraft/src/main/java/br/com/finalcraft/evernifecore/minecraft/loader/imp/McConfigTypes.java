@@ -87,8 +87,9 @@ public final class McConfigTypes {
      * only the bracketed string is ever written back.
      *
      * <p>An empty list means "nowhere", which is how an admin switches an icon off, and is never an error.
-     * Text that is neither of the three IS an error, and it is logged naming the value instead of leaving
-     * an icon mysteriously absent.</p>
+     * Text that is neither of the three IS an error, and it is thrown naming the offending value: only the
+     * caller knows which field of which file holds it, and "deliberately switched off" is what an empty
+     * list means - a broken one has to read as broken.</p>
      */
     private static void registerSlotSet() {
         ConfigFactory.register(SlotSet.class).jackson(
@@ -113,35 +114,23 @@ public final class McConfigTypes {
         if (node == null || node.isNull()) {
             return SlotSet.EMPTY;
         }
-        try {
-            if (node.isArray()) {
-                List<Integer> slots = new ArrayList<>();
-                for (JsonNode element : node) {
-                    slots.addAll(Arrays.asList(boxed(SlotSet.parse(element.asText()).toArray())));
+        if (node.isArray()) {
+            List<Integer> slots = new ArrayList<>();
+            for (JsonNode element : node) {
+                for (int slot : SlotSet.parse(element.asText()).toArray()) {
+                    slots.add(slot);
                 }
-                int[] values = new int[slots.size()];
-                for (int i = 0; i < values.length; i++) {
-                    values[i] = slots.get(i);
-                }
-                return SlotSet.of(values);
             }
-            if (node.isNumber()) {
-                return SlotSet.of(node.asInt());
+            int[] values = new int[slots.size()];
+            for (int i = 0; i < values.length; i++) {
+                values[i] = slots.get(i);
             }
-            return SlotSet.parse(node.asText());
-        } catch (RuntimeException e) {
-            EverNifeCore.getLog().warning("[Config] Ignoring an unreadable slot list [" + node + "]: "
-                    + e.getMessage());
-            return SlotSet.EMPTY;
+            return SlotSet.of(values);
         }
-    }
-
-    private static Integer[] boxed(int[] values) {
-        Integer[] boxed = new Integer[values.length];
-        for (int i = 0; i < values.length; i++) {
-            boxed[i] = values[i];
+        if (node.isNumber()) {
+            return SlotSet.of(node.asInt());
         }
-        return boxed;
+        return SlotSet.parse(node.asText());
     }
 
     // ==================== Location ====================
@@ -243,6 +232,11 @@ public final class McConfigTypes {
      * files remain readable; only re-saves collapse an InvItem to its item-data list form.
      */
     private static void writeItemStack(ItemStack itemStack, JsonGenerator gen) throws IOException {
+        if (itemStack == null) {
+            //an empty slot has no item-data lines to write, and what it reads back as is null again
+            gen.writeNull();
+            return;
+        }
         ItemDescription description = ItemEngine.get().read(itemStack);
         if (!description.isComplete() && ItemEngine.get().getRuntime().isLive()) {
             //saving is the moment data is lost for good, so an incomplete read cannot pass quietly
@@ -258,6 +252,10 @@ public final class McConfigTypes {
      * READ, tolerant across every historical on-disk shape, in the same precedence the legacy loader used.
      */
     private static ItemStack readItemStack(JsonNode node) {
+        if (node == null || node.isNull()) {
+            return null;
+        }
+
         // 1. Custom-container object: {invItem:{name:...}, ...}
         JsonNode invItemNode = node.isObject() ? node.get("invItem") : null;
         if (invItemNode != null && invItemNode.get("name") != null) {
@@ -330,21 +328,30 @@ public final class McConfigTypes {
         );
     }
 
+    /**
+     * WRITE. Everything comes from one {@link StoredInventory#snapshotForWrite() snapshot}: saving runs
+     * on a worker thread, and an envelope whose size, items and maximums were read at three different
+     * moments describes an inventory that never existed.
+     */
     private static void writeStoredInventory(StoredInventory inventory, JsonGenerator gen) throws IOException {
+        StoredInventory.Snapshot snapshot = inventory.snapshotForWrite();
         gen.writeStartObject();
         gen.writeNumberField(StoredInventorySchema.VERSION_KEY, StoredInventorySchema.VERSION);
-        gen.writeNumberField(StoredInventorySchema.SIZE_KEY, inventory.getSize());
+        gen.writeNumberField(StoredInventorySchema.SIZE_KEY, snapshot.getCapacity());
 
         gen.writeObjectFieldStart(StoredInventorySchema.ITEMS_KEY);
-        for (int slot : inventory.getOccupiedSlots()) {
-            gen.writeFieldName(String.valueOf(slot));
-            writeItemStack(inventory.getItem(slot), gen);
+        for (int slot = 0; slot < snapshot.getCapacity(); slot++) {
+            ItemStack item = snapshot.getItem(slot);
+            if (item != null) {
+                gen.writeFieldName(String.valueOf(slot));
+                writeItemStack(item, gen);
+            }
         }
         gen.writeEndObject();
 
         Map<String, Integer> declaredMaximums = new LinkedHashMap<>();
-        for (int slot = 0; slot < inventory.getSize(); slot++) {
-            int max = inventory.getMaxStackSize(slot);
+        for (int slot = 0; slot < snapshot.getCapacity(); slot++) {
+            int max = snapshot.getMaxStackSize(slot);
             if (max != StoredInventory.ITEM_DEFAULT) {
                 declaredMaximums.put(String.valueOf(slot), max);
             }
@@ -375,7 +382,7 @@ public final class McConfigTypes {
             for (Iterator<Map.Entry<String, JsonNode>> fields = items.fields(); fields.hasNext(); ) {
                 Map.Entry<String, JsonNode> field = fields.next();
                 int slot = StoredInventorySchema.slotNumberOf(field.getKey());
-                if (slot >= 0 && slot < restoring.getSize()) {
+                if (slot >= 0 && slot < restoring.getCapacity()) {
                     restoring.setItem(slot, readItemStack(field.getValue()));
                 }
             }
@@ -386,7 +393,7 @@ public final class McConfigTypes {
             for (Iterator<Map.Entry<String, JsonNode>> fields = maximums.fields(); fields.hasNext(); ) {
                 Map.Entry<String, JsonNode> field = fields.next();
                 int slot = StoredInventorySchema.slotNumberOf(field.getKey());
-                if (slot >= 0 && slot < restoring.getSize()) {
+                if (slot >= 0 && slot < restoring.getCapacity()) {
                     restoring.setMaxStackSize(slot, field.getValue().asInt());
                 }
             }

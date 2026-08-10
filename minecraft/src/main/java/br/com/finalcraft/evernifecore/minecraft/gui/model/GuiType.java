@@ -40,6 +40,26 @@ public enum GuiType {
         this.defaultSize = defaultSize;
     }
 
+    /** Every type's name, comma separated - what a message that offers the roster is built from. */
+    public static String names() {
+        return names(null);
+    }
+
+    /** {@link #names()} without {@code excluded}, for a message that has already named one. */
+    public static String names(GuiType excluded) {
+        StringBuilder roster = new StringBuilder();
+        for (GuiType type : values()) {
+            if (type == excluded) {
+                continue;
+            }
+            if (roster.length() > 0) {
+                roster.append(", ");
+            }
+            roster.append(type.name());
+        }
+        return roster.toString();
+    }
+
     /** Slots per row, which is what {@code Slots.at(row, column)} counts with. */
     public int getWidth() {
         return width;
@@ -65,8 +85,8 @@ public enum GuiType {
         }
         if (rows < MIN_CHEST_ROWS || rows > MAX_CHEST_ROWS) {
             throw new IllegalArgumentException("A CHEST gui has " + MIN_CHEST_ROWS + " to " + MAX_CHEST_ROWS
-                    + " rows, got [" + rows + "]. Pick a row count in range, or use another GuiType "
-                    + "(HOPPER, DISPENSER, BREWING, WORKBENCH) for the smaller windows.");
+                    + " rows, got [" + rows + "]. Pick a row count in range, or use another GuiType ("
+                    + names(CHEST) + ") for the smaller windows.");
         }
         return rows * width;
     }

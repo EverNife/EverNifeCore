@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutBase;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutDiff;
+import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutScanner;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Layouts;
 
 import java.util.ArrayList;
@@ -84,6 +85,12 @@ public class CMDGuiLayout {
         LayoutDiff diff = LayoutDiff.of(plugin, type, language);
         sender.sendMessage("§f" + diff.getLayoutName() + "  §7->  §fplugins/" + plugin.getMetaInfo().getName()
                 + "/" + diff.getFileName() + (diff.hasOverlay() ? " §7+ overlay " + language : ""));
+        if (language != null && !diff.hasOverlay()) {
+            sender.sendMessage("§7  no overlay for " + LocaleType.normalize(language) + ": every key below "
+                    + "is the base file's. Write plugins/" + plugin.getMetaInfo().getName() + "/"
+                    + LayoutScanner.overlayFileNameOf(type, LocaleType.normalize(language)) + " by hand to "
+                    + "change this screen for that language alone - the framework never creates it.");
+        }
 
         report(sender, diff, LayoutDiff.Verdict.MATCHED, "§aMATCHED", "");
         report(sender, diff, LayoutDiff.Verdict.NEW, "§eNEW",
