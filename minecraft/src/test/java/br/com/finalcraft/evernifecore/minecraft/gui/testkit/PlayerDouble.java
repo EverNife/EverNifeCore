@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.testkit;
 
+import br.com.finalcraft.evernifecore.minecraft.testkit.Doubles;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.HumanEntity;
@@ -44,6 +45,7 @@ public final class PlayerDouble {
     private final UUID uniqueId = UUID.randomUUID();
     private final String name;
     private final Set<String> permissions = new LinkedHashSet<>();
+    /** 36 slots: the hotbar and the three rows above it, which is all a gui ever reaches into. */
     private final SurfaceDouble playerInventory = new SurfaceDouble(36);
     private final List<String> messages = new ArrayList<>();
     private final List<PlayedSound> sounds = new ArrayList<>();
@@ -282,7 +284,8 @@ public final class PlayerDouble {
     private InventoryView open(Inventory inventory) {
         InventoryView view = joinedView(serverWindowOver.apply(inventory), playerInventory.asInventory(), face);
         if (refuseOpens) {
-            return view;
+            //a server that refuses to open answers null, and fires no event
+            return null;
         }
         InventoryView previous = openView;
         openView = view;

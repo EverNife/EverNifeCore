@@ -177,7 +177,9 @@ public final class PlatformMoves {
                 destination.add(at(view, slotInView));
             }
         }
-        //top up what is already there before opening a new stack, the order vanilla itself uses
+        //top up what is already there before opening a new stack, the order vanilla itself uses.
+        //WHICH empty slot is filled first is this double's own choice, and it fills them in index
+        //order - a test that asserts the slot a shift-click lands in is asserting that choice
         for (Slot target : destination) {
             if (!isEmpty(target.get())) {
                 transfer(slot, target, amountOf(slot.get()));
@@ -259,8 +261,9 @@ public final class PlatformMoves {
             if (max > 0) {
                 return max;
             }
-        } catch (Throwable unanswerable) {
-            //a server that cannot measure an item still lets a player move it
+        } catch (UnsupportedOperationException | LinkageError unanswerable) {
+            //a server that cannot measure an item still lets a player move it. Narrow on purpose:
+            //catching Throwable here would swallow the AssertionError of whatever test is running
         }
         return 64;
     }

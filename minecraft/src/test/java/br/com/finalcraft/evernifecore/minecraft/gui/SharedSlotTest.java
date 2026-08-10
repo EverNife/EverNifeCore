@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.gui;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.GuiLayout;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.IconData;
@@ -125,7 +124,7 @@ class SharedSlotTest {
     @BeforeEach
     void setup() {
         world = GuiTestWorld.install(tempDir);
-        plugin = ECPluginManager.getOrCreateECorePluginData(new Object());
+        plugin = world.getPluginData();
         player = world.newPlayer("Steve");
         Layouts.clear();
     }

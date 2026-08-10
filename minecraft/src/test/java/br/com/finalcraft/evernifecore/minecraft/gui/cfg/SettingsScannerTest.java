@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -526,7 +527,7 @@ class SettingsScannerTest {
         String comment = config.getComment("Settings.radius");
         assertTrue(comment.contains("Ate onde a loja alcanca"),
                 "the plugin's language picks which comment is written: " + comment);
-        assertTrue(!comment.contains("How far the shop reaches"),
+        assertFalse(comment.contains("How far the shop reaches"),
                 "and the other languages stay out of the file: " + comment);
     }
 

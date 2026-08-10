@@ -33,6 +33,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -71,7 +72,7 @@ class ItemDataPartRoundTripTest {
     /** {@code parse} of everything {@code format} wrote, folded back the way a block of lines is. */
     private static <V> void survivesTheRoundTrip(ItemDataPart<V> part, V value) {
         List<String> arguments = part.format(value);
-        assertTrue(!arguments.isEmpty(),
+        assertFalse(arguments.isEmpty(),
                 part.getCanonicalKey() + " wrote nothing at all for [" + value + "]");
 
         V rebuilt = null;
@@ -143,14 +144,14 @@ class ItemDataPartRoundTripTest {
         ItemDataPartName part = new ItemDataPartName();
 
         survivesTheRoundTrip(part, "§6Espada do Rei");
-        survivesTheRoundTrip(part, "§x§f§f§a§a§00Neon");
+        survivesTheRoundTrip(part, "§x§f§f§a§a§0§0Neon");
         survivesTheRoundTrip(part, "Rank #1");
         survivesTheRoundTrip(part, "%player_name%'s pickaxe");
         survivesTheRoundTrip(part, "§6   Espada do Rei   ");
 
         assertEquals("§6Espada", part.parse("&6Espada"), "the file writes '&' and the item holds the section sign");
         assertEquals(Arrays.asList("&6Espada"), part.format("§6Espada"));
-        assertTrue(!part.trimsArgument(),
+        assertFalse(part.trimsArgument(),
                 "a name centred with spaces has to come back with them, so the line keeps its ends");
     }
 
@@ -169,7 +170,7 @@ class ItemDataPartRoundTripTest {
         assertEquals(Arrays.asList("A", "B"), part.parse("A\nB"), "a real line break still breaks");
         assertEquals(Arrays.asList("A", "B", "C"),
                 part.merge(part.parse("A"), part.parse("B\nC")), "many lore lines pile into one block");
-        assertTrue(!part.trimsArgument(),
+        assertFalse(part.trimsArgument(),
                 "padding is how a lore line is centred, so the line hands it over as it was written");
     }
 
@@ -299,9 +300,10 @@ class ItemDataPartRoundTripTest {
         List<String> keys = new ArrayList<>();
         for (RegisteredPart registered : world.getEngine().getParts()) {
             String key = registered.getPart().getCanonicalKey();
-            assertTrue(!key.isEmpty() && key.indexOf(':') < 0,
+            assertFalse(key.isEmpty(), "a part with no key answers to nothing");
+            assertFalse(key.indexOf(':') >= 0,
                     "a key is what comes before the ':' of a line, so it cannot contain one: " + key);
-            assertTrue(!keys.contains(key), "two parts answer to '" + key + "'");
+            assertFalse(keys.contains(key), "two parts answer to '" + key + "'");
             assertEquals(key, registered.getKey(), "the engine files a part under the key it declares");
             keys.add(key);
         }

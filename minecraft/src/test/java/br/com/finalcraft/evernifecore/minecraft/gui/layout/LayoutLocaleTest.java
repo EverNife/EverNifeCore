@@ -2,7 +2,6 @@ package br.com.finalcraft.evernifecore.minecraft.gui.layout;
 
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.LocalePDSection;
@@ -35,7 +34,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -176,7 +174,7 @@ class LayoutLocaleTest {
     @BeforeEach
     void setup() {
         world = GuiTestWorld.installWithItemMetadata(tempDir);
-        plugin = ECPluginManager.getOrCreateECorePluginData(new Object());
+        plugin = world.getPluginData();
         Plugins.setLanguage(plugin, LocaleType.EN_US);
 
         perPlayerLocaleBefore = ECSettings.PER_PLAYER_LOCALE;
@@ -587,7 +585,7 @@ class LayoutLocaleTest {
         SurfaceDouble brazilian = world.getSurface();
 
         assertEquals(nameAt(english, 0), nameAt(brazilian, 0));
-        assertNotEquals(null, nameAt(english, 0), "and the text it does have still arrives");
+        assertNotNull(nameAt(english, 0), "and the text it does have still arrives");
     }
 
     @Test

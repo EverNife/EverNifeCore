@@ -19,6 +19,7 @@ import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
+import br.com.finalcraft.evernifecore.minecraft.testkit.Doubles;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.UnsafeValues;
@@ -55,6 +56,14 @@ import java.util.logging.Logger;
  * tell icons apart and exactly what the buffer's diff reads. And <b>createInventory</b> answers a
  * {@link SurfaceDouble} wearing the platform's interface, so a window opened through the framework's
  * real entry point still records every write.</p>
+ *
+ * <p>The <b>platform</b> double is deliberately the lenient one, against this repository's own
+ * strict-by-default rule. Everything a gui asks of a server here comes through Bukkit - the server
+ * double above, its scheduler, its inventories - and the platform is only what the core reaches for
+ * on the way past. Making it strict would name knobs for calls no gui test is about, and the one that
+ * matters is deliberately not delegated: the chat prompt's hop back to the main thread is intercepted
+ * by these Bukkit doubles, and a platform answering it inline would run a chat answer on the chat
+ * thread.</p>
  *
  * <p>There are two ways in, and what separates them is registration, not the clock: both end up on
  * the same {@link SchedulerDouble}, so either way nothing happens until {@link #advanceTicks(long)}

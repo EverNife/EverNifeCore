@@ -13,7 +13,9 @@ import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -70,7 +72,7 @@ class FinalCmdTestHarnessSmokeTest {
 
         harness.dispatch(command, sender, "hello");
 
-        assertTrue(GreetCommand.LAST_GREETED.get() == null);
-        assertTrue(!sender.getMessages().isEmpty(), "a help line should have been sent");
+        assertNull(GreetCommand.LAST_GREETED.get());
+        assertFalse(sender.getMessages().isEmpty(), "a help line should have been sent");
     }
 }

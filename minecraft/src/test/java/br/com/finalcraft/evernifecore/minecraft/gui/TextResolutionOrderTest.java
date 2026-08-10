@@ -3,7 +3,6 @@ package br.com.finalcraft.evernifecore.minecraft.gui;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocalePDSection;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
@@ -117,7 +116,7 @@ class TextResolutionOrderTest {
     @BeforeEach
     void setup() {
         world = GuiTestWorld.installWithItemMetadata(tempDir);
-        plugin = ECPluginManager.getOrCreateECorePluginData(new Object());
+        plugin = world.getPluginData();
         Plugins.setLanguage(plugin, LocaleType.EN_US);
 
         perPlayerLocaleBefore = ECSettings.PER_PLAYER_LOCALE;

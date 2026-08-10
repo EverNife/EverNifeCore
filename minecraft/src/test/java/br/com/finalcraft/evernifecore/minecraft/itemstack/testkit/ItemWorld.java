@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemPro
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
 import br.com.finalcraft.evernifecore.minecraft.testkit.BukkitRegistries;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
+import br.com.finalcraft.evernifecore.minecraft.testkit.Doubles;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.inventory.ItemFactory;
@@ -100,7 +101,7 @@ public final class ItemWorld implements AutoCloseable {
                             case "toString":
                                 return "ItemFactoryDouble";
                             default:
-                                return null;
+                                return Doubles.neutral(method.getReturnType());
                         }
                     }
                 });
@@ -130,7 +131,7 @@ public final class ItemWorld implements AutoCloseable {
                             case "toString":
                                 return "ServerDouble";
                             default:
-                                return method.getReturnType().isPrimitive() ? Boolean.FALSE : null;
+                                return Doubles.neutral(method.getReturnType());
                         }
                     }
                 });

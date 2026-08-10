@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.minecraft.gui.testkit;
+package br.com.finalcraft.evernifecore.minecraft.testkit;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -73,7 +73,7 @@ public final class Doubles {
     }
 
     /** What an unlisted method answers: {@code null} for a reference, zero/false for a primitive. */
-    private static Object neutral(Class<?> returnType) {
+    public static Object neutral(Class<?> returnType) {
         if (!returnType.isPrimitive()) {
             return null;
         }

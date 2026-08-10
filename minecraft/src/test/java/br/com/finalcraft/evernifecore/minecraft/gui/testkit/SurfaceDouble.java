@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.testkit;
 
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiSurface;
+import br.com.finalcraft.evernifecore.minecraft.testkit.Doubles;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 

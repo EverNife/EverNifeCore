@@ -268,6 +268,8 @@ class StoredInventoryStorageTest {
         assertEquals(1, world.getSurface().getItem(11).getAmount());
         assertEquals(2, asked.size(), "one question per slot, each with its own share");
         assertEquals(1, asked.get(0).getAddedAmount());
+        assertEquals(1, asked.get(1).getAddedAmount(), "the second share is a question of its own, and "
+                + "a handler reading only the first would never see it");
         assertTrue(GuiBuffer.isEmpty(player.getCursor()), "and all of it left the cursor");
     }
 

@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.gui.testkit;
 
 import br.com.finalcraft.evernifecore.minecraft.gui.model.Cancellable;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiScheduler;
+import br.com.finalcraft.evernifecore.minecraft.testkit.Doubles;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -113,9 +114,20 @@ public final class SchedulerDouble implements GuiScheduler {
                         cancelById((Integer) args[0]);
                         return null;
                     })
+                    .on("runTaskAsynchronously", args -> offThisClock("runTaskAsynchronously"))
+                    .on("runTaskLaterAsynchronously", args -> offThisClock("runTaskLaterAsynchronously"))
+                    .on("runTaskTimerAsynchronously", args -> offThisClock("runTaskTimerAsynchronously"))
                     .build();
         }
         return bukkitFace;
+    }
+
+    /** This clock is a tick counter a test advances by hand; there is no other thread to hand work to. */
+    private static BukkitTask offThisClock(String method) {
+        throw new UnsupportedOperationException("BukkitScheduler#" + method + " has no double: this "
+                + "scheduler is a tick counter the test advances by hand, so work handed to another "
+                + "thread would simply never run. Schedule it on this clock, or drive the code under "
+                + "test from the thread it is meant to run on.");
     }
 
     private BukkitTask taskFace(Task task) {

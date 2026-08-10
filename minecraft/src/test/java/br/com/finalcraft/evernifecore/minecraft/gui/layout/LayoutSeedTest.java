@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.layout;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.minecraft.gui.cfg.ConfigSetting;
@@ -113,7 +112,7 @@ class LayoutSeedTest {
     @BeforeEach
     void setup() {
         world = GuiTestWorld.install(tempDir);
-        plugin = ECPluginManager.getOrCreateECorePluginData(new Object());
+        plugin = world.getPluginData();
         Layouts.clear();
     }
 
@@ -135,8 +134,11 @@ class LayoutSeedTest {
         for (String key : Arrays.asList("Slot", "Permission", "DisplayItem", "States", "Locale")) {
             assertTrue(yaml.contains("#   " + key), "the header has to explain '" + key + "':\n" + yaml);
         }
-        assertTrue(yaml.contains("%category%") && yaml.contains("%product_name%")
-                && yaml.contains("%product_price%"), "every placeholder of the screen is listed:\n" + yaml);
+        for (String placeholder : Arrays.asList("%category%", "%product_name%", "%product_price%")) {
+            assertTrue(yaml.contains(placeholder),
+                    "the header lists every placeholder of the screen, and this one is missing: "
+                            + placeholder + "\n" + yaml);
+        }
     }
 
     @Test
@@ -150,8 +152,8 @@ class LayoutSeedTest {
         assertTrue(yaml.contains("EN_US:") && yaml.contains("PT_BR:"), "each language gets a block:\n" + yaml);
         assertTrue(yaml.contains("Background:"), "a background icon has its own section:\n" + yaml);
         assertTrue(yaml.contains("taxRate: 0.05"), "the settings of the class share the file:\n" + yaml);
-        assertTrue(yaml.contains("At least 0") || yaml.contains("At most 1"),
-                "a rule documents itself above the key it judges:\n" + yaml);
+        assertTrue(yaml.contains("At least 0"), "a rule documents itself above the key it judges:\n" + yaml);
+        assertTrue(yaml.contains("At most 1"), "and so does the other half of the same rule:\n" + yaml);
     }
 
     @Test
@@ -336,6 +338,7 @@ class LayoutSeedTest {
 
     private static void rewrite(Path path, String from, String to) throws IOException {
         String content = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+        assertTrue(content.contains(from), "the file has to hold what the test edits:\n" + content);
         Files.write(path, content.replace(from, to).getBytes(StandardCharsets.UTF_8));
     }
 

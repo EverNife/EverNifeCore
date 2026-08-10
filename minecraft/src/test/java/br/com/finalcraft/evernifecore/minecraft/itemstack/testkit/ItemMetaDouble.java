@@ -112,7 +112,7 @@ public final class ItemMetaDouble implements InvocationHandler {
                 }
                 return null;
             case "getItemFlags":
-                return EnumSet.copyOf(flags.isEmpty() ? EnumSet.noneOf(ItemFlag.class) : flags);
+                return EnumSet.copyOf(flags);
             case "hasItemFlag":
                 return flags.contains(args[0]);
 

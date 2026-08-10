@@ -328,6 +328,8 @@ class ItemRecipeScenariosTest {
         for (RefusedEdit edit : refused) {
             names.add(edit.getName());
         }
+        //reversed on purpose: a lore built from a sorted list has to be the caller's order, not the
+        //order the source happened to arrive in
         Collections.sort(names, Collections.reverseOrder());
         return names;
     }

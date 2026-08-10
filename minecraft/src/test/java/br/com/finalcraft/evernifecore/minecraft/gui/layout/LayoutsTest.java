@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.layout;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.minecraft.gui.Gui;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.SurfaceDouble;
@@ -71,7 +70,7 @@ class LayoutsTest {
     @BeforeEach
     void setup() {
         world = GuiTestWorld.install(tempDir);
-        plugin = ECPluginManager.getOrCreateECorePluginData(new Object());
+        plugin = world.getPluginData();
         Layouts.clear();
     }
 

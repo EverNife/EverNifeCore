@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.layout;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.minecraft.gui.cfg.SettingsScanner;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
@@ -101,7 +100,7 @@ class LayoutScannerTest {
         //a settings warning is emitted once per process, so a suite that counts one starts from clean
         SettingsScanner.forgetWarnings();
         world = GuiTestWorld.install(tempDir);
-        plugin = ECPluginManager.getOrCreateECorePluginData(new Object());
+        plugin = world.getPluginData();
         Layouts.clear();
     }
 
@@ -389,7 +388,9 @@ class LayoutScannerTest {
     }
 
     private void rewrite(String from, String to) throws IOException {
-        Files.write(seededPath(), seededFile().replace(from, to).getBytes(StandardCharsets.UTF_8));
+        String content = seededFile();
+        assertTrue(content.contains(from), "the file has to hold what the test edits:\n" + content);
+        Files.write(seededPath(), content.replace(from, to).getBytes(StandardCharsets.UTF_8));
     }
 
     /** Replaces the seeded file with a partial one - what an admin who edits by hand ends up with. */
