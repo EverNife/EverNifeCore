@@ -20,10 +20,12 @@ dependencies {
     api libs.commons.lang3
 
     // The platoverride stubs are compileOnly in common's production build, so anything compiled
-    // against common's API needs them back.
-    compileOnly project(':api-contracts')
+    // against common's API needs them back. `api` rather than `compileOnly`: a consumer of this
+    // module runs headless, where no platform supplies those classes, and the framework loads them
+    // on its own while building an ECPluginData - so they have to travel with the artifact instead
+    // of being rediscovered through a NoClassDefFoundError on the first harness construction.
+    api project(':api-contracts')
 
-    testImplementation project(':api-contracts')
     testRuntimeOnly libs.junit.platform.launcher
     testRuntimeOnly libs.h2 // the H2 backend, for the PlayerDataWorld tests
 }

@@ -1,5 +1,11 @@
 // Toolchain (Java 25) and the dual-target compileJava override (modern source syntax -> Java 8
 // bytecode via Jabel) are configured centrally in the root build.gradle.
+//
+// Published because common depends on it with `implementation`, which puts br.com.finalcraft:libby
+// in common's own published POM as a runtime dependency. Without an artifact behind that
+// coordinate, every consumer resolving evernifecore-common from outside this build fails on a
+// dependency that cannot exist - the POM promised something no repository could answer for.
+// The artifactId stays the bare project name, which is what the already-published POMs name.
 
 repositories {
     maven { url = 'https://repo.alessiodp.com/releases/' } // the custom libby-core lives here
@@ -7,4 +13,37 @@ repositories {
 
 dependencies {
     implementation libs.libby.core
+}
+
+// Same reason as common/build.gradle: the root tags every configuration with TargetJvmVersion=25,
+// and baked into Gradle Module Metadata that would make this Java-8 artifact resolve as "JVM 25
+// only" and reject Java 8 consumers.
+tasks.withType(GenerateModuleMetadata) {
+    enabled = false
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "PetrusRepo"
+            url = "https://maven.petrus.dev/public"
+            credentials {
+                username = System.env.PETRUSMAVEN_ACTOR
+                password = System.env.PETRUSMAVEN_TOKEN
+            }
+            authentication {
+                basic(BasicAuthentication)
+            }
+        }
+    }
+    publications {
+        petrus(MavenPublication) {
+            groupId = project.group
+            artifactId = "libby"
+            from(components.java)
+            pom.withXml {
+                asNode().appendNode('url', 'https://petrus.dev')
+            }
+        }
+    }
 }

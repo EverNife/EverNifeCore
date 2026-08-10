@@ -1,6 +1,45 @@
 // Compile-time-only "platoverride" stubs: each platform ships the real class under the same
-// fully-qualified name, and these are never packaged. The stubs are empty and import nothing,
-// so this module needs no dependencies of its own.
+// fully-qualified name, so these are never packaged INTO a deployable. The stubs are empty and
+// import nothing, so this module needs no dependencies of its own.
+//
+// Published all the same, because "the platform ships the real class" stops being true off a
+// server: a headless JVM running tests against common-tests has no platform, and the stubs are then
+// the only thing standing under the classes the framework loads on its own (ConfigFactory reaches
+// them while building an ECPluginData). Without an artifact, a downstream consumer of
+// evernifecore-common-tests cannot even construct the harness.
 //
 // Toolchain (Java 25) and the dual-target compileJava override (modern source syntax -> Java 8
 // bytecode via Jabel) are configured centrally in the root build.gradle.
+
+// Same reason as common/build.gradle: the root tags every configuration with TargetJvmVersion=25,
+// and baked into Gradle Module Metadata that would make this Java-8 artifact resolve as "JVM 25
+// only" and reject Java 8 consumers.
+tasks.withType(GenerateModuleMetadata) {
+    enabled = false
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "PetrusRepo"
+            url = "https://maven.petrus.dev/public"
+            credentials {
+                username = System.env.PETRUSMAVEN_ACTOR
+                password = System.env.PETRUSMAVEN_TOKEN
+            }
+            authentication {
+                basic(BasicAuthentication)
+            }
+        }
+    }
+    publications {
+        petrus(MavenPublication) {
+            groupId = project.group
+            artifactId = "evernifecore-api-contracts"
+            from(components.java)
+            pom.withXml {
+                asNode().appendNode('url', 'https://petrus.dev')
+            }
+        }
+    }
+}
