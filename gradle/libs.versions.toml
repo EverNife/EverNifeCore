@@ -49,7 +49,6 @@ jakarta-annotation = "2.1.1"
 jakarta-validation = "3.0.2"
 nbtapi = "2.16.0"
 bungeecord-chat = "1.16-R0.1"
-commons-io = "2.6"
 commons-lang3 = "3.15.0"
 # Deliberate old floor: compiling the Bukkit side against the oldest commons-lang3 a supported
 # server ships keeps newer APIs from reaching a runtime that lacks them.
@@ -109,7 +108,6 @@ jakarta-annotation = { module = "jakarta.annotation:jakarta.annotation-api", ver
 jakarta-validation = { module = "jakarta.validation:jakarta.validation-api", version.ref = "jakarta-validation" }
 nbtapi = { module = "de.tr7zw:item-nbt-api", version.ref = "nbtapi" }
 bungeecord-chat = { module = "net.md-5:bungeecord-chat", version.ref = "bungeecord-chat" }
-commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
 commons-lang3-legacy = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3-legacy" }
 

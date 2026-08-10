@@ -14,7 +14,6 @@ import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
-import org.apache.commons.io.FileUtils;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -26,6 +25,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.util.Locale;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.regex.Pattern;
@@ -210,7 +210,15 @@ public class SpigotUpdateChecker {
     }
 
     private void cleanOldJars(JavaPlugin plugin){
-        for (File pluginFile : FileUtils.listFiles(plugin.getDataFolder().getParentFile(), new String[]{"jar"}, false)) {
+        //listed with the JDK rather than commons-io: that library is on the plugin classpath of some
+        //server builds and not others, and reaching for it here threw NoClassDefFoundError on Paper
+        //1.16.5 for what one FilenameFilter does
+        File[] pluginFiles = plugin.getDataFolder().getParentFile()
+                .listFiles((dir, name) -> name.toLowerCase(Locale.ROOT).endsWith(".jar"));
+        if (pluginFiles == null){
+            return;
+        }
+        for (File pluginFile : pluginFiles) {
             BukkitPluginJar bukkitPluginJar = MAPPED_JARS.computeIfAbsent(pluginFile.getAbsolutePath(), s -> {
                 try {
                     return new BukkitPluginJar(pluginFile);

@@ -67,7 +67,6 @@ dependencies {
 
     compileOnly libs.luckperms.api
     compileOnly libs.vaultunlocked
-    compileOnly libs.commons.io
     compileOnly libs.commons.lang3.legacy
 
     // Local jars. FeatherBoard and BossShopPro are paid plugins: you must own them to build this.
