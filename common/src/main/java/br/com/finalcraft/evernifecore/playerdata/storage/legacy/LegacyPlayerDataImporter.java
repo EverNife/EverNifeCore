@@ -90,7 +90,7 @@ public final class LegacyPlayerDataImporter {
             return report;
         }
 
-        //Phase A - parse + conversion + routing + idempotency check (one virtual thread per file)
+        //parse + conversion + routing + idempotency check (one virtual thread per file)
         Queue<ParsedFile> parseResults = new ConcurrentLinkedQueue<>();
         ExecutorService executor = FCExecutorsUtil.createVirtualExecutorIfPossible("legacy-import");
         try {
@@ -115,11 +115,11 @@ public final class LegacyPlayerDataImporter {
         List<ParsedFile> parsed = new ArrayList<>(parseResults);
         parsed.sort(Comparator.comparing(parsedFile -> parsedFile.file.getName()));
 
-        //Phase B - one saveAll batch per collection, with per-entity fallback
+        //one saveAll batch per collection, with per-entity fallback
         savePlayerDataBatch(parsed);
         saveSectionBatches(parsed);
 
-        //Phase C - archiving (never deletes) + report
+        //archiving (never deletes) + report
         int archivedFiles = 0;
         int failedFiles = 0;
         for (ParsedFile parsedFile : parsed) {
@@ -145,11 +145,11 @@ public final class LegacyPlayerDataImporter {
             }
         }
 
-        //Phase D - progress file: what the next boot's trigger reads instead of counting rows
+        //progress file: what the next boot's trigger reads instead of counting rows
         writeProgress(parsed, report, files.length, archivedFiles, failedFiles);
         report.setDurationMillis(System.currentTimeMillis() - start);
 
-        //Phase E - the run that finally drained the folder gathers every artifact into __LegacyData_V2
+        //the run that finally drained the folder gathers every artifact into __LegacyData_V2
         //(the archive renamed back to PlayerData, the progress file, and a migration-result.log)
         if (report.isBecameCompleteThisRun()) {
             File consolidated = LegacyMigrationConsolidator.consolidate(legacyFolder, importedFolder,
@@ -160,7 +160,7 @@ public final class LegacyPlayerDataImporter {
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------//
-    // Phase A - per-file conversion (runs on a virtual thread)
+    // Per-file conversion (runs on a virtual thread)
     // -----------------------------------------------------------------------------------------------------------------------------//
 
     private ParsedFile parseFile(File file) {
@@ -218,7 +218,7 @@ public final class LegacyPlayerDataImporter {
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------//
-    // Phase B - batched saves per collection
+    // Batched saves per collection
     // -----------------------------------------------------------------------------------------------------------------------------//
 
     private void savePlayerDataBatch(List<ParsedFile> parsed) {
@@ -297,7 +297,7 @@ public final class LegacyPlayerDataImporter {
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------//
-    // Phase C - archiving
+    // Archiving
     // -----------------------------------------------------------------------------------------------------------------------------//
 
     /** @return true when the file left the legacy folder. */
@@ -344,7 +344,7 @@ public final class LegacyPlayerDataImporter {
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------//
-    // Phase D - progress file
+    // Progress file
     // -----------------------------------------------------------------------------------------------------------------------------//
 
     private void writeProgress(List<ParsedFile> parsed, LegacyImportReport report,

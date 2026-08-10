@@ -152,7 +152,7 @@ class RefInPDSectionTest {
     }
 
     // ==================================================================
-    //  fail-fast (D1): a ConfigLifecycle type carrying a Ref is rejected, not silently unbound
+    //  fail-fast: a ConfigLifecycle type carrying a Ref is rejected, not silently unbound
     // ==================================================================
 
     @Test
@@ -311,7 +311,7 @@ class RefInPDSectionTest {
         }
     }
 
-    /** A ConfigLifecycle type that also carries a Ref - the D1 fail-fast subject. */
+    /** A ConfigLifecycle type that also carries a Ref - the fail-fast subject. */
     @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
     public static class LifecycleWithRef implements ConfigLifecycle {
         public UUID id;

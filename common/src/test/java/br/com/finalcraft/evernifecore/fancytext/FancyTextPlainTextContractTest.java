@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
- * C20 - obtaining a message's final text WITHOUT sending it: {@code toLegacyString(...)} (with
+ * Obtaining a message's final text WITHOUT sending it: {@code toLegacyString(...)} (with
  * {@code §} colours and {@code ${key}} resolved) and {@code toPlainText(...)} (colours stripped).
  */
 @ECoreTest

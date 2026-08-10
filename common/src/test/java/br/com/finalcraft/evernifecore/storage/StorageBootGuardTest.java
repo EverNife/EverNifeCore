@@ -14,7 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The 2x2 matrix (boot/reload x flag true/false) that decides whether
- * {@code IPlatform.shutdown} is called - see decisions D2/D3 of the storage boot guard design.
+ * {@code IPlatform.shutdown} is called: only a failed boot with the flag on stops the server;
+ * a failed reload never does, regardless of the flag.
  */
 @ECoreTest
 class StorageBootGuardTest {

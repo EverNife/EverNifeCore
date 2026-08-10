@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 /**
- * Pins the per-player locale resolve (C16/C17). With the setting off (the default), a message
+ * Pins the per-player locale resolve. With the setting off (the default), a message
  * resolves exactly like it does today - the plugin's default for every recipient, and no locale
  * section is even registered. With it on, a player who picked a language sees their translation,
  * while a player without a preference keeps the plugin's default.
@@ -60,7 +60,7 @@ class PlayerLocaleResolveContractTest {
         }
     }
 
-    // C16 - the OFF path: nothing registered, and every recipient still gets the plugin default.
+    // The OFF path: nothing registered, and every recipient still gets the plugin default.
     @Test
     void settingOffRegistersNoSectionAndResolvesToDefaultForEveryone() throws IOException {
         ECSettings.PER_PLAYER_LOCALE = false;
@@ -81,7 +81,7 @@ class PlayerLocaleResolveContractTest {
                 "off: the console must resolve to the plugin default, unchanged");
     }
 
-    // C17 - the ON path: the player who picked PT_BR sees it; a player without a preference does not.
+    // The ON path: the player who picked PT_BR sees it; a player without a preference does not.
     @Test
     void settingOnResolvesPerPlayerLanguageWithDefaultFallback() throws Exception {
         ECSettings.PER_PLAYER_LOCALE = true;
