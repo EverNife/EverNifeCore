@@ -31,9 +31,11 @@ public final class ItemBase {
      *
      * <p>A bukkit name is checked here and not at build time: a typo in a material is a mistake in
      * the caller's own line, and it is worth failing where that line is, not three calls later. A
-     * namespaced name is kept verbatim, because only the running server's registry knows it.</p>
+     * name that resolves to a material and nothing else is kept as that material, so the base needs
+     * no server to resolve. A namespaced name, and one carrying a data value, are kept verbatim -
+     * only the running server can turn either into an item.</p>
      *
-     * @throws IllegalArgumentException when this server has no such material
+     * @throws IllegalArgumentException when this server has no such material, or when the name is AIR
      */
     @Nonnull
     public static ItemBase ofIdentifier(@Nonnull String identifier) {
@@ -53,6 +55,13 @@ public final class ItemBase {
                         + "this server has. Write a name from the server's own list (DIAMOND_SWORD), a name "
                         + "with a data value (WOOL:14), or a namespaced identifier a mod registered "
                         + "(mymod:cool_item).");
+            }
+            if (material == Material.AIR) {
+                throw new IllegalArgumentException("AIR is the absence of an item - a recipe cannot be "
+                        + "built on it. Name a real material, or start from of(ItemStack).");
+            }
+            if (split.length == 1) {
+                return new ItemBase(material, null, null);
             }
         }
         return new ItemBase(null, identifier, null);

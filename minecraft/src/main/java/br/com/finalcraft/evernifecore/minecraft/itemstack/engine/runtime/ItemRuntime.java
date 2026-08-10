@@ -48,15 +48,23 @@ public final class ItemRuntime {
                     found.add(ItemProbe.ITEM_META);
                 }
             } catch (Exception | LinkageError absent) {
+                //absent
             }
 
             try {
                 NBT.readNbt(sample).getKeys();
-                NBT.parseNBT("{}");
                 found.add(ItemProbe.NBT);
-                //Crucible patches SNBT into 1.7.10, so reaching the tag at all is what proves it
+            } catch (Exception | LinkageError absent) {
+                //absent
+            }
+
+            //asked apart from reading a tag: a backport may ship one without the other, and that gap
+            //is the whole reason there are two probes
+            try {
+                NBT.parseNBT("{}");
                 found.add(ItemProbe.SNBT_IO);
             } catch (Exception | LinkageError absent) {
+                //absent
             }
 
             if (found.contains(ItemProbe.NBT)) {
@@ -64,6 +72,7 @@ public final class ItemRuntime {
                     NbtDoor.components().snapshot(sample);
                     found.add(ItemProbe.COMPONENTS);
                 } catch (Exception | LinkageError absent) {
+                    //absent
                 }
             }
 
@@ -73,6 +82,7 @@ public final class ItemRuntime {
                     found.add(ItemProbe.ENCHANT_REGISTRY);
                 }
             } catch (Exception | LinkageError absent) {
+                //absent
             }
         }
 
@@ -125,10 +135,13 @@ public final class ItemRuntime {
         return probes;
     }
 
-    /** How this runtime names itself in a refusal an admin has to act on. */
+    /**
+     * How this runtime names itself in a refusal an admin has to act on: the release it is at
+     * least, which is the same vocabulary a version floor is written in.
+     */
     @Nonnull
     public String describe() {
-        return version == null ? "a JVM with no Minecraft server" : version.name();
+        return version == null ? "a JVM with no Minecraft server" : version.getLowestRelease();
     }
 
     @Override

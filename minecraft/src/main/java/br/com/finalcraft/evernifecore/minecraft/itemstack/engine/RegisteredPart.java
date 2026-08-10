@@ -85,6 +85,16 @@ public final class RegisteredPart {
         return part == null ? ItemDataPart.PRIORITY_VERY_LATE : part.getPriority();
     }
 
+    /**
+     * Whether a line reaching this part hands over its value without the spaces around it.
+     *
+     * <p>A refused part answers yes: its lines are never parsed, only answered with the gap, and the
+     * value they carry is text nobody reads.</p>
+     */
+    public boolean trimsArgument() {
+        return part == null || part.trimsArgument();
+    }
+
     @Override
     public String toString() {
         return "RegisteredPart{" + getKey() + (isActive() ? ", active" : ", refused: " + refusal) + "}";

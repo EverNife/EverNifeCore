@@ -26,6 +26,12 @@ public class ItemDataPartName extends ItemDataPart<String> {
         return FCColorUtil.colorfy(argument);
     }
 
+    /** A name centred with spaces is a name, and it has to survive being saved and read again. */
+    @Override
+    public boolean trimsArgument() {
+        return false;
+    }
+
     @Nonnull
     @Override
     public List<String> format(@Nonnull String value) {

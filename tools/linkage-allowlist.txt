@@ -20,7 +20,7 @@
 # Types that arrived after some supported era.
 # ---------------------------------------------------------------------------------------------
 * class org/bukkit/NamespacedKey                     # arrived in 1.12. ItemDataPartEnchantment: ItemEngine registers it behind ItemRequirement.atLeast(v1_13_R1), and RegisteredPart never instantiates a refused part. ItemRuntime: inside try/catch(Exception|LinkageError)
-1.7.10 class org/bukkit/inventory/ItemFlag           # FCBaseItemBuilder:256 sits after the isEqual(v1_7_10) early return; ItemDataPartItemflags is registered behind ItemRequirement.atLeast(v1_8_R1)
+1.7.10 class org/bukkit/inventory/ItemFlag           # FCBaseItemBuilder.setGlow sits after the isEqual(v1_7_10) early return; ItemDataPartItemflags is registered behind ItemRequirement.atLeast(v1_8_R1)
 * class org/bukkit/Particle                          # arrived in 1.9. CMDProtectionTest$ParticleCompat, a nested class only loaded when the isHigherEquals(v1_13) branch runs
 * class org/bukkit/Particle$DustOptions              # arrived in 1.13, same guard as above
 
@@ -47,14 +47,15 @@
 * method org/bukkit/Material.matchMaterial(Ljava/lang/String;Z)Lorg/bukkit/Material;                  # FCMaterialUtil:63, inside if (MCVersion.isHigherEquals(v1_13))
 * method org/bukkit/NamespacedKey.fromString(Ljava/lang/String;)Lorg/bukkit/NamespacedKey;            # ItemDataPartEnchantment, registered behind ItemRequirement.atLeast(v1_13_R1)
 * method org/bukkit/enchantments/Enchantment.getKey()Lorg/bukkit/NamespacedKey;                       # idem
-* method org/bukkit/enchantments/Enchantment.getByKey(Lorg/bukkit/NamespacedKey;)Lorg/bukkit/enchantments/Enchantment;  # idem for ItemDataPartEnchantment; ItemRuntime:70 wraps its two calls in try/catch(Exception|LinkageError)
+* method org/bukkit/enchantments/Enchantment.getByKey(Lorg/bukkit/NamespacedKey;)Lorg/bukkit/enchantments/Enchantment;  # idem for ItemDataPartEnchantment; ItemRuntime.probe wraps its two calls in try/catch(Exception|LinkageError)
 * method org/bukkit/inventory/meta/ItemMeta.getCustomModelData()I                                     # ItemDataPartCustomModelData, registered behind ItemRequirement.atLeast(v1_14_R1)
 * method org/bukkit/inventory/meta/ItemMeta.hasCustomModelData()Z                                     # idem
 * method org/bukkit/inventory/meta/ItemMeta.setCustomModelData(Ljava/lang/Integer;)V                  # idem
-* method org/bukkit/inventory/meta/ItemMeta.getPersistentDataContainer()Lorg/bukkit/persistence/PersistentDataContainer;  # FCBaseItemBuilder:278, the stack edit declares ItemRequirement.atLeast(v1_14_R1) and a refused edit never applies
-* method org/bukkit/inventory/meta/ItemMeta.addItemFlags([Lorg/bukkit/inventory/ItemFlag;)V           # FCBaseItemBuilder:256, after the isEqual(v1_7_10) early return; ItemDataPartItemflags behind ItemRequirement.atLeast(v1_8_R1)
+* method org/bukkit/inventory/meta/ItemMeta.getPersistentDataContainer()Lorg/bukkit/persistence/PersistentDataContainer;  # FCBaseItemBuilder.setPDC, the stack edit declares ItemRequirement.atLeast(v1_14_R1) and a refused edit never applies
+* method org/bukkit/inventory/meta/ItemMeta.addItemFlags([Lorg/bukkit/inventory/ItemFlag;)V           # FCBaseItemBuilder.setGlow, after the isEqual(v1_7_10) early return; ItemDataPartItemflags behind ItemRequirement.atLeast(v1_8_R1)
 * method org/bukkit/inventory/meta/ItemMeta.getItemFlags()Ljava/util/Set;                             # ItemDataPartItemflags, registered behind ItemRequirement.atLeast(v1_8_R1)
-* method org/bukkit/inventory/meta/ItemMeta.setUnbreakable(Z)V                                        # FCBaseItemBuilder:230, after the isLower(v1_11_R1) early return
+* method org/bukkit/inventory/meta/ItemMeta.removeItemFlags([Lorg/bukkit/inventory/ItemFlag;)V         # idem - ItemDataPartItemflags.apply clears before it adds, so the block of lines is the whole answer
+* method org/bukkit/inventory/meta/ItemMeta.setUnbreakable(Z)V                                        # FCBaseItemBuilder.setUnbreakable, on the branch the isLower(v1_11_R1) test does not take
 * method org/bukkit/World.playSound(Lorg/bukkit/Location;Ljava/lang/String;FF)V                       # FCSoundUtil:51, the else of isEqual(v1_7_10)
 * method org/bukkit/entity/Entity.getCustomName()Ljava/lang/String;                                   # PlayerInteractListener:118, inside try/catch(NoSuchMethodError)
 * method org/bukkit/entity/Player$Spigot.sendMessage(Lnet/md_5/bungee/api/ChatMessageType;[Lnet/md_5/bungee/api/chat/BaseComponent;)V  # FCMinecraftAdventureUtil:125, inside try/catch(Throwable)

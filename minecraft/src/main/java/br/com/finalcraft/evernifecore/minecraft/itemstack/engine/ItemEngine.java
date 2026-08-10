@@ -27,12 +27,16 @@ import jakarta.annotation.Nullable;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 /**
@@ -118,7 +122,7 @@ public final class ItemEngine {
                 ItemRequirement.base().with(ItemProbe.NBT, ItemProbe.SNBT_IO),
                 new String[]{"rawnbt"}, ItemDataPartNBT::new));
         engine.register(PartRegistration.of(StandardParts.COMPONENTS,
-                ItemRequirement.base().with(ItemProbe.COMPONENTS),
+                ItemRequirement.atLeast(MCDetailedVersion.v1_20_R4).with(ItemProbe.COMPONENTS),
                 new String[]{}, ItemDataPartComponents::new)
                 .orWrite("Components arrived in 1.20.5; below it the same data lives under 'nbt:'."));
         engine.register(PartRegistration.of(StandardParts.ENCHANT,
@@ -131,8 +135,11 @@ public final class ItemEngine {
     }
 
     private final ItemRuntime runtime;
-    private final List<RegisteredPart> parts = new ArrayList<>();
-    private boolean refusalsReported = false;
+    //registration is a public door and reading happens from any thread: the copy-on-write list is
+    //what keeps a read that is already walking the parts from ever seeing a half-added one
+    private final List<RegisteredPart> parts = new CopyOnWriteArrayList<>();
+    private volatile boolean readRefusalsReported = false;
+    private volatile boolean writeRefusalsReported = false;
 
     private ItemEngine(@Nonnull ItemRuntime runtime) {
         this.runtime = runtime;
@@ -193,20 +200,36 @@ public final class ItemEngine {
         return line == null ? null : find(keyOf(line));
     }
 
-    /** Every part, in the order a read emits them. */
+    /** Every part, in the order a read emits them, as it stands right now. */
     @Nonnull
     public List<RegisteredPart> getParts() {
-        return Collections.unmodifiableList(parts);
+        return Collections.unmodifiableList(new ArrayList<>(parts));
     }
 
-    /** Every spelling a line may use, for the message that follows an unknown one. */
+    /**
+     * Every spelling a line may use, for the message that follows one this engine does not know.
+     *
+     * <p>Aliases are in it because a file that already works is written in them, and a part this
+     * runtime refused is in it too, marked: an admin who wrote a key that exists needs to read that
+     * the server is the limit, not that the key is a typo.</p>
+     */
     @Nonnull
     public String getKnownSpellings() {
-        List<String> spellings = new ArrayList<>();
+        List<String> described = new ArrayList<>();
         for (RegisteredPart part : parts) {
-            spellings.add(part.getKey());
+            String[] spellings = part.getSpellings();
+            StringBuilder line = new StringBuilder(part.getKey());
+            if (spellings.length > 1) {
+                line.append(" (also ")
+                        .append(String.join(", ", Arrays.asList(spellings).subList(1, spellings.length)))
+                        .append(')');
+            }
+            if (!part.isActive()) {
+                line.append(" - not on this server");
+            }
+            described.add(line.toString());
         }
-        return String.join(", ", spellings);
+        return String.join("; ", described);
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -263,13 +286,14 @@ public final class ItemEngine {
         Map<String, Object> values = new LinkedHashMap<>();
         List<ItemEdit> edits = new ArrayList<>();
         List<ItemLineProblem> problems = new ArrayList<>();
+        Set<String> alreadyRefused = new HashSet<>();
 
         for (String line : lines) {
-            if (line == null) {
+            if (line == null || line.trim().isEmpty()) {
+                //a blank line is how a file breathes, not a key nobody recognises
                 continue;
             }
             String key = keyOf(line);
-            String argument = argumentOf(line);
 
             RegisteredPart registered = find(key);
             if (registered == null) {
@@ -277,9 +301,12 @@ public final class ItemEngine {
                         + "The keys this server knows are " + getKnownSpellings() + "."));
                 continue;
             }
+            String argument = registered.trimsArgument() ? argumentOf(line).trim() : argumentOf(line);
             if (!registered.isActive()) {
-                //kept as an edit so materialize answers with the capability, not with silence
-                edits.add(ItemEdit.ofPart(registered.getKey(), argument));
+                //one edit per key, so materialize answers the capability once instead of once a line
+                if (alreadyRefused.add(registered.getKey())) {
+                    edits.add(ItemEdit.ofPart(registered.getKey(), argument));
+                }
                 continue;
             }
             try {
@@ -465,22 +492,32 @@ public final class ItemEngine {
         return (separator < 0 ? line : line.substring(0, separator)).trim();
     }
 
-    /** The value side of {@code key:value}, trimmed - never null, so a bare key means an empty value. */
+    /**
+     * The value side of {@code key:value}, exactly as it was written - never null, so a bare key
+     * means an empty value.
+     *
+     * <p>Nothing is trimmed here: whether the spaces around a value are noise or are the value is
+     * the part's answer, and {@link #parse(List)} asks it before handing the text over.</p>
+     */
     @Nonnull
     public static String argumentOf(@Nonnull String line) {
         int separator = line.indexOf(':');
-        return separator < 0 ? "" : line.substring(separator + 1).trim();
+        return separator < 0 ? "" : line.substring(separator + 1);
     }
 
     // -----------------------------------------------------------------------------------------------------------------
     //  Saying it once
     // -----------------------------------------------------------------------------------------------------------------
 
+    /**
+     * Reading and writing say it once each: they are two different limits, and the first item read
+     * on a reduced server used to burn the only warning the first item built would have given.
+     */
     private void reportRefusalsOnce(List<PartRefusal> refusals) {
-        if (refusalsReported || refusals.isEmpty()) {
+        if (readRefusalsReported || refusals.isEmpty()) {
             return;
         }
-        refusalsReported = true;
+        readRefusalsReported = true;
         List<String> named = new ArrayList<>();
         for (PartRefusal refusal : refusals) {
             named.add(refusal.toString());
@@ -490,16 +527,20 @@ public final class ItemEngine {
     }
 
     private void reportRefusedOnce(List<RefusedEdit> refused) {
-        if (refusalsReported || refused.isEmpty()) {
+        if (writeRefusalsReported || refused.isEmpty()) {
             return;
         }
-        refusalsReported = true;
-        warn("This runtime (" + runtime.describe() + ") could not apply " + refused
+        writeRefusalsReported = true;
+        List<String> named = new ArrayList<>();
+        for (RefusedEdit edit : refused) {
+            named.add(edit.toString());
+        }
+        warn("This runtime (" + runtime.describe() + ") could not apply " + String.join("; ", named)
                 + ". The item was built without them.");
     }
 
     /** The log exists only after the plugin boots, and item work happens before that too. */
-    private static void warn(String message) {
+    public static void warn(@Nonnull String message) {
         try {
             EverNifeCore.getLog().warning(message);
         } catch (Exception notBootedYet) {

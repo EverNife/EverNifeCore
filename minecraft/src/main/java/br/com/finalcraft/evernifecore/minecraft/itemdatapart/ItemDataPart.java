@@ -34,10 +34,21 @@ public abstract class ItemDataPart<V> {
      * Text -&gt; value. PURE: no Bukkit, no version checks - runs on any JVM. A bad argument throws
      * {@link ItemLineException} whose message teaches the fix, not just the defect.
      *
-     * <p>The argument arrives trimmed, so leading and trailing spaces are never part of a value.</p>
+     * <p>The argument arrives the way {@link #trimsArgument()} asks for it.</p>
      */
     @Nonnull
     public abstract V parse(@Nonnull String argument) throws ItemLineException;
+
+    /**
+     * Whether the spaces around the value side of a line are noise this part may drop.
+     *
+     * <p>True for every value with a shape of its own - a number, a material, a flag name - where a
+     * space is only how a person types. A part whose value is free text answers false: there the
+     * spaces are the value, and a round trip through a file has to give them back.</p>
+     */
+    public boolean trimsArgument() {
+        return true;
+    }
 
     /**
      * Value -&gt; the argument side of the line(s). PURE, inverse of parse. Multi-line parts

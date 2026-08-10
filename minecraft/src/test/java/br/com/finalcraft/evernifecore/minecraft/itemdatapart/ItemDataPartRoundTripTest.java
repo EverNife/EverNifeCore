@@ -10,8 +10,15 @@ import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPa
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartMaterial;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartNBT;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartName;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ParsedBlock;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.ItemLineException;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemProbe;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.testkit.ItemWorld;
+import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import org.bukkit.inventory.ItemFlag;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -34,11 +41,28 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * disk - a lore line that split in two, a name that lost its colour, a number that came back as
  * something else. Here the two are the same description, and this file is the proof.</p>
  *
- * <p>No server is involved, and none can be: the whole point of the pure half is that a value and
- * its text are a property of the part, not of the machine. Every value below is one that used to be
- * mishandled, or one an admin actually writes.</p>
+ * <p>The law is checked twice for every value: once over the part alone, and once over the whole
+ * line the engine writes and reads, {@code key:argument} included. The second one is what makes the
+ * proved law the law that runs - splitting a line apart has rules of its own, and a value that only
+ * survives {@code format} into {@code parse} can still lose something on the way through a file.</p>
+ *
+ * <p>No real server is involved. The engine stands on a runtime described by hand, because whether
+ * a value survives its own text is a property of the part, not of the machine.</p>
  */
 class ItemDataPartRoundTripTest {
+
+    private static ItemWorld world;
+
+    @BeforeAll
+    static void aServerThatCanDoEverythingAPartAsksFor() {
+        world = ItemWorld.install(ItemRuntime.of(MCDetailedVersion.v1_21_R1, ItemProbe.ITEM_META,
+                ItemProbe.NBT, ItemProbe.SNBT_IO, ItemProbe.COMPONENTS, ItemProbe.ENCHANT_REGISTRY));
+    }
+
+    @AfterAll
+    static void handTheJvmBack() {
+        world.close();
+    }
 
     /** {@code parse} of everything {@code format} wrote, folded back the way a block of lines is. */
     private static <V> void survivesTheRoundTrip(ItemDataPart<V> part, V value) {
@@ -53,6 +77,23 @@ class ItemDataPartRoundTripTest {
         }
         assertEquals(value, rebuilt, part.getCanonicalKey() + " wrote " + arguments
                 + " and read back something else");
+
+        survivesTheTripThroughItsOwnLines(part, value);
+    }
+
+    /** The same law over the pipeline that runs: lines out, lines in, value back. */
+    private static <V> void survivesTheTripThroughItsOwnLines(ItemDataPart<V> part, V value) {
+        List<String> lines = new ArrayList<>();
+        for (String argument : part.format(value)) {
+            lines.add(part.getCanonicalKey() + ":" + argument);
+        }
+
+        ParsedBlock block = world.getEngine().parse(lines);
+        assertTrue(block.getProblems().isEmpty(),
+                part.getCanonicalKey() + " wrote " + lines + " and could not read it back: "
+                        + block.getProblems());
+        assertEquals(value, world.getEngine().staged(block.getEdits(), part.getCanonicalKey()),
+                part.getCanonicalKey() + " wrote " + lines + " and the block read something else");
     }
 
     @Test
@@ -101,9 +142,12 @@ class ItemDataPartRoundTripTest {
         survivesTheRoundTrip(part, "§x§f§f§a§a§00Neon");
         survivesTheRoundTrip(part, "Rank #1");
         survivesTheRoundTrip(part, "%player_name%'s pickaxe");
+        survivesTheRoundTrip(part, "§6   Espada do Rei   ");
 
         assertEquals("§6Espada", part.parse("&6Espada"), "the file writes '&' and the item holds the section sign");
         assertEquals(Arrays.asList("&6Espada"), part.format("§6Espada"));
+        assertTrue(!part.trimsArgument(),
+                "a name centred with spaces has to come back with them, so the line keeps its ends");
     }
 
     @Test
@@ -113,6 +157,7 @@ class ItemDataPartRoundTripTest {
         survivesTheRoundTrip(part, Arrays.asList("§7Rank #1 of the season"));
         survivesTheRoundTrip(part, Arrays.asList("§7First", "§7Second", ""));
         survivesTheRoundTrip(part, Arrays.asList("§7Price: §6%product_price%"));
+        survivesTheRoundTrip(part, Arrays.asList("§7   Centralizado   ", "§7Beside it"));
 
         assertEquals(Arrays.asList("§7Rank #1"), part.parse("&7Rank #1"),
                 "'#' is a character an admin writes, not a line break - splitting on it grew a lore "
@@ -120,6 +165,34 @@ class ItemDataPartRoundTripTest {
         assertEquals(Arrays.asList("A", "B"), part.parse("A\nB"), "a real line break still breaks");
         assertEquals(Arrays.asList("A", "B", "C"),
                 part.merge(part.parse("A"), part.parse("B\nC")), "many lore lines pile into one block");
+        assertTrue(!part.trimsArgument(),
+                "padding is how a lore line is centred, so the line hands it over as it was written");
+    }
+
+    @Test
+    void anAmountBelowOneAndDamageBelowZeroAreRefusedNamingTheFloor() {
+        assertTrue(assertThrows(ItemLineException.class, () -> new ItemDataPartAmount().parse("0"))
+                        .getMessage().contains("1 or more"),
+                "a stack of zero is an item that vanishes, and the complaint says where counting starts");
+        assertTrue(assertThrows(ItemLineException.class, () -> new ItemDataPartAmount().parse("-5"))
+                .getMessage().contains("1 or more"));
+
+        assertTrue(assertThrows(ItemLineException.class, () -> new ItemDataPartDurability().parse("-1"))
+                        .getMessage().contains("0 or more"),
+                "damage below zero wraps into a nearly destroyed item, so the complaint names the floor");
+        assertEquals(Integer.valueOf(0), new ItemDataPartDurability().parse("0"),
+                "undamaged is a value a file may state, even though a reading never writes it");
+    }
+
+    @Test
+    void theTagHatchLeavesOutWhatAnotherKeyAlreadyWrites() {
+        Set<String> owned = ItemDataPartNBT.getKeysOwnedElsewhere();
+
+        assertTrue(owned.contains("CustomModelData"),
+                "the model has a key of its own, and a tag emitting it too writes it twice: " + owned);
+        assertTrue(owned.containsAll(Arrays.asList("display", "Damage", "HideFlags", "ench", "Enchantments")),
+                "the name, the lore, the damage, the flags and the enchants are keys of their own too: "
+                        + owned);
     }
 
     @Test
@@ -136,6 +209,14 @@ class ItemDataPartRoundTripTest {
                 "the HIDE_ prefix is optional, and '#' still joins here because no flag name has one");
         assertTrue(assertThrows(ItemLineException.class, () -> part.parse("EVERYTHING"))
                 .getMessage().contains("HIDE_ENCHANTS"), "the complaint lists the flags that exist");
+        assertEquals(EnumSet.of(ItemFlag.HIDE_ENCHANTS), part.parse("EVERYTHING#ENCHANTS"),
+                "a flag this server has no name for costs itself, not the flags written beside it");
+        assertTrue(assertThrows(ItemLineException.class, () -> part.parse("EVERYTHING#NOTHING"))
+                        .getMessage().contains("HIDE_ENCHANTS"),
+                "a line this server understands nothing of would hide nothing, which no file meant");
+        assertTrue(assertThrows(ItemLineException.class, () -> part.parse(""))
+                        .getMessage().contains("HIDE_ENCHANTS"),
+                "an empty value never says whether hiding nothing was meant, so it is refused out loud");
     }
 
     @Test

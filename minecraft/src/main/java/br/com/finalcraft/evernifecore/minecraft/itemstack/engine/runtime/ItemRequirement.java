@@ -67,7 +67,8 @@ public final class ItemRequirement {
     public String explain(@Nonnull ItemRuntime runtime) {
         List<String> gaps = new ArrayList<>();
         if (floor != null && !runtime.isAtLeast(floor)) {
-            gaps.add("it needs " + floor.getReleaseFamily() + " or newer and this is " + runtime.describe());
+            //both sides as releases: the floor is a release the admin can compare their server to
+            gaps.add("it needs " + floor.getLowestRelease() + " or newer and this is " + runtime.describe());
         }
         for (ItemProbe probe : probes) {
             if (!runtime.has(probe)) {

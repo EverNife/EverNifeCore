@@ -50,11 +50,10 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
     }
 
     /**
-     * Returns an ItemStackHolder object that contains the ItemStack of this ItemBuilder.
-     * An ItemStackHolder is any object that has a Construtor that has a sole argument
-     * of an ItemStack
+     * Builds the item and hands it to a class that wraps one.
      *
-     * @return An instance of the requested ItemStackHolder class
+     * @param itemStackHolderClass a class with a constructor taking a single {@link ItemStack}
+     * @return a new instance of it, holding the item this recipe builds
      */
     @Nonnull
     public <ItemStackHolder> ItemStackHolder as(Class<ItemStackHolder> itemStackHolderClass) {
@@ -63,12 +62,9 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
     }
 
     /**
-     * "This function applies a consumer to the builder and returns the builder."
+     * Runs {@code apply} over this recipe, so a block of staging can live inside a chain.
      *
-     * The `apply` function is a very useful function that allows you to apply a consumer to the builder
-     *
-     * @param apply The function that will be applied to the builder.
-     * @return The FCItemBuilder object.
+     * @return this builder
      */
     @Nonnull
     public FCItemBuilder apply(@Nonnull Consumer<FCItemBuilder> apply){
@@ -77,18 +73,14 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
     }
 
     /**
-     * "If the condition is true, apply the consumer to the builder."
+     * Runs {@code apply} over this recipe only when {@code condition} answers true.
      *
-     * The `applyIf` function is a very useful function that allows you to apply a consumer to the builder only if a
-     * condition is true
-     *
-     * @param condition A supplier that returns a boolean.
-     * @param apply The consumer that will be applied to the builder if the condition is true.
-     * @return The FCItemBuilder object.
+     * @param condition asked once, here; a condition answering null counts as false
+     * @return this builder
      */
     @Nonnull
     public FCItemBuilder applyIf(@Nonnull Supplier<Boolean> condition, @Nonnull Consumer<FCItemBuilder> apply){
-        if (condition.get() == true){
+        if (Boolean.TRUE.equals(condition.get())){
             apply.accept(this);
         }
         return this;
@@ -120,7 +112,7 @@ public class FCItemBuilder extends FCBaseItemBuilder<FCItemBuilder> {
      * cheaper and would be a second way of writing the same text - and two ways of writing it is
      * exactly how the key of a concept and the shape of its value used to drift apart.</p>
      *
-     * @return A list of strings.
+     * @return one line per concept the built item carries
      */
     @Nonnull
     public List<String> toDataPart(){

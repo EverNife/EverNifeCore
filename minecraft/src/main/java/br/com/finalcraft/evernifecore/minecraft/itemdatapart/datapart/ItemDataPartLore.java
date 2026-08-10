@@ -37,6 +37,12 @@ public class ItemDataPartLore extends ItemDataPart<List<String>> {
         return new ArrayList<>(Arrays.asList(FCColorUtil.colorfy(argument).split("\\R", -1)));
     }
 
+    /** A lore line padded with spaces is how text is centred, so the padding is part of the line. */
+    @Override
+    public boolean trimsArgument() {
+        return false;
+    }
+
     @Nonnull
     @Override
     public List<String> format(@Nonnull List<String> value) {

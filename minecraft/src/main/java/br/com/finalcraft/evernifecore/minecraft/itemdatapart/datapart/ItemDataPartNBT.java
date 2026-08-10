@@ -9,8 +9,11 @@ import jakarta.annotation.Nullable;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * The escape hatch: whatever the item carries that no other key has a name for.
@@ -25,7 +28,19 @@ import java.util.List;
  */
 public class ItemDataPartNBT extends ItemDataPart<List<String>> {
 
-    private static final String[] OWNED_ELSEWHERE = {"display", "Damage", "HideFlags", "ench", "Enchantments"};
+    private static final Set<String> OWNED_ELSEWHERE = Collections.unmodifiableSet(new LinkedHashSet<>(
+            Arrays.asList("display", "Damage", "HideFlags", "ench", "Enchantments", "CustomModelData")));
+
+    /**
+     * The tag names another item-data key already writes, which is what this hatch leaves out.
+     *
+     * <p>Every one of them is a concept with a key of its own, so emitting it here as well would
+     * make a round trip write the same value twice.</p>
+     */
+    @Nonnull
+    public static Set<String> getKeysOwnedElsewhere() {
+        return OWNED_ELSEWHERE;
+    }
 
     @Nonnull
     @Override

@@ -29,20 +29,27 @@ import org.bukkit.persistence.PersistentDataContainer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashSet;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 /**
  * A recipe for an {@link ItemStack}: what it should start from and everything that should be done
  * to it, remembered rather than performed.
  *
- * <p>Nothing here touches a server. Every call stages an intention, and {@link #build()} is the one
- * moment an item exists - which is what lets a recipe be written, passed around and inspected on a
- * JVM with no Minecraft behind it. What cannot be judged without a server is deferred; what can is
- * judged now, so a typo in a material still fails on the line that wrote it.</p>
+ * <p>No item exists before {@link #build()}. Every call stages an intention, which is what lets a
+ * recipe be written, passed around and inspected on a JVM with no Minecraft behind it. What cannot
+ * be judged without a server is deferred; what can is judged now, so a typo in a material still
+ * fails on the line that wrote it.</p>
+ *
+ * <p>Two things do reach beyond the recipe. Staging asks {@link ItemEngine#get()}, so the first
+ * call in a JVM pays for probing the machine once. And the lore overloads that read what the recipe
+ * holds so far resolve the base to answer, so a {@code lore(Consumer)} over a recipe that has not
+ * set a lore yet materializes the base item to read one off it.</p>
  *
  * <p>{@link #material} replaces the base and the edits are replayed over it, so the flags, the dye
  * and the tag of everything asked for before it survive the change. Copying a chosen handful of
@@ -201,9 +208,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
     /** Hides part of the tooltip. Repeated calls pile up. */
     @Nonnull
     public B addItemFlags(@Nonnull final ItemFlag... flags) {
-        //Not EnumSet.noneOf(ItemFlag.class): that loads ItemFlag right here, and 1.7.10 has no such
-        //class - the part that consumes this set is the one gated on a server that does.
-        Set<ItemFlag> wanted = new LinkedHashSet<>(Arrays.asList(flags));
+        Set<ItemFlag> wanted = EnumSet.noneOf(ItemFlag.class);
+        Collections.addAll(wanted, flags);
         return add(StandardParts.HIDE_FLAGS, wanted);
     }
 
@@ -212,10 +218,16 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
         return setUnbreakable(true);
     }
 
-    /** Makes the item survive use. Before 1.11 there was no metadata for it, only the tag. */
+    /**
+     * Makes the item survive use.
+     *
+     * <p>Before 1.11 there was no metadata for it, only the tag - so this asks for both, and a
+     * runtime missing either one refuses it by name instead of approving an edit that then fails
+     * inside {@link #build()}.</p>
+     */
     @Nonnull
     public B setUnbreakable(final boolean unbreakable) {
-        return stack("unbreakable", ItemRequirement.base().with(ItemProbe.ITEM_META),
+        return stack("unbreakable", ItemRequirement.base().with(ItemProbe.ITEM_META, ItemProbe.NBT),
                 ItemDataPart.PRIORITY_LATE, item -> {
                     if (MCVersion.isLower(MCDetailedVersion.v1_11_R1)) {
                         NbtDoor.custom().modifyBatch(item, tag -> {
@@ -385,7 +397,7 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
 
     @Nonnull
     protected B stack(@Nonnull final String name, @Nonnull final ItemRequirement requirement,
-                      final int priority, @Nonnull final java.util.function.UnaryOperator<ItemStack> operation) {
+                      final int priority, @Nonnull final UnaryOperator<ItemStack> operation) {
         edits.add(ItemEdit.ofStack(name, requirement, priority, operation));
         return self();
     }

@@ -32,6 +32,11 @@ public class ItemDataPartAmount extends ItemDataPart<Integer> {
         if (amount == null) {
             throw ItemLineException.expecting(argument, "a whole number of items", "16");
         }
+        if (amount < 1) {
+            throw new ItemLineException("'" + argument + "' is not a stack anybody can hold: an item "
+                    + "exists from 1 upwards, and a stack of " + amount + " simply vanishes. Write 1 or "
+                    + "more, or leave the item out of the file.");
+        }
         return amount;
     }
 

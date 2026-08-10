@@ -68,6 +68,11 @@ public class ItemDataPartMaterial extends ItemDataPart<String> {
                     + "from the server's own list (DIAMOND_SWORD), a name with a data value (WOOL:14), "
                     + "or a namespaced identifier a mod registered (mymod:cool_item).");
         }
+        if (material == Material.AIR) {
+            throw new ItemLineException("'type:" + value + "' would erase the item: AIR is the absence of "
+                    + "one, and everything else in the block would be written onto nothing. Name a real "
+                    + "material, or drop the whole item instead of typing it into AIR.");
+        }
         item.setType(material);
         if (dataValue != null) {
             item.setDurability(dataValue.shortValue());

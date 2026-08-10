@@ -65,13 +65,15 @@ public final class BuiltItem {
         }
         StringBuilder message = new StringBuilder();
         if (!refused.isEmpty()) {
-            List<String> names = new ArrayList<>();
+            //each refusal carries its own reason: one reason quoted for all of them sends whoever
+            //reads it to fix a gap the other edits never had
+            List<String> named = new ArrayList<>();
             for (RefusedEdit edit : refused) {
-                names.add(edit.getName());
+                named.add(edit.toString());
             }
-            message.append("This runtime could not apply [").append(String.join(", ", names))
-                    .append("]. It is not a mistake in your config: ").append(refused.get(0).getReason())
-                    .append(". Run on a server that satisfies it, or take the reduced item from getItemStack().");
+            message.append("This runtime could not apply ").append(String.join("; ", named))
+                    .append(". It is not a mistake in your config. Run on a server that satisfies it, ")
+                    .append("or take the reduced item from getItemStack().");
         }
         if (!problems.isEmpty()) {
             if (message.length() > 0) {

@@ -158,8 +158,8 @@ class ItemRecipeScenariosTest {
                     "the one line this server cannot honour is the one that is answered");
 
             String reason = built.getRefused().get(0).getReason();
-            assertTrue(reason.contains("1.13") && reason.contains("v1_12_R1"),
-                    "the answer names the version needed and the version running: " + reason);
+            assertTrue(reason.contains("it needs 1.13 or newer and this is 1.12"),
+                    "the answer names both versions as releases, which is what a server reports: " + reason);
             assertTrue(reason.contains("nbt:"),
                     "and offers the way to write it anyway on this server: " + reason);
 
@@ -250,6 +250,74 @@ class ItemRecipeScenariosTest {
                             + "that is not there used to throw, and the throw used to be swallowed whole");
             assertFalse(reading.getLines().contains("CustomModelData:-1"),
                     "and absence is absence, not a number nobody chose");
+        }
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  8. AIR, which is not an item, asked for at both doors
+    // -----------------------------------------------------------------------------------------------------------------
+
+    @Test
+    void airIsRefusedWhereverItIsNamedAndNothingIsBuiltOnTop() {
+        try (ItemWorld world = ItemWorld.withMetadata(MCDetailedVersion.v1_21_R1)) {
+
+            IllegalArgumentException fromTheFactory = assertThrows(IllegalArgumentException.class,
+                    () -> FCItemFactory.from("AIR"));
+            assertTrue(fromTheFactory.getMessage().contains("absence of an item")
+                            && fromTheFactory.getMessage().contains("of(ItemStack)"),
+                    "the recipe says why there is nothing to build on and where to start instead: "
+                            + fromTheFactory.getMessage());
+
+            BuiltItem built = FCItemFactory.from(Arrays.asList(
+                    "type:AIR",
+                    "name:&6Espada")).materialize();
+
+            assertEquals(1, built.getProblems().size(),
+                    "typing an item into nothing costs its own line: " + built.getProblems());
+            assertTrue(built.getProblems().get(0).getReason().contains("would erase the item"),
+                    "and says what it would have done: " + built.getProblems().get(0));
+            assertEquals("§6Espada", built.getItemStack().getItemMeta().getDisplayName(),
+                    "the rest of the block still lands on an item that exists");
+        }
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  9. A file that breathes, and a server that cannot answer for a whole key
+    // -----------------------------------------------------------------------------------------------------------------
+
+    @Test
+    void blankLinesAreNotKeysAndOneMissingKeyIsAnsweredOnce() {
+        try (ItemWorld world = ItemWorld.install(
+                ItemRuntime.of(MCDetailedVersion.v1_12_R1, ItemProbe.ITEM_META))) {
+
+            BuiltItem built = FCItemFactory.from(Arrays.asList(
+                    "type:DIAMOND_SWORD",
+                    "",
+                    "   ",
+                    "enchant:minecraft:sharpness:5",
+                    "enchant:minecraft:unbreaking:3")).materialize();
+
+            assertTrue(built.getProblems().isEmpty(),
+                    "a blank line is how a file breathes, not a key nobody recognises: "
+                            + built.getProblems());
+            assertEquals(Arrays.asList("enchant"), namesOf(built.getRefused()),
+                    "and the key this server cannot answer for is answered once, not once a line: "
+                            + built.getRefused());
+        }
+    }
+
+    @Test
+    void theKeysAServerKnowsAreListedWithTheirAliasesAndWhatItCannotDo() {
+        try (ItemWorld world = ItemWorld.install(
+                ItemRuntime.of(MCDetailedVersion.v1_12_R1, ItemProbe.ITEM_META))) {
+
+            String known = world.getEngine().getKnownSpellings();
+
+            assertTrue(known.contains("itemflag"),
+                    "an admin who wrote a spelling that works has to find it in the list: " + known);
+            assertTrue(known.contains("enchant") && known.contains("not on this server"),
+                    "and a key this server refused is in it, marked - not missing as if it were a typo: "
+                            + known);
         }
     }
 

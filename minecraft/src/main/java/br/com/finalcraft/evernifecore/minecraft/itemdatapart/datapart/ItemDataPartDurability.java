@@ -32,6 +32,11 @@ public class ItemDataPartDurability extends ItemDataPart<Integer> {
         if (damage == null) {
             throw ItemLineException.expecting(argument, "a whole number of damage points", "200");
         }
+        if (damage < 0) {
+            throw new ItemLineException("'" + argument + "' is below zero, and damage counts up from 0 "
+                    + "(undamaged). A negative value wraps around into a nearly destroyed item. Write 0 "
+                    + "or more, or drop the line - undamaged is the default.");
+        }
         return damage;
     }
 
@@ -44,7 +49,19 @@ public class ItemDataPartDurability extends ItemDataPart<Integer> {
     @Nonnull
     @Override
     public ItemStack apply(@Nonnull Integer value, @Nonnull ItemStack item) {
-        item.setDurability(value.shortValue());
+        Integer applied;
+        try {
+            item.setDurability(value.shortValue());
+            applied = extract(item);
+        } catch (ClassCastException carriesNoDamage) {
+            //from 1.13 damage lives in metadata, and only some items have the kind that holds it
+            applied = null;
+        }
+        if (value != 0 && applied == null) {
+            throw new ItemLineException("An item of type " + item.getType() + " does not carry damage, so "
+                    + "'durability:" + value + "' had no effect on it. Drop the line, or write it on an "
+                    + "item that can be damaged.");
+        }
         return item;
     }
 
