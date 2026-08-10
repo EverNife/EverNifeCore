@@ -45,7 +45,14 @@ public final class Locales implements AutoCloseable {
     public static Locales perPlayerLocale(Path baseDir) {
         boolean previous = ECSettings.PER_PLAYER_LOCALE;
         ECSettings.PER_PLAYER_LOCALE = true;
-        return new Locales(PlayerDataWorld.with(Storages.memory()).boot(baseDir), previous);
+        try {
+            return new Locales(PlayerDataWorld.with(Storages.memory()).boot(baseDir), previous);
+        } catch (RuntimeException | Error failedToBoot) {
+            //the setting is process-wide and nobody holds a Locales to close: a boot that broke here
+            //would leave every later test running with per-player locale turned on
+            ECSettings.PER_PLAYER_LOCALE = previous;
+            throw failedToBoot;
+        }
     }
 
     /** A player who is logged in and reads in {@code lang} - see {@link LocaleType}. */

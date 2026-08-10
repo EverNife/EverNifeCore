@@ -19,13 +19,13 @@ import br.com.finalcraft.everyconfig.ruleset.Explicit;
 import br.com.finalcraft.everyconfig.ruleset.OneOf;
 import br.com.finalcraft.everyconfig.ruleset.OneOfSource;
 import br.com.finalcraft.everyconfig.ruleset.support.Violations;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.lang.annotation.ElementType;
@@ -248,7 +248,7 @@ class SettingsScannerTest {
 
     //NEVER: see RegistrationSystemTest - the locale bootstrap's async saveAsync() can race JUnit's
     //default @TempDir cleanup on Windows.
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     private ECoreTestWorld world;
@@ -257,6 +257,9 @@ class SettingsScannerTest {
 
     @BeforeEach
     void setup() {
+        //warned-about keys are remembered for the life of the JVM, so a suite that reads a warning has
+        //to start from a scanner that has not warned yet
+        SettingsScanner.forgetWarnings();
         world = Platforms.lenient().install().withPluginExtractor(
                 Plugins.fake("SettingsScanner_" + UNIQUE_SUFFIX.incrementAndGet(), tempDir.toFile()));
         ecPluginData = ECPluginManager.getOrCreateECorePluginData(new Object());

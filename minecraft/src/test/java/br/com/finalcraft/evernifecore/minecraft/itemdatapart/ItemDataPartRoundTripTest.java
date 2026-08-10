@@ -11,12 +11,15 @@ import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPa
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartNBT;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartName;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ParsedBlock;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.RegisteredPart;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.ItemLineException;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemProbe;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.testkit.ItemWorld;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
+import org.bukkit.Material;
 import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -30,6 +33,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -184,6 +188,20 @@ class ItemDataPartRoundTripTest {
                 "undamaged is a value a file may state, even though a reading never writes it");
     }
 
+    // A reading writes a line only for what an item does not already say by being what it is, and every
+    // item starts undamaged. The claim is about extract(), so it is extract() that is asked.
+    @Test
+    void readingAnUndamagedItemWritesNoDurabilityLine() {
+        ItemDataPartDurability part = new ItemDataPartDurability();
+
+        assertNull(part.extract(new ItemStack(Material.DIAMOND_SWORD)),
+                "a pristine sword has nothing to say about its damage");
+
+        ItemStack worn = new ItemStack(Material.DIAMOND_SWORD);
+        worn.setDurability((short) 12);
+        assertEquals(Integer.valueOf(12), part.extract(worn), "a damaged one does");
+    }
+
     @Test
     void theTagHatchLeavesOutWhatAnotherKeyAlreadyWrites() {
         Set<String> owned = ItemDataPartNBT.getKeysOwnedElsewhere();
@@ -274,23 +292,24 @@ class ItemDataPartRoundTripTest {
                 .getMessage().contains("SNBT"), "the complaint names the shape a component block takes");
     }
 
+    // The roster comes from the engine's own bootstrap, never from a list written out here: a part added
+    // to the library and forgotten in this file would leave a copied list agreeing with itself.
     @Test
     void everyPartAnswersToOneSpellingAndOnlyWritesThatOne() {
-        List<ItemDataPart<?>> parts = new ArrayList<>(Arrays.asList(
-                new ItemDataPartMaterial(), new ItemDataPartAmount(), new ItemDataPartDurability(),
-                new ItemDataPartName(), new ItemDataPartLore(), new ItemDataPartItemflags(),
-                new ItemDataPartCustomModelData(), new ItemDataPartEnchantment(),
-                new ItemDataPartNBT(), new ItemDataPartComponents()));
-
         List<String> keys = new ArrayList<>();
-        for (ItemDataPart<?> part : parts) {
-            String key = part.getCanonicalKey();
+        for (RegisteredPart registered : world.getEngine().getParts()) {
+            String key = registered.getPart().getCanonicalKey();
             assertTrue(!key.isEmpty() && key.indexOf(':') < 0,
                     "a key is what comes before the ':' of a line, so it cannot contain one: " + key);
             assertTrue(!keys.contains(key), "two parts answer to '" + key + "'");
+            assertEquals(key, registered.getKey(), "the engine files a part under the key it declares");
             keys.add(key);
         }
-        assertEquals(10, keys.size(), "every part this library ships with is proved above: " + keys);
+
+        assertTrue(keys.containsAll(Arrays.asList("type", "amount", "durability", "name", "lore",
+                        "hideflags", "CustomModelData", "enchant", "nbt", "components")),
+                "every part proved above is one the engine actually registers: " + keys);
+        assertEquals(10, keys.size(), "and a part the engine gained is one this file has to prove: " + keys);
     }
 
     private static SortedMap<String, Integer> levels(String key, int level) {

@@ -10,7 +10,9 @@ import br.com.finalcraft.evernifecore.minecraft.gui.testkit.ClickSimulator;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.PlayerDouble;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.SurfaceDouble;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -18,8 +20,6 @@ import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -48,8 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class GuiClickTest {
 
-    //NEVER: the locale bootstrap's async saveAsync() can race JUnit's default @TempDir cleanup on Windows
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     private GuiTestWorld world;
@@ -111,6 +110,21 @@ class GuiClickTest {
     }
 
     @Test
+    void aHandlerThatAnswersWithASoundPlaysItToTheOneWhoClicked() {
+        Icon noisy = Icon.of(new ItemStack(Material.DIAMOND))
+                .onClick(context -> context.sound(Sound.UI_BUTTON_CLICK, 0.5F, 1.5F));
+        open(Gui.of(3).icon(13, noisy));
+
+        clicks.leftClick(player, 13);
+
+        assertEquals(1, player.getSounds().size(), "one click, one sound: " + player.getSounds());
+        PlayerDouble.PlayedSound played = player.getSounds().get(0);
+        assertEquals("ui.button.click", played.sound);
+        assertEquals(0.5F, played.volume, "the volume the handler asked for, not a default");
+        assertEquals(1.5F, played.pitch);
+    }
+
+    @Test
     void aRegionCanOpenUpItsOwnSlotsWithoutOpeningTheScreen() {
         Gui<?> gui = Gui.of(3)
                 .icon(0, button(Material.DIAMOND))
@@ -133,7 +147,7 @@ class GuiClickTest {
     void aClickInThePlayerInventoryNeverResolvesAMenuIcon() {
         open(Gui.of(3).icon(13, button(Material.DIAMOND)));
 
-        InventoryClickEvent event = clicks.clickPlayerInventory(player, 4, ClickType.LEFT, InventoryAction.PICKUP_ALL);
+        InventoryClickEvent event = clicks.clickPlayerInventory(player, 13, ClickType.LEFT, InventoryAction.PICKUP_ALL);
 
         assertEquals(31, event.getRawSlot(), "past the end of the screen, so it landed in the player");
         assertEquals(13, event.getSlot(), "and the local slot number collides exactly with the button - "
@@ -170,7 +184,7 @@ class GuiClickTest {
     @Test
     void aDragThatTouchesTheScreenIsRefusedWholesale() {
         open(Gui.of(3).icon(13, button(Material.DIAMOND)));
-        ItemStack dragged = new ItemStack(Material.DIRT);
+        ItemStack dragged = new ItemStack(Material.DIRT, 4);
 
         assertTrue(clicks.drag(player, dragged, 13).isCancelled());
         assertTrue(clicks.drag(player, dragged, 30, 13).isCancelled(),
@@ -188,7 +202,7 @@ class GuiClickTest {
         assertTrue(clicks.drag(player, new ItemStack(Material.DIRT), 13).isCancelled(),
                 "the screen still draws that slot, so an item left there is one the next render erases - "
                         + "an area a player may really drag into is declared with storage(...)");
-        assertTrue(clicks.drag(player, new ItemStack(Material.DIRT), 12, 13).isCancelled(),
+        assertTrue(clicks.drag(player, new ItemStack(Material.DIRT, 2), 12, 13).isCancelled(),
                 "one slot of the gesture outside the region refuses all of it");
     }
 

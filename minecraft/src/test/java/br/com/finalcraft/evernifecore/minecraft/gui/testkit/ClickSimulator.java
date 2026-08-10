@@ -22,8 +22,9 @@ import java.util.Map;
  * 27-slot screen is inside the screen, raw slot {@code 30} is in the player's own inventory, and the
  * two do <b>not</b> share a numbering - which is the whole reason the framework is not allowed to
  * read {@code getSlot()}. {@link #clickPlayerInventory(PlayerDouble, int, ClickType, InventoryAction)}
- * takes the player-inventory index and turns it into the raw slot, so a test can aim at the exact
- * collision.</p>
+ * is the one exception: it takes a slot of the player's own inventory, in that inventory's own
+ * numbering, and converts it - so a test can aim at the exact collision without doing the arithmetic
+ * itself.</p>
  */
 public final class ClickSimulator {
 
@@ -62,26 +63,59 @@ public final class ClickSimulator {
     }
 
     /**
-     * A click on the player's own inventory. {@code playerSlot} is the index inside that inventory,
-     * so {@code 0} is the slot the player sees as their first - and the raw slot it produces is far
-     * past the end of the screen.
+     * A click on the player's own inventory. {@code playerSlot} is the index that inventory itself uses
+     * - {@code 0..8} the hotbar, {@code 9..35} the three rows above it - and it is converted to the raw
+     * slot the protocol sends, which is what {@code getSlot()} on the event answers back.
+     *
+     * <p>The two numberings do not agree, which is exactly why this converts: the player's inventory is
+     * sent main-rows-first while it numbers the hotbar first, so its slot {@code 9} rides in the raw
+     * slot right after the screen.</p>
      */
     public InventoryClickEvent clickPlayerInventory(PlayerDouble player, int playerSlot, ClickType clickType,
                                                     InventoryAction action) {
-        int rawSlot = player.getOpenView().getTopInventory().getSize() + playerSlot;
+        int rawSlot = rawSlotOfPlayerSlot(player, playerSlot);
         InventoryClickEvent event = new InventoryClickEvent(player.getOpenView(),
                 InventoryType.SlotType.CONTAINER, rawSlot, clickType, action);
         events.getListener().onInventoryClick(event);
         return event;
     }
 
-    /** A drag over {@code rawSlots}, each receiving one item. */
+    /** The raw slot the protocol sends for a slot of the player's own inventory. */
+    public static int rawSlotOfPlayerSlot(PlayerDouble player, int playerSlot) {
+        int belowTheScreen = playerSlot >= 9 ? playerSlot - 9 : playerSlot + 27;
+        return player.getOpenView().getTopInventory().getSize() + belowTheScreen;
+    }
+
+    /**
+     * A drag that leaves one item in each of {@code rawSlots}, taken off the stack being dragged.
+     *
+     * <p>The event carries what each slot ENDS with, so a slot already holding the same item reads its
+     * own amount plus one. A slot holding something else reads one: that is what a client that believed
+     * the slot was free would send, and refusing it is the framework's job.</p>
+     */
     public InventoryDragEvent drag(PlayerDouble player, ItemStack dragged, int... rawSlots) {
-        Map<Integer, ItemStack> added = new LinkedHashMap<>();
-        for (int rawSlot : rawSlots) {
-            added.put(rawSlot, dragged);
+        if (dragged.getAmount() < rawSlots.length) {
+            throw new IllegalArgumentException("A drag over " + rawSlots.length + " slots leaves one item"
+                    + " in each of them, and this stack holds " + dragged.getAmount() + ". Drag a stack"
+                    + " that covers them, or name fewer slots - no client sends a slot it has nothing"
+                    + " left to put in.");
         }
-        InventoryDragEvent event = new InventoryDragEvent(player.getOpenView(), null, dragged, false, added);
+        InventoryView view = player.getOpenView();
+        Map<Integer, ItemStack> ending = new LinkedHashMap<>();
+        for (int rawSlot : rawSlots) {
+            ItemStack held = view.getItem(rawSlot);
+            ItemStack result = dragged.clone();
+            result.setAmount(1 + (held != null && held.isSimilar(dragged) ? held.getAmount() : 0));
+            ending.put(rawSlot, result);
+        }
+
+        int leftOver = dragged.getAmount() - rawSlots.length;
+        ItemStack cursor = null;
+        if (leftOver > 0) {
+            cursor = dragged.clone();
+            cursor.setAmount(leftOver);
+        }
+        InventoryDragEvent event = new InventoryDragEvent(view, cursor, dragged, false, ending);
         events.getListener().onInventoryDrag(event);
         return event;
     }

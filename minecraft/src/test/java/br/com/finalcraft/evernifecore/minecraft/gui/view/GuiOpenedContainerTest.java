@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.Gui;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.PlayerDouble;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.Material;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
@@ -11,8 +12,6 @@ import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -36,8 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class GuiOpenedContainerTest {
 
-    //NEVER: the locale bootstrap's async saveAsync() can race JUnit's default @TempDir cleanup on Windows
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     private GuiTestWorld world;

@@ -88,6 +88,17 @@ public final class StoredInventorySchema {
     }
 
     /**
+     * Drops every migration a caller registered, leaving the ones this class declares itself.
+     *
+     * <p>The table is process-wide and nothing removes from it, so a test that registers one leaves it
+     * registered for whatever runs next in the same JVM.</p>
+     */
+    public static void forgetRegisteredMigrations() {
+        MIGRATIONS.clear();
+        registerMigration(LEGACY_SLOT_MAP_VERSION, StoredInventorySchema::slotMapToEnvelope);
+    }
+
+    /**
      * The version {@code stored} was written with. A file with no version at all is a bare slot map -
      * that is the only thing it can be. A file whose version is there but unreadable is neither, and
      * reading it as the oldest shape would quietly empty it, so it is refused.

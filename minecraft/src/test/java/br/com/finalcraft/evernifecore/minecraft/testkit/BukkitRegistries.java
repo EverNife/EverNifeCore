@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.testkit;
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
+import org.bukkit.Sound;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.enchantments.EnchantmentTarget;
 import org.bukkit.inventory.ItemStack;
@@ -27,16 +28,20 @@ import java.util.function.Function;
  * unless the server answers <em>every</em> {@code getRegistry} with something non-null - so a double
  * that answers none of them cannot even mention those classes.</p>
  *
- * <p>Only the enchantment registry has contents, because it is the one the item engine reads
- * through. It mints an entry for whatever key it is asked for: there is no vanilla data here to look
- * anything up in, and a test that names an enchantment wants that name back, not a refusal.</p>
+ * <p>Only the enchantment and sound registries have contents, because those are the ones the code
+ * under test reads through. Each mints an entry for whatever key it is asked for: there is no vanilla
+ * data here to look anything up in, and a test that names one wants that name back, not a refusal.</p>
  */
 public final class BukkitRegistries {
 
     private static final Map<NamespacedKey, Enchantment> ENCHANTMENTS = new LinkedHashMap<>();
+    private static final Map<NamespacedKey, Sound> SOUNDS = new LinkedHashMap<>();
 
     private static final Registry<?> ENCHANTMENT_REGISTRY =
             describedRegistry(BukkitRegistries::mintEnchantment, ENCHANTMENTS.values());
+
+    private static final Registry<?> SOUND_REGISTRY =
+            describedRegistry(BukkitRegistries::mintSound, SOUNDS.values());
 
     private static final Registry<?> EMPTY_REGISTRY =
             describedRegistry(key -> null, Collections.<Keyed>emptyList());
@@ -47,7 +52,47 @@ public final class BukkitRegistries {
 
     /** The registry a server double hands back for {@code type}. Never {@code null}. */
     public static Registry<?> forType(Class<?> type) {
-        return Enchantment.class.equals(type) ? ENCHANTMENT_REGISTRY : EMPTY_REGISTRY;
+        if (Enchantment.class.equals(type)) {
+            return ENCHANTMENT_REGISTRY;
+        }
+        return Sound.class.equals(type) ? SOUND_REGISTRY : EMPTY_REGISTRY;
+    }
+
+    /**
+     * A sound is minted the same way an enchantment is, and for the same reason: naming
+     * {@code Sound.UI_BUTTON_CLICK} asks the registry for it while the interface initializes, and a
+     * registry that answers nothing leaves every constant of it null.
+     */
+    private static Sound mintSound(NamespacedKey key) {
+        Sound existing = SOUNDS.get(key);
+        if (existing != null) {
+            return existing;
+        }
+        Sound minted = (Sound) Proxy.newProxyInstance(Sound.class.getClassLoader(),
+                new Class<?>[]{Sound.class}, new InvocationHandler() {
+                    @Override
+                    public Object invoke(Object proxy, Method method, Object[] args) {
+                        switch (method.getName()) {
+                            case "getKey":
+                            case "getKeyOrThrow":
+                            case "getKeyOrNull":
+                                return key;
+                            case "isRegistered":
+                                return Boolean.TRUE;
+                            case "name":
+                            case "toString":
+                                return key.getKey();
+                            case "equals":
+                                return proxy == args[0];
+                            case "hashCode":
+                                return System.identityHashCode(proxy);
+                            default:
+                                return null;
+                        }
+                    }
+                });
+        SOUNDS.put(key, minted);
+        return minted;
     }
 
     private static Enchantment mintEnchantment(NamespacedKey key) {

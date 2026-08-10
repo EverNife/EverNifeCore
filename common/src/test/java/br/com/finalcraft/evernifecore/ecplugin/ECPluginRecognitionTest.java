@@ -3,9 +3,8 @@ package br.com.finalcraft.evernifecore.ecplugin;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.Plugins;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 
@@ -24,12 +23,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class ECPluginRecognitionTest {
 
-    //NEVER: a plugin's locale bootstrap saves asynchronously and can race JUnit's default cleanup on Windows
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     private ECoreTestWorld worldFor(String pluginName, Object thePlugin) {
-        return Platforms.lenient().install()
+        return Platforms.strict().loggingToStdout().ignoringPlatformRegistrations().install()
                 .withPluginExtractor(Plugins.fakeRecognisingOnly(pluginName, tempDir.toFile(), thePlugin));
     }
 

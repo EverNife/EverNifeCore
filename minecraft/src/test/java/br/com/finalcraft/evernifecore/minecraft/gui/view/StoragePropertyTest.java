@@ -16,6 +16,7 @@ import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventory
 import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventoryItemPreUpdateEvent;
 import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventory;
 import br.com.finalcraft.everyconfig.config.Config;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.Material;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
@@ -24,8 +25,6 @@ import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -81,8 +80,7 @@ class StoragePropertyTest {
 
     private static final AtomicInteger UNIQUE_FILE = new AtomicInteger();
 
-    //NEVER: the locale bootstrap's async saveAsync() can race JUnit's default @TempDir cleanup on Windows
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     private GuiTestWorld world;
@@ -109,22 +107,24 @@ class StoragePropertyTest {
         moved += runSequences(FIXED_SEED, SEQUENCES_PER_SEED, Ending.CLOSED);
         moved += runSequences(randomSeed(), SEQUENCES_PER_SEED, Ending.CLOSED);
 
-        assertTrue(moved > SEQUENCES_PER_SEED * STEPS_PER_SEQUENCE, "the sequences have to actually move "
-                + "items, or the count would hold for two thousand sequences in which nothing ever happened "
-                + "- only " + moved + " gestures did anything");
+        assertGesturesActuallyMoved(moved, SEQUENCES_PER_SEED * STEPS_PER_SEQUENCE);
     }
 
     @Test
     void disconnectingAfterEveryStepOfASequenceKeepsTheCountAndGivesTheCursorBack() {
         //every prefix of every sequence, which is what makes this quadratic and worth fewer sequences
-        runSequences(FIXED_SEED, 100, Ending.DISCONNECTED_AT_EVERY_PREFIX);
-        runSequences(randomSeed(), 100, Ending.DISCONNECTED_AT_EVERY_PREFIX);
+        int moved = runSequences(FIXED_SEED, 100, Ending.DISCONNECTED_AT_EVERY_PREFIX)
+                + runSequences(randomSeed(), 100, Ending.DISCONNECTED_AT_EVERY_PREFIX);
+
+        assertGesturesActuallyMoved(moved, 100 * STEPS_PER_SEQUENCE);
     }
 
     @Test
     void savingAndLoadingInTheMiddleOfASequenceChangesNothing() {
-        runSequences(FIXED_SEED, 150, Ending.SAVED_AND_LOADED_MIDWAY);
-        runSequences(randomSeed(), 150, Ending.SAVED_AND_LOADED_MIDWAY);
+        int moved = runSequences(FIXED_SEED, 150, Ending.SAVED_AND_LOADED_MIDWAY)
+                + runSequences(randomSeed(), 150, Ending.SAVED_AND_LOADED_MIDWAY);
+
+        assertGesturesActuallyMoved(moved, 150 * STEPS_PER_SEQUENCE);
     }
 
     @Test
@@ -163,6 +163,17 @@ class StoragePropertyTest {
         DISCONNECTED_AT_EVERY_PREFIX,
         /** The store is written out and read back in the middle, and the sequence goes on. */
         SAVED_AND_LOADED_MIDWAY
+    }
+
+    /**
+     * The floor every property here is judged against as well as its own invariant: a generator that
+     * produced nothing but refused gestures satisfies any count-preserving claim, so a run that moved
+     * too little is a run that proved nothing.
+     */
+    private static void assertGesturesActuallyMoved(int moved, int floor) {
+        assertTrue(moved > floor, "the sequences have to actually move items, or the count would hold "
+                + "for a run in which nothing ever happened - only " + moved + " gestures did anything, "
+                + "against a floor of " + floor);
     }
 
     /**
@@ -594,9 +605,7 @@ class StoragePropertyTest {
         }
 
         private String clickOwn(int ownSlot, ClickType clickType, InventoryAction action) {
-            //the player's own inventory numbers its slots differently from the raw slots of a window
-            int playerSlot = ownSlot >= 9 ? ownSlot - 9 : ownSlot + 27;
-            InventoryClickEvent event = clicks.clickPlayerInventory(player, playerSlot, clickType, action);
+            InventoryClickEvent event = clicks.clickPlayerInventory(player, ownSlot, clickType, action);
             PlatformMoves.applyClick(player, event, ground);
             return action + " in the player's own slot " + ownSlot + (event.isCancelled() ? " (refused)" : "");
         }

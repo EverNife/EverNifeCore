@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.minecraft.gui.cfg.ConfigSetting;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.bukkit.Material;
@@ -13,8 +14,6 @@ import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -42,8 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class LayoutSeedTest {
 
-    //NEVER: the locale bootstrap's async saveAsync() can race JUnit's default @TempDir cleanup on Windows
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     private GuiTestWorld world;

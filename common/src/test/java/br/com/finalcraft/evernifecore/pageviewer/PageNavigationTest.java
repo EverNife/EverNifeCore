@@ -13,12 +13,11 @@ import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import jakarta.annotation.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -39,7 +38,7 @@ class PageNavigationTest {
 
     private static final String PAGE_ID = "pagenavigationtest:page";
 
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     private FinalCmdTestHarness harness;

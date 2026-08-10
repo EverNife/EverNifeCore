@@ -13,6 +13,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.testkit.SurfaceDouble;
 import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventory;
 import br.com.finalcraft.evernifecore.minecraft.inventory.GenericInventoryStore;
 import br.com.finalcraft.evernifecore.minecraft.inventory.ItemStore;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.Material;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
@@ -22,8 +23,6 @@ import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -52,8 +51,7 @@ class StorageRegionTest {
     /** The middle of a 27-slot screen: region index 0 is raw slot 10, index 3 is raw slot 13. */
     private static final int[] AREA = {10, 11, 12, 13};
 
-    //NEVER: the locale bootstrap's async saveAsync() can race JUnit's default @TempDir cleanup on Windows
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     private GuiTestWorld world;
@@ -288,10 +286,9 @@ class StorageRegionTest {
     void aShiftClickFromBelowPoursIntoTheRegionAndTakesItOffTheSource() {
         open(screen(ClickPolicy.EDIT_ALL));
         SurfaceDouble surface = world.getSurface();
-        //raw slot 27 is the player's first slot, which their own inventory numbers 9
         player.getPlayerInventory().placeWithoutRecording(9, diamonds(5));
 
-        InventoryClickEvent event = clicks.clickPlayerInventory(player, 0, ClickType.SHIFT_LEFT,
+        InventoryClickEvent event = clicks.clickPlayerInventory(player, 9, ClickType.SHIFT_LEFT,
                 InventoryAction.MOVE_TO_OTHER_INVENTORY);
 
         assertTrue(event.isCancelled(), "the platform would have spread it over the screen's buttons too");
@@ -307,7 +304,7 @@ class StorageRegionTest {
         open(screen(ClickPolicy.builder().allowTake().build()));
         player.getPlayerInventory().placeWithoutRecording(9, diamonds(5));
 
-        InventoryClickEvent event = clicks.clickPlayerInventory(player, 0, ClickType.SHIFT_LEFT,
+        InventoryClickEvent event = clicks.clickPlayerInventory(player, 9, ClickType.SHIFT_LEFT,
                 InventoryAction.MOVE_TO_OTHER_INVENTORY);
 
         assertTrue(event.isCancelled());
@@ -323,7 +320,7 @@ class StorageRegionTest {
         open(gui);
         player.getPlayerInventory().placeWithoutRecording(9, diamonds(5));
 
-        clicks.clickPlayerInventory(player, 0, ClickType.SHIFT_LEFT, InventoryAction.MOVE_TO_OTHER_INVENTORY);
+        clicks.clickPlayerInventory(player, 9, ClickType.SHIFT_LEFT, InventoryAction.MOVE_TO_OTHER_INVENTORY);
 
         assertEquals(Material.DIRT, world.getSurface().getItem(10).getType(), "the one slot was taken");
         assertEquals(5, player.getPlayerInventory().getItem(9).getAmount(),
@@ -425,8 +422,7 @@ class StorageRegionTest {
         int startedWith = diamondsWithinReach();
         assertEquals(12, startedWith, "eight in the player's own inventory and four on the cursor");
 
-        //raw slot 27 is the player's first slot, which their own inventory numbers 9
-        clicks.clickPlayerInventory(player, 0, ClickType.SHIFT_LEFT, InventoryAction.MOVE_TO_OTHER_INVENTORY);
+        clicks.clickPlayerInventory(player, 9, ClickType.SHIFT_LEFT, InventoryAction.MOVE_TO_OTHER_INVENTORY);
         assertEquals(startedWith, diamondsWithinReach(), "after the stack was poured into the region");
 
         //slot 9 is outside the region, so the gesture is one the framework has to carry out itself

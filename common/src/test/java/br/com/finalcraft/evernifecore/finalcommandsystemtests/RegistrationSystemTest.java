@@ -6,10 +6,9 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -31,7 +30,7 @@ class RegistrationSystemTest {
     //executor) for every hardcoded language file; JUnit's default cleanup can race that in-flight
     //write and fail to delete the directory (observed on Windows). Leftovers land under the OS temp
     //folder, not the repo.
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     private FinalCmdTestHarness harness;

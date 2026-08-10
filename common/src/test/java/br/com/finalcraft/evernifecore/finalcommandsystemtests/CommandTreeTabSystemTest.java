@@ -10,10 +10,10 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.TestCommandSender;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
@@ -33,7 +33,7 @@ class CommandTreeTabSystemTest {
 
     //NEVER: see RegistrationSystemTest - the locale bootstrap's async saveAsync() can race JUnit's
     //default @TempDir cleanup on Windows.
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     private FinalCmdTestHarness harness;

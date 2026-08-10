@@ -48,7 +48,7 @@ class ActionBarDeliveryTest {
 
     /** @param supported whether this server can show an action bar at all - 1.7.10 without NecroTempus cannot. */
     private void serverWithActionBar(boolean supported) {
-        world = Platforms.lenient().actionBarSupported(supported).install();
+        world = Platforms.strict().actionBarSupported(supported).install();
         platform = world.platform();
     }
 

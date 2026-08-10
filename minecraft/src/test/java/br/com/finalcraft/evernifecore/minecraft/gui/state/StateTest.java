@@ -2,11 +2,10 @@ package br.com.finalcraft.evernifecore.minecraft.gui.state;
 
 import br.com.finalcraft.evernifecore.minecraft.gui.model.Cancellable;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -30,8 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class StateTest {
 
-    //NEVER: the locale bootstrap's async saveAsync() can race JUnit's default @TempDir cleanup on Windows
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     //a listener that throws is reported through EverNifeCore's log, which only a world installs

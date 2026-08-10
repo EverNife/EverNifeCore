@@ -14,6 +14,7 @@ import br.com.finalcraft.evernifecore.minecraft.inventory.UpdateCause;
 import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventoryItemPostUpdateEvent;
 import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventoryItemPreUpdateEvent;
 import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventory;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.Material;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
@@ -23,8 +24,6 @@ import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -54,8 +53,7 @@ class StoredInventoryStorageTest {
     /** The middle four slots of a 27-slot screen: region index 0 is raw slot 10. */
     private static final int[] AREA = {10, 11, 12, 13};
 
-    //NEVER: the locale bootstrap's async saveAsync() can race JUnit's default @TempDir cleanup on Windows
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     private GuiTestWorld world;
@@ -205,7 +203,7 @@ class StoredInventoryStorageTest {
         SurfaceDouble surface = world.getSurface();
         player.getPlayerInventory().placeWithoutRecording(9, diamonds(9));
 
-        clicks.clickPlayerInventory(player, 0, ClickType.SHIFT_LEFT, InventoryAction.MOVE_TO_OTHER_INVENTORY);
+        clicks.clickPlayerInventory(player, 9, ClickType.SHIFT_LEFT, InventoryAction.MOVE_TO_OTHER_INVENTORY);
 
         assertEquals(3, surface.getItem(10).getAmount(), "the first slot holds three of anything");
         assertEquals(2, surface.getItem(11).getAmount(), "the second holds two");

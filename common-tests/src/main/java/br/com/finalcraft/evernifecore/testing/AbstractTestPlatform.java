@@ -89,12 +89,12 @@ public abstract class AbstractTestPlatform implements IPlatform {
 
     @Override
     public void registerECListener(ECPluginData ecPluginData, ECListener listener) {
-        throw notConfigured("registerECListener", "Platforms.lenient()");
+        throw notConfigured("registerECListener", "Platforms.strict().ignoringListeners()");
     }
 
     @Override
     public void unregisterECListener(ECListener listener) {
-        throw notConfigured("unregisterECListener", "Platforms.lenient()");
+        throw notConfigured("unregisterECListener", "Platforms.strict().ignoringListeners()");
     }
 
     @Override
@@ -109,7 +109,7 @@ public abstract class AbstractTestPlatform implements IPlatform {
 
     @Override
     public <P extends IPlayerData> RegexReplacer<P> createPlaceholderIntegration(ECPluginData plugin, String pluginBaseID, Class<P> playerDataType) {
-        throw notConfigured("createPlaceholderIntegration", "Platforms.lenient()");
+        throw notConfigured("createPlaceholderIntegration", "Platforms.strict().withoutPlaceholderIntegration()");
     }
 
     @Override
@@ -139,12 +139,12 @@ public abstract class AbstractTestPlatform implements IPlatform {
 
     @Override
     public void registerConfigTypes() {
-        throw notConfigured("registerConfigTypes", "Platforms.lenient()");
+        throw notConfigured("registerConfigTypes", "Platforms.strict().ignoringPlatformRegistrations()");
     }
 
     @Override
     public void registerArgParsers() {
-        throw notConfigured("registerArgParsers", "Platforms.lenient()");
+        throw notConfigured("registerArgParsers", "Platforms.strict().ignoringPlatformRegistrations()");
     }
 
     @Override

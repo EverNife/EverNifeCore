@@ -18,11 +18,11 @@ import java.util.Map;
  * count. This is the other side: what a server does to the two containers and the cursor once every
  * listener has had its say, and it runs only for a click nobody cancelled.</p>
  *
- * <p><b>Every move here is a transfer.</b> Units are taken off one place and put on another in the same
- * statement, and a stack that leaves the world leaves through {@code ground}, which the caller counts.
- * That is on purpose and it is what makes the anti-duplication property mean something: this class
- * cannot create or destroy an item even if it is wrong about what a gesture does, so any change in the
- * total is the framework's doing and not the fake platform's.</p>
+ * <p><b>Every move here is a transfer, drags included.</b> Units are taken off one place and put on
+ * another in the same statement, and a stack that leaves the world leaves through {@code ground}, which
+ * the caller counts. That is on purpose and it is what makes the anti-duplication property mean
+ * something: this class cannot create or destroy an item even if it is wrong about what a gesture does,
+ * so any change in the total is the framework's doing and not the fake platform's.</p>
  */
 public final class PlatformMoves {
 
@@ -93,8 +93,12 @@ public final class PlatformMoves {
     }
 
     /**
-     * Applies a drag the way a server would: each slot ends up holding what the event says it will, and
-     * what is left stays on the cursor.
+     * Applies a drag the way a server would: every slot takes what the event says it ends with, off the
+     * cursor, and what the cursor still holds afterwards is what is left.
+     *
+     * <p>Off the cursor is the whole point. The event only ever <em>says</em> what each slot will end
+     * with, and a cursor that cannot cover it fills the slots it reaches and no more - so an event
+     * asking for more than the player is dragging cannot mint the difference here.</p>
      *
      * <p>A cancelled drag is left alone, and the framework has already written the share it accepted -
      * that path is the one that divides a gesture the platform can only take or leave whole.</p>
@@ -104,10 +108,11 @@ public final class PlatformMoves {
             return;
         }
         InventoryView view = player.getOpenView();
+        Slot cursor = cursorOf(player);
         for (Map.Entry<Integer, ItemStack> planned : event.getNewItems().entrySet()) {
-            at(view, planned.getKey()).set(copyOf(planned.getValue()));
+            Slot slot = at(view, planned.getKey());
+            transfer(cursor, slot, amountOf(planned.getValue()) - amountOf(slot.get()));
         }
-        player.holding(copyOf(event.getCursor()));
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -271,10 +276,6 @@ public final class PlatformMoves {
         ItemStack sized = item.clone();
         sized.setAmount(amount);
         return sized;
-    }
-
-    private static ItemStack copyOf(ItemStack item) {
-        return isEmpty(item) ? null : item.clone();
     }
 
     private static boolean isEmpty(ItemStack item) {

@@ -13,9 +13,9 @@ import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
@@ -51,7 +51,7 @@ class CMDECCooldownDogfoodTest {
 
     //NEVER: see RegistrationSystemTest - the locale bootstrap's async saveAsync() can race JUnit's
     //default @TempDir cleanup on Windows.
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     private FinalCmdTestHarness harness;

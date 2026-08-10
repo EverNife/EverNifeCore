@@ -4,12 +4,11 @@ import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
 import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventory;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.testkit.ItemWorld;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
@@ -35,8 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class DescribedServerThreadTest {
 
-    //NEVER: the locale bootstrap's async saveAsync() can race JUnit's default @TempDir cleanup on Windows
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     // -----------------------------------------------------------------------------------------------------------------

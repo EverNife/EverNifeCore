@@ -47,6 +47,10 @@ import java.util.Queue;
  * is a test. What they prove is that the chains in the manual still say what they say - a rename or a
  * signature change breaks the build here, on the example, rather than silently in a doc nobody
  * recompiles.</p>
+ *
+ * <p>It covers the manual's <em>examples</em>, not every member its reference tables list. A method
+ * named only in a table can still be renamed without this file noticing, so a member that matters
+ * enough to document is a member worth an example - here, or in a test that exercises it.</p>
  */
 @SuppressWarnings("unused")
 final class GuiApiExamples {
@@ -111,6 +115,22 @@ final class GuiApiExamples {
                 .addComponent(c -> {
                     c.remember(filter);
                     c.render(slots -> slots.icon(Slots.box(2, 1, 5, 9), resultIcon(filter.get())));
+                })
+                .open(player);
+    }
+
+    /** Redrawing on demand: what a component does when the thing it draws changed behind its back. */
+    static void redrawnOnDemand(Player player, Queue<String> feed) {
+        Gui.of(3)
+                .addComponent(c -> {
+                    c.render(slots -> slots.icon(13, FCItemFactory.from(Material.PAPER)
+                            .displayName(feed.isEmpty() ? "§7Nada novo" : "§e" + feed.peek())
+                            //invalidate() waits for the next tick to redraw; renderNow() does it here,
+                            //which is what an answer the player is watching for wants
+                            .onClick(ctx -> {
+                                feed.poll();
+                                c.renderNow();
+                            })));
                 })
                 .open(player);
     }

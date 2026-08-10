@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,6 +15,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -89,17 +93,41 @@ class RuntimeDependencyBootstrapTest {
     }
 
     @Test
-    void theOrdinaryCaseIsStillTheOneThatInjects() {
+    void theOrdinaryCaseIsStillTheOneThatInjects() throws IOException {
         CapturedLog log = captureLog();
-        DependencyManager manager = new DependencyManager(log.pluginName, tempDir.toFile(), "libs",
-                new java.net.URLClassLoader(new java.net.URL[0], null));
+        URLClassLoader loader = new URLClassLoader(new URL[0], null);
+        DependencyManager manager = new DependencyManager(log.pluginName, tempDir.toFile(), "libs", loader);
+        Path library = emptyJarAt(tempDir.resolve("some-library.jar"));
 
         assertTrue(manager.canInjectLibraries());
+        assertFalse(Arrays.asList(loader.getURLs()).contains(library.toUri().toURL()),
+                "nothing has been added yet");
+
+        manager.addToClasspath(library);
+
+        assertTrue(Arrays.asList(loader.getURLs()).contains(library.toUri().toURL()),
+                "the library reached the classpath, which is the whole point of downloading it: "
+                        + Arrays.toString(loader.getURLs()));
         assertTrue(log.getMessages().isEmpty(), "nothing to report: " + log.getMessages());
+    }
+
+    /** A jar with no entries: what is being proven is the URL reaching the loader, not its contents. */
+    private static Path emptyJarAt(Path file) throws IOException {
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(file))) {
+            jar.putNextEntry(new JarEntry("empty/"));
+            jar.closeEntry();
+        }
+        return file;
     }
 
     // -----------------------------------------------------------------------------------------------------------------
     //  Where the download is triggered from
+    //
+    //  These two read the entry point's SOURCE, and that is what they are: lint. What they check cannot
+    //  be observed from outside - a class initializer runs once per JVM, and this one has already run by
+    //  the time any test could sabotage it - so the shape of the code is the only evidence there is.
+    //  They fail on a reformatting that they should not, and that is the price of covering the rule at
+    //  all. The behaviour they stand in for is proven above, where injection actually happens.
     // -----------------------------------------------------------------------------------------------------------------
 
     @Test
@@ -123,6 +151,9 @@ class RuntimeDependencyBootstrapTest {
         assertTrue(classInitialiser.contains("catch (Throwable"),
                 "an Error is exactly what a broken dependency download throws, and catching Exception "
                         + "would let it through: " + classInitialiser);
+        assertTrue(classInitialiser.contains("Level.SEVERE"),
+                "and what it swallows is reported - a silent catch here is a plugin that starts broken "
+                        + "and says nothing: " + classInitialiser);
     }
 
     // -----------------------------------------------------------------------------------------------------------------

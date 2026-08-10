@@ -7,10 +7,9 @@ import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.conte
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.contextualparsers.ArgParserContextualMinecraftFPlayer;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
 import br.com.finalcraft.evernifecore.testing.PlatformConformance;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -27,8 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class MinecraftArgParserConformanceTest {
 
-    //NEVER: the locale bootstrap's async saveAsync() can race JUnit's default @TempDir cleanup on Windows
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     private FinalCmdTestHarness harness;

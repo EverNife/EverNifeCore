@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
 import br.com.finalcraft.evernifecore.testing.Logs;
 import br.com.finalcraft.everyconfig.config.Config;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.bukkit.Material;
@@ -12,8 +13,6 @@ import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -52,8 +51,7 @@ class StoredInventorySchemaTest {
 
     private static final AtomicInteger UNIQUE_FILE = new AtomicInteger();
 
-    //NEVER: the locale bootstrap's async saveAsync() can race JUnit's default @TempDir cleanup on Windows
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     private GuiTestWorld world;
@@ -65,6 +63,9 @@ class StoredInventorySchemaTest {
 
     @AfterEach
     void teardown() {
+        //the migration table is process-wide: a version registered here would still be registered for
+        //whatever runs next in this JVM
+        StoredInventorySchema.forgetRegisteredMigrations();
         if (world != null) world.close();
     }
 

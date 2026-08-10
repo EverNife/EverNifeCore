@@ -20,6 +20,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -59,6 +60,9 @@ class GuiPortabilityTest {
     private static final Pattern PLATFORM_CONSTANT =
             Pattern.compile("\\b(ClickType|InventoryAction)\\.([A-Z][A-Z0-9_]*)\\b");
 
+    private static final Pattern PLATFORM_ENUM_STATIC_IMPORT =
+            Pattern.compile("import\\s+static\\s+\\S*\\b(ClickType|InventoryAction)\\.\\S+;");
+
     // -----------------------------------------------------------------------------------------------------------------
     //  The platform-free core, read from the bytecode
     // -----------------------------------------------------------------------------------------------------------------
@@ -82,7 +86,8 @@ class GuiPortabilityTest {
             }
         }
 
-        assertTrue(scanned >= 12, "only " + scanned + " classes were scanned; the scan found nothing to check");
+        assertTrue(scanned >= 20, "only " + scanned + " classes were scanned, and there are more than that - "
+                + "a scan that stopped finding them proves nothing");
         assertTrue(offenders.isEmpty(), "these classes name a Bukkit type, which is what keeps the gui core "
                 + "portable: " + offenders);
     }
@@ -116,6 +121,9 @@ class GuiPortabilityTest {
             for (Path file : (Iterable<Path>) files.filter(path -> path.toString().endsWith(".java"))::iterator) {
                 scanned++;
                 String text = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
+                for (String staticImport : platformEnumStaticImportsIn(text)) {
+                    offenders.add(sources.relativize(file) + " -> " + staticImport);
+                }
                 for (String reference : platformConstantsIn(text)) {
                     String[] parts = reference.split("\\.");
                     Set<String> floor = parts[0].equals("ClickType")
@@ -128,10 +136,26 @@ class GuiPortabilityTest {
             }
         }
 
-        assertTrue(scanned >= 20, "only " + scanned + " sources were scanned; the scan found nothing to check");
+        assertTrue(scanned >= 60, "only " + scanned + " sources were scanned, and there are more than that - "
+                + "a scan that stopped finding them proves nothing");
         assertTrue(offenders.isEmpty(), "a server on the version floor has no such constant, and merely "
                 + "mentioning one kills the declaring class in its initializer - compare the name as text "
-                + "instead: " + offenders);
+                + "instead. A static import is refused outright: it lets the constant be written bare, "
+                + "where this scan cannot see it: " + offenders);
+    }
+
+    // The scan reads names, so the one thing that would hide a constant from it is a spelling that
+    // does not carry the enum: a static import lets SWAP_OFFHAND be written bare. Refusing the import
+    // is what keeps the qualified form the only form there is.
+    @Test
+    void theScanWouldCatchAStaticImportThatHidesTheEnumName() {
+        assertEquals(1, platformEnumStaticImportsIn(
+                        "import static org.bukkit.event.inventory.ClickType.SWAP_OFFHAND;").size(),
+                "a bare SWAP_OFFHAND after this import names no enum for the scan to read");
+        assertEquals(1, platformEnumStaticImportsIn(
+                "import static org.bukkit.event.inventory.InventoryAction.*;").size());
+        assertTrue(platformEnumStaticImportsIn("import org.bukkit.event.inventory.ClickType;").isEmpty(),
+                "importing the type itself is how every one of these is written");
     }
 
     @Test
@@ -142,6 +166,16 @@ class GuiPortabilityTest {
                 "naming the TYPE is fine - only a constant of it is the hazard");
         assertTrue(platformConstantsIn("{@code SWAP_OFFHAND} arrives on 1.16").isEmpty(),
                 "prose about a constant is not a reference to it");
+    }
+
+    /** A static import of either enum, which is the one way a constant can be written without its name. */
+    private static List<String> platformEnumStaticImportsIn(String source) {
+        List<String> found = new ArrayList<>();
+        Matcher matcher = PLATFORM_ENUM_STATIC_IMPORT.matcher(source);
+        while (matcher.find()) {
+            found.add(matcher.group().trim());
+        }
+        return found;
     }
 
     private static List<String> platformConstantsIn(String source) {

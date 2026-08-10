@@ -65,6 +65,17 @@ public final class SettingsScanner {
     }
 
     /**
+     * Forgets what has already been warned about, so the next load reports it again.
+     *
+     * <p>A warning is emitted once in the life of the process, which is what keeps a file nobody fixed
+     * from repeating itself on every reload. That also means the second reader of a key never hears
+     * about it - after the file was edited, or in a test that reads the log.</p>
+     */
+    public static void forgetWarnings() {
+        WARNED.clear();
+    }
+
+    /**
      * Load every {@link ConfigSetting} of {@code instance} - its own and the ones it inherits - from
      * {@code config}, seeding what the file lacks.
      *

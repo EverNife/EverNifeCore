@@ -1,9 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.loader.imp;
 
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -28,8 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class McPlatformMainThreadTest {
 
-    //NEVER: the locale bootstrap's async saveAsync() can race JUnit's default @TempDir cleanup on Windows
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     @Test

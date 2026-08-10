@@ -4,13 +4,12 @@ import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.Items;
 import br.com.finalcraft.evernifecore.minecraft.inventory.ItemStore;
 import br.com.finalcraft.evernifecore.minecraft.inventory.UpdateCause;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.CleanupMode;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -33,8 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class StoredInventoryTest {
 
-    //NEVER: the locale bootstrap's async saveAsync() can race JUnit's default @TempDir cleanup on Windows
-    @TempDir(cleanup = CleanupMode.NEVER)
+    @TempDirNobodyCleans
     Path tempDir;
 
     private GuiTestWorld world;
@@ -311,13 +309,26 @@ class StoredInventoryTest {
     }
 
     @Test
-    void everyDoorThatChangesSomethingRefusesTheSameWay() throws Exception {
+    void theOtherTwoDoorsThatMoveAnItemRefuseTheSameWay() throws Exception {
         StoredInventory inventory = new StoredInventory(3);
 
         assertTrue(offThread(() -> inventory.setItem(UpdateCause.PLUGIN, 0, diamonds(1)))
                 instanceof IllegalStateException);
         assertTrue(offThread(() -> inventory.setCapacity(9)) instanceof IllegalStateException);
         assertEquals(3, inventory.getCapacity());
+    }
+
+    // Describing an inventory is not moving anything in it, and the rule is deliberately not extended to
+    // it: a plugin lays its inventories out while loading, which is not the main thread.
+    @Test
+    void describingAnInventoryIsAllowedFromAnyThread() throws Exception {
+        StoredInventory inventory = new StoredInventory(3);
+
+        assertNull(offThread(() -> inventory.setMaxStackSize(0, 1)));
+        assertNull(offThread(() -> inventory.onPreUpdate(event -> { })));
+        assertNull(offThread(() -> inventory.onPostUpdate(event -> { })));
+
+        assertEquals(1, inventory.getMaxStackSize(0), "and the description took");
     }
 
     @Test

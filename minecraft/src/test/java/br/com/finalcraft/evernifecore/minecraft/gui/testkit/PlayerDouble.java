@@ -46,6 +46,7 @@ public final class PlayerDouble {
     private final Set<String> permissions = new LinkedHashSet<>();
     private final SurfaceDouble playerInventory = new SurfaceDouble(36);
     private final List<String> messages = new ArrayList<>();
+    private final List<PlayedSound> sounds = new ArrayList<>();
     private final List<Drop> drops = new ArrayList<>();
     private final World world;
     private final Location standingAt;
@@ -92,6 +93,10 @@ public final class PlayerDouble {
                 })
                 .on("sendMessage", args -> {
                     messages.add(String.valueOf(args[0]));
+                    return null;
+                })
+                .on("playSound", args -> {
+                    sounds.add(playedSound(args));
                     return null;
                 })
                 .build();
@@ -162,6 +167,28 @@ public final class PlayerDouble {
         return new ArrayList<>(messages);
     }
 
+    /** Every sound played to this player, in order. */
+    public List<PlayedSound> getSounds() {
+        return new ArrayList<>(sounds);
+    }
+
+    /**
+     * What a {@code playSound} call said, whichever overload was taken: every one of them names the
+     * sound second and its volume and pitch in that order, and the rest - a category, a seed - says
+     * nothing a gui test asks about.
+     */
+    private static PlayedSound playedSound(Object[] args) {
+        List<Float> levels = new ArrayList<>();
+        for (Object argument : args) {
+            if (argument instanceof Float) {
+                levels.add((Float) argument);
+            }
+        }
+        return new PlayedSound(String.valueOf(args[1]),
+                levels.size() > 0 ? levels.get(0) : 1F,
+                levels.size() > 1 ? levels.get(1) : 1F);
+    }
+
     /** The window currently open, or {@code null}. */
     public InventoryView getOpenView() {
         return openView;
@@ -205,33 +232,51 @@ public final class PlayerDouble {
         return leftovers;
     }
 
+    /**
+     * Two passes, because one would fill an empty slot the item passed on its way to a partial stack
+     * further along, and a server tops up every partial stack it has before it opens a new one.
+     */
     private ItemStack pourIn(ItemStack item) {
         if (item == null || item.getAmount() <= 0) {
             return null;
         }
-        int left = item.getAmount();
-        for (int slot = 0; slot < playerInventory.getSize() && left > 0; slot++) {
-            ItemStack held = playerInventory.getItem(slot);
-            if (held == null) {
-                int given = Math.min(left, STACK);
-                ItemStack put = item.clone();
-                put.setAmount(given);
-                playerInventory.set(slot, put);
-                left -= given;
-            } else if (held.isSimilar(item) && held.getAmount() < STACK) {
-                int given = Math.min(left, STACK - held.getAmount());
-                ItemStack merged = held.clone();
-                merged.setAmount(held.getAmount() + given);
-                playerInventory.set(slot, merged);
-                left -= given;
-            }
-        }
+        int left = topUpPartialStacks(item, item.getAmount());
+        left = fillEmptySlots(item, left);
         if (left <= 0) {
             return null;
         }
         ItemStack over = item.clone();
         over.setAmount(left);
         return over;
+    }
+
+    private int topUpPartialStacks(ItemStack item, int left) {
+        for (int slot = 0; slot < playerInventory.getSize() && left > 0; slot++) {
+            ItemStack held = playerInventory.getItem(slot);
+            if (held == null || !held.isSimilar(item) || held.getAmount() >= STACK) {
+                continue;
+            }
+            int given = Math.min(left, STACK - held.getAmount());
+            ItemStack merged = held.clone();
+            merged.setAmount(held.getAmount() + given);
+            playerInventory.set(slot, merged);
+            left -= given;
+        }
+        return left;
+    }
+
+    private int fillEmptySlots(ItemStack item, int left) {
+        for (int slot = 0; slot < playerInventory.getSize() && left > 0; slot++) {
+            if (playerInventory.getItem(slot) != null) {
+                continue;
+            }
+            int given = Math.min(left, STACK);
+            ItemStack put = item.clone();
+            put.setAmount(given);
+            playerInventory.set(slot, put);
+            left -= given;
+        }
+        return left;
     }
 
     private InventoryView open(Inventory inventory) {
@@ -309,6 +354,25 @@ public final class PlayerDouble {
         }
         int slot = rawSlot - top.getSize();
         return slot >= 27 ? slot - 27 : slot + 9;
+    }
+
+    /** One sound the framework asked for, as the player would have heard it. */
+    public static final class PlayedSound {
+
+        public final String sound;
+        public final float volume;
+        public final float pitch;
+
+        PlayedSound(String sound, float volume, float pitch) {
+            this.sound = sound;
+            this.volume = volume;
+            this.pitch = pitch;
+        }
+
+        @Override
+        public String toString() {
+            return "PlayedSound{" + sound + " at volume " + volume + ", pitch " + pitch + "}";
+        }
     }
 
     /** One item that ended up on the ground: where it landed, and what it was. */
