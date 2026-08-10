@@ -17,6 +17,13 @@ ext.jacksonRelocations = [
         'com.fasterxml.jackson.datatype'  : 'br.com.finalcraft.everydatabase.libs.jackson.datatype',
 ]
 
+// Local-only jars: paid or otherwise unobtainable plugins the :minecraft side compiles against, plus
+// the Crucible server checkLinkage reads the 1.7.10 API out of. One source, so the two readers cannot
+// drift apart. Without these that module cannot compile; the other modules still can.
+ext.localJarDirs = ['C:/Meus/workshop/workshop/MyOwnPlugins/Bukkit/FinalCraftCore/libs',
+                    'C:/Meus/workshop/workshop/PublicLibs',
+                    'C:/Meus/workshop/workshop/PublicLibs/Bukkit']
+
 subprojects {
     apply plugin: 'java'
     apply plugin: 'idea'
@@ -65,13 +72,7 @@ subprojects {
         maven { url = "https://jitpack.io" }
         maven { url = 'https://libraries.minecraft.net/' }
         maven { url = 'https://maven.petrus.dev/public' }
-        // Local-only jars: paid or otherwise unobtainable plugins the :minecraft side compiles
-        // against. Without these that module cannot compile; the other modules still can.
-        flatDir {
-            dirs 'C:/Meus/workshop/workshop/MyOwnPlugins/Bukkit/FinalCraftCore/libs'
-            dirs 'C:/Meus/workshop/workshop/PublicLibs'
-            dirs 'C:/Meus/workshop/workshop/PublicLibs/Bukkit'
-        }
+        flatDir { dirs rootProject.ext.localJarDirs }
     }
 
     dependencies {
@@ -151,4 +152,10 @@ configure([project(':minecraft:modules:v1_7_10'),
 }
 
 apply from: 'tools/linkcheck.gradle'
+// Both, and for different reasons: `check` is what fails a build, and shadowJar is what a deploy
+// actually runs - the deployable must never come out of this build unverified.
 project(':minecraft').tasks.named('check') { dependsOn rootProject.tasks.named('checkLinkage') }
+// shadowJar is registered by the module's own plugins block, which is evaluated after this file.
+project(':minecraft').afterEvaluate { minecraft ->
+    minecraft.tasks.named('shadowJar') { dependsOn rootProject.tasks.named('checkLinkage') }
+}

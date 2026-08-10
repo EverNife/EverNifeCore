@@ -325,8 +325,16 @@ public final class GuiTestWorld implements AutoCloseable {
         //anything; nothing here routes events, which GuiEventBus does by calling the listener directly
         PluginManager pluginManager = Doubles.of(PluginManager.class).build();
 
+        //a real server always names a release, and the core resolves MCVersion out of it the first time
+        //anything asks - an unanswered one would make every version guard in the rig read as unknown
+        String bukkitVersion = runtime.getVersion() == null
+                ? "1.21.1-R0.1-SNAPSHOT"
+                : runtime.getVersion().getReleaseFamily() + ".0-R0.1-SNAPSHOT";
+
         return Doubles.of(Server.class)
                 .on("isPrimaryThread", args -> Thread.currentThread() == mainThread)
+                .on("getBukkitVersion", args -> bukkitVersion)
+                .on("getVersion", args -> bukkitVersion)
                 .on("getItemFactory", args -> itemFactory)
                 .on("getUnsafe", args -> unsafe)
                 .on("getRegistry", args -> BukkitRegistries.forType((Class<?>) args[0]))

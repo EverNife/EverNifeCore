@@ -8,9 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Biome as the interface it is from 1.21 on. The source is the legacy one verbatim - 1.21 kept a
- * static {@code values()} and inherits {@code name()} from {@code OldEnum} - and only the API this
- * module compiles against differs, which is what gives these calls the interface-shaped opcodes.
+ * Biome as the interface it is from 1.21.3 on. The source is the legacy one verbatim - the interface
+ * kept a static {@code values()} and inherits {@code name()} from {@code OldEnum} - and only the API
+ * this module compiles against differs, which is what gives these calls the interface-shaped opcodes.
  */
 public final class ImpBiomeAccess implements BiomeAccess {
 

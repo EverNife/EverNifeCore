@@ -15,6 +15,13 @@ public class ECoreDependencies {
                 new File("plugins/EverNifeCore"),
                 "libs"
         );
+        if (!dependencyManager.canInjectLibraries()) {
+            //Downloading here would spend the boot fetching jars nothing can load afterwards. The
+            //manager already said why on the console; what follows fails later, on the class that
+            //needed the library, naming it.
+            return;
+        }
+
         dependencyManager.addJitPack();
         dependencyManager.addJCenter();
         dependencyManager.addMavenCentral();

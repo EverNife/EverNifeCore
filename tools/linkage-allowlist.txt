@@ -1,71 +1,82 @@
 # References this project knowingly compiles against a shape or a member some supported server
 # does not have. Every line names the guard that keeps the reference from being reached there.
 #
-#   <runtime> <kind> <reference>   # <the site that guards it, and how>
+#   <runtime> <kind> <reference> <site>   # <how it is guarded>
 #
 # <runtime> is a target id from checkLinkage's own listing, or '*' for "wherever it is absent".
 # <kind> is class | field | method | shape.
+# <site> is the compiled class the reference lives in, as the class file names it (nested classes
+# carry their '$'). An exception covers that class and no other: the same reference compiled into a
+# second class is a second decision, and it has to be made rather than inherited.
 #
 # A reference with no guard does not belong here. It is a defect, and the way out is the ladder
-# checkLinkage prints when it fails - not a line in this file.
+# checkLinkage prints when it fails - not a line in this file. An entry nothing needs any more
+# fails the build too: a leftover exception authorizes whatever walks in next.
 
 # ---------------------------------------------------------------------------------------------
 # Class/interface flip. Two artifacts, one per shape, and the dispatcher loads only the matching
 # one. This is the only cure for a flip, and it is why these entries can never become "fixable".
 # ---------------------------------------------------------------------------------------------
-* shape org/bukkit/block/Biome.values()[Lorg/bukkit/block/Biome;  # BiomeAccessHolder picks legacy vs modern by Biome.class.isInterface(), so only the matching artifact is ever loaded
-* shape org/bukkit/block/Biome.name()Ljava/lang/String;           # idem
+* shape org/bukkit/block/Biome.values()[Lorg/bukkit/block/Biome; br.com.finalcraft.evernifecore.minecraft.compat.legacy.biome.ImpBiomeAccess  # BiomeAccessHolder picks legacy vs modern by Biome.class.isInterface(), so only the matching artifact is ever loaded
+* shape org/bukkit/block/Biome.name()Ljava/lang/String; br.com.finalcraft.evernifecore.minecraft.compat.legacy.biome.ImpBiomeAccess  # idem
+* shape org/bukkit/block/Biome.values()[Lorg/bukkit/block/Biome; br.com.finalcraft.evernifecore.minecraft.compat.modern.biome.ImpBiomeAccess  # idem, from the other side of the flip
+* shape org/bukkit/block/Biome.name()Ljava/lang/String; br.com.finalcraft.evernifecore.minecraft.compat.modern.biome.ImpBiomeAccess  # idem
 
 # ---------------------------------------------------------------------------------------------
 # Types that arrived after some supported era.
 # ---------------------------------------------------------------------------------------------
-* class org/bukkit/NamespacedKey                     # arrived in 1.12. ItemDataPartEnchantment: ItemEngine registers it behind ItemRequirement.atLeast(v1_13_R1), and RegisteredPart never instantiates a refused part. ItemRuntime: inside try/catch(Exception|LinkageError)
-1.7.10 class org/bukkit/inventory/ItemFlag           # FCBaseItemBuilder.setGlow sits after the isEqual(v1_7_10) early return; ItemDataPartItemflags is registered behind ItemRequirement.atLeast(v1_8_R1)
-* class org/bukkit/Particle                          # arrived in 1.9. CMDProtectionTest$ParticleCompat, a nested class only loaded when the isHigherEquals(v1_13) branch runs
-* class org/bukkit/Particle$DustOptions              # arrived in 1.13, same guard as above
+* class org/bukkit/NamespacedKey br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartEnchantment  # arrived in 1.12. ItemEngine registers the part behind ItemRequirement.atLeast(v1_13_R1), and RegisteredPart never instantiates a refused part
+* class org/bukkit/NamespacedKey br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime  # the probe reaches it inside try/catch(Exception|LinkageError)
+* class org/bukkit/inventory/ItemFlag br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartItemflags  # registered behind ItemRequirement.atLeast(v1_8_R1)
+1.7.10 class org/bukkit/inventory/ItemFlag br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder.FCBaseItemBuilder  # setGlow sits after the isEqual(v1_7_10) early return
+* class org/bukkit/Particle br.com.finalcraft.evernifecore.minecraft.commands.debug.CMDProtectionTest$ParticleCompat  # arrived in 1.9. Nested class only loaded when the isHigherEquals(v1_13) branch runs
+* class org/bukkit/Particle$DustOptions br.com.finalcraft.evernifecore.minecraft.commands.debug.CMDProtectionTest$ParticleCompat  # arrived in 1.13, same guard as above
 
 # ---------------------------------------------------------------------------------------------
 # Constants renamed or added along the way. All resolved by a version branch that picks the
 # spelling of the era.
 # ---------------------------------------------------------------------------------------------
-* field org/bukkit/Material.PLAYER_HEADLorg/bukkit/Material;               # MaterialHeadInterpreter:12, the isLowerEquals(v1_12) ternary takes the "SKULL" branch below 1.13
-* field org/bukkit/Material.ZOMBIE_HEADLorg/bukkit/Material;               # idem
-* field org/bukkit/Material.CREEPER_HEADLorg/bukkit/Material;              # idem
-* field org/bukkit/Material.DRAGON_HEADLorg/bukkit/Material;               # idem
-* field org/bukkit/Material.SKELETON_SKULLLorg/bukkit/Material;            # idem
-* field org/bukkit/Material.WITHER_SKELETON_SKULLLorg/bukkit/Material;     # idem
-* field org/bukkit/Material.WHITE_WOOLLorg/bukkit/Material;                # EnumWool:33, inside if (MCVersion.isHigherEquals(v1_13))
-* field org/bukkit/Material.WHITE_STAINED_GLASS_PANELorg/bukkit/Material;  # EnumStainedGlassPane:33, inside if (MCVersion.isHigherEquals(v1_13))
-* field org/bukkit/Material.SPECTRAL_ARROWLorg/bukkit/Material;            # DefaultIcons:94,105,116 - applyIf(() -> MCVersion.isHigherEquals(v1_12), ...) runs the lambda only when the test passes
-* field org/bukkit/Material.dataLjava/lang/Class;                          # MaterialSignInterpreter:29, in the else of isLowerEquals(v1_12) and again behind !material.isLegacy()
-* field org/bukkit/Statistic.PLAY_ONE_MINUTELorg/bukkit/Statistic;         # McDefaultOntimeManager:15, isHigherEquals(v1_13) ternary falls back to Statistic.valueOf("PLAY_ONE_TICK")
+* field org/bukkit/Material.PLAYER_HEADLorg/bukkit/Material; br.com.finalcraft.evernifecore.minecraft.interpreters.MaterialHeadInterpreter  # the isLowerEquals(v1_12) ternary takes the "SKULL" branch below 1.13
+* field org/bukkit/Material.ZOMBIE_HEADLorg/bukkit/Material; br.com.finalcraft.evernifecore.minecraft.interpreters.MaterialHeadInterpreter  # idem
+* field org/bukkit/Material.CREEPER_HEADLorg/bukkit/Material; br.com.finalcraft.evernifecore.minecraft.interpreters.MaterialHeadInterpreter  # idem
+* field org/bukkit/Material.DRAGON_HEADLorg/bukkit/Material; br.com.finalcraft.evernifecore.minecraft.interpreters.MaterialHeadInterpreter  # idem
+* field org/bukkit/Material.SKELETON_SKULLLorg/bukkit/Material; br.com.finalcraft.evernifecore.minecraft.interpreters.MaterialHeadInterpreter  # idem
+* field org/bukkit/Material.WITHER_SKELETON_SKULLLorg/bukkit/Material; br.com.finalcraft.evernifecore.minecraft.interpreters.MaterialHeadInterpreter  # idem
+* field org/bukkit/Material.dataLjava/lang/Class; br.com.finalcraft.evernifecore.minecraft.interpreters.MaterialSignInterpreter  # in the else of isLowerEquals(v1_12) and again behind !material.isLegacy()
+* field org/bukkit/Material.WHITE_WOOLLorg/bukkit/Material; br.com.finalcraft.evernifecore.minecraft.gui.icons.EnumWool  # inside if (MCVersion.isHigherEquals(v1_13))
+* field org/bukkit/Material.WHITE_STAINED_GLASS_PANELorg/bukkit/Material; br.com.finalcraft.evernifecore.minecraft.gui.icons.EnumStainedGlassPane  # inside if (MCVersion.isHigherEquals(v1_13))
+* field org/bukkit/Material.SPECTRAL_ARROWLorg/bukkit/Material; br.com.finalcraft.evernifecore.minecraft.gui.icons.DefaultIcons  # applyIf(() -> MCVersion.isHigherEquals(v1_12), ...) runs the lambda only when the test passes
+* field org/bukkit/Statistic.PLAY_ONE_MINUTELorg/bukkit/Statistic; br.com.finalcraft.evernifecore.minecraft.ontime.McDefaultOntimeManager  # isHigherEquals(v1_13) ternary falls back to Statistic.valueOf("PLAY_ONE_TICK")
 
 # ---------------------------------------------------------------------------------------------
 # Methods that arrived after some supported era.
 # ---------------------------------------------------------------------------------------------
-* method org/bukkit/Material.isLegacy()Z                                                              # MaterialSignInterpreter:28, in the else of isLowerEquals(v1_12)
-* method org/bukkit/Material.matchMaterial(Ljava/lang/String;Z)Lorg/bukkit/Material;                  # FCMaterialUtil:63, inside if (MCVersion.isHigherEquals(v1_13))
-* method org/bukkit/NamespacedKey.fromString(Ljava/lang/String;)Lorg/bukkit/NamespacedKey;            # ItemDataPartEnchantment, registered behind ItemRequirement.atLeast(v1_13_R1)
-* method org/bukkit/enchantments/Enchantment.getKey()Lorg/bukkit/NamespacedKey;                       # idem
-* method org/bukkit/enchantments/Enchantment.getByKey(Lorg/bukkit/NamespacedKey;)Lorg/bukkit/enchantments/Enchantment;  # idem for ItemDataPartEnchantment; ItemRuntime.probe wraps its two calls in try/catch(Exception|LinkageError)
-* method org/bukkit/inventory/meta/ItemMeta.getCustomModelData()I                                     # ItemDataPartCustomModelData, registered behind ItemRequirement.atLeast(v1_14_R1)
-* method org/bukkit/inventory/meta/ItemMeta.hasCustomModelData()Z                                     # idem
-* method org/bukkit/inventory/meta/ItemMeta.setCustomModelData(Ljava/lang/Integer;)V                  # idem
-* method org/bukkit/inventory/meta/ItemMeta.getPersistentDataContainer()Lorg/bukkit/persistence/PersistentDataContainer;  # FCBaseItemBuilder.setPDC, the stack edit declares ItemRequirement.atLeast(v1_14_R1) and a refused edit never applies
-* method org/bukkit/inventory/meta/ItemMeta.addItemFlags([Lorg/bukkit/inventory/ItemFlag;)V           # FCBaseItemBuilder.setGlow, after the isEqual(v1_7_10) early return; ItemDataPartItemflags behind ItemRequirement.atLeast(v1_8_R1)
-* method org/bukkit/inventory/meta/ItemMeta.getItemFlags()Ljava/util/Set;                             # ItemDataPartItemflags, registered behind ItemRequirement.atLeast(v1_8_R1)
-* method org/bukkit/inventory/meta/ItemMeta.removeItemFlags([Lorg/bukkit/inventory/ItemFlag;)V         # idem - ItemDataPartItemflags.apply clears before it adds, so the block of lines is the whole answer
-* method org/bukkit/inventory/meta/ItemMeta.setUnbreakable(Z)V                                        # FCBaseItemBuilder.setUnbreakable, on the branch the isLower(v1_11_R1) test does not take
-* method org/bukkit/World.playSound(Lorg/bukkit/Location;Ljava/lang/String;FF)V                       # FCSoundUtil:51, the else of isEqual(v1_7_10)
-* method org/bukkit/entity/Entity.getCustomName()Ljava/lang/String;                                   # PlayerInteractListener:118, inside try/catch(NoSuchMethodError)
-* method org/bukkit/entity/Player$Spigot.sendMessage(Lnet/md_5/bungee/api/ChatMessageType;[Lnet/md_5/bungee/api/chat/BaseComponent;)V  # FCMinecraftAdventureUtil:125, inside try/catch(Throwable)
-* method org/bukkit/entity/Player.getTargetBlock(Ljava/util/Set;I)Lorg/bukkit/block/Block;             # FCBukkitUtil:342, the else of isLowerEquals(v1_7_10)
-* method org/bukkit/entity/Player.resetTitle()V                                                       # TitleAPI.send/clear return early on isLowerEquals(v1_7_10), so no PlayerTitleManager ever exists there; the member is present from 1.8.8 on
-* method org/bukkit/entity/Player.sendTitle(Ljava/lang/String;Ljava/lang/String;)V                     # same early return - and this pair form is exactly what PlayerTitleManager.run sends below 1.11
-* method org/bukkit/entity/Player.sendTitle(Ljava/lang/String;Ljava/lang/String;III)V                  # PlayerTitleManager.run picks the pair form on isLower(v1_11_R1); the timed form only runs from 1.11 on
-* method org/bukkit/entity/Player.spawnParticle(Lorg/bukkit/Particle;Lorg/bukkit/Location;ILjava/lang/Object;)V  # CMDProtectionTest$ParticleCompat, loaded only when the isHigherEquals(v1_13) branch runs
-* method org/bukkit/inventory/PlayerInventory.getItemInMainHand()Lorg/bukkit/inventory/ItemStack;      # FCBukkitUtil.getPlayersHeldItem, the else of isLower(v1_9_R1) - the main-hand pair arrived in 1.9
-* method org/bukkit/inventory/PlayerInventory.setItemInMainHand(Lorg/bukkit/inventory/ItemStack;)V     # FCBukkitUtil.setPlayersHeldItem, the else of isLower(v1_9_R1)
-* method org/bukkit/inventory/PlayerInventory.getItemInOffHand()Lorg/bukkit/inventory/ItemStack;       # ArgParserContextualItemStack:93, the isLowerEquals(v1_8_R3) ternary yields null below 1.9
-* method org/bukkit/inventory/Inventory.getStorageContents()[Lorg/bukkit/inventory/ItemStack;          # FCInventoryUtil.storageOf, the only reader, falls back to getContents() on isLower(v1_9_R1) - the member arrived in 1.9
-* method org/bukkit/inventory/Inventory.setStorageContents([Lorg/bukkit/inventory/ItemStack;)V         # FCInventoryUtil.writeStorage, the only writer, writes slot by slot on isLower(v1_9_R1)
+* method org/bukkit/Material.isLegacy()Z br.com.finalcraft.evernifecore.minecraft.interpreters.MaterialSignInterpreter  # in the else of isLowerEquals(v1_12)
+* method org/bukkit/Material.matchMaterial(Ljava/lang/String;Z)Lorg/bukkit/Material; br.com.finalcraft.evernifecore.minecraft.util.FCMaterialUtil  # inside if (MCVersion.isHigherEquals(v1_13))
+* method org/bukkit/NamespacedKey.fromString(Ljava/lang/String;)Lorg/bukkit/NamespacedKey; br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartEnchantment  # registered behind ItemRequirement.atLeast(v1_13_R1)
+* method org/bukkit/enchantments/Enchantment.getKey()Lorg/bukkit/NamespacedKey; br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartEnchantment  # idem
+* method org/bukkit/enchantments/Enchantment.getByKey(Lorg/bukkit/NamespacedKey;)Lorg/bukkit/enchantments/Enchantment; br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartEnchantment  # idem
+* method org/bukkit/enchantments/Enchantment.getByKey(Lorg/bukkit/NamespacedKey;)Lorg/bukkit/enchantments/Enchantment; br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime  # probe wraps its two calls in try/catch(Exception|LinkageError)
+* method org/bukkit/inventory/meta/ItemMeta.getCustomModelData()I br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartCustomModelData  # registered behind ItemRequirement.atLeast(v1_14_R1)
+* method org/bukkit/inventory/meta/ItemMeta.hasCustomModelData()Z br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartCustomModelData  # idem
+* method org/bukkit/inventory/meta/ItemMeta.setCustomModelData(Ljava/lang/Integer;)V br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartCustomModelData  # idem
+* method org/bukkit/inventory/meta/ItemMeta.getItemFlags()Ljava/util/Set; br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartItemflags  # registered behind ItemRequirement.atLeast(v1_8_R1)
+* method org/bukkit/inventory/meta/ItemMeta.addItemFlags([Lorg/bukkit/inventory/ItemFlag;)V br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartItemflags  # idem
+* method org/bukkit/inventory/meta/ItemMeta.removeItemFlags([Lorg/bukkit/inventory/ItemFlag;)V br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartItemflags  # idem - apply clears before it adds, so the block of lines is the whole answer
+1.7.10 method org/bukkit/inventory/meta/ItemMeta.addItemFlags([Lorg/bukkit/inventory/ItemFlag;)V br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder.FCBaseItemBuilder  # setGlow, after the isEqual(v1_7_10) early return
+* method org/bukkit/inventory/meta/ItemMeta.setUnbreakable(Z)V br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder.FCBaseItemBuilder  # setUnbreakable, on the branch the isLower(v1_11_R1) test does not take
+* method org/bukkit/inventory/meta/ItemMeta.getPersistentDataContainer()Lorg/bukkit/persistence/PersistentDataContainer; br.com.finalcraft.evernifecore.minecraft.itemstack.itembuilder.FCBaseItemBuilder  # setPDC declares ItemRequirement.atLeast(v1_14_R1) and a refused edit never applies
+* method org/bukkit/World.playSound(Lorg/bukkit/Location;Ljava/lang/String;FF)V br.com.finalcraft.evernifecore.minecraft.util.FCSoundUtil  # the else of isEqual(v1_7_10)
+* method org/bukkit/entity/Entity.getCustomName()Ljava/lang/String; br.com.finalcraft.evernifecore.minecraft.listeners.PlayerInteractListener  # inside try/catch(NoSuchMethodError)
+* method org/bukkit/entity/Player$Spigot.sendMessage(Lnet/md_5/bungee/api/ChatMessageType;[Lnet/md_5/bungee/api/chat/BaseComponent;)V br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil  # inside try/catch(Throwable)
+* method org/bukkit/entity/Player.getTargetBlock(Ljava/util/Set;I)Lorg/bukkit/block/Block; br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil  # the else of isLowerEquals(v1_7_10)
+1.7.10 method org/bukkit/entity/Player.resetTitle()V br.com.finalcraft.evernifecore.minecraft.title.TitleAPI  # send/clear return early on isLowerEquals(v1_7_10); the member is present from 1.8.8 on
+1.7.10 method org/bukkit/entity/Player.resetTitle()V br.com.finalcraft.evernifecore.minecraft.title.PlayerTitleManager  # the same early return means no manager ever exists there
+1.7.10 method org/bukkit/entity/Player.sendTitle(Ljava/lang/String;Ljava/lang/String;)V br.com.finalcraft.evernifecore.minecraft.title.PlayerTitleManager  # idem - and this pair form is exactly what run() sends below 1.11
+* method org/bukkit/entity/Player.sendTitle(Ljava/lang/String;Ljava/lang/String;III)V br.com.finalcraft.evernifecore.minecraft.title.PlayerTitleManager  # run() picks the pair form on isLower(v1_11_R1); the timed form only runs from 1.11 on
+* method org/bukkit/entity/Player.spawnParticle(Lorg/bukkit/Particle;Lorg/bukkit/Location;ILjava/lang/Object;)V br.com.finalcraft.evernifecore.minecraft.commands.debug.CMDProtectionTest$ParticleCompat  # loaded only when the isHigherEquals(v1_13) branch runs
+* method org/bukkit/inventory/PlayerInventory.getItemInMainHand()Lorg/bukkit/inventory/ItemStack; br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil  # getPlayersHeldItem, the else of isLower(v1_9_R1) - the main-hand pair arrived in 1.9
+* method org/bukkit/inventory/PlayerInventory.setItemInMainHand(Lorg/bukkit/inventory/ItemStack;)V br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil  # setPlayersHeldItem, the else of isLower(v1_9_R1)
+* method org/bukkit/inventory/PlayerInventory.getItemInOffHand()Lorg/bukkit/inventory/ItemStack; br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.contextualparsers.ArgParserContextualItemStack  # the isLowerEquals(v1_8_R3) ternary yields null below 1.9
+* method org/bukkit/inventory/Inventory.getStorageContents()[Lorg/bukkit/inventory/ItemStack; br.com.finalcraft.evernifecore.minecraft.util.FCInventoryUtil  # storageOf falls back to getContents() on isLower(v1_9_R1) - the member arrived in 1.9
+* method org/bukkit/inventory/Inventory.setStorageContents([Lorg/bukkit/inventory/ItemStack;)V br.com.finalcraft.evernifecore.minecraft.util.FCInventoryUtil  # writeStorage writes slot by slot on isLower(v1_9_R1)

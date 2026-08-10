@@ -7,6 +7,8 @@ import org.junit.jupiter.params.provider.CsvSource;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 // Exercises the pure resolver; getCurrent() is deliberately not touched, since only it reads Bukkit.
@@ -125,6 +127,67 @@ public class MCDetailedVersionTest {
         assertArrayEquals(
                 new String[]{"org.bukkit.craftbukkit.entity.CraftPlayer"},
                 MCDetailedVersion.v26_2.getCraftBukkitClassNames("entity.CraftPlayer"));
+    }
+
+    // The table used to check itself while constructing its own constants, where a typo would have
+    // thrown from the enum's class initializer and taken the only source of server version with it.
+    // These two are that check, moved to where a typo costs a red test instead of a dead class.
+    @Test
+    void everyConstantDeclaresAReleaseTheTableCanRead() {
+        for (MCDetailedVersion version : MCDetailedVersion.values()) {
+            assertNotNull(MCDetailedVersion.releaseOf(version.getLowestRelease()),
+                    version + " declares \"" + version.getLowestRelease() + "\" as the lowest release it "
+                            + "covers, but that does not read as a Minecraft release. Declare the first "
+                            + "release this constant covers, as the server reports it - \"1.20.5\", \"26.2\".");
+        }
+    }
+
+    @Test
+    void everyConstantIsNamedAfterWhatItsServerReports() {
+        for (MCDetailedVersion version : MCDetailedVersion.values()) {
+            assertTrue(nameFitsTheRelease(version.name(), version.getReleaseFamily(), version.getLowestRelease()),
+                    version + " declares \"" + version.getLowestRelease() + "\", but its name says otherwise. "
+                            + "A 1.x constant is named after the CraftBukkit revision its server package "
+                            + "reports (v1_20_R4 covers 1.20.5); a year-based one is named after the release "
+                            + "itself, since no such server ever reported a revision.");
+        }
+    }
+
+    // The revision spelling belongs to the era whose package carried one. A year-based constant wearing
+    // it - v26_1_R1 - claims something no server reports, and is exactly what the old check let through.
+    @Test
+    void aYearBasedConstantCannotWearARevisionName() {
+        assertFalse(nameFitsTheRelease("v26_1_R1", "26.1", "26.1"));
+        assertTrue(nameFitsTheRelease("v26_1", "26.1", "26.1"));
+        assertTrue(nameFitsTheRelease("v1_20_R4", "1.20", "1.20.5"));
+        assertFalse(nameFitsTheRelease("v1_20_R4", "1.21", "1.21.5"));
+    }
+
+    private static boolean nameFitsTheRelease(String name, String releaseFamily, String lowestRelease) {
+        if (name.equals("v" + lowestRelease.replace('.', '_'))) {
+            return true;
+        }
+        if (!releaseFamily.startsWith("1.")) {
+            return false;
+        }
+        String familyPrefix = "v" + releaseFamily.replace('.', '_') + "_R";
+        return name.startsWith(familyPrefix)
+                && name.length() > familyPrefix.length()
+                && name.substring(familyPrefix.length()).chars().allMatch(Character::isDigit);
+    }
+
+    // A release published after this table still names a version; a string that does not read as a
+    // release names nothing, and the plugin says so instead of guarding every branch on a guess.
+    @Test
+    void aServerReportingSomethingUnreadableIsToldSoInsteadOfBeingGuessed() {
+        IllegalStateException thrown = assertThrows(IllegalStateException.class,
+                () -> MCDetailedVersion.currentFrom("org.bukkit.craftbukkit", "Crucible-1.7.10-LATEST"));
+        assertTrue(thrown.getMessage().contains("Crucible-1.7.10-LATEST"), thrown.getMessage());
+        assertTrue(thrown.getMessage().contains("MCDetailedVersion"), thrown.getMessage());
+
+        MCDetailedVersion newest = MCDetailedVersion.values()[MCDetailedVersion.values().length - 1];
+        assertEquals(newest, MCDetailedVersion.currentFrom("org.bukkit.craftbukkit", "26.9-R0.1-SNAPSHOT"));
+        assertEquals(newest, MCDetailedVersion.currentFrom("org.bukkit.craftbukkit", "27.1-R0.1-SNAPSHOT"));
     }
 
     // MCVersion answers per release family, so constants inside one family have to be one version there.

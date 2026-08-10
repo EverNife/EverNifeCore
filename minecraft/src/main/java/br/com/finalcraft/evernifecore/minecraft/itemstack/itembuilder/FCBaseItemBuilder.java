@@ -257,8 +257,8 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
         return meta("glow", ItemDataPart.PRIORITY_LATE, meta -> {
             if (MCVersion.isEqual(MCVersion.v1_7_10)) {
                 //1.7.10 has no way to hide an enchantment, so the shimmer has to come from a real
-                //one. Looked up by name because the constant was renamed to UNBREAKING in 1.21, and
-                //naming either spelling would bind this line to one half of the supported range -
+                //one. Looked up by name because the constant was renamed to UNBREAKING in 1.20.5,
+                //and naming either spelling would bind this line to one half of the supported range -
                 //this branch runs only on the half that spells it DURABILITY.
                 Enchantment durability = Enchantment.getByName("DURABILITY");
                 if (durability == null) {

@@ -43,6 +43,9 @@ dependencies {
     implementation libs.libby.core
 
     implementation libs.nbtapi
+    // Rides into the jar unrelocated (see the shadow block) - declared here so the version that
+    // becomes that contract is chosen, not inherited from a transitive POM.
+    implementation libs.jakarta.validation
 
     implementation libs.bungeecord.chat // same API from 1.7.10 onwards
 

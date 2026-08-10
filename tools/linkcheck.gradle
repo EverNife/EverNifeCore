@@ -17,6 +17,16 @@
 //
 //  Written in the build's own Groovy on purpose: `check` must not start depending on a language
 //  runtime that is not already required to build the project.
+//
+//  What it does NOT see, so nobody reads a green run as more than it is:
+//
+//    * only `org/bukkit/` references are asked about. The shadow jar also carries NBT-API, kyori
+//      and ECNmsUtils, and a member missing from one of those is invisible here;
+//    * a reference whose owner is outside the target's API jar counts as present, except for
+//      `java/`/`javax/`, which are asked of this JVM. A third-party owner is simply unverifiable;
+//    * only what the constant pool names. A member reached by reflection or by
+//      `Enum.valueOf(String)` is not a reference at all - the string takes it out of reach, and
+//      the version guard beside it is the only thing left checking.
 // ======================================================================
 
 import java.util.zip.ZipFile
@@ -30,7 +40,7 @@ repositories {
         name = 'spigotmc-repo'
         url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots'
     }
-    flatDir { dirs 'C:/Meus/workshop/workshop/PublicLibs' }
+    flatDir { dirs rootProject.ext.localJarDirs }
 }
 
 // Every server era the project claims to support. 1.7.10 has neither a spigot-api nor an
@@ -56,9 +66,13 @@ ext.linkageConfigurationOf = { String targetId -> 'linkageApi_' + targetId.repla
 // configuration would resolve the conflict by keeping the newest and silently check nothing else.
 // Each is non-transitive - org/bukkit lives in the jar itself.
 ext.linkageTargets.each { String targetId, Object coordinates ->
-    String configurationName = ext.linkageConfigurationOf(targetId)
-    configurations.create(configurationName) { transitive = false }
-    dependencies.add(configurationName, coordinates)
+    String declaredIn = ext.linkageConfigurationOf(targetId) + '_declared'
+    configurations.dependencyScope(declaredIn)
+    configurations.resolvable(ext.linkageConfigurationOf(targetId)) {
+        extendsFrom configurations.getByName(declaredIn)
+        transitive = false
+    }
+    dependencies.add(declaredIn, coordinates)
 }
 
 // ----------------------------------------------------------------------
@@ -185,10 +199,10 @@ class ClassReader {
 }
 
 // ----------------------------------------------------------------------
-//  A target runtime: every class its API jar declares, indexed for member resolution.
+//  A target server's API: every class its jar declares, indexed for member resolution.
 // ----------------------------------------------------------------------
 
-class Runtime {
+class TargetApi {
     String id
     Map<String, ClassFile> classes = [:]
 
@@ -258,9 +272,9 @@ tasks.register('checkLinkage') {
     }
     def allowlistFile = rootProject.file('tools/linkage-allowlist.txt')
 
-    inputs.files(classDirs)
-    apiConfigurations.values().each { inputs.files(it) }
-    inputs.file(allowlistFile)
+    // No inputs are declared, and this is why: the answer depends on API jars resolved from snapshot
+    // coordinates, which change without a single file in this project changing. A run that could be
+    // skipped would be a run that vouches for jars it never read.
     outputs.upToDateWhen { false }
 
     doLast {
@@ -269,16 +283,18 @@ tasks.register('checkLinkage') {
             String body = line.replaceFirst(/#.*$/, '').trim()
             if (body.isEmpty()) return
             def cells = body.split(/\s+/)
-            if (cells.length != 3) {
+            if (cells.length != 4) {
                 throw new GradleException("tools/linkage-allowlist.txt line is not <runtime> <kind>"
-                        + " <reference>: [${line}]. Three columns, then '#' and the site that guards it.")
+                        + " <reference> <site>: [${line}]. Four columns - the site is the class the"
+                        + " reference is compiled into, so the exception covers that class and no other"
+                        + " - then '#' and how it is guarded.")
             }
             allowed << cells.join(' ')
         }
 
-        Map<String, Runtime> runtimes = [:]
+        Map<String, TargetApi> runtimes = [:]
         apiConfigurations.each { String targetId, Object configuration ->
-            Runtime runtime = new Runtime(id: targetId)
+            TargetApi runtime = new TargetApi(id: targetId)
             configuration.files.each { File jar ->
                 new ZipFile(jar).withCloseable { zip ->
                     zip.entries().each { ZipEntry entry ->
@@ -316,8 +332,8 @@ tasks.register('checkLinkage') {
                 ClassFile parsed = new ClassReader(file.bytes).read()
                 String site = parsed.name.replace('/', '.')
 
-                runtimes.each { String runtimeId, Runtime runtime ->
-                    parsed.classRefs.findAll { it.startsWith('org/bukkit/') }.each { String ref ->
+                runtimes.each { String runtimeId, TargetApi runtime ->
+                    parsed.classRefs.collect { elementTypeOf(it) }.findAll { it.startsWith('org/bukkit/') }.each { String ref ->
                         if (!runtime.declares(ref)) {
                             report(findings, unusedAllowances, allowed, runtimeId, 'class', ref, site,
                                     'the class is not in that server at all')
@@ -325,6 +341,9 @@ tasks.register('checkLinkage') {
                     }
                     parsed.memberRefs.each { List<String> ref ->
                         String tag = ref[0], owner = ref[1], name = ref[2], descriptor = ref[3]
+                        //the owner stays as the pool wrote it: an array owner ([Lorg/bukkit/ItemStack;)
+                        //declares no member of its own - clone() and the rest come from Object - so it
+                        //falls out here instead of being normalized into the type it holds
                         if (!owner.startsWith('org/bukkit/')) return
                         Boolean ownerIsInterface = runtime.isInterface(owner)
                         if (ownerIsInterface == null) return // already reported as a missing class
@@ -361,17 +380,39 @@ tasks.register('checkLinkage') {
                     + "  3. move the code into a minecraft/modules/* artifact compiled against that"
                     + " era, dispatched by Class.forName - the only cure for 'shape'.\n"
                     + "Once it IS guarded, declare it in tools/linkage-allowlist.txt as"
-                    + " '<runtime> <kind> <reference>  # <the guard>'. A reference with no guard does"
-                    + " not belong in that file.")
+                    + " '<runtime> <kind> <reference> <site>  # <the guard>'. A reference with no guard"
+                    + " does not belong in that file.")
+        }
+
+        if (!unusedAllowances.isEmpty()) {
+            throw new GradleException("tools/linkage-allowlist.txt claims ${unusedAllowances.size()}"
+                    + " reference(s) nothing compiles any more:\n\n"
+                    + unusedAllowances.collect { "  ${it}" }.join('\n') + '\n\n'
+                    + "Either the reference is gone, or the site named there no longer compiles it."
+                    + " Delete the line, or point it at where the reference lives now: an exception"
+                    + " left behind authorizes the next one to walk in without anyone deciding it may.")
         }
     }
 }
 
-/** Records a finding unless the allowlist already claims it, for this runtime or for every one. */
+/** {@code [[Lorg/bukkit/Material;} names org/bukkit/Material; anything else is already a class name. */
+static String elementTypeOf(String classReference) {
+    String name = classReference
+    while (name.startsWith('[')) {
+        name = name.substring(1)
+    }
+    return name.startsWith('L') && name.endsWith(';') ? name.substring(1, name.length() - 1) : name
+}
+
+/**
+ * Records a finding unless the allowlist already claims it for this exact site - and either for this
+ * runtime or for every one. The site is what keeps an exception from covering a class it was never
+ * decided for: a second class naming the same reference is a new decision, not a covered one.
+ */
 void report(List<String> findings, Set<String> unusedAllowances, Set<String> allowed,
             String runtimeId, String kind, String reference, String site, String why) {
-    String exact = "${runtimeId} ${kind} ${reference}"
-    String any = "* ${kind} ${reference}"
+    String exact = "${runtimeId} ${kind} ${reference} ${site}"
+    String any = "* ${kind} ${reference} ${site}"
     if (allowed.contains(exact)) {
         unusedAllowances.remove(exact)
         return

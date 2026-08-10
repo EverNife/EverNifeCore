@@ -17,6 +17,30 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Added
 
+- **A GUI framework, in place of the deleted one.** `Gui` and its views, `Region`/`SlotSet`, icon
+  states and cycles, list components with paging, storage regions that write through to an
+  `ItemStore`, a navigation chain that carries a result back, and `askOnChat` for a free-text answer.
+  Screens are declared once (`@GuiLayout`) and every window is painted for the viewer who opened it.
+- **Layout files an admin owns.** A layout seeds its own YAML - type, rows, icons, slots, language
+  blocks - and a per-language overlay restyles only what it names. `/ecoregui` (permission
+  `evernifecore.command.gui`) diffs a class against its file and writes the missing keys.
+- **`StoredInventory`, and a save format with a version on it.** A stored inventory carries its
+  size, its per-slot ceilings and a schema version, so an old file is read forever and a file written
+  by a newer version is refused with a message instead of read wrong.
+- **A text-recipe item engine.** `ItemEngine` builds an item out of lines (`type:`, `amount:`,
+  `name:`, `lore:`, `enchant:`, `nbt:`, `components:`, ...), each part declaring the runtime it needs;
+  `ItemRuntime.probe()` measures the server once and a part the server cannot serve is refused by
+  name instead of crashing where it is used.
+- **`checkLinkage`.** A build gate that reads the compiled bytecode and asks every supported server's
+  API jar whether each `org/bukkit` reference resolves there - including the class/interface flip,
+  which no presence check can see. It guards both `check` and `shadowJar`, and every knowingly
+  guarded reference is declared, with its site, in `tools/linkage-allowlist.txt`.
+- **`minecraft:modules:modern`.** The artifact compiled against the post-flip shape of `Biome`;
+  `BiomeAccessHolder` loads it or the legacy one by asking `Biome.class.isInterface()`.
+- **Version table answers about releases.** `MCDetailedVersion.getReleaseFamily()`,
+  `getLowestRelease()` and `getCraftBukkitClassNames(...)`, plus `MCVersion.v26` for the year-based
+  scheme.
+- **`McFCScheduler.repeatSyncInTicks(...)`**, and `scheduleSyncInTicks` now hands back the task.
 - **Coverage for the command tree and the parse engine.** The tree, its captures, its registration
   errors, tab over the tree, `ParseResult`/`ParseOutcome`, the parser routing table, the contextual
   call grammar, the declarative flag matrix and the marker grammar, the tree help and its locale
@@ -40,6 +64,18 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Changed
 
+- **The version table is ordered by release, not by a folded number.** Comparison walks digit group
+  by digit group, which is what makes `26.2` land above `1.21.11`; constants declare the lowest
+  release they cover instead of an integer; a server whose reported version string does not read as a
+  release now fails by name instead of being guessed as the newest known one.
+- **`IPlatform.runOnMainThread` means what it says.** It runs inline when the caller already is the
+  main thread and schedules otherwise; the always-wait-for-the-next-tick form - which enable-time
+  bootstrap depends on - is now `runOnMainThreadNextTick`.
+- **The core compiles and tests against `spigot-api` 26.2**, with NBT-API on 2.16.0. The supported
+  floor is unchanged (1.7.10): `checkLinkage` is what proves it, era by era.
+- **Bean Validation rides into the jar unrelocated and pinned.** `jakarta.validation-api` is declared
+  in the version catalog, because it is the contract a plugin's own validation rules compile against.
+- **`FCSoundUtil.pickByEra` takes an `MCDetailedVersion`** instead of an era number.
 - **`PageViewer` takes one type parameter and a step builder that asks for the ceiling.**
   `PageViewer.of(Class).source(...)` then `maxEntries(...)` or `unlimitedEntries()`; there is no
   default ceiling to be surprised by. Ordering is declared with `orderBy(...).ascending()` /
@@ -51,6 +87,16 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ### Removed
 
+- **The old GUI stack, and triumph-gui with it.** `FCGuiFactory`, `PlayerGui`, `GuiComplex`,
+  `PaginatedGuiComplex`, `GuiItemComplex`, `ComplexGuiBuilder`, `PaginatedComplexGuiBuilder`,
+  `LayoutManager`, `FCLayoutScanner`, `LayoutIcon`/`LayoutIconBuilder`/`LayoutIconData`,
+  `LayoutBaseData`, `IHasLayout` and `ConfigParseEngine` are gone. The shadow jar no longer carries a
+  single relocated triumph-gui class.
+- **`MCDetailedVersion.getValue()`, `getShortValue()` and `getShortVersion()`**, along with the
+  constants `v1_11_R2`, `v1_12_R2`, `v1_14_R2` and `v1_15_R2` - revisions that never named a distinct
+  release.
+- **`/ecoredictinfo menu`.** The subcommand is gone; a server that ran an earlier version still has
+  the old click persisted in `localization/lang_<LANG>.yml` and should delete that entry.
 - **`Settings.PageViewers` is gone from `config.yml`** - both `REFRESH_TIME` (now a `CachePolicy`
   declared on the page) and `FULL_LOCALIZATION` (the localized chrome is the only path now).
 - **The per-send dynamic command links.** A page no longer schedules three `DynamicCommand` entries

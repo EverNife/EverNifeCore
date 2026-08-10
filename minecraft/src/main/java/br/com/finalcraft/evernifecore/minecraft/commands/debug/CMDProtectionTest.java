@@ -18,6 +18,7 @@ import br.com.finalcraft.evernifecore.minecraft.protection.ProtectionAll;
 import br.com.finalcraft.evernifecore.minecraft.protection.integration.ProtectionHandler;
 import br.com.finalcraft.evernifecore.minecraft.protection.integration.imp.WorldGuardHandler;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.minecraft.protection.worldguard.FCWorldGuardRegion;
 import br.com.finalcraft.evernifecore.minecraft.protection.worldguard.WGPlatform;
@@ -220,9 +221,9 @@ public class CMDProtectionTest implements ICustomFinalCMD {
 
         //This is necessary to keep this class compatible with older versions without wasting too much time
         private static void sendParticles(boolean canBreakOnRegion, boolean canBuildOnRegion, Player player, CuboidSelection cuboidSelection) {
-            //REDSTONE was renamed to DUST in 1.21. Naming either constant would bind this class to
+            //REDSTONE was renamed to DUST in 1.20.5. Naming either constant would bind this class to
             //one half of the supported range, so the spelling is chosen once and looked up by name.
-            Particle dust = Particle.valueOf(MCVersion.isHigherEquals(MCVersion.v1_21) ? "DUST" : "REDSTONE");
+            Particle dust = Particle.valueOf(MCVersion.isHigherEquals(MCDetailedVersion.v1_20_R4) ? "DUST" : "REDSTONE");
             FCScheduler.runAsync(() -> {
                 Particle.DustOptions GREEN_PARTICLE = new Particle.DustOptions(Color.fromRGB(0, 255, 0), 1.0F);
                 Particle.DustOptions RED_PARTICLE = new Particle.DustOptions(Color.fromRGB(255, 0, 0), 1.0F);

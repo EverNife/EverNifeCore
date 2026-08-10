@@ -107,7 +107,7 @@ public enum MCDetailedVersion {
     }
 
     /** {@code "1.20.5-R0.1-SNAPSHOT"} to {@code {1, 20, 5}}, or {@code null} if it does not parse. */
-    private static int[] releaseOf(String release) {
+    static int[] releaseOf(String release) {
         if (release == null) return null;
 
         String[] parts = release.split("[.\\-]");
@@ -132,53 +132,23 @@ public enum MCDetailedVersion {
     }
 
     // Operations
+    private final String lowestRelease;
     private final String releaseFamily;
     private final int major;
     private final int minor;
     private final int lowestPatch;
 
     MCDetailedVersion(String lowestRelease) {
+        this.lowestRelease = lowestRelease;
+        //A release that does not read is a typo in the table, and it must not throw from here: this
+        //body runs in the enum's own class initializer, and an exception there takes the only source
+        //of server version down with it for the rest of the JVM's life. MCDetailedVersionTest sweeps
+        //the table and refuses one; until it does, the constant simply orders below every other.
         int[] floor = releaseOf(lowestRelease);
-        if (floor == null) {
-            throw new IllegalArgumentException(String.format(
-                    "%s declares \"%s\" as the lowest release it covers, but that does not read as a "
-                            + "Minecraft release. Declare the first release this constant covers, as the "
-                            + "server reports it - \"1.20.5\", \"26.2\".",
-                    name(), lowestRelease
-            ));
-        }
-        this.major = floor[0];
-        this.minor = floor[1];
-        this.lowestPatch = floor[2];
+        this.major = floor == null ? 0 : floor[0];
+        this.minor = floor == null ? 0 : floor[1];
+        this.lowestPatch = floor == null ? 0 : floor[2];
         this.releaseFamily = major + "." + minor;
-        requireNameSaysWhichReleaseItCovers(lowestRelease);
-    }
-
-    private void requireNameSaysWhichReleaseItCovers(String lowestRelease) {
-        String familyPrefix = "v" + major + "_" + minor + "_R";
-        boolean namedAfterRevision = name().startsWith(familyPrefix)
-                && isDigits(name().substring(familyPrefix.length()));
-
-        if (namedAfterRevision || name().equals("v" + lowestRelease.replace('.', '_'))) {
-            return;
-        }
-
-        throw new IllegalArgumentException(String.format(
-                "%s declares \"%s\" as the lowest release it covers, but its name says otherwise. A "
-                        + "constant is named either after the CraftBukkit revision its server package "
-                        + "reports, which here would be %s<n> - v1_20_R4 covers 1.20.5 - or, when the "
-                        + "package no longer carries a revision, after the release itself, which here "
-                        + "would be %s. Rename it, or fix the release it declares.",
-                name(), lowestRelease, familyPrefix, "v" + lowestRelease.replace('.', '_')
-        ));
-    }
-
-    private static boolean isDigits(String text) {
-        if (text.isEmpty()) return false;
-        for (int i = 0; i < text.length(); i++) {
-            if (!Character.isDigit(text.charAt(i))) return false;
-        }
-        return true;
     }
 
     /** The release family this covers, written the way a server reports it: {@code 1.21}, {@code 26.2}. */
@@ -188,7 +158,7 @@ public enum MCDetailedVersion {
 
     /** The lowest release this covers, the one it was declared with: {@code 1.20.5}, {@code 26.1.2}. */
     public String getLowestRelease() {
-        return lowestPatch == 0 ? releaseFamily : releaseFamily + "." + lowestPatch;
+        return lowestRelease;
     }
 
     /**
@@ -217,24 +187,48 @@ public enum MCDetailedVersion {
      */
     public static MCDetailedVersion getCurrent() {
         if (currentVersion == null) {
-            String serverPackageName = Bukkit.getServer().getClass().getPackage().getName();
-            String bukkitVersion = Bukkit.getBukkitVersion();
-
-            MCDetailedVersion resolved = resolve(serverPackageName, bukkitVersion);
-
-            if (resolved == null) {
-                resolved = values()[values().length - 1]; //Assume it's a newer version!
-                System.out.println(String.format(
-                        "[EverNifeCore] Failed to find out the MCVersion of this server from the package name '%s' or the reported version '%s'. Defaulting it to latest known MCVersion: (%s)",
-                        serverPackageName,
-                        bukkitVersion,
-                        resolved
-                ));
-            }
-
-            currentVersion = resolved;
+            currentVersion = currentFrom(
+                    Bukkit.getServer().getClass().getPackage().getName(),
+                    Bukkit.getBukkitVersion()
+            );
         }
         return currentVersion;
+    }
+
+    /**
+     * What {@link #getCurrent()} answers for a server reporting these two strings.
+     *
+     * <p>A release this table does not list still names a version - it is a release published after
+     * the table was written - so the newest constant is the closest answer there is. A release string
+     * that does not read as one names nothing, and guessing from it would make every version guard in
+     * the plugin lie about a server nobody has looked at.
+     *
+     * @throws IllegalStateException when the reported release does not read as a Minecraft release.
+     */
+    static MCDetailedVersion currentFrom(String serverPackageName, String bukkitVersion) {
+        MCDetailedVersion resolved = resolve(serverPackageName, bukkitVersion);
+        if (resolved != null) {
+            return resolved;
+        }
+
+        if (releaseOf(bukkitVersion) == null) {
+            throw new IllegalStateException(String.format(
+                    "This server reports a version string this table cannot read: [%s]. Every release "
+                            + "family EverNifeCore knows is listed in MCDetailedVersion - report the "
+                            + "string so the fork can be added. Guessing a version from it would make "
+                            + "every version guard in the plugin lie.",
+                    bukkitVersion
+            ));
+        }
+
+        MCDetailedVersion newest = values()[values().length - 1];
+        System.out.println(String.format(
+                "[EverNifeCore] Failed to find out the MCVersion of this server from the package name '%s' or the reported version '%s'. Defaulting it to latest known MCVersion: (%s)",
+                serverPackageName,
+                bukkitVersion,
+                newest
+        ));
+        return newest;
     }
 
     public boolean isLower(MCDetailedVersion otherVersion) {
