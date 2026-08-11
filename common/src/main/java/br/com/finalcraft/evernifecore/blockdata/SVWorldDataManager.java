@@ -19,6 +19,8 @@ import br.com.finalcraft.everydatabase.manager.RefRegistry;
 import br.com.finalcraft.everydatabase.manager.cache.CacheEntry;
 import br.com.finalcraft.everydatabase.manager.cache.CacheOptions;
 import br.com.finalcraft.everydatabase.manager.cache.CachePolicy;
+import br.com.finalcraft.everydatabase.query.Cursor;
+import br.com.finalcraft.everydatabase.query.ScanRow;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -30,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -80,6 +83,8 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
     private static final long CLOSE_FLUSH_TIMEOUT_SECONDS = 30L;
     /** How many failing chunk keys one log line names before it just counts the rest. */
     private static final int MAX_NAMED_FAILURES = 10;
+    /** How many chunks a preload reads per page, so a huge collection never lands in one list. */
+    private static final int PRELOAD_PAGE_SIZE = 256;
 
     private final Class<O> valueType;
     private final CachingManager<String, WorldChunkData<O>> manager;
@@ -145,7 +150,8 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
         /**
          * Reads the cache preset an admin controls: {@code policy} ({@code ALWAYS | TTL}),
          * {@code ttl-seconds}, {@code max-chunks} ({@code 0} = unbounded) and {@code preload}
-         * ({@code AUTO | ALWAYS | NEVER}), writing each default into the section when absent.
+         * ({@code AUTO | ALWAYS | NEVER}, where AUTO reads the whole collection in at build exactly when
+         * the cache would end up holding it anyway), writing each default into the section when absent.
          */
         Builder<O> cache(ConfigSection adminSection);
 
@@ -163,7 +169,8 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
 
         /**
          * Opens the collection: resolves the codec, registers the manager in the {@code Ref} registry its
-         * {@link #refs(RefParticipation)} selects, and checks the stored grid against the running one.
+         * {@link #refs(RefParticipation)} selects, checks the stored grid against the running one, and reads
+         * the stored chunks into the cache when the preset asked for a preload.
          *
          * <p>Fails with a {@link StorageConfigException} when the plugin already has a SHARED manager, and
          * when the collection was written with a different chunk size.
@@ -233,7 +240,7 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
             String preload = adminSection.getOrSetValueIfAbsent("preload", "AUTO", "AUTO | ALWAYS | NEVER");
 
             this.cacheOptions = CacheOptions.builder()
-                    .policy(CachePolicy.fromAdminConfig(policyName, ttlSeconds))
+                    .policy(readPolicy(policyName, ttlSeconds, adminSection))
                     .maxSize(maxChunks)
                     .build();
             this.preloadOverride = readPreload(preload, adminSection);
@@ -284,7 +291,9 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
             }
             SVWorldDataManager<O> built = new SVWorldDataManager<>(this, registry, manager);
             CompletableFuture<SVWorldDataManager<O>> opened = new CompletableFuture<>();
-            built.checkGrid().whenComplete((ignored, failure) -> {
+            //preload only once the grid matched: warming the cache from a collection whose keys name chunks
+            //of another size would fill it with entities no coordinate of this runtime resolves to
+            built.checkGrid().thenCompose(checked -> built.preloadChunks()).whenComplete((ignored, failure) -> {
                 if (failure == null) {
                     //only now: a manager that never opened must not leave a thread ticking over a
                     //collection nobody holds
@@ -325,6 +334,22 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
                 return WorldChunkDataCodec.jsonFallback(valueType);
             }
             return WorldChunkDataCodec.composing(valueType, ecStorage.defaultCodec(WorldChunkData.class));
+        }
+
+        /**
+         * The freshness the preset asks for. NOCACHE is already out by the time this runs, so the generic
+         * failure of {@code fromAdminConfig} - which still offers it - would send an admin straight back to
+         * the value this store refuses.
+         */
+        private CachePolicy readPolicy(String policyName, Integer ttlSeconds, ConfigSection section) {
+            try {
+                return CachePolicy.fromAdminConfig(policyName, ttlSeconds);
+            } catch (IllegalArgumentException unknownPolicy) {
+                throw new StorageConfigException("'" + policyName + "' at '" + section.getPath() + ".policy'"
+                        + " is not a cache policy. Use ALWAYS to keep every chunk the server touched"
+                        + " resident, or TTL to let a chunk nobody touched for ttl-seconds go.",
+                        unknownPolicy);
+            }
         }
 
         private Boolean readPreload(String preload, ConfigSection section) {
@@ -727,6 +752,65 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
                         + world + " " + pos + " - the change itself was applied.", listenerFailure);
             }
         }
+    }
+
+    /**
+     * Reads every stored chunk into the cache before the manager is handed out, so the first reads answer
+     * from memory instead of the backend. Does nothing unless the preset asked for it.
+     *
+     * <p>A chunk whose stored payload does not decode is named in the log and left behind: naming it is the
+     * whole reason the load walks a scan, where an ordinary read would just come back shorter and say
+     * nothing. A scan that fails outright is logged the same way and the build goes on - a chunk that was
+     * not cached is read on first touch, so the store works either way.
+     */
+    private CompletableFuture<Void> preloadChunks() {
+        if (!preloadOnBuild) {
+            return CompletableFuture.completedFuture(null);
+        }
+        AtomicInteger cachedChunks = new AtomicInteger();
+        AtomicInteger unreadableChunks = new AtomicInteger();
+        return preloadPage(Cursor.scan(), cachedChunks, unreadableChunks).handle((done, failure) -> {
+            if (failure != null) {
+                logSevere("The '" + manager.collection() + "' block store could not finish reading itself"
+                        + " into memory. The " + cachedChunks.get() + " chunk(s) that made it in are cached"
+                        + " and the rest are read on first touch, so nothing is lost - but a backend that"
+                        + " cannot be scanned will fail the next flush too.", unwrap(failure));
+                return null;
+            }
+            logDebug("Preloaded the '" + manager.collection() + "' block store: " + cachedChunks.get()
+                    + " chunk(s) cached, " + unreadableChunks.get() + " unreadable.");
+            return null;
+        });
+    }
+
+    /** One page of the scan: caches what decoded, names what did not, then walks into the next page. */
+    private CompletableFuture<Void> preloadPage(Cursor cursor, AtomicInteger cachedChunks,
+                                                AtomicInteger unreadableChunks) {
+        return manager.repository().scanAll(cursor, PRELOAD_PAGE_SIZE).thenCompose(page -> {
+            for (ScanRow<WorldChunkData<O>> row : page.content()) {
+                if (row.isFailed()) {
+                    unreadableChunks.incrementAndGet();
+                    logSevere("The '" + manager.collection() + "' block store cannot decode what is stored"
+                            + " under '" + row.key() + "', so the blocks it holds are absent from this boot"
+                            + " while every other chunk loaded. Repair that entry or delete it - a write to"
+                            + " the same chunk overwrites it either way.", row.error());
+                    continue;
+                }
+                //the grid sentinel shares this collection but is not a chunk: no coordinate resolves to it,
+                //and everything walking the cached chunks would have to dodge a key that does not parse
+                if (WorldChunkData.isMetaKey(row.key())) {
+                    continue;
+                }
+                //seed, never install: a chunk a writer already touched is the live instance carrying blocks
+                //no flush has persisted yet, and the copy this scan decoded does not have them
+                manager.seedIfAbsent(row.key(), row.value());
+                cachedChunks.incrementAndGet();
+            }
+            Optional<Cursor> next = page.nextCursor();
+            return next.isPresent()
+                    ? preloadPage(next.get(), cachedChunks, unreadableChunks)
+                    : CompletableFuture.<Void>completedFuture(null);
+        });
     }
 
     /**
