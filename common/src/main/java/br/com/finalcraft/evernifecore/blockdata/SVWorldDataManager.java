@@ -23,6 +23,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,6 +33,15 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.UnaryOperator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -61,10 +72,18 @@ import java.util.logging.Logger;
  *
  * @param <O> the block-value type, anything the backend's Jackson mapper can (de)serialize
  */
-public final class SVWorldDataManager<O> {
+public final class SVWorldDataManager<O> implements AutoCloseable {
+
+    /** How far a tick may drift from the configured period, so servers sharing a backend never flush in lockstep. */
+    private static final long FLUSH_JITTER_MS = 60_000L;
+    /** How long {@link #close()} waits for the final flush before handing the shutdown back. */
+    private static final long CLOSE_FLUSH_TIMEOUT_SECONDS = 30L;
+    /** How many failing chunk keys one log line names before it just counts the rest. */
+    private static final int MAX_NAMED_FAILURES = 10;
 
     private final Class<O> valueType;
     private final CachingManager<String, WorldChunkData<O>> manager;
+    private final RefRegistry refRegistry;
     private final List<BlockChangeListener<O>> listeners;
     private final Duration autoFlushPeriod;
     private final File legacyFolder;
@@ -73,9 +92,17 @@ public final class SVWorldDataManager<O> {
     /** The plugin owning the storage, or {@code null} on a plugin-less open - only used for logging. */
     private final ECPluginData plugin;
 
-    private SVWorldDataManager(BuilderImp<O> settings, CachingManager<String, WorldChunkData<O>> manager) {
+    private final AtomicBoolean closed = new AtomicBoolean(false);
+    /** The periodic flush, or {@code null} while auto-flush is off ({@link Duration#ZERO}). */
+    private volatile ScheduledExecutorService flushTicker;
+    /** The pass the last tick started, so a backend still answering the previous one gets no second pass. */
+    private volatile CompletableFuture<FlushReport> tickPass;
+
+    private SVWorldDataManager(BuilderImp<O> settings, RefRegistry refRegistry,
+                               CachingManager<String, WorldChunkData<O>> manager) {
         this.valueType = settings.valueType;
         this.manager = manager;
+        this.refRegistry = refRegistry;
         this.listeners = new CopyOnWriteArrayList<>(settings.listeners);
         this.autoFlushPeriod = settings.autoFlushPeriod;
         this.legacyFolder = settings.legacyFolder;
@@ -255,10 +282,13 @@ public final class SVWorldDataManager<O> {
             } catch (RuntimeException openFailure) {
                 return failed(openFailure);
             }
-            SVWorldDataManager<O> built = new SVWorldDataManager<>(this, manager);
+            SVWorldDataManager<O> built = new SVWorldDataManager<>(this, registry, manager);
             CompletableFuture<SVWorldDataManager<O>> opened = new CompletableFuture<>();
             built.checkGrid().whenComplete((ignored, failure) -> {
                 if (failure == null) {
+                    //only now: a manager that never opened must not leave a thread ticking over a
+                    //collection nobody holds
+                    built.startAutoFlush();
                     opened.complete(built);
                     return;
                 }
@@ -452,12 +482,199 @@ public final class SVWorldDataManager<O> {
     // -----------------------------------------------------------------------------------------------------------------
 
     /**
+     * Persists every chunk changed since the last flush and deletes the entity of every chunk left with no
+     * blocks. Changed chunks go out as one batched write; each chunk is snapshotted while its monitor is
+     * held, so what gets encoded is never a map a writer is still mutating.
+     *
+     * <p>A write that fails leaves its chunks dirty, so the next flush retries them - nothing is dropped on
+     * a backend outage. The report is returned and logged either way: at debug level when the flush was
+     * clean, and as a failure naming the chunks when it was not.
+     *
+     * <p>Runs on its own every {@code autoFlushEvery} period; call it directly only when something must be
+     * on disk now (a manual save command, a backup).
+     */
+    public CompletableFuture<FlushReport> flush() {
+        List<WorldChunkData<O>> changed = new ArrayList<>();
+        List<WorldChunkData<O>> snapshots = new ArrayList<>();
+        List<WorldChunkData<O>> emptied = new ArrayList<>();
+        for (WorldChunkData<O> chunk : manager.cachedValues()) {
+            if (!chunk.isDirty()) {
+                continue;
+            }
+            //the grid sentinel shares this collection and holds no blocks: taken for a chunk it would look
+            //empty, and the delete would drop the very entry the next boot checks its grid against
+            if (WorldChunkData.isMetaKey(chunk.getChunkKey())) {
+                continue;
+            }
+            synchronized (chunk) {
+                if (!chunk.isDirty()) {
+                    continue;
+                }
+                chunk.markClean();
+                if (chunk.isEmpty()) {
+                    emptied.add(chunk);
+                } else {
+                    changed.add(chunk);
+                    snapshots.add(chunk.copyForSave());
+                }
+            }
+        }
+
+        Map<String, Throwable> failures = Collections.synchronizedMap(new LinkedHashMap<String, Throwable>());
+        AtomicInteger savedChunks = new AtomicInteger();
+        AtomicInteger deletedChunks = new AtomicInteger();
+        List<CompletableFuture<?>> writes = new ArrayList<>(emptied.size() + 1);
+        if (!snapshots.isEmpty()) {
+            writes.add(saveChanged(changed, snapshots, failures, savedChunks));
+        }
+        for (WorldChunkData<O> chunk : emptied) {
+            writes.add(deleteEmptied(chunk, failures, deletedChunks));
+        }
+        return CompletableFuture.allOf(writes.toArray(new CompletableFuture[0])).thenApply(done -> {
+            FlushReport report = new FlushReport(savedChunks.get(), deletedChunks.get(), failures);
+            logReport(report);
+            return report;
+        });
+    }
+
+    /**
+     * Writes the snapshots of every changed chunk in one call. A batch answers with a single failure for the
+     * whole list, so all of them go back to dirty: re-saving one that did land costs a write, losing one that
+     * did not would be silent.
+     */
+    private CompletableFuture<Void> saveChanged(List<WorldChunkData<O>> changed, List<WorldChunkData<O>> snapshots,
+                                                Map<String, Throwable> failures, AtomicInteger savedChunks) {
+        return manager.repository().saveAll(snapshots).handle((done, failure) -> {
+            if (failure == null) {
+                savedChunks.addAndGet(snapshots.size());
+                return null;
+            }
+            Throwable cause = unwrap(failure);
+            for (WorldChunkData<O> chunk : changed) {
+                chunk.markDirty();
+                failures.put(chunk.getChunkKey(), cause);
+            }
+            return null;
+        });
+    }
+
+    /** Drops the backing entity of a chunk that lost its last block, cache entry included. */
+    private CompletableFuture<Void> deleteEmptied(WorldChunkData<O> emptied, Map<String, Throwable> failures,
+                                                  AtomicInteger deletedChunks) {
+        String chunkKey = emptied.getChunkKey();
+        return manager.deleteAndEvict(chunkKey).handle((existed, failure) -> {
+            if (failure != null) {
+                emptied.markDirty();
+                failures.put(chunkKey, unwrap(failure));
+                return null;
+            }
+            deletedChunks.incrementAndGet();
+            if (emptied.isDirty()) {
+                //a writer refilled the chunk while the delete was in flight, and the eviction just dropped
+                //the instance it is holding - put that same instance back so the next flush persists it
+                manager.seedIfAbsent(chunkKey, emptied);
+            }
+            return null;
+        });
+    }
+
+    /**
      * The cache and repository behind the chunk entities - for statistics, or to wire something this facade
      * does not expose (cache-sync, a manual eviction). Persisting through it bypasses the flush's
      * snapshot-under-lock, so writes stay with the facade.
      */
     public CachingManager<String, WorldChunkData<O>> manager() {
         return manager;
+    }
+
+    /**
+     * Stops the periodic flush and persists what is still dirty, waiting up to 30 seconds for the backend: a
+     * storage that hung delays a shutdown, it never owns it. Chunks that miss that window stay dirty in
+     * memory and go with the process.
+     *
+     * <p>Does NOT close the {@link Storage} behind the collection - that belongs to the plugin's
+     * {@link ECStorage} and usually serves other collections too. The {@code Ref} registration IS released,
+     * so a reload can build this manager again.
+     */
+    @Override
+    public void close() {
+        if (!closed.compareAndSet(false, true)) {
+            return;
+        }
+        ScheduledExecutorService ticker = flushTicker;
+        if (ticker != null) {
+            ticker.shutdownNow();
+        }
+        try {
+            flush().get(CLOSE_FLUSH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (TimeoutException hungBackend) {
+            logSevere("The final flush of the '" + manager.collection() + "' block store did not answer within "
+                    + CLOSE_FLUSH_TIMEOUT_SECONDS + "s, so the shutdown goes on without it. The chunks it"
+                    + " could not write are still dirty in memory and are lost with the process - check"
+                    + " whether the backend is reachable before starting up again.", hungBackend);
+        } catch (ExecutionException flushFailure) {
+            logSevere("The final flush of the '" + manager.collection() + "' block store failed. The chunks it"
+                    + " could not write are still dirty in memory and are lost with the process.",
+                    unwrap(flushFailure));
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            logSevere("The final flush of the '" + manager.collection() + "' block store was interrupted, so"
+                    + " what was still dirty was not written.", interrupted);
+        } finally {
+            refRegistry.unregister(WorldChunkData.class);
+        }
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Periodic flush
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /** Arms the periodic flush on a daemon thread of its own; a zero period leaves flushing to the caller. */
+    private void startAutoFlush() {
+        if (autoFlushPeriod.isZero() || autoFlushPeriod.isNegative()) {
+            return;
+        }
+        final String collection = manager.collection();
+        this.flushTicker = Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "ec-blockdata-flush-" + collection);
+            thread.setDaemon(true);
+            return thread;
+        });
+        scheduleNextTick();
+    }
+
+    private void scheduleNextTick() {
+        ScheduledExecutorService ticker = flushTicker;
+        if (ticker == null || closed.get()) {
+            return;
+        }
+        long period = autoFlushPeriod.toMillis();
+        //jitter: several servers sharing one backend must not hit it on the same beat every cycle
+        long jitter = Math.min(FLUSH_JITTER_MS, period / 2);
+        long delay = period - jitter + ThreadLocalRandom.current().nextLong(2 * jitter + 1);
+        try {
+            ticker.schedule(this::runTick, delay, TimeUnit.MILLISECONDS);
+        } catch (RejectedExecutionException stoppedMeanwhile) {
+            //close() raced the reschedule - the ticker is gone and the final flush is already running
+        }
+    }
+
+    private void runTick() {
+        try {
+            CompletableFuture<FlushReport> previous = tickPass;
+            if (previous != null && !previous.isDone()) {
+                //the backend is still answering the last pass; a second one would only queue behind it
+                return;
+            }
+            //purge after the flush, not before: an expired chunk is exempt from purging while dirty, so it
+            //only becomes collectable once its write has gone out
+            tickPass = flush().whenComplete((report, failure) -> manager.purgeExpired());
+        } catch (Throwable tickFailure) {
+            logSevere("The '" + manager.collection() + "' block store could not start its periodic flush - the"
+                    + " next tick tries again.", tickFailure);
+        } finally {
+            scheduleNextTick();
+        }
     }
 
     /** The block-value type this manager was built for. */
@@ -538,6 +755,51 @@ public final class SVWorldDataManager<O> {
         });
     }
 
+    /**
+     * Announces what a flush did. A clean one is routine and only shows with debug on; one with failures is
+     * always loud and names the chunks, because those are the writes an admin has to know did not land.
+     */
+    private void logReport(FlushReport report) {
+        Map<String, Throwable> failures = report.getFailures();
+        if (failures.isEmpty()) {
+            logDebug("Flushed the '" + manager.collection() + "' block store: " + report.getSavedChunks()
+                    + " chunk(s) written, " + report.getDeletedChunks() + " emptied chunk(s) deleted.");
+            return;
+        }
+        logSevere("The '" + manager.collection() + "' block store could not persist " + failures.size()
+                + " chunk(s): " + namesOf(failures.keySet()) + ". They are dirty again and the next flush"
+                + " retries them, so nothing is lost while the backend answers again.",
+                failures.values().iterator().next());
+    }
+
+    /** The first few keys of a set, spelled out, with the rest counted - a log line, not a dump. */
+    private static String namesOf(Collection<String> keys) {
+        StringBuilder names = new StringBuilder();
+        int named = 0;
+        for (String key : keys) {
+            if (named == MAX_NAMED_FAILURES) {
+                names.append(" and ").append(keys.size() - named).append(" more");
+                break;
+            }
+            names.append(named == 0 ? "" : ", ").append(key);
+            named++;
+        }
+        return names.toString();
+    }
+
+    private void logDebug(String message) {
+        if (plugin != null) {
+            plugin.getLog().debug(message);
+            return;
+        }
+        try {
+            EverNifeCore.getLog().debug(message);
+        } catch (Throwable noPluginRuntime) {
+            //pure JUnit runtime (no ECPluginData/log configured): falls back to JUL
+            Logger.getLogger("EverNifeCore").log(Level.FINE, message);
+        }
+    }
+
     private void logSevere(String message, Throwable cause) {
         if (plugin != null) {
             plugin.getLog().severe(message, cause);
@@ -557,8 +819,51 @@ public final class SVWorldDataManager<O> {
         return future;
     }
 
+    /** The failure itself, past the wrapper a future puts around it. */
     private static Throwable unwrap(Throwable failure) {
-        return failure instanceof CompletionException && failure.getCause() != null
-                ? failure.getCause() : failure;
+        boolean wrapper = failure instanceof CompletionException || failure instanceof ExecutionException;
+        return wrapper && failure.getCause() != null ? failure.getCause() : failure;
+    }
+
+    /**
+     * What one {@link #flush()} did: the chunks it wrote, the emptied ones it deleted, and the chunks whose
+     * write failed mapped to why. A failed chunk is dirty again, so it is retried by the next flush.
+     */
+    public static final class FlushReport {
+
+        private final int savedChunks;
+        private final int deletedChunks;
+        private final Map<String, Throwable> failures;
+
+        private FlushReport(int savedChunks, int deletedChunks, Map<String, Throwable> failures) {
+            this.savedChunks = savedChunks;
+            this.deletedChunks = deletedChunks;
+            this.failures = Collections.unmodifiableMap(new LinkedHashMap<>(failures));
+        }
+
+        /** How many changed chunks were written. */
+        public int getSavedChunks() {
+            return savedChunks;
+        }
+
+        /** How many chunks had lost their last block and had their entity deleted. */
+        public int getDeletedChunks() {
+            return deletedChunks;
+        }
+
+        /** The chunk keys whose write failed, each mapped to the failure; empty on a clean flush. */
+        public Map<String, Throwable> getFailures() {
+            return failures;
+        }
+
+        public boolean hasFailures() {
+            return !failures.isEmpty();
+        }
+
+        @Override
+        public String toString() {
+            return "FlushReport{saved=" + savedChunks + ", deleted=" + deletedChunks
+                    + ", failed=" + failures.size() + "}";
+        }
     }
 }
