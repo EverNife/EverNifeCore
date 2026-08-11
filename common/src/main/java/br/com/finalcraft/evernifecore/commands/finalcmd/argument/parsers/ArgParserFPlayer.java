@@ -28,6 +28,16 @@ public class ArgParserFPlayer extends ArgParser<FPlayer> {
                 : ParseResult.of(player);
     }
 
+    /** Whoever typed the command, for an argument they left out. */
+    @Override
+    public @Nonnull ParseResult<FPlayer> fromSender(@Nonnull ParseCall call) {
+        if (!call.getSender().isPlayer()){
+            //The console is nobody, so there is no player to infer from it
+            return unrecognized(FCMessageUtil.ONLY_A_PLAYER_CAN_DO_THAT);
+        }
+
+        return ParseResult.of(call.getSender().asFPlayer());
+    }
 
     @Override
     public @Nonnull List<String> tabComplete(TabContext tabContext) {

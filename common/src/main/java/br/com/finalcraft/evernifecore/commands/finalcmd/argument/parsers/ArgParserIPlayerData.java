@@ -49,6 +49,33 @@ public class ArgParserIPlayerData extends ArgParser<IPlayerData> {
                     .addPlaceholder("searched_name", playerData.getName()));
         }
 
+        return asDeclaredType(playerData);
+    }
+
+    /**
+     * The sender's own data, for an argument nobody typed. Same lookup the contextual sibling does, and
+     * the same type dispatch as {@link #parse}, so {@code /cmd} and {@code /cmd <themselves>} hand the
+     * method the very same object.
+     */
+    @Override
+    public @Nonnull ParseResult<IPlayerData> fromSender(@Nonnull ParseCall call) {
+        if (!call.getSender().isPlayer()){
+            //The console is nobody, so there is no "own data" to read - and saying so beats an empty
+            //argument the method then has to guess about
+            return unrecognized(FCMessageUtil.ONLY_A_PLAYER_CAN_DO_THAT);
+        }
+
+        PlayerData playerData = PlayerController.getLoaded(call.getSender().getUniqueId());
+
+        if (playerData == null){
+            return unrecognized(FCMessageUtil.PLAYER_DATA_NOT_FOUND
+                    .addPlaceholder("searched_name", call.getSender().getName()));
+        }
+
+        return asDeclaredType(playerData);
+    }
+
+    private ParseResult<IPlayerData> asDeclaredType(PlayerData playerData){
         if (PlayerData.class.equals(argInfo.getArgumentType())){
             return ParseResult.<IPlayerData>of(playerData);
         }

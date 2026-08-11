@@ -29,6 +29,21 @@ public class ArgParserPlayer extends ArgParser<Player> {
             return unrecognized(FCMessageUtil.PLAYER_NOT_ONLINE.addPlaceholder("searched_name", call.getArgumento().toString()));
         }
 
+        return asBukkitPlayer(player);
+    }
+
+    /** Whoever typed the command, for an argument they left out. */
+    @Override
+    public @Nonnull ParseResult<Player> fromSender(@Nonnull ParseCall call) {
+        if (!call.getSender().isPlayer()){
+            //The console is nobody, so there is no player to infer from it
+            return unrecognized(FCMessageUtil.ONLY_A_PLAYER_CAN_DO_THAT);
+        }
+
+        return asBukkitPlayer(call.getSender().asFPlayer());
+    }
+
+    private ParseResult<Player> asBukkitPlayer(FPlayer player){
         if (!(player instanceof MinecraftFPlayer)){
             //A player resolved by the platform that this platform cannot hand over is a wiring bug,
             //not something whoever typed the name can do anything about
