@@ -11,7 +11,11 @@ import br.com.finalcraft.everydatabase.modules.localfile.LocalFileStorage;
 import br.com.finalcraft.everydatabase.manager.sync.CacheSync;
 import br.com.finalcraft.everydatabase.manager.sync.CacheSyncTransport;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -20,20 +24,21 @@ import java.util.function.Consumer;
  *
  * <ul>
  *   <li>{@code enabled: false} -> NO-OP: never starts anything.</li>
- *   <li>{@code transport: auto} (default) -> Redis if the redis block is enabled, else the backends'
- *       native change feed when EVERY manager's backend has one AND none of them is a file backend,
- *       else a silent no-op.</li>
+ *   <li>{@code transport: auto} (default) -> Redis if the redis block is enabled, else the native
+ *       change feed of every manager whose backend has one and is not a file backend.</li>
  *   <li>{@code transport: redis} -> force the Redis pub/sub transport (silent no-op if no redis block
- *       is enabled).</li>
- *   <li>{@code transport: native} -> use only the backends' native feed; silent no-op if any backend
- *       has none. This is the only way to reach a FILE backend's feed, which watches the local
- *       filesystem: it cannot carry another server's write, so it buys nothing on a network and is
- *       worth its watcher thread only where an admin edits the data files by hand.</li>
+ *       is enabled). It never degrades into the native feed: the admin named a transport.</li>
+ *   <li>{@code transport: native} -> use only the backends' native feed. This is the only way to reach
+ *       a FILE backend's feed, which watches the local filesystem: it cannot carry another server's
+ *       write, so it buys nothing on a network and is worth its watcher thread only where an admin
+ *       edits the data files by hand.</li>
  * </ul>
  *
- * <p>The no-feed / no-redis case is a silent no-op: a backend with no shared signal simply has no
- * coherence, which is the harmless outcome on a single server. Only an EXPLICIT redis request that
- * then fails is surfaced.
+ * <p>The native path selects <b>per manager</b>, not per server: {@link CacheSync#auto()} routes each
+ * bound manager by its own storage, so a collection on a feedless backend is simply left unbound and
+ * costs the others nothing. Coverage is reported - full coverage stays quiet, partial coverage names
+ * what was left out, and zero coverage is silent (the stock single-server install, where no coherence
+ * is the correct outcome). Only an EXPLICIT redis request that then fails is surfaced as a failure.
  *
  * <p>The Redis transport lives in the optional {@code everydatabase-manager-jedis} module and is
  * loaded reflectively, so {@code common} builds without it and the redis path fails loudly at boot
@@ -46,6 +51,9 @@ public final class CacheSyncWiring {
 
     private static final String JEDIS_TRANSPORT = "br.com.finalcraft.everydatabase.manager.sync.jedis.JedisCacheSyncTransport";
     private static final String JEDIS_CONFIG = "br.com.finalcraft.everydatabase.manager.sync.jedis.JedisCacheSyncConfig";
+
+    /** How many collection names a coverage report prints before summarizing the rest as a count. */
+    private static final int MAX_LISTED_COLLECTIONS = 8;
 
     /** A started sync plus the transport it runs over; {@link #close()} releases both. */
     public static final class Handle implements AutoCloseable {
@@ -68,9 +76,10 @@ public final class CacheSyncWiring {
     }
 
     /**
-     * Starts a {@link CacheSync} for {@code managers} according to {@code parsed}, or returns
-     * {@code null} when sync is disabled / not applicable (a clean no-op). {@code logWarning} receives
-     * a human-readable note whenever the wiring is skipped for a reason worth surfacing.
+     * Starts a {@link CacheSync} over the applicable subset of {@code managers} according to
+     * {@code parsed}, or returns {@code null} when sync is disabled / nothing applies (a clean no-op).
+     * {@code logInfo} gets the resulting coverage, {@code logWarning} the collections left without any
+     * cross-instance signal and an explicit request that failed.
      */
     public static Handle startIfEnabled(ParsedStorageConfig parsed,
                                         List<CachingManager<?, ?>> managers,
@@ -96,22 +105,24 @@ public final class CacheSyncWiring {
             return handle;
         }
 
-        // Native-feed path: taken on AUTO (no redis) or NATIVE, and only when EVERY backend has a
-        // native feed. Otherwise a DELIBERATELY silent no-op (no perpetual poller, no nagging): a
-        // feedless backend with no redis simply has no coherence, which is fine on a single server.
-        if (mode == SyncTransportMode.REDIS || !allBackendsHaveNativeFeed(managers)) {
+        if (mode == SyncTransportMode.REDIS) {
+            return null;   // an explicit redis request never quietly degrades into the native feed
+        }
+
+        // Native-feed path: taken on AUTO (no redis) or NATIVE, over the managers whose OWN backend
+        // can push. A feedless one is left unbound rather than disabling the path for everybody: it
+        // ends up with the coherence it would have had anyway, and the rest keep theirs.
+        List<CachingManager<?, ?>> feedCapable = nativeFeedManagers(managers, mode);
+        if (feedCapable.isEmpty()) {
+            // DELIBERATELY silent (no perpetual poller, no nagging): nothing here can push, which is
+            // the stock single-server install - a groupedfile install under the default transport.
             return null;
         }
-        // A FILE backend's feed watches the filesystem, which is a single-machine signal: it cannot
-        // carry a write made by another server, so on AUTO it would spend a watcher thread per storage
-        // and one wasted reload per local write to detect only this server's own writes. Reaching it
-        // takes an explicit 'native', which is where detecting a hand-edited file is the actual intent.
-        if (mode == SyncTransportMode.AUTO && anyBackendIsFileBacked(managers)) {
-            return null;
-        }
-        Handle handle = bindAndStart(CacheSync.auto(), null, managers, logWarning);
+        Handle handle = bindAndStart(CacheSync.auto(), null, feedCapable, logWarning);
         if (handle != null) {
-            logInfo.accept("Cache-sync enabled via the backends' native change feeds.");
+            logInfo.accept("Cache-sync enabled via the backends' native change feeds ("
+                    + feedCapable.size() + " of " + managers.size() + " collections).");
+            reportUncovered(managers, feedCapable, logInfo, logWarning);
         }
         return handle;
     }
@@ -140,28 +151,76 @@ public final class CacheSyncWiring {
         }
     }
 
-    private static boolean allBackendsHaveNativeFeed(List<CachingManager<?, ?>> managers) {
+    /** The managers whose own backend can push a change feed, under the transport {@code mode}. */
+    private static List<CachingManager<?, ?>> nativeFeedManagers(List<CachingManager<?, ?>> managers,
+                                                                 SyncTransportMode mode) {
+        List<CachingManager<?, ?>> selected = new ArrayList<>();
         for (CachingManager<?, ?> manager : managers) {
-            if (!(manager.storage() instanceof ChangeFeedStorage)) {
-                return false;
+            Storage storage = manager.storage();
+            if (!(storage instanceof ChangeFeedStorage)) {
+                continue;
             }
+            if (mode == SyncTransportMode.AUTO && isFileBacked(storage)) {
+                continue;
+            }
+            selected.add(manager);
         }
-        return true;
+        return selected;
     }
 
     /**
-     * Whether any manager sits on a backend whose change feed watches the local filesystem. Such a
-     * feed is real, but it is a single-machine signal, and it reports this server's own writes back to
-     * it - so it is worth a thread only when the admin asked for it by name.
+     * Whether a backend's change feed watches the local filesystem. Such a feed is real, but it is a
+     * single-machine signal, and it reports this server's own writes back to it - so it is worth a
+     * thread only when the admin asked for it by name.
      */
-    private static boolean anyBackendIsFileBacked(List<CachingManager<?, ?>> managers) {
-        for (CachingManager<?, ?> manager : managers) {
-            Storage storage = manager.storage();
-            if (storage instanceof LocalFileStorage || storage instanceof GroupedFileStorage) {
-                return true;
+    private static boolean isFileBacked(Storage storage) {
+        return storage instanceof LocalFileStorage || storage instanceof GroupedFileStorage;
+    }
+
+    /**
+     * Names what the native path left unbound, so partial coverage is never read as full coverage. The
+     * two reasons need different answers, so they are reported apart: a feedless backend is a hole only
+     * Redis closes, while a file backend whose feed was skipped is working as intended.
+     */
+    private static void reportUncovered(List<CachingManager<?, ?>> all,
+                                        List<CachingManager<?, ?>> covered,
+                                        Consumer<String> logInfo,
+                                        Consumer<String> logWarning) {
+        Set<CachingManager<?, ?>> bound = Collections.newSetFromMap(new IdentityHashMap<>());
+        bound.addAll(covered);
+
+        List<String> feedless = new ArrayList<>();
+        List<String> skippedFileFeed = new ArrayList<>();
+        for (CachingManager<?, ?> manager : all) {
+            if (bound.contains(manager)) {
+                continue;
             }
+            Storage storage = manager.storage();
+            boolean hasFeed = storage instanceof ChangeFeedStorage;
+            (hasFeed && isFileBacked(storage) ? skippedFileFeed : feedless).add(manager.collection());
         }
-        return false;
+
+        if (!feedless.isEmpty()) {
+            logWarning.accept("Cache-sync leaves " + feedless.size() + " collection(s) INCOHERENT across"
+                    + " instances - their backend has no change feed, so another server's write to them"
+                    + " is not seen here: " + preview(feedless) + ". Configure a 'redis:' block, which"
+                    + " covers every backend type.");
+        }
+        if (!skippedFileFeed.isEmpty()) {
+            logInfo.accept("Cache-sync skipped " + skippedFileFeed.size() + " collection(s) on a file"
+                    + " backend, whose feed only reports this machine's own writes: "
+                    + preview(skippedFileFeed) + ". Set 'transport: native' if you edit those files by"
+                    + " hand.");
+        }
+    }
+
+    /** A comma-joined preview, capped so a server with dozens of sections does not print a wall. */
+    private static String preview(List<String> collections) {
+        int shown = Math.min(collections.size(), MAX_LISTED_COLLECTIONS);
+        String head = String.join(", ", collections.subList(0, shown));
+        return collections.size() > shown
+                ? head + " and " + (collections.size() - shown) + " more"
+                : head;
     }
 
     /**
