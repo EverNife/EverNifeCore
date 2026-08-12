@@ -61,6 +61,19 @@ class WorldChunkDataTest {
                 () -> WorldChunkData.chunkPosOf(WorldChunkData.META_KEY));
     }
 
+    @Test
+    void aWorldOpeningTheReservedKeySpaceIsRefusedBeforeItCanBeStored() {
+        //the reservation is by prefix, so this world's chunks would answer isMetaKey and be skipped by the
+        //flush, the preload and every range - silently, forever
+        IllegalArgumentException reserved = assertThrows(IllegalArgumentException.class,
+                () -> WorldChunkData.keyOf(WorldChunkData.META_KEY + "world", ChunkPos.of(0, 0)));
+        assertTrue(reserved.getMessage().contains("Rename the world"), reserved.getMessage());
+
+        assertThrows(IllegalArgumentException.class, () -> WorldChunkData.keyOf("", ChunkPos.of(0, 0)));
+        assertEquals("$metropolis/0/0", WorldChunkData.keyOf("$metropolis", ChunkPos.of(0, 0)),
+                "only the reserved prefix is refused, not every world starting with '$'");
+    }
+
     // -----------------------------------------------------------------------------------------------------
     //  Dirty tracking and the flush snapshot
     // -----------------------------------------------------------------------------------------------------

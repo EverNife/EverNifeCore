@@ -145,7 +145,22 @@ public class WorldChunkData<O> implements IDirtyable {
     //  Key encode/decode ("<world>/<chunkX>/<chunkZ>")
     // -----------------------------------------------------------------------------------------------------------------
 
+    /**
+     * The key naming one chunk of one world. The world may carry any character but the reserved
+     * {@link #META_KEY} prefix, which would make the key answer to {@link #isMetaKey} and take the chunk out
+     * of every flush, preload and range.
+     */
     public static String keyOf(String worldName, ChunkPos chunkPos) {
+        if (worldName == null || worldName.isEmpty()) {
+            throw new IllegalArgumentException("A chunk key needs a world name - it is the segment the key is"
+                    + " read back from, and an empty one leaves nothing to read.");
+        }
+        if (worldName.startsWith(META_KEY)) {
+            throw new IllegalArgumentException("The world '" + worldName + "' cannot be stored: '" + META_KEY
+                    + "' opens the key space this store reserves for its own metadata, so every chunk of that"
+                    + " world would be skipped by the flush and never persisted. Rename the world, or keep its"
+                    + " blocks in a store of their own.");
+        }
         return worldName + "/" + chunkPos.getX() + "/" + chunkPos.getZ();
     }
 

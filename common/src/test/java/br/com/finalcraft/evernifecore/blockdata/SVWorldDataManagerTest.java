@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -286,6 +287,19 @@ class SVWorldDataManagerTest extends BlockStoreTestBase {
 
         SVWorldDataManager<Marker> rebuilt = storeOn(storage, "blocks_close_twice");
         assertEquals("alice", rebuilt.getBlock(WORLD, BlockPos.of(5, 64, 7)).join().getOwner());
+    }
+
+    @Test
+    void aWriteToAWorldInsideTheReservedKeySpaceFailsInsteadOfVanishing() {
+        SVWorldDataManager<Marker> store = storeOn(openStorage(BackendDefinition.memory()), "blocks_reserved");
+        String reservedWorld = WorldChunkData.META_KEY + "world";
+
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                () -> store.setBlock(reservedWorld, BlockPos.of(1, 64, 1), new Marker("alice", 10)));
+        assertTrue(refused.getMessage().contains("Rename the world"), refused.getMessage());
+
+        FlushReport report = store.flush().join();
+        assertEquals(0, report.getSavedChunks(), "nothing was accepted, so nothing can be pending");
     }
 
     private static String nameOf(Marker marker) {
