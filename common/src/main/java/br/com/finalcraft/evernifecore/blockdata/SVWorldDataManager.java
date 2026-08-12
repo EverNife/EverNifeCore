@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.blockdata.storage.WorldChunkDataCodec;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
@@ -397,6 +398,11 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
         });
     }
 
+    /** {@link #getBlock(String, BlockPos)} for a position that already carries its world. */
+    public CompletableFuture<O> getBlock(WorldBlockPos pos) {
+        return getBlock(pos.getWorldName(), pos.getBlockPos());
+    }
+
     /**
      * The value stored at a block if its chunk is already cached, {@code null} otherwise - no I/O, so a
      * {@code null} means "absent OR not loaded". For the answer that distinguishes the two, use
@@ -410,6 +416,11 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
         synchronized (chunk) {
             return chunk.getValue(pos.serialize());
         }
+    }
+
+    /** {@link #peekBlock(String, BlockPos)} for a position that already carries its world. */
+    public @Nullable O peekBlock(WorldBlockPos pos) {
+        return peekBlock(pos.getWorldName(), pos.getBlockPos());
     }
 
     /**
@@ -433,6 +444,76 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
         });
     }
 
+    /**
+     * Every block stored inside the cube of side {@code 2 * radius + 1} centered on {@code center}: a radius
+     * of 0 asks for that single block, a radius of 3 for the 7x7x7 around it. The cube reaches as far up and
+     * down as it does sideways.
+     *
+     * <p>The chunks the cube covers are read together - the cached ones answer from memory and every other
+     * one comes back in a single call, so the backend is asked once no matter how wide the radius is. A chunk
+     * holding nothing contributes nothing and is not created.
+     *
+     * <p>Each chunk is snapshotted while locked, so the values are the ones it held at that moment. The order
+     * of the list carries no meaning.
+     *
+     * @param radius how far the cube reaches from the center, in blocks; never negative
+     */
+    public CompletableFuture<List<BlockRecord<O>>> getRange(String world, BlockPos center, int radius) {
+        Objects.requireNonNull(world, "world");
+        Objects.requireNonNull(center, "center");
+        if (radius < 0) {
+            throw new IllegalArgumentException("A range radius cannot be negative (got " + radius + "). Pass 0"
+                    + " to ask for the single block at the center, or N for the (2N+1)-blocks-wide cube"
+                    + " around it.");
+        }
+        //long bounds: a center near the end of the int range plus a wide radius would wrap around and answer
+        //with the blocks of the opposite corner of the world instead of the ones asked for
+        final long lowX = (long) center.getX() - radius;
+        final long highX = (long) center.getX() + radius;
+        final long lowY = (long) center.getY() - radius;
+        final long highY = (long) center.getY() + radius;
+        final long lowZ = (long) center.getZ() - radius;
+        final long highZ = (long) center.getZ() + radius;
+
+        ChunkPos lowChunk = ChunkPos.fromBlock(blockBound(lowX), blockBound(lowZ));
+        ChunkPos highChunk = ChunkPos.fromBlock(blockBound(highX), blockBound(highZ));
+        List<String> chunkKeys = new ArrayList<>();
+        for (int chunkX = lowChunk.getX(); chunkX <= highChunk.getX(); chunkX++) {
+            for (int chunkZ = lowChunk.getZ(); chunkZ <= highChunk.getZ(); chunkZ++) {
+                chunkKeys.add(WorldChunkData.keyOf(world, ChunkPos.of(chunkX, chunkZ)));
+            }
+        }
+
+        return manager.getAll(chunkKeys).thenApply(chunks -> {
+            List<BlockRecord<O>> found = new ArrayList<>();
+            for (WorldChunkData<O> chunk : chunks) {
+                //no chunk key ever names the grid sentinel, but a world inside the reserved key space would
+                //produce one - and the sentinel holds store metadata, never blocks a query may answer with
+                if (WorldChunkData.isMetaKey(chunk.getChunkKey())) {
+                    continue;
+                }
+                Map<String, O> snapshot;
+                synchronized (chunk) {
+                    snapshot = chunk.snapshotValues();
+                }
+                for (Map.Entry<String, O> block : snapshot.entrySet()) {
+                    BlockPos pos = BlockPos.deserialize(block.getKey());
+                    if (pos.getX() >= lowX && pos.getX() <= highX
+                            && pos.getY() >= lowY && pos.getY() <= highY
+                            && pos.getZ() >= lowZ && pos.getZ() <= highZ) {
+                        found.add(BlockRecord.of(world, pos, block.getValue()));
+                    }
+                }
+            }
+            return Collections.unmodifiableList(found);
+        });
+    }
+
+    /** {@link #getRange(String, BlockPos, int)} around a center that already carries its world. */
+    public CompletableFuture<List<BlockRecord<O>>> getRange(WorldBlockPos center, int radius) {
+        return getRange(center.getWorldName(), center.getBlockPos(), radius);
+    }
+
     // -----------------------------------------------------------------------------------------------------------------
     //  Writing
     // -----------------------------------------------------------------------------------------------------------------
@@ -453,6 +534,11 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
         });
     }
 
+    /** {@link #setBlock(String, BlockPos, Object)} at a position that already carries its world. */
+    public CompletableFuture<Void> setBlock(WorldBlockPos pos, O value) {
+        return setBlock(pos.getWorldName(), pos.getBlockPos(), value);
+    }
+
     /** Drops the value stored at a block, if any. An emptied chunk is deleted by the flush, not here. */
     public CompletableFuture<Void> removeBlock(String world, BlockPos pos) {
         String blockKey = pos.serialize();
@@ -468,6 +554,11 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
                 notifyChange(world, pos, removed, null);
             }
         });
+    }
+
+    /** {@link #removeBlock(String, BlockPos)} at a position that already carries its world. */
+    public CompletableFuture<Void> removeBlock(WorldBlockPos pos) {
+        return removeBlock(pos.getWorldName(), pos.getBlockPos());
     }
 
     /**
@@ -500,6 +591,11 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
             }
             return updated;
         });
+    }
+
+    /** {@link #computeBlock(String, BlockPos, UnaryOperator)} at a position that already carries its world. */
+    public CompletableFuture<O> computeBlock(WorldBlockPos pos, UnaryOperator<O> mutator) {
+        return computeBlock(pos.getWorldName(), pos.getBlockPos(), mutator);
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -730,6 +826,11 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
     private WorldChunkData<O> cachedChunk(String world, ChunkPos chunkPos) {
         CacheEntry<WorldChunkData<O>> cell = manager.peekCell(keyOf(world, chunkPos), manager.defaultPolicy());
         return cell != null ? cell.getValue() : null;
+    }
+
+    /** A cube bound as a block coordinate, saturated: no block of any world lies past the int range. */
+    private static int blockBound(long coordinate) {
+        return (int) Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, coordinate));
     }
 
     private String keyOf(String world, ChunkPos chunkPos) {
