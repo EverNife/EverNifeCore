@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.CompletionException;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -176,6 +177,23 @@ class SVWorldDataManagerCacheTest extends BlockStoreTestBase {
         assertEquals("alice", store.getBlock(WORLD, BlockPos.of(5, 64, 7)).join().getOwner());
     }
 
+    @Test
+    void aChunkThatDoesNotDecodeIsLeftBehindWhileTheRestLoads() throws IOException {
+        Path dataFolder = tempDir.resolve("poisoned");
+        ECStorage storage = openStorage(
+                BackendDefinition.localFile(dataFolder.toString(), BackendDefinition.FileFormat.YAML));
+        storeTwoChunks(storage, "blocks_poison");
+        corruptOneStoredChunk(dataFolder);
+
+        SVWorldDataManager<Marker> store = storeOn(storage, "blocks_poison");
+
+        assertEquals(1, store.manager().cachedSize(),
+                "the chunk that decoded is in memory; the one that did not is absent from this boot");
+        boolean firstSurvived = store.peekBlock(WORLD, BlockPos.of(5, 64, 7)) != null;
+        boolean secondSurvived = store.peekBlock(WORLD, BlockPos.of(20, 70, 3)) != null;
+        assertTrue(firstSurvived ^ secondSurvived, "exactly one of the two chunks was readable");
+    }
+
     // -----------------------------------------------------------------------------------------------------
     //  TTL
     // -----------------------------------------------------------------------------------------------------
@@ -263,6 +281,26 @@ class SVWorldDataManagerCacheTest extends BlockStoreTestBase {
         writer.setBlock(WORLD, BlockPos.of(20, 70, 3), new Marker("bob", 20)).join();
         writer.flush().join();
         writer.close();
+    }
+
+    /** Makes one stored chunk unreadable - the grid sentinel is left alone, it is not a chunk. */
+    private void corruptOneStoredChunk(Path dataFolder) throws IOException {
+        try (Stream<Path> stored = Files.walk(dataFolder)) {
+            Path victim = stored.filter(Files::isRegularFile)
+                    .filter(file -> !holdsTheSentinel(file))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("no chunk was stored under " + dataFolder));
+            //an unterminated flow collection: a syntax error, so nothing about the payload's shape matters
+            Files.write(victim, "{ unterminated: [flow, collection".getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    private static boolean holdsTheSentinel(Path file) {
+        try {
+            return new String(Files.readAllBytes(file), StandardCharsets.UTF_8).contains("gridChunkSize");
+        } catch (IOException unreadable) {
+            throw new UncheckedIOException("could not read " + file, unreadable);
+        }
     }
 
     /** How many chunks a store built on {@code preset} has in memory the moment it opens. */

@@ -146,7 +146,6 @@ class SVWorldDataManagerTest extends BlockStoreTestBase {
     void computeBlockAppliesTheMutatorAndRemovesOnNull() {
         SVWorldDataManager<Marker> store = storeOn(openStorage(BackendDefinition.memory()), "blocks_compute");
         BlockPos pos = BlockPos.of(5, 64, 7);
-        List<String> changes = new CopyOnWriteArrayList<>();
         store.setBlock(WORLD, pos, new Marker("alice", 10)).join();
 
         Marker raised = store.computeBlock(WORLD, pos, current -> {
@@ -158,7 +157,6 @@ class SVWorldDataManagerTest extends BlockStoreTestBase {
         assertEquals(15, store.getBlock(WORLD, pos).join().getAmount());
         assertNull(store.computeBlock(WORLD, pos, current -> null).join(), "returning null removes the block");
         assertNull(store.getBlock(WORLD, pos).join());
-        assertTrue(changes.isEmpty(), "no listener was registered on this store");
     }
 
     // -----------------------------------------------------------------------------------------------------
