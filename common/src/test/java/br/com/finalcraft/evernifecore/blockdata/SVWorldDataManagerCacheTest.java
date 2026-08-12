@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
 import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
+import br.com.finalcraft.evernifecore.testing.Logs;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
@@ -22,7 +23,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -185,13 +188,17 @@ class SVWorldDataManagerCacheTest extends BlockStoreTestBase {
         storeTwoChunks(storage, "blocks_poison");
         corruptOneStoredChunk(dataFolder);
 
-        SVWorldDataManager<Marker> store = storeOn(storage, "blocks_poison");
+        AtomicReference<SVWorldDataManager<Marker>> opened = new AtomicReference<>();
+        List<String> logged = Logs.capture(() -> opened.set(storeOn(storage, "blocks_poison")));
+        SVWorldDataManager<Marker> store = opened.get();
 
         assertEquals(1, store.manager().cachedSize(),
                 "the chunk that decoded is in memory; the one that did not is absent from this boot");
         boolean firstSurvived = store.peekBlock(WORLD, BlockPos.of(5, 64, 7)) != null;
         boolean secondSurvived = store.peekBlock(WORLD, BlockPos.of(20, 70, 3)) != null;
         assertTrue(firstSurvived ^ secondSurvived, "exactly one of the two chunks was readable");
+        assertTrue(logged.stream().anyMatch(line -> line.contains("cannot decode what is stored under")),
+                "a chunk that silently disappears from a boot is the whole reason the preload walks a scan");
     }
 
     // -----------------------------------------------------------------------------------------------------
