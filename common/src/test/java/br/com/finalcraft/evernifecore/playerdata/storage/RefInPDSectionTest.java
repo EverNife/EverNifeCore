@@ -12,9 +12,9 @@ import br.com.finalcraft.evernifecore.storage.config.ParsedStorageConfig;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlParser;
 import br.com.finalcraft.everyconfig.binding.ConfigContext;
 import br.com.finalcraft.everyconfig.binding.ConfigLifecycle;
+import br.com.finalcraft.everyconfig.binding.merge.LifecycleGraphWalker;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.codec.Codec;
-import br.com.finalcraft.everydatabase.codec.CodecException;
 import br.com.finalcraft.everydatabase.log.StorageLogConfig;
 import br.com.finalcraft.everydatabase.manager.CachingManager;
 import br.com.finalcraft.everydatabase.manager.Ref;
@@ -22,6 +22,7 @@ import br.com.finalcraft.everydatabase.manager.RefRegistry;
 import br.com.finalcraft.everydatabase.manager.cache.CacheOptions;
 import br.com.finalcraft.everydatabase.manager.cache.CachePolicy;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -29,8 +30,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,11 +40,11 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The end-to-end contract for a {@code Ref} living inside a PDSection: the section's default codec is now
+ * The end-to-end contract for a {@code Ref} living inside a PDSection: the section's default codec is
  * ref-aware and bound to the plugin's shared {@link RefRegistry}, so a {@code Ref} persisted in a section
  * resolves an entity that lives in an {@link ECStorage} whose manager is registered in the SAME registry.
  *
@@ -52,11 +53,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *       resolved through {@link BindingResolver} without a custom codec, re-read from the backend after a
  *       cache clear, resolves the guild;</li>
  *   <li><b>codec unit</b> - {@link ConfigFactoryCodec#json(Class, RefRegistry)} round-trips a ref and binds
- *       it to the registry;</li>
+ *       it to the registry, solo and inside a collection;</li>
+ *   <li><b>composition</b> - a section that carries refs AND implements {@code ConfigLifecycle} gets both:
+ *       the refs come back bound and the hooks fire, on the codec and through the storage flow;</li>
+ *   <li><b>cost</b> - a ref-bearing type with no hooks stays on the codec's fast path, because the
+ *       ref-aware mapper proves it hook-free;</li>
  *   <li><b>no regression</b> - a ConfigFactory platform type serializes byte-identically with and without a
- *       registry (the ref module never touches a non-ref field);</li>
- *   <li><b>fail-fast</b> - a {@code ConfigLifecycle} type carrying a {@code Ref} is rejected, never silently
- *       decoded to an unbound ref.</li>
+ *       registry (the ref module never touches a non-ref field).</li>
  * </ul>
  */
 @ECoreTest
@@ -154,21 +157,79 @@ class RefInPDSectionTest {
         assertEquals("Delta", out.guildRefs.get(1).resolve().join().get().name);
     }
 
+    // ==================================================================
+    //  composition: refs and lifecycle hooks in the SAME type
+    // ==================================================================
+
     @Test
-    void aRefNestedInACollectionElementIsSeenByTheGraphWalk() {
+    void aLifecycleTypeCarryingRefsWritesBareKeysBindsThemAndFiresItsHooks() {
         RefRegistry reg = new RefRegistry();
-        UUID gid = UUID.randomUUID();
-        registerGuild(reg, gid, "Epsilon");
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        registerGuilds(reg, new Guild(first, "Zeta"), new Guild(second, "Eta"));
 
-        //the Ref is two levels down (list -> element type -> field). Missing it does not throw: the
-        //RefModule is simply never installed, and the ref goes out bean-serialized, unreadable on the way back
-        Codec<NestedRefListHolder> codec = ConfigFactoryCodec.json(NestedRefListHolder.class, reg);
-        NestedRefListHolder holder = new NestedRefListHolder(
-                Collections.singletonList(new RefHolder(UUID.randomUUID(), reg.ref(gid, Guild.class))));
+        Codec<LifecycleRefListHolder> codec = ConfigFactoryCodec.json(LifecycleRefListHolder.class, reg);
+        LifecycleRefListHolder holder = new LifecycleRefListHolder(
+                Arrays.asList(reg.ref(first, Guild.class), reg.ref(second, Guild.class)));
 
-        NestedRefListHolder out = codec.decode(codec.encode(holder));
-        assertEquals(gid, out.entries.get(0).guildRef.key());
-        assertEquals("Epsilon", out.entries.get(0).guildRef.resolve().join().get().name);
+        byte[] wire = codec.encode(holder);
+        String json = new String(wire, StandardCharsets.UTF_8);
+        assertTrue(json.contains("[\"" + first + "\",\"" + second + "\"]"),
+                "each ref must be written as its bare key, never as an embedded entity: " + json);
+        assertTrue(holder.saved, "postSave fired on the entity being written");
+
+        LifecycleRefListHolder out = codec.decode(wire);
+        assertTrue(out.loaded, "postLoad fired on the entity being read");
+        assertEquals(2, out.guildRefs.size());
+        assertEquals("Zeta", out.guildRefs.get(0).resolve().join().get().name,
+                "a ref decoded on the hook-firing path is bound to the registry all the same");
+        assertEquals("Eta", out.guildRefs.get(1).resolve().join().get().name);
+    }
+
+    @Test
+    void aLifecycleSectionCarryingRefsRegistersResolvesAndFiresItsHooks() throws IOException {
+        RefRegistry reg = new RefRegistry();
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        registerGuilds(reg, new Guild(first, "Theta"), new Guild(second, "Iota"));
+
+        StorageContext ctx = memoryStorage();
+        PDSectionBinding<TrackerSection> binding = assertDoesNotThrow(() -> BindingResolver.resolve("PluginY",
+                        PDSectionConfiguration.builder(null, TrackerSection.class, "trackersection").build(),
+                        ctx.parsed, ctx.registry, reg),
+                "a section that carries refs AND implements ConfigLifecycle must resolve, not be refused");
+        CachingManager<UUID, TrackerSection> tracker = binding.getManager();
+
+        UUID pid = UUID.randomUUID();
+        TrackerSection section = new TrackerSection();
+        section.setStorageKey(pid);
+        section.visitedGuilds = new ArrayList<>(Arrays.asList(reg.ref(first, Guild.class),
+                reg.ref(second, Guild.class)));
+        tracker.saveAndCache(section).join();
+
+        tracker.clearCache();
+        TrackerSection reread = tracker.refresh(pid).join();
+
+        assertEquals(2, reread.visitedGuilds.size());
+        assertEquals("Theta", reread.visitedGuilds.get(0).resolve().join().get().name,
+                "the refs stored by a lifecycle section still resolve after a re-read from the backend");
+        assertEquals(2, reread.visitedCount,
+                "postSave wrote extra.visited and postLoad read it back: the hooks fired through storage");
+    }
+
+    // ==================================================================
+    //  cost: refs alone never push a type off the fast path
+    // ==================================================================
+
+    @Test
+    void aRefBearingTypeWithoutHooksStaysOnTheFastPath() {
+        ConfigFactoryCodec<RefListHolder> codec = ConfigFactoryCodec.json(RefListHolder.class, new RefRegistry());
+
+        assertFalse(LifecycleGraphWalker.mayContainHooks(RefListHolder.class, codec.objectMapper()),
+                "the ref-aware mapper writes a Ref with a serializer of its own, so the holder is proved "
+                        + "hook-free and no operation of it ever hosts a config");
+        assertTrue(LifecycleGraphWalker.mayContainHooks(RefListHolder.class),
+                "without that mapper the same type cannot be proved: a Ref's erased key field is an Object");
     }
 
     // ==================================================================
@@ -189,28 +250,6 @@ class RefInPDSectionTest {
         CoordHolder out = ConfigFactoryCodec.json(CoordHolder.class, new RefRegistry())
                 .decode(withRegistry);
         assertEquals(Coord.of(4, 9), out.coord, "the registered Coord type still round-trips through the bridge");
-    }
-
-    // ==================================================================
-    //  fail-fast: a ConfigLifecycle type carrying a Ref is rejected, not silently unbound
-    // ==================================================================
-
-    @Test
-    void lifecycleTypeWithRefFailsFast() {
-        RefRegistry reg = new RefRegistry();
-        CodecException error = assertThrows(CodecException.class,
-                () -> ConfigFactoryCodec.json(LifecycleWithRef.class, reg),
-                "a ConfigLifecycle type with a Ref field must be rejected, never decode to an unbound ref");
-        assertTrue(error.getMessage().contains("ConfigLifecycle"), error.getMessage());
-        assertTrue(error.getMessage().contains(LifecycleWithRef.class.getName()), error.getMessage());
-
-        // the plain bridge (no registry) is unaffected: it never claimed to bind a ref
-        assertDoesNotThrow(() -> ConfigFactoryCodec.json(LifecycleWithRef.class),
-                "without a registry the plain bridge is unchanged");
-
-        // and the fail-fast is SCOPED: a ConfigLifecycle type WITHOUT a ref still builds ref-aware
-        assertDoesNotThrow(() -> ConfigFactoryCodec.json(LifecycleNoRef.class, reg),
-                "a lifecycle type with no Ref field must not be rejected");
     }
 
     // ==================================================================
@@ -320,16 +359,54 @@ class RefInPDSectionTest {
         }
     }
 
-    /** A ref two levels down: the collection element is a user type that declares it. */
+    /** Refs plus hooks in one type: the codec must bind the refs AND fire the lifecycle. The two flags are
+     *  kept out of the payload so they report only what fired on this instance. */
     @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
-    public static class NestedRefListHolder {
-        public List<RefHolder> entries;
+    public static class LifecycleRefListHolder implements ConfigLifecycle {
+        public List<Ref<UUID, Guild>> guildRefs;
+        @JsonIgnore
+        public transient boolean saved = false;
+        @JsonIgnore
+        public transient boolean loaded = false;
 
-        public NestedRefListHolder() {
+        public LifecycleRefListHolder() {
         }
 
-        NestedRefListHolder(List<RefHolder> entries) {
-            this.entries = entries;
+        LifecycleRefListHolder(List<Ref<UUID, Guild>> guildRefs) {
+            this.guildRefs = guildRefs;
+        }
+
+        @Override
+        public void postSave(ConfigContext context) {
+            this.saved = true;
+        }
+
+        @Override
+        public void postLoad(ConfigContext context) {
+            this.loaded = true;
+        }
+    }
+
+    /** The same composition as a real per-player section: refs to resolve, plus a hook that completes state
+     *  the payload does not carry on its own. */
+    public static class TrackerSection extends PDSection implements ConfigLifecycle {
+        public List<Ref<UUID, Guild>> visitedGuilds = new ArrayList<>();
+        @JsonIgnore
+        public transient int visitedCount = -1;
+
+        /** Stamps the storage key directly (a detached test instance has no attached PlayerData). */
+        void setStorageKey(UUID id) {
+            this.uuid = id;   // inherited protected key field
+        }
+
+        @Override
+        public void postSave(ConfigContext context) {
+            context.section().setValue("extra.visited", visitedGuilds.size());
+        }
+
+        @Override
+        public void postLoad(ConfigContext context) {
+            this.visitedCount = context.section().getInt("extra.visited", -1);
         }
     }
 
@@ -384,32 +461,4 @@ class RefInPDSectionTest {
         }
     }
 
-    /** A ConfigLifecycle type that also carries a Ref - the fail-fast subject. */
-    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
-    public static class LifecycleWithRef implements ConfigLifecycle {
-        public UUID id;
-        public Ref<UUID, Guild> guildRef;
-
-        public LifecycleWithRef() {
-        }
-
-        @Override
-        public void postLoad(ConfigContext context) {
-            // presence of a hook forces the lifecycle path, where the ref cannot be bound
-        }
-    }
-
-    /** A ConfigLifecycle type with NO Ref - must still build ref-aware (fail-fast is scoped). */
-    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
-    public static class LifecycleNoRef implements ConfigLifecycle {
-        public UUID id;
-        public String note;
-
-        public LifecycleNoRef() {
-        }
-
-        @Override
-        public void postLoad(ConfigContext context) {
-        }
-    }
 }

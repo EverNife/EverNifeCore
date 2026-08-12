@@ -57,8 +57,8 @@ import java.util.function.Function;
  * A shared codec {@code copy()}-isolates its mapper at construction, so a codec's mapper is read-only for
  * life (which is exactly how Jackson wants to be used - configured once, then lock-free on the hot path).
  * Rather than FREEZE registration after the first open, a late {@link #register} is absorbed by rebuilding:
- * the codec registry is invalidated under a lock and lazily rebuilt (a fresh mapper carrying every
- * registration) on the next open, then swapped in atomically. So:
+ * the codecs are invalidated under a lock and lazily rebuilt (fresh mappers carrying every registration) on
+ * the next open, then swapped in atomically. So:
  * <ul>
  *   <li>registration never throws - good compatibility with plugins that register late;</li>
  *   <li>a config opened AFTER a registration sees the new type; a config already open keeps the codec it
@@ -79,9 +79,9 @@ public final class ConfigFactory {
      *  order). Drained into a fresh {@link SimpleModule} on each rebuild. */
     private static final Map<Class<?>, TypeAdapter<?>> ADAPTERS = new LinkedHashMap<>();
 
-    /** The codec-by-extension registry; {@code null} means "stale, rebuild on next use". Volatile so a reader
-     *  sees the swapped-in instance without locking on the hot path. */
-    private static volatile CodecRegistry registry;
+    /** The codecs built from the current registrations; {@code null} means "stale, rebuild on next use".
+     *  Volatile so a reader sees the swapped-in instance without locking on the hot path. */
+    private static volatile Codecs codecs;
 
     static {
         // Teach the registry the framework's built-in types before any config opens
@@ -101,10 +101,10 @@ public final class ConfigFactory {
         return adapter;
     }
 
-    /** Mark the registry stale so the next {@link #codecForFile} rebuilds it with the latest registrations. */
+    /** Mark the codecs stale so the next use rebuilds them with the latest registrations. */
     private static void invalidate() {
         synchronized (LOCK) {
-            registry = null;
+            codecs = null;
         }
     }
 
@@ -227,10 +227,24 @@ public final class ConfigFactory {
     /** A type-aware, file-less {@link Config}: it binds and coerces every registered type exactly like a real
      *  config (so {@code getValue(path, ItemStack.class)} works), but has no back-store and cannot be saved.
      *  It is the substrate a Jackson adapter uses when it must host a subtree and read it back through the
-     *  path-based API rather than the streaming API. */
+     *  path-based API rather than the streaming API. Every call hands out a fresh, empty {@link Config} over
+     *  the ONE shared {@link #inMemoryCodec()}, so hosting a subtree costs a tree, not a mapper. */
     public static Config inMemory() {
-        final Codec base = codecForFile("in-memory.yml");
-        return Config.inMemory(new InMemoryCodec(base.getObjectMapper(), base.compactElementResolver()));
+        return Config.inMemory(inMemoryCodec());
+    }
+
+    /**
+     * The shared, file-less codec behind {@link #inMemory()} - the same type authority the file codecs carry,
+     * with no on-disk format. Built once per registration generation and handed out as one instance, because
+     * a Jackson {@link ObjectMapper} is expensive to copy and EveryConfig keys its binding schema cache by
+     * mapper identity: a codec built per call would pay both costs on every hosted subtree.
+     *
+     * <p>Reach for it directly when a subtree must be hosted with a mapper of your own (layer a module onto
+     * {@code inMemoryCodec().getObjectMapper().copy()} and build one {@link InMemoryCodec} from it, once);
+     * for the plain case {@link #inMemory()} is the whole story.
+     */
+    public static InMemoryCodec inMemoryCodec() {
+        return current().inMemory;
     }
 
     /** A file-less, type-aware {@link ConfigSection} over a fresh in-memory {@link Config} seeded with
@@ -264,19 +278,24 @@ public final class ConfigFactory {
         }
     }
 
-    /** Resolve the shared, type-aware codec for {@code fileName}'s extension, rebuilding the registry if a
-     *  registration invalidated it since the last open. */
+    /** Resolve the shared, type-aware codec for {@code fileName}'s extension, rebuilding if a registration
+     *  invalidated the codecs since the last open. */
     static Codec codecForFile(final String fileName) {
-        CodecRegistry local = registry;
+        return current().byExtension.forFile(fileName);
+    }
+
+    /** The current codecs, rebuilt on first use after an invalidation. */
+    private static Codecs current() {
+        Codecs local = codecs;
         if (local == null) {
             synchronized (LOCK) {
-                if (registry == null) {
-                    registry = build();
+                if (codecs == null) {
+                    codecs = build();
                 }
-                local = registry;
+                local = codecs;
             }
         }
-        return local.forFile(fileName);
+        return local;
     }
 
     private static String fileNameOf(final Path path) {
@@ -284,8 +303,8 @@ public final class ConfigFactory {
         return name == null ? path.toString() : name.toString();
     }
 
-    /** Build a fresh registry whose codecs carry every current registration. Called under {@link #LOCK}. */
-    private static CodecRegistry build() {
+    /** Build fresh codecs carrying every current registration. Called under {@link #LOCK}. */
+    private static Codecs build() {
         final SimpleModule module = new SimpleModule("EverNifeConfigFactoryTypes");
         final Map<Class<?>, CompactElementCodec<?>> compact = new HashMap<>();
 
@@ -305,12 +324,27 @@ public final class ConfigFactory {
         // Start from each default codec's mapper (its full storage-safe contract + format settings) and
         // AUGMENT it with the registered types, rather than building a bare mapper that would drop the base
         // contract. Then re-wrap so the codec owns an isolated, read-only copy.
-        newRegistry.register(new YamlCodec(augment(new YamlCodec().getObjectMapper(), module), resolver));
+        final YamlCodec yaml = new YamlCodec(augment(new YamlCodec().getObjectMapper(), module), resolver);
+        newRegistry.register(yaml);
         newRegistry.register(new TomlCodec(augment(new TomlCodec().getObjectMapper(), module), resolver));
         newRegistry.register(new JsonCodec(augment(new JsonCodec().getObjectMapper(), module), resolver));
         newRegistry.register(new JsoncCodec(augment(new JsoncCodec().getObjectMapper(), module), resolver));
 
-        return newRegistry;
+        // The file-less codec shares the YAML mapper's contract: binding behaves the same, and the format
+        // settings are inert with no text edge.
+        return new Codecs(newRegistry, new InMemoryCodec(yaml.getObjectMapper(), resolver));
+    }
+
+    /** One registration generation's codecs, held behind a single reference so a rebuild swaps the
+     *  by-extension registry and the file-less codec together instead of one at a time. */
+    private static final class Codecs {
+        final CodecRegistry byExtension;
+        final InMemoryCodec inMemory;
+
+        Codecs(final CodecRegistry byExtension, final InMemoryCodec inMemory) {
+            this.byExtension = byExtension;
+            this.inMemory = inMemory;
+        }
     }
 
     private static ObjectMapper augment(final ObjectMapper base, final Module module) {

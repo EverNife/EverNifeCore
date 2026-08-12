@@ -3,10 +3,10 @@ package br.com.finalcraft.evernifecore.config.factory;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.everyconfig.binding.BindResult;
-import br.com.finalcraft.everyconfig.binding.ConfigLifecycle;
 import br.com.finalcraft.everyconfig.binding.LoadIssue;
 import br.com.finalcraft.everyconfig.binding.introspect.EveryConfigModule;
 import br.com.finalcraft.everyconfig.binding.merge.LifecycleGraphWalker;
+import br.com.finalcraft.everyconfig.codec.jackson.InMemoryCodec;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.everydatabase.codec.Codec;
 import br.com.finalcraft.everydatabase.codec.CodecException;
@@ -15,7 +15,6 @@ import br.com.finalcraft.everydatabase.codec.ObjectMapperAware;
 import br.com.finalcraft.everydatabase.manager.Ref;
 import br.com.finalcraft.everydatabase.manager.RefRegistry;
 import br.com.finalcraft.everydatabase.manager.jackson.RefModule;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -23,19 +22,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.GenericArrayType;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.lang.reflect.WildcardType;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * A storage {@link Codec} that gives the {@link ConfigFactory} type authority - the platform types it
@@ -64,33 +51,37 @@ import java.util.Set;
  * YAML-based config, because there it merely builds the intermediate tree (format-independent); the wire
  * bytes are always produced by the {@code byteEdge}.
  *
- * <h2>Two internal paths, chosen once by {@link LifecycleGraphWalker#mayContainHooks(Class)}</h2>
+ * <h2>Two internal paths, chosen once by {@link LifecycleGraphWalker#mayContainHooks(Class, ObjectMapper)}</h2>
  * <ul>
  *   <li><b>Fast path</b> (the type's graph carries no hooks): serialize/deserialize the POJO directly
  *       through the {@code byteEdge} - a plain {@code writeValueAsBytes}/{@code readValue} that costs the
  *       same as a bare Jackson codec, only now with the platform types available.</li>
- *   <li><b>Lifecycle path</b> (the type may carry hooks): host a {@link ConfigFactory#inMemory()} config as
- *       the intermediary so the binding layer fires the hooks. On encode, {@code host.bind(type).write("")}
- *       fires {@code PRE_SAVE}/{@code POST_SAVE} (plus the nested walk) - materializing hook-written subtrees
- *       into the host tree - and the {@code byteEdge} then serializes that tree. On decode, the {@code
- *       byteEdge} parses the bytes into a tree, the host adopts it, and {@code
- *       host.bind(type).readResult("")} fires the load hooks that reconstruct manually-managed state and
- *       answers what the bind refused along with the entity - see {@link #reportRefusedValues(List)}.</li>
+ *   <li><b>Lifecycle path</b> (the type may carry hooks): host a file-less {@link Config} on the host codec
+ *       as the intermediary so the binding layer fires the hooks. On encode, {@code
+ *       host.bind(type).write("")} fires {@code PRE_SAVE}/{@code POST_SAVE} (plus the nested walk) -
+ *       materializing hook-written subtrees into the host tree - and the {@code byteEdge} then serializes
+ *       that tree. On decode, the {@code byteEdge} parses the bytes into a tree, the host adopts it, and
+ *       {@code host.bind(type).readResult("")} fires the load hooks that reconstruct manually-managed
+ *       state.</li>
  * </ul>
+ * The choice is judged with the byte-edge mapper, so a type that mapper writes with a serializer of its own
+ * (a platform type, a {@link Ref}) counts as a leaf: it has no fields in the tree for a hook to hide under,
+ * and only a type that genuinely reaches a hook pays for a host. The choice is about hooks alone - it never
+ * decides how forgiving a read is, because a refused payload is retried through the host on either path
+ * ({@link #decode(byte[])}).
  *
  * <h2>Type-registry staleness</h2>
- * The byte-edge captures the {@link ConfigFactory} registrations present at construction, exactly like the
- * factory's own codecs: a type registered AFTER this codec is built is not seen by it. This is acceptable
- * because a codec is built when its section binds, after the bulk of registrations have run.
+ * The byte-edge and the host both capture the {@link ConfigFactory} registrations present at construction,
+ * exactly like the factory's own codecs: a type registered AFTER this codec is built is not seen by it. This
+ * is acceptable because a codec is built when its section binds, after the bulk of registrations have run.
  *
  * <h2>Ref-aware variants</h2>
- * The factories that take a {@link RefRegistry} layer a {@link RefModule} bound to that registry onto the
- * byte-edge (after the modules above), so a {@link Ref} field is serialized as its key and read back
- * <b>bound</b> to the registry - a ref inside a persisted entity then resolves an entity that lives in a
- * manager registered in the same registry. A {@code null} registry is the plain bridge (no ref support).
- * This is the fast path only: the lifecycle path binds through EveryConfig, which does not know {@code Ref},
- * so a type that is a {@code ConfigLifecycle} <b>and</b> carries a {@code Ref} field is rejected at
- * construction rather than silently producing an unbound ref.
+ * The factories that take a {@link RefRegistry} layer a {@link RefModule} bound to that registry onto BOTH
+ * mappers - the byte-edge and the host - so a {@link Ref} is serialized as its key and read back <b>bound</b>
+ * to the registry on either path: a ref inside a persisted entity resolves an entity that lives in a manager
+ * registered in the same registry, whether or not that entity also carries lifecycle hooks. A {@code null}
+ * registry is the plain bridge (no ref support), and its host is the factory's shared file-less codec rather
+ * than a mapper of its own.
  *
  * @param <V> the entity type
  */
@@ -103,27 +94,18 @@ public final class ConfigFactoryCodec<V> implements Codec<V>, ObjectMapperAware 
     private final String contentType;
     /** Captured once: does this type's graph carry lifecycle hooks (else the fast path is taken)? */
     private final boolean lifecycle;
+    /** What a hosted operation binds through. Built once because copying a mapper is expensive and
+     *  EveryConfig keys its binding schema cache by mapper identity - one per operation would pay both costs
+     *  on every entity read or written. */
+    private final InMemoryCodec hostCodec;
 
     private ConfigFactoryCodec(final Class<V> type, final ObjectMapper byteEdge, final String contentType,
                                final RefRegistry registry) {
         this.type = type;
         this.byteEdge = byteEdge;
         this.contentType = contentType;
-        boolean lifecyclePath = LifecycleGraphWalker.mayContainHooks(type);
-        if (registry != null && graphContainsRefField(type)) {
-            // A Ref only decodes bound to the registry through the byte-edge's RefModule, which fires ONLY
-            // on the fast path - the lifecycle path binds through EveryConfig, which does not know Ref. So a
-            // ref-bearing type must take the fast path. The walker over-reports such a type as "may contain
-            // hooks" (a Ref's erased key field is Object), so re-decide here: force the fast path, unless the
-            // type actually reaches a ConfigLifecycle hook - then the two needs collide and we fail loud.
-            if (reachesLifecycleHook(type)) {
-                throw new CodecException("A Ref inside a ConfigLifecycle type is not supported yet: "
-                        + type.getName() + " reaches a ConfigLifecycle hook and declares a Ref field. Remove"
-                        + " the Ref, or drop ConfigLifecycle from this type, so the ref-aware codec can bind it.");
-            }
-            lifecyclePath = false;
-        }
-        this.lifecycle = lifecyclePath;
+        this.lifecycle = LifecycleGraphWalker.mayContainHooks(type, byteEdge);
+        this.hostCodec = hostCodec(registry);
     }
 
     // ---- factories (mirror BindingResolver.defaultCodec's JSON/pretty/YAML choices) ----
@@ -180,13 +162,28 @@ public final class ConfigFactoryCodec<V> implements Codec<V>, ObjectMapperAware 
         return base;
     }
 
+    /**
+     * The codec a hosted read or write binds through: the factory's shared file-less codec, or - when this
+     * variant is ref-aware - a private copy of it carrying the same {@link RefModule} the byte-edge got, so
+     * the bind that fires the hooks also binds a {@link Ref} to {@code registry}.
+     */
+    private static InMemoryCodec hostCodec(final RefRegistry registry) {
+        final InMemoryCodec shared = ConfigFactory.inMemoryCodec();
+        if (registry == null) {
+            return shared;
+        }
+        final ObjectMapper refAware = shared.getObjectMapper().copy();
+        refAware.registerModule(new RefModule(registry));
+        return new InMemoryCodec(refAware, shared.compactElementResolver());
+    }
+
     @Override
     public byte[] encode(final V value) throws CodecException {
         try {
             if (!lifecycle) {
                 return byteEdge.writeValueAsBytes(value);          // fast path: type-aware, no host
             }
-            final Config host = ConfigFactory.inMemory();
+            final Config host = Config.inMemory(hostCodec);
             host.bind(type).write("", value);                      // fires PRE/POST_SAVE + nested walk
             return byteEdge.writeValueAsBytes(host.getRoot());     // serialize the materialized tree
         } catch (final Exception e) {
@@ -194,30 +191,55 @@ public final class ConfigFactoryCodec<V> implements Codec<V>, ObjectMapperAware 
         }
     }
 
+    /**
+     * Reads {@code data} back into an entity. A hook-free type is read straight off the byte-edge; a type
+     * that carries hooks is read through the host, whose bind fires them. Either way, bytes the read REFUSES
+     * are retried through the host, because that bind is lenient: one unreadable field then costs that field
+     * (which keeps the default a fresh entity carries) instead of costing the whole entity, and says so - see
+     * {@link #reportRefusedValues(List)}. Bytes not even the lenient read can take still fail.
+     */
     @Override
     public V decode(final byte[] data) throws CodecException {
-        try {
-            if (!lifecycle) {
-                return byteEdge.readValue(data, type);             // fast path
+        if (!lifecycle) {
+            try {
+                return byteEdge.readValue(data, type);             // nothing to fire: read it off the wire
+            } catch (final Exception refused) {
+                return hostedRead(data, refused);
             }
+        }
+        return hostedRead(data, null);
+    }
+
+    /**
+     * Reads through a hosted config: its bind fires {@code PRE_LOAD}/{@code POST_LOAD} (plus the nested walk)
+     * and is lenient about a value it cannot take. {@code refused}, when present, is what a direct read of
+     * the same bytes complained about, carried on the failure so a payload not even this read can take
+     * reports both readings rather than only the second.
+     */
+    private V hostedRead(final byte[] data, final Exception refused) throws CodecException {
+        try {
             final JsonNode node = byteEdge.readTree(data);
-            final Config host = ConfigFactory.inMemory();
+            final Config host = Config.inMemory(hostCodec);
             if (node instanceof ObjectNode) {
                 host.getRoot().setAll((ObjectNode) node);
             }
-            final BindResult<V> bound = host.bind(type).readResult("");  // fires PRE/POST_LOAD + nested walk
+            final BindResult<V> bound = host.bind(type).readResult("");
             reportRefusedValues(bound.issues());
             return bound.value();
         } catch (final Exception e) {
-            throw new CodecException("Failed to decode " + type.getSimpleName(), e);
+            final CodecException failure = new CodecException("Failed to decode " + type.getSimpleName(), e);
+            if (refused != null) {
+                failure.addSuppressed(refused);
+            }
+            throw failure;
         }
     }
 
     /**
      * Says out loud what the lenient bind kept to itself. A value the bind refuses is replaced by the
-     * default a fresh entity carries and the load goes on - which on the fast path would have been a
-     * {@link CodecException}, and which here would otherwise be indistinguishable from bytes that never
-     * held the value at all, right up until the next save writes the defaults over what is stored.
+     * default a fresh entity carries and the load goes on, which would otherwise be indistinguishable from
+     * bytes that never held the value at all, right up until the next save writes the defaults over what is
+     * stored.
      */
     private void reportRefusedValues(final List<LoadIssue> issues) {
         if (issues.isEmpty()) {
@@ -237,191 +259,5 @@ public final class ConfigFactoryCodec<V> implements Codec<V>, ObjectMapperAware 
     @Override
     public ObjectMapper objectMapper() {
         return byteEdge;
-    }
-
-    // ---- graph inspection for the ref-aware path decision ----
-    //
-    // Both scans walk only the fields Jackson serializes (instance, non-transient, non-@JsonIgnore) up the
-    // hierarchy, resolving a collection/map/array to its element type, with an identity-visited set for cycles.
-
-    /** Whether {@code type}'s serialized-field graph declares a {@link Ref} anywhere (direct, or as a generic
-     *  collection/map element, or nested in a user POJO field). */
-    private static boolean graphContainsRefField(final Class<?> type) {
-        return graphContainsRefField(type, Collections.newSetFromMap(new IdentityHashMap<>()));
-    }
-
-    private static boolean graphContainsRefField(final Class<?> type, final Set<Class<?>> visited) {
-        if (type == null || !visited.add(type)) {
-            return false;
-        }
-        for (Class<?> c = type; c != null && c != Object.class; c = c.getSuperclass()) {
-            for (final Field field : c.getDeclaredFields()) {
-                if (isSkippedField(field)) {
-                    continue;
-                }
-                if (typeMentionsRef(field.getGenericType())) {
-                    return true;
-                }
-                if (isUserType(field.getType()) && graphContainsRefField(field.getType(), visited)) {
-                    return true;
-                }
-                //a Ref one level down inside a collection or map: the field's own class is java.util.List,
-                //so only its element type can say the graph carries one
-                final Class<?> element = elementType(field);
-                if (element != null && element != field.getType()
-                        && isUserType(element) && graphContainsRefField(element, visited)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Whether {@code type}'s serialized-field graph reaches a genuine {@code ConfigLifecycle} hook, treating
-     * a {@link Ref} as an opaque scalar (the byte-edge's {@link RefModule} serializes it as a key, never
-     * descending into it). This is the honest hook signal the ref-aware path decision needs, unlike the
-     * walker's gate, which a {@code Ref} poisons into a false "may contain hooks". A polymorphic dead-end
-     * (interface or {@code Object}) is treated conservatively as reaching a hook.
-     */
-    private static boolean reachesLifecycleHook(final Class<?> type) {
-        return !provablyHookFree(type, new HashSet<>());
-    }
-
-    private static boolean provablyHookFree(final Class<?> type, final Set<Class<?>> onPath) {
-        if (type == null || isRefType(type) || !isUserType(type)) {
-            return true;   // Ref is opaque; a JDK/enum/primitive leaf cannot implement the app hook
-        }
-        if (ConfigLifecycle.class.isAssignableFrom(type)) {
-            return false;
-        }
-        if (!onPath.add(type)) {
-            return true;   // already being proven on this path - contributes no new hook by itself
-        }
-        try {
-            for (Class<?> c = type; c != null && c != Object.class; c = c.getSuperclass()) {
-                for (final Field field : c.getDeclaredFields()) {
-                    if (isSkippedField(field)) {
-                        continue;
-                    }
-                    if (!elementHookFree(elementType(field), onPath)) {
-                        return false;
-                    }
-                }
-            }
-            return true;
-        } finally {
-            onPath.remove(type);
-        }
-    }
-
-    private static boolean elementHookFree(final Class<?> c, final Set<Class<?>> onPath) {
-        if (c == null) {
-            return false;   // a raw or wildcard element could hold anything at runtime
-        }
-        if (isRefType(c) || !isUserType(c)) {
-            return true;
-        }
-        if (c.isInterface() || c == Object.class) {
-            return false;   // a polymorphic dead-end could hold a hook the static type does not reveal
-        }
-        return provablyHookFree(c, onPath);
-    }
-
-    /** The type a field contributes to the graph: a collection/array element, a map value, or the field itself. */
-    private static Class<?> elementType(final Field field) {
-        final Class<?> raw = field.getType();
-        if (raw.isArray()) {
-            return raw.getComponentType();
-        }
-        if (Collection.class.isAssignableFrom(raw)) {
-            return typeArgument(field.getGenericType(), 0);
-        }
-        if (Map.class.isAssignableFrom(raw)) {
-            return typeArgument(field.getGenericType(), 1);
-        }
-        return raw;
-    }
-
-    /** The raw class of the {@code index}-th type argument of {@code t}, or {@code null} if unresolved. */
-    private static Class<?> typeArgument(final Type t, final int index) {
-        if (t instanceof ParameterizedType) {
-            final Type[] args = ((ParameterizedType) t).getActualTypeArguments();
-            if (index < args.length) {
-                return rawClassOf(args[index]);
-            }
-        }
-        return null;
-    }
-
-    /**
-     * The class behind a type, unwrapping its own type arguments - {@code List<Ref<K, V>>} contributes
-     * {@code Ref}, not {@code null}. Answers {@code null} for a wildcard or a type variable, which name no
-     * class at all and so stay unresolved.
-     */
-    private static Class<?> rawClassOf(final Type t) {
-        if (t instanceof Class) {
-            return (Class<?>) t;
-        }
-        if (t instanceof ParameterizedType) {
-            return rawClassOf(((ParameterizedType) t).getRawType());
-        }
-        return null;
-    }
-
-    /** A field Jackson never serializes - so it contributes no persisted Ref and no fired hook. */
-    private static boolean isSkippedField(final Field field) {
-        final int mods = field.getModifiers();
-        if (Modifier.isStatic(mods) || Modifier.isTransient(mods) || field.isSynthetic()) {
-            return true;
-        }
-        final JsonIgnore ignore = field.getAnnotation(JsonIgnore.class);
-        return ignore != null && ignore.value();
-    }
-
-    /** Whether a reflected type is, or has a type argument that is, a {@link Ref}. */
-    private static boolean typeMentionsRef(final Type t) {
-        if (t instanceof Class) {
-            return isRefType((Class<?>) t);
-        }
-        if (t instanceof ParameterizedType) {
-            final ParameterizedType pt = (ParameterizedType) t;
-            if (typeMentionsRef(pt.getRawType())) {
-                return true;
-            }
-            for (final Type arg : pt.getActualTypeArguments()) {
-                if (typeMentionsRef(arg)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        if (t instanceof GenericArrayType) {
-            return typeMentionsRef(((GenericArrayType) t).getGenericComponentType());
-        }
-        if (t instanceof WildcardType) {
-            for (final Type bound : ((WildcardType) t).getUpperBounds()) {
-                if (typeMentionsRef(bound)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private static boolean isRefType(final Class<?> c) {
-        return Ref.class.isAssignableFrom(c);
-    }
-
-    /** A caller-defined type worth recursing into - not a JDK, Jackson, or framework class. */
-    private static boolean isUserType(final Class<?> c) {
-        if (c.isPrimitive() || c.isEnum() || c.isArray()) {
-            return false;
-        }
-        final String name = c.getName();
-        return !(name.startsWith("java.") || name.startsWith("javax.") || name.startsWith("jakarta.")
-                || name.startsWith("com.fasterxml.")
-                || name.startsWith("br.com.finalcraft.everydatabase.")
-                || name.startsWith("br.com.finalcraft.everyconfig."));
     }
 }

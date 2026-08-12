@@ -9,8 +9,11 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
 import br.com.finalcraft.evernifecore.playerdata.SectionSchemaStep;
+import br.com.finalcraft.evernifecore.testing.Logs;
 import br.com.finalcraft.everyconfig.binding.ConfigContext;
 import br.com.finalcraft.everyconfig.binding.ConfigLifecycle;
+import br.com.finalcraft.everyconfig.binding.merge.LifecycleGraphWalker;
+import br.com.finalcraft.everyconfig.codec.jackson.InMemoryCodec;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.Repository;
 import br.com.finalcraft.everydatabase.Storages;
@@ -33,10 +36,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -51,6 +58,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *       storage flow (the motivating {@code FCPlayerInventory.extraInvs} shape) - lost with plain Jackson;</li>
  *   <li><b>(c)</b> an enum with an overridden {@code toString()} serializes by {@code name()};</li>
  *   <li><b>(fast-path)</b> a plain POJO round-trips to the same object through the bridge and plain Jackson;</li>
+ *   <li><b>(refused)</b> a value the read cannot take costs that field, not the entity, and is said out loud;</li>
+ *   <li><b>(host)</b> a hosted operation binds through one shared codec, never one built per entity;</li>
  *   <li><b>(versioned)</b> a versioned {@link PDSection} with a {@link SectionSchemaStep} migration keeps its
  *       lifecycle across the migrated read seam - the case that needs the EveryDatabase decode-delegation fix.</li>
  * </ul>
@@ -232,6 +241,54 @@ class ConfigFactoryCodecTest {
     }
 
     // ==================================================================
+    //  what a refused payload costs: the field, not the entity - on either path
+    // ==================================================================
+
+    @Test
+    void aValueTheReadRefusesCostsThatFieldInsteadOfTheWholeEntity() {
+        // Holder carries no hooks, so it is read straight off the wire - and a field that read cannot take
+        // must still not take the entity down with it: the payload is retried through the lenient bind,
+        // which keeps that field's default and says what it dropped.
+        UUID id = UUID.randomUUID();
+        byte[] unreadable = ("{\"id\":\"" + id + "\",\"pos\":\"not-a-position\"}")
+                .getBytes(StandardCharsets.UTF_8);
+
+        ConfigFactoryCodec<Holder> bridge = ConfigFactoryCodec.json(Holder.class);
+        assertFalse(LifecycleGraphWalker.mayContainHooks(Holder.class, bridge.objectMapper()),
+                "the subject has to be a type the bridge reads directly - else this proves nothing");
+
+        AtomicReference<Holder> read = new AtomicReference<>();
+        List<String> logged = Logs.capture(() -> read.set(bridge.decode(unreadable)));
+
+        assertEquals(id, read.get().id, "the rest of the entity loaded");
+        assertNull(read.get().pos, "the refused field holds what a brand new entity holds");
+        assertTrue(logged.toString().contains("pos"), "the report names the field that was lost: " + logged);
+        assertTrue(logged.toString().contains("next save"),
+                "and what the loss costs if nothing is done: " + logged);
+    }
+
+    // ==================================================================
+    //  cost of the lifecycle path: one host codec for the codec's whole life, not one per operation
+    // ==================================================================
+
+    @Test
+    void everyLifecycleOperationHostsItsTreeOnTheOneSharedCodec() {
+        // A host codec carries a Jackson mapper, which is expensive to copy and which EveryConfig keys its
+        // binding schema cache by: building one per operation would pay both on every entity read or written.
+        HostSpy first = new HostSpy(UUID.randomUUID());
+        HostSpy second = new HostSpy(UUID.randomUUID());
+
+        Codec<HostSpy> bridge = ConfigFactoryCodec.json(HostSpy.class);
+        bridge.encode(first);
+        bridge.encode(second);
+
+        assertNotNull(first.host, "the lifecycle path ran, so the hook was handed a host config");
+        assertSame(first.host, second.host, "two operations of one bridge host on the same codec");
+        assertSame(ConfigFactory.inMemory().getCodec(), first.host,
+                "and it is the factory's shared file-less codec: inMemory() hands out a tree, not a mapper");
+    }
+
+    // ==================================================================
     //  versioned + migration + lifecycle: the bridge codec must delegate its decode so the
     //  lifecycle hooks still fire when a payload is read through the migration seam
     // ==================================================================
@@ -360,6 +417,26 @@ class ConfigFactoryCodecTest {
         @Override
         public void postLoad(ConfigContext context) {
             this.restored = context.section().getInt("extra.count", 0);
+        }
+    }
+
+    /** Reports, from inside a hook, which codec the host config it was handed runs on. */
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+    static class HostSpy implements ConfigLifecycle {
+        public UUID id;
+        @JsonIgnore
+        public transient InMemoryCodec host;
+
+        public HostSpy() {
+        }
+
+        HostSpy(UUID id) {
+            this.id = id;
+        }
+
+        @Override
+        public void postSave(ConfigContext context) {
+            this.host = (InMemoryCodec) context.section().getConfig().getCodec();
         }
     }
 
