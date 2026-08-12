@@ -13,6 +13,58 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.34] - 2026-08-11
+
+Per-block data, rebuilt as a write-back store on the plugin's own backend.
+
+### Added
+
+- **`SVWorldDataManager<O>`, per-block data on any backend.** One persisted entity per
+  `(world, chunk)`, and the instance living in the cache IS the state: a write mutates it under that
+  chunk's monitor and a flush persists it later. `getBlock`/`peekBlock`/`getChunk`/`getRange`,
+  `setBlock`/`removeBlock`/`computeBlock`, each also taking a `WorldBlockPos`. `getRange` is a cube
+  and costs one backend call however wide the radius. The storage is a plugin-owned `ECStorage`, so
+  the format on disk and the `Ref` graph are the ones the plugin's own config declared.
+- **A cache preset an admin edits.** `policy` (`ALWAYS | TTL`), `ttl-seconds`, `max-chunks` and
+  `preload` (`AUTO | ALWAYS | NEVER`), each default written into the section. `AUTO` reads the whole
+  collection at boot exactly when the cache would end up holding it anyway - which is what a store
+  built with no cache setting does. `NOCACHE` is refused with the reason: a changed block lives in
+  the cache until the flush persists it.
+- **A flush that cannot lose a write.** Every changed chunk goes out as one batched write of a
+  snapshot taken under its monitor, a chunk left with no blocks has its entity deleted, and a failed
+  write leaves its chunks dirty for the next pass. The `FlushReport` is returned and logged. It runs
+  on a daemon thread of its own every ten minutes, jittered so servers sharing a backend do not flush
+  in lockstep; `close()` stops it and persists what is left, bounded at 30 seconds.
+- **A grid sentinel per collection.** The chunk size a collection was written with is recorded under
+  its reserved `$meta` key, and a server whose grid disagrees is refused at build time - naming both
+  sizes and the two ways out - instead of reading keys that name chunks of another size.
+- **Ref participation, declared.** A store joins its plugin's `Ref` graph by default, so a `Ref` held
+  elsewhere in the plugin resolves the live chunk; the second store of the same plugin is refused by
+  name and points at `ISOLATED`, which collides with nothing and is invisible from outside.
+- **Change listeners.** `onChange(...)` is called after each block change, outside every lock, and a
+  replace fires once carrying both sides.
+- **Coverage for the block store.** The write-back cycle against the in-memory and H2 backends, the
+  cache preset and the preload, TTL against unsaved writes, the range cube's exact border, the `Ref`
+  graph, the grid sentinel, concurrent writers against a failing backend, and the legacy import.
+
+### Changed
+
+- **`ECDebugModule.SVDATA_MANAGER` is now `SV_WORLD_DATA`.** The module name **is** the config key,
+  so an existing `config.yml` keeps an orphaned `DebugMode.DebugModules.SVDATA_MANAGER` entry - not
+  read, not deleted - and gains `SV_WORLD_DATA` seeded to `true` beside it. Delete the orphan by hand.
+- **The legacy region-YAML importer reads a whole file per round trip.** One key-only lookup names
+  every chunk of a region file the collection already has, where it used to ask once per chunk; what
+  is missing goes out as one write. It still never deletes a YAML file and never lets a broken one
+  abort the run.
+- **A world name may not start with `$meta`.** That prefix opens the key space the store reserves for
+  its own metadata, so the write is refused on the spot instead of being accepted and never persisted.
+
+### Removed
+
+- **The whole `worlddata` package.** `ServerData`, `WorldData`, `ChunkData`, `BlockMetaData`,
+  `SVDataManager` and `WorldChunkDataBinding` are gone, with no shim - the in-memory tree they formed
+  is the model that got replaced.
+
 ## [3.0.1-alpha.33] - 2026-08-10
 
 The GUI framework, rebuilt in-house from title to teardown.
