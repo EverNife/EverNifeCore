@@ -8,7 +8,7 @@ public enum ECDebugModule implements IDebugModule<ECDebugModule> {
     HYTALE_FPLAYER("Logs related to the HytaleFPlayer implementation and it's methods.",true),
     ARG_PARSER("Logs related to the CommandSystem '@Arg' Context checks.", true),
     CONTEXTUAL_ARG_PARSER("Logs related to the CommandSystem '@Arg.Contextual' Context checks.", true),
-    SVDATA_MANAGER("Logs related to SVDataManger", true),
+    SV_WORLD_DATA("Logs what every SVWorldDataManager block store preloads and flushes.", true),
     COMMAND_REGISTRY("Logs every command path removed, and every alias overridden, by a 'commands/<PluginName>.yml' file.", true),
     ;
 

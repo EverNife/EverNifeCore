@@ -3,7 +3,9 @@ package br.com.finalcraft.evernifecore.blockdata;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.blockdata.storage.WorldChunkData;
 import br.com.finalcraft.evernifecore.blockdata.storage.WorldChunkDataCodec;
+import br.com.finalcraft.evernifecore.blockdata.storage.legacy.LegacyWorldDataImporter;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
@@ -700,6 +702,35 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
     }
 
     /**
+     * Imports the region-YAML files of the folder given to {@link Builder#importingLegacyFrom(File)} and
+     * answers how many block values landed. A chunk the collection already stores is skipped, so a second
+     * run imports nothing; the folder is archived as {@code <folder>-Imported} once the run ends. Answers 0
+     * right away when no legacy folder was configured.
+     *
+     * <p>Run it before the store takes its first write. It reads and writes the backend straight, so a chunk
+     * some writer is already holding in memory would be overwritten by that writer's next flush.
+     */
+    public CompletableFuture<Integer> importLegacy() {
+        if (legacyFolder == null) {
+            return CompletableFuture.completedFuture(0);
+        }
+        LegacyWorldDataImporter<O> importer = new LegacyWorldDataImporter<>(legacyFolder, valueType, manager);
+        CompletableFuture<Integer> imported = new CompletableFuture<>();
+        //a thread of its own: reading the region files and writing them back blocks for as long as the
+        //import takes, and neither the caller nor a backend callback thread may be held that long
+        Thread worker = new Thread(() -> {
+            try {
+                imported.complete(importer.run());
+            } catch (Throwable importFailure) {
+                imported.completeExceptionally(importFailure);
+            }
+        }, "ec-blockdata-legacy-import-" + manager.collection());
+        worker.setDaemon(true);
+        worker.start();
+        return imported;
+    }
+
+    /**
      * The cache and repository behind the chunk entities - for statistics, or to wire something this facade
      * does not expose (cache-sync, a manual eviction). Persisting through it bypasses the flush's
      * snapshot-under-lock, so writes stay with the facade.
@@ -972,15 +1003,16 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
         return names.toString();
     }
 
+    /**
+     * A line of the store's own bookkeeping - what a preload read, what a flush wrote. Every block store of
+     * every plugin answers to the same {@link ECDebugModule#SV_WORLD_DATA} switch, so turning it on shows
+     * all of them and leaving it off costs nothing.
+     */
     private void logDebug(String message) {
-        if (plugin != null) {
-            plugin.getLog().debug(message);
-            return;
-        }
         try {
-            EverNifeCore.getLog().debug(message);
+            ECDebugModule.SV_WORLD_DATA.debugModule(message);
         } catch (Throwable noPluginRuntime) {
-            //pure JUnit runtime (no ECPluginData/log configured): falls back to JUL
+            //pure JUnit runtime (no core plugin data behind the module): falls back to JUL
             Logger.getLogger("EverNifeCore").log(Level.FINE, message);
         }
     }
