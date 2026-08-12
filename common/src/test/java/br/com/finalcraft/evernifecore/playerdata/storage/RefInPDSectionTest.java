@@ -29,6 +29,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -131,6 +134,43 @@ class RefInPDSectionTest {
         assertEquals("Beta", resolved.get().name);
     }
 
+    @Test
+    void refsInsideACollectionRoundTripAndBind() {
+        RefRegistry reg = new RefRegistry();
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        registerGuilds(reg, new Guild(first, "Gamma"), new Guild(second, "Delta"));
+
+        //List<Ref<..>> hides the Ref one level down: the field's own class is java.util.List, so a graph
+        //walk that stops at the field type reads the element as unresolved and rejects the whole type
+        Codec<RefListHolder> codec = ConfigFactoryCodec.json(RefListHolder.class, reg);
+        RefListHolder holder = new RefListHolder(Arrays.asList(reg.ref(first, Guild.class),
+                reg.ref(second, Guild.class)));
+
+        RefListHolder out = codec.decode(codec.encode(holder));
+        assertEquals(2, out.guildRefs.size());
+        assertEquals(first, out.guildRefs.get(0).key(), "each element serialized as its key");
+        assertEquals("Gamma", out.guildRefs.get(0).resolve().join().get().name);
+        assertEquals("Delta", out.guildRefs.get(1).resolve().join().get().name);
+    }
+
+    @Test
+    void aRefNestedInACollectionElementIsSeenByTheGraphWalk() {
+        RefRegistry reg = new RefRegistry();
+        UUID gid = UUID.randomUUID();
+        registerGuild(reg, gid, "Epsilon");
+
+        //the Ref is two levels down (list -> element type -> field). Missing it does not throw: the
+        //RefModule is simply never installed, and the ref goes out bean-serialized, unreadable on the way back
+        Codec<NestedRefListHolder> codec = ConfigFactoryCodec.json(NestedRefListHolder.class, reg);
+        NestedRefListHolder holder = new NestedRefListHolder(
+                Collections.singletonList(new RefHolder(UUID.randomUUID(), reg.ref(gid, Guild.class))));
+
+        NestedRefListHolder out = codec.decode(codec.encode(holder));
+        assertEquals(gid, out.entries.get(0).guildRef.key());
+        assertEquals("Epsilon", out.entries.get(0).guildRef.resolve().join().get().name);
+    }
+
     // ==================================================================
     //  no regression: a platform type serializes identically with and without a registry
     // ==================================================================
@@ -178,14 +218,21 @@ class RefInPDSectionTest {
     // ==================================================================
 
     private static void registerGuild(RefRegistry reg, UUID gid, String name) {
+        registerGuilds(reg, new Guild(gid, name));
+    }
+
+    /** One manager per registry - a second {@code register} for the same type is refused by design. */
+    private static void registerGuilds(RefRegistry reg, Guild... guilds) {
         ECStorage storage = ECStorage.open(BackendDefinition.memory()).join();
         EntityDescriptor<UUID, Guild> desc = EntityDescriptor.builder(UUID.class, Guild.class)
                 .collection("guilds")
                 .keyExtractor(g -> g.id)
                 .codec(storage.defaultCodec(Guild.class))
                 .build();
-        CachingManager<UUID, Guild> guilds = storage.manager(desc, CacheOptions.of(CachePolicy.always()), reg);
-        guilds.saveAndCache(new Guild(gid, name)).join();
+        CachingManager<UUID, Guild> manager = storage.manager(desc, CacheOptions.of(CachePolicy.always()), reg);
+        for (Guild guild : guilds) {
+            manager.saveAndCache(guild).join();
+        }
     }
 
     private static final class StorageContext {
@@ -257,6 +304,32 @@ class RefInPDSectionTest {
         RefHolder(UUID id, Ref<UUID, Guild> guildRef) {
             this.id = id;
             this.guildRef = guildRef;
+        }
+    }
+
+    /** Refs held one level down, inside a collection - the shape a PDSection uses to list what it touched. */
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+    public static class RefListHolder {
+        public List<Ref<UUID, Guild>> guildRefs;
+
+        public RefListHolder() {
+        }
+
+        RefListHolder(List<Ref<UUID, Guild>> guildRefs) {
+            this.guildRefs = guildRefs;
+        }
+    }
+
+    /** A ref two levels down: the collection element is a user type that declares it. */
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+    public static class NestedRefListHolder {
+        public List<RefHolder> entries;
+
+        public NestedRefListHolder() {
+        }
+
+        NestedRefListHolder(List<RefHolder> entries) {
+            this.entries = entries;
         }
     }
 

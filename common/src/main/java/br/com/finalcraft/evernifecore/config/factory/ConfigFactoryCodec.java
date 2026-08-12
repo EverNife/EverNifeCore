@@ -265,6 +265,13 @@ public final class ConfigFactoryCodec<V> implements Codec<V>, ObjectMapperAware 
                 if (isUserType(field.getType()) && graphContainsRefField(field.getType(), visited)) {
                     return true;
                 }
+                //a Ref one level down inside a collection or map: the field's own class is java.util.List,
+                //so only its element type can say the graph carries one
+                final Class<?> element = elementType(field);
+                if (element != null && element != field.getType()
+                        && isUserType(element) && graphContainsRefField(element, visited)) {
+                    return true;
+                }
             }
         }
         return false;
@@ -340,9 +347,24 @@ public final class ConfigFactoryCodec<V> implements Codec<V>, ObjectMapperAware 
     private static Class<?> typeArgument(final Type t, final int index) {
         if (t instanceof ParameterizedType) {
             final Type[] args = ((ParameterizedType) t).getActualTypeArguments();
-            if (index < args.length && args[index] instanceof Class) {
-                return (Class<?>) args[index];
+            if (index < args.length) {
+                return rawClassOf(args[index]);
             }
+        }
+        return null;
+    }
+
+    /**
+     * The class behind a type, unwrapping its own type arguments - {@code List<Ref<K, V>>} contributes
+     * {@code Ref}, not {@code null}. Answers {@code null} for a wildcard or a type variable, which name no
+     * class at all and so stay unresolved.
+     */
+    private static Class<?> rawClassOf(final Type t) {
+        if (t instanceof Class) {
+            return (Class<?>) t;
+        }
+        if (t instanceof ParameterizedType) {
+            return rawClassOf(((ParameterizedType) t).getRawType());
         }
         return null;
     }
