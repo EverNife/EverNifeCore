@@ -2,10 +2,6 @@ plugins {
     alias(libs.plugins.shadow)
 }
 
-repositories {
-    maven { url = 'https://repo.alessiodp.com/releases/' } // the custom libby-core lives here
-}
-
 configurations {
     // Exactly the jars embedded into the evernifecore-common-relocated compile artifact. Non-transitive
     // on purpose: only EveryDatabase/EveryConfig/EveryLibs and Jackson core+databind get bundled, never
@@ -19,7 +15,6 @@ configurations {
 
 dependencies {
     compileOnly project(':api-contracts')
-    implementation project(':libby')
 
     // The relocated compile-view bundle (see the relocatedBundle configuration above). Jackson core+
     // databind are pulled in so ObjectNode/JsonNode/ObjectMapper - which pervade the public API of
@@ -58,7 +53,6 @@ dependencies {
     compileOnly libs.luckperms.api
 
     implementation libs.guava
-    implementation libs.libby.core
 
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter
@@ -196,7 +190,6 @@ publishing {
                 addDep('net.kyori', 'adventure-text-serializer-gson', adventureVersion, 'runtime', null)
                 addDep('net.kyori', 'adventure-text-serializer-legacy', adventureVersion, 'runtime', null)
                 addDep('com.google.guava', 'guava', libs.versions.guava.get(), 'runtime', null)
-                addDep('net.byteflux', 'libby-core', libs.versions.libby.get(), 'runtime', null)
                 asNode().appendNode('url', 'https://petrus.dev')
             }
         }
