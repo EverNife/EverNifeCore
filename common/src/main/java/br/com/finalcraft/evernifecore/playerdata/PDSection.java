@@ -28,6 +28,11 @@ import java.util.concurrent.CompletableFuture;
  *   <li>Persisted fields are picked up directly by Jackson (field access - getters
  *       are never serialized).</li>
  * </ol>
+ *
+ * <p><b>Detached instances.</b> A section read straight from the backend carries no
+ * {@link PlayerData}. {@link #getUniqueId()} and {@link #getStorageKey()} still answer from the
+ * stored key; {@link #getName()} and {@link #getPlayer()} answer {@code null}; every other member
+ * that reads the PLAYER throws {@link IllegalStateException} naming the way out.
  */
 @JsonAutoDetectFieldsOnly
 public abstract class PDSection extends StoredSection implements IPlayerData {
@@ -82,7 +87,7 @@ public abstract class PDSection extends StoredSection implements IPlayerData {
      */
     public CompletableFuture<Void> forceSavePlayerData(){
         markDirty();
-        return playerData.forceSavePlayerData();
+        return requirePlayerData("a whole-player flush").forceSavePlayerData();
     }
 
     /**
@@ -104,9 +109,27 @@ public abstract class PDSection extends StoredSection implements IPlayerData {
         return playerData;
     }
 
+    /**
+     * The attached PlayerData, or a failure naming what is missing. Guards the members that read the
+     * PLAYER rather than the section, which have nothing to delegate to while detached.
+     */
+    private PlayerData requirePlayerData(String what) {
+        if (playerData == null) {
+            throw new IllegalStateException(
+                    "This " + getClass().getSimpleName() + " has no PlayerData attached, so it cannot"
+                    + " answer " + what + " - that value belongs to the player, not to the section."
+                    + " Sections read straight from the backend arrive this way (querySection returns"
+                    + " rows without loading their players). Use getUniqueId(), which answers from the"
+                    + " stored key, or load the player first with"
+                    + " PlayerController.getPlayerData(getUniqueId()).");
+        }
+        return playerData;
+    }
+
+    /** The player's name, or {@code null} on a detached instance - the name lives on the PlayerData. */
     @Override
     public String getName() {
-        return playerData.getName();
+        return playerData != null ? playerData.getName() : null;
     }
 
     /**
@@ -131,24 +154,25 @@ public abstract class PDSection extends StoredSection implements IPlayerData {
         return playerData != null && playerData.isPlayerOnline();
     }
 
+    /** The online player, or {@code null} when the player is offline or this instance is detached. */
     @Override
     public FPlayer getPlayer(){
-        return playerData.getPlayer();
+        return playerData != null ? playerData.getPlayer() : null;
     }
 
     @Override
     public long getFirstSeen(){
-        return playerData.getFirstSeen();
+        return requirePlayerData("when the player was first seen").getFirstSeen();
     }
 
     @Override
     public long getLastSeen(){
-        return playerData.getLastSeen();
+        return requirePlayerData("when the player was last seen").getLastSeen();
     }
 
     @Override
     public long getLastSaved() {
-        return playerData.getLastSaved();
+        return requirePlayerData("when the player was last saved").getLastSaved();
     }
 
     @Override
@@ -165,7 +189,7 @@ public abstract class PDSection extends StoredSection implements IPlayerData {
     @Override
     public <T extends PDSection> CompletableFuture<T> getPDSection(Class<T> pdSectionClass){
         if (this.getClass() == pdSectionClass) return CompletableFuture.completedFuture((T) this);
-        return playerData.getPDSection(pdSectionClass);
+        return requirePlayerData("another of the player's sections").getPDSection(pdSectionClass);
     }
 
     @Override
@@ -177,7 +201,7 @@ public abstract class PDSection extends StoredSection implements IPlayerData {
                     ? Optional.<T>empty()
                     : Optional.of((T) this));
         }
-        return playerData.getPDSectionIfPresent(pdSectionClass);
+        return requirePlayerData("another of the player's sections").getPDSectionIfPresent(pdSectionClass);
     }
 
     @Override
@@ -185,18 +209,18 @@ public abstract class PDSection extends StoredSection implements IPlayerData {
         if (this.getClass() == pdSectionClass){
             return CompletableFuture.completedFuture(!isTransientDefault());
         }
-        return playerData.hasPDSection(pdSectionClass);
+        return requirePlayerData("another of the player's sections").hasPDSection(pdSectionClass);
     }
 
     @Override
     public boolean hasPDSectionIfLoaded(Class<? extends PDSection> pdSectionClass){
         if (this.getClass() == pdSectionClass) return true;
-        return playerData.hasPDSectionIfLoaded(pdSectionClass);
+        return requirePlayerData("another of the player's sections").hasPDSectionIfLoaded(pdSectionClass);
     }
 
     @Override
     public <T extends PDSection> T getPDSectionIfLoaded(Class<T> pdSectionClass){
         if (this.getClass() == pdSectionClass) return (T) this;
-        return playerData.getPDSectionIfLoaded(pdSectionClass);
+        return requirePlayerData("another of the player's sections").getPDSectionIfLoaded(pdSectionClass);
     }
 }

@@ -13,6 +13,23 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.35] - 2026-08-12
+
+A section a query materialized answers for itself instead of throwing.
+
+### Fixed
+
+- **A `PDSection` read straight from the backend no longer fails on the members that need no player.**
+  `querySection` returns decoded rows without loading their players - that is the point of it, and the
+  test pinning the section cache at zero after the query says so - but every member delegating to the
+  attached `PlayerData` threw `NullPointerException` on such a row, `getName()` included. `getName()`
+  and `getPlayer()` now answer `null`, joining `getUniqueId()`, `getStorageKey()` and
+  `isPlayerOnline()`, which already handled it. The members that genuinely read the PLAYER -
+  `getFirstSeen`, `getLastSeen`, `getLastSaved`, `forceSavePlayerData` and the `getPDSection*` family -
+  throw `IllegalStateException` naming what is missing and pointing at `getUniqueId()`, instead of a
+  bare NPE. Returning `0` for the timestamps was rejected deliberately: "first seen in 1970" is a
+  silent wrong answer an inactivity sweep would act on.
+
 ## [3.0.1-alpha.34] - 2026-08-11
 
 Per-block data, rebuilt as a write-back store on the plugin's own backend.

@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -44,7 +45,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * ({@code getPDSection} seeds cache-only, {@code getPDSectionIfPresent}/{@code hasPDSection}
  * distinguish absence, even for a section the login already resolved), delete-with-cascade and its
  * online-player guard, an indexed top-N aggregate that does not load the whole collection, a
- * non-indexed query rejection, the ahead-of-code schema-version flush refusal, static
+ * non-indexed query rejection, the detached contract of a queried row, the ahead-of-code
+ * schema-version flush refusal, static
  * {@code getPDSection} lazy-loading the player, and lazy schema upcasting on read. Runs on H2 mem -
  * no Docker.
  */
@@ -224,6 +226,41 @@ class PlayerControllerIntegrityTest {
 
         int cachedAfter = PlayerController.get().getBinding(BalancePDSection.class).getManager().cachedSize();
         assertEquals(0, cachedAfter, "an indexed query must NOT load the whole collection into cache");
+    }
+
+    @Test
+    void queriedSectionIsDetachedAndStillAnswersIdentity() throws IOException {
+        PlayerController.initialize(Storages.h2("d_detached").writeTo(tempDir));
+        PlayerController.registerPDSectionCfg(PDSectionConfiguration.builder(null, BalancePDSection.class, "balancepdsection").build());
+
+        UUID uuid = UUID.randomUUID();
+        PlayerController.handleLogin(uuid, "Detached").join();
+        BalancePDSection loaded = PlayerController.getLoaded(uuid).getPDSection(BalancePDSection.class).join();
+        loaded.balance = 42;
+        loaded.markDirty();
+        PlayerController.get().flushAll().join();
+        PlayerController.clearPDSections(BalancePDSection.class);
+
+        List<BalancePDSection> rows = PlayerController.get()
+                .querySection(BalancePDSection.class, Query.all(), QueryOptions.none()).join();
+        assertEquals(1, rows.size());
+        BalancePDSection detached = rows.get(0);
+
+        assertNull(detached.getPlayerData(), "a queried row is materialized without a PlayerData");
+        assertEquals(uuid, detached.getUniqueId(), "the stored key still identifies the player");
+        assertEquals(uuid, detached.getStorageKey());
+        //the members whose value lives on the section, or that have a benign detached answer
+        assertNull(detached.getName(), "getName answers null while detached instead of throwing");
+        assertNull(detached.getPlayer());
+        assertFalse(detached.isPlayerOnline());
+        assertEquals(42L, detached.balance);
+
+        //the members that read the PLAYER have nothing to delegate to and say so
+        IllegalStateException thrown = assertThrows(IllegalStateException.class, detached::getFirstSeen);
+        assertTrue(thrown.getMessage().contains("getUniqueId()"),
+                "the failure must point at the primitive that does answer, got: " + thrown.getMessage());
+        assertThrows(IllegalStateException.class, detached::getLastSeen);
+        assertThrows(IllegalStateException.class, detached::getLastSaved);
     }
 
     // ------------------------------------------------------------------
