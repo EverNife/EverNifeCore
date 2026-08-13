@@ -94,8 +94,8 @@ public final class ECNetworkStorage {
 
     /**
      * The plugin's shared {@link RefRegistry} - the same one its PDSections, AccountSections and
-     * {@code ECStorage} resolve through, so a {@code Ref} crosses freely between them. Resolved fresh
-     * on every call, because a core reload replaces it.
+     * {@code ECStorage} resolve through, so a {@code Ref} crosses freely between them. Stable in
+     * identity across core reloads (a reload swaps its content, never the object).
      */
     public RefRegistry refRegistry() {
         return access().refRegistryOf(plugin);
@@ -132,16 +132,29 @@ public final class ECNetworkStorage {
      * A {@link CachingManager} for {@code descriptor} on the network backend, created in this plugin's
      * shared registry.
      *
-     * <p>Deliberately NOT memoized here. A core reload replaces the plugin's registry, and a manager
-     * cached in this handle would be one built in the registry that was replaced - the exact failure
-     * this facade exists to avoid. The registry memoizes per type anyway, so calling this on every
-     * access is correct and cheap.</p>
+     * <p>Deliberately NOT memoized here, and safe to call on every access: while the registry keeps a
+     * manager built on the LIVE network storage, that one is returned. A core reload rebuilds the
+     * network backend (the registry itself is identity-stable), so the first access after a reload
+     * finds a manager on the retired storage and REPLACES it atomically with one on the live storage,
+     * cache-clearing the retired manager - which is what makes a live {@code Ref} that memoized its
+     * cells re-resolve here. Between the reload and that first access, such a {@code Ref} serves its
+     * (already flushed) memoized value.</p>
      */
+    @SuppressWarnings("unchecked")
     public <K, V> CachingManager<K, V> manager(EntityDescriptor<K, V> descriptor, CacheOptions options) {
         NetworkAccess access = access();
         claim(access, descriptor);
         registeredTypes.add(descriptor.type());
-        return access.refRegistryOf(plugin).manager(descriptor, access.storage(), options);
+        RefRegistry registry = access.refRegistryOf(plugin);
+        Storage live = access.storage();
+        Object current = registry.resolver(descriptor.type());
+        if (current instanceof CachingManager && ((CachingManager<?, ?>) current).storage() == live) {
+            return (CachingManager<K, V>) current;      // same backend generation - reuse
+        }
+        //first call, or the core reload rebuilt the network backend: swap in a manager on the live
+        //storage; the retired one's storage is already flushed and closed by the reload teardown
+        return registry.managerReplacing(descriptor, live, options,
+                retired -> ((CachingManager<?, ?>) retired).clearCache());
     }
 
     /**

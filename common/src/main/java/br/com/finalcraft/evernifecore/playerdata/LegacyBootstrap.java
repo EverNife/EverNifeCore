@@ -73,9 +73,6 @@ final class LegacyBootstrap {
         try {
             controller.start();            //sections already bound -> runs only the hot-load
             controller.completeReady();    //release the logins that were held
-            //the fresh instance is live now (the swap already happened before this first-tick import):
-            //notify plugins so a Ref into a plugin-owned ECStorage reconnects to the fresh registry
-            PlayerController.fireStorageReloadCallbacks();
         } catch (Throwable bootFailure) {
             PDLog.severe("Failed to load the players after the legacy import!");
             bootFailure.printStackTrace();

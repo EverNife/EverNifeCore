@@ -143,7 +143,11 @@ public final class BindingResolver {
         // declared (an enabled redis block).
         PdSyncBindGuard.check(sectionId, descriptor, storage, parsed, false, warnings);
 
-        CachingManager<UUID, S> manager = refRegistry.manager(descriptor, storage, cacheOptions);
+        //replacement semantics: on a core reload the previous generation's manager is still registered
+        //in the (identity-stable) registry, and the swap must leave no instant without a resolver. The
+        //replaced manager is torn down centrally by the reload (flush -> clearCache -> close), post-swap.
+        CachingManager<UUID, S> manager = refRegistry.managerReplacing(descriptor, storage, cacheOptions,
+                retired -> {});
 
         return new PDSectionBinding<>(cfg, backendName, storage, descriptor, manager,
                 resolveLifecycle(sectionId, cfg, admin.orElse(null)),
@@ -263,9 +267,13 @@ public final class BindingResolver {
         List<String> warnings = new ArrayList<>();
         PdSyncBindGuard.check(cfg.getPdSectionClass().getSimpleName() + " (transfer target)",
                 descriptor, storage, parsed, false, warnings);
-        //the runtime transfer keeps the section's declared lifecycle and bound across the cutover
-        CachingManager<UUID, S> manager = refRegistry.manager(descriptor, storage,
-                resolveCacheOptions(cfg.getPdSectionClass().getSimpleName(), cfg.getMaxCached(), null));
+        //the runtime transfer keeps the section's declared lifecycle and bound across the cutover.
+        //Replacement semantics: the pre-transfer manager stays registered (and serving) until this
+        //very call swaps it out, so readers never see a resolver-less type; the transfer service owns
+        //the retired manager's teardown (it holds it frozen and restores it on a failed copy).
+        CachingManager<UUID, S> manager = refRegistry.managerReplacing(descriptor, storage,
+                resolveCacheOptions(cfg.getPdSectionClass().getSimpleName(), cfg.getMaxCached(), null),
+                retired -> {});
 
         return new PDSectionBinding<>(cfg, targetBackendName, storage, descriptor, manager,
                 current.getLifecycle(), current.getIdleGrace(), warnings);

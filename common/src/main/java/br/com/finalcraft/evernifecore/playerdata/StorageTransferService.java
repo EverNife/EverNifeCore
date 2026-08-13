@@ -86,10 +86,9 @@ final class StorageTransferService {
                     .getCollectionOwner(targetBackend, binding.getCollection()) == null;
             PDSectionBinding<PDSection> rebound;
             try {
-                //the rebound manager registers itself for the same type: release the current
-                //registration first (a failed transfer re-registers the old manager below)
-                refRegistry.unregister(pdSectionClass);
-                //reserve the target collection and resolve the target codec up front
+                //the rebound manager REPLACES the current registration atomically (rebindTo carries
+                //replacement semantics), so a reader never finds the type resolver-less; a failed
+                //transfer swaps the old manager back in below
                 rebound = BindingResolver.rebindTo(binding, targetBackend, controller.storageConfig(),
                         controller.registry(), refRegistry);
             } catch (Throwable bindError) {
@@ -235,8 +234,7 @@ final class StorageTransferService {
                     .getCollectionOwner(targetBackend, current.getCollection()) == null;
             PlayerDataBinding rebound;
             try {
-                //same registration swap as the section path: release, rebind, restore on failure
-                refRegistry.unregister(PlayerData.class);
+                //same atomic replacement as the section path: rebind replaces, restore on failure
                 rebound = PlayerDataBinding.rebindTo(current, targetBackend, controller.storageConfig(),
                         controller.registry(), refRegistry);
             } catch (Throwable bindError) {
@@ -281,6 +279,9 @@ final class StorageTransferService {
         //manager was never frozen, so releasing the old one's freeze only retires the old manager
         migrateCachedSections(current, rebound);
         controller.installSectionBinding(pdSectionClass, rebound);
+        //retire the old manager's cells: a live Ref that memoized one re-resolves into the new
+        //manager (which the migration seeded with the SAME live instances, so nothing skips a beat)
+        current.getManager().clearCache();
         persistSectionBackend(PlayerController.pluginNameOf(current.getConfiguration().getPluginData()),
                 current.getConfiguration().getSectionId(), targetBackend);
         freeze.close();
@@ -334,6 +335,8 @@ final class StorageTransferService {
         //is what resumes writing: the new manager was never frozen
         migrateCachedPlayerData(current, rebound);
         controller.installPlayerDataBinding(rebound);
+        //retire the old manager's cells - same rationale as the section cutover
+        current.getManager().clearCache();
         controller.storageYml().setValue("playerdata.storage-backend-id", targetBackend);
         controller.storageYml().save();
         freeze.close();
@@ -359,9 +362,13 @@ final class StorageTransferService {
     }
 
     /** Puts the pre-transfer manager back as the type's resolver after a failed rebind/copy. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private static void restoreRegistration(RefRegistry refRegistry, Class<?> type, CachingManager<?, ?> oldManager) {
-        refRegistry.unregister(type);
-        refRegistry.register(type, oldManager);
+        Object failed = refRegistry.replace((Class) type, (CachingManager) oldManager);
+        if (failed instanceof CachingManager && failed != oldManager) {
+            //a Ref may have memoized the failed target manager in the window - make it re-resolve
+            ((CachingManager<?, ?>) failed).clearCache();
+        }
     }
 
     /**

@@ -89,7 +89,10 @@ public final class PlayerDataBinding {
         List<String> warnings = new ArrayList<>();
         PdSyncBindGuard.check("PlayerData (base entity)", descriptor, storage, parsed, false, warnings);
 
-        CachingManager<UUID, PlayerData> manager = globalRegistry.manager(descriptor, storage, CachePolicy.always());
+        //replacement semantics: on a core reload the previous base manager is still registered in the
+        //(identity-stable) global registry; the reload tears it down centrally, post-swap
+        CachingManager<UUID, PlayerData> manager = globalRegistry.managerReplacing(descriptor, storage,
+                CachePolicy.always(), retired -> {});
         return new PlayerDataBinding(backendName, storage, descriptor, manager, warnings);
     }
 
@@ -124,7 +127,10 @@ public final class PlayerDataBinding {
         //backend under multi-instance intent is surfaced (not blocked)
         List<String> warnings = new ArrayList<>();
         PdSyncBindGuard.check("PlayerData (transfer target)", descriptor, storage, parsed, false, warnings);
-        CachingManager<UUID, PlayerData> manager = globalRegistry.manager(descriptor, storage, CachePolicy.always());
+        //replacement semantics, like the section transfer path: the pre-transfer manager keeps serving
+        //until this swap, and the transfer service owns its teardown (frozen, restored on failure)
+        CachingManager<UUID, PlayerData> manager = globalRegistry.managerReplacing(descriptor, storage,
+                CachePolicy.always(), retired -> {});
         return new PlayerDataBinding(targetBackendName, storage, descriptor, manager, warnings);
     }
 

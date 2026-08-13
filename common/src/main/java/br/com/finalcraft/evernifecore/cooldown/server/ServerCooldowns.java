@@ -124,8 +124,10 @@ public final class ServerCooldowns {
             log.log(Level.WARNING, warning);
         }
 
+        //replacement semantics: on a core reload the previous cooldown manager is still registered in
+        //the (identity-stable) global registry; the reload tears it down centrally, post-swap
         CachingManager<String, ServerCooldownRow> manager =
-                globalRegistry.manager(descriptor, storage, freshnessOf(admin));
+                globalRegistry.managerReplacing(descriptor, storage, freshnessOf(admin), retired -> {});
         //warm the whole collection: the set is tiny, and a cooldown check reads it synchronously
         manager.preloadAll().join();
 

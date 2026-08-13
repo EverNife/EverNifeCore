@@ -28,23 +28,18 @@ import java.nio.file.Path;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * What happens to a plugin-owned {@link ECStorage} when a reload replaces the per-plugin
- * {@code RefRegistry} under it.
- *
- * <p>Every reload builds a fresh {@code ECRegistries}, so a handle opened before it keeps a registry
- * the plugin's freshly rebound PDSections no longer resolve through. These pin the contract that
- * replaced the old silence: the handle is marked detached, refuses to hand out NEW wiring, and still
- * lets the plugin flush and close what it already had.</p>
+ * A plugin-owned {@link ECStorage} across a core storage reload: the per-plugin {@code RefRegistry}
+ * keeps its identity (a reload swaps its content, never the object), so the handle opened on enable
+ * never detaches, never needs a callback, and keeps vending managers and serving data straight
+ * through the reload.
  */
 @ECoreTest
-class ECStorageRegistrySwapTest {
+class ECStorageStableRegistryTest {
 
     private static final String PLUGIN_NAME = "SwapTestPlugin";
 
@@ -60,87 +55,50 @@ class ECStorageRegistrySwapTest {
     }
 
     @Test
-    void aReloadDetachesAHandleNothingReopened() throws IOException {
-        File storageYml = writeStorageYml("swap_detach");
+    void aHandleOpenedOnEnableWorksStraightThroughACoreReload() throws IOException {
+        File storageYml = writeStorageYml("stable_handle");
         PlayerController.initialize(storageYml);
         ECPluginData plugin = fakePluginData();
 
-        ECStorage handle = ECStorage.open(plugin, pluginStorageSection("detach"),
+        ECStorage handle = ECStorage.open(plugin, pluginStorageSection("stable"),
                 BackendDefinition.memory()).join();
-        assertFalse(handle.isDetached(), "a freshly opened handle is wired to the live registry");
+        Object registryBefore = handle.refRegistry();
+        assertSame(ECStorageRegistries.of(plugin), registryBefore,
+                "a post-bootstrap open wires straight into the plugin's shared registry");
 
-        PlayerController.initialize(storageYml); // the reload: fresh ECRegistries, fresh per-plugin child
-        assertTrue(handle.isDetached(),
-                "the registry this handle holds was replaced - it must know it is no longer wired");
+        CachingManager<UUID, Shop> manager = handle.manager(descriptor(), CachePolicy.always());
+        UUID shopId = UUID.randomUUID();
+        manager.saveAndCache(new Shop(shopId, "before")).join();
 
-        IllegalStateException refused = assertThrows(IllegalStateException.class,
-                () -> handle.manager(descriptor(), CachePolicy.always()));
-        assertTrue(refused.getMessage().contains("onStorageReload"),
-                "the refusal must name the fix, not just the symptom: " + refused.getMessage());
+        PlayerController.initialize(storageYml); //the core reload - the plugin does NOTHING
+
+        assertSame(registryBefore, handle.refRegistry(),
+                "the shared registry kept its identity, so the handle is still correctly wired");
+        assertSame(manager, handle.manager(descriptor(), CachePolicy.always()),
+                "the handle keeps vending the same (memoized) manager - nothing detached");
+        assertTrue(manager.resolve(shopId).join().isPresent(),
+                "a manager handed out before the reload keeps serving its data");
 
         handle.close().join();
     }
 
     @Test
-    void aDetachedHandleStillFlushesAndCloses() throws IOException {
-        File storageYml = writeStorageYml("swap_flush");
-        PlayerController.initialize(storageYml);
-        ECPluginData plugin = fakePluginData();
-
-        ECStorage handle = ECStorage.open(plugin, pluginStorageSection("flush"),
-                BackendDefinition.memory()).join();
-        handle.manager(descriptor(), CachePolicy.always());
-
-        PlayerController.initialize(storageYml);
-        assertTrue(handle.isDetached());
-
-        //the plugin's only window to persist what was dirty before it re-opens: refusing these would
-        //answer a resolution bug with data loss
-        assertDoesNotThrow(() -> handle.flushManagers().join(), "a detached handle must still flush");
-        assertDoesNotThrow(() -> handle.close().join(), "a detached handle must still close");
-    }
-
-    @Test
-    void reopeningADetachedHandleKeepsTheLiveConnection() throws IOException {
-        File storageYml = writeStorageYml("swap_rebind");
-        PlayerController.initialize(storageYml);
-        ECPluginData plugin = fakePluginData();
-
-        ConfigSection section = pluginStorageSection("rebind");
-        ECStorage handle = ECStorage.open(plugin, section, BackendDefinition.memory()).join();
-        Object connectionBefore = handle.storage();
-        CachingManager<UUID, Shop> managerBefore = handle.manager(descriptor(), CachePolicy.always());
-
-        PlayerController.initialize(storageYml);
-        assertTrue(handle.isDetached());
-
-        ECStorage reopened = ECStorage.openOrReload(plugin, section, handle).join();
-
-        assertSame(handle, reopened, "the same target reuses the handle instead of opening a new one");
-        assertFalse(reopened.isDetached(), "re-opening clears the detached mark");
-        assertSame(connectionBefore, reopened.storage(),
-                "a swapped registry must NOT tear down the connection - only the registry moved");
-        assertNotSame(managerBefore, reopened.manager(descriptor(), CachePolicy.always()),
-                "the managers are re-derived, so they register in the live registry");
-    }
-
-    @Test
-    void aPluginLessHandleIsNeverDetached() throws IOException {
-        File storageYml = writeStorageYml("swap_pluginless");
+    void aPluginLessHandleIsUntouchedByAReload() throws IOException {
+        File storageYml = writeStorageYml("stable_pluginless");
         PlayerController.initialize(storageYml);
 
-        //no ECPluginData: a private registry is this handle's contract, not an accident of boot order
+        //no ECPluginData: a private registry is this handle's contract
         ECStorage handle = ECStorage.open(BackendDefinition.memory()).join();
         PlayerController.initialize(storageYml);
 
-        assertFalse(handle.isDetached(), "a plugin-less handle owns its registry and nothing replaced it");
-        assertDoesNotThrow(() -> handle.manager(descriptor(), CachePolicy.always()));
+        assertDoesNotThrow(() -> handle.manager(descriptor(), CachePolicy.always()),
+                "a private-registry handle has nothing to do with the core's reload");
         handle.close().join();
     }
 
     @Test
-    void aClosedHandleIsNotTrackedThroughAReload() throws IOException {
-        File storageYml = writeStorageYml("swap_closed");
+    void aClosedHandleDoesNotTripAReload() throws IOException {
+        File storageYml = writeStorageYml("stable_closed");
         PlayerController.initialize(storageYml);
         ECPluginData plugin = fakePluginData();
 
@@ -150,29 +108,30 @@ class ECStorageRegistrySwapTest {
 
         assertDoesNotThrow(() -> PlayerController.initialize(storageYml),
                 "a reload must not trip over a handle that was already closed");
-        assertFalse(handle.isDetached(), "a closed handle is out of the tracking - nothing to detach");
     }
 
     @Test
-    void aManagerHandedOutBeforeTheReloadKeepsWorking() throws IOException {
-        File storageYml = writeStorageYml("swap_old_manager");
+    void openOrReloadOnTheSameTargetStillReusesTheConnectionAfterACoreReload() throws IOException {
+        File storageYml = writeStorageYml("stable_reuse");
         PlayerController.initialize(storageYml);
         ECPluginData plugin = fakePluginData();
 
-        ECStorage handle = ECStorage.open(plugin, pluginStorageSection("old_manager"),
-                BackendDefinition.memory()).join();
-        CachingManager<UUID, Shop> manager = handle.manager(descriptor(), CachePolicy.always());
-        UUID shopId = UUID.randomUUID();
-        manager.saveAndCache(new Shop(shopId, "before")).join();
+        ConfigSection section = pluginStorageSection("reuse");
+        ECStorage handle = ECStorage.open(plugin, section, BackendDefinition.memory()).join();
+        Object connectionBefore = handle.storage();
+        CachingManager<UUID, Shop> managerBefore = handle.manager(descriptor(), CachePolicy.always());
 
-        PlayerController.initialize(storageYml);
+        PlayerController.initialize(storageYml); //the core reload
 
-        //the replaced registry keeps its entries on purpose: a manager the plugin already holds must
-        //keep resolving inside that older but self-consistent graph, not suddenly resolve nothing
-        assertTrue(manager.resolve(shopId).join().isPresent(),
-                "a manager handed out before the reload must still serve what it stored");
+        //the plugin's OWN config reload path (openOrReload) still behaves: same target = same
+        //connection, caches wiped, managers re-derived on the same stable registry
+        ECStorage reopened = ECStorage.openOrReload(plugin, section, handle).join();
+        assertSame(handle, reopened, "the same target reuses the handle instead of opening a new one");
+        assertSame(connectionBefore, reopened.storage(), "the live connection is kept");
+        assertNotSame(managerBefore, reopened.manager(descriptor(), CachePolicy.always()),
+                "openOrReload resets the handle, so its managers are re-derived");
 
-        handle.close().join();
+        reopened.close().join();
     }
 
     // ------------------------------------------------------------------

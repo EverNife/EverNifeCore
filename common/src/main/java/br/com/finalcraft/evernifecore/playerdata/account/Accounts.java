@@ -116,8 +116,10 @@ public final class Accounts {
                     + "' on the network backend '" + backendName + "', but it is already used by '"
                     + registry.getCollectionOwner(backendName, COLLECTION) + "'!");
         }
+        //replacement semantics: on a core reload the previous account manager is still registered in
+        //the (identity-stable) global registry; the reload tears it down centrally, post-swap
         CachingManager<UUID, Account> manager =
-                globalRegistry.manager(descriptor, storage, CachePolicy.always());
+                globalRegistry.managerReplacing(descriptor, storage, CachePolicy.always(), retired -> {});
         //warm every stored account/alias up-front: the sync keying fast-path (accountNow) is
         //cache-only, and the collection stays tiny (only explicitly linked identities persist rows),
         //so this keeps account-scoped keying correct even for offline players loaded at boot

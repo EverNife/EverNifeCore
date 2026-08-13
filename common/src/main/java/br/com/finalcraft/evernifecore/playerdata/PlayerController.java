@@ -7,9 +7,11 @@ import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldownsLocal;
 import br.com.finalcraft.evernifecore.cooldown.player.PlayerCooldownsNetwork;
+import br.com.finalcraft.evernifecore.cooldown.server.ServerCooldownRow;
 import br.com.finalcraft.evernifecore.cooldown.server.ServerCooldowns;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.LocalePDSection;
+import br.com.finalcraft.evernifecore.playerdata.account.Account;
 import br.com.finalcraft.evernifecore.playerdata.account.Accounts;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import br.com.finalcraft.evernifecore.playerdata.storage.BindingResolver;
@@ -103,16 +105,16 @@ public class PlayerController {
 
     static {
         //let an ECStorage share a plugin's RefRegistry with that plugin's PDSections (so a Ref inside a
-        //PDSection can resolve an entity in the plugin's own ECStorage). The lambda resolves the LIVE
-        //controller instance each call, so it survives a reload swap.
+        //PDSection can resolve an entity in the plugin's own ECStorage). The registries are stable in
+        //identity across reloads; the null-before-bootstrap gate is what keeps the "opened too early"
+        //warning in ECStorage truthful.
         ECStorageRegistries.setProvider(PlayerController::sharedRefRegistryFor);
-        ECStorageRegistries.setReloadHookProbe(PlayerController::hasStorageReloadHook);
         //and let a plugin reach the shared network backend without capturing anything of it: the
         //supplier resolves the live controller each call, so a reload replaces what it answers
         ECNetworkStorage.setAccessProvider(PlayerController::networkAccess);
     }
 
-    /** The current controller instance's child registry for {@code plugin}, or {@code null} if not bootstrapped. */
+    /** The stable child registry for {@code plugin}, or {@code null} before the first bootstrap. */
     static RefRegistry sharedRefRegistryFor(ECPluginData plugin){
         PlayerController controller = INSTANCE;
         return controller == null ? null : controller.ecRegistries.of(plugin);
@@ -146,28 +148,12 @@ public class PlayerController {
     /** Account-section registrations - same reload-surviving contract as the per-player sections. */
     private static final Map<Class<?>, AccountSectionConfiguration<?>> REGISTERED_ACCOUNT_SECTIONS = new ConcurrentHashMap<>();
 
-    /**
-     * Storage-reload callbacks - survive reloads like the section registrations. Each runs right AFTER a
-     * reload publishes the fresh controller instance, so a plugin can re-open its own ECStorage onto the
-     * fresh per-plugin registry (see {@link #onStorageReload(ECPluginData, Runnable)}).
-     */
-    private static final List<ReloadHook> STORAGE_RELOAD_HOOKS = new CopyOnWriteArrayList<>();
-
-    /** A storage-reload callback with its owning plugin (nullable) so it can be dropped on disable. */
-    private static final class ReloadHook {
-        final ECPluginData plugin;
-        final Runnable callback;
-        ReloadHook(ECPluginData plugin, Runnable callback){
-            this.plugin = plugin;
-            this.callback = callback;
-        }
-    }
-
     // ---- instance state ----
     private final Config storageYml;
     private final ParsedStorageConfig storageConfig;
     private final StorageRegistry registry;
-    private final ECRegistries ecRegistries = new ECRegistries(); //one root + per-plugin child RefRegistry
+    /** The process-wide registries: stable identity across reloads, only their CONTENT is swapped. */
+    private final ECRegistries ecRegistries = ECRegistries.get();
     private volatile PlayerDataBinding playerDataBinding; //swapped by transferPlayerData
     private final Map<Class<? extends PDSection>, PDSectionBinding<? extends PDSection>> bindings = new ConcurrentHashMap<>();
     private final CompletableFuture<Void> ready = new CompletableFuture<>(); //gate that holds storage access during the legacy import
@@ -231,7 +217,12 @@ public class PlayerController {
         try {
             fresh = new PlayerController(storageYmlFile);
         } catch (StorageUnavailableException storageDown) {
-            //old != null means a live instance is still serving: a failed reload never stops the server
+            //old != null means a live instance is still serving: a failed reload never stops the server.
+            //The half-built constructor may already have replaced resolvers in the stable registries
+            //with managers over pools it just closed - put the serving instance's managers back.
+            if (old != null){
+                old.reinstallManagers();
+            }
             StorageBootGuard.onStorageUnavailable(storageDown, old != null);
             throw storageDown;
         }
@@ -248,6 +239,12 @@ public class PlayerController {
                 fresh.registry.closeAll(); //don't leak pools on a failed boot; the old instance stays intact
                 Accounts.restore(previousAccounts);
                 ServerCooldowns.restore(previousServerCooldowns);
+                if (old != null){
+                    //the fresh binds already replaced resolvers in the stable registries with managers
+                    //over the pools closed above - reinstall the serving instance's managers (after the
+                    //restores, so the account/cooldown singletons answer with the old ones again)
+                    old.reinstallManagers();
+                }
                 if (bootFailure instanceof RuntimeException) throw (RuntimeException) bootFailure;
                 if (bootFailure instanceof Error) throw (Error) bootFailure;
                 throw new RuntimeException(bootFailure);
@@ -256,13 +253,6 @@ public class PlayerController {
 
         INSTANCE = fresh;                       //atomic instance swap
 
-        if (old != null){
-            //the per-plugin RefRegistries just changed identity: a plugin-owned ECStorage still holding the
-            //previous one is now invisible to that plugin's freshly rebound PDSections. Marked BEFORE the
-            //reload callbacks below, so a plugin that does re-open finds the mark and clears it, and one
-            //that does not is loud instead of silently unresolvable.
-            ECStorage.onRegistriesSwapped();
-        }
         if (!importPending){
             fresh.ready.complete(null);         //held until the import on the first boot
             //a registration that raced this bootstrap (arrived after fresh.start() visited the
@@ -280,7 +270,12 @@ public class PlayerController {
         }
 
         if (old != null){
-            //residual mutations made while the fresh instance was loading flush now, then close
+            //residual mutations made while the fresh instance was loading flush now, then the old
+            //generation lets go: clearing its manager caches marks every cell evicted, which is what
+            //makes a live Ref still memoizing an old cell re-resolve against the (stable) registries -
+            //where the fresh managers already answer. Order is load-bearing: flush before clear (a
+            //cleared cache has nothing left to flush), clear before close (the re-resolve must find
+            //the fresh managers, never revive the old pools).
             old.closeCacheSync();
             old.lifecycleEngine.stop();
             try {
@@ -289,6 +284,7 @@ public class PlayerController {
                 PDLog.severe("Failed to flush the previous PlayerController instance on reload:");
                 e.printStackTrace();
             }
+            old.clearAllManagerCaches(previousAccounts, previousServerCooldowns);
             old.registry.closeAll().join();
         }
 
@@ -297,12 +293,9 @@ public class PlayerController {
                     + " every plugin has registered its sections (the first server tick); player logins"
                     + " are held until it finishes.", legacyFolder.getPath());
             EverNifeCore.getPlatform().runOnMainThreadNextTick(() -> fresh.legacyBootstrap.runImportThenStart(legacyFolder));
-        }else {
-            //the reload is published and the fresh instance serves: let each plugin re-run its storage
-            //setup so a Ref into a plugin-owned ECStorage reconnects to the fresh per-plugin registry
-            //(the PDSection side already rebound to it above). Post-swap by construction - never before.
-            fireStorageReloadCallbacks();
         }
+        //a plugin-owned ECStorage needs nothing here: the registries kept their identity, so its
+        //managers (and every live Ref through them) stay valid across the whole swap
     }
 
     private PlayerController(File storageYmlFile){
@@ -666,57 +659,6 @@ public class PlayerController {
         return left.getMetaInfo().getName().equals(right.getMetaInfo().getName());
     }
 
-    // -----------------------------------------------------------------------------------------------------------------------------//
-    // Storage-reload callbacks (a plugin re-opens its own ECStorage after a core reload)
-    // -----------------------------------------------------------------------------------------------------------------------------//
-
-    /**
-     * Registers a callback to run right AFTER a core storage reload ({@link #initialize(File)}) has
-     * published the fresh controller instance. A reload builds a new set of per-plugin reference
-     * registries, so a plugin holding its own {@code ECStorage} must re-open it here - one line,
-     * {@code STORAGE = ECStorage.openOrReload(plugin, section, STORAGE).join()} - for a {@code Ref}
-     * inside one of its PDSections to keep resolving. The PDSection side rebinds on its own.
-     *
-     * <p>Callbacks are registered once on enable, survive reloads, and are dropped by
-     * {@link #unregisterPDSections(ECPluginData)} when the owning plugin disables. One that throws is
-     * logged and aborts neither the reload nor the other callbacks.
-     *
-     * @param plugin   the owning plugin, used to drop the callback on disable (may be {@code null} for
-     *                 a plugin-less/advanced registration that is never auto-dropped)
-     * @param callback the storage re-setup to run after each reload
-     */
-    public static void onStorageReload(ECPluginData plugin, Runnable callback){
-        Objects.requireNonNull(callback, "callback can't be null");
-        STORAGE_RELOAD_HOOKS.add(new ReloadHook(plugin, callback));
-    }
-
-    /**
-     * Whether {@code plugin} registered a storage-reload callback. Backs the warning an {@link ECStorage}
-     * emits when it opens without one - nothing would re-open that handle after a reload swaps the
-     * per-plugin registries.
-     */
-    public static boolean hasStorageReloadHook(ECPluginData plugin){
-        if (plugin == null) return false;
-        for (ReloadHook hook : STORAGE_RELOAD_HOOKS){
-            if (hook.plugin == plugin) return true;
-        }
-        return false;
-    }
-
-    /** Runs every storage-reload callback (post-swap); a failing one is logged, never fatal to the reload. */
-    static void fireStorageReloadCallbacks(){
-        for (ReloadHook hook : STORAGE_RELOAD_HOOKS){
-            try {
-                hook.callback.run();
-            }catch (Throwable callbackFailure){
-                String owner = hook.plugin != null ? " of plugin '" + hook.plugin.getMetaInfo().getName() + "'" : "";
-                PDLog.severe("A storage-reload callback%s failed - continuing with the rest: %s",
-                        owner, String.valueOf(callbackFailure.getMessage()));
-                callbackFailure.printStackTrace();
-            }
-        }
-    }
-
     /**
      * Seeds the framework's own player-cooldown rows into the section registries the bind loops of
      * {@link #start()} consume: a per-player LOCAL row (loads with the player, evicts a grace after
@@ -777,10 +719,6 @@ public class PlayerController {
      */
     public static void unregisterPDSections(ECPluginData ecPluginData){
         if (ecPluginData == null) return;
-        //drop this plugin's storage-reload callbacks (mirrors ecRegistries.drop below): a disabled plugin
-        //must not keep a callback that re-runs its storage setup and retains its classloader. Done before
-        //the early return, so a plugin that registered a callback but no PDSection is still cleaned up.
-        STORAGE_RELOAD_HOOKS.removeIf(hook -> hook.plugin == ecPluginData);
         String pluginName = ecPluginData.getMetaInfo().getName();
         List<Class<? extends PDSection>> owned = new ArrayList<>();
         for (PDSectionConfiguration<?> configuration : REGISTERED_SECTIONS.values()){
@@ -1091,9 +1029,9 @@ public class PlayerController {
         }
 
         manager.clearCache();
-        //release the manager and the collection claim so the fresh resolve can take them again with
-        //whatever the new configuration says (a changed collection would collide with its own claim)
-        ecRegistries.of(current.getConfiguration().getPluginData()).unregister(sectionClass);
+        //release only the collection claim (a changed collection would collide with its own claim);
+        //the registry entry stays - the fresh resolve REPLACES it atomically, so the type never has
+        //a moment without a resolver
         registry.releaseCollection(current.getBackendName(), current.getCollection());
         bindings.remove(sectionClass);
 
@@ -2015,6 +1953,69 @@ public class PlayerController {
     }
 
     /**
+     * Marks every cell of every manager this instance created as evicted ({@code clearCache}), so a
+     * live {@code Ref} still memoizing one of them re-resolves against the stable registries - where
+     * the replacement generation's managers already answer. The step of the reload teardown that
+     * makes the retired generation actually let go; runs after its final flush (a cleared cache has
+     * nothing left to flush) and before its backends close.
+     *
+     * <p>The account/cooldown managers are passed in by the caller: by teardown time the static
+     * singletons already answer with the FRESH generation, so reading them here would clear the
+     * wrong caches.
+     */
+    private void clearAllManagerCaches(Accounts oldAccounts, ServerCooldowns oldServerCooldowns){
+        baseManager().clearCache();
+        for (PDSectionBinding<? extends PDSection> binding : bindings.values()){
+            binding.getManager().clearCache();
+        }
+        for (AccountSectionBinding<?> binding : accountEngine.bindings()){
+            binding.getManager().clearCache();
+        }
+        if (oldAccounts != null && oldAccounts.getManager() != null){
+            oldAccounts.getManager().clearCache();
+        }
+        if (oldServerCooldowns != null && oldServerCooldowns.getManager() != null){
+            oldServerCooldowns.getManager().clearCache();
+        }
+    }
+
+    /**
+     * Puts this instance's managers back as the stable registries' resolvers - the undo of a FAILED
+     * reload: the fresh instance's binds already replaced resolvers with managers over pools that
+     * were closed when its boot failed, and this instance keeps serving, so its still-live managers
+     * must answer again. Each fresh manager replaced away is cache-cleared, so a {@code Ref} that
+     * memoized it in the window re-resolves here. Reads the account/cooldown singletons, so the
+     * caller must run {@code Accounts.restore}/{@code ServerCooldowns.restore} FIRST.
+     */
+    private void reinstallManagers(){
+        reinstall(ecRegistries.global(), PlayerData.class, baseManager());
+        for (PDSectionBinding<? extends PDSection> binding : bindings.values()){
+            reinstall(ecRegistries.of(binding.getConfiguration().getPluginData()),
+                    binding.getPdSectionClass(), binding.getManager());
+        }
+        for (AccountSectionBinding<?> binding : accountEngine.bindings()){
+            reinstall(ecRegistries.of(binding.getConfiguration().getPluginData()),
+                    binding.getConfiguration().getSectionClass(), binding.getManager());
+        }
+        Accounts accounts = Accounts.get();
+        if (accounts.getManager() != null){
+            reinstall(ecRegistries.global(), Account.class, accounts.getManager());
+        }
+        ServerCooldowns serverCooldowns = ServerCooldowns.get();
+        if (serverCooldowns != null && serverCooldowns.getManager() != null){
+            reinstall(ecRegistries.global(), ServerCooldownRow.class, serverCooldowns.getManager());
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void reinstall(RefRegistry registry, Class<?> type, CachingManager<?, ?> manager){
+        Object replaced = registry.replace((Class) type, (CachingManager) manager);
+        if (replaced != null && replaced != manager && replaced instanceof CachingManager){
+            ((CachingManager<?, ?>) replaced).clearCache(); //a ref that memoized the failed generation re-resolves
+        }
+    }
+
+    /**
      * Immediate flush of a single player - see {@link FlushEngine#flushPlayer(PlayerData)}. A
      * conflict completes the returned future EXCEPTIONALLY (with
      * {@link OptimisticConflictException}) after the winner is adopted.
@@ -2127,6 +2128,12 @@ public class PlayerController {
             PDLog.severe("Failed to close the storage backends on shutdown:");
             e.printStackTrace();
         }
+        //let go like the reload teardown does (evict every cell, then empty the stable registries'
+        //CONTENT - their identity survives, a later bootstrap repopulates the same objects). Without
+        //this a next bootstrap in the same JVM (tests, a full disable/enable cycle) would find stale
+        //managers over the pools just closed.
+        controller.clearAllManagerCaches(Accounts.isEnabled() ? Accounts.get() : null, ServerCooldowns.get());
+        ECRegistries.get().clearAll();
         Accounts.clear();
         ServerCooldowns.clear();
         INSTANCE = null;

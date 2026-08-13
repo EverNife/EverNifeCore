@@ -171,7 +171,10 @@ final class AccountSectionEngine {
             PDLog.warning(warning);
         }
 
-        CachingManager<UUID, S> manager = accountRegistry.manager(descriptor, storage, freshnessOf(sectionId, admin));
+        //replacement semantics: on a core reload the previous generation's manager is still registered
+        //in the (identity-stable) child registry; the reload tears it down centrally, post-swap
+        CachingManager<UUID, S> manager = accountRegistry.managerReplacing(descriptor, storage,
+                freshnessOf(sectionId, admin), retired -> {});
         AccountSectionBinding<S> binding = new AccountSectionBinding<>(cfg, backendName, descriptor, manager);
         bindings.put(sectionClass, binding);
         PDLog.info("Bound AccountSection {%s} (collection '%s' on account backend '%s').",
