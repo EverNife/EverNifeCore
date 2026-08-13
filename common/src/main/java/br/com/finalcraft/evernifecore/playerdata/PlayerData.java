@@ -47,7 +47,12 @@ public class PlayerData implements IPlayerData, EntitySchema {
      * The canonical account this player belongs to. Equals {@link #uuid} until the player's
      * identities are linked into a shared account; validated (and re-stamped when the stored truth
      * diverged) on login, and stable for the whole session.
+     *
+     * <p>Indexed, so "which players belong to this account" is a query rather than a full scan -
+     * the members of an account are otherwise unlistable, since an {@link AccountSection} holds one
+     * row for the account and knows nothing about the identities sharing it.
      */
+    @Indexed
     protected UUID accountId;
 
     @Indexed

@@ -15,7 +15,17 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ## [3.0.1-alpha.35] - 2026-08-12
 
-A section a query materialized answers for itself instead of throwing.
+A section a query materialized answers for itself, and an account can list the identities it holds.
+
+### Added
+
+- **`PlayerController.getAccountMembers(accountId)`** - the player identities linked into one
+  account, as a single indexed query over the base collection. An `AccountSection` could not list
+  its own members: it holds one row for the account and knows nothing about the players sharing it,
+  and `PlayerData.accountId` carried no index, so the answer meant scanning the whole base. The
+  field is now `@Indexed` - on EveryDatabase 1.4.0 a `UUID` is indexable directly, so this needs no
+  surrogate `String` field and no explicit `type`. A player already in the cache comes back as that
+  live instance, so a caller never ends up holding a second copy of one player.
 
 ### Fixed
 

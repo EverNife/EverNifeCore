@@ -1887,6 +1887,31 @@ public class PlayerController {
     }
 
     /**
+     * Every player identity linked into {@code accountId}. One indexed query over the base
+     * collection - the members of an account are otherwise unlistable, since an
+     * {@link AccountSection} holds one row for the account and knows nothing about the identities
+     * sharing it.
+     *
+     * <p>A player already in the cache is returned as that live instance, so a caller never ends up
+     * holding a second copy of one player; the rest come back as read-only snapshots and are not
+     * cached by this call.
+     */
+    public static CompletableFuture<List<PlayerData>> getAccountMembers(UUID accountId){
+        Objects.requireNonNull(accountId, "accountId can't be null");
+        PlayerController controller = INSTANCE;
+        if (controller == null) return failedFuture(notBootstrapped());
+        return controller.ready.thenCompose(v -> controller.baseManager().repository()
+                .query(Query.eq("accountId", accountId))
+                .thenApply(rows -> {
+                    List<PlayerData> members = new ArrayList<>(rows.size());
+                    for (PlayerData row : rows){
+                        members.add(controller.baseManager().peek(row.getUniqueId()).orElse(row));
+                    }
+                    return members;
+                }));
+    }
+
+    /**
      * Indexed backend query over an account section's collection (the account-family counterpart of
      * {@link #querySection(Class, Query, QueryOptions)}) - same {@code @Indexed} contract.
      */

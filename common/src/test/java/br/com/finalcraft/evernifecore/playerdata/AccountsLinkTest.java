@@ -233,6 +233,43 @@ class AccountsLinkTest {
     }
 
     // ------------------------------------------------------------------
+    // the account's members, listed by an indexed query over accountId
+    // ------------------------------------------------------------------
+
+    @Test
+    void accountMembersAreQueryableByAccountId() throws IOException {
+        bootstrap("account_members");
+        registerSections();
+
+        UUID uuidA = UUID.randomUUID();
+        UUID uuidB = UUID.randomUUID();
+        UUID loner = UUID.randomUUID();
+        PlayerController.handleLogin(uuidA, "Alpha").join();
+        PlayerController.handleLogin(uuidB, "Beta").join();
+        PlayerController.handleLogin(loner, "Solo").join();
+
+        UUID accountId = Accounts.get().linkExternal(uuidA, "site", "hub").join().getAccountId();
+        Accounts.get().linkExternal(uuidB, "site", "hub").join();
+        //the link moves identity only; a PlayerData row picks its accountId up at the next login
+        PlayerController.handleLogin(uuidA, "Alpha").join();
+        PlayerController.handleLogin(uuidB, "Beta").join();
+        PlayerController.get().flushAll().join();
+
+        List<PlayerData> members = PlayerController.getAccountMembers(accountId).join();
+
+        assertEquals(2, members.size(), "both linked identities must come back");
+        assertTrue(members.stream().anyMatch(p -> uuidA.equals(p.getUniqueId())));
+        assertTrue(members.stream().anyMatch(p -> uuidB.equals(p.getUniqueId())));
+        assertTrue(members.stream().noneMatch(p -> loner.equals(p.getUniqueId())),
+                "a player of another account must stay out");
+
+        //an unlinked player is an account of one: its accountId is still its own uuid
+        List<PlayerData> alone = PlayerController.getAccountMembers(loner).join();
+        assertEquals(1, alone.size());
+        assertEquals(loner, alone.get(0).getUniqueId());
+    }
+
+    // ------------------------------------------------------------------
     // desiredAccountId: strictly validated, creation-only
     // ------------------------------------------------------------------
 
