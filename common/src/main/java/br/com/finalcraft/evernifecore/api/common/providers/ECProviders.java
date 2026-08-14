@@ -2,8 +2,8 @@ package br.com.finalcraft.evernifecore.api.common.providers;
 
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
-import br.com.finalcraft.evernifecore.api.eventhandler.ECEventDispatcher;
 import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 
 public class ECProviders {
 
@@ -39,13 +39,13 @@ public class ECProviders {
         return BASE_PROVIDER.provideOrNull(IEconomyProvider.class);
     }
 
-    public ECEventDispatcher getEventDispatcher(){
-        return BASE_PROVIDER.provide(ECEventDispatcher.class);
-    }
-
-    /** Like {@link #getEventDispatcher()} but returns {@code null} instead of throwing when none is registered. */
-    public ECEventDispatcher getEventDispatcherOrNull(){
-        return BASE_PROVIDER.provideOrNull(ECEventDispatcher.class);
+    /**
+     * The process-wide event bus. It is not a registered provider: the bus is a static holder in
+     * {@code common}, so it is there before any platform loads and a re-instantiated platform cannot
+     * orphan the subscriptions taken against it.
+     */
+    public ECEventBus getEventBus(){
+        return ECEventBus.global();
     }
 
 }

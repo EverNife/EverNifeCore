@@ -67,9 +67,7 @@ public class ECPluginManager {
         ecPluginData.setDebugEnabled(null); //By setting to null, will 're-check' the config.yml for the debug value when needed
 
         //Fire Pre-Reload before the reload runs, so listeners observe the old state
-        EverNifeCore.getProviders()
-                .getEventDispatcher()
-                .post(new ECPluginReloadEvent.Pre(ecPluginData));
+        EverNifeCore.getEventBus().post(new ECPluginReloadEvent.Pre(ecPluginData));
 
         //Do the reload
         runnable.run();
@@ -99,9 +97,7 @@ public class ECPluginManager {
             }
         }
 
-        EverNifeCore.getProviders()
-                .getEventDispatcher()
-                .post(new ECPluginReloadEvent.Post(ecPluginData));
+        EverNifeCore.getEventBus().post(new ECPluginReloadEvent.Post(ecPluginData));
     }
 
     public static void removePluginData(String pluginName){

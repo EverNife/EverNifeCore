@@ -1,35 +1,30 @@
-package br.com.finalcraft.evernifecore.api.eventhandler;
+package br.com.finalcraft.evernifecore.eventbus;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Marks a listener method as an event handler. The single parameter decides where it is registered:
+ * an {@code IECEvent} goes to the {@link ECEventBus}, a platform's own event type to that platform's
+ * native bus.
+ */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ECEventHandler {
 
     /**
-     * Define the priority of the event.
-     * <p>
-     * First priority to the last priority executed:
-     * <ol>
-     * <li>LOWEST
-     * <li>LOW
-     * <li>NORMAL
-     * <li>HIGH
-     * <li>HIGHEST
-     * <li>MONITOR
-     * </ol>
-     *
-     * @return the priority
+     * The priority of this handler, lowest value first:
+     * {@link ECEventPriority#FIRST} -&gt; {@link ECEventPriority#EARLY} -&gt;
+     * {@link ECEventPriority#NORMAL} -&gt; {@link ECEventPriority#LATE} -&gt;
+     * {@link ECEventPriority#LAST}.
      */
     ECEventPriority priority() default ECEventPriority.NORMAL;
 
     /**
-     * This allow for a more fine-tunning compared ot the ECEventPriority enum
-     * whem -1 means the norma priority enum will be used.
-     * @return
+     * A priority between the {@link ECEventPriority} steps, for the rare handler that has to sit
+     * right before or after another one. {@code -1} means the {@link #priority()} enum is used.
      */
     short priorityValue() default -1;
 

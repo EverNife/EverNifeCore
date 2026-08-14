@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.listeners.base;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.api.eventhandler.ECEventDispatcher;
 import br.com.finalcraft.evernifecore.api.platoverride.eclistener.IECBaseListener;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
@@ -32,11 +31,7 @@ public interface ECListener extends IECBaseListener {
 
     public default void unregisterThis() {
         EverNifeCore.getPlatform().unregisterECListener(this);
-        //null when a very early boot (or a test fixture) has no dispatcher yet
-        ECEventDispatcher dispatcher = EverNifeCore.getProviders().getEventDispatcherOrNull();
-        if (dispatcher != null) {
-            dispatcher.unregister(this);
-        }
+        EverNifeCore.getEventBus().unregister(this);
         ECListenerRegistry.forget(this);
     }
 
@@ -73,12 +68,8 @@ public interface ECListener extends IECBaseListener {
             EverNifeCore.getPlatform().registerECListener(ecPluginData, listener);
             ECListenerRegistry.track(ecPluginData.getMetaInfo().getName(), listener);
 
-            //Deliver framework-agnostic IECEvents to @ECEventHandler methods of this listener.
-            //Guarded because a very early boot (or a test fixture) may not have a dispatcher yet.
-            ECEventDispatcher dispatcher = EverNifeCore.getProviders().getEventDispatcherOrNull();
-            if (dispatcher != null) {
-                dispatcher.register(listener);
-            }
+            //Deliver framework-agnostic IECEvents to the @ECEventHandler methods of this listener.
+            EverNifeCore.getEventBus().register(listener);
 
             //Check for locales
             FCLocaleManager.loadLocale(ecPluginData, true, listener.getClass());

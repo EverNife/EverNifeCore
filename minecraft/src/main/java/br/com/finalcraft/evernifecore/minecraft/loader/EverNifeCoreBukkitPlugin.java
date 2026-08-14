@@ -3,7 +3,6 @@ package br.com.finalcraft.evernifecore.minecraft.loader;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
-import br.com.finalcraft.evernifecore.api.eventhandler.ECEventDispatcher;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
@@ -20,7 +19,6 @@ import br.com.finalcraft.evernifecore.minecraft.integration.WorldEditIntegration
 import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerInteractListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.PluginListener;
-import br.com.finalcraft.evernifecore.minecraft.loader.imp.McECEventDispatcher;
 import br.com.finalcraft.evernifecore.minecraft.loader.imp.McECPluginExtractor;
 import br.com.finalcraft.evernifecore.minecraft.loader.imp.McPlatform;
 import br.com.finalcraft.evernifecore.minecraft.nbt.NBTSelfTest;
@@ -82,11 +80,6 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         EverNifeCore.getProviders().getBaseProvider().register(
                 IPlatform.class,
                 new McPlatform()
-        );
-
-        EverNifeCore.getProviders().getBaseProvider().register(
-                ECEventDispatcher.class,
-                new McECEventDispatcher()
         );
 
         //Economy resolves lazily, so registering it this early costs nothing and covers the plugins

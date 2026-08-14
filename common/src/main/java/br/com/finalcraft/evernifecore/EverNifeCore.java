@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
 
@@ -31,6 +32,10 @@ public class EverNifeCore {
 
     public static IPlatform getPlatform(){
         return instance.getProviders().getPlatform();
+    }
+
+    public static ECEventBus getEventBus(){
+        return instance.getProviders().getEventBus();
     }
 
     public void onLoaderInstantiate(ECPluginData ecPluginData){

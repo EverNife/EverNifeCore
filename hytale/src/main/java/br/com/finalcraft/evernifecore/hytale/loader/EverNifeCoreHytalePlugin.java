@@ -3,14 +3,12 @@ package br.com.finalcraft.evernifecore.hytale.loader;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
-import br.com.finalcraft.evernifecore.api.eventhandler.ECEventDispatcher;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.hytale.commands.HyCommandRegisterer;
 import br.com.finalcraft.evernifecore.hytale.ecplugin.ECHytalePlugin;
 import br.com.finalcraft.evernifecore.hytale.integration.HyVaultIntegration;
 import br.com.finalcraft.evernifecore.hytale.listeners.PlayerLoginListener;
-import br.com.finalcraft.evernifecore.hytale.loader.imp.HyECEventDispatcher;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyECPluginExtractor;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;
 import br.com.finalcraft.evernifecore.integration.placeholders.PAPIIntegration;
@@ -43,11 +41,6 @@ public class EverNifeCoreHytalePlugin extends ECHytalePlugin {
         EverNifeCore.getProviders().getBaseProvider().register(
                 IPlatform.class,
                 new HyPlatform()
-        );
-
-        EverNifeCore.getProviders().getBaseProvider().register(
-                ECEventDispatcher.class,
-                new HyECEventDispatcher()
         );
 
         //Economy resolves lazily, so registering it this early costs nothing and covers a plugin that

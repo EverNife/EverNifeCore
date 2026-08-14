@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.api.eventhandler;
+package br.com.finalcraft.evernifecore.eventbus;
 
 public enum ECEventPriority {
     FIRST((short)-21844),
