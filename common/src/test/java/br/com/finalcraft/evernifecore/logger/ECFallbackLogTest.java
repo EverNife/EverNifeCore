@@ -102,7 +102,10 @@ class ECFallbackLogTest {
         assertEquals(1, published.size());
         String message = published.get(0).getMessage();
         assertTrue(message.startsWith("could not open trades.log"), message);
-        assertTrue(message.contains("IllegalStateException: disk on fire"),
+        assertTrue(message.contains("IllegalStateException: disk on fire"), message);
+        //a frame, not the exception's name: rendered as a surplus argument it would reach the line
+        //too, so the two assertions above hold just as well with no stack trace at all
+        assertTrue(message.contains("\tat " + ECFallbackLogTest.class.getName()),
                 "the trailing throwable's stack trace belongs in the line: " + message);
     }
 

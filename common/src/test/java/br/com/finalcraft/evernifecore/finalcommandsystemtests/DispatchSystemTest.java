@@ -375,6 +375,10 @@ class DispatchSystemTest {
         assertTrue(logged.contains("SEVERE"), "the failure should have been logged severe: " + logged);
         assertTrue(logged.contains("throwing") && logged.contains("sub"), "the log should mention the command/args: " + logged);
         assertTrue(logged.contains("IllegalStateException") && logged.contains("boom"), "the log should carry the cause: " + logged);
+        //a frame is the only evidence the stack actually reached the line: the exception's toString
+        //arrives with or without it, so the assertion above passes just as happily with no trace at all
+        String frame = "\tat " + ThrowingCmd.class.getName() + ".sub";
+        assertTrue(logged.contains(frame), "the log should carry the stack of the cause, not just its name: " + logged);
     }
 
     // ------------------------------------------------------------------
