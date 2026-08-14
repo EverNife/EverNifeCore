@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.eventbus;
 
+import br.com.finalcraft.evernifecore.api.events.base.ECCancellable;
+import br.com.finalcraft.evernifecore.api.events.base.ECEvent;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
@@ -29,6 +31,10 @@ import java.util.stream.Collectors;
  * <p>A post runs the local phase first - every matching handler in priority order - and only then
  * the audiences, in registration order. A handler or an audience that throws is logged and skipped:
  * it never breaks the producer nor the ones queued behind it.</p>
+ *
+ * <p>What reaches an audience is decided by the event's own hierarchy: an {@link ECEvent} is
+ * platform-visible, anything that merely implements {@link IECEvent} is not. {@link
+ * #postLocal(IECEvent)} is the escape for the one post that must stay in.</p>
  *
  * <p>{@link #global()} is the bus platforms mirror from and plugins subscribe to; it lives as long
  * as the classloader does. {@link #create()} builds a scoped bus for a subsystem's own traffic - it
@@ -101,6 +107,7 @@ public class ECEventBus {
                 subscription,
                 plugin == null ? null : plugin.getMetaInfo().getName(),
                 priority.getValue(),
+                false,
                 event -> handler.accept(eventType.cast(event))
         );
 
@@ -134,7 +141,8 @@ public class ECEventBus {
                     ? annotation.priorityValue()
                     : annotation.priority().getValue();
 
-            toAdd.add(new Handler(parameterTypes[0], listener, null, priority, event -> invoker.invoke(listener, event)));
+            toAdd.add(new Handler(parameterTypes[0], listener, null, priority, annotation.ignoreCancelled(),
+                    event -> invoker.invoke(listener, event)));
         }
 
         if (toAdd.isEmpty()) return;
@@ -167,7 +175,9 @@ public class ECEventBus {
 
         deliverLocal(event);
 
-        if (mirroring) {
+        //The hierarchy IS the mirror policy: only an ECEvent is platform-visible, so an event that
+        //just implements IECEvent stays inside this bus by construction.
+        if (mirroring && event instanceof ECEvent) {
             for (ECNativeAudience audience : audiences) {
                 try {
                     if (audience.hasListeners(event)) {
@@ -193,6 +203,9 @@ public class ECEventBus {
 
     private void deliverLocal(IECEvent event) {
         for (Handler handler : planFor(event.getClass())) {
+            if (handler.ignoreCancelled && event instanceof ECCancellable && ((ECCancellable) event).isCancelled()) {
+                continue;
+            }
             try {
                 handler.action.accept(event);
             } catch (Throwable t) {
@@ -305,14 +318,16 @@ public class ECEventBus {
         final Object owner;                 // the listener, or the Subscription that opened it
         final String pluginName;            // null when the subscription is not owned by a plugin
         final short priority;
+        final boolean ignoreCancelled;
         final Consumer<IECEvent> action;
         volatile boolean active = true;
 
-        Handler(Class<?> eventType, Object owner, String pluginName, short priority, Consumer<IECEvent> action) {
+        Handler(Class<?> eventType, Object owner, String pluginName, short priority, boolean ignoreCancelled, Consumer<IECEvent> action) {
             this.eventType = eventType;
             this.owner = owner;
             this.pluginName = pluginName;
             this.priority = priority;
+            this.ignoreCancelled = ignoreCancelled;
             this.action = action;
         }
 

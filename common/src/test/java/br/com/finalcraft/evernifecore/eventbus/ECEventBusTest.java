@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.eventbus;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
+import br.com.finalcraft.evernifecore.api.events.base.ECCancellable;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
@@ -224,6 +225,17 @@ class ECEventBusTest {
         assertTrue(listener.order.isEmpty());
     }
 
+    @Test
+    void aHandlerThatIgnoresCancelledStepsAsideOnceTheEventIsCancelled() {
+        ECEventBus bus = ECEventBus.create();
+        CancellationListener listener = new CancellationListener();
+        bus.register(listener);
+
+        bus.post(new CancellableEvent());
+
+        assertEquals(Arrays.asList("canceller", "hears-anyway"), listener.order);
+    }
+
     // ------------------------------------------------------------------
     //  Plugin-owned subscriptions
     // ------------------------------------------------------------------
@@ -283,6 +295,40 @@ class ECEventBusTest {
     }
 
     static class AlsoMarkedEvent implements Marked {
+    }
+
+    static class CancellableEvent implements IECEvent, ECCancellable {
+        private boolean cancelled;
+
+        @Override
+        public boolean isCancelled() {
+            return cancelled;
+        }
+
+        @Override
+        public void setCancelled(boolean cancelled) {
+            this.cancelled = cancelled;
+        }
+    }
+
+    static class CancellationListener {
+        final List<String> order = new ArrayList<>();
+
+        @ECEventHandler(priority = ECEventPriority.FIRST)
+        public void canceller(CancellableEvent event) {
+            order.add("canceller");
+            event.setCancelled(true);
+        }
+
+        @ECEventHandler(ignoreCancelled = true)
+        public void skipsCancelled(CancellableEvent event) {
+            order.add("skips-cancelled");
+        }
+
+        @ECEventHandler(priority = ECEventPriority.LAST)
+        public void hearsAnyway(CancellableEvent event) {
+            order.add("hears-anyway");
+        }
     }
 
     static class AnnotatedListener {

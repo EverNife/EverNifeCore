@@ -29,13 +29,9 @@ public @interface ECEventHandler {
     short priorityValue() default -1;
 
     /**
-     * Define if the handler ignores a cancelled event.
-     * <p>
-     * On a platform event that can be cancelled, a true value keeps the method from being called once
-     * something else cancelled it. On an {@code IECEvent} it decides nothing: that marker carries no
-     * cancellation contract, so the handler is called either way.
-     *
-     * @return whether cancelled events should be ignored
+     * Whether this handler steps aside once the event is cancelled. It only decides something for an
+     * event that can be cancelled at all - an {@code ECCancellable} on the bus, or a cancellable
+     * event of the platform's own; anything else is delivered either way.
      */
     boolean ignoreCancelled() default false;
 }

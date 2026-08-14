@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.eventbus;
 
+import br.com.finalcraft.evernifecore.api.events.base.ECEvent;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -66,6 +67,21 @@ class ECEventBusAudienceTest {
         assertEquals(Collections.singletonList("local"), local);
         assertTrue(audience.dispatched.isEmpty(), "postLocal() is the escape from the mirror");
         assertEquals(0, audience.gateChecks);
+    }
+
+    @Test
+    void anEventThatIsNotAnECEventNeverReachesAnAudience() {
+        ECEventBus bus = mirroringBus();
+        RecordingAudience audience = new RecordingAudience("recording");
+        bus.addNativeAudience(audience);
+        List<String> local = new ArrayList<>();
+        bus.subscribe(LocalOnlyEvent.class, event -> local.add("local"));
+
+        bus.post(new LocalOnlyEvent());
+
+        assertEquals(Collections.singletonList("local"), local, "the local phase still runs");
+        assertEquals(0, audience.gateChecks, "the hierarchy decides: no ECEvent, no mirror at all");
+        assertTrue(audience.dispatched.isEmpty());
     }
 
     @Test
@@ -180,7 +196,12 @@ class ECEventBusAudienceTest {
         return new ECEventBus(true);
     }
 
-    static class SampleEvent implements IECEvent {
+    /** Platform-visible: extending ECEvent is what makes an event reach an audience at all. */
+    static class SampleEvent extends ECEvent implements IECEvent {
+    }
+
+    /** The local/hot event: it carries the marker and nothing else, so no audience can see it. */
+    static class LocalOnlyEvent implements IECEvent {
     }
 
     static class RecordingAudience implements ECNativeAudience {
