@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.blockdata.storage.WorldChunkDataCodec;
 import br.com.finalcraft.evernifecore.blockdata.storage.legacy.LegacyWorldDataImporter;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
+import br.com.finalcraft.evernifecore.logger.ECLogFormat;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
@@ -759,18 +760,18 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
         try {
             flush().get(CLOSE_FLUSH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (TimeoutException hungBackend) {
-            logSevere("The final flush of the '" + manager.collection() + "' block store did not answer within "
-                    + CLOSE_FLUSH_TIMEOUT_SECONDS + "s, so the shutdown goes on without it. The chunks it"
-                    + " could not write are still dirty in memory and are lost with the process - check"
-                    + " whether the backend is reachable before starting up again.", hungBackend);
+            logSevere("The final flush of the '{}' block store did not answer within {}s, so the shutdown"
+                    + " goes on without it. The chunks it could not write are still dirty in memory and are"
+                    + " lost with the process - check whether the backend is reachable before starting up"
+                    + " again.", manager.collection(), CLOSE_FLUSH_TIMEOUT_SECONDS, hungBackend);
         } catch (ExecutionException flushFailure) {
-            logSevere("The final flush of the '" + manager.collection() + "' block store failed. The chunks it"
-                    + " could not write are still dirty in memory and are lost with the process.",
-                    unwrap(flushFailure));
+            logSevere("The final flush of the '{}' block store failed. The chunks it could not write are"
+                    + " still dirty in memory and are lost with the process.",
+                    manager.collection(), unwrap(flushFailure));
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
-            logSevere("The final flush of the '" + manager.collection() + "' block store was interrupted, so"
-                    + " what was still dirty was not written.", interrupted);
+            logSevere("The final flush of the '{}' block store was interrupted, so what was still dirty was"
+                    + " not written.", manager.collection(), interrupted);
         } finally {
             refRegistry.unregister(WorldChunkData.class);
         }
@@ -821,8 +822,8 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
             //only becomes collectable once its write has gone out
             tickPass = flush().whenComplete((report, failure) -> manager.purgeExpired());
         } catch (Throwable tickFailure) {
-            logSevere("The '" + manager.collection() + "' block store could not start its periodic flush - the"
-                    + " next tick tries again.", tickFailure);
+            logSevere("The '{}' block store could not start its periodic flush - the next tick tries again.",
+                    manager.collection(), tickFailure);
         } finally {
             scheduleNextTick();
         }
@@ -879,8 +880,8 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
             try {
                 listener.onBlockChange(world, pos, oldValue, newValue);
             } catch (Throwable listenerFailure) {
-                logSevere("A block-change listener of the '" + manager.collection() + "' store failed for "
-                        + world + " " + pos + " - the change itself was applied.", listenerFailure);
+                logSevere("A block-change listener of the '{}' store failed for {} {} - the change itself"
+                        + " was applied.", manager.collection(), world, pos, listenerFailure);
             }
         }
     }
@@ -902,14 +903,14 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
         AtomicInteger unreadableChunks = new AtomicInteger();
         return preloadPage(Cursor.scan(), cachedChunks, unreadableChunks).handle((done, failure) -> {
             if (failure != null) {
-                logSevere("The '" + manager.collection() + "' block store could not finish reading itself"
-                        + " into memory. The " + cachedChunks.get() + " chunk(s) that made it in are cached"
-                        + " and the rest are read on first touch, so nothing is lost - but a backend that"
-                        + " cannot be scanned will fail the next flush too.", unwrap(failure));
+                logSevere("The '{}' block store could not finish reading itself into memory. The {} chunk(s)"
+                        + " that made it in are cached and the rest are read on first touch, so nothing is"
+                        + " lost - but a backend that cannot be scanned will fail the next flush too.",
+                        manager.collection(), cachedChunks.get(), unwrap(failure));
                 return null;
             }
-            logDebug("Preloaded the '" + manager.collection() + "' block store: " + cachedChunks.get()
-                    + " chunk(s) cached, " + unreadableChunks.get() + " unreadable.");
+            logDebug("Preloaded the '{}' block store: {} chunk(s) cached, {} unreadable.",
+                    manager.collection(), cachedChunks.get(), unreadableChunks.get());
             return null;
         });
     }
@@ -921,10 +922,10 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
             for (ScanRow<WorldChunkData<O>> row : page.content()) {
                 if (row.isFailed()) {
                     unreadableChunks.incrementAndGet();
-                    logSevere("The '" + manager.collection() + "' block store cannot decode what is stored"
-                            + " under '" + row.key() + "', so the blocks it holds are absent from this boot"
-                            + " while every other chunk loaded. Repair that entry or delete it - a write to"
-                            + " the same chunk overwrites it either way.", row.error());
+                    logSevere("The '{}' block store cannot decode what is stored under '{}', so the blocks"
+                            + " it holds are absent from this boot while every other chunk loaded. Repair"
+                            + " that entry or delete it - a write to the same chunk overwrites it either"
+                            + " way.", manager.collection(), row.key(), row.error());
                     continue;
                 }
                 //the grid sentinel shares this collection but is not a chunk: no coordinate resolves to it,
@@ -977,13 +978,13 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
     private void logReport(FlushReport report) {
         Map<String, Throwable> failures = report.getFailures();
         if (failures.isEmpty()) {
-            logDebug("Flushed the '" + manager.collection() + "' block store: " + report.getSavedChunks()
-                    + " chunk(s) written, " + report.getDeletedChunks() + " emptied chunk(s) deleted.");
+            logDebug("Flushed the '{}' block store: {} chunk(s) written, {} emptied chunk(s) deleted.",
+                    manager.collection(), report.getSavedChunks(), report.getDeletedChunks());
             return;
         }
-        logSevere("The '" + manager.collection() + "' block store could not persist " + failures.size()
-                + " chunk(s): " + namesOf(failures.keySet()) + ". They are dirty again and the next flush"
-                + " retries them, so nothing is lost while the backend answers again.",
+        logSevere("The '{}' block store could not persist {} chunk(s): {}. They are dirty again and the"
+                + " next flush retries them, so nothing is lost while the backend answers again.",
+                manager.collection(), failures.size(), namesOf(failures.keySet()),
                 failures.values().iterator().next());
     }
 
@@ -1007,13 +1008,14 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
      * every plugin answers to the same {@link ECDebugModule#SV_WORLD_DATA} switch, so turning it on shows
      * all of them and leaving it off costs nothing.
      */
-    private void logDebug(String message) {
-        ECDebugModule.SV_WORLD_DATA.debug(message);
+    private void logDebug(String message, Object... params) {
+        ECDebugModule.SV_WORLD_DATA.debug(message, params);
     }
 
-    private void logSevere(String message, Throwable cause) {
+    /** The failure goes last, where {@link ECLogFormat} appends its stack trace under the line. */
+    private void logSevere(String message, Object... params) {
         ECLogger log = plugin != null ? plugin.getLog() : EverNifeCore.getLog();
-        log.severe(message, cause);
+        log.severe(message, params);
     }
 
     private static <T> CompletableFuture<T> failed(Throwable cause) {

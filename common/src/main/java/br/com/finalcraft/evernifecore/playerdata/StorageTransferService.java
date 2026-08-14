@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.logger.ECLogFormat;
 import br.com.finalcraft.evernifecore.playerdata.storage.BindingResolver;
 import br.com.finalcraft.evernifecore.playerdata.storage.PDSectionBinding;
 import br.com.finalcraft.evernifecore.playerdata.storage.PlayerDataBinding;
@@ -424,12 +425,14 @@ final class StorageTransferService {
 
     private static void logTransferFailure(String what, String targetBackend, String keptBackend, TransferReport report) {
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("Transfer of %s to backend '%s' FAILED - the binding stays on '%s'"
+        sb.append(ECLogFormat.format("Transfer of {} to backend '{}' FAILED - the binding stays on '{}'"
                 + " and nothing was changed. Errors:", what, targetBackend, keptBackend));
         for (TransferError transferError : report.errors()) {
             sb.append("\n  - [").append(transferError.collection()).append("] ")
                     .append(transferError.cause() != null ? transferError.cause().getMessage() : "unknown error");
         }
-        EverNifeCore.getLog().warning(sb.toString());
+        //assembled text goes as a parameter: a '{}' coming from a collection name or an error
+        //message must not be read as a placeholder
+        EverNifeCore.getLog().warning("{}", sb.toString());
     }
 }

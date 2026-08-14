@@ -59,10 +59,12 @@ final class LegacyBootstrap {
             }
             LegacyImportReport report = new LegacyPlayerDataImporter(legacyFolder,
                     controller.playerDataBinding(), controller.sectionBindings()).run();
+            //the report is text the importer built: as a parameter it is printed, as the format
+            //string a '{}' inside it would be read as a placeholder
             if (report.hasFailures()) {
-                EverNifeCore.getLog().warning(report.format());
+                EverNifeCore.getLog().warning("{}", report.format());
             } else {
-                EverNifeCore.getLog().info(report.format());
+                EverNifeCore.getLog().info("{}", report.format());
             }
         } catch (Throwable importFailure) {
             EverNifeCore.getLog().severe("The legacy PlayerData import failed unexpectedly - the server will continue"

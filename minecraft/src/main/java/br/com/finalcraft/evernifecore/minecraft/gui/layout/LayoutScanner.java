@@ -132,9 +132,9 @@ public final class LayoutScanner {
                 SlotSet slots = resolveSlots(instance, field, source, path);
                 instance.putIcon(field.getName(), resolved, slots);
             } catch (Throwable failure) {
-                plugin.getLog().warning(type.getSimpleName() + "." + field.getName() + ": "
-                        + reasonOf(failure) + " Icon disabled. "
-                        + plugin.getMetaInfo().getName() + "/" + fileNameOf(type) + ", key " + path);
+                plugin.getLog().warning("{}.{}: {} Icon disabled. {}/{}, key {}", type.getSimpleName(),
+                        field.getName(), reasonOf(failure), plugin.getMetaInfo().getName(),
+                        fileNameOf(type), path);
             }
         }
 
@@ -264,8 +264,8 @@ public final class LayoutScanner {
             try {
                 guiType = parseGuiType(declaredType);
             } catch (RuntimeException unknownType) {
-                plugin.getLog().warning(type.getSimpleName() + ": " + unknownType.getMessage()
-                        + " Keeping " + guiType.name() + ".");
+                plugin.getLog().warning("{}: {} Keeping {}.", type.getSimpleName(),
+                        unknownType.getMessage(), guiType.name());
             }
         }
         String title = source.getString(SETTINGS + ".title");
@@ -302,9 +302,9 @@ public final class LayoutScanner {
             guiType.sizeOf(rows);
             return rows;
         } catch (RuntimeException unusable) {
-            plugin.getLog().warning(type.getSimpleName() + ", " + SETTINGS + ".rows: "
-                    + reasonOf(unusable) + " Keeping the " + declaration.rows() + " the plugin declared. "
-                    + plugin.getMetaInfo().getName() + "/" + fileNameOf(type));
+            plugin.getLog().warning("{}, {}.rows: {} Keeping the {} the plugin declared. {}/{}",
+                    type.getSimpleName(), SETTINGS, reasonOf(unusable), declaration.rows(),
+                    plugin.getMetaInfo().getName(), fileNameOf(type));
             return declaration.rows();
         }
     }
@@ -550,9 +550,9 @@ public final class LayoutScanner {
                 } else if (!sharesGroup(owner, field)) {
                     String dispute = slotDisputeMessage(claimantOf(owner), claimantOf(field), slot);
                     if (reported.add(dispute)) { //a whole group against one outsider is one sentence, said once
-                        plugin.getLog().warning(type.getSimpleName() + ": " + dispute + " Move one of them,"
-                                + " or give both the same group = \"...\" when they are meant to share the"
-                                + " slot and the menu picks which one is alive.");
+                        plugin.getLog().warning("{}: {} Move one of them, or give both the same"
+                                + " group = \"...\" when they are meant to share the slot and the menu"
+                                + " picks which one is alive.", type.getSimpleName(), dispute);
                     }
                 }
             }
@@ -589,9 +589,8 @@ public final class LayoutScanner {
                 SlotSet slots = source.getValue(path + ".Slot", SlotSet.class);
                 instance.putIcon(key, icon, slots == null ? SlotSet.EMPTY : slots);
             } catch (Throwable failure) {
-                plugin.getLog().warning(type.getSimpleName() + "." + key + ": " + reasonOf(failure)
-                        + " Icon disabled. " + plugin.getMetaInfo().getName() + "/" + fileNameOf(type)
-                        + ", key " + path);
+                plugin.getLog().warning("{}.{}: {} Icon disabled. {}/{}, key {}", type.getSimpleName(),
+                        key, reasonOf(failure), plugin.getMetaInfo().getName(), fileNameOf(type), path);
             }
         }
     }

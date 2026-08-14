@@ -115,9 +115,9 @@ public final class SettingsScanner {
                 if (stored == null) {
                     //A value the file supplied and the read then discarded is still file-sourced: the type
                     //is already the complaint, and calling it a default would make @Explicit fire on top of it
-                    warnOnce(ecPluginData, type, key, "unreadable", "The value at '" + key + "' "
-                            + unreadableAs(field, defaultValue) + ". Fix it in the file; until then the "
-                            + "default " + defaultValue + " is in use.");
+                    warnOnce(ecPluginData, type, key, "unreadable", "The value at '{}' {}. Fix it in the"
+                            + " file; until then the default {} is in use.",
+                            key, unreadableAs(field, defaultValue), defaultValue);
                 } else {
                     value = stored;
                 }
@@ -138,7 +138,7 @@ public final class SettingsScanner {
                     //what the rule refused is only half the news; the other half is what the server is
                     //running on until someone acts on it
                     warnOnce(ecPluginData, type, key, site.rule().annotationType().getName(),
-                            finding.message() + " The value in use is '" + surviving + "'.");
+                            "{} The value in use is '{}'.", finding.message(), surviving);
                 }
                 value = surviving;
                 if (fellBack) {
@@ -246,11 +246,10 @@ public final class SettingsScanner {
             JsonNode node = config.getNode(key);
             boolean isList = node != null && node.isArray();
             if (isList && node.size() > stored.size()) {
-                warnOnce(ecPluginData, type, key, "entries", (node.size() - stored.size()) + " of the "
-                        + node.size() + " entries at '" + key + "' cannot be read as "
-                        + elementType.getSimpleName() + " and were left out"
-                        + brokenEntries(result.issues()) + ". The others are in use; fix or "
-                        + "delete the broken ones.");
+                warnOnce(ecPluginData, type, key, "entries", "{} of the {} entries at '{}' cannot be read"
+                        + " as {} and were left out{}. The others are in use; fix or delete the broken"
+                        + " ones.", node.size() - stored.size(), node.size(), key,
+                        elementType.getSimpleName(), brokenEntries(result.issues()));
             }
             return stored.isEmpty() && !isList ? null : stored;
         }
@@ -313,9 +312,9 @@ public final class SettingsScanner {
 
     /** Warn once per site, not once per load: the same broken line on every reload teaches nothing new. */
     private static void warnOnce(ECPluginData ecPluginData, Class<?> type, String key, String about,
-                                 String message) {
+                                 String message, Object... params) {
         if (WARNED.add(type.getName() + '#' + key + '#' + about)) {
-            ecPluginData.getLog().warning(message);
+            ecPluginData.getLog().warning(message, params);
         }
     }
 }

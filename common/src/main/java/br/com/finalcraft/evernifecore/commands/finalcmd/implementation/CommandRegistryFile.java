@@ -90,7 +90,7 @@ final class CommandRegistryFile {
 
         if (!override.isEnabled()) {
             changes++;
-            detail("Removed '" + typedPathOf(node, rootLabel) + "' and everything under it - disabled in " + fileName);
+            detail("Removed '{}' and everything under it - disabled in {}", typedPathOf(node, rootLabel), fileName);
             reportEntriesOverruledBy(node, rootLabel);
             if (node.getParent() != null) {
                 node.getParent().removeChild(node);
@@ -100,8 +100,8 @@ final class CommandRegistryFile {
 
         if (!Arrays.equals(override.getExtraLabels(), node.getExtraLabels())) {
             changes++;
-            detail("Aliases of '" + typedPathOf(node, rootLabel) + "' are now " + Arrays.toString(override.getExtraLabels())
-                    + " instead of " + Arrays.toString(node.getExtraLabels()) + " - " + fileName);
+            detail("Aliases of '{}' are now {} instead of {} - {}", typedPathOf(node, rootLabel),
+                    Arrays.toString(override.getExtraLabels()), Arrays.toString(node.getExtraLabels()), fileName);
             node.setExtraLabels(override.getExtraLabels());
         }
 
@@ -120,16 +120,16 @@ final class CommandRegistryFile {
         for (CommandNode child : disabledNode.getChildren()) {
             String entry = entryPathOf(child.toUsagePath(rootLabel, false));
             if (config.contains(entry + ".enabled") && config.getBoolean(entry + ".enabled")) {
-                detail("Entry of '" + typedPathOf(child, rootLabel) + "' says enabled, but '"
-                        + typedPathOf(disabledNode, rootLabel) + "' above it does not - the parent wins");
+                detail("Entry of '{}' says enabled, but '{}' above it does not - the parent wins",
+                        typedPathOf(child, rootLabel), typedPathOf(disabledNode, rootLabel));
             }
             reportEntriesOverruledBy(child, rootLabel);
         }
     }
 
     /** One line per path removed and per alias overridden - the detail nobody needs until they do. */
-    private static void detail(String message) {
-        ECDebugModule.COMMAND_REGISTRY.debug(message);
+    private static void detail(String message, Object... params) {
+        ECDebugModule.COMMAND_REGISTRY.debug(message, params);
     }
 
     /** The node as a sender types it, ancestors' capture names included: {@code /lp user <user> permission}. */

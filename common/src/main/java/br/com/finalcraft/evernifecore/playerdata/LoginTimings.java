@@ -107,11 +107,12 @@ final class LoginTimings {
         if (!printed.compareAndSet(false, true)) return;
         try {
             for (String line : format(elapsedNanos, timedOut)) {
-                EverNifeCore.getLog().warning(line);
+                //the line carries section names a plugin chose; a '{}' in one is text, not a placeholder
+                EverNifeCore.getLog().warning("{}", line);
             }
         } catch (Throwable formattingFailure) {
             //a diagnostic must never be what breaks a login
-            EverNifeCore.getLog().warning("Could not report the slow login of [" + playerName + "]: " + formattingFailure);
+            EverNifeCore.getLog().warning("Could not report the slow login of [{}]: {}", playerName, formattingFailure);
         }
     }
 

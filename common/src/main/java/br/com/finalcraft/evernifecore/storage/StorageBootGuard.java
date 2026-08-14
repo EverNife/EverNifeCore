@@ -29,7 +29,9 @@ public final class StorageBootGuard {
             each.getCause().printStackTrace();
         }
         for (String line : StorageBootReport.render(failure, stopping, reloading)) {
-            EverNifeCore.getLog().severe(line);
+            //the rendered report quotes backend names and driver messages; a '{}' in one of them must
+            //reach the console as text, not be read as a placeholder
+            EverNifeCore.getLog().severe("{}", line);
         }
 
         if (stopping) {

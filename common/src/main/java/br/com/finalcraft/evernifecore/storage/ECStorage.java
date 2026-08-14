@@ -458,7 +458,8 @@ public final class ECStorage {
         List<String> warnings = new ArrayList<>();
         BackendDefinition definition = StorageYamlParser.parseInlineBackend(section, warnings);
         for (String warning : warnings) {
-            logWarning(plugin, warning);
+            //the parser's text quotes the backend section it read, so it goes as a parameter
+            logWarning(plugin, "{}", warning);
         }
         return definition;
     }
@@ -494,8 +495,8 @@ public final class ECStorage {
         }
     }
 
-    private static void logWarning(ECPluginData plugin, String message) {
+    private static void logWarning(ECPluginData plugin, String message, Object... params) {
         ECLogger log = plugin != null ? plugin.getLog() : EverNifeCore.getLog();
-        log.warning(message);
+        log.warning(message, params);
     }
 }

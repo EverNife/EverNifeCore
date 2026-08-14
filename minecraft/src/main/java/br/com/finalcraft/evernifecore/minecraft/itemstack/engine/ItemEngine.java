@@ -542,7 +542,9 @@ public final class ItemEngine {
     /** The log exists only after the plugin boots, and item work happens before that too. */
     public static void warn(@Nonnull String message) {
         try {
-            EverNifeCore.getLog().warning(message);
+            //callers hand in finished text - item-data keys and runtime descriptions included - so it
+            //goes as a parameter instead of being read for placeholders
+            EverNifeCore.getLog().warning("{}", message);
         } catch (Exception notBootedYet) {
             System.out.println("[EverNifeCore] " + message);
         }

@@ -169,7 +169,9 @@ final class AccountSectionEngine {
         PdSyncBindGuard.check("AccountSection '" + sectionId + "'", descriptor, storage, parsed,
                 true, warnings);
         for (String warning : warnings) {
-            EverNifeCore.getLog().warning(warning);
+            //the guard's text names a backend and a collection: as a parameter it is printed, as the
+            //format string a '{}' in either name would be read as a placeholder
+            EverNifeCore.getLog().warning("{}", warning);
         }
 
         //replacement semantics: on a core reload the previous generation's manager is still registered

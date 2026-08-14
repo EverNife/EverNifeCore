@@ -306,7 +306,9 @@ public class PlayerController {
         this.storageYml = ConfigFactory.open(EverNifeCore.getEcPluginData(), storageYmlFile);
         this.storageConfig = StorageYamlParser.parse(storageYml);
         for (String warning : storageConfig.getWarnings()){
-            EverNifeCore.getLog().warning(warning);
+            //storage.yml text: backend, collection and section names reach this string, so it goes as a
+            //parameter - as the format string a '{}' in any of them would be read as a placeholder
+            EverNifeCore.getLog().warning("{}", warning);
         }
 
         //route EveryDatabase logging to the ECore logger
@@ -328,7 +330,7 @@ public class PlayerController {
         }
         this.playerDataBinding = PlayerDataBinding.resolve(storageConfig, registry, ecRegistries.global());
         for (String warning : playerDataBinding.getResolutionWarnings()){
-            EverNifeCore.getLog().warning(warning);
+            EverNifeCore.getLog().warning("{}", warning);
         }
         //bring up the account/identity layer on the network backend before any account row is keyed -
         //the login pipeline stamps each player's accountId from it. Unconditional: with no link the
@@ -475,7 +477,8 @@ public class PlayerController {
         }
         try {
             cacheSync = CacheSyncWiring.startIfEnabled(storageConfig, managers,
-                    message -> EverNifeCore.getLog().info(message), message -> EverNifeCore.getLog().warning(message));
+                    message -> EverNifeCore.getLog().info("{}", message),
+                    message -> EverNifeCore.getLog().warning("{}", message));
         }catch (Throwable cacheSyncFailure){
             //never let a cache-sync wiring failure abort the boot - it is a coherence layer, not the store
             EverNifeCore.getLog().severe("Failed to start cache-sync - continuing without cross-instance coherence: {}",
@@ -531,14 +534,14 @@ public class PlayerController {
 
     void installPlayerDataBinding(PlayerDataBinding rebound){
         for (String warning : rebound.getResolutionWarnings()){
-            EverNifeCore.getLog().warning(warning);
+            EverNifeCore.getLog().warning("{}", warning);
         }
         this.playerDataBinding = rebound;
     }
 
     void installSectionBinding(Class<? extends PDSection> pdSectionClass, PDSectionBinding<? extends PDSection> rebound){
         for (String warning : rebound.getResolutionWarnings()){
-            EverNifeCore.getLog().warning(warning);
+            EverNifeCore.getLog().warning("{}", warning);
         }
         bindings.put(pdSectionClass, rebound);
     }
@@ -1010,7 +1013,7 @@ public class PlayerController {
             binding = BindingResolver.resolve(pluginName, cfg, storageConfig, registry,
                     ecRegistries.of(cfg.getPluginData()));
             for (String warning : binding.getResolutionWarnings()){
-                EverNifeCore.getLog().warning(warning);
+                EverNifeCore.getLog().warning("{}", warning);
             }
 
             bindings.put(cfg.getPdSectionClass(), binding);

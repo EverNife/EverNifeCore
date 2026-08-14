@@ -161,7 +161,9 @@ public final class GuiViews {
 
     private static void refuse(Gui<?> gui, Player player, CompletableFuture<GuiView> future, String why) {
         String message = "The gui [" + gui.getTitle() + "] did not open for [" + player.getName() + "]: " + why + ".";
-        EverNifeCore.getLog().warning(message);
+        //one text for the console and for the exception; a gui title or a player name carrying '{}' must
+        //not be read as a placeholder, so it travels as a parameter
+        EverNifeCore.getLog().warning("{}", message);
         future.completeExceptionally(new IllegalStateException(message));
     }
 
