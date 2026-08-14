@@ -4,8 +4,8 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logger.debug.IDebugModule;
 
-public enum ECDebugModule implements IDebugModule<ECDebugModule> {
-    HYTALE_FPLAYER("Logs related to the HytaleFPlayer implementation and it's methods.",true),
+public enum ECDebugModule implements IDebugModule {
+    HYTALE_FPLAYER("Logs related to the HytaleFPlayer implementation and its methods.", true),
     ARG_PARSER("Logs related to the CommandSystem '@Arg' Context checks.", true),
     CONTEXTUAL_ARG_PARSER("Logs related to the CommandSystem '@Arg.Contextual' Context checks.", true),
     SV_WORLD_DATA("Logs what every SVWorldDataManager block store preloads and flushes.", true),
@@ -14,36 +14,17 @@ public enum ECDebugModule implements IDebugModule<ECDebugModule> {
 
     private final String comment;
     private final boolean enabledByDefault;
-    private boolean enabled = true;
-
-    ECDebugModule() {
-        this.comment = null;
-        this.enabledByDefault = false;
-    }
-
-    ECDebugModule(String comment) {
-        this.comment = comment;
-        this.enabledByDefault = false;
-    }
+    private boolean enabled;
 
     ECDebugModule(String comment, boolean enabledByDefault) {
         this.comment = comment;
         this.enabledByDefault = enabledByDefault;
+        this.enabled = enabledByDefault;
     }
 
     @Override
     public ECPluginData getPluginData() {
         return EverNifeCore.instance.getEcPluginData();
-    }
-
-    @Override
-    public ECLogger<ECDebugModule> getLog() {
-        return EverNifeCore.getLog();
-    }
-
-    @Override
-    public String getName() {
-        return this.name();
     }
 
     @Override

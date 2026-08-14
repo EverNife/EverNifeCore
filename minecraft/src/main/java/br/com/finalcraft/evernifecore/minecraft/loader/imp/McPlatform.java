@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.logger.ECLogLevel;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.MinecraftArgParsers;
@@ -199,25 +200,22 @@ public class McPlatform implements IPlatform {
 
         return new ILogAdapter(){
             @Override
-            public void info(String string) {
-                javaPlugin.getLogger().info(string);
-            }
-
-            @Override
-            public void warning(String string) {
-                javaPlugin.getLogger().warning(string);
-            }
-
-            @Override
-            public void severe(String string) {
-                javaPlugin.getLogger().severe(string);
-            }
-
-            @Override
-            public void log(Level level, String string) {
-                javaPlugin.getLogger().log(level, string);
+            public void log(ECLogLevel level, String message) {
+                javaPlugin.getLogger().log(julLevelOf(level), message);
             }
         };
+    }
+
+    /**
+     * DEBUG lands on INFO: the Bukkit console filters everything below it, so mapping debug to FINE
+     * would silently swallow the lines the operator turned DebugMode on to see.
+     */
+    private static Level julLevelOf(ECLogLevel level) {
+        switch (level) {
+            case SEVERE:  return Level.SEVERE;
+            case WARNING: return Level.WARNING;
+            default:      return Level.INFO;
+        }
     }
 
     @Override

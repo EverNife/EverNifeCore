@@ -42,7 +42,7 @@ public class ECPluginData {
     private boolean markedForLocaleReload = false;
 
     //debug
-    private transient IDebugModule[] debugModules = new IDebugModule[0];
+    private transient IDebugModule[] modules = new IDebugModule[0];
     private Boolean debugEnabled = null;
 
     //commands registered through FinalCMDManager, owned by this plugin
@@ -83,15 +83,15 @@ public class ECPluginData {
         reloadAllCustomLocales();
     }
 
-    public void defineDebugModules(IDebugModule[] debugModules) {
-        this.debugModules = debugModules;
+    public void defineDebugModules(IDebugModule[] modules) {
+        this.modules = modules;
     }
 
     public boolean isDebugEnabled(){
         return isDebugEnabled(null);
     }
 
-    public boolean isDebugEnabled(@Nullable IDebugModule debugModule){
+    public boolean isDebugEnabled(@Nullable IDebugModule module){
         if (debugEnabled == null){
             Config config = ConfigFactory.open(this, "config.yml");
             debugEnabled = config.getOrSetValueIfAbsent(
@@ -100,9 +100,9 @@ public class ECPluginData {
                     "If '" + getMetaInfo().getName() + "' should log debug messages on the console!"
             );
 
-            for (IDebugModule module : debugModules) {
-                boolean enabled = module.onConfigLoad(config.getConfigSection("DebugMode"));
-                module.setEnabled(enabled);
+            for (IDebugModule each : modules) {
+                boolean enabled = each.onConfigLoad(config.getConfigSection("DebugMode"));
+                each.setEnabled(enabled);
             }
 
             config.setComment("DebugMode","-----------------------\n     Debug System\n-----------------------");
@@ -114,7 +114,7 @@ public class ECPluginData {
                 config.clearNewSeededDefaults();
             }
         }
-        return debugEnabled && (debugModule == null || debugModule.isEnabled());
+        return debugEnabled && (module == null || module.isEnabled());
     }
 
     public void setDebugEnabled(Boolean debugEnabled) {
@@ -313,7 +313,7 @@ public class ECPluginData {
         return iPluginMetaInfo;
     }
 
-    public ECLogger<?> getLog(){
+    public ECLogger getLog(){
         return ecLogger;
     }
 

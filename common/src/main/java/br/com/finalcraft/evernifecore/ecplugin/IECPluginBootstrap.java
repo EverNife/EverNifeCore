@@ -38,7 +38,7 @@ public interface IECPluginBootstrap {
     }
 
     /** This plugin's logger - shorthand for {@code getPluginData().getLog()}. */
-    public default ECLogger<?> getLog(){
+    public default ECLogger getLog(){
         return getPluginData().getLog();
     }
 

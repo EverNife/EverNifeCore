@@ -19,6 +19,7 @@ import br.com.finalcraft.evernifecore.hytale.commands.finalcmd.HytaleArgParsers;
 import br.com.finalcraft.evernifecore.hytale.commands.finalcmd.implementation.HyFinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.hytale.integration.placeholders.HyPAPIIntegration;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.logger.ECLogLevel;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
@@ -159,13 +160,13 @@ public class HyPlatform implements IPlatform {
             Class<?>[] parameterTypes = methodListener.getMethod().getParameterTypes();
 
             if (parameterTypes.length == 0) {
-                ecPluginData.getLog().severe(String.format("[ECListener] @ECEventHandler(%s#%s) | No parameter found on this listener.. ", listener.getClass().getSimpleName(), methodListener.getMethod().getName()));
+                ecPluginData.getLog().severe("[ECListener] @ECEventHandler({}#{}) | No parameter found on this listener.. ", listener.getClass().getSimpleName(), methodListener.getMethod().getName());
                 foundAnyError = true;
                 continue;
             }
 
             if (parameterTypes.length > 1) {
-                ecPluginData.getLog().severe(String.format("[ECListener] @ECEventHandler(%s#%s) | More than one parameter found on this listener.. ", listener.getClass().getSimpleName(), methodListener.getMethod().getName()));
+                ecPluginData.getLog().severe("[ECListener] @ECEventHandler({}#{}) | More than one parameter found on this listener.. ", listener.getClass().getSimpleName(), methodListener.getMethod().getName());
                 foundAnyError = true;
                 continue;
             }
@@ -177,7 +178,7 @@ public class HyPlatform implements IPlatform {
             }
 
             if (!IEvent.class.isAssignableFrom(parameterTypes[0])) {
-                ecPluginData.getLog().severe(String.format("[ECListener] @ECEventHandler(%s#%s) | The parameter %s is neither an IECEvent nor a Hytale IEvent. A handler parameter has to be one of the two: an IECEvent is delivered by the EverNifeCore bus, a Hytale event by the server.", listener.getClass().getSimpleName(), methodListener.getMethod().getName(), parameterTypes[0].getName()));
+                ecPluginData.getLog().severe("[ECListener] @ECEventHandler({}#{}) | The parameter {} is neither an IECEvent nor a Hytale IEvent. A handler parameter has to be one of the two: an IECEvent is delivered by the EverNifeCore bus, a Hytale event by the server.", listener.getClass().getSimpleName(), methodListener.getMethod().getName(), parameterTypes[0].getName());
                 foundAnyError = true;
                 continue;
             }
@@ -247,25 +248,22 @@ public class HyPlatform implements IPlatform {
 
         return new ILogAdapter(){
             @Override
-            public void info(String string) {
-                javaPlugin.getLogger().atInfo().log(string);
-            }
-
-            @Override
-            public void warning(String string) {
-                javaPlugin.getLogger().atWarning().log(string);
-            }
-
-            @Override
-            public void severe(String string) {
-                javaPlugin.getLogger().atSevere().log(string);
-            }
-
-            @Override
-            public void log(Level level, String string) {
-                javaPlugin.getLogger().at(level).log(string);
+            public void log(ECLogLevel level, String message) {
+                javaPlugin.getLogger().at(julLevelOf(level)).log(message);
             }
         };
+    }
+
+    /**
+     * DEBUG lands on INFO: the Hytale console filters everything below it, so mapping debug to FINE
+     * would silently swallow the lines the operator turned DebugMode on to see.
+     */
+    private static Level julLevelOf(ECLogLevel level) {
+        switch (level) {
+            case SEVERE:  return Level.SEVERE;
+            case WARNING: return Level.WARNING;
+            default:      return Level.INFO;
+        }
     }
 
     @Override

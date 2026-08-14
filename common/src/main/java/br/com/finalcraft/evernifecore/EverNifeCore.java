@@ -18,8 +18,8 @@ public class EverNifeCore {
 
     public static EverNifeCore instance = new EverNifeCore();
 
-    public static ECLogger<ECDebugModule> getLog(){
-        return (ECLogger<ECDebugModule>) instance.ecPluginData.getLog();
+    public static ECLogger getLog(){
+        return instance.ecPluginData.getLog();
     }
 
     private ECPluginData ecPluginData;

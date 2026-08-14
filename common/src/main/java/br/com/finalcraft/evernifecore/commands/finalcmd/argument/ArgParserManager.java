@@ -22,14 +22,14 @@ public class ArgParserManager {
 
     public static <T> void addGlobalParser(Class<? extends T> clazz, Class<? extends ArgParser<T>> parser){
         GLOBAL_CONTEXT_PARSER.addParser(clazz, parser);
-        ECDebugModule.ARG_PARSER.debugModule("Added Global Parser: %s -> %s", clazz.getSimpleName(), parser.getSimpleName());
+        ECDebugModule.ARG_PARSER.debug("Added Global Parser: {} -> {}", clazz.getSimpleName(), parser.getSimpleName());
         ECPluginData ecPluginData = ECPluginManager.getProvidingPlugin(parser);
         FCLocaleManager.loadLocale(ecPluginData, true, parser);
     }
 
     public static <T> void addGlobalContextualParser(Class<? extends T> clazz, Class<? extends ArgParserContextual<T>> contextualParser){
         GLOBAL_CONTEXT_PARSER.addContextualParser(clazz, contextualParser);
-        ECDebugModule.CONTEXTUAL_ARG_PARSER.debugModule("Added Global ContextualParser: %s -> %s", clazz.getSimpleName(), contextualParser.getSimpleName());
+        ECDebugModule.CONTEXTUAL_ARG_PARSER.debug("Added Global ContextualParser: {} -> {}", clazz.getSimpleName(), contextualParser.getSimpleName());
         ECPluginData ecPluginData = ECPluginManager.getProvidingPlugin(contextualParser);
         FCLocaleManager.loadLocale(ecPluginData, true, contextualParser);
     }
@@ -38,7 +38,7 @@ public class ArgParserManager {
         PLUGIN_CONTEXT_MAP.computeIfAbsent(plugin.getMetaInfo().getName(), s -> new ParserContext())
                 .addParser(clazz, parser);
 
-        EverNifeCore.getLog().debugModule(ECDebugModule.ARG_PARSER, "Added Plugin [%s] Parser: %s -> %s", plugin.getMetaInfo().getName(), clazz.getSimpleName(), parser.getSimpleName());
+        ECDebugModule.ARG_PARSER.debug("Added Plugin [{}] Parser: {} -> {}", plugin.getMetaInfo().getName(), clazz.getSimpleName(), parser.getSimpleName());
 
         ECPluginData ecPluginData = ECPluginManager.getProvidingPlugin(parser);//Not always the same as the plugin adding it
         FCLocaleManager.loadLocale(ecPluginData, true, parser);
@@ -48,7 +48,7 @@ public class ArgParserManager {
         PLUGIN_CONTEXT_MAP.computeIfAbsent(plugin.getMetaInfo().getName(), s -> new ParserContext())
                 .addContextualParser(clazz, parser);
 
-        EverNifeCore.getLog().debugModule(ECDebugModule.CONTEXTUAL_ARG_PARSER, "Added Plugin [%s] ContextualParser: %s -> %s", plugin.getMetaInfo().getName(), clazz.getSimpleName(), parser.getSimpleName());
+        ECDebugModule.CONTEXTUAL_ARG_PARSER.debug("Added Plugin [{}] ContextualParser: {} -> {}", plugin.getMetaInfo().getName(), clazz.getSimpleName(), parser.getSimpleName());
 
         ECPluginData ecPluginData = ECPluginManager.getProvidingPlugin(parser);//Not always the same as the plugin adding it
         FCLocaleManager.loadLocale(ecPluginData, true, parser);

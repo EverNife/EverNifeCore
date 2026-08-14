@@ -129,7 +129,7 @@ final class CommandRegistryFile {
 
     /** One line per path removed and per alias overridden - the detail nobody needs until they do. */
     private static void detail(String message) {
-        ECDebugModule.COMMAND_REGISTRY.debugModule(message);
+        ECDebugModule.COMMAND_REGISTRY.debug(message);
     }
 
     /** The node as a sender types it, ancestors' capture names included: {@code /lp user <user> permission}. */

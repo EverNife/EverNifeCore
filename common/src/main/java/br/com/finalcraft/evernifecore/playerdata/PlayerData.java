@@ -107,7 +107,7 @@ public class PlayerData implements IPlayerData, EntitySchema {
      */
     public void warnIfStaleSchema(){
         if (EntitySchemaMigrations.isBehind(this) && EntitySchemaMigrations.firstStaleWarning(PlayerData.class)){
-            PDLog.severe("PlayerData decoded at schema v%s but current is v%s - migrations must be"
+            PDLog.severe("PlayerData decoded at schema v{} but current is v{} - migrations must be"
                     + " registered before the controller bootstrap; row NOT migrated.",
                     schemaVersion, EntitySchemaMigrations.currentVersion(PlayerData.class));
         }

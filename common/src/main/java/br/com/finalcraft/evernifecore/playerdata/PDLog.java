@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.logger.ECLogFormat;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
 import br.com.finalcraft.everydatabase.log.StorageLogEvent;
 
@@ -32,7 +33,7 @@ final class PDLog {
     }
 
     static void debug(String message, Object... args) {
-        String formatted = args.length == 0 ? message : String.format(message, args);
+        String formatted = ECLogFormat.format(message, args);
         try {
             EverNifeCore.getLog().debug(formatted);
         } catch (Throwable noPluginRuntime) {
@@ -54,9 +55,9 @@ final class PDLog {
     }
 
     static void log(Level level, String message, Object... args) {
-        String formatted = args.length == 0 ? message : String.format(message, args);
+        String formatted = ECLogFormat.format(message, args);
         try {
-            ECLogger<?> logger = EverNifeCore.getLog();
+            ECLogger logger = EverNifeCore.getLog();
             if (level == Level.SEVERE) {
                 logger.severe(formatted);
             } else if (level == Level.WARNING) {

@@ -214,7 +214,7 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
             store.addComponent(ref, Teleport.getComponentType(), teleport);
         });
 
-        ECDebugModule.HYTALE_FPLAYER.debugModule(() -> {
+        ECDebugModule.HYTALE_FPLAYER.debug(() -> {
             FLocation location = getLocation();
 
             float displayYaw    = Float.isNaN(yaw)   ? previousRotation.yaw()    * (180.0F / (float) Math.PI) : yaw   * (180.0F / (float) Math.PI);

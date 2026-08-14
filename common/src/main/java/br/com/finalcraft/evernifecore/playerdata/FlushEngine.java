@@ -336,7 +336,7 @@ final class FlushEngine {
         int size = binding.getManager().cachedSize();
         if (size >= SectionLifecycle.NEVER_RELEASED_WARN_THRESHOLD) {
             if (residentWarned.add(sectionName)) {
-                PDLog.debug("PDSection {%s} is '%s' (never released) and holds %s cached cells (>= %s)."
+                PDLog.debug("PDSection {{}} is '{}' (never released) and holds {} cached cells (>= {})."
                         + " PDSections are meant to be small: externalize large data to its own collection"
                         + " and keep only the id here, declare a lifecycle that releases when idle"
                         + " (LAZY/ONLINE), or bound it with .maxCached(...).",

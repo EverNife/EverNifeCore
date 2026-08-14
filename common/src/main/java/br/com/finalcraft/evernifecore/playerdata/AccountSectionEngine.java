@@ -177,7 +177,7 @@ final class AccountSectionEngine {
                 freshnessOf(sectionId, admin), retired -> {});
         AccountSectionBinding<S> binding = new AccountSectionBinding<>(cfg, backendName, descriptor, manager);
         bindings.put(sectionClass, binding);
-        PDLog.info("Bound AccountSection {%s} (collection '%s' on account backend '%s').",
+        PDLog.info("Bound AccountSection {{}} (collection '{}' on account backend '{}').",
                 sectionClass.getSimpleName(), collection, backendName);
 
         //hot-load for the members already online (their login pipeline ran before this bind)
@@ -236,7 +236,7 @@ final class AccountSectionEngine {
         }
         if (discardDirty) {
             if (dirtyRows > 0) {
-                PDLog.warning("Re-registration of AccountSection {%s} DISCARDED %s unflushed row(s)"
+                PDLog.warning("Re-registration of AccountSection {{}} DISCARDED {} unflushed row(s)"
                                 + " (the section declared discardDirtyOnReload).",
                         sectionClass.getSimpleName(), dirtyRows);
             }
@@ -244,8 +244,8 @@ final class AccountSectionEngine {
             try {
                 controller.flushAccountSectionManager(current).join();
             } catch (Throwable flushFailure) {
-                PDLog.warning("Flush before the re-registration of AccountSection {%s} failed - reloading anyway,"
-                                + " the unflushed rows of this section are lost: %s",
+                PDLog.warning("Flush before the re-registration of AccountSection {{}} failed - reloading anyway,"
+                                + " the unflushed rows of this section are lost: {}",
                         sectionClass.getSimpleName(), String.valueOf(flushFailure.getMessage()));
             }
         }
@@ -254,7 +254,7 @@ final class AccountSectionEngine {
         controller.registries().of(current.getPluginData()).unregister(sectionClass);
         controller.registry().releaseCollection(current.getBackendName(), current.getCollection());
         bindings.remove(sectionClass);
-        PDLog.info("Re-registered AccountSection {%s}: dropped %s cached row(s) (%s dirty, %s) and rebound it.",
+        PDLog.info("Re-registered AccountSection {{}}: dropped {} cached row(s) ({} dirty, {}) and rebound it.",
                 sectionClass.getSimpleName(), cachedRows, dirtyRows, discardDirty ? "discarded" : "flushed first");
     }
 
@@ -266,14 +266,14 @@ final class AccountSectionEngine {
             try {
                 controller.flushAll().join();
             } catch (Throwable flushFailure) {
-                PDLog.warning("Final flush while unregistering AccountSection {%s} of plugin '%s' failed: %s",
+                PDLog.warning("Final flush while unregistering AccountSection {{}} of plugin '{}' failed: {}",
                         sectionClass.getSimpleName(), pluginName, String.valueOf(flushFailure.getMessage()));
             }
             binding.getManager().clearCache();
             //drop the manager from the plugin's RefRegistry so its Class object is not retained
             controller.registries().of(binding.getPluginData()).unregister(binding.getSectionClass());
             controller.registry().releaseCollection(binding.getBackendName(), binding.getCollection());
-            PDLog.info("Unregistered AccountSection {%s} of plugin '%s' (collection '%s' released).",
+            PDLog.info("Unregistered AccountSection {{}} of plugin '{}' (collection '{}' released).",
                     sectionClass.getSimpleName(), pluginName, binding.getCollection());
         }
     }
@@ -430,7 +430,7 @@ final class AccountSectionEngine {
                 return persisted
                         .thenCompose(x -> binding.getManager().deleteAndEvict(oldKey))
                         .thenAccept(x -> PDLog.info(
-                                "Absorbed %s row [%s] into account [%s].",
+                                "Absorbed {} row [{}] into account [{}].",
                                 binding.getSectionClass().getSimpleName(), oldKey, newKey));
             });
         });

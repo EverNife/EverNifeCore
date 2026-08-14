@@ -1010,7 +1010,7 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
      */
     private void logDebug(String message) {
         try {
-            ECDebugModule.SV_WORLD_DATA.debugModule(message);
+            ECDebugModule.SV_WORLD_DATA.debug(message);
         } catch (Throwable noPluginRuntime) {
             //pure JUnit runtime (no core plugin data behind the module): falls back to JUL
             Logger.getLogger("EverNifeCore").log(Level.FINE, message);

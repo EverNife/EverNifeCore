@@ -2,73 +2,87 @@ package br.com.finalcraft.evernifecore.logger.debug;
 
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.logger.ECLogLevel;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
 
 import java.util.function.Supplier;
-import java.util.logging.Level;
 
-public interface IDebugModule<DM extends IDebugModule>  {
+/**
+ * One switch in a plugin's {@code DebugMode.DebugModules} config block, and the door through which
+ * everything behind that switch logs. Implemented by an enum, one constant per switch:
+ *
+ * <pre>
+ * public enum MyDebug implements IDebugModule {
+ *     ARENA("Logs arena state machine transitions.", true),
+ *     ;
+ *     //comment + enabledByDefault fields, and enabled starting from enabledByDefault
+ *     public ECPluginData getPluginData() { return MyPlugin.instance.getPluginData(); }
+ *     public boolean isEnabled()          { return enabled; }
+ *     public void setEnabled(boolean e)   { this.enabled = e; }
+ * }
+ *
+ * MyDebug.ARENA.debug("Arena {} moved to {}", arena.getId(), newState);
+ * </pre>
+ *
+ * <p>{@link #debug} is the only verb the switch gates. {@code info}/{@code warning}/{@code severe}
+ * are tagging: they name the module in the line and always log, because a warning does not become
+ * less true when the operator is not debugging.</p>
+ */
+public interface IDebugModule {
 
-    public String getName();
+    /** {@code MY_MODULE} for an enum constant - which is what every implementation so far is. */
+    default String getName() {
+        return this instanceof Enum ? ((Enum<?>) this).name() : getClass().getSimpleName();
+    }
 
-    public default String getComment(){
+    /** The line written above this module's key in the config, explaining what it turns on. */
+    default String getComment() {
         return null;
     }
 
-    public boolean isEnabled();
-
-    public void setEnabled(boolean enabled);
-
-    public default boolean isEnabledByDefault(){
+    default boolean isEnabledByDefault() {
         return true;
     }
 
-    public default boolean onConfigLoad(ConfigSection section){
+    boolean isEnabled();
+
+    void setEnabled(boolean enabled);
+
+    default boolean onConfigLoad(ConfigSection section) {
         return section.getOrSetValueIfAbsent("DebugModules." + getName(), isEnabledByDefault(), getComment());
     }
 
-    public ECPluginData getPluginData();
+    ECPluginData getPluginData();
 
-    public ECLogger<DM> getLog();
-
-    public default void logModule(Level level, String msg) {
-        this.getLog().logModule((DM) this, level, msg);
+    default ECLogger getLog() {
+        return getPluginData().getLog();
     }
 
-    public default void logModule(Level level, Supplier<String> supplier) {
-        this.getLog().logModule((DM) this, level, supplier);
+    default void debug(String message, Object... params) {
+        //isDebugEnabled(this) already answered for the plugin AND for this module, so the line goes out
+        //through the ungated outlet - ECLogger.debug would ask the plugin half of that question again
+        if (getPluginData().isDebugEnabled(this)) {
+            getLog().log(ECLogLevel.DEBUG, "[Debug (" + getName() + ")] " + message, params);
+        }
     }
 
-    public default void debugModule(String message, Object... params) {
-        this.getLog().debugModule((DM) this, message, params);
+    /** @see ECLogger#debug(Supplier) */
+    default void debug(Supplier<String> supplier) {
+        if (getPluginData().isDebugEnabled(this)) {
+            getLog().log(ECLogLevel.DEBUG, "[Debug (" + getName() + ")] " + supplier.get());
+        }
     }
 
-    public default void debugModule(Supplier<String> supplier) {
-        this.getLog().debugModule((DM) this, supplier);
+    default void info(String message, Object... params) {
+        getLog().info("[" + getName() + "] " + message, params);
     }
 
-    public default void infoModule(String message, Object... params) {
-        this.getLog().infoModule((DM) this, message, params);
+    default void warning(String message, Object... params) {
+        getLog().warning("[" + getName() + "] " + message, params);
     }
 
-    public default void infoModule(Supplier<String> supplier) {
-        this.getLog().infoModule((DM) this, supplier);
-    }
-
-    public default void warningModule(String message, Object... params) {
-        this.getLog().warningModule((DM) this, message, params);
-    }
-
-    public default void warningModule(Supplier<String> supplier) {
-        this.getLog().warningModule((DM) this, supplier);
-    }
-
-    public default void severeModule(String message, Object... params) {
-        this.getLog().severeModule((DM) this, message, params);
-    }
-
-    public default void severeModule(Supplier<String> supplier) {
-        this.getLog().severeModule((DM) this, supplier);
+    default void severe(String message, Object... params) {
+        getLog().severe("[" + getName() + "] " + message, params);
     }
 
 }

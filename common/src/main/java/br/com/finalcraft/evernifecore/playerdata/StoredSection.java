@@ -86,7 +86,7 @@ abstract class StoredSection implements EntitySchema, IDirtyable {
      */
     final void warnIfStaleSchema() {
         if (EntitySchemaMigrations.isBehind(this) && EntitySchemaMigrations.firstStaleWarning(getClass())) {
-            PDLog.severe("%s %s decoded at schema v%s but current is v%s - register migrations"
+            PDLog.severe("{} {} decoded at schema v{} but current is v{} - register migrations"
                     + " before the section is bound; row NOT migrated.",
                     sectionKind(), getClass().getName(), schemaVersion, EntitySchemaMigrations.currentVersion(getClass()));
         }
@@ -203,7 +203,7 @@ abstract class StoredSection implements EntitySchema, IDirtyable {
             section.warnIfStaleSchema();
         } catch (Throwable migrationFailure) {
             manager.evict(key);
-            PDLog.severe("Schema migration of %s [%s] failed - the half-migrated entity was evicted:",
+            PDLog.severe("Schema migration of {} [{}] failed - the half-migrated entity was evicted:",
                     section.getClass().getSimpleName(), key);
             migrationFailure.printStackTrace();
             if (migrationFailure instanceof RuntimeException) throw (RuntimeException) migrationFailure;

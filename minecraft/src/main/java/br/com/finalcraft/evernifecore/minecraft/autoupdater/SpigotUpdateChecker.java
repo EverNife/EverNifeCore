@@ -267,7 +267,7 @@ public class SpigotUpdateChecker {
             }
             return true;
         }catch (Exception e){
-            EverNifeCore.getLog().warning("[UpdateChecker] Error while comparing versions: %s and %s", currentVersion, nextVersion);
+            EverNifeCore.getLog().warning("[UpdateChecker] Error while comparing versions: {} and {}", currentVersion, nextVersion);
             e.printStackTrace();
         }
         return currentVersion.compareTo(nextVersion) >= 0;

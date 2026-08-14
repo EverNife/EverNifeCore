@@ -105,7 +105,7 @@ class CommandRegistryFileSystemTest {
 
     private List<String> detailLines() {
         return harness.platform.getInfoMessages().stream()
-                .filter(line -> line.contains("[Debug (" + ECDebugModule.COMMAND_REGISTRY.getName() + ") ]"))
+                .filter(line -> line.contains("[Debug (" + ECDebugModule.COMMAND_REGISTRY.getName() + ")]"))
                 .collect(java.util.stream.Collectors.toList());
     }
 

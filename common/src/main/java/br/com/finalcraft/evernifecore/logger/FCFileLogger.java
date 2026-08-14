@@ -21,17 +21,12 @@ public class FCFileLogger {
             FileOutputStream fos = new FileOutputStream(theLogFile, true);
             this.ps = new PrintStream(fos);
         } catch (IOException e) {
-            EverNifeCore.getLog().severe("Failed to create the FCFileLogger at %s", theLogFile.getAbsolutePath());
-            e.printStackTrace();
+            EverNifeCore.getLog().severe("Failed to create the FCFileLogger at {}", theLogFile.getAbsolutePath(), e);
         }
     }
 
-    public PrintStream getPs() {
-        return ps;
-    }
-
     public void log(String message){
-        this.getPs().println(message);
+        this.ps.println(message);
     }
 
     public void close() {

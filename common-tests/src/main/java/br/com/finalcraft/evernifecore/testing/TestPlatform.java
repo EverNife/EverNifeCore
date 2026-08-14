@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDP
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.logger.ECLogLevel;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
@@ -267,28 +268,16 @@ public class TestPlatform extends AbstractTestPlatform {
         //a stdout-backed adapter so ECLogger works headless (a null adapter NPEs on the first log line)
         return new ILogAdapter() {
             @Override
-            public void info(String string) {
-                infoMessages.add(string);
-                loggedMessages.add(string);
-                System.out.println(string);
-            }
-
-            @Override
-            public void warning(String string) {
-                loggedMessages.add(string);
-                System.out.println("[WARN] " + string);
-            }
-
-            @Override
-            public void severe(String string) {
-                loggedMessages.add(string);
-                System.out.println("[SEVERE] " + string);
-            }
-
-            @Override
-            public void log(java.util.logging.Level level, String string) {
-                loggedMessages.add(string);
-                System.out.println("[" + level + "] " + string);
+            public void log(ECLogLevel level, String message) {
+                loggedMessages.add(message);
+                //debug shares the info channel here for the same reason it does on a real console: that
+                //is where an assertion on a debug line has to be able to find it
+                if (level == ECLogLevel.INFO || level == ECLogLevel.DEBUG) {
+                    infoMessages.add(message);
+                    System.out.println(message);
+                } else {
+                    System.out.println("[" + level + "] " + message);
+                }
             }
         };
     }

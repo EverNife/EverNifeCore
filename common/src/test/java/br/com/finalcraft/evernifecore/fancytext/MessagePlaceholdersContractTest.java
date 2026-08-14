@@ -13,6 +13,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDP
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.logger.ECLogLevel;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
@@ -171,11 +172,8 @@ public class MessagePlaceholdersContractTest {
 
         @Override
         public ILogAdapter createLogAdapterFor(ECPluginData ecPluginData) {
-            return new ILogAdapter() {
-                @Override public void info(String string) { }
-                @Override public void warning(String string) { warnings.add(string); }
-                @Override public void severe(String string) { }
-                @Override public void log(java.util.logging.Level level, String string) { }
+            return (level, message) -> {
+                if (level == ECLogLevel.WARNING) warnings.add(message);
             };
         }
 

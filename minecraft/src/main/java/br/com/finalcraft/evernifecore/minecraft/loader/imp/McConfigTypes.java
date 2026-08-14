@@ -262,7 +262,7 @@ public final class McConfigTypes {
             String invItemName = invItemNode.get("name").asText();
             InvItem invItem = InvItemManager.of(invItemName);
             if (invItem == null) {
-                EverNifeCore.getLog().warning("Found an InvItem [%s] on a config value that doesn't exists! The content will be ignored!", invItemName);
+                EverNifeCore.getLog().warning("Found an InvItem [{}] on a config value that doesn't exists! The content will be ignored!", invItemName);
                 return null;
             }
             return invItem.onConfigLoad(sectionFrom(node));

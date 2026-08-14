@@ -31,7 +31,7 @@ final class DetachedWrites {
         if (alreadyReported.size() >= MAX_TRACKED || !alreadyReported.add(identity)) {
             return;
         }
-        PDLog.severe("LOST WRITE - markDirty() on a %s [%s] of [%s] that is no longer the cached"
+        PDLog.severe("LOST WRITE - markDirty() on a {} [{}] of [{}] that is no longer the cached"
                         + " instance, so the flush will never persist it. That cell was released or"
                         + " replaced: idle grace, cache TTL, the maxCached ceiling, a plugin"
                         + " re-registration/reload or clearPDSections. Do not hold a section reference"

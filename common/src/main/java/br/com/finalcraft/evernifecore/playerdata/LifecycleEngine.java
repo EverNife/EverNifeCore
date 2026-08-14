@@ -198,7 +198,7 @@ final class LifecycleEngine {
             //an unexpected failure (not the logged transient re-dirty): treat as an outage too
             stillDirty = isPlayerStillDirty(playerData);
             if (stillDirty) {
-                PDLog.warning("Quit-flush of PlayerData [%s] failed (storage down?) - queued for retry: %s",
+                PDLog.warning("Quit-flush of PlayerData [{}] failed (storage down?) - queued for retry: {}",
                         uuid, String.valueOf(flushFailure.getMessage()));
             }
         }
@@ -233,7 +233,7 @@ final class LifecycleEngine {
 
     private void enqueueFlushRetry(UUID uuid) {
         if (flushRetryPending.size() >= MAX_RETRY_QUEUE) {
-            PDLog.severe("PlayerData quit-flush retry queue is full (%s) - DROPPING the retry for [%s]."
+            PDLog.severe("PlayerData quit-flush retry queue is full ({}) - DROPPING the retry for [{}]."
                     + " Storage has been unavailable for too long; investigate the backend.", MAX_RETRY_QUEUE, uuid);
             return;
         }
@@ -242,8 +242,8 @@ final class LifecycleEngine {
             //warn while there is still room to act - the cap-drop above must never be the first signal
             if (flushRetryPending.size() >= RETRY_QUEUE_WARN_THRESHOLD
                     && retryBacklogWarned.compareAndSet(false, true)) {
-                PDLog.warning("PlayerData quit-flush retry backlog reached %s players (storage down?)."
-                                + " Entries start being DROPPED at %s - investigate the backend.",
+                PDLog.warning("PlayerData quit-flush retry backlog reached {} players (storage down?)."
+                                + " Entries start being DROPPED at {} - investigate the backend.",
                         RETRY_QUEUE_WARN_THRESHOLD, MAX_RETRY_QUEUE);
             }
         }
@@ -357,7 +357,7 @@ final class LifecycleEngine {
             try {
                 sweepTarget(target, now);
             } catch (Throwable sweepFailure) {
-                PDLog.warning("Idle sweep of section {%s} failed: %s",
+                PDLog.warning("Idle sweep of section {{}} failed: {}",
                         target.getSectionClass().getSimpleName(), String.valueOf(sweepFailure.getMessage()));
             }
         }

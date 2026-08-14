@@ -289,7 +289,7 @@ public class PlayerController {
         }
 
         if (importPending){
-            PDLog.info("Legacy PlayerData YAML files found at [%s] - the one-time import will run once"
+            PDLog.info("Legacy PlayerData YAML files found at [{}] - the one-time import will run once"
                     + " every plugin has registered its sections (the first server tick); player logins"
                     + " are held until it finishes.", legacyFolder.getPath());
             EverNifeCore.getPlatform().runOnMainThreadNextTick(() -> fresh.legacyBootstrap.runImportThenStart(legacyFolder));
@@ -368,8 +368,8 @@ public class PlayerController {
             PlayerData existing = byName.get(nameKey);
             if (existing != null){
                 PlayerData winner = playerData.getLastSeen() >= existing.getLastSeen() ? playerData : existing;
-                PDLog.warning("There are two PlayerData with the NAME [%s] (%s and %s)!"
-                                + " The name will resolve to the most recently seen one (%s)."
+                PDLog.warning("There are two PlayerData with the NAME [{}] ({} and {})!"
+                                + " The name will resolve to the most recently seen one ({})."
                                 + " This usually happens after an OnlineMode flip.",
                         playerData.getName(), playerData.getUniqueId(), existing.getUniqueId(),
                         winner.getUniqueId());
@@ -383,7 +383,7 @@ public class PlayerController {
         }
 
         long end = System.currentTimeMillis();
-        PDLog.info("Finished Loading PlayerData of %s players! (%s)",
+        PDLog.info("Finished Loading PlayerData of {} players! ({})",
                 baseManager.cachedSize(), formatDuration(end - start));
 
         //hot reload - re-bind the online players
@@ -446,7 +446,7 @@ public class PlayerController {
                     message -> PDLog.info(message), message -> PDLog.warning(message));
         }catch (Throwable cacheSyncFailure){
             //never let a cache-sync wiring failure abort the boot - it is a coherence layer, not the store
-            PDLog.severe("Failed to start cache-sync - continuing without cross-instance coherence: %s",
+            PDLog.severe("Failed to start cache-sync - continuing without cross-instance coherence: {}",
                     cacheSyncFailure.getMessage());
         }
     }
@@ -770,14 +770,14 @@ public class PlayerController {
                 //final flush so nothing the plugin wrote in its last moments is lost
                 flushEngine.flushAll().join();
             }catch (Throwable flushFailure){
-                PDLog.warning("Final flush while unregistering PDSection {%s} of plugin '%s' failed: %s",
+                PDLog.warning("Final flush while unregistering PDSection {{}} of plugin '{}' failed: {}",
                         pdSectionClass.getSimpleName(), pluginName, String.valueOf(flushFailure.getMessage()));
             }
             binding.getManager().clearCache();
             //drop the manager from the plugin's RefRegistry so its Class object is not retained
             ecRegistries.of(binding.getConfiguration().getPluginData()).unregister(pdSectionClass);
             registry.releaseCollection(binding.getBackendName(), binding.getCollection());
-            PDLog.info("Unregistered PDSection {%s} of plugin '%s' (collection '%s' on backend '%s' released).",
+            PDLog.info("Unregistered PDSection {{}} of plugin '{}' (collection '{}' on backend '{}' released).",
                     pdSectionClass.getSimpleName(), pluginName, binding.getCollection(), binding.getBackendName());
         }
         if (anyRemoved){
@@ -844,10 +844,10 @@ public class PlayerController {
             for (String sectionId : ofPlugin.getValue().keySet()) {
                 String entry = ofPlugin.getKey() + "." + sectionId;
                 if (claimed.contains(entry)) continue;
-                PDLog.warning("storage.yml has an entry '%s.%s' that no registered %s claims."
+                PDLog.warning("storage.yml has an entry '{}.{}' that no registered {} claims."
                                 + " Either the plugin that owned it is not installed, or its section id changed -"
                                 + " in which case the rows of the OLD collection are no longer reachable."
-                                + " Nothing was moved or deleted; check collection '%s' before removing the entry.",
+                                + " Nothing was moved or deleted; check collection '{}' before removing the entry.",
                         family.getYamlBlock(), entry, family.getLabel(),
                         BindingResolver.collectionName(family.getCollectionPrefix(), ofPlugin.getKey(), sectionId));
             }
@@ -1015,15 +1015,15 @@ public class PlayerController {
 
         if (fresh.isDiscardDirtyOnReload()){
             if (dirtyCells > 0){
-                PDLog.warning("Re-registration of PDSection {%s} DISCARDED %s unflushed cell(s)"
+                PDLog.warning("Re-registration of PDSection {{}} DISCARDED {} unflushed cell(s)"
                         + " (the section declared discardDirtyOnReload).", sectionClass.getSimpleName(), dirtyCells);
             }
         }else {
             try {
                 flushEngine.flushSectionManager(current).join();
             }catch (Throwable flushFailure){
-                PDLog.warning("Flush before the re-registration of PDSection {%s} failed - reloading anyway,"
-                                + " the unflushed cells of this section are lost: %s",
+                PDLog.warning("Flush before the re-registration of PDSection {{}} failed - reloading anyway,"
+                                + " the unflushed cells of this section are lost: {}",
                         sectionClass.getSimpleName(), String.valueOf(flushFailure.getMessage()));
             }
         }
@@ -1035,7 +1035,7 @@ public class PlayerController {
         registry.releaseCollection(current.getBackendName(), current.getCollection());
         bindings.remove(sectionClass);
 
-        PDLog.info("Re-registered PDSection {%s}: dropped %s cached cell(s) (%s dirty, %s) and rebound it.",
+        PDLog.info("Re-registered PDSection {{}}: dropped {} cached cell(s) ({} dirty, {}) and rebound it.",
                 sectionClass.getSimpleName(), cachedCells, dirtyCells,
                 fresh.isDiscardDirtyOnReload() ? "discarded" : "flushed first");
     }
@@ -1059,7 +1059,7 @@ public class PlayerController {
                 manager.preloadAll().join();
             }
         }catch (Throwable preloadFailure){
-            PDLog.warning("Preload of PDSection {%s} failed - continuing lazily: %s",
+            PDLog.warning("Preload of PDSection {{}} failed - continuing lazily: {}",
                     cfg.getPdSectionClass().getSimpleName(), String.valueOf(preloadFailure.getMessage()));
         }
 
@@ -1098,7 +1098,7 @@ public class PlayerController {
             section.bindToCache(manager, key);
             section.attachPlayerData(playerData);
         }
-        PDLog.info("Finished Loading PDSection {%s} (%s) of %s players! (%s)",
+        PDLog.info("Finished Loading PDSection {{}} ({}) of {} players! ({})",
                 cfg.getPdSectionClass().getSimpleName(), lifecycle, attachTo.size(),
                 formatDuration(System.currentTimeMillis() - start));
     }
@@ -1386,8 +1386,8 @@ public class PlayerController {
                     //offline still owns a stale row under its OWN uuid (data written as a singleton BEFORE
                     //the link, absorbed only by a login that never happened). The reaper never sweeps
                     //account sections, so drop that former-key row here or it leaks forever.
-                    PDLog.warning("deletePlayerData(%s): keeping the shared AccountSection {%s} row [%s]"
-                                    + " and dropping this identity's former-key row under [%s].",
+                    PDLog.warning("deletePlayerData({}): keeping the shared AccountSection {{}} row [{}]"
+                                    + " and dropping this identity's former-key row under [{}].",
                             uuid, binding.getSectionClass().getSimpleName(), accountKey, uuid);
                     sectionDeletes.add(binding.getManager().deleteAndEvict(uuid));
                     continue;
@@ -1451,8 +1451,8 @@ public class PlayerController {
                 //a best-effort guess, and deleting on a guess is worse than leaving a poisoned row for an
                 //admin to look at. Naming it here is the point - a plain read would drop it silently.
                 if (row.isFailed()){
-                    PDLog.warning("Orphan reaper: skipping section {%s} row '%s' - its payload does not"
-                                    + " decode (%s). It is left untouched; reap it by hand if it is dead.",
+                    PDLog.warning("Orphan reaper: skipping section {{}} row '{}' - its payload does not"
+                                    + " decode ({}). It is left untouched; reap it by hand if it is dead.",
                             binding.getCollection(), row.key(), String.valueOf(row.error()));
                     continue;
                 }
@@ -1523,9 +1523,9 @@ public class PlayerController {
         //stall the flush cadence (and the retry-queue drain) exactly on large installs
         reapOrphanSections().whenComplete((removed, reapFailure) -> {
             if (reapFailure != null){
-                PDLog.warning("Orphan reaper failed (will retry next cycle): %s", String.valueOf(reapFailure.getMessage()));
+                PDLog.warning("Orphan reaper failed (will retry next cycle): {}", String.valueOf(reapFailure.getMessage()));
             }else if (removed != null && removed > 0){
-                PDLog.info("Orphan reaper removed %s section row(s) whose base PlayerData no longer exists.", removed);
+                PDLog.info("Orphan reaper removed {} section row(s) whose base PlayerData no longer exists.", removed);
             }
             orphanReapRunning.set(false);
         });
@@ -1634,9 +1634,9 @@ public class PlayerController {
                                 if (failure == null){
                                     playerData.stampAccountId(resolvedId);
                                 } else {
-                                    PDLog.warning("Account data migration of [%s] (%s -> %s) failed -"
+                                    PDLog.warning("Account data migration of [{}] ({} -> {}) failed -"
                                             + " keeping the previous account stamp for this session;"
-                                            + " it will retry at the next login: %s",
+                                            + " it will retry at the next login: {}",
                                             playerData.getUniqueId(), stamped, resolvedId,
                                             String.valueOf(failure));
                                 }
@@ -1655,12 +1655,12 @@ public class PlayerController {
         UUID existingUUID = UUIDsController.getUUIDFromName(currentName);
 
         if (existingName != null && !existingName.equals(currentName)){
-            PDLog.info("[PlayerController] [%s] changed his name from %s to %s", currentUUID, existingName, currentName);
+            PDLog.info("[PlayerController] [{}] changed his name from {} to {}", currentUUID, existingName, currentName);
         }
         if (existingUUID != null && !existingUUID.equals(currentUUID)){
             //OnlineMode flip or an old player's name reused by a new account: the
             //old record stays in the backend keyed by its own UUID; only the name link is remapped
-            PDLog.info("[PlayerController] The name [%s] now belongs to %s (previously %s)",
+            PDLog.info("[PlayerController] The name [{}] now belongs to {} (previously {})",
                     currentName, currentUUID, existingUUID);
         }
 

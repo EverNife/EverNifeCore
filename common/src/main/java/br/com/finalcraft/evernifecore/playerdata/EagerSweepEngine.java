@@ -50,9 +50,9 @@ final class EagerSweepEngine {
     /** Routes the sweeper's log seam to {@link PDLog} (INFO -> info, WARNING -> warning). */
     private static final ManagerLog LOGGER = (level, message) -> {
         if (level == Level.WARNING || level == Level.SEVERE) {
-            PDLog.warning("%s", message);
+            PDLog.warning("{}", message);
         } else {
-            PDLog.info("%s", message);
+            PDLog.info("{}", message);
         }
     };
 
@@ -93,7 +93,7 @@ final class EagerSweepEngine {
                         .logger(LOGGER)
                         .build());
             } catch (Throwable t) {
-                PDLog.warning("[SchemaSweep] %s: sweep failed - %s", collection, String.valueOf(t.getMessage()));
+                PDLog.warning("[SchemaSweep] {}: sweep failed - {}", collection, String.valueOf(t.getMessage()));
             } finally {
                 sweeping.remove(collection);
             }
@@ -133,7 +133,7 @@ final class EagerSweepEngine {
         }
         if (!controller.storageYml().getBoolean(KILL_SWITCH_PATH, true)) {
             if (warnedDisabled.add(type)) {
-                PDLog.warning("[SchemaSweep] eager steps are pending for %s but '%s' is disabled -"
+                PDLog.warning("[SchemaSweep] eager steps are pending for {} but '{}' is disabled -"
                         + " relying on lazy migration.", type.getName(), KILL_SWITCH_PATH);
             }
             return false;
