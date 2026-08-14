@@ -68,6 +68,37 @@ class ECLogFormatTest {
     }
 
     @Test
+    void theMessageIsReadTheSameWayWithAndWithoutArguments() {
+        //both sides of each pair on purpose: what broke here was not one output but the two disagreeing.
+        //a fast path for the argument-less call used to skip the scanner, and the escape - which only
+        //the scanner consumes - leaked its backslash into the log line whenever nothing followed it
+        assertEquals("a {} b", ECLogFormat.format("a \\{} b"));
+        assertEquals("a {} b [x]", ECLogFormat.format("a \\{} b", "x"));
+
+        //escaped backslash: one backslash either way, and the placeholder after it is a real one -
+        //filled when an argument exists, literal when none is left, exactly like any other placeholder
+        assertEquals("a \\{} b", ECLogFormat.format("a \\\\{} b"));
+        assertEquals("a \\x b", ECLogFormat.format("a \\\\{} b", "x"));
+
+        assertEquals("a {} b", ECLogFormat.format("a {} b"));
+        assertEquals("a x b", ECLogFormat.format("a {} b", "x"));
+    }
+
+    @Test
+    void aBackslashOutsideAnEscapeSurvivesUntouched() {
+        //the argument-less shortcut may only skip the scan when there is nothing for it to do, so a
+        //message carrying backslashes goes through the scanner and has to come out unchanged
+        assertEquals("C:\\logs\\latest.log", ECLogFormat.format("C:\\logs\\latest.log"));
+        assertEquals("ends with a backslash \\", ECLogFormat.format("ends with a backslash \\"));
+
+        //the sharp edge of the escape rule: a path separator that lands right before a placeholder IS
+        //an escape, so the placeholder goes literal and its argument spills into the surplus list
+        assertEquals("C:\\logs{} [latest.log]", ECLogFormat.format("C:\\logs\\{}", "latest.log"));
+        //doubling the separator is how that message keeps its placeholder
+        assertEquals("C:\\logs\\latest.log", ECLogFormat.format("C:\\logs\\\\{}", "latest.log"));
+    }
+
+    @Test
     void arraysRenderTheirContents() {
         assertEquals("[1, 2]", ECLogFormat.format("{}", new int[]{1, 2}));
         assertEquals("[a, b]", ECLogFormat.format("{}", (Object) new String[]{"a", "b"}));

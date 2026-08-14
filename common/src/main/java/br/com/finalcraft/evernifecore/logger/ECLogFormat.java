@@ -26,10 +26,15 @@ import java.util.Arrays;
  * <p>A trailing {@link Throwable} that no placeholder consumed is the failure the line is about, so
  * its stack trace is appended - at any level, which is why no {@code severe(String, Throwable)}
  * overload is needed anywhere.</p>
+ *
+ * <p>The message is read by the same rules however many arguments follow it, none included: an
+ * escape is part of what the message says, not something that takes effect only when an argument
+ * happens to come after it.</p>
  */
 public final class ECLogFormat {
 
     private static final String PLACEHOLDER = "{}";
+    private static final Object[] NO_PARAMS = new Object[0];
 
     private ECLogFormat() {
     }
@@ -46,7 +51,10 @@ public final class ECLogFormat {
 
     private static String doFormat(String message, Object[] params) {
         String text = message == null ? "null" : message;
-        if (params == null || params.length == 0) {
+        Object[] args = params == null ? NO_PARAMS : params;
+        //shortcut for the plain message, and the ONLY safe shape for one: neither a placeholder nor an
+        //escape can exist without a '{' or a '\', so skipping the scan here cannot change the output
+        if (args.length == 0 && text.indexOf('{') < 0 && text.indexOf('\\') < 0) {
             return text;
         }
 
@@ -67,7 +75,7 @@ public final class ECLogFormat {
                 continue;
             }
             if (isPlaceholderAt(text, index)) {
-                out.append(consumed < params.length ? render(params[consumed++]) : PLACEHOLDER);
+                out.append(consumed < args.length ? render(args[consumed++]) : PLACEHOLDER);
                 index += 2;
                 continue;
             }
@@ -75,11 +83,11 @@ public final class ECLogFormat {
             index++;
         }
 
-        int last = params.length - 1;
-        Throwable trailing = consumed <= last && params[last] instanceof Throwable ? (Throwable) params[last] : null;
-        int surplusEnd = trailing != null ? last : params.length;
+        int last = args.length - 1;
+        Throwable trailing = consumed <= last && args[last] instanceof Throwable ? (Throwable) args[last] : null;
+        int surplusEnd = trailing != null ? last : args.length;
         for (int i = consumed; i < surplusEnd; i++) {
-            out.append(i == consumed ? " [" : ", ").append(render(params[i]));
+            out.append(i == consumed ? " [" : ", ").append(render(args[i]));
         }
         if (consumed < surplusEnd) {
             out.append(']');
