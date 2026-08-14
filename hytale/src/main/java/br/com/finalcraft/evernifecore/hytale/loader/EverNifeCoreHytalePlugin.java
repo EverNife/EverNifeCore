@@ -5,8 +5,10 @@ import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginE
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.hytale.commands.HyCommandRegisterer;
 import br.com.finalcraft.evernifecore.hytale.ecplugin.ECHytalePlugin;
+import br.com.finalcraft.evernifecore.hytale.eventbus.HyHytaleAudience;
 import br.com.finalcraft.evernifecore.hytale.integration.HyVaultIntegration;
 import br.com.finalcraft.evernifecore.hytale.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyECPluginExtractor;
@@ -62,6 +64,10 @@ public class EverNifeCoreHytalePlugin extends ECHytalePlugin {
     public void onECPluginEnablePost() {
         ECPluginData ecPluginData = getPluginData();
 
+        //From here on the bus mirrors into this server. Keyed by name, so a re-enable replaces the
+        //audience instead of stacking a second copy that would deliver every event twice.
+        ECEventBus.global().addNativeAudience(new HyHytaleAudience());
+
         HyCommandRegisterer.registerCommands(ecPluginData);
 
         EverNifeCore.getLog().info("§aRegistering Listeners");
@@ -70,6 +76,15 @@ public class EverNifeCoreHytalePlugin extends ECHytalePlugin {
         if (PAPIIntegration.isPresent()){
 //            ECCorePAPIPlaceholders.initialize(ecPluginData);
         }
+    }
+
+    @Override
+    public void onECPluginShutdownPre() {
+        //the mirror closes where it was opened: whatever is still posted while the core tears itself
+        //down has no business reaching a Hytale consumer
+        ECEventBus.global().removeNativeAudience(HyHytaleAudience.NAME);
+        //and only then the inherited default, which is what unregisters listeners and commands
+        super.onECPluginShutdownPre();
     }
 
     @Override
