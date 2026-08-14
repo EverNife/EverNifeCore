@@ -8,14 +8,14 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.api.events.player.ECPlayerFullyLoggedInEvent;
+import br.com.finalcraft.evernifecore.eventbus.ECEventHandler;
+import br.com.finalcraft.evernifecore.eventbus.ECEventPriority;
 import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
-import br.com.finalcraft.evernifecore.minecraft.api.events.ECFullyLoggedInEvent;
-import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -124,16 +124,16 @@ public class SpigotUpdateChecker {
         ECListener.register(ecPlugin, new ECListener() {
             private final String PLUGIN_NAME = plugin.getName();
             private final String PERMISSION = McPermissionNodes.UPDATECHECK_PERMISSION_TEMPLATE.replace("%plugin%",PLUGIN_NAME.toLowerCase());
-            @EventHandler(priority = EventPriority.MONITOR)
-            public void onPlayerLogin(ECFullyLoggedInEvent event) {
+            @ECEventHandler(priority = ECEventPriority.LAST)
+            public void onPlayerLogin(ECPlayerFullyLoggedInEvent event) {
+                Player player = event.getPlayer().getDelegate(Player.class);
                 new BukkitRunnable(){
                     @Override
                     public void run() {
                         UPDATE_IS_AVAILABLE
                                 .addPlaceholder("plugin", PLUGIN_NAME)
                                 .setClickLink(SPIGOT_URL)
-                                .sendIf(event.getPlayer().isOp() || event.getPlayer().hasPermission(PERMISSION),
-                                        FCBukkitUtil.adapt(event.getPlayer()));
+                                .sendIf(player.isOp() || player.hasPermission(PERMISSION), event.getPlayer());
                     }
                 }.runTaskLater(plugin, 10);
             }

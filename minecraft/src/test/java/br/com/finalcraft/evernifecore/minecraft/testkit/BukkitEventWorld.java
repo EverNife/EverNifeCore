@@ -27,6 +27,8 @@ import org.bukkit.plugin.PluginLoader;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.SimplePluginManager;
+import org.bukkit.scheduler.BukkitScheduler;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -44,9 +46,9 @@ import java.util.logging.Logger;
 
 /**
  * The Bukkit event pipeline with no server behind it: Bukkit's own {@link SimplePluginManager} over
- * a {@link Server} double whose only real opinion is which thread is the main one, plus EverNifeCore
- * enabled on top of it - the platform double installed and {@link McBukkitAudience} mirroring the
- * global bus into this server.
+ * a {@link Server} double that answers two things for real - which thread is the main one, and a
+ * scheduler that queues instead of ticking - plus EverNifeCore enabled on top of it, with the
+ * platform double installed and {@link McBukkitAudience} mirroring the global bus into this server.
  *
  * <pre>{@code
  * try (BukkitEventWorld world = BukkitEventWorld.install(tempDir)) {
@@ -80,6 +82,8 @@ public final class BukkitEventWorld implements AutoCloseable {
     private final McBukkitAudience audience = new McBukkitAudience();
     private final List<ECEventSubscription<?>> subscriptions = new ArrayList<>();
     private final List<ECListener> ecListeners = new ArrayList<>();
+    private final List<Runnable> scheduledTasks = new ArrayList<>();
+    private final BukkitScheduler scheduler = buildScheduler();
 
     private boolean closed = false;
 
@@ -179,6 +183,24 @@ public final class BukkitEventWorld implements AutoCloseable {
     }
 
     /**
+     * Runs every task scheduled for a later tick, in the order they were scheduled, and forgets them.
+     * The tick is the test's to give: code that defers work can be watched deciding, and the state it
+     * reads can change in between.
+     */
+    public void runScheduledTasks() {
+        List<Runnable> due = new ArrayList<>(scheduledTasks);
+        scheduledTasks.clear();
+        for (Runnable task : due) {
+            task.run();
+        }
+    }
+
+    /** How many tasks are waiting for {@link #runScheduledTasks()}. */
+    public int getScheduledTaskCount() {
+        return scheduledTasks.size();
+    }
+
+    /**
      * Runs {@code body} on a worker, so {@code Bukkit.isPrimaryThread()} answers false while it does -
      * the rig calls only the installing thread main. Whatever it threw is rethrown here.
      */
@@ -212,11 +234,27 @@ public final class BukkitEventWorld implements AutoCloseable {
         return Doubles.of(Server.class)
                 .on("isPrimaryThread", args -> Thread.currentThread() == mainThread)
                 .on("getPluginManager", args -> manager.get())
+                .on("getScheduler", args -> scheduler)
                 .on("getLogger", args -> Logger.getLogger(pluginName))
                 //a real server always names a release, and the core resolves MCVersion out of it the
                 //first time anything asks
                 .on("getBukkitVersion", args -> "1.21.1-R0.1-SNAPSHOT")
                 .on("getVersion", args -> "1.21.1-R0.1-SNAPSHOT")
+                .build();
+    }
+
+    /**
+     * A scheduler that only queues: what a {@code runTaskLater} asked for waits for
+     * {@link #runScheduledTasks()}. Anything else it is asked to do answers the neutral value, which
+     * is enough for a caller that ignores the task it gets back.
+     */
+    private BukkitScheduler buildScheduler() {
+        BukkitTask task = Doubles.of(BukkitTask.class).build();
+        return Doubles.of(BukkitScheduler.class)
+                .on("runTaskLater", args -> {
+                    scheduledTasks.add((Runnable) args[1]);
+                    return task;
+                })
                 .build();
     }
 

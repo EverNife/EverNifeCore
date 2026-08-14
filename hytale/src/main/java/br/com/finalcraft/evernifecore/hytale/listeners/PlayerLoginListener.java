@@ -2,6 +2,9 @@ package br.com.finalcraft.evernifecore.hytale.listeners;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.api.events.player.ECPlayerFullyLoggedInEvent;
+import br.com.finalcraft.evernifecore.api.events.player.ECPlayerQuitEvent;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.hytale.loader.EverNifeCoreHytalePlugin;
@@ -37,6 +40,8 @@ public class PlayerLoginListener implements ECListener {
             if (playerData != null){
                 //[Holding onto a Player.class instance] is bad practice, but on hytale, what isn't :D
                 playerData.setPlayer(fPlayer);
+                //connected AND the data is attached - that is what "fully logged in" means here
+                ECEventBus.global().post(new ECPlayerFullyLoggedInEvent(playerData, false));
             } else {
                 //the setup-connect load failed/timed out and Hytale has no deny API, so the player
                 //got in anyway - retry now (storage may be back) instead of leaving a data-less session
@@ -46,6 +51,7 @@ public class PlayerLoginListener implements ECListener {
                         .whenComplete((loaded, retryError) -> {
                             if (loaded != null && fPlayer.isOnline()){
                                 loaded.setPlayer(fPlayer);
+                                ECEventBus.global().post(new ECPlayerFullyLoggedInEvent(loaded, false));
                             } else if (retryError != null){
                                 EverNifeCore.getLog().severe("Retry-load of PlayerData for "
                                         + fPlayer.getName() + " failed too: " + retryError.getMessage());
@@ -60,6 +66,9 @@ public class PlayerLoginListener implements ECListener {
             PlayerData playerData = PlayerController.getLoaded(FCHytaleUtil.adapt(playerRef));
 
             if (playerData != null){
+                //announced while the data is still attached, so a handler can read it and dirty it
+                ECEventBus.global().post(new ECPlayerQuitEvent(playerData));
+
                 //Detach + durably flush this player off the quit thread (bounded async; retried on
                 //a storage outage, never dropped). Working-set sections evict after a short grace.
                 PlayerController.handlePlayerQuit(playerData.getUniqueId());
