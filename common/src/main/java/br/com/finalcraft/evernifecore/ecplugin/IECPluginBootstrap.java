@@ -152,12 +152,16 @@ public interface IECPluginBootstrap {
 
     /**
      * The shutdown entry point invoked by the platform bridge: Pre -&gt; main -&gt; Post teardown
-     * (the Pre default unregisters this plugin's listeners before the main teardown closes resources).
+     * (the Pre default unregisters this plugin's listeners before the main teardown closes resources),
+     * and then the file loggers this plugin opened and left open.
      */
     public default void runECPluginShutdown(){
         onECPluginShutdownPre();
         onECPluginShutdown();
         onECPluginShutdownPost();
+
+        //after the last hook: a plugin writes its closing lines during its own teardown
+        getPluginData().closeOpenFileLoggers();
     }
 
 }

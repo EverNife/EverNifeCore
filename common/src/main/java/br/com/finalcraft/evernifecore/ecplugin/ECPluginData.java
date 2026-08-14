@@ -15,6 +15,7 @@ import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
+import br.com.finalcraft.evernifecore.logger.FCFileLogger;
 import br.com.finalcraft.evernifecore.logger.debug.IDebugModule;
 import jakarta.annotation.Nullable;
 
@@ -23,6 +24,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class ECPluginData {
@@ -51,6 +53,11 @@ public class ECPluginData {
 
     //commands registered through FinalCMDManager, owned by this plugin
     private final List<FinalCMDPluginCommand> registeredCommands = new ArrayList<>();
+
+    //file loggers opened through FCFileLogger.of(ECPluginData, String); concurrent because a plugin
+    //may open one from an async task while the main thread is opening another
+    private final Set<FCFileLogger> openFileLoggers =
+            Collections.newSetFromMap(new ConcurrentHashMap<FCFileLogger, Boolean>());
 
     public ECPluginData(Object plugin) {
         EverNifeCore.getProviders().getECPluginExtractor().validateJavaPlugin(plugin);
@@ -458,6 +465,49 @@ public class ECPluginData {
      */
     public void untrackRegisteredCommand(FinalCMDPluginCommand command){
         registeredCommands.remove(command);
+    }
+
+    /**
+     * The file loggers this plugin opened through {@link FCFileLogger#of(ECPluginData, String)} and
+     * has not closed. Returns an immutable copy.
+     */
+    public List<FCFileLogger> getOpenFileLoggers(){
+        return Collections.unmodifiableList(new ArrayList<>(openFileLoggers));
+    }
+
+    /**
+     * Framework-internal bookkeeping: tracks {@code fileLogger} as opened by this plugin. Called by
+     * {@link FCFileLogger.Builder#build()} - plugin authors never call this directly.
+     */
+    public void trackOpenFileLogger(FCFileLogger fileLogger){
+        openFileLoggers.add(fileLogger);
+    }
+
+    /**
+     * Framework-internal bookkeeping: stops tracking {@code fileLogger} (no-op if it isn't tracked).
+     * Called by {@link FCFileLogger#close()} - plugin authors never call this directly.
+     */
+    public void untrackOpenFileLogger(FCFileLogger fileLogger){
+        openFileLoggers.remove(fileLogger);
+    }
+
+    /**
+     * Closes every file logger this plugin left open, tolerating one that refuses: the handle that
+     * throws is reported and the rest are still closed. Called by
+     * {@link IECPluginBootstrap#runECPluginShutdown()} after the last shutdown hook, so a plugin that
+     * writes its final lines during teardown still finds its files open.
+     */
+    public void closeOpenFileLoggers(){
+        for (FCFileLogger fileLogger : getOpenFileLoggers()) {
+            try {
+                fileLogger.close();
+            } catch (Throwable refusedToClose) {
+                getLog().warning("Could not close the log file [{}] on shutdown.",
+                        fileLogger.getFile().getAbsolutePath(), refusedToClose);
+            }
+        }
+        //whatever refused to close stays refused, but this plugin's bookkeeping does not outlive it
+        openFileLoggers.clear();
     }
 
     /**
