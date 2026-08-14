@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.ecplugin;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.IECPluginBootstrap;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
@@ -16,12 +17,30 @@ import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
  */
 public abstract class ECHytalePlugin extends JavaPlugin implements IECPluginBootstrap {
 
+    private volatile ECPluginData pluginData;
+
     {
         onInstantiate();
     }
 
     protected ECHytalePlugin(JavaPluginInit init) {
         super(init);
+    }
+
+    /** Resolved once and kept here, so a plugin logging from a hot path reads a field. */
+    @Override
+    public ECPluginData getPluginData() {
+        ECPluginData cached = this.pluginData;
+        if (cached == null) {
+            cached = IECPluginBootstrap.super.getPluginData();
+            this.pluginData = cached;
+        }
+        return cached;
+    }
+
+    @Override
+    public void clearCachedPluginData() {
+        this.pluginData = null;
     }
 
     @Override

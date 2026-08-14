@@ -37,6 +37,17 @@ public interface IECPluginBootstrap {
         return ECPluginManager.getOrCreateECorePluginData(this);
     }
 
+    /**
+     * Framework-internal bookkeeping: drops whatever this plugin kept of its own {@link ECPluginData},
+     * so the next {@link #getPluginData()} asks for it again. Called by
+     * {@link ECPluginManager#removePluginData(String)} when that data leaves the registry - plugin
+     * authors never call this directly. The default keeps nothing and so has nothing to drop; the
+     * platform base classes, which answer {@link #getPluginData()} from a field, override it.
+     */
+    public default void clearCachedPluginData(){
+
+    }
+
     /** This plugin's logger - shorthand for {@code getPluginData().getLog()}. */
     public default ECLogger getLog(){
         return getPluginData().getLog();

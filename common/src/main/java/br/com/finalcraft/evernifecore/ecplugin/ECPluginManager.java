@@ -10,20 +10,39 @@ import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ECPluginManager {
 
     /**
      * Map that holds all EverNifeCore Plugins that are using its features like localization or logging.
      */
-    private static final HashMap<String, ECPluginData> EVERNIFECORE_PLUGINS_MAP = new LinkedHashMap<>();
+    private static final Map<String, ECPluginData> EVERNIFECORE_PLUGINS_MAP = new LinkedHashMap<>();
 
+    /**
+     * The same data, keyed by the plugin object that was handed in. It answers before the platform is
+     * asked to validate the object and to spell its name - the price a log line used to pay on every
+     * single call. It never holds an entry {@link #EVERNIFECORE_PLUGINS_MAP} does not.
+     */
+    private static final Map<Object, ECPluginData> PLUGIN_DATA_BY_IDENTITY = new IdentityHashMap<>();
+
+    /**
+     * The {@link ECPluginData} of {@code plugin}, built the first time this object is seen and read
+     * back from memory afterwards - only that first call asks the platform anything.
+     */
     @Nonnull
-    public static ECPluginData getOrCreateECorePluginData(Object plugin){
+    public static synchronized ECPluginData getOrCreateECorePluginData(Object plugin){
         if (plugin instanceof ECPluginData){
             return (ECPluginData) plugin;
+        }
+
+        ECPluginData known = PLUGIN_DATA_BY_IDENTITY.get(plugin);
+        if (known != null){
+            return known;
         }
 
         IECPluginExtractor ecPluginExtractor = EverNifeCore.instance
@@ -32,10 +51,13 @@ public class ECPluginManager {
 
         ecPluginExtractor.validateJavaPlugin(plugin);
 
-        return EVERNIFECORE_PLUGINS_MAP.computeIfAbsent(
+        ECPluginData ecPluginData = EVERNIFECORE_PLUGINS_MAP.computeIfAbsent(
                 ecPluginExtractor.getPluginName(plugin),
                 pluginName -> new ECPluginData(plugin)
         );
+
+        PLUGIN_DATA_BY_IDENTITY.put(plugin, ecPluginData);
+        return ecPluginData;
     }
 
     public static ECPluginData getProvidingPlugin(@Nonnull Class<?> clazz) {
@@ -87,7 +109,7 @@ public class ECPluginManager {
         }
 
         //Some ECPlugins might have subModules or Addons that opt to reload after this one; reload them if necessary
-        for (ECPluginData ecPlugin : new ArrayList<>(EVERNIFECORE_PLUGINS_MAP.values())) {
+        for (ECPluginData ecPlugin : getECPluginsMap().values()) {
             if (ecPlugin.canReload()){
                 for (String pluginName : ecPlugin.getReloadAfter()) {
                     if (ecPluginData.getMetaInfo().getName().equalsIgnoreCase(pluginName)){
@@ -101,12 +123,42 @@ public class ECPluginManager {
         EverNifeCore.getEventBus().post(new ECPluginReloadEvent.Post(ecPluginData));
     }
 
-    public static void removePluginData(String pluginName){
-        EVERNIFECORE_PLUGINS_MAP.remove(pluginName);
+    /**
+     * Drops this plugin from the registry together with every shortcut pointing at its data: the
+     * identity cache entries and whatever the plugin objects themselves cached
+     * ({@link IECPluginBootstrap#clearCachedPluginData()}). Asked for again afterwards, the plugin
+     * gets fresh data - the same answer it got before it was ever registered.
+     */
+    public static synchronized void removePluginData(String pluginName){
+        ECPluginData removed = EVERNIFECORE_PLUGINS_MAP.remove(pluginName);
+        if (removed == null){
+            return;
+        }
+
+        //by value, not by removed.getPlugin(): a plugin re-instantiated at runtime leaves two objects
+        //answering to one name, and both were handed this very data
+        List<Object> orphaned = new ArrayList<>();
+        for (Map.Entry<Object, ECPluginData> entry : PLUGIN_DATA_BY_IDENTITY.entrySet()) {
+            if (entry.getValue() == removed){
+                orphaned.add(entry.getKey());
+            }
+        }
+
+        for (Object plugin : orphaned) {
+            PLUGIN_DATA_BY_IDENTITY.remove(plugin);
+            if (plugin instanceof IECPluginBootstrap){
+                ((IECPluginBootstrap) plugin).clearCachedPluginData();
+            }
+        }
     }
 
-    public static HashMap<String, ECPluginData> getECPluginsMap() {
-        return EVERNIFECORE_PLUGINS_MAP;
+    /**
+     * Every registered plugin by name, in registration order. A read-only snapshot: the registry is
+     * the only place a plugin enters or leaves from, because dropping one has to take its cached
+     * shortcuts down with it ({@link #removePluginData(String)}).
+     */
+    public static synchronized Map<String, ECPluginData> getECPluginsMap() {
+        return Collections.unmodifiableMap(new LinkedHashMap<>(EVERNIFECORE_PLUGINS_MAP));
     }
 }
 
