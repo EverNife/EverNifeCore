@@ -64,7 +64,8 @@ public class ECPluginManager {
         //Mainly used for Plugins that has other addons or modules
         long start = System.currentTimeMillis();
 
-        ecPluginData.setDebugEnabled(null); //By setting to null, will 're-check' the config.yml for the debug value when needed
+        //up front, so the debug lines the reload itself emits already obey the edited file
+        ecPluginData.loadDebugConfig();
 
         //Fire Pre-Reload before the reload runs, so listeners observe the old state
         EverNifeCore.getEventBus().post(new ECPluginReloadEvent.Pre(ecPluginData));

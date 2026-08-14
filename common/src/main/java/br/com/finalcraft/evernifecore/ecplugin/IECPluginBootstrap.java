@@ -126,12 +126,16 @@ public interface IECPluginBootstrap {
     // ------------------------------------------------------------------
 
     /**
-     * The enable entry point invoked by the platform bridge: the standard start banner, then
-     * Pre -&gt; main -&gt; Post wiring, the enabled banner, and finally the first-tick task (if any).
-     * Override only when a plugin needs a different orchestration.
+     * The enable entry point invoked by the platform bridge: this plugin's debug switches are read
+     * first, then the Pre -&gt; main -&gt; Post wiring, the enabled banner, and finally the first-tick
+     * task (if any). Override only when a plugin needs a different orchestration.
      */
     public default void runECPluginEnable(){
-        IPluginMetaInfo metaInfo = getPluginData().getMetaInfo();
+        ECPluginData pluginData = getPluginData();
+        IPluginMetaInfo metaInfo = pluginData.getMetaInfo();
+
+        //before the first hook, so the whole enable already logs under the switches the file asks for
+        pluginData.loadDebugConfig();
 
         onECPluginEnablePre();
         onECPluginEnable();

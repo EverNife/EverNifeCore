@@ -43,7 +43,10 @@ public class ECPluginData {
 
     //debug
     private transient IDebugModule[] modules = new IDebugModule[0];
-    private Boolean debugEnabled = null;
+    private volatile boolean debugEnabled = false;
+    private volatile boolean debugLoaded = false;
+    private int debugLoadCount = 0;
+    private int debugSaveCount = 0;
 
     //commands registered through FinalCMDManager, owned by this plugin
     private final List<FinalCMDPluginCommand> registeredCommands = new ArrayList<>();
@@ -83,8 +86,52 @@ public class ECPluginData {
         reloadAllCustomLocales();
     }
 
+    /**
+     * Declares the switches this plugin's {@code DebugMode.DebugModules} block is made of. Modules that
+     * arrive after the block was already read are seeded right away, so declaring them late still puts
+     * them in the file.
+     */
     public void defineDebugModules(IDebugModule[] modules) {
         this.modules = modules;
+        if (debugLoaded){
+            loadDebugConfig();
+        }
+    }
+
+    /**
+     * Reads the {@code DebugMode} block of this plugin's {@code config.yml} into memory, seeding
+     * whatever the file lacks. ALWAYS re-reads - both callers, the bootstrap
+     * ({@link IECPluginBootstrap#runECPluginEnable()}) and the reload, want the file's current word.
+     * <p>
+     * Once it has run, {@link #isDebugEnabled(IDebugModule)} answers from memory and touches no disk.
+     */
+    public synchronized void loadDebugConfig(){
+        Config config = ConfigFactory.open(this, "config.yml");
+        boolean enabled = config.getOrSetValueIfAbsent(
+                "DebugMode.enabled",
+                false,
+                "If '" + getMetaInfo().getName() + "' should log debug messages on the console!"
+        );
+
+        for (IDebugModule each : modules) {
+            each.setEnabled(each.onConfigLoad(config.getConfigSection("DebugMode")));
+        }
+
+        config.setComment("DebugMode","-----------------------\n     Debug System\n-----------------------");
+        if (config.contains("DebugMode.DebugModules")){
+            config.setComment("DebugMode.DebugModules","List of DebugModules that are enabled!\nThese debug modules bellow will only work when 'DebugMode.enabled' is 'true'");
+        }
+        if (config.hasNewSeededDefaults()){
+            config.save();
+            config.clearNewSeededDefaults();
+            debugSaveCount++;
+        }
+
+        //debugLoaded last: it is the volatile a reader gates on, so publishing it after the value and
+        //the module switches is what makes them visible to whoever sees the flag
+        this.debugEnabled = enabled;
+        this.debugLoadCount++;
+        this.debugLoaded = true;
     }
 
     public boolean isDebugEnabled(){
@@ -92,33 +139,41 @@ public class ECPluginData {
     }
 
     public boolean isDebugEnabled(@Nullable IDebugModule module){
-        if (debugEnabled == null){
-            Config config = ConfigFactory.open(this, "config.yml");
-            debugEnabled = config.getOrSetValueIfAbsent(
-                    "DebugMode.enabled",
-                    false,
-                    "If '" + getMetaInfo().getName() + "' should log debug messages on the console!"
-            );
-
-            for (IDebugModule each : modules) {
-                boolean enabled = each.onConfigLoad(config.getConfigSection("DebugMode"));
-                each.setEnabled(enabled);
-            }
-
-            config.setComment("DebugMode","-----------------------\n     Debug System\n-----------------------");
-            if (config.contains("DebugMode.DebugModules")){
-                config.setComment("DebugMode.DebugModules","List of DebugModules that are enabled!\nThese debug modules bellow will only work when 'DebugMode.enabled' is 'true'");
-            }
-            if (config.hasNewSeededDefaults()){
-                config.save();
-                config.clearNewSeededDefaults();
-            }
+        if (!debugLoaded){
+            loadDebugConfigIfNeeded();
         }
         return debugEnabled && (module == null || module.isEnabled());
     }
 
-    public void setDebugEnabled(Boolean debugEnabled) {
+    /**
+     * The rare fallback for a query that got here before the bootstrap did. N threads racing the first
+     * query serialize on the lock and only the first one finds work: the others re-test the flag and
+     * return.
+     */
+    private synchronized void loadDebugConfigIfNeeded(){
+        if (!debugLoaded){
+            loadDebugConfig();
+        }
+    }
+
+    /**
+     * Forces the debug switch to {@code enabled} and marks the block as loaded, so no file is read
+     * afterwards. Hook for tests and tooling that need a known state without an on-disk config; a later
+     * {@link #loadDebugConfig()} still overrides it with the file's word.
+     */
+    public void setDebugEnabled(boolean debugEnabled) {
         this.debugEnabled = debugEnabled;
+        this.debugLoaded = true;
+    }
+
+    /** How many times the {@code DebugMode} block was read - the load contract's only observable. */
+    synchronized int getDebugLoadCount() {
+        return debugLoadCount;
+    }
+
+    /** How many of those reads had to write the file back because they completed it with defaults. */
+    synchronized int getDebugSaveCount() {
+        return debugSaveCount;
     }
 
     public void addHardcodedLocaleIfNeeded(String lang){
