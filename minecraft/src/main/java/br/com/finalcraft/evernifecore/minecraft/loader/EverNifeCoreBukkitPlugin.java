@@ -6,12 +6,14 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.minecraft.commands.McCommandRegisterer;
 import br.com.finalcraft.evernifecore.minecraft.config.McConfigManager;
 import br.com.finalcraft.evernifecore.minecraft.dependencies.ECoreDependencies;
 import br.com.finalcraft.evernifecore.minecraft.ecplugin.ECBukkitPlugin;
+import br.com.finalcraft.evernifecore.minecraft.eventbus.McBukkitAudience;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiListener;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiViews;
 import br.com.finalcraft.evernifecore.minecraft.integration.VaultIntegration;
@@ -110,6 +112,10 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
 
         logNBTSelfTest(NBTSelfTest.run());
 
+        //From here on the bus mirrors into this server. Keyed by name, so a re-enable replaces the
+        //audience instead of stacking a second copy that would deliver every event twice.
+        ECEventBus.global().addNativeAudience(new McBukkitAudience());
+
         EverNifeCore.getLog().info("§aLoading up Configurations...");
         McConfigManager.initialize(ecPluginData);
 
@@ -161,6 +167,9 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         //framework is still up: that handler is what hands back whatever an editable screen was
         //holding, and it needs storage and player data to still answer
         GuiViews.closeAll();
+        //the mirror closes here, mirroring where it was opened: whatever is still posted while the
+        //core tears itself down has no business reaching a Bukkit listener
+        ECEventBus.global().removeNativeAudience(McBukkitAudience.NAME);
         //and only then the inherited default, which is what unregisters listeners and commands
         super.onECPluginShutdownPre();
     }
