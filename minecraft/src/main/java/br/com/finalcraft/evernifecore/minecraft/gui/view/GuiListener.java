@@ -136,8 +136,8 @@ public class GuiListener implements ECListener {
         try {
             icon.getOnClick().accept(context);
         } catch (Throwable e) {
-            EverNifeCore.getLog().severe("A gui click handler failed for [" + view.getViewerName()
-                    + "] on slot " + slot, e);
+            EverNifeCore.getLog().severe("A gui click handler failed for [{}] on slot {}",
+                    view.getViewerName(), slot, e);
         }
 
         if (context.isMoveAllowed()) {

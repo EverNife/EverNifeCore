@@ -54,11 +54,12 @@ public class McBukkitAudience implements ECNativeAudience {
     private static void logThreadMismatch(Event event, boolean offMain) {
         String built = event.isAsynchronous() ? "asynchronous" : "synchronous";
         String posted = offMain ? "off the main thread" : "on the main thread";
-        EverNifeCore.getLog().severe("[ECEventBus] " + event.getEventName() + " was built " + built
-                + " but posted " + posted + ", so this post reached the bus subscribers and NO Bukkit "
-                + "listener. Build and post the event on the same thread; an event that is always "
-                + "asynchronous says so through the ECEvent(true) constructor. The stack below is the "
-                + "producer.", new Throwable("Posted " + event.getEventName() + " " + posted));
+        EverNifeCore.getLog().severe("[ECEventBus] {} was built {}"
+                        + " but posted {}, so this post reached the bus subscribers and NO Bukkit "
+                        + "listener. Build and post the event on the same thread; an event that is always "
+                        + "asynchronous says so through the ECEvent(true) constructor. The stack below is the "
+                        + "producer.",
+                event.getEventName(), built, posted, new Throwable("Posted " + event.getEventName() + " " + posted));
     }
 
 }

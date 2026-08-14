@@ -419,6 +419,26 @@ class ParseEngineTest {
                 "the broken delivery is not swallowed in silence: " + logged);
     }
 
+    /**
+     * The line names who was typing, and a name is not something this code gets to assume the shape
+     * of. Pasted into the format string, a {@code {}} inside it consumes the parser's failure as if
+     * it were a parameter and the stack trace never reaches the log.
+     */
+    @Test
+    void anInternalErrorKeepsItsStackWhenTheSenderNameCarriesAPlaceholder() {
+        sender = new TestCommandSender("St{}eve");
+        ScriptedParser parser = parserFor(ArgRequirementType.REQUIRED, false, "");
+        parser.onParse = call -> {
+            throw new IllegalStateException("the backend is down");
+        };
+
+        List<String> logged = Logs.capture(() -> ParseEngine.DEFAULT.run(parser, callOf(parser, "hello")));
+
+        //a stack frame, not the exception's toString: that reaches the line either way
+        assertTrue(logged.stream().anyMatch(line -> line.contains("\tat " + ParseEngineTest.class.getName())),
+                "the '{}' in the sender name ate the failure; the line carries no stack trace: " + logged);
+    }
+
     @Test
     void missingIsNeverReported() {
         ScriptedParser parser = parserFor(ArgRequirementType.REQUIRED, false, "");

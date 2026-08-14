@@ -104,9 +104,10 @@ public class ParseEngine {
      * whoever typed the command gets told the argument did not work - never the exception.
      */
     protected void onInternalError(@Nonnull ParseOutcome<?> outcome) {
-        EverNifeCore.getLog().severe("[" + outcome.getParserClass().getName() + "] failed while parsing "
-                + outcome.getCall().describeArgument() + " for " + outcome.getCall().getSender().getName()
-                + " - this is a bug in the parser, not in what was typed", outcome.getResult().getCause());
+        EverNifeCore.getLog().severe("[{}] failed while parsing {} for {}"
+                        + " - this is a bug in the parser, not in what was typed",
+                outcome.getParserClass().getName(), outcome.getCall().describeArgument(),
+                outcome.getCall().getSender().getName(), outcome.getResult().getCause());
 
         FCMessageUtil.INVALID_ARGUMENT
                 .addPlaceholder("argument", outcome.getCall().describeArgument())
@@ -133,9 +134,10 @@ public class ParseEngine {
         try {
             report(outcome);
         }catch (RuntimeException broken){
-            EverNifeCore.getLog().severe("[" + getClass().getName() + "] failed while reporting a "
-                    + outcome.getResult().getKind() + " on " + outcome.getCall().describeArgument()
-                    + " - the parse itself stands, only what to say about it was lost", broken);
+            EverNifeCore.getLog().severe("[{}] failed while reporting a {} on {}"
+                            + " - the parse itself stands, only what to say about it was lost",
+                    getClass().getName(), outcome.getResult().getKind(),
+                    outcome.getCall().describeArgument(), broken);
         }
     }
 

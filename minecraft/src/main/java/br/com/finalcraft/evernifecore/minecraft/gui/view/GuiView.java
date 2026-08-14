@@ -467,7 +467,7 @@ public final class GuiView {
             applyTitleIfChanged();
             commitNow();
         } catch (Throwable e) {
-            EverNifeCore.getLog().severe("A gui render pass failed for [" + viewerName + "]", e);
+            EverNifeCore.getLog().severe("A gui render pass failed for [{}]", viewerName, e);
         }
     }
 
@@ -545,7 +545,7 @@ public final class GuiView {
             try {
                 watch.poll();
             } catch (Throwable e) {
-                EverNifeCore.getLog().severe("A gui watch failed for [" + viewerName + "]", e);
+                EverNifeCore.getLog().severe("A gui watch failed for [{}]", viewerName, e);
             }
         }
     }
@@ -708,21 +708,21 @@ public final class GuiView {
             try {
                 storage.syncNow(true);
             } catch (Throwable e) {
-                EverNifeCore.getLog().severe("The editable region [" + storage.getBinding().getName()
-                        + "] of a gui could not be read back for [" + viewerName + "]", e);
+                EverNifeCore.getLog().severe("The editable region [{}] of a gui could not be read back for [{}]",
+                        storage.getBinding().getName(), viewerName, e);
             }
         }
         try {
             returnCarriedItem();
         } catch (Throwable e) {
-            EverNifeCore.getLog().severe("What [" + viewerName + "] was holding on the cursor could not be "
-                    + "given back", e);
+            EverNifeCore.getLog().severe("What [{}] was holding on the cursor could not be "
+                    + "given back", viewerName, e);
         }
 
         try {
             fireOnClose(reason);
         } catch (Throwable e) {
-            EverNifeCore.getLog().severe("The onClose handler of a gui failed for [" + viewerName + "]", e);
+            EverNifeCore.getLog().severe("The onClose handler of a gui failed for [{}]", viewerName, e);
         }
 
         for (StorageView storage : storages) {

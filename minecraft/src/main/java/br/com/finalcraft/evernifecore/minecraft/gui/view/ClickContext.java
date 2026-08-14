@@ -233,8 +233,8 @@ public final class ClickContext {
         answered.thenAccept(onAnswer).exceptionally(failure -> {
             //the future this handler hangs off is thrown away, so a handler that throws would fail in
             //silence - and the caller never sees this stage to attach anything of their own to it
-            EverNifeCore.getLog().severe("The handler of a chat answer failed for ["
-                    + view.getViewerName() + "]", failure);
+            EverNifeCore.getLog().severe("The handler of a chat answer failed for [{}]",
+                    view.getViewerName(), failure);
             return null;
         });
         return answered;

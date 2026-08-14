@@ -95,7 +95,7 @@ public class CMDECCooldown {
         //async and bridge back to the main thread instead of blocking it with a .join()
         PlayerController.whenCompleteOnMainThread(playerData.getCooldown(argumentos.getStringArg(1)), (cooldown, error) -> {
             if (error != null){
-                EverNifeCore.getLog().severe("Failed to read the cooldowns of " + playerData.getName(), error);
+                EverNifeCore.getLog().severe("Failed to read the cooldowns of {}", playerData.getName(), error);
                 return;
             }
             if (!cooldown.isInCooldown()){
@@ -160,7 +160,7 @@ public class CMDECCooldown {
                 localFuture.thenCombine(networkFuture, AbstractMap.SimpleImmutableEntry::new),
                 (buckets, error) -> {
                     if (error != null){
-                        EverNifeCore.getLog().severe("Failed to read the cooldowns of " + playerData.getName(), error);
+                        EverNifeCore.getLog().severe("Failed to read the cooldowns of {}", playerData.getName(), error);
                         return;
                     }
                     COOLDOWN_VIEW_PLAYER_HEADER.addPlaceholder("player", playerData.getName()).send(sender);
@@ -298,7 +298,7 @@ public class CMDECCooldown {
         CompletableFuture<PlayerCooldown> cooldownFuture = network ? playerData.getNetworkCooldown(cooldownId) : playerData.getCooldown(cooldownId);
         PlayerController.whenCompleteOnMainThread(cooldownFuture, (cooldown, error) -> {
             if (error != null){
-                EverNifeCore.getLog().severe("Failed to read the cooldowns of " + playerData.getName(), error);
+                EverNifeCore.getLog().severe("Failed to read the cooldowns of {}", playerData.getName(), error);
                 return;
             }
             if (network){

@@ -143,7 +143,7 @@ public final class GuiViews {
             view.commitNow();
             future.complete(view);
         } catch (Throwable e) {
-            EverNifeCore.getLog().severe("Failed to open a gui for [" + player.getName() + "]", e);
+            EverNifeCore.getLog().severe("Failed to open a gui for [{}]", player.getName(), e);
             //a half-built screen is worse than none: the window is already in front of the player, and
             //nothing has rendered into it. Take it back before anybody sees a skeleton they can click
             if (opening != null) {
@@ -302,8 +302,8 @@ public final class GuiViews {
             try {
                 view.release(CloseReason.SHUTDOWN);
             } catch (Throwable e) {
-                EverNifeCore.getLog().severe("A gui of [" + view.getViewerName() + "] failed to close during "
-                        + "shutdown; the screens after it are still being closed", e);
+                EverNifeCore.getLog().severe("A gui of [{}] failed to close during "
+                        + "shutdown; the screens after it are still being closed", view.getViewerName(), e);
             }
             if (player != null && player.isOnline()) {
                 player.closeInventory();

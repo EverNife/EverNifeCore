@@ -172,7 +172,7 @@ public class FCDefaultExecutor {
             //while the cause was logged here anyway. So it is answered here, once, and stops here.
             Throwable cause = e instanceof InvocationTargetException && e.getCause() != null ? e.getCause() : e;
             String commandInfo = getCommandInfo(executable, label, walk.getPath().joined(), args);
-            finalCommand.getOwningPlugin().getLog().severe("Failed to execute the FinalCMD: " + commandInfo, cause);
+            finalCommand.getOwningPlugin().getLog().severe("Failed to execute the FinalCMD: {}", commandInfo, cause);
             INTERNAL_COMMAND_ERROR.send(sender);
         }
     }

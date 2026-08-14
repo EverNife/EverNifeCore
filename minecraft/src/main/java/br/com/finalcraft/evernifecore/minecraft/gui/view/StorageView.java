@@ -238,8 +238,8 @@ public final class StorageView {
         try {
             handler.accept(new StorageContext(this, contents, last));
         } catch (Throwable e) {
-            EverNifeCore.getLog().severe("The onChange handler of the storage region [" + binding.getName()
-                    + "] failed for [" + view.getViewerName() + "]", e);
+            EverNifeCore.getLog().severe("The onChange handler of the storage region [{}] failed for [{}]",
+                    binding.getName(), view.getViewerName(), e);
         }
     }
 
