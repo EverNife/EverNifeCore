@@ -40,6 +40,7 @@ import br.com.finalcraft.evernifecore.storage.config.StorageYamlDefaults;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlParser;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.everydatabase.log.StorageLogConfig;
+import br.com.finalcraft.everydatabase.log.StorageLogEvent;
 import br.com.finalcraft.everydatabase.log.StorageLogSinks;
 import br.com.finalcraft.everydatabase.manager.CachingManager;
 import br.com.finalcraft.everydatabase.manager.RefRegistry;
@@ -72,6 +73,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
+import java.util.logging.Level;
 
 /**
  * PlayerData controller: a mutable instance behind a static facade.
@@ -203,7 +205,7 @@ public class PlayerController {
             try {
                 old.flushAll().join();
             }catch (Throwable e){
-                PDLog.severe("Failed to flush the previous PlayerController instance before reload:");
+                EverNifeCore.getLog().severe("Failed to flush the previous PlayerController instance before reload:");
                 e.printStackTrace();
             }
         }
@@ -281,7 +283,7 @@ public class PlayerController {
             try {
                 old.flushAll().join();
             }catch (Throwable e){
-                PDLog.severe("Failed to flush the previous PlayerController instance on reload:");
+                EverNifeCore.getLog().severe("Failed to flush the previous PlayerController instance on reload:");
                 e.printStackTrace();
             }
             old.clearAllManagerCaches(previousAccounts, previousServerCooldowns);
@@ -289,7 +291,7 @@ public class PlayerController {
         }
 
         if (importPending){
-            PDLog.info("Legacy PlayerData YAML files found at [{}] - the one-time import will run once"
+            EverNifeCore.getLog().info("Legacy PlayerData YAML files found at [{}] - the one-time import will run once"
                     + " every plugin has registered its sections (the first server tick); player logins"
                     + " are held until it finishes.", legacyFolder.getPath());
             EverNifeCore.getPlatform().runOnMainThreadNextTick(() -> fresh.legacyBootstrap.runImportThenStart(legacyFolder));
@@ -304,11 +306,11 @@ public class PlayerController {
         this.storageYml = ConfigFactory.open(EverNifeCore.getEcPluginData(), storageYmlFile);
         this.storageConfig = StorageYamlParser.parse(storageYml);
         for (String warning : storageConfig.getWarnings()){
-            PDLog.warning(warning);
+            EverNifeCore.getLog().warning(warning);
         }
 
         //route EveryDatabase logging to the ECore logger
-        StorageLogSinks.installDefault(PDLog::routeStorageLogEvent);
+        StorageLogSinks.installDefault(PlayerController::routeStorageLogEvent);
         StorageLogConfig logConfig = StorageLogConfig.defaults()
                 .defaultLevel(storageConfig.getLoggingLevel());
 
@@ -326,12 +328,41 @@ public class PlayerController {
         }
         this.playerDataBinding = PlayerDataBinding.resolve(storageConfig, registry, ecRegistries.global());
         for (String warning : playerDataBinding.getResolutionWarnings()){
-            PDLog.warning(warning);
+            EverNifeCore.getLog().warning(warning);
         }
         //bring up the account/identity layer on the network backend before any account row is keyed -
         //the login pipeline stamps each player's accountId from it. Unconditional: with no link the
         //collection stays empty and every identity keys by its own uuid, so there is nothing to opt out of
         Accounts.bootstrap(storageConfig, registry, ecRegistries.global());
+    }
+
+    /** The cooldown layer's log seam: EveryDatabase speaks JUL levels, the core logger speaks verbs. */
+    private static void logAtJulLevel(Level level, String message) {
+        //foreign text goes as a PARAMETER, so a '{}' inside it stays literal
+        if (level == Level.SEVERE) {
+            EverNifeCore.getLog().severe("{}", message);
+        } else if (level == Level.WARNING) {
+            EverNifeCore.getLog().warning("{}", message);
+        } else {
+            EverNifeCore.getLog().info("{}", message);
+        }
+    }
+
+    /** The storage layer's own log events, on the core logger. An ERROR keeps its stack trace. */
+    private static void routeStorageLogEvent(StorageLogEvent event) {
+        //event.format() is another library's text: it goes as a PARAMETER so a '{}' inside it stays literal
+        switch (event.level()) {
+            case ERROR:
+                EverNifeCore.getLog().severe("{}", event.format());
+                if (event.error() != null) event.error().printStackTrace();
+                break;
+            case WARN:
+                EverNifeCore.getLog().warning("{}", event.format());
+                break;
+            default:
+                EverNifeCore.getLog().info("{}", event.format());
+                break;
+        }
     }
 
     /** The base PlayerData cache + repository façade (in {@code ECRegistries.global()}). */
@@ -368,7 +399,7 @@ public class PlayerController {
             PlayerData existing = byName.get(nameKey);
             if (existing != null){
                 PlayerData winner = playerData.getLastSeen() >= existing.getLastSeen() ? playerData : existing;
-                PDLog.warning("There are two PlayerData with the NAME [{}] ({} and {})!"
+                EverNifeCore.getLog().warning("There are two PlayerData with the NAME [{}] ({} and {})!"
                                 + " The name will resolve to the most recently seen one ({})."
                                 + " This usually happens after an OnlineMode flip.",
                         playerData.getName(), playerData.getUniqueId(), existing.getUniqueId(),
@@ -383,7 +414,7 @@ public class PlayerController {
         }
 
         long end = System.currentTimeMillis();
-        PDLog.info("Finished Loading PlayerData of {} players! ({})",
+        EverNifeCore.getLog().info("Finished Loading PlayerData of {} players! ({})",
                 baseManager.cachedSize(), formatDuration(end - start));
 
         //hot reload - re-bind the online players
@@ -406,7 +437,8 @@ public class PlayerController {
 
         //network-wide server cooldowns: bound unconditionally (the reach is declared at the call site,
         //not in the config) onto the same shared backend the account family uses
-        ServerCooldowns.bootstrap(storageConfig, registry, ecRegistries.global(), PDLog::log, storageYml);
+        ServerCooldowns.bootstrap(storageConfig, registry, ecRegistries.global(),
+                PlayerController::logAtJulLevel, storageYml);
 
         startCacheSync();
         lifecycleEngine.scheduleIdleSweep();
@@ -443,10 +475,10 @@ public class PlayerController {
         }
         try {
             cacheSync = CacheSyncWiring.startIfEnabled(storageConfig, managers,
-                    message -> PDLog.info(message), message -> PDLog.warning(message));
+                    message -> EverNifeCore.getLog().info(message), message -> EverNifeCore.getLog().warning(message));
         }catch (Throwable cacheSyncFailure){
             //never let a cache-sync wiring failure abort the boot - it is a coherence layer, not the store
-            PDLog.severe("Failed to start cache-sync - continuing without cross-instance coherence: {}",
+            EverNifeCore.getLog().severe("Failed to start cache-sync - continuing without cross-instance coherence: {}",
                     cacheSyncFailure.getMessage());
         }
     }
@@ -499,14 +531,14 @@ public class PlayerController {
 
     void installPlayerDataBinding(PlayerDataBinding rebound){
         for (String warning : rebound.getResolutionWarnings()){
-            PDLog.warning(warning);
+            EverNifeCore.getLog().warning(warning);
         }
         this.playerDataBinding = rebound;
     }
 
     void installSectionBinding(Class<? extends PDSection> pdSectionClass, PDSectionBinding<? extends PDSection> rebound){
         for (String warning : rebound.getResolutionWarnings()){
-            PDLog.warning(warning);
+            EverNifeCore.getLog().warning(warning);
         }
         bindings.put(pdSectionClass, rebound);
     }
@@ -770,14 +802,14 @@ public class PlayerController {
                 //final flush so nothing the plugin wrote in its last moments is lost
                 flushEngine.flushAll().join();
             }catch (Throwable flushFailure){
-                PDLog.warning("Final flush while unregistering PDSection {{}} of plugin '{}' failed: {}",
+                EverNifeCore.getLog().warning("Final flush while unregistering PDSection {{}} of plugin '{}' failed: {}",
                         pdSectionClass.getSimpleName(), pluginName, String.valueOf(flushFailure.getMessage()));
             }
             binding.getManager().clearCache();
             //drop the manager from the plugin's RefRegistry so its Class object is not retained
             ecRegistries.of(binding.getConfiguration().getPluginData()).unregister(pdSectionClass);
             registry.releaseCollection(binding.getBackendName(), binding.getCollection());
-            PDLog.info("Unregistered PDSection {{}} of plugin '{}' (collection '{}' on backend '{}' released).",
+            EverNifeCore.getLog().info("Unregistered PDSection {{}} of plugin '{}' (collection '{}' on backend '{}' released).",
                     pdSectionClass.getSimpleName(), pluginName, binding.getCollection(), binding.getBackendName());
         }
         if (anyRemoved){
@@ -844,7 +876,7 @@ public class PlayerController {
             for (String sectionId : ofPlugin.getValue().keySet()) {
                 String entry = ofPlugin.getKey() + "." + sectionId;
                 if (claimed.contains(entry)) continue;
-                PDLog.warning("storage.yml has an entry '{}.{}' that no registered {} claims."
+                EverNifeCore.getLog().warning("storage.yml has an entry '{}.{}' that no registered {} claims."
                                 + " Either the plugin that owned it is not installed, or its section id changed -"
                                 + " in which case the rows of the OLD collection are no longer reachable."
                                 + " Nothing was moved or deleted; check collection '{}' before removing the entry.",
@@ -978,7 +1010,7 @@ public class PlayerController {
             binding = BindingResolver.resolve(pluginName, cfg, storageConfig, registry,
                     ecRegistries.of(cfg.getPluginData()));
             for (String warning : binding.getResolutionWarnings()){
-                PDLog.warning(warning);
+                EverNifeCore.getLog().warning(warning);
             }
 
             bindings.put(cfg.getPdSectionClass(), binding);
@@ -1015,14 +1047,14 @@ public class PlayerController {
 
         if (fresh.isDiscardDirtyOnReload()){
             if (dirtyCells > 0){
-                PDLog.warning("Re-registration of PDSection {{}} DISCARDED {} unflushed cell(s)"
+                EverNifeCore.getLog().warning("Re-registration of PDSection {{}} DISCARDED {} unflushed cell(s)"
                         + " (the section declared discardDirtyOnReload).", sectionClass.getSimpleName(), dirtyCells);
             }
         }else {
             try {
                 flushEngine.flushSectionManager(current).join();
             }catch (Throwable flushFailure){
-                PDLog.warning("Flush before the re-registration of PDSection {{}} failed - reloading anyway,"
+                EverNifeCore.getLog().warning("Flush before the re-registration of PDSection {{}} failed - reloading anyway,"
                                 + " the unflushed cells of this section are lost: {}",
                         sectionClass.getSimpleName(), String.valueOf(flushFailure.getMessage()));
             }
@@ -1035,7 +1067,7 @@ public class PlayerController {
         registry.releaseCollection(current.getBackendName(), current.getCollection());
         bindings.remove(sectionClass);
 
-        PDLog.info("Re-registered PDSection {{}}: dropped {} cached cell(s) ({} dirty, {}) and rebound it.",
+        EverNifeCore.getLog().info("Re-registered PDSection {{}}: dropped {} cached cell(s) ({} dirty, {}) and rebound it.",
                 sectionClass.getSimpleName(), cachedCells, dirtyCells,
                 fresh.isDiscardDirtyOnReload() ? "discarded" : "flushed first");
     }
@@ -1059,7 +1091,7 @@ public class PlayerController {
                 manager.preloadAll().join();
             }
         }catch (Throwable preloadFailure){
-            PDLog.warning("Preload of PDSection {{}} failed - continuing lazily: {}",
+            EverNifeCore.getLog().warning("Preload of PDSection {{}} failed - continuing lazily: {}",
                     cfg.getPdSectionClass().getSimpleName(), String.valueOf(preloadFailure.getMessage()));
         }
 
@@ -1098,7 +1130,7 @@ public class PlayerController {
             section.bindToCache(manager, key);
             section.attachPlayerData(playerData);
         }
-        PDLog.info("Finished Loading PDSection {{}} ({}) of {} players! ({})",
+        EverNifeCore.getLog().info("Finished Loading PDSection {{}} ({}) of {} players! ({})",
                 cfg.getPdSectionClass().getSimpleName(), lifecycle, attachTo.size(),
                 formatDuration(System.currentTimeMillis() - start));
     }
@@ -1386,7 +1418,7 @@ public class PlayerController {
                     //offline still owns a stale row under its OWN uuid (data written as a singleton BEFORE
                     //the link, absorbed only by a login that never happened). The reaper never sweeps
                     //account sections, so drop that former-key row here or it leaks forever.
-                    PDLog.warning("deletePlayerData({}): keeping the shared AccountSection {{}} row [{}]"
+                    EverNifeCore.getLog().warning("deletePlayerData({}): keeping the shared AccountSection {{}} row [{}]"
                                     + " and dropping this identity's former-key row under [{}].",
                             uuid, binding.getSectionClass().getSimpleName(), accountKey, uuid);
                     sectionDeletes.add(binding.getManager().deleteAndEvict(uuid));
@@ -1451,7 +1483,7 @@ public class PlayerController {
                 //a best-effort guess, and deleting on a guess is worse than leaving a poisoned row for an
                 //admin to look at. Naming it here is the point - a plain read would drop it silently.
                 if (row.isFailed()){
-                    PDLog.warning("Orphan reaper: skipping section {{}} row '{}' - its payload does not"
+                    EverNifeCore.getLog().warning("Orphan reaper: skipping section {{}} row '{}' - its payload does not"
                                     + " decode ({}). It is left untouched; reap it by hand if it is dead.",
                             binding.getCollection(), row.key(), String.valueOf(row.error()));
                     continue;
@@ -1523,9 +1555,9 @@ public class PlayerController {
         //stall the flush cadence (and the retry-queue drain) exactly on large installs
         reapOrphanSections().whenComplete((removed, reapFailure) -> {
             if (reapFailure != null){
-                PDLog.warning("Orphan reaper failed (will retry next cycle): {}", String.valueOf(reapFailure.getMessage()));
+                EverNifeCore.getLog().warning("Orphan reaper failed (will retry next cycle): {}", String.valueOf(reapFailure.getMessage()));
             }else if (removed != null && removed > 0){
-                PDLog.info("Orphan reaper removed {} section row(s) whose base PlayerData no longer exists.", removed);
+                EverNifeCore.getLog().info("Orphan reaper removed {} section row(s) whose base PlayerData no longer exists.", removed);
             }
             orphanReapRunning.set(false);
         });
@@ -1634,7 +1666,7 @@ public class PlayerController {
                                 if (failure == null){
                                     playerData.stampAccountId(resolvedId);
                                 } else {
-                                    PDLog.warning("Account data migration of [{}] ({} -> {}) failed -"
+                                    EverNifeCore.getLog().warning("Account data migration of [{}] ({} -> {}) failed -"
                                             + " keeping the previous account stamp for this session;"
                                             + " it will retry at the next login: {}",
                                             playerData.getUniqueId(), stamped, resolvedId,
@@ -1655,12 +1687,12 @@ public class PlayerController {
         UUID existingUUID = UUIDsController.getUUIDFromName(currentName);
 
         if (existingName != null && !existingName.equals(currentName)){
-            PDLog.info("[PlayerController] [{}] changed his name from {} to {}", currentUUID, existingName, currentName);
+            EverNifeCore.getLog().info("[PlayerController] [{}] changed his name from {} to {}", currentUUID, existingName, currentName);
         }
         if (existingUUID != null && !existingUUID.equals(currentUUID)){
             //OnlineMode flip or an old player's name reused by a new account: the
             //old record stays in the backend keyed by its own UUID; only the name link is remapped
-            PDLog.info("[PlayerController] The name [{}] now belongs to {} (previously {})",
+            EverNifeCore.getLog().info("[PlayerController] The name [{}] now belongs to {} (previously {})",
                     currentName, currentUUID, existingUUID);
         }
 
@@ -2144,13 +2176,13 @@ public class PlayerController {
         try {
             controller.flushAll().join();
         }catch (Throwable e){
-            PDLog.severe("Failed to flush PlayerData on shutdown:");
+            EverNifeCore.getLog().severe("Failed to flush PlayerData on shutdown:");
             e.printStackTrace();
         }
         try {
             controller.registry.closeAll().join();
         }catch (Throwable e){
-            PDLog.severe("Failed to close the storage backends on shutdown:");
+            EverNifeCore.getLog().severe("Failed to close the storage backends on shutdown:");
             e.printStackTrace();
         }
         //let go like the reload teardown does (evict every cell, then empty the stable registries'

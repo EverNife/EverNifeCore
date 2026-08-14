@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.playerdata.storage.BindingResolver;
 import br.com.finalcraft.evernifecore.playerdata.storage.PDSectionBinding;
 import br.com.finalcraft.evernifecore.playerdata.storage.PlayerDataBinding;
@@ -177,7 +178,7 @@ final class StorageTransferService {
             controller.storageYml().save();
             NETWORK_TRANSFER_RUNNING.set(false);
             PlayerController.initialize(controller.storageYmlFile());
-            PDLog.info("The network family moved from backend '{}' to '{}' ({} collection(s)). The source"
+            EverNifeCore.getLog().info("The network family moved from backend '{}' to '{}' ({} collection(s)). The source"
                             + " collections were kept untouched as a backup.",
                     sourceBackend, targetBackend, movable.size());
             return CompletableFuture.completedFuture(new NetworkTransferReport(sourceBackend,
@@ -194,7 +195,7 @@ final class StorageTransferService {
             controller.registry().releaseCollection(targetBackend, collection);
         }
         NETWORK_TRANSFER_RUNNING.set(false);
-        PDLog.warning("Network transfer to backend '{}' FAILED - the network family stays on '{}' and"
+        EverNifeCore.getLog().warning("Network transfer to backend '{}' FAILED - the network family stays on '{}' and"
                 + " storage.yml was not touched. Collections already copied were left on the target as"
                 + " leftovers; clear them before retrying.", targetBackend, sourceBackend);
         return report == null ? CompletableFuture.completedFuture(null)
@@ -262,7 +263,7 @@ final class StorageTransferService {
             restoreRegistration(refRegistry, pdSectionClass, current.getManager());
             releaseFreshTargetClaim(targetBackend, current.getCollection(), targetClaimWasFresh);
             freeze.close();
-            PDLog.severe("Unexpected failure while transferring {} to backend '{}':", what, targetBackend);
+            EverNifeCore.getLog().severe("Unexpected failure while transferring {} to backend '{}':", what, targetBackend);
             error.printStackTrace();
             return PlayerController.failedFuture(error);
         }
@@ -286,7 +287,7 @@ final class StorageTransferService {
                 current.getConfiguration().getSectionId(), targetBackend);
         freeze.close();
         controller.onBindingsChanged(); //rebind cache-sync + reschedule the ttl purge over the new manager set
-        PDLog.info("{} transferred to backend '{}' ({} entities in {}ms). The source collection on '{}'"
+        EverNifeCore.getLog().info("{} transferred to backend '{}' ({} entities in {}ms). The source collection on '{}'"
                         + " was kept untouched as a backup.",
                 what, targetBackend, report.totalEntities(), report.durationMs(), current.getBackendName());
         return controller.flushAll().thenApply(x -> report);
@@ -318,7 +319,7 @@ final class StorageTransferService {
             restoreRegistration(controller.registries().global(), PlayerData.class, current.getManager());
             releaseFreshTargetClaim(targetBackend, current.getCollection(), targetClaimWasFresh);
             freeze.close();
-            PDLog.severe("Unexpected failure while transferring PlayerData to backend '{}':", targetBackend);
+            EverNifeCore.getLog().severe("Unexpected failure while transferring PlayerData to backend '{}':", targetBackend);
             error.printStackTrace();
             return PlayerController.failedFuture(error);
         }
@@ -341,7 +342,7 @@ final class StorageTransferService {
         controller.storageYml().save();
         freeze.close();
         controller.onBindingsChanged(); //rebind cache-sync over the new manager set
-        PDLog.info("PlayerData transferred to backend '{}' ({} entities in {}ms). The source collection"
+        EverNifeCore.getLog().info("PlayerData transferred to backend '{}' ({} entities in {}ms). The source collection"
                         + " on '{}' was kept untouched as a backup.",
                 targetBackend, report.totalEntities(), report.durationMs(), current.getBackendName());
         return controller.flushAll().thenApply(x -> report);
@@ -429,6 +430,6 @@ final class StorageTransferService {
             sb.append("\n  - [").append(transferError.collection()).append("] ")
                     .append(transferError.cause() != null ? transferError.cause().getMessage() : "unknown error");
         }
-        PDLog.warning(sb.toString());
+        EverNifeCore.getLog().warning(sb.toString());
     }
 }

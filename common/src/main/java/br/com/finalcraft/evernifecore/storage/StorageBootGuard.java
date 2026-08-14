@@ -3,8 +3,6 @@ package br.com.finalcraft.evernifecore.storage;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Turns a storage-unavailable boot into an admin-readable stop. It is the ONLY place that reads the
@@ -27,25 +25,16 @@ public final class StorageBootGuard {
 
         //stack traces FIRST, banner LAST: the banner is what must stay on the admin's screen
         for (StorageInitFailure each : failure.getFailures()) {
-            severe("Storage backend '" + each.getBackendName() + "' failed to initialize:");
+            EverNifeCore.getLog().severe("Storage backend '{}' failed to initialize:", each.getBackendName());
             each.getCause().printStackTrace();
         }
         for (String line : StorageBootReport.render(failure, stopping, reloading)) {
-            severe(line);
+            EverNifeCore.getLog().severe(line);
         }
 
         if (stopping) {
             EverNifeCore.getPlatform().shutdown("EverNifeCore could not contact "
                     + failure.getFailures().size() + " storage backend(s) - see the report above");
-        }
-    }
-
-    /** Routes to the ECore logger, falling back to JUL on a pure JUnit runtime (no ECPluginData plugged in). */
-    private static void severe(String message) {
-        try {
-            EverNifeCore.getLog().severe(message);
-        } catch (Throwable noPluginRuntime) {
-            Logger.getLogger("EverNifeCore").log(Level.SEVERE, message);
         }
     }
 }

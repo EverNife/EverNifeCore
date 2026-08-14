@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.logger.debug;
 
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logger.ECLogLevel;
@@ -63,21 +64,26 @@ public interface IDebugModule {
 
     ECPluginData getPluginData();
 
+    /** This module's plugin logger, or the core's while that plugin has no runtime yet. */
     default ECLogger getLog() {
-        return getPluginData().getLog();
+        ECPluginData pluginData = getPluginData();
+        return pluginData != null ? pluginData.getLog() : EverNifeCore.getLog();
     }
 
     default void debug(String message, Object... params) {
         //isDebugEnabled(this) already answered for the plugin AND for this module, so the line goes out
         //through the ungated outlet - ECLogger.debug would ask the plugin half of that question again
-        if (getPluginData().isDebugEnabled(this)) {
+        ECPluginData pluginData = getPluginData();
+        //no runtime behind the module means no DebugMode block to ask; the sink's own level decides
+        if (pluginData == null || pluginData.isDebugEnabled(this)) {
             getLog().log(ECLogLevel.DEBUG, "[Debug (" + getName() + ")] " + message, params);
         }
     }
 
     /** @see ECLogger#debug(Supplier) */
     default void debug(Supplier<String> supplier) {
-        if (getPluginData().isDebugEnabled(this)) {
+        ECPluginData pluginData = getPluginData();
+        if (pluginData == null || pluginData.isDebugEnabled(this)) {
             getLog().log(ECLogLevel.DEBUG, "[Debug (" + getName() + ")] " + supplier.get());
         }
     }

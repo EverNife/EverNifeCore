@@ -16,8 +16,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class LocaleMessageImp implements LocaleMessage {
 
@@ -156,17 +154,9 @@ public class LocaleMessageImp implements LocaleMessage {
         return defaultFancyText;
     }
 
-    // The plugin's own log adapter when there is one, JUL otherwise: a message can be asked for its
-    // text before the core holds a plugin data to log through, and asking for the text of a message
-    // nobody defined must never be the thing that throws.
     private void warnHasNoLocaleText() {
-        String message = "LocaleMessage '" + key + "' of plugin '" + plugin.getMetaInfo().getName()
-                + "' has no registered locale text.";
-        try {
-            EverNifeCore.getLog().warning(message);
-        } catch (Throwable noPluginRuntime) {
-            Logger.getLogger("EverNifeCore").log(Level.WARNING, message);
-        }
+        EverNifeCore.getLog().warning("LocaleMessage '{}' of plugin '{}' has no registered locale text.",
+                key, plugin.getMetaInfo().getName());
     }
 
     public boolean needToBeSynced() {

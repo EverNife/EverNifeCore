@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigratingCodec;
 import br.com.finalcraft.evernifecore.playerdata.storage.BindingResolver;
 import br.com.finalcraft.everydatabase.manager.writeback.OptimisticConflictException;
@@ -168,7 +169,7 @@ final class AccountSectionEngine {
         PdSyncBindGuard.check("AccountSection '" + sectionId + "'", descriptor, storage, parsed,
                 true, warnings);
         for (String warning : warnings) {
-            PDLog.warning(warning);
+            EverNifeCore.getLog().warning(warning);
         }
 
         //replacement semantics: on a core reload the previous generation's manager is still registered
@@ -177,7 +178,7 @@ final class AccountSectionEngine {
                 freshnessOf(sectionId, admin), retired -> {});
         AccountSectionBinding<S> binding = new AccountSectionBinding<>(cfg, backendName, descriptor, manager);
         bindings.put(sectionClass, binding);
-        PDLog.info("Bound AccountSection {{}} (collection '{}' on account backend '{}').",
+        EverNifeCore.getLog().info("Bound AccountSection {{}} (collection '{}' on account backend '{}').",
                 sectionClass.getSimpleName(), collection, backendName);
 
         //hot-load for the members already online (their login pipeline ran before this bind)
@@ -236,7 +237,7 @@ final class AccountSectionEngine {
         }
         if (discardDirty) {
             if (dirtyRows > 0) {
-                PDLog.warning("Re-registration of AccountSection {{}} DISCARDED {} unflushed row(s)"
+                EverNifeCore.getLog().warning("Re-registration of AccountSection {{}} DISCARDED {} unflushed row(s)"
                                 + " (the section declared discardDirtyOnReload).",
                         sectionClass.getSimpleName(), dirtyRows);
             }
@@ -244,7 +245,7 @@ final class AccountSectionEngine {
             try {
                 controller.flushAccountSectionManager(current).join();
             } catch (Throwable flushFailure) {
-                PDLog.warning("Flush before the re-registration of AccountSection {{}} failed - reloading anyway,"
+                EverNifeCore.getLog().warning("Flush before the re-registration of AccountSection {{}} failed - reloading anyway,"
                                 + " the unflushed rows of this section are lost: {}",
                         sectionClass.getSimpleName(), String.valueOf(flushFailure.getMessage()));
             }
@@ -254,7 +255,7 @@ final class AccountSectionEngine {
         controller.registries().of(current.getPluginData()).unregister(sectionClass);
         controller.registry().releaseCollection(current.getBackendName(), current.getCollection());
         bindings.remove(sectionClass);
-        PDLog.info("Re-registered AccountSection {{}}: dropped {} cached row(s) ({} dirty, {}) and rebound it.",
+        EverNifeCore.getLog().info("Re-registered AccountSection {{}}: dropped {} cached row(s) ({} dirty, {}) and rebound it.",
                 sectionClass.getSimpleName(), cachedRows, dirtyRows, discardDirty ? "discarded" : "flushed first");
     }
 
@@ -266,14 +267,14 @@ final class AccountSectionEngine {
             try {
                 controller.flushAll().join();
             } catch (Throwable flushFailure) {
-                PDLog.warning("Final flush while unregistering AccountSection {{}} of plugin '{}' failed: {}",
+                EverNifeCore.getLog().warning("Final flush while unregistering AccountSection {{}} of plugin '{}' failed: {}",
                         sectionClass.getSimpleName(), pluginName, String.valueOf(flushFailure.getMessage()));
             }
             binding.getManager().clearCache();
             //drop the manager from the plugin's RefRegistry so its Class object is not retained
             controller.registries().of(binding.getPluginData()).unregister(binding.getSectionClass());
             controller.registry().releaseCollection(binding.getBackendName(), binding.getCollection());
-            PDLog.info("Unregistered AccountSection {{}} of plugin '{}' (collection '{}' released).",
+            EverNifeCore.getLog().info("Unregistered AccountSection {{}} of plugin '{}' (collection '{}' released).",
                     sectionClass.getSimpleName(), pluginName, binding.getCollection());
         }
     }
@@ -429,7 +430,7 @@ final class AccountSectionEngine {
                         : CompletableFuture.completedFuture(null);
                 return persisted
                         .thenCompose(x -> binding.getManager().deleteAndEvict(oldKey))
-                        .thenAccept(x -> PDLog.info(
+                        .thenAccept(x -> EverNifeCore.getLog().info(
                                 "Absorbed {} row [{}] into account [{}].",
                                 binding.getSectionClass().getSimpleName(), oldKey, newKey));
             });

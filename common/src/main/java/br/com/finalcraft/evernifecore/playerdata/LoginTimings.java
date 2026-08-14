@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.IPluginMetaInfo;
 import br.com.finalcraft.evernifecore.playerdata.storage.PDSectionBinding;
@@ -106,11 +107,11 @@ final class LoginTimings {
         if (!printed.compareAndSet(false, true)) return;
         try {
             for (String line : format(elapsedNanos, timedOut)) {
-                PDLog.warning(line);
+                EverNifeCore.getLog().warning(line);
             }
         } catch (Throwable formattingFailure) {
             //a diagnostic must never be what breaks a login
-            PDLog.warning("Could not report the slow login of [" + playerName + "]: " + formattingFailure);
+            EverNifeCore.getLog().warning("Could not report the slow login of [" + playerName + "]: " + formattingFailure);
         }
     }
 

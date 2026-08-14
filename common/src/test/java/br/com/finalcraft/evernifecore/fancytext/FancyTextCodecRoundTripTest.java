@@ -1,8 +1,14 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
+import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
+import br.com.finalcraft.evernifecore.testing.Plugins;
+import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.everyconfig.config.Config;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -17,9 +23,6 @@ import br.com.finalcraft.evernifecore.fancytext.hover.FancyHoverRegistry;
 import br.com.finalcraft.evernifecore.fancytext.hover.FancyHoverType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
-import java.util.logging.Handler;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
 import br.com.finalcraft.evernifecore.fancytext.hover.ItemHover;
 import java.util.Objects;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,6 +37,26 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @ECoreTest
 public class FancyTextCodecRoundTripTest {
 
+    private static final String LOG_OWNER = "FancyTextCodecRoundTrip";
+
+    @TempDir
+    static Path coreDataFolder;
+
+    /**
+     * The codec warns through the core logger, so the core is given a plugin data built under THIS
+     * class's platform double. Without it the lines land wherever an earlier test class left the core
+     * pointing, and the assertions below would depend on class execution order.
+     */
+    @BeforeAll
+    static void routeCoreLoggingIntoThisWorld(ECoreTestWorld world) {
+        world.withPluginExtractor(Plugins.fake(LOG_OWNER, coreDataFolder.resolve(LOG_OWNER).toFile()));
+        EverNifeCore.instance.onLoaderInstantiate(ECPluginManager.getOrCreateECorePluginData(new Object()));
+    }
+
+    @AfterAll
+    static void forgetTheLogOwner() {
+        ECPluginManager.removePluginData(LOG_OWNER);
+    }
 
     private Config open(Path dir) {
         return ConfigFactory.open(dir.resolve("data.yml"));
@@ -224,76 +247,64 @@ public class FancyTextCodecRoundTripTest {
     }
 
     @Test
-    void savingACodeclessHoverWarnsOnceAndStillRecordsItsType(@TempDir Path dir) throws IOException {
-        List<String> warnings = captureCoreWarnings();
-        try {
-            FancySegment first = new FancySegment("§aone");
-            first.setHover(new CodeclessHover(UNPERSISTABLE_TYPE, "payload-one"));
-            Config firstCfg = open(dir, "first.yml");
-            firstCfg.setValue("msg", first);
-            firstCfg.save();
+    void savingACodeclessHoverWarnsOnceAndStillRecordsItsType(@TempDir Path dir, TestPlatform platform)
+            throws IOException {
+        FancySegment first = new FancySegment("§aone");
+        first.setHover(new CodeclessHover(UNPERSISTABLE_TYPE, "payload-one"));
+        Config firstCfg = open(dir, "first.yml");
+        firstCfg.setValue("msg", first);
+        firstCfg.save();
 
-            FancySegment second = new FancySegment("§btwo");
-            second.setHover(new CodeclessHover(UNPERSISTABLE_TYPE, "payload-two"));
-            Config secondCfg = open(dir, "second.yml");
-            secondCfg.setValue("msg", second);
-            secondCfg.save();
+        FancySegment second = new FancySegment("§btwo");
+        second.setHover(new CodeclessHover(UNPERSISTABLE_TYPE, "payload-two"));
+        Config secondCfg = open(dir, "second.yml");
+        secondCfg.setValue("msg", second);
+        secondCfg.save();
 
-            List<String> aboutThisType = new ArrayList<>();
-            for (String warning : warnings) {
-                if (warning.contains(UNPERSISTABLE_TYPE)) {
-                    aboutThisType.add(warning);
-                }
-            }
-            assertEquals(1, aboutThisType.size(),
-                    "a lang file with hundreds of entries of the same type must warn once, not once per entry: "
-                            + aboutThisType);
+        List<String> aboutThisType = coreLinesAbout(platform, UNPERSISTABLE_TYPE);
+        assertEquals(1, aboutThisType.size(),
+                "a lang file with hundreds of entries of the same type must warn once, not once per entry: "
+                        + aboutThisType);
 
-            String written = new String(Files.readAllBytes(dir.resolve("first.yml")), StandardCharsets.UTF_8);
-            assertTrue(written.contains("hoverType"),
-                    "the type must be recorded even with no payload, or the file is indistinguishable "
-                            + "from one that never had a hover: " + written);
-            assertTrue(written.contains(UNPERSISTABLE_TYPE),
-                    "the recorded type must be the value's own type id: " + written);
-        } finally {
-            warnings.clear();
-        }
+        String written = new String(Files.readAllBytes(dir.resolve("first.yml")), StandardCharsets.UTF_8);
+        assertTrue(written.contains("hoverType"),
+                "the type must be recorded even with no payload, or the file is indistinguishable "
+                        + "from one that never had a hover: " + written);
+        assertTrue(written.contains(UNPERSISTABLE_TYPE),
+                "the recorded type must be the value's own type id: " + written);
     }
 
     @Test
-    void readingATypeWithNoPayloadYieldsNoHoverAndReportsTheLoss(@TempDir Path dir) throws IOException {
+    void readingATypeWithNoPayloadYieldsNoHoverAndReportsTheLoss(@TempDir Path dir, TestPlatform platform)
+            throws IOException {
         Path file = dir.resolve("orphan.yml");
         Files.write(file, ("msg:\n"
                 + "  text: '&aSome text'\n"
                 + "  hoverType: " + ORPHAN_TYPE + "\n").getBytes(StandardCharsets.UTF_8));
 
-        List<String> warnings = captureCoreWarnings();
         FancyText read = ConfigFactory.open(file).getValue("msg", FancyText.class);
 
         assertEquals("§aSome text", read.getText(), "the rest of the node must still read normally");
         assertNull(read.getHover(), "a type with no payload cannot be rebuilt, so there is no hover");
 
-        List<String> aboutThisType = new ArrayList<>();
-        for (String warning : warnings) {
-            if (warning.contains(ORPHAN_TYPE)) {
-                aboutThisType.add(warning);
-            }
-        }
-        assertEquals(1, aboutThisType.size(), "the load must denounce the missing payload exactly once: " + warnings);
+        List<String> aboutThisType = coreLinesAbout(platform, ORPHAN_TYPE);
+        assertEquals(1, aboutThisType.size(),
+                "the load must denounce the missing payload exactly once: " + aboutThisType);
     }
 
     /**
-     * Captures what the codec logs for the duration of the current test. The handler stays attached to
-     * the shared logger - harmless, since every assertion filters by this test's own unique type id.
+     * Every line the codec logged so far that names {@code typeId}. The codec warns through
+     * {@link EverNifeCore#getLog()}, so what observes it is the platform double this class installed -
+     * a list that keeps duplicates, which is what the "warns once" assertions are made of.
      */
-    private static List<String> captureCoreWarnings() {
-        List<String> captured = new ArrayList<>();
-        Logger.getLogger("EverNifeCore").addHandler(new Handler() {
-            @Override public void publish(LogRecord record) { captured.add(record.getMessage()); }
-            @Override public void flush() { }
-            @Override public void close() { }
-        });
-        return captured;
+    private static List<String> coreLinesAbout(TestPlatform platform, String typeId) {
+        List<String> about = new ArrayList<>();
+        for (String line : platform.getLoggedMessages()) {
+            if (line.contains(typeId)) {
+                about.add(line);
+            }
+        }
+        return about;
     }
 
     /** A plugin-owned hover value whose type was registered without {@code withCodec}. */

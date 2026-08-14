@@ -12,8 +12,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Everything a single message declares about substitution: the provider answering for its
@@ -124,21 +122,13 @@ public final class MessagePlaceholders {
             }
             String bare = key.substring(head.length(), key.length() - tail.length());
             if (WARNED_DELIMITED_KEYS.add(key)) {
-                warn("Placeholder key '" + key + "' was declared with its delimiters, so it is"
-                        + " registered exactly like that and will never match. Declare it as '" + bare
-                        + "' and write " + Closures.DOLLAR_CURLY.quote(bare) + " in the text.");
+                EverNifeCore.getLog().warning("Placeholder key '{}' was declared with its delimiters, so"
+                                + " it is registered exactly like that and will never match. Declare it as"
+                                + " '{}' and write {} in the text.",
+                        key, bare, Closures.DOLLAR_CURLY.quote(bare));
             }
             return;
         }
     }
 
-    // The plugin's own log adapter when there is one, JUL otherwise: this warning has no plugin to
-    // attribute itself to, and it must still be heard on a runtime with no platform installed.
-    private static void warn(String message) {
-        try {
-            EverNifeCore.getLog().warning(message);
-        } catch (Throwable noPluginRuntime) {
-            Logger.getLogger("EverNifeCore").log(Level.WARNING, message);
-        }
-    }
 }

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.playerdata.storage.PDSectionBinding;
 import br.com.finalcraft.evernifecore.playerdata.storage.PlayerDataBinding;
 import br.com.finalcraft.everydatabase.Repository;
@@ -47,12 +48,12 @@ final class EagerSweepEngine {
     private final Set<Class<?>> warnedDisabled = ConcurrentHashMap.newKeySet();
     private volatile boolean shuttingDown = false;
 
-    /** Routes the sweeper's log seam to {@link PDLog} (INFO -> info, WARNING -> warning). */
+    /** Routes the sweeper's log seam to the core logger (INFO -> info, WARNING/SEVERE -> warning). */
     private static final ManagerLog LOGGER = (level, message) -> {
         if (level == Level.WARNING || level == Level.SEVERE) {
-            PDLog.warning("{}", message);
+            EverNifeCore.getLog().warning("{}", message);
         } else {
-            PDLog.info("{}", message);
+            EverNifeCore.getLog().info("{}", message);
         }
     };
 
@@ -93,7 +94,7 @@ final class EagerSweepEngine {
                         .logger(LOGGER)
                         .build());
             } catch (Throwable t) {
-                PDLog.warning("[SchemaSweep] {}: sweep failed - {}", collection, String.valueOf(t.getMessage()));
+                EverNifeCore.getLog().warning("[SchemaSweep] {}: sweep failed - {}", collection, String.valueOf(t.getMessage()));
             } finally {
                 sweeping.remove(collection);
             }
@@ -133,7 +134,7 @@ final class EagerSweepEngine {
         }
         if (!controller.storageYml().getBoolean(KILL_SWITCH_PATH, true)) {
             if (warnedDisabled.add(type)) {
-                PDLog.warning("[SchemaSweep] eager steps are pending for {} but '{}' is disabled -"
+                EverNifeCore.getLog().warning("[SchemaSweep] eager steps are pending for {} but '{}' is disabled -"
                         + " relying on lazy migration.", type.getName(), KILL_SWITCH_PATH);
             }
             return false;

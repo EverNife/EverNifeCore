@@ -28,8 +28,6 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * A logical backend: the connection target and wire format a {@link Storage} is opened from. Parsed
@@ -290,8 +288,8 @@ public final class BackendDefinition implements ConfigLifecycle {
             // This backend's deps may not have been downloaded; the storage init() below
             // surfaces a clearer "Failed to initialize backend" error if the driver really is missing.
             // A FINE trace naming the driver still helps diagnose that later "No suitable driver".
-            Logger.getLogger("EverNifeCore").log(Level.FINE,
-                    "JDBC driver '" + driverClassName + "' is not on the classpath yet", notOnClasspath);
+            EverNifeCore.getLog().debug("JDBC driver '{}' is not on the classpath yet",
+                    driverClassName, notOnClasspath);
         }
     }
 

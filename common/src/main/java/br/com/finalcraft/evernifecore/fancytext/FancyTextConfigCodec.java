@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.fancytext;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.fancytext.hover.FancyHover;
 import br.com.finalcraft.evernifecore.fancytext.hover.FancyHoverRegistry;
@@ -23,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Logger;
 
 /**
  * The config codec for {@link FancyText} (both {@link FancySegment} and {@link FancyFormatter}), registered
@@ -78,7 +78,6 @@ public final class FancyTextConfigCodec {
 
     private static final String HOVER_TYPE_TEXT = TextHover.TYPE_ID;
 
-    private static final Logger LOG = Logger.getLogger("EverNifeCore");
     // One warning per hover typeId, not per message: a lang file with hundreds of entries of an
     // unknown/non-persistable type must not flood the console.
     private static final Set<String> WARNED_HOVER_TYPES = ConcurrentHashMap.newKeySet();
@@ -280,20 +279,22 @@ public final class FancyTextConfigCodec {
 
     private static void warnUnpersistableHover(String typeId, String consequence) {
         if (WARNED_HOVER_TYPES.add("write:" + typeId)) {
-            LOG.warning("FancyText hover type '" + typeId + "' has no on-disk codec; " + consequence);
+            EverNifeCore.getLog().warning("FancyText hover type '{}' has no on-disk codec; {}", typeId, consequence);
         }
     }
 
     private static void warnUnknownHoverOnRead(String typeId) {
         if (WARNED_HOVER_TYPES.add("read:" + typeId)) {
-            LOG.warning("Unknown FancyText hover type '" + typeId + "' on load; showing it as a plain text tooltip.");
+            EverNifeCore.getLog().warning("Unknown FancyText hover type '{}' on load; showing it as a plain"
+                    + " text tooltip.", typeId);
         }
     }
 
     private static void warnHoverWithoutPayloadOnRead(String typeId) {
         if (WARNED_HOVER_TYPES.add("read-empty:" + typeId)) {
-            LOG.warning("FancyText hover type '" + typeId + "' was saved without a payload, so it cannot be "
-                    + "restored; the tooltip is missing. Register a codec for that type before saving it.");
+            EverNifeCore.getLog().warning("FancyText hover type '{}' was saved without a payload, so it cannot"
+                    + " be restored; the tooltip is missing. Register a codec for that type before saving it.",
+                    typeId);
         }
     }
 

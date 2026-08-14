@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,7 +32,7 @@ final class DetachedWrites {
         if (alreadyReported.size() >= MAX_TRACKED || !alreadyReported.add(identity)) {
             return;
         }
-        PDLog.severe("LOST WRITE - markDirty() on a {} [{}] of [{}] that is no longer the cached"
+        EverNifeCore.getLog().severe("LOST WRITE - markDirty() on a {} [{}] of [{}] that is no longer the cached"
                         + " instance, so the flush will never persist it. That cell was released or"
                         + " replaced: idle grace, cache TTL, the maxCached ceiling, a plugin"
                         + " re-registration/reload or clearPDSections. Do not hold a section reference"

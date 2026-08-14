@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.playerdata.storage.legacy.LegacyImportReport;
 import br.com.finalcraft.evernifecore.playerdata.storage.legacy.LegacyMigrationMetadata;
 import br.com.finalcraft.evernifecore.playerdata.storage.legacy.LegacyPlayerDataImporter;
@@ -59,12 +60,12 @@ final class LegacyBootstrap {
             LegacyImportReport report = new LegacyPlayerDataImporter(legacyFolder,
                     controller.playerDataBinding(), controller.sectionBindings()).run();
             if (report.hasFailures()) {
-                PDLog.warning(report.format());
+                EverNifeCore.getLog().warning(report.format());
             } else {
-                PDLog.info(report.format());
+                EverNifeCore.getLog().info(report.format());
             }
         } catch (Throwable importFailure) {
-            PDLog.severe("The legacy PlayerData import failed unexpectedly - the server will continue"
+            EverNifeCore.getLog().severe("The legacy PlayerData import failed unexpectedly - the server will continue"
                     + " WITHOUT the legacy data (the remaining .yml files were not touched). Fix the"
                     + " cause and restart; already-imported players are skipped by idempotency.");
             importFailure.printStackTrace();
@@ -74,7 +75,7 @@ final class LegacyBootstrap {
             controller.start();            //sections already bound -> runs only the hot-load
             controller.completeReady();    //release the logins that were held
         } catch (Throwable bootFailure) {
-            PDLog.severe("Failed to load the players after the legacy import!");
+            EverNifeCore.getLog().severe("Failed to load the players after the legacy import!");
             bootFailure.printStackTrace();
             controller.failReady(bootFailure);
         }

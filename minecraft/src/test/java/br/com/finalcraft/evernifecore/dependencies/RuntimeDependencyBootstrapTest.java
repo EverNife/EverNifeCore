@@ -151,9 +151,9 @@ class RuntimeDependencyBootstrapTest {
         assertTrue(classInitialiser.contains("catch (Throwable"),
                 "an Error is exactly what a broken dependency download throws, and catching Exception "
                         + "would let it through: " + classInitialiser);
-        assertTrue(classInitialiser.contains("Level.SEVERE"),
-                "and what it swallows is reported - a silent catch here is a plugin that starts broken "
-                        + "and says nothing: " + classInitialiser);
+        assertTrue(classInitialiser.contains(".severe("),
+                "and what it swallows is reported, at the loudest level there is - a silent catch here is "
+                        + "a plugin that starts broken and says nothing: " + classInitialiser);
     }
 
     // -----------------------------------------------------------------------------------------------------------------

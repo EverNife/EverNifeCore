@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.logger.ECLogger;
 import br.com.finalcraft.evernifecore.cooldown.server.ServerCooldowns;
 import br.com.finalcraft.evernifecore.playerdata.storage.PDSectionBinding;
 import br.com.finalcraft.evernifecore.playerdata.storage.SectionLifecycle;
@@ -30,12 +32,18 @@ import java.util.logging.Level;
  */
 final class FlushEngine {
 
-    /** Routes the generic flusher's messages to the playerdata logger, keeping FINE at debug level. */
+    /** Routes the generic flusher's messages to the core logger, keeping FINE at debug level. */
     private static final ManagerLog PD_LOG = (level, message) -> {
+        //the text comes from another library: it goes as a PARAMETER, so a '{}' inside it stays literal
+        ECLogger log = EverNifeCore.getLog();
         if (level.intValue() <= Level.FINE.intValue()) {
-            PDLog.debug(message);
+            log.debug("{}", message);
+        } else if (level == Level.SEVERE) {
+            log.severe("{}", message);
+        } else if (level == Level.WARNING) {
+            log.warning("{}", message);
         } else {
-            PDLog.log(level, message);
+            log.info("{}", message);
         }
     };
 
@@ -336,7 +344,7 @@ final class FlushEngine {
         int size = binding.getManager().cachedSize();
         if (size >= SectionLifecycle.NEVER_RELEASED_WARN_THRESHOLD) {
             if (residentWarned.add(sectionName)) {
-                PDLog.debug("PDSection {{}} is '{}' (never released) and holds {} cached cells (>= {})."
+                EverNifeCore.getLog().debug("PDSection {{}} is '{}' (never released) and holds {} cached cells (>= {})."
                         + " PDSections are meant to be small: externalize large data to its own collection"
                         + " and keep only the id here, declare a lifecycle that releases when idle"
                         + " (LAZY/ONLINE), or bound it with .maxCached(...).",

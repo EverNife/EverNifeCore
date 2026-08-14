@@ -13,8 +13,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * One-time tidy-up that runs on the boot that finally DRAINS the legacy folder (the run whose report
@@ -68,8 +66,8 @@ final class LegacyMigrationConsolidator {
         //critical piece: the archived originals become <target>/<legacyName> (e.g. __LegacyData_V2/PlayerData)
         if (archivedPlayerDataPresent) {
             if (!move(importedFolder, new File(target, legacyFolder.getName()))) {
-                logWarning("Legacy migration consolidation skipped: could not move [%s] into [%s]."
-                                + " The migration itself stands; the archived files remain in place.",
+                EverNifeCore.getLog().warning("Legacy migration consolidation skipped: could not move [{}]"
+                                + " into [{}]. The migration itself stands; the archived files remain in place.",
                         importedFolder.getName(), target.getName());
                 return null;
             }
@@ -132,7 +130,8 @@ final class LegacyMigrationConsolidator {
             Files.write(logFile.toPath(),
                     buildResultLog(consolidatedFolder, report, archivedPlayerDataPresent).getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
-            logWarning("Failed to write the legacy migration result log [%s]: %s", logFile.getPath(), e.toString());
+            EverNifeCore.getLog().warning("Failed to write the legacy migration result log [{}]: {}",
+                    logFile.getPath(), e.toString());
         }
     }
 
@@ -246,18 +245,9 @@ final class LegacyMigrationConsolidator {
             Files.move(source.toPath(), dest.toPath());
             return true;
         } catch (IOException e) {
-            logWarning("Legacy migration consolidation: failed to move [%s] into [%s]: %s",
+            EverNifeCore.getLog().warning("Legacy migration consolidation: failed to move [{}] into [{}]: {}",
                     source.getPath(), target.getPath(), e.toString());
             return false;
-        }
-    }
-
-    private static void logWarning(String message, Object... args) {
-        String formatted = args.length == 0 ? message : String.format(message, args);
-        try {
-            EverNifeCore.getLog().warning(formatted);
-        } catch (Throwable noPluginRuntime) {
-            Logger.getLogger("EverNifeCore").log(Level.WARNING, formatted);
         }
     }
 }

@@ -27,8 +27,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Bulk, single-pass importer of the legacy per-player YAML files into the pluggable storage.
@@ -138,9 +136,9 @@ public final class LegacyPlayerDataImporter {
                     //moveFile already logged the raw IOError; this says what it MEANS: the entities are
                     //safely in the backend and it is only archiving the source file that failed (a
                     //filesystem lock/permission), so there is no missing adapter to hunt - it retries next boot
-                    logWarning("Legacy PlayerData file [%s] was fully imported into the backend, but"
-                            + " archiving the source file failed - no data was lost, the archiving will be"
-                            + " retried on the next boot.", parsedFile.file.getName());
+                    EverNifeCore.getLog().warning("Legacy PlayerData file [{}] was fully imported into the"
+                            + " backend, but archiving the source file failed - no data was lost, the archiving"
+                            + " will be retried on the next boot.", parsedFile.file.getName());
                 }
             }
         }
@@ -200,8 +198,8 @@ public final class LegacyPlayerDataImporter {
             }
         } catch (Throwable e) {
             parsed.failReason = e.getMessage() != null ? e.getMessage() : e.toString();
-            logWarning("Failed to convert the legacy PlayerData file [%s] - a copy goes to the"
-                    + " '-Failed' folder and the original stays pending.", file.getName());
+            EverNifeCore.getLog().warning("Failed to convert the legacy PlayerData file [{}] - a copy goes to"
+                    + " the '-Failed' folder and the original stays pending.", file.getName());
             e.printStackTrace();
         }
         return parsed;
@@ -293,7 +291,7 @@ public final class LegacyPlayerDataImporter {
         //a partially saved file stays in the legacy folder, so the next run picks it up again and
         //retries only what never reached the backend (idempotency skips the rest)
         parsedFile.failReason = parsedFile.failReason == null ? reason : parsedFile.failReason + "; " + reason;
-        logWarning("Legacy import of [%s]: %s", parsedFile.file.getName(), reason);
+        EverNifeCore.getLog().warning("Legacy import of [{}]: {}", parsedFile.file.getName(), reason);
     }
 
     // -----------------------------------------------------------------------------------------------------------------------------//
@@ -308,7 +306,7 @@ public final class LegacyPlayerDataImporter {
         } catch (IOException e) {
             //never deletes and never aborts: a file that cannot be moved simply stays in place
             //(idempotency skips its entities again on a future run)
-            logWarning("Failed to archive the legacy PlayerData file [%s] into [%s]: %s",
+            EverNifeCore.getLog().warning("Failed to archive the legacy PlayerData file [{}] into [{}]: {}",
                     source.getName(), targetFolder.getName(), e.toString());
             return false;
         }
@@ -323,7 +321,7 @@ public final class LegacyPlayerDataImporter {
             Files.copy(source.toPath(), freeTargetIn(targetFolder, source).toPath());
         } catch (IOException e) {
             //the diagnostic copy is a nicety: losing it must never cost the run
-            logWarning("Failed to copy the failed legacy PlayerData file [%s] into [%s]: %s",
+            EverNifeCore.getLog().warning("Failed to copy the failed legacy PlayerData file [{}] into [{}]: {}",
                     source.getName(), targetFolder.getName(), e.toString());
         }
     }
@@ -484,16 +482,6 @@ public final class LegacyPlayerDataImporter {
             this.binding = binding;
             this.section = section;
             this.alreadyPresent = alreadyPresent;
-        }
-    }
-
-    private static void logWarning(String message, Object... args) {
-        String formatted = args.length == 0 ? message : String.format(message, args);
-        try {
-            EverNifeCore.getLog().warning(formatted);
-        } catch (Throwable noPluginRuntime) {
-            //pure JUnit runtime (no ECPluginData configured): falls back to JUL
-            Logger.getLogger("EverNifeCore").log(Level.WARNING, formatted);
         }
     }
 }

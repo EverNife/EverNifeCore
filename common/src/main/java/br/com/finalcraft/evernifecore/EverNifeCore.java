@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
+import br.com.finalcraft.evernifecore.logger.ECFallbackLog;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
 
 
@@ -18,8 +19,14 @@ public class EverNifeCore {
 
     public static EverNifeCore instance = new EverNifeCore();
 
+    /**
+     * The core's logger - never {@code null} and never throwing. Before a runtime is plugged in it
+     * answers with {@link ECFallbackLog}, so a caller that logs from a static initializer or from a
+     * bare JUnit run needs no fallback of its own.
+     */
     public static ECLogger getLog(){
-        return instance.ecPluginData.getLog();
+        ECPluginData ecPluginData = instance.ecPluginData;
+        return ecPluginData != null ? ecPluginData.getLog() : ECFallbackLog.get();
     }
 
     private ECPluginData ecPluginData;

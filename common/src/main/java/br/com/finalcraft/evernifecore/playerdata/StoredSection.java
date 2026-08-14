@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchema;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import br.com.finalcraft.everydatabase.manager.CachingManager;
@@ -86,7 +87,7 @@ abstract class StoredSection implements EntitySchema, IDirtyable {
      */
     final void warnIfStaleSchema() {
         if (EntitySchemaMigrations.isBehind(this) && EntitySchemaMigrations.firstStaleWarning(getClass())) {
-            PDLog.severe("{} {} decoded at schema v{} but current is v{} - register migrations"
+            EverNifeCore.getLog().severe("{} {} decoded at schema v{} but current is v{} - register migrations"
                     + " before the section is bound; row NOT migrated.",
                     sectionKind(), getClass().getName(), schemaVersion, EntitySchemaMigrations.currentVersion(getClass()));
         }
@@ -203,7 +204,7 @@ abstract class StoredSection implements EntitySchema, IDirtyable {
             section.warnIfStaleSchema();
         } catch (Throwable migrationFailure) {
             manager.evict(key);
-            PDLog.severe("Schema migration of {} [{}] failed - the half-migrated entity was evicted:",
+            EverNifeCore.getLog().severe("Schema migration of {} [{}] failed - the half-migrated entity was evicted:",
                     section.getClass().getSimpleName(), key);
             migrationFailure.printStackTrace();
             if (migrationFailure instanceof RuntimeException) throw (RuntimeException) migrationFailure;

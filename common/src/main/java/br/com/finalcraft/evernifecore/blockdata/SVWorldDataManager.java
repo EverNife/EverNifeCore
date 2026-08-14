@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.blockdata.storage.WorldChunkDataCodec;
 import br.com.finalcraft.evernifecore.blockdata.storage.legacy.LegacyWorldDataImporter;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
+import br.com.finalcraft.evernifecore.logger.ECLogger;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
@@ -49,8 +50,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.UnaryOperator;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Per-block data ({@code world -> chunk -> block -> O}) on any EveryDatabase backend, write-back: a block
@@ -1009,25 +1008,12 @@ public final class SVWorldDataManager<O> implements AutoCloseable {
      * all of them and leaving it off costs nothing.
      */
     private void logDebug(String message) {
-        try {
-            ECDebugModule.SV_WORLD_DATA.debug(message);
-        } catch (Throwable noPluginRuntime) {
-            //pure JUnit runtime (no core plugin data behind the module): falls back to JUL
-            Logger.getLogger("EverNifeCore").log(Level.FINE, message);
-        }
+        ECDebugModule.SV_WORLD_DATA.debug(message);
     }
 
     private void logSevere(String message, Throwable cause) {
-        if (plugin != null) {
-            plugin.getLog().severe(message, cause);
-            return;
-        }
-        try {
-            EverNifeCore.getLog().severe(message, cause);
-        } catch (Throwable noPluginRuntime) {
-            //pure JUnit runtime (no ECPluginData/log configured): falls back to JUL
-            Logger.getLogger("EverNifeCore").log(Level.SEVERE, message, cause);
-        }
+        ECLogger log = plugin != null ? plugin.getLog() : EverNifeCore.getLog();
+        log.severe(message, cause);
     }
 
     private static <T> CompletableFuture<T> failed(Throwable cause) {

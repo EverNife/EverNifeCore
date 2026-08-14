@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.storage;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.logger.ECLogger;
 import br.com.finalcraft.evernifecore.storage.config.BackendDefinition;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlDefaults;
 import br.com.finalcraft.evernifecore.storage.config.StorageYamlParser;
@@ -22,8 +23,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * A plugin-OWNED storage handle: one live {@link Storage} plus the {@link BackendDefinition} it was
@@ -496,15 +495,7 @@ public final class ECStorage {
     }
 
     private static void logWarning(ECPluginData plugin, String message) {
-        if (plugin != null) {
-            plugin.getLog().warning(message);
-            return;
-        }
-        try {
-            EverNifeCore.getLog().warning(message);
-        } catch (Throwable noPluginRuntime) {
-            //pure JUnit runtime (no ECPluginData/log configured): falls back to JUL
-            Logger.getLogger("EverNifeCore").log(Level.WARNING, message);
-        }
+        ECLogger log = plugin != null ? plugin.getLog() : EverNifeCore.getLog();
+        log.warning(message);
     }
 }

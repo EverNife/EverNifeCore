@@ -21,10 +21,15 @@ public class ECLogger {
     private final ILogAdapter logAdapter;
 
     public ECLogger(ECPluginData plugin) {
-        this.plugin = plugin;
-        this.logAdapter = EverNifeCore.getPlatform().createLogAdapterFor(plugin);
+        this(plugin, EverNifeCore.getPlatform().createLogAdapterFor(plugin));
     }
 
+    ECLogger(ECPluginData plugin, ILogAdapter logAdapter) {
+        this.plugin = plugin;
+        this.logAdapter = logAdapter;
+    }
+
+    /** The plugin this logger speaks for, or {@code null} on {@link ECFallbackLog}, which speaks for none. */
     public ECPluginData getEcPluginData() {
         return plugin;
     }
@@ -42,7 +47,7 @@ public class ECLogger {
     }
 
     public void debug(String message, Object... params) {
-        if (getEcPluginData().isDebugEnabled()) {
+        if (isDebugEnabled()) {
             log(ECLogLevel.DEBUG, "[Debug] " + message, params);
         }
     }
@@ -52,9 +57,14 @@ public class ECLogger {
      * which is why the other verbs have no supplier form: there, {@code get()} would always run.
      */
     public void debug(Supplier<String> supplier) {
-        if (getEcPluginData().isDebugEnabled()) {
+        if (isDebugEnabled()) {
             log(ECLogLevel.DEBUG, "[Debug] " + supplier.get());
         }
+    }
+
+    /** No plugin means no {@code DebugMode} block to ask, so the line goes out and the sink decides. */
+    private boolean isDebugEnabled() {
+        return plugin == null || plugin.isDebugEnabled();
     }
 
     /**

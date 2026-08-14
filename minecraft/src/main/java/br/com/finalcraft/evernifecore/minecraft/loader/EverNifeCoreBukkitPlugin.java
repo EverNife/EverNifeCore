@@ -31,8 +31,6 @@ import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
 import org.bukkit.Bukkit;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Bukkit entry point. It dogfoods the shared {@link ECBukkitPlugin} bridge: the platform-agnostic
@@ -64,9 +62,9 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
             //static of it other code reaches for, EverNifeCoreBukkitPlugin.instance included - unusable
             //for the rest of the JVM's life, with a NoClassDefFoundError that no longer names the cause.
             //A degraded start that says what broke beats a plugin that cannot even report why it did.
-            Logger.getLogger("EverNifeCore").log(Level.SEVERE, "EverNifeCore could not prepare its runtime "
-                    + "dependencies. It will start anyway, and whatever needs a missing library will fail "
-                    + "with NoClassDefFoundError. The cause follows.", e);
+            EverNifeCore.getLog().severe("EverNifeCore could not prepare its runtime dependencies. It will"
+                    + " start anyway, and whatever needs a missing library will fail with"
+                    + " NoClassDefFoundError. The cause follows.", e);
         }
     }
 

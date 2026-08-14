@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
 import br.com.finalcraft.evernifecore.playerdata.storage.PDSectionBinding;
 import br.com.finalcraft.everydatabase.manager.CachingManager;
@@ -128,7 +129,7 @@ final class LifecycleEngine {
             CompletableFuture<Void> stuck = stuckFlush;
             if (stuck != null && !stuck.isDone()) {
                 //never start an overlapping pass; keep telling the admin the pipeline is stalled
-                PDLog.severe("PlayerData flush is STILL stuck (storage hung?) -"
+                EverNifeCore.getLog().severe("PlayerData flush is STILL stuck (storage hung?) -"
                         + " nothing is being persisted until the backend answers!");
                 return;
             }
@@ -142,13 +143,13 @@ final class LifecycleEngine {
                 flush.get(FLUSH_STUCK_AFTER_MS, TimeUnit.MILLISECONDS);
             } catch (TimeoutException stuckNow) {
                 stuckFlush = flush;
-                PDLog.severe("PlayerData flush did not finish within " + (FLUSH_STUCK_AFTER_MS / 1000)
+                EverNifeCore.getLog().severe("PlayerData flush did not finish within " + (FLUSH_STUCK_AFTER_MS / 1000)
                         + "s (storage hung?) - the tick continues and will resume once the stuck pass completes.");
             }
             //one aggregate line per tick instead of one WARN per player during an outage
             int failures = controller.drainWriteFailureCount();
             if (failures > 0) {
-                PDLog.warning("PlayerData flush: " + failures + " write(s) failed this tick (storage"
+                EverNifeCore.getLog().warning("PlayerData flush: " + failures + " write(s) failed this tick (storage"
                         + " down?) - re-marked dirty and retried next tick. Per-key detail is logged at DEBUG.");
             }
             controller.maybeReapOrphans(); //no-op unless enabled and its interval elapsed (async)
@@ -158,7 +159,7 @@ final class LifecycleEngine {
             Thread.currentThread().interrupt();
             return; //stop() interrupted the bounded wait - do not reschedule
         } catch (Throwable e) {
-            PDLog.severe("Failed to flush PlayerData to storage, this is a serious problem:");
+            EverNifeCore.getLog().severe("Failed to flush PlayerData to storage, this is a serious problem:");
             e.printStackTrace();
         } finally {
             scheduleNextTick();
@@ -198,7 +199,7 @@ final class LifecycleEngine {
             //an unexpected failure (not the logged transient re-dirty): treat as an outage too
             stillDirty = isPlayerStillDirty(playerData);
             if (stillDirty) {
-                PDLog.warning("Quit-flush of PlayerData [{}] failed (storage down?) - queued for retry: {}",
+                EverNifeCore.getLog().warning("Quit-flush of PlayerData [{}] failed (storage down?) - queued for retry: {}",
                         uuid, String.valueOf(flushFailure.getMessage()));
             }
         }
@@ -233,7 +234,7 @@ final class LifecycleEngine {
 
     private void enqueueFlushRetry(UUID uuid) {
         if (flushRetryPending.size() >= MAX_RETRY_QUEUE) {
-            PDLog.severe("PlayerData quit-flush retry queue is full ({}) - DROPPING the retry for [{}]."
+            EverNifeCore.getLog().severe("PlayerData quit-flush retry queue is full ({}) - DROPPING the retry for [{}]."
                     + " Storage has been unavailable for too long; investigate the backend.", MAX_RETRY_QUEUE, uuid);
             return;
         }
@@ -242,7 +243,7 @@ final class LifecycleEngine {
             //warn while there is still room to act - the cap-drop above must never be the first signal
             if (flushRetryPending.size() >= RETRY_QUEUE_WARN_THRESHOLD
                     && retryBacklogWarned.compareAndSet(false, true)) {
-                PDLog.warning("PlayerData quit-flush retry backlog reached {} players (storage down?)."
+                EverNifeCore.getLog().warning("PlayerData quit-flush retry backlog reached {} players (storage down?)."
                                 + " Entries start being DROPPED at {} - investigate the backend.",
                         RETRY_QUEUE_WARN_THRESHOLD, MAX_RETRY_QUEUE);
             }
@@ -357,7 +358,7 @@ final class LifecycleEngine {
             try {
                 sweepTarget(target, now);
             } catch (Throwable sweepFailure) {
-                PDLog.warning("Idle sweep of section {{}} failed: {}",
+                EverNifeCore.getLog().warning("Idle sweep of section {{}} failed: {}",
                         target.getSectionClass().getSimpleName(), String.valueOf(sweepFailure.getMessage()));
             }
         }

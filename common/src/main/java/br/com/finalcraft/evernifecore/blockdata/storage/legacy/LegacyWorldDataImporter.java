@@ -17,8 +17,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * One-time importer of the region-YAML files an older block store left on disk into the collection a
@@ -120,9 +118,9 @@ public final class LegacyWorldDataImporter<O> {
             }
             return importedValues;
         } catch (Throwable e) {
-            logWarning("Failed to import the legacy region file [%s]: %s. Whatever chunk of it reached the"
-                            + " backend stays there (a re-run skips those), and the file is archived with the"
-                            + " others - move it back into the legacy folder to try it again.",
+            EverNifeCore.getLog().warning("Failed to import the legacy region file [{}]: {}. Whatever chunk"
+                            + " of it reached the backend stays there (a re-run skips those), and the file is"
+                            + " archived with the others - move it back into the legacy folder to try it again.",
                     regionFile.getAbsolutePath(), e.toString());
             return 0;
         }
@@ -144,7 +142,7 @@ public final class LegacyWorldDataImporter<O> {
                     BlockPos blockPos = BlockPos.deserialize(blockPosSerialized);
                     values.put(blockPos.serialize(), value);
                 } catch (Exception e) {
-                    logWarning("Failed to import block [%s] of chunk [%s] from [%s]: %s",
+                    EverNifeCore.getLog().warning("Failed to import block [{}] of chunk [{}] from [{}]: {}",
                             blockPosSerialized, chunkPosSerialized, regionFile.getName(), e.toString());
                 }
             }
@@ -171,18 +169,8 @@ public final class LegacyWorldDataImporter<O> {
         } catch (IOException e) {
             //never deletes and never aborts: a folder that cannot be moved simply stays in place
             //(the idempotency check skips its already-imported chunks on a future run)
-            logWarning("Failed to archive the legacy block-data folder [%s] into [%s]: %s",
+            EverNifeCore.getLog().warning("Failed to archive the legacy block-data folder [{}] into [{}]: {}",
                     folder.getName(), target.getName(), e.toString());
-        }
-    }
-
-    private static void logWarning(String message, Object... args) {
-        String formatted = args.length == 0 ? message : String.format(message, args);
-        try {
-            EverNifeCore.getLog().warning(formatted);
-        } catch (Throwable noPluginRuntime) {
-            //pure JUnit runtime (no ECPluginData configured): fall back to JUL
-            Logger.getLogger("EverNifeCore").log(Level.WARNING, formatted);
         }
     }
 }

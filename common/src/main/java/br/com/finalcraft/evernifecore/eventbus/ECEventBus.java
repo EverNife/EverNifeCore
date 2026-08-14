@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.eventbus;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.events.base.ECCancellable;
 import br.com.finalcraft.evernifecore.api.events.base.ECEvent;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
@@ -20,8 +21,6 @@ import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
@@ -41,8 +40,6 @@ import java.util.stream.Collectors;
  * never mirrors, so an audience added to it is accepted and never called.</p>
  */
 public class ECEventBus {
-
-    private static final Logger LOGGER = Logger.getLogger("ECEventBus");
 
     private static final ECEventBus GLOBAL = new ECEventBus(true);
 
@@ -183,8 +180,8 @@ public class ECEventBus {
                     }
                 } catch (Throwable t) {
                     //The SPI says an audience swallows its own errors; this is the belt to that suspender.
-                    LOGGER.log(Level.SEVERE, "[ECEventBus] Native audience '" + audience.name() + "' failed on "
-                            + event.getClass().getName() + "; the remaining audiences still run.", t);
+                    EverNifeCore.getLog().severe("[ECEventBus] Native audience '{}' failed on {}; the"
+                            + " remaining audiences still run.", audience.name(), event.getClass().getName(), t);
                 }
             }
         }
@@ -207,8 +204,8 @@ public class ECEventBus {
             try {
                 handler.action.accept(event);
             } catch (Throwable t) {
-                LOGGER.log(Level.SEVERE, "[ECEventBus] Handler " + handler.describe() + " failed on "
-                        + event.getClass().getName() + "; the remaining handlers still run.", t);
+                EverNifeCore.getLog().severe("[ECEventBus] Handler {} failed on {}; the remaining handlers"
+                        + " still run.", handler.describe(), event.getClass().getName(), t);
             }
         }
     }

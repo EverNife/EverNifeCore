@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.testing;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.logger.ECFallbackLog;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -43,8 +44,6 @@ import java.util.logging.Logger;
  */
 public final class Logs {
 
-    private static final String LOGGER_NAME = "EverNifeCore";
-
     private Logs() {
     }
 
@@ -82,7 +81,7 @@ public final class Logs {
         //thread-safe: the write-back flusher, the idle sweep and cache-sync all log from their own
         //threads while the action runs, and a plain ArrayList would drop or corrupt those lines
         List<String> viaLogger = new CopyOnWriteArrayList<String>();
-        Logger logger = Logger.getLogger(LOGGER_NAME);
+        Logger logger = Logger.getLogger(ECFallbackLog.LOGGER_NAME);
         Handler collector = new Handler() {
             @Override
             public void publish(LogRecord record) {
