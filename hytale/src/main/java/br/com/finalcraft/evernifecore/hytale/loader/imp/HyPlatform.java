@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformCha
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.eventbus.ECEventHandler;
+import br.com.finalcraft.evernifecore.eventbus.ECEventPriority;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -198,7 +199,7 @@ public class HyPlatform implements IPlatform {
             JavaPlugin javaPlugin = (JavaPlugin) ecPluginData.getPlugin();
 
             EventRegistration registration = javaPlugin.getEventRegistry().registerGlobal(
-                    annotation.priority().getValue(),
+                    ECEventPriority.of(annotation),
                     eventClass,
                     consumer
             );

@@ -16,4 +16,15 @@ public enum ECEventPriority {
     public short getValue() {
         return this.value;
     }
+
+    /**
+     * The priority a handler asked for: its {@link ECEventHandler#priorityValue()} when it named one,
+     * the {@link ECEventHandler#priority()} step otherwise. Every route that registers an
+     * {@code @ECEventHandler} resolves it through here, so none of them can honour only half of it.
+     */
+    public static short of(ECEventHandler annotation) {
+        return annotation.priorityValue() != -1
+                ? annotation.priorityValue()
+                : annotation.priority().getValue();
+    }
 }

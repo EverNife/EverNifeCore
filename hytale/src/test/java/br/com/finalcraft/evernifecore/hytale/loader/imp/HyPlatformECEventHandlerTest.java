@@ -5,13 +5,16 @@ import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.eventbus.ECEventHandler;
+import br.com.finalcraft.evernifecore.eventbus.ECEventPriority;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import com.hypixel.hytale.event.EventBus;
+import com.hypixel.hytale.event.EventRegistration;
 import com.hypixel.hytale.event.EventRegistry;
+import com.hypixel.hytale.event.IBaseEvent;
 import com.hypixel.hytale.event.IEvent;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
@@ -26,8 +29,11 @@ import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -49,7 +55,7 @@ class HyPlatformECEventHandlerTest {
     Path tempDir;
 
     private ECoreTestWorld platformWorld;
-    private EventBus serverBus;
+    private PriorityRecordingEventBus serverBus;
     private ECPluginData ecPluginData;
     private HyPlatform platform;
     private final List<ECListener> registered = new ArrayList<>();
@@ -59,7 +65,7 @@ class HyPlatformECEventHandlerTest {
         String pluginName = "HyEventHandlerTest";
         platformWorld = Platforms.lenient().install()
                 .withPluginExtractor(Plugins.fake(pluginName, tempDir.toFile()));
-        serverBus = new EventBus(false);
+        serverBus = new PriorityRecordingEventBus();
         ecPluginData = ECPluginManager.getOrCreateECorePluginData(pluginWithRegistryOver(serverBus));
         platform = new HyPlatform();
     }
@@ -87,6 +93,19 @@ class HyPlatformECEventHandlerTest {
                 "an ECEvent is a Hytale event too, and registering it here as well would deliver it "
                         + "twice: once from the bus, once from the mirror that bus feeds");
         assertTrue(HyPlatform.MAP_OF_ECLISTENERS.containsKey(listener));
+    }
+
+    @Test
+    void theServerIsToldThePriorityTheHandlerAskedFor() {
+        PrioritisedListener listener = new PrioritisedListener();
+
+        platform.registerECListener(ecPluginData, listener);
+        registered.add(listener);
+
+        assertEquals((short) -30000, serverBus.globalPriorities.get(NativeHytaleEvent.class),
+                "a handler that names a priorityValue is registered with it, not with the NORMAL default");
+        assertEquals(ECEventPriority.LATE.getValue(), serverBus.globalPriorities.get(AnotherNativeHytaleEvent.class),
+                "and one that names only the enum step is registered with that step");
     }
 
     @Test
@@ -126,8 +145,29 @@ class HyPlatformECEventHandlerTest {
         }
     }
 
+    /** The real bus, plus a note of the priority each global registration asked for. */
+    private static final class PriorityRecordingEventBus extends EventBus {
+
+        final Map<Class<?>, Short> globalPriorities = new HashMap<>();
+
+        PriorityRecordingEventBus() {
+            super(false);
+        }
+
+        @Override
+        public <KeyType, EventType extends IBaseEvent<KeyType>> EventRegistration<KeyType, EventType> registerGlobal(
+                short priority, Class<? super EventType> eventClass, Consumer<EventType> consumer) {
+            globalPriorities.put(eventClass, priority);
+            return super.registerGlobal(priority, eventClass, consumer);
+        }
+    }
+
     /** A Hytale event and nothing else - the only parameter this platform registers. */
     public static class NativeHytaleEvent implements IEvent<Void> {
+    }
+
+    /** A second one, so two handlers of the same listener can be told apart by event class. */
+    public static class AnotherNativeHytaleEvent implements IEvent<Void> {
     }
 
     /** Platform-visible: a Hytale event AND an IECEvent, the parameter both routes could claim. */
@@ -154,6 +194,16 @@ class HyPlatformECEventHandlerTest {
         @ECEventHandler
         public void onLocalOnly(LocalOnlyEvent event) {
             heard.add("local-only");
+        }
+    }
+
+    public static class PrioritisedListener implements ECListener {
+        @ECEventHandler(priorityValue = -30000)
+        public void onExplicitPriority(NativeHytaleEvent event) {
+        }
+
+        @ECEventHandler(priority = ECEventPriority.LATE)
+        public void onStepPriority(AnotherNativeHytaleEvent event) {
         }
     }
 

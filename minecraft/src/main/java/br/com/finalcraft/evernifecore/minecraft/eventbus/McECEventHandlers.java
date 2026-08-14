@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.eventbus;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventHandler;
+import br.com.finalcraft.evernifecore.eventbus.ECEventPriority;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import br.com.finalcraft.everylibs.reflection.MethodInvoker;
@@ -79,9 +80,6 @@ public final class McECEventHandlers {
             }
 
             ECEventHandler annotation = method.getAnnotation(ECEventHandler.class);
-            short priority = annotation.priorityValue() != -1
-                    ? annotation.priorityValue()
-                    : annotation.priority().getValue();
             Class<? extends Event> eventType = parameterType.asSubclass(Event.class);
 
             EventExecutor executor = (ignoredListener, event) -> {
@@ -93,8 +91,8 @@ public final class McECEventHandlers {
                 invoker.invoke(listener, event);
             };
 
-            pluginManager.registerEvent(eventType, listener, toBukkitPriority(priority), executor,
-                    pluginInstance, annotation.ignoreCancelled());
+            pluginManager.registerEvent(eventType, listener, toBukkitPriority(ECEventPriority.of(annotation)),
+                    executor, pluginInstance, annotation.ignoreCancelled());
         }
 
         if (foundAnyError) {

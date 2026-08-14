@@ -137,9 +137,7 @@ public class ECEventBus {
             }
 
             ECEventHandler annotation = method.getAnnotation(ECEventHandler.class);
-            short priority = annotation.priorityValue() != -1
-                    ? annotation.priorityValue()
-                    : annotation.priority().getValue();
+            short priority = ECEventPriority.of(annotation);
 
             toAdd.add(new Handler(parameterTypes[0], listener, null, priority, annotation.ignoreCancelled(),
                     event -> invoker.invoke(listener, event)));
