@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
+import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.eventbus.ECEventHandler;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
@@ -168,8 +169,14 @@ public class HyPlatform implements IPlatform {
                 continue;
             }
 
+            if (IECEvent.class.isAssignableFrom(parameterTypes[0])) {
+                //Asked BEFORE the Hytale type, because an ECEvent is both: registering it here as well
+                //would deliver it twice, once from the bus and once from the mirror the bus feeds.
+                continue;
+            }
+
             if (!IEvent.class.isAssignableFrom(parameterTypes[0])) {
-                ecPluginData.getLog().severe(String.format("[ECListener] @ECEventHandler(%s#%s) | The parameter %s is not assignable to IEvent", listener.getClass().getSimpleName(), methodListener.getMethod().getName(), parameterTypes[0].getSimpleName()));
+                ecPluginData.getLog().severe(String.format("[ECListener] @ECEventHandler(%s#%s) | The parameter %s is neither an IECEvent nor a Hytale IEvent. A handler parameter has to be one of the two: an IECEvent is delivered by the EverNifeCore bus, a Hytale event by the server.", listener.getClass().getSimpleName(), methodListener.getMethod().getName(), parameterTypes[0].getName()));
                 foundAnyError = true;
                 continue;
             }

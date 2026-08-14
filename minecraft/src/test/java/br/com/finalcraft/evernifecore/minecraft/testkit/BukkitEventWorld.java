@@ -6,7 +6,9 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
+import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.eventbus.McBukkitAudience;
+import br.com.finalcraft.evernifecore.minecraft.loader.imp.McPlatform;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.Plugins;
@@ -14,19 +16,27 @@ import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.event.Event;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
+import org.bukkit.plugin.PluginLoader;
 import org.bukkit.plugin.PluginManager;
+import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.SimplePluginManager;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -65,9 +75,11 @@ public final class BukkitEventWorld implements AutoCloseable {
     private final ECoreTestWorld platformWorld;
     private final Server previousServer;
     private final Plugin plugin;
+    private final ECPluginData ecPluginData;
     private final SimplePluginManager pluginManager;
     private final McBukkitAudience audience = new McBukkitAudience();
     private final List<ECEventSubscription<?>> subscriptions = new ArrayList<>();
+    private final List<ECListener> ecListeners = new ArrayList<>();
 
     private boolean closed = false;
 
@@ -76,12 +88,13 @@ public final class BukkitEventWorld implements AutoCloseable {
         this.platformWorld = Platforms.lenient().install()
                 .withPluginExtractor(Plugins.fake(pluginName, dataFolder.toFile()));
 
-        //EverNifeCore.getLog() is what the audience reports a refused post through, and only the real
-        //bootstrap ever sets it
-        ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(new Object());
+        this.plugin = buildPlugin();
+        //the plugin data wraps the Bukkit plugin itself, which is what the platform casts it back to
+        //when it registers a listener. EverNifeCore.getLog() comes with it, and only the real
+        //bootstrap ever sets that.
+        this.ecPluginData = ECPluginManager.getOrCreateECorePluginData(plugin);
         EverNifeCore.instance.onLoaderInstantiate(ecPluginData);
 
-        this.plugin = buildPlugin();
         AtomicReference<PluginManager> manager = new AtomicReference<>();
         this.previousServer = Bukkit.getServer();
         setBukkitServer(buildServer(manager));
@@ -111,8 +124,26 @@ public final class BukkitEventWorld implements AutoCloseable {
         return plugin;
     }
 
+    /** That same plugin as the core knows it - what a platform call takes. */
+    public ECPluginData getPluginData() {
+        return ecPluginData;
+    }
+
     public PluginManager getPluginManager() {
         return pluginManager;
+    }
+
+    /**
+     * Registers {@code listener} the way {@code ECListener.register} does: the platform first - which
+     * is Bukkit's own {@code @EventHandler} scan plus the programmatic {@code @ECEventHandler} route -
+     * and then the event bus, which takes the handlers naming an {@code IECEvent}.
+     *
+     * <p>Whatever the platform refuses is rethrown, so a test can be about the refusal.</p>
+     */
+    public void registerECListener(ECListener listener) {
+        new McPlatform().registerECListener(ecPluginData, listener);
+        ECEventBus.global().register(listener);
+        ecListeners.add(listener);
     }
 
     /** The installed platform double, for the assertions a test makes on what was logged. */
@@ -192,12 +223,46 @@ public final class BukkitEventWorld implements AutoCloseable {
     private Plugin buildPlugin() {
         //getDescription is what the plugin manager names in the log when a listener throws
         PluginDescriptionFile description = new PluginDescriptionFile(pluginName, "1.0.0", pluginName);
+        PluginLoader loader = Doubles.of(PluginLoader.class)
+                .on("createRegisteredListeners", args -> scanEventHandlers((Listener) args[0], (Plugin) args[1]))
+                .build();
         return Doubles.of(Plugin.class)
                 .on("isEnabled", args -> Boolean.TRUE)
                 .on("getName", args -> pluginName)
                 .on("getDescription", args -> description)
+                .on("getPluginLoader", args -> loader)
                 .on("getLogger", args -> Logger.getLogger(pluginName))
                 .build();
+    }
+
+    /**
+     * What a server's plugin loader hands {@code registerEvents}: one registration per public
+     * {@code @EventHandler} method, over an executor that filters by the parameter type.
+     */
+    private static Map<Class<? extends Event>, Set<RegisteredListener>> scanEventHandlers(Listener listener, Plugin plugin) {
+        Map<Class<? extends Event>, Set<RegisteredListener>> found = new HashMap<>();
+        for (Method method : listener.getClass().getMethods()) {
+            EventHandler annotation = method.getAnnotation(EventHandler.class);
+            if (annotation == null || method.getParameterCount() != 1
+                    || !Event.class.isAssignableFrom(method.getParameterTypes()[0])) {
+                continue;
+            }
+            Class<? extends Event> eventType = method.getParameterTypes()[0].asSubclass(Event.class);
+            EventExecutor executor = (ignoredListener, event) -> {
+                if (!eventType.isInstance(event)) {
+                    return;
+                }
+                try {
+                    method.invoke(listener, event);
+                } catch (ReflectiveOperationException e) {
+                    throw new IllegalStateException("The @EventHandler " + method + " could not be called", e);
+                }
+            };
+            found.computeIfAbsent(eventType, key -> new LinkedHashSet<>())
+                    .add(new RegisteredListener(listener, executor, annotation.priority(), plugin,
+                            annotation.ignoreCancelled()));
+        }
+        return found;
     }
 
     private static void setBukkitServer(Server server) {
@@ -221,6 +286,9 @@ public final class BukkitEventWorld implements AutoCloseable {
         ECEventBus.global().removeNativeAudience(McBukkitAudience.NAME);
         for (ECEventSubscription<?> subscription : subscriptions) {
             subscription.unsubscribe();
+        }
+        for (ECListener listener : ecListeners) {
+            ECEventBus.global().unregister(listener);
         }
         //the EC events share ONE HandlerList for the whole JVM: a registration left behind would keep
         //answering in the next test class, and the audience's gate would read it as "someone listens"

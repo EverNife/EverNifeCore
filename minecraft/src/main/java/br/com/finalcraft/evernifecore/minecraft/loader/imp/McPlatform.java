@@ -16,6 +16,7 @@ import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.MinecraftArgParsers;
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.implementation.McFinalCMDPluginCommand;
+import br.com.finalcraft.evernifecore.minecraft.eventbus.McECEventHandlers;
 import br.com.finalcraft.evernifecore.minecraft.integration.placeholders.McPAPIIntegration;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
@@ -165,7 +166,10 @@ public class McPlatform implements IPlatform {
     @Override
     public void registerECListener(ECPluginData ecPluginData, ECListener listener) {
         Plugin pluginInstance = (Plugin) ecPluginData.getPlugin();
+        //Bukkit's own scan, which is what an @EventHandler method has always been registered by
         Bukkit.getServer().getPluginManager().registerEvents(listener, pluginInstance);
+        //and then the @ECEventHandler methods naming a Bukkit event, which that scan cannot see
+        McECEventHandlers.register(ecPluginData, listener);
     }
 
     @Override
