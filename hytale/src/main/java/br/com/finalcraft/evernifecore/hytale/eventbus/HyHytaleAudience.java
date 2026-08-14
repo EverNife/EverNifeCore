@@ -14,6 +14,13 @@ import java.util.function.Supplier;
 /**
  * The Hytale server as an audience of the event bus. An {@link ECEvent} IS a Hytale event here, so a
  * plugin's own {@code registerGlobal} consumer hears it once the bus mirrors it.
+ *
+ * <p><b>Never exercised against a running server.</b> Everything below is proven by compilation and
+ * by unit tests over a stubbed {@link IEventBus} only: there is no ECS rig to host a real Hytale
+ * server, and the one smoke test on a live server was Minecraft-only. Treat a failure here as
+ * unexplored ground rather than a regression - what a real server does with a mirrored event, and
+ * whether {@link HytaleServer#get()} is even resolvable at the moment the audience first dispatches,
+ * has not been observed.</p>
  */
 public class HyHytaleAudience implements ECNativeAudience {
 
