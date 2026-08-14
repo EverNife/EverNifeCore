@@ -152,6 +152,7 @@ configure([project(':minecraft:modules:v1_7_10'),
 }
 
 apply from: 'tools/linkcheck.gradle'
+apply from: 'tools/testcount.gradle'
 // Both, and for different reasons: `check` is what fails a build, and shadowJar is what a deploy
 // actually runs - the deployable must never come out of this build unverified.
 project(':minecraft').tasks.named('check') { dependsOn rootProject.tasks.named('checkLinkage') }

@@ -1,0 +1,121 @@
+// ======================================================================
+//  countTests - the test total together with the scope that produced it
+//
+//  This build has more than one test task, and a total quoted without saying which of them it
+//  covers is not a fact about the suite - it is a fact about whatever somebody happened to run.
+//  ':common:test :minecraft:test' and 'every module' differ by dozens of tests, so comparing one
+//  number against the other reads as a regression that never happened. That has already cost a
+//  wrong verdict, and it will keep costing it, because whoever quotes the number is usually the
+//  one who never saw the list of tasks.
+//
+//  So the number does not leave here unlabelled: one line per task, the task path on it, and the
+//  total footed with how many tasks it summed. The set is discovered instead of listed, so a new
+//  module joins the count the day it has tests; a Test task that is deliberately not part of the
+//  suite (:common:knownBugs, whose failures are the point) is named as excluded rather than
+//  silently dropped, and a module with no test sources is named too, so 'absent' never has to be
+//  told apart from 'forgotten' by guessing.
+//
+//  The counts are read out of the JUnit XML the tasks just wrote, never off the console: the
+//  console line is a formatting choice, and a grep over it is a guess.
+// ======================================================================
+
+import groovy.xml.XmlSlurper
+
+/** Every Test task in the build, in path order. Called late - by then all projects are evaluated. */
+ext.allTestTasks = { ->
+    return rootProject.allprojects.collectMany { it.tasks.withType(Test).toList() }.sort { it.path }
+}
+
+/** The suite is each module's own `test`; anything else is a Test task with a separate purpose. */
+ext.isSuiteTestTask = { Test task -> task.name == 'test' }
+
+/** No compiled test class means the task had nothing to run, so it wrote no report and owes none. */
+ext.hasTestClasses = { Test task ->
+    return task.testClassesDirs.files.any { File dir ->
+        if (!dir.isDirectory()) return false
+        boolean found = false
+        dir.eachFileRecurse { File file -> if (file.name.endsWith('.class')) found = true }
+        return found
+    }
+}
+
+tasks.register('countTests') {
+    group = 'verification'
+    description = 'Runs every module test task and reports the totals with the task each one came from.'
+
+    dependsOn { rootProject.ext.allTestTasks().findAll { rootProject.ext.isSuiteTestTask(it) } }
+
+    // The number has to describe THIS run. An up-to-date check would let it be served from a
+    // previous one, which is the whole failure this task exists to prevent.
+    outputs.upToDateWhen { false }
+
+    doLast {
+        List<Test> all = rootProject.ext.allTestTasks()
+        List<Test> suite = all.findAll { rootProject.ext.isSuiteTestTask(it) }
+        List<Test> otherPurpose = all - suite
+        List<Test> empty = suite.findAll { !rootProject.ext.hasTestClasses(it) }
+        List<Test> counted = suite - empty
+
+        if (counted.isEmpty()) {
+            throw new GradleException("countTests found no test task with a single compiled test class."
+                    + " Either every module lost its test source set, or this ran before the projects"
+                    + " were evaluated - in which case it counted nothing and would report it as zero.")
+        }
+
+        def parser = new XmlSlurper()
+        def attribute = { suiteXml, String name ->
+            String raw = suiteXml."@${name}".toString()
+            return raw.isEmpty() ? 0 : raw.toInteger()
+        }
+
+        int totalTests = 0, totalFailed = 0, totalSkipped = 0
+        List<String> rows = []
+
+        counted.each { Test task ->
+            File reportDir = task.reports.junitXml.outputLocation.get().asFile
+            File[] reports = reportDir.listFiles({ File file -> file.name.endsWith('.xml') } as FileFilter)
+            if (reports == null || reports.length == 0) {
+                throw new GradleException("${task.path} has compiled test classes but wrote no JUnit XML"
+                        + " under ${reportDir}, so countTests cannot say what it ran. Re-run as"
+                        + " './gradlew countTests --rerun-tasks': without it Gradle can report the test"
+                        + " task UP-TO-DATE and never write the reports this reads.")
+            }
+
+            int tests = 0, failed = 0, skipped = 0
+            reports.each { File report ->
+                def suiteXml = parser.parse(report)
+                tests += attribute(suiteXml, 'tests')
+                failed += attribute(suiteXml, 'failures') + attribute(suiteXml, 'errors')
+                skipped += attribute(suiteXml, 'skipped')
+            }
+
+            totalTests += tests
+            totalFailed += failed
+            totalSkipped += skipped
+            rows << String.format('  %-22s %6d tests %5d failed %5d skipped', task.path, tests, failed, skipped)
+        }
+
+        String newLine = System.lineSeparator()
+        StringBuilder out = new StringBuilder(newLine)
+        out.append('Test totals - the count and the scope that produced it:').append(newLine)
+        rows.each { out.append(it).append(newLine) }
+        out.append('  ').append('-' * 56).append(newLine)
+        out.append(String.format('  %-22s %6d tests %5d failed %5d skipped',
+                "TOTAL of ${counted.size()} test tasks", totalTests, totalFailed, totalSkipped)).append(newLine)
+
+        if (!empty.isEmpty()) {
+            out.append(newLine).append('No test sources, so nothing to count: ')
+                    .append(empty*.path.join(', ')).append(newLine)
+        }
+        if (!otherPurpose.isEmpty()) {
+            out.append(newLine).append('Out of the suite on purpose - Test tasks with a job of their own:').append(newLine)
+            otherPurpose.each { out.append("  ${it.path} - ${it.description ?: 'no description'}").append(newLine) }
+        }
+
+        out.append(newLine)
+        out.append('Quote the total only with the task list above it: on its own the number says nothing').append(newLine)
+        out.append('about which tasks it summed, and a partial run then reads as a regression.')
+
+        logger.lifecycle(out.toString())
+    }
+}
