@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.eventbus;
 
 import br.com.finalcraft.evernifecore.api.events.base.ECEvent;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
+import br.com.finalcraft.evernifecore.testing.RecordingAudience;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -42,7 +43,7 @@ class ECEventBusAudienceTest {
     @Test
     void aScopedBusNeverCallsItsAudience() {
         ECEventBus bus = ECEventBus.create();
-        RecordingAudience audience = new RecordingAudience("recording");
+        RecordingAudience audience = new RecordingAudience();
         bus.addNativeAudience(audience);
         List<String> local = new ArrayList<>();
         bus.subscribe(SampleEvent.class, event -> local.add("local"));
@@ -50,14 +51,14 @@ class ECEventBusAudienceTest {
         bus.post(new SampleEvent());
 
         assertEquals(Collections.singletonList("local"), local, "the local phase still runs");
-        assertTrue(audience.dispatched.isEmpty(), "a bus from create() must never mirror");
-        assertEquals(0, audience.gateChecks, "a scoped bus must not even ask the audience");
+        assertTrue(audience.getDispatched().isEmpty(), "a bus from create() must never mirror");
+        assertEquals(0, audience.getGateChecks(), "a scoped bus must not even ask the audience");
     }
 
     @Test
     void postLocalNeverCallsTheAudience() {
-        ECEventBus bus = mirroringBus();
-        RecordingAudience audience = new RecordingAudience("recording");
+        ECEventBus bus = EventBuses.mirroring();
+        RecordingAudience audience = new RecordingAudience();
         bus.addNativeAudience(audience);
         List<String> local = new ArrayList<>();
         bus.subscribe(SampleEvent.class, event -> local.add("local"));
@@ -65,14 +66,14 @@ class ECEventBusAudienceTest {
         bus.postLocal(new SampleEvent());
 
         assertEquals(Collections.singletonList("local"), local);
-        assertTrue(audience.dispatched.isEmpty(), "postLocal() is the escape from the mirror");
-        assertEquals(0, audience.gateChecks);
+        assertTrue(audience.getDispatched().isEmpty(), "postLocal() is the escape from the mirror");
+        assertEquals(0, audience.getGateChecks());
     }
 
     @Test
     void anEventThatIsNotAnECEventNeverReachesAnAudience() {
-        ECEventBus bus = mirroringBus();
-        RecordingAudience audience = new RecordingAudience("recording");
+        ECEventBus bus = EventBuses.mirroring();
+        RecordingAudience audience = new RecordingAudience();
         bus.addNativeAudience(audience);
         List<String> local = new ArrayList<>();
         bus.subscribe(LocalOnlyEvent.class, event -> local.add("local"));
@@ -80,15 +81,15 @@ class ECEventBusAudienceTest {
         bus.post(new LocalOnlyEvent());
 
         assertEquals(Collections.singletonList("local"), local, "the local phase still runs");
-        assertEquals(0, audience.gateChecks, "the hierarchy decides: no ECEvent, no mirror at all");
-        assertTrue(audience.dispatched.isEmpty());
+        assertEquals(0, audience.getGateChecks(), "the hierarchy decides: no ECEvent, no mirror at all");
+        assertTrue(audience.getDispatched().isEmpty());
     }
 
     @Test
     void theLocalPhaseRunsBeforeTheAudience() {
-        ECEventBus bus = mirroringBus();
+        ECEventBus bus = EventBuses.mirroring();
         List<String> order = new ArrayList<>();
-        bus.addNativeAudience(new RecordingAudience("recording") {
+        bus.addNativeAudience(new RecordingAudience() {
             @Override
             public void dispatch(IECEvent event) {
                 order.add("audience");
@@ -103,33 +104,33 @@ class ECEventBusAudienceTest {
 
     @Test
     void theSameInstanceIsMirrored() {
-        ECEventBus bus = mirroringBus();
-        RecordingAudience audience = new RecordingAudience("recording");
+        ECEventBus bus = EventBuses.mirroring();
+        RecordingAudience audience = new RecordingAudience();
         bus.addNativeAudience(audience);
 
         SampleEvent event = new SampleEvent();
         bus.post(event);
 
-        assertEquals(1, audience.dispatched.size());
-        assertSame(event, audience.dispatched.get(0));
+        assertEquals(1, audience.getDispatched().size());
+        assertSame(event, audience.getDispatched().get(0));
     }
 
     @Test
     void anAudienceWithoutListenersIsNotDispatchedTo() {
-        ECEventBus bus = mirroringBus();
-        RecordingAudience audience = new RecordingAudience("recording");
-        audience.hasListeners = false;
+        ECEventBus bus = EventBuses.mirroring();
+        RecordingAudience audience = new RecordingAudience();
+        audience.setHasListeners(false);
         bus.addNativeAudience(audience);
 
         bus.post(new SampleEvent());
 
-        assertEquals(1, audience.gateChecks, "the gate is asked once per post");
-        assertTrue(audience.dispatched.isEmpty(), "a closed gate must skip dispatch() entirely");
+        assertEquals(1, audience.getGateChecks(), "the gate is asked once per post");
+        assertTrue(audience.getDispatched().isEmpty(), "a closed gate must skip dispatch() entirely");
     }
 
     @Test
     void anAudienceThatThrowsDoesNotReachTheProducer() {
-        ECEventBus bus = mirroringBus();
+        ECEventBus bus = EventBuses.mirroring();
         bus.addNativeAudience(new RecordingAudience("broken") {
             @Override
             public void dispatch(IECEvent event) {
@@ -141,12 +142,12 @@ class ECEventBusAudienceTest {
 
         SampleEvent event = new SampleEvent();
         assertSame(event, bus.post(event), "post() returns normally even when an audience blows up");
-        assertEquals(1, after.dispatched.size(), "the audiences behind the broken one still run");
+        assertEquals(1, after.getDispatched().size(), "the audiences behind the broken one still run");
     }
 
     @Test
     void audiencesAreCalledInRegistrationOrder() {
-        ECEventBus bus = mirroringBus();
+        ECEventBus bus = EventBuses.mirroring();
         List<String> order = new ArrayList<>();
         bus.addNativeAudience(new OrderRecordingAudience("bukkit", order));
         bus.addNativeAudience(new OrderRecordingAudience("hytale", order));
@@ -161,7 +162,7 @@ class ECEventBusAudienceTest {
 
     @Test
     void readdingAnAudienceReplacesTheOneAnsweringToTheSameName() {
-        ECEventBus bus = mirroringBus();
+        ECEventBus bus = EventBuses.mirroring();
         RecordingAudience first = new RecordingAudience("bukkit");
         RecordingAudience replacement = new RecordingAudience("bukkit");
         bus.addNativeAudience(first);
@@ -170,13 +171,13 @@ class ECEventBusAudienceTest {
         bus.post(new SampleEvent());
 
         assertEquals(1, bus.getNativeAudiences().size(), "re-registering must not add a second copy");
-        assertTrue(first.dispatched.isEmpty(), "the replaced audience is gone");
-        assertEquals(1, replacement.dispatched.size());
+        assertTrue(first.getDispatched().isEmpty(), "the replaced audience is gone");
+        assertEquals(1, replacement.getDispatched().size());
     }
 
     @Test
     void removingAnAudienceStopsTheMirroring() {
-        ECEventBus bus = mirroringBus();
+        ECEventBus bus = EventBuses.mirroring();
         RecordingAudience audience = new RecordingAudience("bukkit");
         bus.addNativeAudience(audience);
 
@@ -184,17 +185,12 @@ class ECEventBusAudienceTest {
         bus.post(new SampleEvent());
 
         assertTrue(bus.getNativeAudiences().isEmpty());
-        assertTrue(audience.dispatched.isEmpty());
+        assertTrue(audience.getDispatched().isEmpty());
     }
 
     // ------------------------------------------------------------------
     //  fixtures
     // ------------------------------------------------------------------
-
-    /** A bus that mirrors without being the global one, so a test never mutates process-wide state. */
-    private static ECEventBus mirroringBus() {
-        return new ECEventBus(true);
-    }
 
     /** Platform-visible: extending ECEvent is what makes an event reach an audience at all. */
     static class SampleEvent extends ECEvent implements IECEvent {
@@ -204,33 +200,7 @@ class ECEventBusAudienceTest {
     static class LocalOnlyEvent implements IECEvent {
     }
 
-    static class RecordingAudience implements ECNativeAudience {
-        final List<IECEvent> dispatched = new ArrayList<>();
-        final String name;
-        boolean hasListeners = true;
-        int gateChecks = 0;
-
-        RecordingAudience(String name) {
-            this.name = name;
-        }
-
-        @Override
-        public String name() {
-            return name;
-        }
-
-        @Override
-        public boolean hasListeners(IECEvent event) {
-            gateChecks++;
-            return hasListeners;
-        }
-
-        @Override
-        public void dispatch(IECEvent event) {
-            dispatched.add(event);
-        }
-    }
-
+    /** A recorder that also writes its name into a list shared with the other audiences. */
     static final class OrderRecordingAudience extends RecordingAudience {
         private final List<String> order;
 
