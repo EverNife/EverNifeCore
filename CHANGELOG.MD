@@ -13,6 +13,91 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.36] - 2026-08-14
+
+The logging stack, rebuilt: a message format that cannot throw, one door for modular logging, and a
+logger that answers before the server does.
+
+### Added
+
+- **`ECLogFormat`, `{}` messages that never throw.** Placeholders are filled left to right and every
+  way the call could fail has a defined output instead of an exception: a placeholder with no
+  argument stays literal, surplus arguments are appended in brackets, `\{}` escapes, an array renders
+  its contents, and a `toString()` that throws becomes `<toString failed: FQCN>`. **A `Throwable` in
+  the last position that no placeholder consumed has its stack trace appended, at any level** - which
+  is why no `severe(String, Throwable)` overload is needed anywhere. The formatter is shared by the
+  console logger and the file logger.
+- **`ECLogLevel` on the log SPI.** `ILogAdapter` is now one method, `log(ECLogLevel, String)`:
+  `common` names the four severities itself instead of imposing `java.util.logging` on every platform
+  that implements the SPI, and mapping them onto the server's own logger is the adapter's whole job.
+  Both platform adapters map `DEBUG` onto `INFO`, because those consoles filter everything below it.
+- **`ECFallbackLog`, so `EverNifeCore.getLog()` always answers.** With no plugin data plugged in - a
+  static initializer that beat the bootstrap, a plugin that reached the core first, a bare JUnit run -
+  the call returns a logger publishing to the JUL logger named by `ECFallbackLog.LOGGER_NAME`, which
+  is where an operator points a `logging.properties` handler. It needs no platform and no config.
+- **Platform gating for debug modules.** `IDebugModule.isAvailable(IPlatform)` plus the new
+  `PlatformId` constants: a module the running platform does not have is never seeded into
+  `config.yml`, cannot log even when the file says its switch is on, and a key inherited from another
+  platform is **removed from the file** by the next read - on its own, with nothing else pending.
+- **`ECPluginData.loadDebugConfig()`, an explicit read of the `DebugMode` block.** The enable runs it
+  before the first hook, so the whole enable already logs under the switches the file asks for, and
+  the reload runs it up front, so the reload's own debug lines obey the edited file. It always
+  re-reads and writes back only when it completed the file. Afterwards a query answers from memory and
+  touches no disk; a query that somehow arrives first still triggers exactly one read however many
+  threads race it.
+- **A builder for `FCFileLogger`, and a roll on open.** `of(File)` / `of(File, String)` /
+  `of(ECPluginData, String)` open a builder carrying `withTimestamps([pattern])` and
+  `rollOnOpen([pattern])`; nothing touches the disk until `build()`. The roll archives the file
+  already at the target the way a server treats `latest.log`, and never overwrites: a pattern that
+  resolves onto an existing name is counted up, counter before the extension. Also `isOpen()` and
+  `getFile()`.
+- **A file logger opened from a plugin is closed by that plugin's shutdown**, after the last teardown
+  hook - so a plugin still writes its closing lines during its own teardown, and one handle that
+  refuses to close does not keep the others open. The two ownerless ports stay the caller's business.
+- **An identity cache for plugin data.** `ECPluginManager` answers a known plugin object from an
+  `IdentityHashMap` consulted before it validates or names anything, so a log call from a hot path no
+  longer pays for a platform round trip. `IECPluginBootstrap.clearCachedPluginData()` is the
+  bookkeeping that keeps the shortcut from outliving the registry entry.
+
+### Changed
+
+- **Log messages are `{}`, not printf.** `ECLogger` formatted with `String.format`, so a stray `%` in
+  a message ended the call with `UnknownFormatConversionException` - a log line that became the
+  incident. Nothing throws now, and a `%` is ordinary text.
+- **Modular logging has one door.** The ten `*Module` methods of `ECLogger` are gone; a module logs
+  through itself - `MyDebug.ARENA.debug(...)` / `.info(...)` / `.warning(...)` / `.severe(...)`.
+  `ECLogger` and `IDebugModule` both lost their type parameter, so no call site carries `ECLogger<?>`
+  any more. `debug` is the only verb the switch gates; the other three tag the line with the module
+  name and always log.
+- **`ECPluginManager.getECPluginsMap()` returns an immutable snapshot** (`Map`, was a live
+  `HashMap`). The live map was a second exit from the registry, and removing a plugin through it
+  would leave the identity cache answering for a plugin that no longer exists. Removal goes through
+  `removePluginData(...)`.
+
+### Removed
+
+- **`ECLogger.severe(String, Throwable)`**, made unnecessary by the trailing-throwable rule. The call
+  site is unchanged - it now resolves to the varargs verb - and the trace still lands next to the
+  message it is about.
+- **`info(Supplier)` / `warning(Supplier)` / `severe(Supplier)`**, on both `ECLogger` and
+  `IDebugModule`. Nothing gates them, so the `get()` always ran: a supplier there bought laziness that
+  did not exist. `debug(Supplier<String>)` stays, on both, because that one is gated.
+- **`PDLog`**, and every private `Logger.getLogger("EverNifeCore")` behind it - thirteen files' worth
+  of emergency loggers written because `getLog()` could throw. It cannot any more.
+- **`FCFileLogger`'s public constructor and `getPs()`.** The `PrintStream` was a second way to write
+  into a file the logger was already flushing per line; the constructor is the builder's now.
+- **`ECPluginData.setDebugEnabled(Boolean)`.** The boxed form existed so `null` could mean "forget
+  what you read"; that meaning is `loadDebugConfig()` now, and keeping both would have left
+  `setDebugEnabled(null)` as a side door back into the unloaded state. The primitive stays as the
+  hook for tests and tooling.
+
+### Fixed
+
+- **An escaped placeholder read the same way with and without arguments.** A fast path for the
+  argument-less call skipped the scanner, and the scanner is what consumes an escape - so
+  `format("a \{} b")` leaked its backslash into the log line while `format("a \{} b", "x")` did not.
+  The shortcut now fires only where neither a placeholder nor an escape can exist.
+
 ## [3.0.1-alpha.35] - 2026-08-12
 
 A section a query materialized answers for itself, and an account can list the identities it holds.

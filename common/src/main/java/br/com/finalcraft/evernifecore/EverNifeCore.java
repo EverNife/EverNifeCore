@@ -55,8 +55,8 @@ public class EverNifeCore {
     }
 
     public void onLoadPre() {
-        //The start/enabled banners are the bootstrap orchestrator's job (runECPluginEnable); this
-        //is only the shared wiring both platforms run.
+        //The enabled banner is the bootstrap orchestrator's job (runECPluginEnable); this is only
+        //the shared wiring both platforms run.
         getLog().info("§aLoading up Configurations...");
         ConfigManager.initialize(getEcPluginData());
 
