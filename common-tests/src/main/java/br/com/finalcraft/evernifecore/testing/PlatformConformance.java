@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.testing;
 
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.api.common.providers.platform.PlatformId;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.version.FCPlatformType;
@@ -42,11 +43,11 @@ public final class PlatformConformance {
             if (providerId.trim().isEmpty()) {
                 failures.add("getPlatformProviderId is blank - it is persisted inside account rows and must be stable");
             }
-            if ("minecraft".equals(providerId) && !FCPlatformType.isMinecraft()) {
+            if (PlatformId.MINECRAFT.equals(providerId) && !FCPlatformType.isMinecraft()) {
                 failures.add("platform says 'minecraft' but the classpath probe detected "
                         + FCPlatformType.getCurrent().getName() + " - one of the two is lying");
             }
-            if ("hytale".equals(providerId) && !FCPlatformType.isHytale()) {
+            if (PlatformId.HYTALE.equals(providerId) && !FCPlatformType.isHytale()) {
                 failures.add("platform says 'hytale' but the classpath probe detected "
                         + FCPlatformType.getCurrent().getName() + " - one of the two is lying");
             }

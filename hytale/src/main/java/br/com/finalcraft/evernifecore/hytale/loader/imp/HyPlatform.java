@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
+import br.com.finalcraft.evernifecore.api.common.providers.platform.PlatformId;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.eventbus.ECEventHandler;
 import br.com.finalcraft.evernifecore.eventbus.ECEventPriority;
@@ -64,7 +65,7 @@ public class HyPlatform implements IPlatform {
 
     @Override
     public String getPlatformProviderId() {
-        return "hytale";
+        return PlatformId.HYTALE;
     }
 
     @Override

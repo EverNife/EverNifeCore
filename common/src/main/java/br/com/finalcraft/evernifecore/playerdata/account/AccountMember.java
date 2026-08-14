@@ -17,7 +17,10 @@ import java.util.Objects;
  * constraint, so callers must not add the same {@code (provider, providerUid)} to two accounts.</p>
  *
  * <p>{@code provider} is an open string (not an enum) so new platforms/services can be plugged in
- * without a framework change - e.g. {@code "minecraft"}, {@code "hytale"}, {@code "discord"}.</p>
+ * without a framework change - e.g. {@code "minecraft"}, {@code "hytale"}, {@code "discord"}. Only
+ * the platform ones are named by
+ * {@link br.com.finalcraft.evernifecore.api.common.providers.platform.PlatformId PlatformId}: a tag
+ * such as {@code "discord"} is a perfectly valid provider that no platform ever reports.</p>
  */
 @JsonAutoDetectFieldsOnly
 @Getter

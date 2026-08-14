@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.ecplugin;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandNode;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandPath;
@@ -100,13 +101,17 @@ public class ECPluginData {
 
     /**
      * Reads the {@code DebugMode} block of this plugin's {@code config.yml} into memory, seeding
-     * whatever the file lacks. ALWAYS re-reads - both callers, the bootstrap
+     * whatever the file lacks and taking back the switches of modules this platform does not have
+     * ({@link IDebugModule#isAvailable(IPlatform)}). ALWAYS re-reads - both callers, the bootstrap
      * ({@link IECPluginBootstrap#runECPluginEnable()}) and the reload, want the file's current word.
      * <p>
      * Once it has run, {@link #isDebugEnabled(IDebugModule)} answers from memory and touches no disk.
      */
     public synchronized void loadDebugConfig(){
         Config config = ConfigFactory.open(this, "config.yml");
+        IPlatform platform = EverNifeCore.getPlatform();
+        boolean removedForeignModule = false;
+
         boolean enabled = config.getOrSetValueIfAbsent(
                 "DebugMode.enabled",
                 false,
@@ -114,6 +119,17 @@ public class ECPluginData {
         );
 
         for (IDebugModule each : modules) {
+            if (!each.isAvailable(platform)){
+                //no switch for something that cannot run here - and a file that grew one, on another
+                //platform or an older build, gets it taken back
+                each.setEnabled(false);
+                String key = "DebugMode.DebugModules." + each.getName();
+                if (config.contains(key)){
+                    config.setValue(key, null);
+                    removedForeignModule = true;
+                }
+                continue;
+            }
             each.setEnabled(each.onConfigLoad(config.getConfigSection("DebugMode")));
         }
 
@@ -121,7 +137,7 @@ public class ECPluginData {
         if (config.contains("DebugMode.DebugModules")){
             config.setComment("DebugMode.DebugModules","List of DebugModules that are enabled!\nThese debug modules bellow will only work when 'DebugMode.enabled' is 'true'");
         }
-        if (config.hasNewSeededDefaults()){
+        if (config.hasNewSeededDefaults() || removedForeignModule){
             config.save();
             config.clearNewSeededDefaults();
             debugSaveCount++;

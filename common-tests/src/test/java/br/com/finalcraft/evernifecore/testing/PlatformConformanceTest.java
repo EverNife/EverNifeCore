@@ -30,7 +30,10 @@ class PlatformConformanceTest {
 
     @Test
     void claimingAPlatformTheClasspathContradictsIsAViolation() {
-        //the test JVM has no Bukkit on the classpath, so a double claiming to be one is lying
+        //the test JVM has no Bukkit on the classpath, so a double claiming to be one is lying.
+        //Spelled out rather than taken from PlatformId on purpose: the checker reads that constant, so
+        //feeding it back would pass whatever the constant said. This literal is what pins the wire
+        //value - the one that must never change, because account rows carry it.
         List<String> failures = PlatformConformance.check(
                 Platforms.lenient().platformProviderId("minecraft").build());
 

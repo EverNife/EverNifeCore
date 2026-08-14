@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.logger.debug;
 
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
+import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logger.ECLogLevel;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
@@ -41,6 +42,14 @@ public interface IDebugModule {
     }
 
     default boolean isEnabledByDefault() {
+        return true;
+    }
+
+    /**
+     * Platform gate. A module absent from the running platform is never seeded into the config and is
+     * forced off when the block is read, so it can neither be switched on nor log.
+     */
+    default boolean isAvailable(IPlatform platform) {
         return true;
     }
 

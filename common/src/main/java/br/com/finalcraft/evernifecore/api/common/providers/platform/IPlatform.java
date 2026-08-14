@@ -20,9 +20,9 @@ import java.util.function.Supplier;
 public interface IPlatform {
 
     /**
-     * The stable identity-provider tag of this platform ({@code "minecraft"}, {@code "hytale"}, ...),
-     * used by the account layer to tag platform uuid identities. It is persisted inside account rows,
-     * so it must be unique per platform and must NEVER change.
+     * The stable identity-provider tag of this platform - {@link PlatformId} names the ones already
+     * taken. The account layer tags platform uuid identities with it and persists it inside account
+     * rows, so it must be unique per platform and must NEVER change.
      */
     public String getPlatformProviderId();
 

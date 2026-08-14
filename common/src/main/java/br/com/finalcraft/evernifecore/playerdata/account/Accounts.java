@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.playerdata.account;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.api.common.providers.platform.PlatformId;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.storage.BindingResolver;
@@ -178,8 +179,8 @@ public final class Accounts {
     // ------------------------------------------------------------------
 
     /**
-     * The provider tag of THIS platform's uuid identities ({@code "minecraft"}, {@code "hytale"}, ...),
-     * taken from the registered platform; falls back to {@value #PLATFORM_PROVIDER} before one exists.
+     * The provider tag of THIS platform's uuid identities (see {@link PlatformId}), taken from the
+     * registered platform; falls back to {@value #PLATFORM_PROVIDER} before one exists.
      */
     public static String platformProvider() {
         try {
@@ -203,8 +204,8 @@ public final class Accounts {
      */
     public static boolean isPlatformProvider(String provider) {
         return PLATFORM_PROVIDER.equals(provider)
-                || "minecraft".equals(provider)
-                || "hytale".equals(provider)
+                || PlatformId.MINECRAFT.equals(provider)
+                || PlatformId.HYTALE.equals(provider)
                 || platformProvider().equals(provider);
     }
 

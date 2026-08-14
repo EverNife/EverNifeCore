@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.storage.config;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.api.common.providers.platform.PlatformId;
 import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
 import br.com.finalcraft.evernifecore.storage.BackendType;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
@@ -312,7 +313,7 @@ public final class BackendDefinition implements ConfigLifecycle {
         } catch (Throwable platformNotRegistered) {
             //early boot / standalone: no platform registered - assume the backend is allowed
         }
-        if ("hytale".equals(platformId)) {
+        if (PlatformId.HYTALE.equals(platformId)) {
             throw new StorageConfigException("The 'sql' (MySQL/MariaDB) storage backend is not available on Hytale: the MySQL JDBC driver "
                     + "is GPL-licensed and is not bundled in the Hytale jar, and Hytale has no runtime dependency "
                     + "loader to fetch it. Use one of: postgresql, h2, mongo, groupedfile, localfile or memory.");
