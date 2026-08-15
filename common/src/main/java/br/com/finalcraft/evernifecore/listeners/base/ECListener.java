@@ -121,12 +121,21 @@ public interface ECListener extends IECBaseListener {
         Objects.requireNonNull(produced, "'produced' cannot be null: name the event types the listener produces!");
 
         //The bus runs one presence pass at a time, so the two callbacks never overlap; the flag is
-        //what makes a registration that was refused (canRegister, a missing plugin) retry next time.
+        //what makes a registration that was refused (canRegister, a missing plugin) or that blew up
+        //retry the next time somebody listens, instead of standing as registered while nothing is.
         AtomicBoolean registered = new AtomicBoolean();
         return EverNifeCore.getEventBus().watchListeners(ecPluginData, Arrays.asList(produced),
                 () -> {
-                    if (registered.compareAndSet(false, true) && !register(ecPluginData, listener)) {
-                        registered.set(false);
+                    if (!registered.compareAndSet(false, true)) {
+                        return;
+                    }
+                    boolean done = false;
+                    try {
+                        done = register(ecPluginData, listener);
+                    } finally {
+                        if (!done) {
+                            registered.set(false);
+                        }
                     }
                 },
                 () -> {

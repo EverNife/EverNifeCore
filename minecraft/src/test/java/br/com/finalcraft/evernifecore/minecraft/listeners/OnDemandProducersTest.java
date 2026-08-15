@@ -4,7 +4,9 @@ import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECListenerWatch;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.minecraft.api.events.ECPlayerChangeChunkEvent;
+import br.com.finalcraft.evernifecore.minecraft.api.events.ECPlayerCraftItemEvent;
 import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPetDamagedByPet;
 import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPetDamagedByPlayer;
 import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPlayerDamagedByPet;
@@ -21,6 +23,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.plugin.RegisteredListener;
 import org.junit.jupiter.api.Test;
@@ -75,6 +78,34 @@ class OnDemandProducersTest {
 
                 assertFalse(ECEventBus.global().hasListeners(ECPlayerChangeChunkEvent.class));
                 assertFalse(isRegistered(PlayerMoveEvent.getHandlerList(), PlayerMoveListener.class),
+                        "the last one asking left, and the producer left with it");
+            } finally {
+                watch.stop();
+                ECListener.unregisterAll(world.getPluginData());
+            }
+        }
+    }
+
+    @Test
+    void aBusSubscriberToTheCraftEventIsWhatPutsTheCraftProducerOnTheServer() {
+        try (BukkitEventWorld world = BukkitEventWorld.install(tempDir)) {
+            ECListenerWatch watch = ECListener.registerWhileListened(world.getPluginData(),
+                    new PlayerCraftListener(), ECPlayerCraftItemEvent.class);
+            try {
+                assertFalse(isRegistered(CraftItemEvent.getHandlerList(), PlayerCraftListener.class),
+                        "nobody wants the craft event, so nothing of ours sits on CraftItemEvent");
+
+                //the other route in: a bus subscription, no Bukkit registration anywhere
+                ECEventSubscription<ECPlayerCraftItemEvent> subscription =
+                        ECEventBus.global().subscribe(ECPlayerCraftItemEvent.class, event -> {
+                        });
+
+                assertTrue(isRegistered(CraftItemEvent.getHandlerList(), PlayerCraftListener.class),
+                        "a bus subscriber is what the old per-list hook could never see; the watch does");
+
+                subscription.unsubscribe();
+
+                assertFalse(isRegistered(CraftItemEvent.getHandlerList(), PlayerCraftListener.class),
                         "the last one asking left, and the producer left with it");
             } finally {
                 watch.stop();
