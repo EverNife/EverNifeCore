@@ -7,9 +7,7 @@ import org.bukkit.event.HandlerList;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Bukkit's own answer to "which HandlerList does a listener of this event class register into",
@@ -27,10 +25,15 @@ public final class McHandlerLists {
     private McHandlerLists() {
     }
 
-    private static final Set<Class<?>> WARNED = Collections.newSetFromMap(new ConcurrentHashMap<Class<?>, Boolean>());
+    //ClassValue instead of a map keyed by Class, for both: the entry lives and dies with the class
+    //itself, so a plugin whose classloader goes away does not leave its event classes pinned here.
+    private static final ClassValue<AtomicBoolean> WARNED = new ClassValue<AtomicBoolean>() {
+        @Override
+        protected AtomicBoolean computeValue(Class<?> eventType) {
+            return new AtomicBoolean();
+        }
+    };
 
-    //ClassValue instead of a map keyed by Class: the entry lives and dies with the class itself, so a
-    //plugin whose classloader goes away does not leave its event classes pinned here.
     private static final ClassValue<HandlerList> REGISTRATION_LIST = new ClassValue<HandlerList>() {
         @Override
         protected HandlerList computeValue(Class<?> eventType) {
@@ -77,7 +80,7 @@ public final class McHandlerLists {
     }
 
     private static void warnOnce(Class<?> eventType, Class<?> declaringType, String problem) {
-        if (!WARNED.add(eventType)) {
+        if (!WARNED.get(eventType).compareAndSet(false, true)) {
             return;
         }
         EverNifeCore.getLog().severe("[ECEventBus] {} declares getHandlerList but {}. Bukkit finds that method by"

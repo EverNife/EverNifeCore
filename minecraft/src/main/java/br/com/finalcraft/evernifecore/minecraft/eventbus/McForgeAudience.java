@@ -18,8 +18,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p><b>Nothing crosses yet.</b> A Forge bus takes a subclass of its era's {@code Event}
  * ({@code IEventBus.post(Event)}), and a subclass is a compiled class - reflection can call a bus,
  * it cannot become an event. Each Forge era declares that base under a different name, so the route
- * out is one compiled carrier per era, not one reflective call. Until a carrier exists, a hybrid
- * server hears once that the audience is registered and idle, and never again.</p>
+ * out is one compiled carrier per era, not one reflective call. Until a carrier exists this audience
+ * has no listeners to report, and a hybrid server hears once that it is registered and idle.</p>
  */
 public class McForgeAudience implements ECNativeAudience {
 
@@ -38,8 +38,10 @@ public class McForgeAudience implements ECNativeAudience {
     }
 
     /**
-     * Whether this server has a Forge side at all. It cannot narrow further than that: the answer
-     * per event belongs to a bus this audience has no way to reach yet.
+     * Always {@code false}: an audience that cannot deliver has no listeners, whatever the Forge side
+     * of this server registered. Answering the hybrid flag instead would hold every listener watch open
+     * and build every gated event on exactly the hybrid servers this project runs on, for a bus nothing
+     * reaches. The first question on a hybrid is where the idle notice is logged, once.
      */
     @Override
     public boolean hasListeners(Class<? extends IECEvent> eventType) {
@@ -48,17 +50,18 @@ public class McForgeAudience implements ECNativeAudience {
             answer = detectHybrid();
             hybrid = answer;
         }
-        return answer;
-    }
-
-    @Override
-    public void dispatch(IECEvent event) {
-        if (idleWarned.compareAndSet(false, true)) {
+        if (answer && idleWarned.compareAndSet(false, true)) {
             EverNifeCore.getLog().warning("[ECEventBus] This server has a Forge side and the '{}' audience"
                     + " is registered, but no event can reach the Forge bus yet: posting one needs a"
                     + " compiled carrier extending this era's Forge Event class, and none is built."
                     + " Bukkit listeners are unaffected. This is said once.", NAME);
         }
+        return false;
+    }
+
+    /** Unreachable while {@link #hasListeners(Class)} answers false; kept a no-op so a caller that bypasses the gate loses nothing. */
+    @Override
+    public void dispatch(IECEvent event) {
     }
 
     /**
