@@ -27,27 +27,26 @@ import java.util.stream.Collectors;
 
 /**
  * Delivers {@link IECEvent}s to whoever subscribed on this bus and, on the global bus only, mirrors
- * them into every registered {@link ECNativeAudience}.
+ * them into every registered {@link ECNativeAudience} - and knows, per event class and before any
+ * event exists, whether anyone at all is there to hear it.
  *
  * <p>A post runs the local phase first - every matching handler in priority order - and only then
  * the audiences, in registration order. A handler or an audience that throws is logged and skipped:
- * it never breaks the producer nor the ones queued behind it.</p>
+ * it never breaks the producer nor the ones queued behind it. What reaches an audience is decided by
+ * the event's own hierarchy: an {@link ECEvent} is platform-visible, anything that merely implements
+ * {@link IECEvent} is not. {@link #postLocal(IECEvent)} is the escape for the one post that must
+ * stay in.</p>
  *
- * <p>What reaches an audience is decided by the event's own hierarchy: an {@link ECEvent} is
- * platform-visible, anything that merely implements {@link IECEvent} is not. {@link
- * #postLocal(IECEvent)} is the escape for the one post that must stay in.</p>
- *
- * <p>The bus also knows, per event class, whether anyone listens - here or on a native audience -
- * and it says so before an event exists: {@link #hasListeners(Class)} is the question, {@link
- * #postIfListened(Class, Supplier)} builds and posts only on a yes, and {@link
- * #watchListeners(Class, Runnable, Runnable)} runs an action when the first listener of a type
- * arrives and another when the last one leaves - what lets a producer keep an expensive source
- * switched off until somebody cares.</p>
+ * <p>The presence of listeners is a question a producer asks up front: {@link #hasListeners(Class)}
+ * answers it, {@link #postIfListened(Class, Supplier)} builds and posts only on a yes, and {@link
+ * #watchListeners(Class, Runnable, Runnable)} turns it into two actions - one when the first
+ * listener of a type arrives, one when the last leaves - so an expensive source stays switched off
+ * until somebody cares.</p>
  *
  * <p>{@link #global()} is the bus platforms mirror from and plugins subscribe to; it lives as long
  * as the classloader does. {@link #create()} builds a scoped bus for a subsystem's own traffic - it
- * never mirrors, so an audience added to it is accepted and never called, and its watches only ever
- * see the local subscribers.</p>
+ * never mirrors, so an audience added to it is accepted and never called, and its presence is that
+ * of its own subscribers alone.</p>
  */
 public class ECEventBus {
 

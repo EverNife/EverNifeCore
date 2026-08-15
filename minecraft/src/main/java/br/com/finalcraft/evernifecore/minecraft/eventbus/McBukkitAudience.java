@@ -22,14 +22,15 @@ public class McBukkitAudience implements ECNativeAudience {
     }
 
     /**
-     * Whether ANY EC event has a Bukkit listener. Every EC event shares one HandlerList - an event
-     * declared away from Bukkit cannot give itself a {@code static getHandlerList()} - so this can
-     * only answer for the whole family: it opens for an event nobody listens to as long as a sibling
-     * has a listener. What that costs is one {@code callEvent} whose executors filter by type anyway.
+     * Whether the list Bukkit registers a listener of {@code eventType} into has anyone in it - the
+     * event's own list when it declares {@code getHandlerList}, the family list otherwise, resolved
+     * exactly as the plugin manager resolves it. Registrations into an EC list push a refresh of the
+     * listener watches through {@link ECHandlerList}, so a watch follows a Bukkit listener as it does
+     * a bus subscriber.
      */
     @Override
     public boolean hasListeners(Class<? extends IECEvent> eventType) {
-        return ECEvent.getHandlerList().getRegisteredListeners().length > 0;
+        return McHandlerLists.registrationListOf(eventType).getRegisteredListeners().length > 0;
     }
 
     @Override

@@ -15,4 +15,13 @@ public abstract class ECEvent implements IEvent<Void>, IECEvent {
     protected ECEvent(boolean async) {
     }
 
+    /**
+     * Bukkit's per-event handler list has no counterpart on Hytale, where the server registry already
+     * keys consumers by class: an event's {@code getHandlerList} compiles here and answers null, and
+     * nothing on this platform ever calls it.
+     */
+    public static Object getHandlerListOf(Class<? extends ECEvent> eventType) {
+        return null;
+    }
+
 }

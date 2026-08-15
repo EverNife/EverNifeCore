@@ -57,6 +57,36 @@ class ECEventReservedNamesTest {
     }
 
     @Test
+    void anEventMayDeclareTheHandlerListInTheShapeBukkitResolves() {
+        assertEquals(Collections.emptyList(), ECEventConformance.check(EventWithItsOwnHandlerList.class));
+    }
+
+    @Test
+    void aHandlerListThatIsNotStaticIsCaught() {
+        List<String> failures = ECEventConformance.check(EventWithAnInstanceHandlerList.class);
+
+        assertEquals(1, failures.size(), failures.toString());
+        assertTrue(failures.get(0).contains("wrong shape"), failures.get(0));
+        assertTrue(failures.get(0).contains("getHandlerList"), failures.get(0));
+    }
+
+    @Test
+    void aHandlerListBukkitCouldNotSeeIsCaught() {
+        List<String> failures = ECEventConformance.check(EventHidingItsHandlerList.class);
+
+        assertEquals(1, failures.size(), failures.toString());
+        assertTrue(failures.get(0).contains("wrong shape"), failures.get(0));
+    }
+
+    @Test
+    void aHandlerListTakingAParameterIsCaught() {
+        List<String> failures = ECEventConformance.check(EventWithAParameterisedHandlerList.class);
+
+        assertEquals(1, failures.size(), "Bukkit looks the method up with no arguments: " + failures);
+        assertTrue(failures.get(0).contains("wrong shape"), failures.get(0));
+    }
+
+    @Test
     void aClassThatIsNoECEventAtAllIsReported() {
         List<String> failures = ECEventConformance.check(LocalOnlyEvent.class);
 
@@ -100,6 +130,34 @@ class ECEventReservedNamesTest {
         @Override
         public void setCancelled(boolean cancelled) {
             this.cancelled = cancelled;
+        }
+    }
+
+    /** The one shape that reaches a Bukkit server: found by name, invoked static, cast to a HandlerList. */
+    static class EventWithItsOwnHandlerList extends ECEvent implements IECEvent {
+        public static Object getHandlerList() {
+            return ECEvent.getHandlerListOf(EventWithItsOwnHandlerList.class);
+        }
+    }
+
+    /** Compiles here, where the base declares no static of that name; on Bukkit nothing would invoke it. */
+    static class EventWithAnInstanceHandlerList extends ECEvent implements IECEvent {
+        public Object getHandlerList() {
+            return null;
+        }
+    }
+
+    /** Static and shaped right, but the server cannot reach it - the registration fails at that plugin. */
+    static class EventHidingItsHandlerList extends ECEvent implements IECEvent {
+        private static Object getHandlerList() {
+            return ECEvent.getHandlerListOf(EventHidingItsHandlerList.class);
+        }
+    }
+
+    /** The name is what Bukkit searches for, and it searches for the no-argument one. */
+    static class EventWithAParameterisedHandlerList extends ECEvent implements IECEvent {
+        public static Object getHandlerList(Class<?> eventType) {
+            return ECEvent.getHandlerListOf(EventWithAParameterisedHandlerList.class);
         }
     }
 

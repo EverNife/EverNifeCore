@@ -10,6 +10,14 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
  */
 public abstract class ECPluginReloadEvent extends ECEvent implements IECEvent {
 
+    /**
+     * Bukkit-only: the native handler list of the whole family, declared here and here only - a Bukkit
+     * listener on this base hears Pre and Post because neither declares a list of its own.
+     */
+    public static Object getHandlerList() {
+        return ECEvent.getHandlerListOf(ECPluginReloadEvent.class);
+    }
+
     private final ECPluginData ecPluginData;
 
     public ECPluginReloadEvent(ECPluginData ecPluginData) {

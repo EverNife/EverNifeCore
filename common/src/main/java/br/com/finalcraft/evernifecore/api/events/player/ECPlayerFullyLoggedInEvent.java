@@ -16,6 +16,11 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerData;
  */
 public class ECPlayerFullyLoggedInEvent extends ECEvent implements IECEvent {
 
+    /** Bukkit-only: this event's own native handler list - see {@link ECEvent#getHandlerListOf(Class)}. */
+    public static Object getHandlerList() {
+        return ECEvent.getHandlerListOf(ECPlayerFullyLoggedInEvent.class);
+    }
+
     private final PlayerData playerData;
     private final boolean externalAuthLogin;
 

@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.minecraft.testkit.BukkitEventWorld;
 import br.com.finalcraft.evernifecore.testing.Logs;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
+import org.bukkit.event.HandlerList;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
@@ -42,15 +43,46 @@ class McBukkitAudienceTest {
     }
 
     @Test
-    void theGateOpensForTheWholeFamilyBecauseTheHandlerListIsShared() {
+    void anEventWithAHandlerListOfItsOwnStillReachesItsBukkitListener() {
+        try (BukkitEventWorld world = BukkitEventWorld.install(tempDir)) {
+            List<OwnListEvent> heard = new ArrayList<>();
+            world.listen(OwnListEvent.class, heard::add);
+
+            assertTrue(world.getAudience().hasListeners(OwnListEvent.class),
+                    "the gate reads the list the plugin manager registered into, not the family one");
+
+            OwnListEvent posted = ECEventBus.global().post(new OwnListEvent());
+
+            assertEquals(1, heard.size(), "declaring a list of its own must not cost the event its mirror");
+            assertSame(posted, heard.get(0), "the listener gets the instance the producer posted, not a copy");
+        }
+    }
+
+    @Test
+    void theGateOfAnEventWithItsOwnListAnswersForThatEventAlone() {
+        try (BukkitEventWorld world = BukkitEventWorld.install(tempDir)) {
+            world.listen(OwnListEvent.class, event -> {
+            });
+
+            assertTrue(world.getAudience().hasListeners(OwnListEvent.class));
+            assertFalse(world.getAudience().hasListeners(OtherOwnListEvent.class),
+                    "a declared list is a gate of its own: nobody registered into this one");
+            assertFalse(world.getAudience().hasListeners(SampleEvent.class),
+                    "and the family fallback stays untouched by a listener that never landed on it");
+        }
+    }
+
+    @Test
+    void theGateOpensForTheWholeFamilyOfEventsThatDeclareNoListOfTheirOwn() {
         try (BukkitEventWorld world = BukkitEventWorld.install(tempDir)) {
             assertFalse(world.getAudience().hasListeners(SampleEvent.class), "nothing is registered with this server yet");
 
             world.listen(SiblingEvent.class, sibling -> {
             });
 
-            assertTrue(world.getAudience().hasListeners(SampleEvent.class), "every EC event answers to one HandlerList, "
-                    + "so a listener for a sibling is enough to open the gate - the executor filters by type later");
+            assertTrue(world.getAudience().hasListeners(SampleEvent.class), "an event that declares no getHandlerList "
+                    + "falls back to the one list of the whole family, so a listener for a sibling is enough to open "
+                    + "the gate - the executor filters by type later");
         }
     }
 
@@ -104,6 +136,20 @@ class McBukkitAudienceTest {
 
     /** Another one, to read the shared HandlerList through. */
     static class SiblingEvent extends ECEvent {
+    }
+
+    /** Declares the method Bukkit looks for, so registration and dispatch land on a list of its own. */
+    static class OwnListEvent extends ECEvent {
+        public static HandlerList getHandlerList() {
+            return (HandlerList) ECEvent.getHandlerListOf(OwnListEvent.class);
+        }
+    }
+
+    /** A second one with its own list, to prove the gate of the first answers for the first alone. */
+    static class OtherOwnListEvent extends ECEvent {
+        public static HandlerList getHandlerList() {
+            return (HandlerList) ECEvent.getHandlerListOf(OtherOwnListEvent.class);
+        }
     }
 
     /** An event that is asynchronous by nature and says so, the way a producer off the main thread does. */

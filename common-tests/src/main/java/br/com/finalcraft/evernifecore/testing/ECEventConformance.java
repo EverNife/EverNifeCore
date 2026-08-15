@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.api.events.base.ECCancellable;
 import br.com.finalcraft.evernifecore.api.events.base.ECEvent;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -25,10 +26,17 @@ public final class ECEventConformance {
     /**
      * The members of {@code org.bukkit.event.Event} an EC event must not redeclare. {@code
      * isAsynchronous} is FINAL there - redeclaring it is a VerifyError the moment the class loads -
-     * and the other three are how Bukkit finds the listeners of an event.
+     * and the other three are how Bukkit finds and fires the listeners of an event.
      */
     public static final Set<String> RESERVED = Collections.unmodifiableSet(new HashSet<String>(
-            Arrays.asList("isAsynchronous", "getEventName", "getHandlers", "getHandlerList", "callEvent")));
+            Arrays.asList("isAsynchronous", "getEventName", "getHandlers", "callEvent")));
+
+    /**
+     * The one Bukkit member an event MAY declare - and only in this shape: Bukkit finds it by name up
+     * the hierarchy, invokes it static and casts the value to a HandlerList, so anything else is a
+     * listener that fails to register on the server.
+     */
+    public static final String HANDLER_LIST = "getHandlerList";
 
     /** Reserved for an event that does NOT implement {@link ECCancellable} - see {@link #check(Class)}. */
     public static final Set<String> CANCELLATION = Collections.unmodifiableSet(new HashSet<String>(
@@ -59,8 +67,18 @@ public final class ECEventConformance {
                 failures.add(eventType.getName() + " declares '" + name + "', which belongs to the "
                         + "platform base: on Bukkit an ECEvent IS an org.bukkit.event.Event, where "
                         + "isAsynchronous is final (redeclaring it is a VerifyError at classload) and "
-                        + "getEventName/getHandlers/getHandlerList/callEvent are how the server finds and "
-                        + "fires listeners. Rename the method.");
+                        + "getEventName/getHandlers/callEvent are how the server finds and fires "
+                        + "listeners. Rename the method.");
+                continue;
+            }
+
+            if (HANDLER_LIST.equals(name) && !isHandlerListShaped(method)) {
+                failures.add(eventType.getName() + " declares '" + name + "' with the wrong shape. Bukkit "
+                        + "finds that method by name up the hierarchy, invokes it static and casts the value "
+                        + "to a HandlerList - so it has to be public, static, take no parameter and return "
+                        + "something. Declare it as 'public static Object getHandlerList() { return "
+                        + "ECEvent.getHandlerListOf(" + eventType.getSimpleName() + ".class); }', or do not "
+                        + "declare it and share the family list.");
                 continue;
             }
 
@@ -73,6 +91,14 @@ public final class ECEventConformance {
         }
 
         return Collections.unmodifiableList(failures);
+    }
+
+    private static boolean isHandlerListShaped(Method method) {
+        int modifiers = method.getModifiers();
+        return Modifier.isPublic(modifiers)
+                && Modifier.isStatic(modifiers)
+                && method.getParameterCount() == 0
+                && method.getReturnType() != void.class;
     }
 
     /** {@link #check(Class)} over several types, their violations in one list. */
