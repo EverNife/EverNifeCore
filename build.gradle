@@ -66,12 +66,13 @@ subprojects {
                 includeGroup "br.com.finalcraft.everylibs"
                 includeGroup "br.com.finalcraft.everyconfig"
                 includeModule "br.com.finalcraft", "ECNmsUtils"
-                includeModule "br.com.finalcraft", "ECForgeListener"
             }
         }
         maven { url = "https://jitpack.io" }
         maven { url = 'https://libraries.minecraft.net/' }
         maven { url = 'https://maven.petrus.dev/public' }
+        maven { url = 'https://maven.minecraftforge.net/' }  // Forge's own eventbus
+        maven { url = 'https://maven.izzel.io/releases' }    // Arclight
         flatDir { dirs rootProject.ext.localJarDirs }
     }
 

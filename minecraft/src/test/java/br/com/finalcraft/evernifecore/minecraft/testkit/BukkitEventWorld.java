@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.eventbus.McBukkitAudience;
+import br.com.finalcraft.evernifecore.minecraft.eventbus.McForgeAudience;
 import br.com.finalcraft.evernifecore.minecraft.loader.imp.McPlatform;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
@@ -48,7 +49,8 @@ import java.util.logging.Logger;
  * The Bukkit event pipeline with no server behind it: Bukkit's own {@link SimplePluginManager} over
  * a {@link Server} double that answers two things for real - which thread is the main one, and a
  * scheduler that queues instead of ticking - plus EverNifeCore enabled on top of it, with the
- * platform double installed and {@link McBukkitAudience} mirroring the global bus into this server.
+ * platform double installed and the plugin's own pair of audiences - {@link McBukkitAudience} and
+ * {@link McForgeAudience} - on the global bus.
  *
  * <pre>{@code
  * try (BukkitEventWorld world = BukkitEventWorld.install(tempDir)) {
@@ -80,6 +82,7 @@ public final class BukkitEventWorld implements AutoCloseable {
     private final ECPluginData ecPluginData;
     private final SimplePluginManager pluginManager;
     private final McBukkitAudience audience = new McBukkitAudience();
+    private final McForgeAudience forgeAudience = new McForgeAudience();
     private final List<ECEventSubscription<?>> subscriptions = new ArrayList<>();
     private final List<ECListener> ecListeners = new ArrayList<>();
     private final List<Runnable> scheduledTasks = new ArrayList<>();
@@ -106,7 +109,10 @@ public final class BukkitEventWorld implements AutoCloseable {
         this.pluginManager = new SimplePluginManager(Bukkit.getServer(), null);
         manager.set(pluginManager);
 
+        //both, in the order the plugin registers them: a test about either one is also a test about
+        //what the other does while it is there
         ECEventBus.global().addNativeAudience(audience);
+        ECEventBus.global().addNativeAudience(forgeAudience);
     }
 
     /** A server with EverNifeCore enabled on it: the audience is already mirroring into it. */
@@ -121,6 +127,11 @@ public final class BukkitEventWorld implements AutoCloseable {
     /** The audience this world installed, for the assertions a test makes on the gate itself. */
     public McBukkitAudience getAudience() {
         return audience;
+    }
+
+    /** The Forge audience this world installed alongside it - inert here, since no test JVM is a hybrid. */
+    public McForgeAudience getForgeAudience() {
+        return forgeAudience;
     }
 
     /** The enabled plugin every registration here is made in the name of. */
@@ -322,6 +333,7 @@ public final class BukkitEventWorld implements AutoCloseable {
         closed = true;
 
         ECEventBus.global().removeNativeAudience(McBukkitAudience.NAME);
+        ECEventBus.global().removeNativeAudience(McForgeAudience.NAME);
         for (ECEventSubscription<?> subscription : subscriptions) {
             subscription.unsubscribe();
         }

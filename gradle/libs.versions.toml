@@ -10,7 +10,6 @@ everydatabase = "1.4.0"
 everyconfig = "1.2.0"
 everylibs = "1.0.0"
 ecnmsutils = "1.1.5"
-ecforgelistener = "1.0.7"
 
 # FinalCraft fork (same one EveryDatabase/EveryConfig use): hooks a Java 25 javac and only lifts
 # javac's syntax check, so modules can write modern syntax and still emit options.release bytecode.
@@ -31,6 +30,11 @@ hytale-server = "0.5.6"
 luckperms = "5.4"
 vaultunlocked = "2.18.3"
 placeholderapi-hytale = "1.0.4"
+
+# Hybrid Bukkit+Forge server APIs, compile-only: the hybrid ships them all. The eventbus line is the
+# one Forge 1.16.5-36.2.x carries, which is the API the Forge adapters are written against.
+arclight-api = "1.3.0"
+forge-eventbus = "4.0.0"
 
 # Third-party libraries
 lombok = "1.18.46"
@@ -73,7 +77,6 @@ everylibs-reflection = { module = "br.com.finalcraft.everylibs:everylibs-reflect
 everylibs-utils = { module = "br.com.finalcraft.everylibs:everylibs-utils", version.ref = "everylibs" }
 everylibs-executors = { module = "br.com.finalcraft.everylibs:everylibs-executors", version.ref = "everylibs" }
 ecnmsutils = { module = "br.com.finalcraft:ECNmsUtils", version.ref = "ecnmsutils" }
-ecforgelistener = { module = "br.com.finalcraft:ECForgeListener", version.ref = "ecforgelistener" }
 jabel = { module = "br.com.finalcraft:jabel", version.ref = "jabel" }
 
 spigot-api = { module = "org.spigotmc:spigot-api", version.ref = "spigot" }
@@ -84,6 +87,8 @@ hytale-server = { module = "com.hypixel.hytale:Server", version.ref = "hytale-se
 luckperms-api = { module = "net.luckperms:api", version.ref = "luckperms" }
 vaultunlocked = { module = "net.cfh.vault:VaultUnlocked", version.ref = "vaultunlocked" }
 placeholderapi-hytale = { module = "at.helpch:placeholderapi-hytale", version.ref = "placeholderapi-hytale" }
+arclight-api = { module = "io.izzel.arclight:arclight-api", version.ref = "arclight-api" }
+forge-eventbus = { module = "net.minecraftforge:eventbus", version.ref = "forge-eventbus" }
 
 adventure-api = { module = "net.kyori:adventure-api", version.ref = "adventure" }
 adventure-key = { module = "net.kyori:adventure-key", version.ref = "adventure" }

@@ -11,6 +11,18 @@ javadoc {
     options.encoding = 'UTF-8'
 }
 
+// Compile-only stand-ins for Forge types this module names but must never ship: the real classes
+// belong to the hybrid server, and a copy of ours on its classpath would shadow them. This source
+// set is compiled and put on the main compile classpath; it is part of no artifact.
+sourceSets {
+    stubs
+}
+
+// The stubs carry no logic, so they only need to parse and land on the same floor as main.
+compileStubsJava {
+    options.release = 8
+}
+
 repositories {
     maven {
         name = 'spigotmc-repo'
@@ -39,7 +51,6 @@ dependencies {
     implementation(libs.ecnmsutils) {
         exclude group: "br.com.finalcraft", module: "*"
     }
-    implementation libs.ecforgelistener
     implementation libs.libby.core
 
     implementation libs.nbtapi
@@ -68,6 +79,15 @@ dependencies {
     compileOnly libs.luckperms.api
     compileOnly libs.vaultunlocked
     compileOnly libs.commons.lang3.legacy
+
+    // The hybrid Bukkit+Forge side. Every one of these is a compile-time view of something the
+    // hybrid server itself provides, so none of them is ever bundled. The Mohist API is published
+    // nowhere, hence the flatDir jar.
+    compileOnly libs.arclight.api
+    compileOnly libs.forge.eventbus
+    compileOnly name: "mohist-1.16.5-api"
+    compileOnly sourceSets.stubs.output
+    stubsCompileOnly libs.forge.eventbus
 
     // Local jars. FeatherBoard and BossShopPro are paid plugins: you must own them to build this.
     compileOnly name: "AuthMe-5.4.0"
@@ -102,7 +122,6 @@ shadowJar {
         include(dependency('br.com.finalcraft:ECNmsUtils:'))
         include(dependency('net.byteflux:libby-core:'))
         include(dependency('de.tr7zw:item-nbt-api:'))
-        include(dependency('br.com.finalcraft:ECForgeListener:'))
         include(dependency('net.kyori:.*'))
 
         include(project(':common'))
