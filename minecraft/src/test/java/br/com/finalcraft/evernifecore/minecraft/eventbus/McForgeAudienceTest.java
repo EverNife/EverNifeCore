@@ -63,7 +63,7 @@ class McForgeAudienceTest {
     void onAServerWithNoForgeTheAudienceNeitherOpensItsGateNorSaysAnything() {
         List<String> logged = Logs.capture(() -> {
             try (BukkitEventWorld world = BukkitEventWorld.install(tempDir)) {
-                assertFalse(world.getForgeAudience().hasListeners(new SampleEvent()),
+                assertFalse(world.getForgeAudience().hasListeners(SampleEvent.class),
                         "no hybrid platform is on this classpath, so the gate stays shut");
 
                 //a post is what would reach dispatch() if the gate had opened

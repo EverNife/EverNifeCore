@@ -42,7 +42,7 @@ public class McForgeAudience implements ECNativeAudience {
      * per event belongs to a bus this audience has no way to reach yet.
      */
     @Override
-    public boolean hasListeners(IECEvent event) {
+    public boolean hasListeners(Class<? extends IECEvent> eventType) {
         Boolean answer = hybrid;
         if (answer == null) {
             answer = detectHybrid();

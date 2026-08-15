@@ -49,7 +49,7 @@ public class RecordingAudience implements ECNativeAudience {
     }
 
     @Override
-    public boolean hasListeners(IECEvent event) {
+    public boolean hasListeners(Class<? extends IECEvent> eventType) {
         gateChecks++;
         return hasListeners;
     }
@@ -82,7 +82,9 @@ public class RecordingAudience implements ECNativeAudience {
 
     /**
      * Closes or opens the gate. Closed is the audience nobody listens to on the native side: the bus
-     * asks, hears no, and skips {@link #dispatch(IECEvent)} entirely.
+     * asks, hears no, and skips {@link #dispatch(IECEvent)} entirely. Flipping it does not tell the
+     * bus by itself - a test that wants the listener watches to notice calls
+     * {@link ECEventBus#refreshListenerWatches()} afterwards, exactly as a real native audience does.
      */
     public void setHasListeners(boolean hasListeners) {
         this.hasListeners = hasListeners;

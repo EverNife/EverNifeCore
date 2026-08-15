@@ -57,7 +57,7 @@ class HyHytaleAudienceTest {
         audience.dispatch(posted);
 
         assertEquals(1, heard.size(), "the two levels below the base have no consumer and no dispatch");
-        assertTrue(audience.hasListeners(posted), "the gate climbs the same chain the dispatch does");
+        assertTrue(audience.hasListeners(LeafEvent.class), "the gate climbs the same chain the dispatch does");
     }
 
     @Test
@@ -67,7 +67,7 @@ class HyHytaleAudienceTest {
 
         LeafEvent posted = new LeafEvent();
 
-        assertFalse(audience.hasListeners(posted), "ECEvent is where the family stops being a family");
+        assertFalse(audience.hasListeners(LeafEvent.class), "ECEvent is where the family stops being a family");
         audience.dispatch(posted);
         assertTrue(heard.isEmpty(), "a consumer on the platoverride base is never mirrored into");
     }
@@ -76,7 +76,7 @@ class HyHytaleAudienceTest {
     void theGateIsClosedWhileNoLevelHasAConsumer() {
         //IEventDispatcher defaults hasListener() to true, so a gate reading the interface instead of
         //the dispatcher dispatchFor() hands back would answer true on an empty server
-        assertFalse(audience.hasListeners(new LeafEvent()), "nothing is registered with this bus yet");
+        assertFalse(audience.hasListeners(LeafEvent.class), "nothing is registered with this bus yet");
     }
 
     @Test

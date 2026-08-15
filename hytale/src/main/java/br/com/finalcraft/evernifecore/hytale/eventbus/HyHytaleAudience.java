@@ -45,10 +45,16 @@ public class HyHytaleAudience implements ECNativeAudience {
         return NAME;
     }
 
+    /**
+     * Per class, and by poll only: Hytale offers no callback for a registration, so a consumer that
+     * registers straight on the server's bus is seen the next time somebody asks - a bus subscription
+     * or an {@code @ECEventHandler} still drives the listener watches, a raw {@code registerGlobal}
+     * does not.
+     */
     @Override
-    public boolean hasListeners(IECEvent event) {
+    public boolean hasListeners(Class<? extends IECEvent> eventType) {
         IEventBus bus = eventBus.get();
-        for (Class<?> level = event.getClass(); isMirroredLevel(level); level = level.getSuperclass()) {
+        for (Class<?> level = eventType; isMirroredLevel(level); level = level.getSuperclass()) {
             if (dispatcherFor(bus, level).hasListener()) {
                 return true;
             }
@@ -79,8 +85,9 @@ public class HyHytaleAudience implements ECNativeAudience {
     /**
      * The dispatcher {@code dispatchFor} hands back is the only one whose {@code hasListener()} can be
      * trusted: {@link IEventDispatcher} defaults that method to {@code true}, and the answer that
-     * matters is the no-op's {@code false}. Asking creates the class's registry, which is the price of
-     * a gate that tells the truth.
+     * matters is the no-op's {@code false} - handed back when the class has no registry yet, when it is
+     * shut down, or when its keyed, global and unhandled consumers are all empty. Asking is a map read;
+     * it creates nothing.
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static IEventDispatcher dispatcherFor(IEventBus bus, Class<?> level) {

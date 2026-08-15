@@ -11,6 +11,7 @@ import jakarta.annotation.Nullable;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -21,6 +22,7 @@ import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -35,9 +37,17 @@ import java.util.stream.Collectors;
  * platform-visible, anything that merely implements {@link IECEvent} is not. {@link
  * #postLocal(IECEvent)} is the escape for the one post that must stay in.</p>
  *
+ * <p>The bus also knows, per event class, whether anyone listens - here or on a native audience -
+ * and it says so before an event exists: {@link #hasListeners(Class)} is the question, {@link
+ * #postIfListened(Class, Supplier)} builds and posts only on a yes, and {@link
+ * #watchListeners(Class, Runnable, Runnable)} runs an action when the first listener of a type
+ * arrives and another when the last one leaves - what lets a producer keep an expensive source
+ * switched off until somebody cares.</p>
+ *
  * <p>{@link #global()} is the bus platforms mirror from and plugins subscribe to; it lives as long
  * as the classloader does. {@link #create()} builds a scoped bus for a subsystem's own traffic - it
- * never mirrors, so an audience added to it is accepted and never called.</p>
+ * never mirrors, so an audience added to it is accepted and never called, and its watches only ever
+ * see the local subscribers.</p>
  */
 public class ECEventBus {
 
@@ -63,6 +73,14 @@ public class ECEventBus {
     //every (un)subscribe. Reading it is lock-free, and the array a post iterates is a snapshot - a
     //handler may subscribe or post while it runs.
     private volatile Map<Class<?>, Handler[]> dispatchIndex = Collections.emptyMap();
+
+    private final List<Watch> watches = new CopyOnWriteArrayList<>();
+    //One evaluation pass at a time: a refresh that lands while a pass runs only marks it dirty and
+    //returns, and the running pass re-reads everything after its callbacks. Callbacks never run under
+    //a lock, so one that subscribes, unsubscribes or refreshes is safe.
+    private final Object watchLock = new Object();
+    private boolean evaluatingWatches;                                       // guarded by watchLock
+    private boolean watchesDirty;                                            // guarded by watchLock
 
     //Package-private: production only ever gets the global bus or a scoped one, and a test needs a
     //mirroring bus that is not the global.
@@ -150,11 +168,21 @@ public class ECEventBus {
         removeHandlers(handler -> handler.owner == listener);
     }
 
-    /** Drops every subscription opened in this plugin's name - the shutdown drain. */
+    /**
+     * Drops every subscription opened in this plugin's name and stops every listener watch it owns -
+     * the one shutdown drain. The subscriptions go first, so a watch closed by their departure still
+     * hears it - the plugin's own included - and only then its watches detach; a watch that is still
+     * open at that point detaches silently, like {@link ECListenerWatch#stop()} always does.
+     */
     public void unsubscribeAll(ECPluginData plugin) {
         Objects.requireNonNull(plugin, "'plugin' cannot be null when draining its ECEventBus subscriptions!");
         String pluginName = plugin.getMetaInfo().getName();
         removeHandlers(handler -> pluginName.equals(handler.pluginName));
+        for (Watch watch : watches) {
+            if (pluginName.equals(watch.pluginName)) {
+                watch.stop();
+            }
+        }
     }
 
     // ------------------------------------------------------------------
@@ -175,7 +203,7 @@ public class ECEventBus {
         if (mirroring && event instanceof ECEvent) {
             for (ECNativeAudience audience : audiences) {
                 try {
-                    if (audience.hasListeners(event)) {
+                    if (audience.hasListeners(event.getClass())) {
                         audience.dispatch(event);
                     }
                 } catch (Throwable t) {
@@ -187,6 +215,48 @@ public class ECEventBus {
         }
 
         return event;
+    }
+
+    /**
+     * Whether a post of exactly {@code eventType} would reach anyone: a handler subscribed to that type,
+     * to a supertype of it or to a marker interface it carries - or, on a mirroring bus and for an
+     * {@link ECEvent}, a native audience with listeners. A handler subscribed to a subtype does not
+     * count: it would not hear that post. Cheap - one index lookup and one question per audience - so
+     * a producer may ask it on every occasion before building anything.
+     */
+    public boolean hasListeners(Class<? extends IECEvent> eventType) {
+        Objects.requireNonNull(eventType, "'eventType' cannot be null when asking an ECEventBus for listeners!");
+
+        if (planFor(eventType).length > 0) {
+            return true;
+        }
+        if (mirroring && ECEvent.class.isAssignableFrom(eventType)) {
+            for (ECNativeAudience audience : audiences) {
+                try {
+                    if (audience.hasListeners(eventType)) {
+                        return true;
+                    }
+                } catch (Throwable t) {
+                    EverNifeCore.getLog().severe("[ECEventBus] Native audience '{}' failed to answer whether {}"
+                            + " has listeners; counted as none.", audience.name(), eventType.getName(), t);
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Builds and posts the event only when {@link #hasListeners(Class)} says yes. Returns the posted
+     * event, or {@code null} when nobody listened - then {@code event} never ran, which is the point:
+     * an event that costs something to build is never built for nobody.
+     */
+    @Nullable
+    public <T extends IECEvent> T postIfListened(Class<T> eventType, Supplier<? extends T> event) {
+        Objects.requireNonNull(event, "'event' cannot be null when posting to an ECEventBus!");
+        if (!hasListeners(eventType)) {
+            return null;
+        }
+        return post(event.get());
     }
 
     /** Delivers {@code event} to this bus only: no audience is consulted, whatever the event is. */
@@ -211,6 +281,127 @@ public class ECEventBus {
     }
 
     // ------------------------------------------------------------------
+    //  Watching who listens
+    // ------------------------------------------------------------------
+
+    /**
+     * Follows the presence of listeners for {@code eventType} - the same presence {@link
+     * #hasListeners(Class)} reports: {@code onFirstListener} runs when the first one arrives (right
+     * away, if one is already there when the watch is taken), {@code onLastListenerGone} when the last
+     * one leaves. Exactly one callback per transition, on the thread that caused it and outside every
+     * lock of this bus; a callback that throws is logged, and the watch keeps the state it had just
+     * moved to. What a producer does with it is switch its expensive source on and off: register a
+     * native listener, start a task, warm a cache.
+     */
+    public ECListenerWatch watchListeners(Class<? extends IECEvent> eventType, Runnable onFirstListener, @Nullable Runnable onLastListenerGone) {
+        return watchListeners(null, eventType, onFirstListener, onLastListenerGone);
+    }
+
+    /**
+     * As {@link #watchListeners(Class, Runnable, Runnable)}, present while ANY of {@code eventTypes}
+     * has listeners - for a producer of a whole family, which asks about the concrete types it posts.
+     */
+    public ECListenerWatch watchListeners(Collection<? extends Class<? extends IECEvent>> eventTypes, Runnable onFirstListener, @Nullable Runnable onLastListenerGone) {
+        return watchListeners(null, eventTypes, onFirstListener, onLastListenerGone);
+    }
+
+    /**
+     * As {@link #watchListeners(Class, Runnable, Runnable)}, owned by {@code plugin}: the watch is
+     * stopped with the rest of that plugin's when it shuts down ({@link #unsubscribeAll(ECPluginData)}).
+     */
+    public ECListenerWatch watchListeners(@Nullable ECPluginData plugin, Class<? extends IECEvent> eventType, Runnable onFirstListener, @Nullable Runnable onLastListenerGone) {
+        Objects.requireNonNull(eventType, "'eventType' cannot be null when watching listeners on an ECEventBus!");
+        return watchListeners(plugin, Collections.<Class<? extends IECEvent>>singletonList(eventType), onFirstListener, onLastListenerGone);
+    }
+
+    /** As {@link #watchListeners(Collection, Runnable, Runnable)}, owned by {@code plugin}. */
+    public ECListenerWatch watchListeners(@Nullable ECPluginData plugin, Collection<? extends Class<? extends IECEvent>> eventTypes, Runnable onFirstListener, @Nullable Runnable onLastListenerGone) {
+        Objects.requireNonNull(eventTypes, "'eventTypes' cannot be null when watching listeners on an ECEventBus!");
+        Objects.requireNonNull(onFirstListener, "'onFirstListener' cannot be null when watching listeners on an ECEventBus!");
+        if (eventTypes.isEmpty()) {
+            throw new IllegalArgumentException("A listener watch needs at least one event type to follow - "
+                    + "an empty collection would be a watch that never fires.");
+        }
+        for (Class<? extends IECEvent> eventType : eventTypes) {
+            Objects.requireNonNull(eventType, "'eventTypes' cannot hold a null when watching listeners on an ECEventBus!");
+        }
+
+        Watch watch = new Watch(
+                Collections.unmodifiableList(new ArrayList<Class<? extends IECEvent>>(eventTypes)),
+                plugin == null ? null : plugin.getMetaInfo().getName(),
+                onFirstListener,
+                onLastListenerGone
+        );
+        watches.add(watch);
+        //born absent: if somebody already listens, this first pass is what fires onFirstListener
+        refreshListenerWatches();
+        return watch;
+    }
+
+    /**
+     * Re-evaluates every watch and fires the callbacks of those whose presence changed. The bus calls
+     * it on its own mutations; a native audience calls it when its own listeners for an EC event
+     * appeared or vanished, since the bus cannot see a native registration by itself. Idempotent:
+     * calling it for nothing costs one pass and fires nothing.
+     */
+    public void refreshListenerWatches() {
+        synchronized (watchLock) {
+            if (evaluatingWatches) {
+                watchesDirty = true;
+                return;
+            }
+            evaluatingWatches = true;
+        }
+
+        boolean finished = false;
+        try {
+            while (true) {
+                synchronized (watchLock) {
+                    watchesDirty = false;
+                }
+                for (Watch watch : watches) {
+                    if (!watch.active) continue;
+                    boolean now = false;
+                    for (Class<? extends IECEvent> eventType : watch.eventTypes) {
+                        if (hasListeners(eventType)) {
+                            now = true;
+                            break;
+                        }
+                    }
+                    if (now == watch.present) continue;
+                    watch.present = now;                    //state first, so a re-entrant read sees the truth
+                    Runnable action = now ? watch.onFirstListener : watch.onLastListenerGone;
+                    if (action == null) continue;
+                    try {
+                        action.run();
+                    } catch (Throwable t) {
+                        EverNifeCore.getLog().severe("[ECEventBus] Listener watch on {} failed on {}; its state"
+                                + " still moved to {}.", watch.describe(), now ? "the first listener" : "the last listener gone",
+                                now ? "present" : "absent", t);
+                    }
+                }
+                //"nothing new arrived" and "this pass is over" are decided under one lock, so a refresh
+                //that lands in between is either seen by this pass or starts the next - never dropped
+                synchronized (watchLock) {
+                    if (!watchesDirty) {
+                        evaluatingWatches = false;
+                        finished = true;
+                        return;
+                    }
+                }
+            }
+        } finally {
+            //a pass that dies unexpectedly must not leave the bus believing one is still running, or no
+            //watch would ever fire again; the normal exit already cleared the flag above
+            if (!finished) {
+                synchronized (watchLock) {
+                    evaluatingWatches = false;
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------
     //  Native audiences
     // ------------------------------------------------------------------
 
@@ -224,23 +415,32 @@ public class ECEventBus {
                 + "it is the key that keeps a re-registration from adding a second copy of the same audience.");
 
         synchronized (mutex) {
+            boolean replaced = false;
             for (int index = 0; index < audiences.size(); index++) {
                 if (name.equals(audiences.get(index).name())) {
                     //Replacing in place keeps the delivery order stable across a re-enable, instead of
                     //shuffling the audience to the back of the queue.
                     audiences.set(index, audience);
-                    return;
+                    replaced = true;
+                    break;
                 }
             }
-            audiences.add(audience);
+            if (!replaced) {
+                audiences.add(audience);
+            }
         }
+        refreshListenerWatches();
     }
 
     /** Removes the audience answering to {@code name}, if any. */
     public void removeNativeAudience(String name) {
         if (name == null) return;
+        boolean removed;
         synchronized (mutex) {
-            audiences.removeIf(audience -> name.equals(audience.name()));
+            removed = audiences.removeIf(audience -> name.equals(audience.name()));
+        }
+        if (removed) {
+            refreshListenerWatches();
         }
     }
 
@@ -258,11 +458,12 @@ public class ECEventBus {
             handlers.addAll(toAdd);
             dispatchIndex = Collections.emptyMap();
         }
+        refreshListenerWatches();
     }
 
     private void removeHandlers(Predicate<Handler> filter) {
+        boolean removedAny = false;
         synchronized (mutex) {
-            boolean removedAny = false;
             for (Iterator<Handler> iterator = handlers.iterator(); iterator.hasNext(); ) {
                 Handler handler = iterator.next();
                 if (filter.test(handler)) {
@@ -274,6 +475,9 @@ public class ECEventBus {
             if (removedAny) {
                 dispatchIndex = Collections.emptyMap();
             }
+        }
+        if (removedAny) {
+            refreshListenerWatches();
         }
     }
 
@@ -354,6 +558,52 @@ public class ECEventBus {
         @Override
         public boolean isActive() {
             return handler.active;
+        }
+    }
+
+    private final class Watch implements ECListenerWatch {
+        final List<Class<? extends IECEvent>> eventTypes;
+        final String pluginName;            // null when the watch is not owned by a plugin
+        final Runnable onFirstListener;
+        final Runnable onLastListenerGone;  // null when the producer has nothing to undo
+        //Both only ever written by the single evaluation pass; volatile so a read from any thread
+        //sees what the last callback was told.
+        volatile boolean present;
+        volatile boolean active = true;
+
+        Watch(List<Class<? extends IECEvent>> eventTypes, String pluginName, Runnable onFirstListener, Runnable onLastListenerGone) {
+            this.eventTypes = eventTypes;
+            this.pluginName = pluginName;
+            this.onFirstListener = onFirstListener;
+            this.onLastListenerGone = onLastListenerGone;
+        }
+
+        @Override
+        public Collection<Class<? extends IECEvent>> getEventTypes() {
+            return eventTypes;
+        }
+
+        @Override
+        public boolean hasListeners() {
+            return present;
+        }
+
+        @Override
+        public boolean isActive() {
+            return active;
+        }
+
+        @Override
+        public void stop() {
+            active = false;
+            watches.remove(this);
+        }
+
+        String describe() {
+            if (eventTypes.size() == 1) {
+                return eventTypes.get(0).getName();
+            }
+            return eventTypes.stream().map(Class::getSimpleName).collect(Collectors.joining(", ", "[", "]"));
         }
     }
 

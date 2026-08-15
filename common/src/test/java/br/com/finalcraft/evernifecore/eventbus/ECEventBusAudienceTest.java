@@ -11,10 +11,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -185,6 +189,87 @@ class ECEventBusAudienceTest {
         bus.post(new SampleEvent());
 
         assertTrue(bus.getNativeAudiences().isEmpty());
+        assertTrue(audience.getDispatched().isEmpty());
+    }
+
+    // ------------------------------------------------------------------
+    //  Asking the audience who listens
+    // ------------------------------------------------------------------
+
+    @Test
+    void hasListenersSeesAnAudienceThatSaysItHasListeners() {
+        ECEventBus bus = EventBuses.mirroring();
+        RecordingAudience audience = new RecordingAudience();
+        bus.addNativeAudience(audience);
+
+        assertTrue(bus.hasListeners(SampleEvent.class), "a native listener counts even with no local subscriber");
+    }
+
+    @Test
+    void hasListenersIsFalseWhenTheAudienceGateIsClosed() {
+        ECEventBus bus = EventBuses.mirroring();
+        RecordingAudience audience = new RecordingAudience();
+        audience.setHasListeners(false);
+        bus.addNativeAudience(audience);
+
+        assertFalse(bus.hasListeners(SampleEvent.class));
+    }
+
+    @Test
+    void hasListenersNeverAsksAnAudienceAboutAnEventNoAudienceCanSee() {
+        ECEventBus bus = EventBuses.mirroring();
+        RecordingAudience audience = new RecordingAudience();
+        bus.addNativeAudience(audience);
+        audience.reset();
+
+        assertFalse(bus.hasListeners(LocalOnlyEvent.class));
+        assertEquals(0, audience.getGateChecks(), "the hierarchy decides before the gate does");
+    }
+
+    @Test
+    void aScopedBusNeverAsksItsAudienceWhetherAnyoneListens() {
+        ECEventBus bus = ECEventBus.create();
+        RecordingAudience audience = new RecordingAudience();
+        bus.addNativeAudience(audience);
+        audience.reset();
+
+        assertFalse(bus.hasListeners(SampleEvent.class), "a bus from create() only ever sees its own subscribers");
+        assertEquals(0, audience.getGateChecks());
+    }
+
+    @Test
+    void postIfListenedBuildsAndMirrorsWhenOnlyTheAudienceListens() {
+        ECEventBus bus = EventBuses.mirroring();
+        RecordingAudience audience = new RecordingAudience();
+        bus.addNativeAudience(audience);
+        AtomicInteger builds = new AtomicInteger();
+
+        SampleEvent posted = bus.postIfListened(SampleEvent.class, () -> {
+            builds.incrementAndGet();
+            return new SampleEvent();
+        });
+
+        assertNotNull(posted);
+        assertEquals(1, builds.get());
+        assertEquals(1, audience.getDispatched().size());
+        assertSame(posted, audience.getDispatched().get(0));
+    }
+
+    @Test
+    void postIfListenedNeverBuildsWhenTheOnlyAudienceGateIsClosed() {
+        ECEventBus bus = EventBuses.mirroring();
+        RecordingAudience audience = new RecordingAudience();
+        audience.setHasListeners(false);
+        bus.addNativeAudience(audience);
+        AtomicInteger builds = new AtomicInteger();
+
+        SampleEvent posted = bus.postIfListened(SampleEvent.class, () -> {
+            builds.incrementAndGet();
+            return new SampleEvent();
+        });
+
+        assertNull(posted);
+        assertEquals(0, builds.get());
         assertTrue(audience.getDispatched().isEmpty());
     }
 

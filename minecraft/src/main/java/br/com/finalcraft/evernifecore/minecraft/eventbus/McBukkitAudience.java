@@ -28,7 +28,7 @@ public class McBukkitAudience implements ECNativeAudience {
      * has a listener. What that costs is one {@code callEvent} whose executors filter by type anyway.
      */
     @Override
-    public boolean hasListeners(IECEvent event) {
+    public boolean hasListeners(Class<? extends IECEvent> eventType) {
         return ECEvent.getHandlerList().getRegisteredListeners().length > 0;
     }
 

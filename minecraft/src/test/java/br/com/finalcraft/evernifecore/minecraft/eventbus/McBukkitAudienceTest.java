@@ -44,14 +44,12 @@ class McBukkitAudienceTest {
     @Test
     void theGateOpensForTheWholeFamilyBecauseTheHandlerListIsShared() {
         try (BukkitEventWorld world = BukkitEventWorld.install(tempDir)) {
-            SampleEvent event = new SampleEvent();
-
-            assertFalse(world.getAudience().hasListeners(event), "nothing is registered with this server yet");
+            assertFalse(world.getAudience().hasListeners(SampleEvent.class), "nothing is registered with this server yet");
 
             world.listen(SiblingEvent.class, sibling -> {
             });
 
-            assertTrue(world.getAudience().hasListeners(event), "every EC event answers to one HandlerList, "
+            assertTrue(world.getAudience().hasListeners(SampleEvent.class), "every EC event answers to one HandlerList, "
                     + "so a listener for a sibling is enough to open the gate - the executor filters by type later");
         }
     }

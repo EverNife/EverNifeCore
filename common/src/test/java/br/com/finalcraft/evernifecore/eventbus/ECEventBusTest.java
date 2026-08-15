@@ -21,11 +21,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -237,6 +239,113 @@ class ECEventBusTest {
     }
 
     // ------------------------------------------------------------------
+    //  Asking who listens
+    // ------------------------------------------------------------------
+
+    @Test
+    void hasListenersIsFalseWhenNobodySubscribed() {
+        ECEventBus bus = ECEventBus.create();
+
+        assertFalse(bus.hasListeners(SampleEvent.class));
+    }
+
+    @Test
+    void hasListenersSeesASubscriberOnTheExactType() {
+        ECEventBus bus = ECEventBus.create();
+        bus.subscribe(SampleEvent.class, event -> {
+        });
+
+        assertTrue(bus.hasListeners(SampleEvent.class));
+        assertFalse(bus.hasListeners(OtherEvent.class), "an unrelated type is still nobody's");
+    }
+
+    @Test
+    void hasListenersSeesASubscriberOnASupertypeOfTheEvent() {
+        ECEventBus bus = ECEventBus.create();
+        bus.subscribe(SampleEvent.class, event -> {
+        });
+
+        assertTrue(bus.hasListeners(SubSampleEvent.class), "a post of the subtype would reach the supertype handler");
+    }
+
+    @Test
+    void hasListenersSeesASubscriberOnAMarkerInterfaceTheEventCarries() {
+        ECEventBus bus = ECEventBus.create();
+        bus.subscribe(Marked.class, event -> {
+        });
+
+        assertTrue(bus.hasListeners(MarkedEvent.class));
+        assertTrue(bus.hasListeners(AlsoMarkedEvent.class));
+        assertFalse(bus.hasListeners(OtherEvent.class));
+    }
+
+    @Test
+    void hasListenersIgnoresASubscriberOnASubtype() {
+        ECEventBus bus = ECEventBus.create();
+        bus.subscribe(SubSampleEvent.class, event -> {
+        });
+
+        assertFalse(bus.hasListeners(SampleEvent.class),
+                "a post of the supertype would never reach a handler that only wants the subtype");
+        assertTrue(bus.hasListeners(SubSampleEvent.class));
+    }
+
+    @Test
+    void hasListenersTurnsFalseAgainAfterTheHandleUnsubscribes() {
+        ECEventBus bus = ECEventBus.create();
+        ECEventSubscription<SampleEvent> subscription = bus.subscribe(SampleEvent.class, event -> {
+        });
+        assertTrue(bus.hasListeners(SampleEvent.class));
+
+        subscription.unsubscribe();
+
+        assertFalse(bus.hasListeners(SampleEvent.class));
+    }
+
+    @Test
+    void hasListenersTurnsFalseAgainAfterTheAnnotatedListenerIsUnregistered() {
+        ECEventBus bus = ECEventBus.create();
+        AnnotatedListener listener = new AnnotatedListener();
+        bus.register(listener);
+        assertTrue(bus.hasListeners(SampleEvent.class));
+
+        bus.unregister(listener);
+
+        assertFalse(bus.hasListeners(SampleEvent.class));
+    }
+
+    @Test
+    void postIfListenedNeverBuildsTheEventWhenNobodyListens() {
+        ECEventBus bus = ECEventBus.create();
+        AtomicInteger builds = new AtomicInteger();
+
+        SampleEvent posted = bus.postIfListened(SampleEvent.class, () -> {
+            builds.incrementAndGet();
+            return new SampleEvent();
+        });
+
+        assertNull(posted, "nobody listened, so there is no event to hand back");
+        assertEquals(0, builds.get(), "the supplier is the cost postIfListened exists to avoid");
+    }
+
+    @Test
+    void postIfListenedBuildsTheEventOnceAndHandsBackWhatTheSubscriberReceived() {
+        ECEventBus bus = ECEventBus.create();
+        List<IECEvent> received = new ArrayList<>();
+        bus.subscribe(SampleEvent.class, received::add);
+        AtomicInteger builds = new AtomicInteger();
+
+        SampleEvent posted = bus.postIfListened(SampleEvent.class, () -> {
+            builds.incrementAndGet();
+            return new SampleEvent();
+        });
+
+        assertEquals(1, builds.get());
+        assertEquals(1, received.size());
+        assertSame(posted, received.get(0), "the subscriber must have seen the very instance handed back");
+    }
+
+    // ------------------------------------------------------------------
     //  Plugin-owned subscriptions
     // ------------------------------------------------------------------
 
@@ -259,6 +368,20 @@ class ECEventBusTest {
 
         bus.post(new SampleEvent());
         assertEquals(Collections.singletonList("bystander"), received);
+    }
+
+    @Test
+    void hasListenersTurnsFalseAgainAfterThePluginIsDrained() {
+        ECPluginData owner = pluginData("EventBusGateOwner");
+
+        ECEventBus bus = ECEventBus.create();
+        bus.subscribe(owner, SampleEvent.class, event -> {
+        });
+        assertTrue(bus.hasListeners(SampleEvent.class));
+
+        bus.unsubscribeAll(owner);
+
+        assertFalse(bus.hasListeners(SampleEvent.class));
     }
 
     @Test
