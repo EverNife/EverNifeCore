@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.listeners.forge.imp;
+package br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp;
 
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;

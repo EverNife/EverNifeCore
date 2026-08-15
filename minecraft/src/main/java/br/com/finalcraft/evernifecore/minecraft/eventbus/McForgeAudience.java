@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.eventbus;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.eventbus.ECNativeAudience;
-import br.com.finalcraft.evernifecore.listeners.forge.ForgeListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.forge.ForgeListener;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 

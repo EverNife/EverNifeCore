@@ -1,9 +1,9 @@
-package br.com.finalcraft.evernifecore.listeners.forge.imp;
+package br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
-import br.com.finalcraft.evernifecore.listeners.forge.IForgeListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.forge.IForgeListener;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import br.com.finalcraft.everylibs.reflection.MethodInvoker;
 import lombok.extern.log4j.Log4j2;

@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.listeners.forge.imp;
+package br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp;
 
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import br.com.finalcraft.everylibs.reflection.FieldAccessor;

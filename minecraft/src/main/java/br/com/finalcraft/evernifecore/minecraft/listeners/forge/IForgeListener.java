@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.listeners.forge;
+package br.com.finalcraft.evernifecore.minecraft.listeners.forge;
 
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import org.bukkit.plugin.Plugin;

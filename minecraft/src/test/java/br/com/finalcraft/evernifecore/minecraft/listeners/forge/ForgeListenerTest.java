@@ -1,9 +1,9 @@
-package br.com.finalcraft.evernifecore.listeners.forge;
+package br.com.finalcraft.evernifecore.minecraft.listeners.forge;
 
-import br.com.finalcraft.evernifecore.listeners.forge.imp.ArclightForgeListener;
-import br.com.finalcraft.evernifecore.listeners.forge.imp.CrucibleForgeListener;
-import br.com.finalcraft.evernifecore.listeners.forge.imp.ModernMohistForgeListener;
-import br.com.finalcraft.evernifecore.listeners.forge.imp.MohistForgeListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.ArclightForgeListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.CrucibleForgeListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.ModernMohistForgeListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.MohistForgeListener;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;

@@ -1,7 +1,7 @@
-package br.com.finalcraft.evernifecore.listeners.forge.imp;
+package br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp;
 
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
-import br.com.finalcraft.evernifecore.listeners.forge.IForgeListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.forge.IForgeListener;
 import br.com.finalcraft.everylibs.reflection.MethodInvoker;
 import org.bukkit.plugin.Plugin;
 

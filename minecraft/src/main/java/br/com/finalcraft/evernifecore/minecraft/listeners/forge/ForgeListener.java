@@ -1,11 +1,11 @@
-package br.com.finalcraft.evernifecore.listeners.forge;
+package br.com.finalcraft.evernifecore.minecraft.listeners.forge;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
-import br.com.finalcraft.evernifecore.listeners.forge.imp.ArclightForgeListener;
-import br.com.finalcraft.evernifecore.listeners.forge.imp.CrucibleForgeListener;
-import br.com.finalcraft.evernifecore.listeners.forge.imp.ModernMohistForgeListener;
-import br.com.finalcraft.evernifecore.listeners.forge.imp.MohistForgeListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.ArclightForgeListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.CrucibleForgeListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.ModernMohistForgeListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.MohistForgeListener;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import org.bukkit.plugin.Plugin;
 
