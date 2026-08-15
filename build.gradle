@@ -71,8 +71,6 @@ subprojects {
         maven { url = "https://jitpack.io" }
         maven { url = 'https://libraries.minecraft.net/' }
         maven { url = 'https://maven.petrus.dev/public' }
-        maven { url = 'https://maven.minecraftforge.net/' }  // Forge's own eventbus
-        maven { url = 'https://maven.izzel.io/releases' }    // Arclight
         flatDir { dirs rootProject.ext.localJarDirs }
     }
 

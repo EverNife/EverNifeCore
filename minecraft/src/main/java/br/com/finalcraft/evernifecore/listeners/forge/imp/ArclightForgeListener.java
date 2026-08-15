@@ -2,26 +2,30 @@ package br.com.finalcraft.evernifecore.listeners.forge.imp;
 
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.listeners.forge.IForgeListener;
-import io.izzel.arclight.api.Arclight;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.eventbus.api.IEventBus;
+import br.com.finalcraft.everylibs.reflection.MethodInvoker;
 import org.bukkit.plugin.Plugin;
 
 public class ArclightForgeListener implements IForgeListener {
 
+    private static final String ARCLIGHT = "io.izzel.arclight.api.Arclight";
+    private static final String REGISTER_FORGE_EVENT = "registerForgeEvent";
+
     @Override
     public void registerListener(Plugin plugin, ECListener listener, Object... eventBus) {
         for (Object bus : eventBus) {
-            if (bus instanceof IEventBus){
-                IEventBus iEventBus = (IEventBus) bus;
-                Arclight.registerForgeEvent(plugin, iEventBus, listener);
+            if (ForgeReflection.isModernEventBus(bus)){
+                registerForgeEvent().invoke(null, plugin, bus, listener);
             }
         }
     }
 
     @Override
     public void registerListener(Plugin plugin, ECListener listener) {
-        Arclight.registerForgeEvent(plugin, MinecraftForge.EVENT_BUS, listener);
+        registerForgeEvent().invoke(null, plugin, ForgeReflection.defaultEventBus(), listener);
+    }
+
+    private static MethodInvoker<Object> registerForgeEvent() {
+        return ForgeReflection.method(ARCLIGHT, REGISTER_FORGE_EVENT, 3);
     }
 
 }
