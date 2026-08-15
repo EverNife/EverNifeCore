@@ -1,18 +1,12 @@
 package br.com.finalcraft.evernifecore.minecraft.api.events.damage;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.api.events.base.ECCancellable;
+import br.com.finalcraft.evernifecore.api.events.base.ECEvent;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
-import br.com.finalcraft.evernifecore.listeners.base.ECListener;
-import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerDamageByEntityListener;
-import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Tameable;
-import org.bukkit.event.Cancellable;
-import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.plugin.RegisteredListener;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -22,27 +16,18 @@ import java.util.List;
  * This event is fired when a player's property (a player, a projectile or a pet)
  * causes damage to another player's property (a player or a pet)!
  *
+ * The four concrete events of this family share this one native handler list, so a listener on this
+ * base hears them all. They are produced only while somebody listens: the core registers its
+ * {@code EntityDamageByEntityEvent} listener on the first listener of any of them and drops it with
+ * the last, whether that listener sits on the bus or on the server.
+ *
  * @author EverNife
  */
-public class ECPlayerdataDamagePlayerdata extends Event implements Cancellable {
+public class ECPlayerdataDamagePlayerdata extends ECEvent implements ECCancellable {
 
-    protected static boolean hasBeenRegistered = false;
-
-    private static final HandlerList handlers = new HandlerList(){
-        @Override
-        public synchronized void register(RegisteredListener listener) {
-            super.register(listener);
-            if (hasBeenRegistered == false){
-                hasBeenRegistered = true;
-                new BukkitRunnable(){
-                    @Override
-                    public void run() {
-                        ECListener.register(EverNifeCore.getEcPluginData(), PlayerDamageByEntityListener.class);
-                    }
-                }.runTaskLater(EverNifeCoreBukkitPlugin.instance, 1);
-            }
-        }
-    };
+    public static HandlerList getHandlerList() {
+        return (HandlerList) ECEvent.getHandlerListOf(ECPlayerdataDamagePlayerdata.class);
+    }
 
     protected final PlayerData attackerData;
     protected final PlayerData victimData;
@@ -97,15 +82,6 @@ public class ECPlayerdataDamagePlayerdata extends Event implements Cancellable {
     @Override
     public void setCancelled(boolean cancel) {
         entityDamageByEntityEvent.setCancelled(cancel);
-    }
-
-    @Override
-    public HandlerList getHandlers() {
-        return handlers;
-    }
-
-    public static HandlerList getHandlerList() {
-        return handlers;
     }
 
 }

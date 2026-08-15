@@ -19,8 +19,17 @@ import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiListener;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiViews;
 import br.com.finalcraft.evernifecore.minecraft.integration.VaultIntegration;
 import br.com.finalcraft.evernifecore.minecraft.integration.WorldEditIntegration;
+import br.com.finalcraft.evernifecore.minecraft.api.events.ECPlayerChangeChunkEvent;
+import br.com.finalcraft.evernifecore.minecraft.api.events.ECPlayerCraftItemEvent;
+import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPetDamagedByPet;
+import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPetDamagedByPlayer;
+import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPlayerDamagedByPet;
+import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPlayerDamagedByPlayer;
+import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerCraftListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerDamageByEntityListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerInteractListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerLoginListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerMoveListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.PluginListener;
 import br.com.finalcraft.evernifecore.minecraft.loader.imp.McECPluginExtractor;
 import br.com.finalcraft.evernifecore.minecraft.loader.imp.McPlatform;
@@ -134,6 +143,13 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         }else {
             ECListener.register(ecPluginData, PlayerLoginListener.VanillaLogin.class);
         }
+
+        //Producers hooked on hot native events: registered only while somebody listens to what they
+        //produce, on the bus or on the server, and unregistered when the last listener leaves.
+        ECListener.registerWhileListened(ecPluginData, new PlayerMoveListener(), ECPlayerChangeChunkEvent.class);
+        ECListener.registerWhileListened(ecPluginData, new PlayerCraftListener(), ECPlayerCraftItemEvent.class);
+        ECListener.registerWhileListened(ecPluginData, new PlayerDamageByEntityListener(),
+                ECPlayerDamagedByPlayer.class, ECPlayerDamagedByPet.class, ECPetDamagedByPet.class, ECPetDamagedByPlayer.class);
 
         if (Bukkit.getPluginManager().isPluginEnabled("WorldEdit")) try{WorldEditIntegration.initialize();}catch (Throwable e){e.printStackTrace();}
 

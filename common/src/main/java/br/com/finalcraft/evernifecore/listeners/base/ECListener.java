@@ -1,15 +1,19 @@
 package br.com.finalcraft.evernifecore.listeners.base;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.api.platoverride.eclistener.IECBaseListener;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.eventbus.ECListenerWatch;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.util.FCArrayUtil;
 import jakarta.annotation.Nonnull;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public interface ECListener extends IECBaseListener {
 
@@ -98,6 +102,38 @@ public interface ECListener extends IECBaseListener {
             ecPluginData.getLog().warning("[ECListener] Failed to register Listener: [" + clazz.getName() + "] " + t.getClass().getSimpleName() + " [" + t.getMessage() + "]");
         }
         return false;
+    }
+
+    /**
+     * Keeps {@code listener} registered only while somebody listens to what it produces: it is
+     * registered through {@link #register(ECPluginData, ECListener)} when the first listener of any of
+     * {@code produced} appears - on the bus or on the platform - and {@link #unregisterThis()
+     * unregistered} when the last one leaves. What it saves is the platform work the listener would do
+     * for nobody: a producer hooked on a hot native event costs nothing until it is asked for. The
+     * watch belongs to {@code ecPluginData} and is dropped with the rest of that plugin's on shutdown.
+     *
+     * @return the watch, for a producer that wants to read the presence or stop following it early
+     */
+    @SafeVarargs
+    public static ECListenerWatch registerWhileListened(@Nonnull ECPluginData ecPluginData, ECListener listener, Class<? extends IECEvent>... produced) {
+        Objects.requireNonNull(ecPluginData, "'ecPluginData' cannot be null when registering an on-demand ECListener!");
+        Objects.requireNonNull(listener, "'listener' cannot be null when registering an on-demand ECListener!");
+        Objects.requireNonNull(produced, "'produced' cannot be null: name the event types the listener produces!");
+
+        //The bus runs one presence pass at a time, so the two callbacks never overlap; the flag is
+        //what makes a registration that was refused (canRegister, a missing plugin) retry next time.
+        AtomicBoolean registered = new AtomicBoolean();
+        return EverNifeCore.getEventBus().watchListeners(ecPluginData, Arrays.asList(produced),
+                () -> {
+                    if (registered.compareAndSet(false, true) && !register(ecPluginData, listener)) {
+                        registered.set(false);
+                    }
+                },
+                () -> {
+                    if (registered.compareAndSet(true, false)) {
+                        listener.unregisterThis();
+                    }
+                });
     }
 
     /**

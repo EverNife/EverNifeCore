@@ -1,11 +1,11 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners;
 
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.api.events.ECPlayerCraftItemEvent;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCCraftUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCInventoryUtil;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -15,12 +15,16 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 
 /**
- * Note: This listener is registered only once
- * and on Demand by the Event:
- *
- * @see ECPlayerCraftItemEvent
+ * Produces {@link ECPlayerCraftItemEvent}. Registered with the server only while somebody listens to
+ * that event - {@link ECListener#registerWhileListened}.
  */
 public class PlayerCraftListener implements ECListener {
+
+    @Override
+    public boolean silentRegistration() {
+        //comes and goes with the listeners of what it produces; logging each turn would be noise
+        return true;
+    }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onInventoryCraft(CraftItemEvent event) {
@@ -108,10 +112,12 @@ public class PlayerCraftListener implements ECListener {
             return;
         }
 
-        ECPlayerCraftItemEvent ecEvent = new ECPlayerCraftItemEvent(event, player, recipeAmount / event.getRecipe().getResult().getAmount(), recipeAmount);
-        Bukkit.getPluginManager().callEvent(ecEvent);
+        int craftTimes = recipeAmount / event.getRecipe().getResult().getAmount();
+        int amountProduced = recipeAmount;
+        ECPlayerCraftItemEvent ecEvent = ECEventBus.global().postIfListened(ECPlayerCraftItemEvent.class,
+                () -> new ECPlayerCraftItemEvent(event, player, craftTimes, amountProduced));
 
-        if (ecEvent.isCancelled()){
+        if (ecEvent != null && ecEvent.isCancelled()){
             event.setCancelled(true);
         }
 

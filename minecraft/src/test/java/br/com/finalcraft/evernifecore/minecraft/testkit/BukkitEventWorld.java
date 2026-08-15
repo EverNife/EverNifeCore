@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.testkit;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
@@ -32,7 +33,9 @@ import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -88,12 +91,14 @@ public final class BukkitEventWorld implements AutoCloseable {
     private final List<Runnable> scheduledTasks = new ArrayList<>();
     private final BukkitScheduler scheduler = buildScheduler();
 
+    private McPlatform realPlatform;
     private boolean closed = false;
 
     private BukkitEventWorld(Path dataFolder) {
         this.pluginName = "BukkitEventTest_" + UNIQUE_SUFFIX.incrementAndGet();
         this.platformWorld = Platforms.lenient().install()
                 .withPluginExtractor(Plugins.fake(pluginName, dataFolder.toFile()));
+        installRealListenerRegistration(platformWorld.platform());
 
         this.plugin = buildPlugin();
         //the plugin data wraps the Bukkit plugin itself, which is what the platform casts it back to
@@ -156,7 +161,7 @@ public final class BukkitEventWorld implements AutoCloseable {
      * <p>Whatever the platform refuses is rethrown, so a test can be about the refusal.</p>
      */
     public void registerECListener(ECListener listener) {
-        new McPlatform().registerECListener(ecPluginData, listener);
+        realPlatform().registerECListener(ecPluginData, listener);
         ECEventBus.global().register(listener);
         ecListeners.add(listener);
     }
@@ -239,6 +244,40 @@ public final class BukkitEventWorld implements AutoCloseable {
     // -----------------------------------------------------------------------------------------------------------------
     //  The stubbed server
     // -----------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Points the platform's two ECListener hooks at the real Bukkit ones and leaves every other answer
+     * the double's. {@code ECListener.register} reaches the server through the platform, and the double
+     * ignores listeners - in a world whose whole subject is where a registration lands.
+     */
+    private void installRealListenerRegistration(TestPlatform lenient) {
+        IPlatform routed = (IPlatform) Proxy.newProxyInstance(IPlatform.class.getClassLoader(),
+                new Class<?>[]{IPlatform.class}, (proxy, method, args) -> {
+                    if ("registerECListener".equals(method.getName())) {
+                        realPlatform().registerECListener((ECPluginData) args[0], (ECListener) args[1]);
+                        return null;
+                    }
+                    if ("unregisterECListener".equals(method.getName())) {
+                        realPlatform().unregisterECListener((ECListener) args[0]);
+                        return null;
+                    }
+                    try {
+                        return method.invoke(lenient, args);
+                    } catch (InvocationTargetException thrownByTheDouble) {
+                        throw thrownByTheDouble.getCause();
+                    }
+                });
+        //what platformWorld.close() puts back is the platform from before it installed, so this goes with it
+        EverNifeCore.getProviders().getBaseProvider().register(IPlatform.class, routed);
+    }
+
+    /** Built on first use: its static initializer reads the server, which this world installs later. */
+    private McPlatform realPlatform() {
+        if (realPlatform == null) {
+            realPlatform = new McPlatform();
+        }
+        return realPlatform;
+    }
 
     private Server buildServer(AtomicReference<PluginManager> manager) {
         //the manager is built against this server, so it can only be handed over after both exist

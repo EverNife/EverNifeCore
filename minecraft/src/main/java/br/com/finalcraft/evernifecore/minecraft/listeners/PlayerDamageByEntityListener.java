@@ -1,10 +1,13 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners;
 
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPetDamagedByPet;
+import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPetDamagedByPlayer;
+import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPlayerDamagedByPet;
+import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPlayerDamagedByPlayer;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
-import br.com.finalcraft.evernifecore.listeners.base.ECListener;
-import br.com.finalcraft.evernifecore.minecraft.api.events.damage.*;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -14,16 +17,16 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
 /**
- * Note: This listener is registered only once
- * and on Demand by the Events:
- *
- * @see ECPlayerdataDamagePlayerdata
- * @see ECPlayerDamagedByPlayer
- * @see ECPlayerDamagedByPet
- * @see ECPetDamagedByPet
- * @see ECPetDamagedByPlayer
+ * Produces the four events of the {@code ECPlayerdataDamagePlayerdata} family. Registered with the
+ * server only while somebody listens to any of them - {@link ECListener#registerWhileListened}.
  */
 public class PlayerDamageByEntityListener implements ECListener {
+
+    @Override
+    public boolean silentRegistration() {
+        //comes and goes with the listeners of what it produces; logging each turn would be noise
+        return true;
+    }
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onEntityDamageEvent(EntityDamageByEntityEvent event) {
@@ -77,60 +80,41 @@ public class PlayerDamageByEntityListener implements ECListener {
             }
         }
 
-        if (attackerData != null && victimData != null){
-
-            //Player damages a Player
-            if (tamableAttacker == null && tamableVictim == null){
-                Bukkit.getPluginManager().callEvent(
-                        new ECPlayerDamagedByPlayer(
-                                attackerData,
-                                victimData,
-                                event
-                        )
-                );
-                return;
-            }
-
-            //Pet damages a Player
-            if (tamableAttacker != null && tamableVictim == null){
-                Bukkit.getPluginManager().callEvent(
-                        new ECPlayerDamagedByPet(
-                                attackerData,
-                                tamableAttacker,
-                                victimData,
-                                event
-                        )
-                );
-                return;
-            }
-
-            //Pet damages a Pet
-            if (tamableAttacker != null && tamableVictim != null){
-                Bukkit.getPluginManager().callEvent(
-                        new ECPetDamagedByPet(
-                                attackerData,
-                                tamableAttacker,
-                                victimData,
-                                tamableVictim,
-                                event
-                        )
-                );
-                return;
-            }
-
-            //Player damages a Pet
-            if (tamableAttacker == null && tamableVictim != null){
-                Bukkit.getPluginManager().callEvent(
-                        new ECPetDamagedByPlayer(
-                                attackerData,
-                                victimData,
-                                tamableVictim,
-                                event
-                        )
-                );
-                return;
-            }
+        if (attackerData == null || victimData == null){
+            return;
         }
+
+        //captured by the suppliers below, which only run for a listener
+        final PlayerData attacker = attackerData;
+        final PlayerData victim = victimData;
+        final Tameable attackerPet = tamableAttacker;
+        final Tameable victimPet = tamableVictim;
+        ECEventBus bus = ECEventBus.global();
+
+        //Player damages a Player
+        if (attackerPet == null && victimPet == null){
+            bus.postIfListened(ECPlayerDamagedByPlayer.class,
+                    () -> new ECPlayerDamagedByPlayer(attacker, victim, event));
+            return;
+        }
+
+        //Pet damages a Player
+        if (attackerPet != null && victimPet == null){
+            bus.postIfListened(ECPlayerDamagedByPet.class,
+                    () -> new ECPlayerDamagedByPet(attacker, attackerPet, victim, event));
+            return;
+        }
+
+        //Pet damages a Pet
+        if (attackerPet != null && victimPet != null){
+            bus.postIfListened(ECPetDamagedByPet.class,
+                    () -> new ECPetDamagedByPet(attacker, attackerPet, victim, victimPet, event));
+            return;
+        }
+
+        //Player damages a Pet
+        bus.postIfListened(ECPetDamagedByPlayer.class,
+                () -> new ECPetDamagedByPlayer(attacker, victim, victimPet, event));
     }
 
 }

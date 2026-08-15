@@ -1,41 +1,24 @@
 package br.com.finalcraft.evernifecore.minecraft.api.events;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.listeners.base.ECListener;
-import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerMoveListener;
-import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
+import br.com.finalcraft.evernifecore.api.events.base.ECCancellable;
+import br.com.finalcraft.evernifecore.api.events.base.ECEvent;
 import org.bukkit.Chunk;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Cancellable;
-import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.plugin.RegisteredListener;
-import org.bukkit.scheduler.BukkitRunnable;
 
 /**
- * Called when a player move from one chunk to another
+ * Called when a player moves from one chunk to another. Produced only while somebody listens - the
+ * core registers its {@code PlayerMoveEvent} listener on the first listener of this event and drops it
+ * with the last, whether that listener sits on the bus or on the server.
  *
  * @author EverNife
  */
-public class ECPlayerChangeChunkEvent extends Event implements Cancellable {
+public class ECPlayerChangeChunkEvent extends ECEvent implements ECCancellable {
 
-    private static final HandlerList handlers = new HandlerList(){
-        private boolean hasBeenRegistered = false;
-        @Override
-        public synchronized void register(RegisteredListener listener) {
-            super.register(listener);
-            if (hasBeenRegistered == false){
-                hasBeenRegistered = true;
-                new BukkitRunnable(){
-                    @Override
-                    public void run() {
-                        ECListener.register(EverNifeCore.getEcPluginData(), PlayerMoveListener.class);
-                    }
-                }.runTaskLater(EverNifeCoreBukkitPlugin.instance, 1);
-            }
-        }
-    };
+    public static HandlerList getHandlerList() {
+        return (HandlerList) ECEvent.getHandlerListOf(ECPlayerChangeChunkEvent.class);
+    }
 
     private final PlayerMoveEvent playerMoveEvent;
     private final Chunk from;
@@ -95,15 +78,6 @@ public class ECPlayerChangeChunkEvent extends Event implements Cancellable {
     @Override
     public void setCancelled(boolean cancel) {
         playerMoveEvent.setCancelled(cancel);
-    }
-
-    @Override
-    public HandlerList getHandlers() {
-        return handlers;
-    }
-
-    public static HandlerList getHandlerList() {
-        return handlers;
     }
 
 }
