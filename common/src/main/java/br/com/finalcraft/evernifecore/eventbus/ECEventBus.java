@@ -11,6 +11,7 @@ import jakarta.annotation.Nullable;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -20,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -30,48 +30,62 @@ import java.util.stream.Collectors;
  * them into every registered {@link ECNativeAudience} - and knows, per event class and before any
  * event exists, whether anyone at all is there to hear it.
  *
- * <p>A post runs the local phase first - every matching handler in priority order - and only then
- * the audiences, in registration order. A handler or an audience that throws is logged and skipped:
- * it never breaks the producer nor the ones queued behind it. What reaches an audience is decided by
- * the event's own hierarchy: an {@link ECEvent} is platform-visible, anything that merely implements
+ * <p>A post runs the local phase first - every matching subscription in priority order - and only
+ * then the audiences, in registration order. A subscriber that throws is handed to the bus's
+ * {@link ECEventExceptionHandler} and the ones queued behind it still run; an audience that throws is
+ * logged and skipped. Neither ever breaks the producer. What reaches an audience is decided by the
+ * event's own hierarchy: an {@link ECEvent} is platform-visible, anything that merely implements
  * {@link IECEvent} is not. {@link #postLocal(IECEvent)} is the escape for the one post that must
  * stay in.</p>
  *
+ * <p>A subscription is an {@link ECEventSubscription}: the handle {@link #subscribe} and
+ * {@link #register} hand back, and the view {@link #getSubscriptions()} lists - who listens to what,
+ * from which plugin, with which {@link ECSubscribeOptions}. {@link #unsubscribeIf(Predicate)} takes
+ * any of them away by any criterion.</p>
+ *
  * <p>The presence of listeners is a question a producer asks up front: {@link #hasListeners(Class)}
  * answers it, {@link #postIfListened(Class, Supplier)} builds and posts only on a yes, and {@link
- * #watchListeners(Class, Runnable, Runnable)} turns it into two actions - one when the first
+ * #watchListeners(Runnable, Runnable, Class[])} turns it into two actions - one when the first
  * listener of a type arrives, one when the last leaves - so an expensive source stays switched off
  * until somebody cares.</p>
  *
  * <p>{@link #global()} is the bus platforms mirror from and plugins subscribe to; it lives as long
- * as the classloader does. {@link #create()} builds a scoped bus for a subsystem's own traffic - it
- * never mirrors, so an audience added to it is accepted and never called, and its presence is that
- * of its own subscribers alone.</p>
+ * as the classloader does and always reports failures through {@link ECEventExceptionHandler#LOGGING}.
+ * {@link #create()} builds a scoped bus for a subsystem's own traffic - it never mirrors, so an
+ * audience added to it is accepted and never called, and its presence is that of its own subscribers
+ * alone; {@link #create(ECEventExceptionHandler)} gives it a failure policy of its own.</p>
  */
 public class ECEventBus {
 
-    private static final ECEventBus GLOBAL = new ECEventBus(true);
+    private static final ECEventBus GLOBAL = new ECEventBus(true, ECEventExceptionHandler.LOGGING);
 
     /** The process-wide bus: the only one that mirrors into the native audiences. */
     public static ECEventBus global() {
         return GLOBAL;
     }
 
-    /** A bus of its own, for traffic that must not reach any platform: it never mirrors. */
+    /** A bus of its own, for traffic that must not reach any platform: it never mirrors. Failures are logged. */
     public static ECEventBus create() {
-        return new ECEventBus(false);
+        return new ECEventBus(false, ECEventExceptionHandler.LOGGING);
+    }
+
+    /** As {@link #create()}, with {@code exceptionHandler} deciding what a failing subscriber or watch callback becomes. */
+    public static ECEventBus create(ECEventExceptionHandler exceptionHandler) {
+        Objects.requireNonNull(exceptionHandler, "'exceptionHandler' cannot be null when creating an ECEventBus: use create() for the logging default.");
+        return new ECEventBus(false, exceptionHandler);
     }
 
     private final boolean mirroring;
+    private volatile ECEventExceptionHandler exceptionHandler;
 
     private final List<ECNativeAudience> audiences = new CopyOnWriteArrayList<>();
 
     private final Object mutex = new Object();
-    private final List<Handler> handlers = new ArrayList<>();               // guarded by mutex
+    private final List<Subscription<?>> subscriptions = new ArrayList<>();       // guarded by mutex, subscription order
     //Dispatch plan per concrete event class, priority-sorted, built lazily and dropped wholesale on
     //every (un)subscribe. Reading it is lock-free, and the array a post iterates is a snapshot - a
-    //handler may subscribe or post while it runs.
-    private volatile Map<Class<?>, Handler[]> dispatchIndex = Collections.emptyMap();
+    //subscriber may subscribe or post while it runs.
+    private volatile Map<Class<?>, Subscription<?>[]> dispatchIndex = Collections.emptyMap();
 
     private final List<Watch> watches = new CopyOnWriteArrayList<>();
     //One evaluation pass at a time: a refresh that lands while a pass runs only marks it dirty and
@@ -83,65 +97,75 @@ public class ECEventBus {
 
     //Package-private: production only ever gets the global bus or a scoped one, and a test needs a
     //mirroring bus that is not the global.
-    ECEventBus(boolean mirroring) {
+    ECEventBus(boolean mirroring, ECEventExceptionHandler exceptionHandler) {
         this.mirroring = mirroring;
+        this.exceptionHandler = exceptionHandler;
+    }
+
+    /** The policy a failing subscriber or watch callback goes through on this bus. */
+    public ECEventExceptionHandler getExceptionHandler() {
+        return exceptionHandler;
+    }
+
+    /**
+     * Not API. Package-private so the knob stays out of what a plugin can reach by accident: production
+     * never re-routes the failures of another plugin's subscribers, a test engine does - it swaps the
+     * global bus's handler for the length of a test class and puts the previous one back. A fence,
+     * not a lock: on the Java 8 floor any class declared in this package gets here.
+     */
+    void setExceptionHandler(ECEventExceptionHandler exceptionHandler) {
+        this.exceptionHandler = Objects.requireNonNull(exceptionHandler, "'exceptionHandler' cannot be null on an ECEventBus: hand it ECEventExceptionHandler.LOGGING to go back to the default.");
     }
 
     // ------------------------------------------------------------------
     //  Subscribing
     // ------------------------------------------------------------------
 
-    /** Subscribes {@code handler} to {@code eventType} and every subtype of it, at NORMAL priority. */
-    public <T extends IECEvent> ECEventSubscription<T> subscribe(Class<T> eventType, Consumer<? super T> handler) {
-        return subscribe(null, eventType, ECEventPriority.NORMAL, handler);
-    }
-
-    /** As {@link #subscribe(Class, Consumer)}, at the given priority. */
-    public <T extends IECEvent> ECEventSubscription<T> subscribe(Class<T> eventType, ECEventPriority priority, Consumer<? super T> handler) {
-        return subscribe(null, eventType, priority, handler);
+    /** Subscribes to {@code eventType} and every subtype of it with {@link ECSubscribeOptions#defaults()}. */
+    public <T extends IECEvent> ECEventSubscription<T> subscribe(Class<T> eventType, ECEventSubscriber<? super T> subscriber) {
+        return subscribe(eventType, ECSubscribeOptions.defaults(), subscriber);
     }
 
     /**
-     * As {@link #subscribe(Class, Consumer)}, owned by {@code plugin}: the subscription is dropped
-     * with the rest of that plugin's when it shuts down ({@link #unsubscribeAll(ECPluginData)}).
+     * As {@link #subscribe(Class, ECEventSubscriber)}, owned by {@code plugin}: the subscription is
+     * dropped with the rest of that plugin's when it shuts down ({@link #unsubscribeAll(ECPluginData)}).
      */
-    public <T extends IECEvent> ECEventSubscription<T> subscribe(ECPluginData plugin, Class<T> eventType, Consumer<? super T> handler) {
-        return subscribe(plugin, eventType, ECEventPriority.NORMAL, handler);
+    public <T extends IECEvent> ECEventSubscription<T> subscribe(ECPluginData plugin, Class<T> eventType, ECEventSubscriber<? super T> subscriber) {
+        return subscribe(eventType, ECSubscribeOptions.ownedBy(plugin), subscriber);
     }
 
-    /** As {@link #subscribe(ECPluginData, Class, Consumer)}, at the given priority. */
-    public <T extends IECEvent> ECEventSubscription<T> subscribe(@Nullable ECPluginData plugin, Class<T> eventType, ECEventPriority priority, Consumer<? super T> handler) {
+    /** Subscribes to {@code eventType} the way {@code options} says: priority, cancellation, exactness, owner. */
+    public <T extends IECEvent> ECEventSubscription<T> subscribe(Class<T> eventType, ECSubscribeOptions options, ECEventSubscriber<? super T> subscriber) {
         Objects.requireNonNull(eventType, "'eventType' cannot be null when subscribing to an ECEventBus!");
-        Objects.requireNonNull(priority, "'priority' cannot be null when subscribing to an ECEventBus!");
-        Objects.requireNonNull(handler, "'handler' cannot be null when subscribing to an ECEventBus!");
+        Objects.requireNonNull(options, "'options' cannot be null when subscribing to an ECEventBus: use ECSubscribeOptions.defaults().");
+        Objects.requireNonNull(subscriber, "'subscriber' cannot be null when subscribing to an ECEventBus!");
 
-        Subscription<T> subscription = new Subscription<>(eventType);
-        subscription.handler = new Handler(
-                eventType,
-                subscription,
-                plugin == null ? null : plugin.getMetaInfo().getName(),
-                priority.getValue(),
-                false,
-                event -> handler.accept(eventType.cast(event))
-        );
-
-        addHandlers(Collections.singletonList(subscription.handler));
+        Subscription<T> subscription = new Subscription<>(eventType, options, subscriber, null,
+                event -> subscriber.handle(eventType.cast(event)));
+        addSubscriptions(Collections.<Subscription<?>>singletonList(subscription));
         return subscription;
     }
 
     /**
      * Subscribes every {@link ECEventHandler}-annotated method of {@code listener} whose single
-     * parameter is an {@link IECEvent}. Any other signature belongs to a platform's own listener
-     * registration and is left alone here.
+     * parameter is an {@link IECEvent}, owned by nobody. Any other signature belongs to a platform's
+     * own listener registration and is left alone here.
+     *
+     * @return one subscription per method taken, in declaration order; empty when none was
      */
-    public void register(Object listener) {
-        if (listener == null) return;
+    public List<ECEventSubscription<?>> register(Object listener) {
+        return register(null, listener);
+    }
+
+    /** As {@link #register(Object)}, with every subscription owned by {@code plugin}. */
+    public List<ECEventSubscription<?>> register(@Nullable ECPluginData plugin, Object listener) {
+        if (listener == null) return Collections.emptyList();
 
         List<MethodInvoker<?>> annotatedMethods = FCReflectionUtil.getMethods()
                 .getMethods(listener.getClass(), method -> method.getAnnotation(ECEventHandler.class) != null)
                 .collect(Collectors.toList());
 
-        List<Handler> toAdd = new ArrayList<>();
+        List<Subscription<?>> toAdd = new ArrayList<>();
         for (MethodInvoker<?> invoker : annotatedMethods) {
             Method method = invoker.getMethod();
             Class<?>[] parameterTypes = method.getParameterTypes();
@@ -150,21 +174,50 @@ public class ECEventBus {
                 continue;
             }
 
-            ECEventHandler annotation = method.getAnnotation(ECEventHandler.class);
-            short priority = ECEventPriority.of(annotation);
-
-            toAdd.add(new Handler(parameterTypes[0], listener, null, priority, annotation.ignoreCancelled(),
-                    event -> invoker.invoke(listener, event)));
+            ECSubscribeOptions options = ECSubscribeOptions.of(method.getAnnotation(ECEventHandler.class), plugin);
+            toAdd.add(annotatedSubscription(parameterTypes[0].asSubclass(IECEvent.class), options, listener, invoker));
         }
 
-        if (toAdd.isEmpty()) return;
-        addHandlers(toAdd);
+        if (toAdd.isEmpty()) return Collections.emptyList();
+        addSubscriptions(toAdd);
+        return Collections.unmodifiableList(new ArrayList<ECEventSubscription<?>>(toAdd));
     }
 
-    /** Drops every handler {@link #register(Object)} took from this listener. */
+    private <T extends IECEvent> Subscription<T> annotatedSubscription(Class<T> eventType, ECSubscribeOptions options, Object listener, MethodInvoker<?> invoker) {
+        return new Subscription<>(eventType, options, listener, invoker.getMethod(), event -> invoker.invoke(listener, event));
+    }
+
+    /** Drops every subscription {@link #register} took from this listener. */
     public void unregister(Object listener) {
         if (listener == null) return;
-        removeHandlers(handler -> handler.owner == listener);
+        unsubscribeIf(subscription -> subscription.getSubscriber() == listener);
+    }
+
+    /**
+     * Drops every subscription {@code filter} accepts - by plugin, by type, by priority, by subscriber,
+     * whatever the predicate reads off the view - and hands them back, in subscription order.
+     * A listener watch whose last listener left this way hears it before this returns.
+     */
+    public List<ECEventSubscription<?>> unsubscribeIf(Predicate<? super ECEventSubscription<?>> filter) {
+        Objects.requireNonNull(filter, "'filter' cannot be null when unsubscribing from an ECEventBus!");
+        List<ECEventSubscription<?>> removed = new ArrayList<>();
+        synchronized (mutex) {
+            for (Iterator<Subscription<?>> iterator = subscriptions.iterator(); iterator.hasNext(); ) {
+                Subscription<?> subscription = iterator.next();
+                if (filter.test(subscription)) {
+                    iterator.remove();
+                    subscription.active = false;
+                    removed.add(subscription);
+                }
+            }
+            if (!removed.isEmpty()) {
+                dispatchIndex = Collections.emptyMap();
+            }
+        }
+        if (!removed.isEmpty()) {
+            refreshListenerWatches();
+        }
+        return Collections.unmodifiableList(removed);
     }
 
     /**
@@ -176,7 +229,7 @@ public class ECEventBus {
     public void unsubscribeAll(ECPluginData plugin) {
         Objects.requireNonNull(plugin, "'plugin' cannot be null when draining its ECEventBus subscriptions!");
         String pluginName = plugin.getMetaInfo().getName();
-        removeHandlers(handler -> pluginName.equals(handler.pluginName));
+        unsubscribeIf(subscription -> pluginName.equals(subscription.getOptions().getPluginName()));
         for (Watch watch : watches) {
             if (pluginName.equals(watch.pluginName)) {
                 watch.stop();
@@ -185,12 +238,38 @@ public class ECEventBus {
     }
 
     // ------------------------------------------------------------------
+    //  Introspection
+    // ------------------------------------------------------------------
+
+    /** Every live subscription on this bus, in the order they were taken. A snapshot. */
+    public List<ECEventSubscription<?>> getSubscriptions() {
+        synchronized (mutex) {
+            return Collections.unmodifiableList(new ArrayList<ECEventSubscription<?>>(subscriptions));
+        }
+    }
+
+    /**
+     * What a post of exactly {@code eventType} would reach on this bus, in delivery order - the same
+     * set {@link #hasListeners(Class)} counts and for the same reason: a subscription to a subtype is
+     * not in it. The audiences are not asked; this is the local phase only. A snapshot.
+     */
+    public List<ECEventSubscription<?>> getSubscriptions(Class<? extends IECEvent> eventType) {
+        Objects.requireNonNull(eventType, "'eventType' cannot be null when asking an ECEventBus for subscriptions!");
+        return Collections.unmodifiableList(new ArrayList<ECEventSubscription<?>>(Arrays.asList(planFor(eventType))));
+    }
+
+    /** Every active listener watch on this bus, in the order they were taken. A snapshot. */
+    public List<ECListenerWatch> getListenerWatches() {
+        return Collections.unmodifiableList(new ArrayList<ECListenerWatch>(watches));
+    }
+
+    // ------------------------------------------------------------------
     //  Posting
     // ------------------------------------------------------------------
 
     /**
      * Delivers {@code event} locally and then to the native audiences, and returns it - so a producer
-     * can read back whatever the handlers changed on it.
+     * can read back whatever the subscribers changed on it.
      */
     public <T extends IECEvent> T post(T event) {
         if (event == null) return null;
@@ -217,11 +296,11 @@ public class ECEventBus {
     }
 
     /**
-     * Whether a post of exactly {@code eventType} would reach anyone: a handler subscribed to that type,
-     * to a supertype of it or to a marker interface it carries - or, on a mirroring bus and for an
-     * {@link ECEvent}, a native audience with listeners. A handler subscribed to a subtype does not
-     * count: it would not hear that post. Cheap - one index lookup and one question per audience - so
-     * a producer may ask it on every occasion before building anything.
+     * Whether a post of exactly {@code eventType} would reach anyone: a subscription to that type, to a
+     * supertype of it or to a marker interface it carries (an {@code exact} one only to that very type) -
+     * or, on a mirroring bus and for an {@link ECEvent}, a native audience with listeners. A subscription
+     * to a subtype does not count: it would not hear that post. Cheap - one index lookup and one
+     * question per audience - so a producer may ask it on every occasion before building anything.
      */
     public boolean hasListeners(Class<? extends IECEvent> eventType) {
         Objects.requireNonNull(eventType, "'eventType' cannot be null when asking an ECEventBus for listeners!");
@@ -266,16 +345,19 @@ public class ECEventBus {
     }
 
     private void deliverLocal(IECEvent event) {
-        for (Handler handler : planFor(event.getClass())) {
-            if (handler.ignoreCancelled && event instanceof ECCancellable && ((ECCancellable) event).isCancelled()) {
+        for (Subscription<?> subscription : planFor(event.getClass())) {
+            if (subscription.options.isIgnoringCancelled() && event instanceof ECCancellable && ((ECCancellable) event).isCancelled()) {
                 continue;
             }
+            Throwable failure;
             try {
-                handler.action.accept(event);
+                subscription.action.handle(event);
+                continue;
             } catch (Throwable t) {
-                EverNifeCore.getLog().severe("[ECEventBus] Handler {} failed on {}; the remaining handlers"
-                        + " still run.", handler.describe(), event.getClass().getName(), t);
+                failure = t;
             }
+            //outside the try on purpose: what the exception handler throws belongs to the producer
+            exceptionHandler.onSubscriberFailure(subscription, event, failure);
         }
     }
 
@@ -284,50 +366,39 @@ public class ECEventBus {
     // ------------------------------------------------------------------
 
     /**
-     * Follows the presence of listeners for {@code eventType} - the same presence {@link
-     * #hasListeners(Class)} reports: {@code onFirstListener} runs when the first one arrives (right
-     * away, if one is already there when the watch is taken), {@code onLastListenerGone} when the last
-     * one leaves. Exactly one callback per transition, on the thread that caused it and outside every
-     * lock of this bus; a callback that throws is logged, and the watch keeps the state it had just
-     * moved to. What a producer does with it is switch its expensive source on and off: register a
-     * native listener, start a task, warm a cache.
+     * Follows the presence of listeners for {@code eventTypes} - the same presence {@link
+     * #hasListeners(Class)} reports, for ANY of them: {@code onFirstListener} runs when the first one
+     * arrives (right away, if one is already there when the watch is taken), {@code onLastListenerGone}
+     * when the last one leaves. Exactly one callback per transition, on the thread that caused it and
+     * outside every lock of this bus; a callback that throws goes to the {@link ECEventExceptionHandler}
+     * and the watch keeps the state it had just moved to. What a producer does with it is switch its
+     * expensive source on and off: register a native listener, start a task, warm a cache. A producer
+     * of a whole family names the concrete types it posts, not their base.
      */
-    public ECListenerWatch watchListeners(Class<? extends IECEvent> eventType, Runnable onFirstListener, @Nullable Runnable onLastListenerGone) {
-        return watchListeners(null, eventType, onFirstListener, onLastListenerGone);
+    @SafeVarargs
+    public final ECListenerWatch watchListeners(Runnable onFirstListener, @Nullable Runnable onLastListenerGone, Class<? extends IECEvent>... eventTypes) {
+        return watchListeners(null, onFirstListener, onLastListenerGone, eventTypes);
     }
 
     /**
-     * As {@link #watchListeners(Class, Runnable, Runnable)}, present while ANY of {@code eventTypes}
-     * has listeners - for a producer of a whole family, which asks about the concrete types it posts.
-     */
-    public ECListenerWatch watchListeners(Collection<? extends Class<? extends IECEvent>> eventTypes, Runnable onFirstListener, @Nullable Runnable onLastListenerGone) {
-        return watchListeners(null, eventTypes, onFirstListener, onLastListenerGone);
-    }
-
-    /**
-     * As {@link #watchListeners(Class, Runnable, Runnable)}, owned by {@code plugin}: the watch is
+     * As {@link #watchListeners(Runnable, Runnable, Class[])}, owned by {@code plugin}: the watch is
      * stopped with the rest of that plugin's when it shuts down ({@link #unsubscribeAll(ECPluginData)}).
      */
-    public ECListenerWatch watchListeners(@Nullable ECPluginData plugin, Class<? extends IECEvent> eventType, Runnable onFirstListener, @Nullable Runnable onLastListenerGone) {
-        Objects.requireNonNull(eventType, "'eventType' cannot be null when watching listeners on an ECEventBus!");
-        return watchListeners(plugin, Collections.<Class<? extends IECEvent>>singletonList(eventType), onFirstListener, onLastListenerGone);
-    }
-
-    /** As {@link #watchListeners(Collection, Runnable, Runnable)}, owned by {@code plugin}. */
-    public ECListenerWatch watchListeners(@Nullable ECPluginData plugin, Collection<? extends Class<? extends IECEvent>> eventTypes, Runnable onFirstListener, @Nullable Runnable onLastListenerGone) {
-        Objects.requireNonNull(eventTypes, "'eventTypes' cannot be null when watching listeners on an ECEventBus!");
+    @SafeVarargs
+    public final ECListenerWatch watchListeners(@Nullable ECPluginData plugin, Runnable onFirstListener, @Nullable Runnable onLastListenerGone, Class<? extends IECEvent>... eventTypes) {
         Objects.requireNonNull(onFirstListener, "'onFirstListener' cannot be null when watching listeners on an ECEventBus!");
-        if (eventTypes.isEmpty()) {
+        Objects.requireNonNull(eventTypes, "'eventTypes' cannot be null when watching listeners on an ECEventBus!");
+        if (eventTypes.length == 0) {
             throw new IllegalArgumentException("A listener watch needs at least one event type to follow - "
-                    + "an empty collection would be a watch that never fires.");
+                    + "no types would be a watch that never fires.");
         }
         for (Class<? extends IECEvent> eventType : eventTypes) {
             Objects.requireNonNull(eventType, "'eventTypes' cannot hold a null when watching listeners on an ECEventBus!");
         }
 
         Watch watch = new Watch(
-                Collections.unmodifiableList(new ArrayList<Class<? extends IECEvent>>(eventTypes)),
-                plugin == null ? null : plugin.getMetaInfo().getName(),
+                Collections.unmodifiableList(new ArrayList<Class<? extends IECEvent>>(Arrays.asList(eventTypes))),
+                plugin,
                 onFirstListener,
                 onLastListenerGone
         );
@@ -371,13 +442,15 @@ public class ECEventBus {
                     watch.present = now;                    //state first, so a re-entrant read sees the truth
                     Runnable action = now ? watch.onFirstListener : watch.onLastListenerGone;
                     if (action == null) continue;
+                    Throwable failure;
                     try {
                         action.run();
+                        continue;
                     } catch (Throwable t) {
-                        EverNifeCore.getLog().severe("[ECEventBus] Listener watch on {} failed on {}; its state"
-                                + " still moved to {}.", watch.describe(), now ? "the first listener" : "the last listener gone",
-                                now ? "present" : "absent", t);
+                        failure = t;
                     }
+                    //outside the try on purpose: what the exception handler throws belongs to the caller
+                    exceptionHandler.onWatchFailure(watch, now, failure);
                 }
                 //"nothing new arrived" and "this pass is over" are decided under one lock, so a refresh
                 //that lands in between is either seen by this pass or starts the next - never dropped
@@ -452,36 +525,16 @@ public class ECEventBus {
     //  Internals
     // ------------------------------------------------------------------
 
-    private void addHandlers(List<Handler> toAdd) {
+    private void addSubscriptions(List<Subscription<?>> toAdd) {
         synchronized (mutex) {
-            handlers.addAll(toAdd);
+            subscriptions.addAll(toAdd);
             dispatchIndex = Collections.emptyMap();
         }
         refreshListenerWatches();
     }
 
-    private void removeHandlers(Predicate<Handler> filter) {
-        boolean removedAny = false;
-        synchronized (mutex) {
-            for (Iterator<Handler> iterator = handlers.iterator(); iterator.hasNext(); ) {
-                Handler handler = iterator.next();
-                if (filter.test(handler)) {
-                    iterator.remove();
-                    handler.active = false;
-                    removedAny = true;
-                }
-            }
-            if (removedAny) {
-                dispatchIndex = Collections.emptyMap();
-            }
-        }
-        if (removedAny) {
-            refreshListenerWatches();
-        }
-    }
-
-    private Handler[] planFor(Class<?> eventClass) {
-        Handler[] plan = dispatchIndex.get(eventClass);
+    private Subscription<?>[] planFor(Class<?> eventClass) {
+        Subscription<?>[] plan = dispatchIndex.get(eventClass);
         if (plan != null) {
             return plan;
         }
@@ -492,56 +545,42 @@ public class ECEventBus {
                 return plan;
             }
 
-            List<Handler> matching = new ArrayList<>();
-            for (Handler handler : handlers) {
+            List<Subscription<?>> matching = new ArrayList<>();
+            for (Subscription<?> subscription : subscriptions) {
                 //isAssignableFrom covers superclasses AND interfaces, so subscribing to a marker
-                //interface keeps hearing every event that carries it.
-                if (handler.eventType.isAssignableFrom(eventClass)) {
-                    matching.add(handler);
+                //interface keeps hearing every event that carries it; an exact subscription hears the
+                //class it named and nothing below it
+                if (subscription.options.isExact()
+                        ? subscription.eventType == eventClass
+                        : subscription.eventType.isAssignableFrom(eventClass)) {
+                    matching.add(subscription);
                 }
             }
             //Stable sort over a subscription-ordered list: ties keep the order they subscribed in.
-            matching.sort(Comparator.comparingInt(handler -> handler.priority));
-            plan = matching.toArray(new Handler[0]);
+            matching.sort(Comparator.comparingInt(subscription -> subscription.options.getPriority()));
+            plan = matching.toArray(new Subscription<?>[0]);
 
-            Map<Class<?>, Handler[]> updated = new HashMap<>(dispatchIndex);
+            Map<Class<?>, Subscription<?>[]> updated = new HashMap<>(dispatchIndex);
             updated.put(eventClass, plan);
             dispatchIndex = updated;
             return plan;
         }
     }
 
-    private static final class Handler {
-        final Class<?> eventType;
-        final Object owner;                 // the listener, or the Subscription that opened it
-        final String pluginName;            // null when the subscription is not owned by a plugin
-        final short priority;
-        final boolean ignoreCancelled;
-        final Consumer<IECEvent> action;
+    private final class Subscription<T extends IECEvent> implements ECEventSubscription<T> {
+        final Class<T> eventType;
+        final ECSubscribeOptions options;
+        final Object subscriber;              // the ECEventSubscriber, or the listener an annotated method belongs to
+        final Method method;                  // the annotated method; null for a functional subscription
+        final ECEventSubscriber<IECEvent> action;
         volatile boolean active = true;
 
-        Handler(Class<?> eventType, Object owner, String pluginName, short priority, boolean ignoreCancelled, Consumer<IECEvent> action) {
+        Subscription(Class<T> eventType, ECSubscribeOptions options, Object subscriber, @Nullable Method method, ECEventSubscriber<IECEvent> action) {
             this.eventType = eventType;
-            this.owner = owner;
-            this.pluginName = pluginName;
-            this.priority = priority;
-            this.ignoreCancelled = ignoreCancelled;
+            this.options = options;
+            this.subscriber = subscriber;
+            this.method = method;
             this.action = action;
-        }
-
-        String describe() {
-            return owner.getClass().getName() + " on " + eventType.getName();
-        }
-    }
-
-    private final class Subscription<T extends IECEvent> implements ECEventSubscription<T> {
-        private final Class<T> eventType;
-        //Assigned right after construction and before the handler reaches the bus; volatile so a
-        //subscriber that hands the handle to another thread cannot read it half-published.
-        private volatile Handler handler;
-
-        Subscription(Class<T> eventType) {
-            this.eventType = eventType;
         }
 
         @Override
@@ -550,19 +589,45 @@ public class ECEventBus {
         }
 
         @Override
+        public ECSubscribeOptions getOptions() {
+            return options;
+        }
+
+        @Override
+        public Object getSubscriber() {
+            return subscriber;
+        }
+
+        @Override
         public void unsubscribe() {
-            removeHandlers(candidate -> candidate == handler);
+            unsubscribeIf(candidate -> candidate == this);
         }
 
         @Override
         public boolean isActive() {
-            return handler.active;
+            return active;
         }
+
+        /** {@code "ShopListener#onLogin on ECPlayerFullyLoggedInEvent [LATE, plugin=Shop]"} */
+        @Override
+        public String toString() {
+            String who = method != null
+                    ? nameOf(subscriber.getClass()) + "#" + method.getName()
+                    : subscriber.getClass().getName();
+            return who + " on " + eventType.getSimpleName() + " [" + options + "]";
+        }
+    }
+
+    /** The simple name, or the full one for a class that has none (anonymous). */
+    private static String nameOf(Class<?> type) {
+        String simpleName = type.getSimpleName();
+        return simpleName.isEmpty() ? type.getName() : simpleName;
     }
 
     private final class Watch implements ECListenerWatch {
         final List<Class<? extends IECEvent>> eventTypes;
-        final String pluginName;            // null when the watch is not owned by a plugin
+        final ECPluginData plugin;          // null when the watch is not owned by a plugin
+        final String pluginName;            // ownership is by name, like the drain compares it
         final Runnable onFirstListener;
         final Runnable onLastListenerGone;  // null when the producer has nothing to undo
         //Both only ever written by the single evaluation pass; volatile so a read from any thread
@@ -570,9 +635,10 @@ public class ECEventBus {
         volatile boolean present;
         volatile boolean active = true;
 
-        Watch(List<Class<? extends IECEvent>> eventTypes, String pluginName, Runnable onFirstListener, Runnable onLastListenerGone) {
+        Watch(List<Class<? extends IECEvent>> eventTypes, @Nullable ECPluginData plugin, Runnable onFirstListener, @Nullable Runnable onLastListenerGone) {
             this.eventTypes = eventTypes;
-            this.pluginName = pluginName;
+            this.plugin = plugin;
+            this.pluginName = plugin == null ? null : plugin.getMetaInfo().getName();
             this.onFirstListener = onFirstListener;
             this.onLastListenerGone = onLastListenerGone;
         }
@@ -580,6 +646,11 @@ public class ECEventBus {
         @Override
         public Collection<Class<? extends IECEvent>> getEventTypes() {
             return eventTypes;
+        }
+
+        @Override
+        public ECPluginData getPlugin() {
+            return plugin;
         }
 
         @Override
@@ -598,11 +669,11 @@ public class ECEventBus {
             watches.remove(this);
         }
 
-        String describe() {
-            if (eventTypes.size() == 1) {
-                return eventTypes.get(0).getName();
-            }
-            return eventTypes.stream().map(Class::getSimpleName).collect(Collectors.joining(", ", "[", "]"));
+        /** {@code "[ECPlayerChangeChunkEvent] plugin=EverNifeCore present"} */
+        @Override
+        public String toString() {
+            String types = eventTypes.stream().map(Class::getSimpleName).collect(Collectors.joining(", ", "[", "]"));
+            return types + (pluginName != null ? " plugin=" + pluginName : "") + (present ? " present" : " absent");
         }
     }
 

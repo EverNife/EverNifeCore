@@ -9,9 +9,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.RecordingAudience;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -21,8 +19,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -42,22 +38,6 @@ class ECEventBusWatchTest {
 
     private final List<String> createdPlugins = new ArrayList<>();
 
-    private static Level previousLogLevel;
-
-    @BeforeAll
-    static void muteTheBusLogger() {
-        Logger logger = Logger.getLogger("ECEventBus");
-        previousLogLevel = logger.getLevel();
-        //the isolation test breaks a watch callback on purpose: the SEVERE it logs would read as a
-        //real failure in the build output
-        logger.setLevel(Level.OFF);
-    }
-
-    @AfterAll
-    static void unmuteTheBusLogger() {
-        Logger.getLogger("ECEventBus").setLevel(previousLogLevel);
-    }
-
     @AfterEach
     void forgetTheFakePlugins() {
         for (String pluginName : createdPlugins) {
@@ -74,7 +54,7 @@ class ECEventBusWatchTest {
     void theFirstListenerOpensTheWatchAndTheSecondDoesNotFireItAgain() {
         ECEventBus bus = ECEventBus.create();
         List<String> transitions = new ArrayList<>();
-        bus.watchListeners(SampleEvent.class, () -> transitions.add("first"), () -> transitions.add("gone"));
+        bus.watchListeners(() -> transitions.add("first"), () -> transitions.add("gone"), SampleEvent.class);
 
         assertTrue(transitions.isEmpty(), "a watch over nobody is born silent");
 
@@ -94,7 +74,7 @@ class ECEventBusWatchTest {
         });
 
         List<String> transitions = new ArrayList<>();
-        bus.watchListeners(SampleEvent.class, () -> transitions.add("first"), () -> transitions.add("gone"));
+        bus.watchListeners(() -> transitions.add("first"), () -> transitions.add("gone"), SampleEvent.class);
 
         assertEquals(Collections.singletonList("first"), transitions);
     }
@@ -103,7 +83,7 @@ class ECEventBusWatchTest {
     void unsubscribingTheLastListenerClosesTheWatch() {
         ECEventBus bus = ECEventBus.create();
         List<String> transitions = new ArrayList<>();
-        bus.watchListeners(SampleEvent.class, () -> transitions.add("first"), () -> transitions.add("gone"));
+        bus.watchListeners(() -> transitions.add("first"), () -> transitions.add("gone"), SampleEvent.class);
 
         ECEventSubscription<SampleEvent> one = bus.subscribe(SampleEvent.class, event -> {
         });
@@ -121,7 +101,7 @@ class ECEventBusWatchTest {
     void unregisteringTheLastAnnotatedListenerClosesTheWatch() {
         ECEventBus bus = ECEventBus.create();
         List<String> transitions = new ArrayList<>();
-        bus.watchListeners(SampleEvent.class, () -> transitions.add("first"), () -> transitions.add("gone"));
+        bus.watchListeners(() -> transitions.add("first"), () -> transitions.add("gone"), SampleEvent.class);
 
         AnnotatedListener listener = new AnnotatedListener();
         bus.register(listener);
@@ -137,7 +117,7 @@ class ECEventBusWatchTest {
 
         ECEventBus bus = ECEventBus.create();
         List<String> transitions = new ArrayList<>();
-        bus.watchListeners(SampleEvent.class, () -> transitions.add("first"), () -> transitions.add("gone"));
+        bus.watchListeners(() -> transitions.add("first"), () -> transitions.add("gone"), SampleEvent.class);
 
         bus.subscribe(owner, SampleEvent.class, event -> {
         });
@@ -151,8 +131,8 @@ class ECEventBusWatchTest {
     void aMultiTypeWatchOpensOnAnyTypeAndClosesOnlyWhenAllAreGone() {
         ECEventBus bus = ECEventBus.create();
         List<String> transitions = new ArrayList<>();
-        bus.watchListeners(Arrays.<Class<? extends IECEvent>>asList(SampleEvent.class, OtherEvent.class),
-                () -> transitions.add("first"), () -> transitions.add("gone"));
+        bus.watchListeners(() -> transitions.add("first"), () -> transitions.add("gone"),
+                SampleEvent.class, OtherEvent.class);
 
         ECEventSubscription<SampleEvent> onSample = bus.subscribe(SampleEvent.class, event -> {
         });
@@ -171,12 +151,23 @@ class ECEventBusWatchTest {
 
     @Test
     void aCallbackThatThrowsDoesNotStopTheNextTransition() {
-        ECEventBus bus = ECEventBus.create();
+        List<String> failures = new ArrayList<>();
+        ECEventBus bus = ECEventBus.create(new ECEventExceptionHandler() {
+            @Override
+            public void onSubscriberFailure(ECEventSubscription<?> subscription, IECEvent event, Throwable failure) {
+                failures.add("subscriber");
+            }
+
+            @Override
+            public void onWatchFailure(ECListenerWatch watch, boolean onFirstListener, Throwable failure) {
+                failures.add(onFirstListener ? "watch-first" : "watch-gone");
+            }
+        });
         List<String> transitions = new ArrayList<>();
-        bus.watchListeners(SampleEvent.class, () -> {
+        bus.watchListeners(() -> {
             transitions.add("first");
             throw new IllegalStateException("this watch callback is broken on purpose");
-        }, () -> transitions.add("gone"));
+        }, () -> transitions.add("gone"), SampleEvent.class);
 
         ECEventSubscription<SampleEvent> subscription = bus.subscribe(SampleEvent.class, event -> {
         });
@@ -185,13 +176,15 @@ class ECEventBusWatchTest {
         subscription.unsubscribe();
         assertEquals(Arrays.asList("first", "gone"), transitions,
                 "the state moved even though the callback blew up, so the closing transition is still due");
+        assertEquals(Collections.singletonList("watch-first"), failures,
+                "the callback failure reached the bus's exception handler, with the side that failed");
     }
 
     @Test
     void aWatchWithoutAnUndoCallbackStillTracksThePresence() {
         ECEventBus bus = ECEventBus.create();
         List<String> transitions = new ArrayList<>();
-        ECListenerWatch watch = bus.watchListeners(SampleEvent.class, () -> transitions.add("first"), null);
+        ECListenerWatch watch = bus.watchListeners(() -> transitions.add("first"), null, SampleEvent.class);
 
         ECEventSubscription<SampleEvent> subscription = bus.subscribe(SampleEvent.class, event -> {
         });
@@ -210,13 +203,13 @@ class ECEventBusWatchTest {
         List<String> transitions = new ArrayList<>();
         AtomicBoolean subscribedFromInside = new AtomicBoolean(false);
 
-        bus.watchListeners(SampleEvent.class, () -> {
+        bus.watchListeners(() -> {
             transitions.add("first");
             if (subscribedFromInside.compareAndSet(false, true)) {
                 bus.subscribe(SampleEvent.class, event -> {
                 });
             }
-        }, () -> transitions.add("gone"));
+        }, () -> transitions.add("gone"), SampleEvent.class);
 
         bus.subscribe(SampleEvent.class, event -> {
         });
@@ -229,7 +222,7 @@ class ECEventBusWatchTest {
     void refreshingWhenNothingChangedFiresNothing() {
         ECEventBus bus = ECEventBus.create();
         List<String> transitions = new ArrayList<>();
-        bus.watchListeners(SampleEvent.class, () -> transitions.add("first"), () -> transitions.add("gone"));
+        bus.watchListeners(() -> transitions.add("first"), () -> transitions.add("gone"), SampleEvent.class);
         bus.subscribe(SampleEvent.class, event -> {
         });
 
@@ -246,9 +239,9 @@ class ECEventBusWatchTest {
     @Test
     void theHandleMirrorsTheLastEvaluation() {
         ECEventBus bus = ECEventBus.create();
-        ECListenerWatch watch = bus.watchListeners(SampleEvent.class, () -> {
+        ECListenerWatch watch = bus.watchListeners(() -> {
         }, () -> {
-        });
+        }, SampleEvent.class);
 
         assertFalse(watch.hasListeners());
         assertTrue(watch.isActive());
@@ -266,10 +259,10 @@ class ECEventBusWatchTest {
         ECEventBus bus = ECEventBus.create();
         List<Class<? extends IECEvent>> family = Arrays.<Class<? extends IECEvent>>asList(SampleEvent.class, OtherEvent.class);
 
-        ECListenerWatch single = bus.watchListeners(SampleEvent.class, () -> {
-        }, null);
-        ECListenerWatch multiple = bus.watchListeners(family, () -> {
-        }, null);
+        ECListenerWatch single = bus.watchListeners(() -> {
+        }, null, SampleEvent.class);
+        ECListenerWatch multiple = bus.watchListeners(() -> {
+        }, null, SampleEvent.class, OtherEvent.class);
 
         assertEquals(Collections.singletonList(SampleEvent.class), new ArrayList<>(single.getEventTypes()));
         assertEquals(family, new ArrayList<>(multiple.getEventTypes()));
@@ -279,7 +272,7 @@ class ECEventBusWatchTest {
     void stoppingTheWatchSilencesItAndMarksItInactive() {
         ECEventBus bus = ECEventBus.create();
         List<String> transitions = new ArrayList<>();
-        ECListenerWatch watch = bus.watchListeners(SampleEvent.class, () -> transitions.add("first"), () -> transitions.add("gone"));
+        ECListenerWatch watch = bus.watchListeners(() -> transitions.add("first"), () -> transitions.add("gone"), SampleEvent.class);
 
         watch.stop();
         watch.stop(); //idempotent
@@ -297,9 +290,8 @@ class ECEventBusWatchTest {
     void aWatchNeedsAtLeastOneEventType() {
         ECEventBus bus = ECEventBus.create();
 
-        assertThrows(IllegalArgumentException.class, () -> bus.watchListeners(
-                Collections.<Class<? extends IECEvent>>emptyList(), () -> {
-                }, null));
+        assertThrows(IllegalArgumentException.class, () -> bus.watchListeners(() -> {
+        }, null));
     }
 
     // ------------------------------------------------------------------
@@ -314,10 +306,10 @@ class ECEventBusWatchTest {
         ECEventBus bus = ECEventBus.create();
         List<String> ownerTransitions = new ArrayList<>();
         List<String> bystanderTransitions = new ArrayList<>();
-        ECListenerWatch ownerWatch = bus.watchListeners(owner, SampleEvent.class,
-                () -> ownerTransitions.add("first"), () -> ownerTransitions.add("gone"));
-        ECListenerWatch bystanderWatch = bus.watchListeners(bystander, SampleEvent.class,
-                () -> bystanderTransitions.add("first"), () -> bystanderTransitions.add("gone"));
+        ECListenerWatch ownerWatch = bus.watchListeners(owner,
+                () -> ownerTransitions.add("first"), () -> ownerTransitions.add("gone"), SampleEvent.class);
+        ECListenerWatch bystanderWatch = bus.watchListeners(bystander,
+                () -> bystanderTransitions.add("first"), () -> bystanderTransitions.add("gone"), SampleEvent.class);
 
         bus.unsubscribeAll(owner);
 
@@ -343,7 +335,7 @@ class ECEventBusWatchTest {
         bus.addNativeAudience(audience);
 
         List<String> transitions = new ArrayList<>();
-        bus.watchListeners(PlatformEvent.class, () -> transitions.add("first"), () -> transitions.add("gone"));
+        bus.watchListeners(() -> transitions.add("first"), () -> transitions.add("gone"), PlatformEvent.class);
         assertTrue(transitions.isEmpty());
 
         audience.setHasListeners(true);
@@ -359,7 +351,7 @@ class ECEventBusWatchTest {
         bus.addNativeAudience(audience);
 
         List<String> transitions = new ArrayList<>();
-        bus.watchListeners(PlatformEvent.class, () -> transitions.add("first"), () -> transitions.add("gone"));
+        bus.watchListeners(() -> transitions.add("first"), () -> transitions.add("gone"), PlatformEvent.class);
         assertEquals(Collections.singletonList("first"), transitions);
 
         audience.setHasListeners(false);
@@ -374,7 +366,7 @@ class ECEventBusWatchTest {
         bus.addNativeAudience(new RecordingAudience("bukkit"));
 
         List<String> transitions = new ArrayList<>();
-        bus.watchListeners(PlatformEvent.class, () -> transitions.add("first"), () -> transitions.add("gone"));
+        bus.watchListeners(() -> transitions.add("first"), () -> transitions.add("gone"), PlatformEvent.class);
         assertEquals(Collections.singletonList("first"), transitions);
 
         bus.removeNativeAudience("bukkit");
@@ -390,7 +382,7 @@ class ECEventBusWatchTest {
         audience.reset();
 
         List<String> transitions = new ArrayList<>();
-        bus.watchListeners(SampleEvent.class, () -> transitions.add("first"), () -> transitions.add("gone"));
+        bus.watchListeners(() -> transitions.add("first"), () -> transitions.add("gone"), SampleEvent.class);
 
         assertTrue(transitions.isEmpty(), "nothing that only implements IECEvent can have a native listener");
         assertEquals(0, audience.getGateChecks());

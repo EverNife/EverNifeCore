@@ -3,8 +3,6 @@ package br.com.finalcraft.evernifecore.eventbus;
 import br.com.finalcraft.evernifecore.api.events.base.ECEvent;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.testing.RecordingAudience;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -12,8 +10,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -27,22 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * from letting a native consumer hurt the producer.
  */
 class ECEventBusAudienceTest {
-
-    private static Level previousLogLevel;
-
-    @BeforeAll
-    static void muteTheBusLogger() {
-        Logger logger = Logger.getLogger("ECEventBus");
-        previousLogLevel = logger.getLevel();
-        //the isolation test breaks an audience on purpose: the SEVERE it logs would read as a real
-        //failure in the build output
-        logger.setLevel(Level.OFF);
-    }
-
-    @AfterAll
-    static void unmuteTheBusLogger() {
-        Logger.getLogger("ECEventBus").setLevel(previousLogLevel);
-    }
 
     @Test
     void aScopedBusNeverCallsItsAudience() {
@@ -99,7 +79,7 @@ class ECEventBusAudienceTest {
                 order.add("audience");
             }
         });
-        bus.subscribe(SampleEvent.class, ECEventPriority.LAST, event -> order.add("local-last"));
+        bus.subscribe(SampleEvent.class, ECSubscribeOptions.defaults().withPriority(ECEventPriority.LAST), event -> order.add("local-last"));
 
         bus.post(new SampleEvent());
 

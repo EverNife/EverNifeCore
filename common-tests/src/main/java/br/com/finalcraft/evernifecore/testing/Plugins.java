@@ -1,8 +1,10 @@
 package br.com.finalcraft.evernifecore.testing;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.IPluginMetaInfo;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.everyconfig.config.Config;
@@ -33,6 +35,22 @@ public final class Plugins {
      */
     public static IECPluginExtractor fakeRecognisingOnly(String pluginName, File dataFolder, Object thePlugin) {
         return new FakePluginExtractor(pluginName, dataFolder, thePlugin);
+    }
+
+    /**
+     * The {@link ECPluginData} of a plugin that exists only for the test - {@link #fake(String, File)}
+     * installed as the extractor and the data built through {@code ECPluginManager}, so it owns
+     * subscriptions, watches, locales and everything else a real plugin does. Needs a platform installed
+     * ({@code @ECoreTest}). {@link #forget(String)} removes it again; a test that creates one owes that call.
+     */
+    public static ECPluginData fakePluginData(String pluginName, File dataFolder) {
+        EverNifeCore.getProviders().getBaseProvider().register(IECPluginExtractor.class, fake(pluginName, dataFolder));
+        return ECPluginManager.getOrCreateECorePluginData(new Object());
+    }
+
+    /** Removes the plugin data {@link #fakePluginData(String, File)} built under {@code pluginName}. */
+    public static void forget(String pluginName) {
+        ECPluginManager.removePluginData(pluginName);
     }
 
     /**

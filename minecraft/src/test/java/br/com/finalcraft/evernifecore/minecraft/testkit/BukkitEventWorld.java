@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.eventbus.ECEventSubscriber;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.eventbus.McBukkitAudience;
@@ -194,7 +195,7 @@ public final class BukkitEventWorld implements AutoCloseable {
     }
 
     /** Subscribes on the global bus for the length of this world - the local phase of a post. */
-    public <T extends IECEvent> void subscribe(Class<T> eventType, Consumer<? super T> handler) {
+    public <T extends IECEvent> void subscribe(Class<T> eventType, ECEventSubscriber<? super T> handler) {
         subscriptions.add(ECEventBus.global().subscribe(eventType, handler));
     }
 

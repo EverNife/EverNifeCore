@@ -9,7 +9,6 @@ import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.util.FCArrayUtil;
 import jakarta.annotation.Nonnull;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
@@ -72,8 +71,9 @@ public interface ECListener extends IECBaseListener {
             EverNifeCore.getPlatform().registerECListener(ecPluginData, listener);
             ECListenerRegistry.track(ecPluginData.getMetaInfo().getName(), listener);
 
-            //Deliver framework-agnostic IECEvents to the @ECEventHandler methods of this listener.
-            EverNifeCore.getEventBus().register(listener);
+            //Deliver framework-agnostic IECEvents to the @ECEventHandler methods of this listener, in
+            //the plugin's name so the operator can see whose they are.
+            EverNifeCore.getEventBus().register(ecPluginData, listener);
 
             //Check for locales
             FCLocaleManager.loadLocale(ecPluginData, true, listener.getClass());
@@ -124,7 +124,7 @@ public interface ECListener extends IECBaseListener {
         //what makes a registration that was refused (canRegister, a missing plugin) or that blew up
         //retry the next time somebody listens, instead of standing as registered while nothing is.
         AtomicBoolean registered = new AtomicBoolean();
-        return EverNifeCore.getEventBus().watchListeners(ecPluginData, Arrays.asList(produced),
+        return EverNifeCore.getEventBus().watchListeners(ecPluginData,
                 () -> {
                     if (!registered.compareAndSet(false, true)) {
                         return;
@@ -142,7 +142,8 @@ public interface ECListener extends IECBaseListener {
                     if (registered.compareAndSet(true, false)) {
                         listener.unregisterThis();
                     }
-                });
+                },
+                produced);
     }
 
     /**

@@ -34,4 +34,11 @@ public @interface ECEventHandler {
      * event of the platform's own; anything else is delivered either way.
      */
     boolean ignoreCancelled() default false;
+
+    /**
+     * Whether this handler hears the parameter's class only, and no subtype of it. On the bus and on
+     * the Bukkit route a handler hears the whole subtree by default; on the Hytale route delivery is
+     * by exact class already, so this changes nothing there.
+     */
+    boolean exact() default false;
 }

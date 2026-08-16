@@ -22,7 +22,7 @@ public final class EventBuses {
      * exercise the native phase and still leave the process-wide bus as it found it.
      */
     public static ECEventBus mirroring() {
-        return new ECEventBus(true);
+        return new ECEventBus(true, ECEventExceptionHandler.LOGGING);
     }
 
 }

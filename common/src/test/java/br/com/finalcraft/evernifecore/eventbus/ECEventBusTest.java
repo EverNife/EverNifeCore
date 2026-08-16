@@ -9,9 +9,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.IECPluginBootstrap;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -22,8 +20,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -42,22 +38,6 @@ class ECEventBusTest {
     Path tempDir;
 
     private final List<String> createdPlugins = new ArrayList<>();
-
-    private static Level previousLogLevel;
-
-    @BeforeAll
-    static void muteTheBusLogger() {
-        Logger logger = Logger.getLogger("ECEventBus");
-        previousLogLevel = logger.getLevel();
-        //the isolation test breaks a handler on purpose: the SEVERE it logs would read as a real
-        //failure in the build output
-        logger.setLevel(Level.OFF);
-    }
-
-    @AfterAll
-    static void unmuteTheBusLogger() {
-        Logger.getLogger("ECEventBus").setLevel(previousLogLevel);
-    }
 
     @AfterEach
     void forgetTheFakePlugins() {
@@ -101,10 +81,10 @@ class ECEventBusTest {
         ECEventBus bus = ECEventBus.create();
         List<String> order = new ArrayList<>();
 
-        bus.subscribe(SampleEvent.class, ECEventPriority.LAST, event -> order.add("last"));
-        bus.subscribe(SampleEvent.class, ECEventPriority.FIRST, event -> order.add("first"));
+        bus.subscribe(SampleEvent.class, ECSubscribeOptions.defaults().withPriority(ECEventPriority.LAST), event -> order.add("last"));
+        bus.subscribe(SampleEvent.class, ECSubscribeOptions.defaults().withPriority(ECEventPriority.FIRST), event -> order.add("first"));
         bus.subscribe(SampleEvent.class, event -> order.add("normal"));
-        bus.subscribe(SampleEvent.class, ECEventPriority.EARLY, event -> order.add("early"));
+        bus.subscribe(SampleEvent.class, ECSubscribeOptions.defaults().withPriority(ECEventPriority.EARLY), event -> order.add("early"));
 
         bus.post(new SampleEvent());
 
@@ -151,18 +131,21 @@ class ECEventBusTest {
 
     @Test
     void aHandlerThatThrowsDoesNotStopTheOnesAfterIt() {
-        ECEventBus bus = ECEventBus.create();
+        List<Throwable> failures = new ArrayList<>();
+        ECEventBus bus = ECEventBus.create((subscription, event, failure) -> failures.add(failure));
         List<String> order = new ArrayList<>();
 
-        bus.subscribe(SampleEvent.class, ECEventPriority.FIRST, event -> order.add("before"));
+        bus.subscribe(SampleEvent.class, ECSubscribeOptions.defaults().withPriority(ECEventPriority.FIRST), event -> order.add("before"));
         bus.subscribe(SampleEvent.class, event -> {
             throw new IllegalStateException("this handler is broken on purpose");
         });
-        bus.subscribe(SampleEvent.class, ECEventPriority.LAST, event -> order.add("after"));
+        bus.subscribe(SampleEvent.class, ECSubscribeOptions.defaults().withPriority(ECEventPriority.LAST), event -> order.add("after"));
 
         bus.post(new SampleEvent());
 
         assertEquals(Arrays.asList("before", "after"), order);
+        assertEquals(1, failures.size(), "the failure reached the bus's exception handler");
+        assertTrue(failures.get(0) instanceof IllegalStateException);
     }
 
     @Test

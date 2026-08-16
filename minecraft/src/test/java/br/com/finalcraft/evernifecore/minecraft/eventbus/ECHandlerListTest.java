@@ -34,8 +34,8 @@ class ECHandlerListTest {
     void registeringABukkitListenerOpensTheWatchAndDroppingThePluginClosesIt() {
         try (BukkitEventWorld world = BukkitEventWorld.install(tempDir)) {
             List<String> transitions = new ArrayList<>();
-            ECListenerWatch watch = ECEventBus.global().watchListeners(WatchedEvent.class,
-                    () -> transitions.add("first"), () -> transitions.add("gone"));
+            ECListenerWatch watch = ECEventBus.global().watchListeners(
+                    () -> transitions.add("first"), () -> transitions.add("gone"), WatchedEvent.class);
             try {
                 assertEquals(Collections.emptyList(), transitions, "the watch is born absent - nobody listens yet");
 
@@ -60,8 +60,8 @@ class ECHandlerListTest {
     void unregisteringASingleBukkitListenerClosesTheWatchToo() {
         try (BukkitEventWorld world = BukkitEventWorld.install(tempDir)) {
             List<String> transitions = new ArrayList<>();
-            ECListenerWatch watch = ECEventBus.global().watchListeners(SingleListenerEvent.class,
-                    () -> transitions.add("first"), () -> transitions.add("gone"));
+            ECListenerWatch watch = ECEventBus.global().watchListeners(
+                    () -> transitions.add("first"), () -> transitions.add("gone"), SingleListenerEvent.class);
             try {
                 Listener listener = new Listener() {
                 };
