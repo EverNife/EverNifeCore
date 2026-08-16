@@ -10,16 +10,20 @@ import br.com.finalcraft.everylibs.reflection.MethodInvoker;
 import jakarta.annotation.Nullable;
 
 import java.lang.reflect.Method;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -81,7 +85,11 @@ public class ECEventBus {
     private final List<ECNativeAudience> audiences = new CopyOnWriteArrayList<>();
 
     private final Object mutex = new Object();
-    private final List<Subscription<?>> subscriptions = new ArrayList<>();       // guarded by mutex, subscription order
+    //Every live subscription under the class it NAMED, each list in subscription order. The plan of a
+    //concrete class is assembled from the lists of its ancestors, so a subscribe touches one list and
+    //a post never scans them all.
+    private final Map<Class<?>, List<Subscription<?>>> subscriptionsByType = new HashMap<>();   // guarded by mutex
+    private long nextSequence;                                                                    // guarded by mutex
     //Dispatch plan per concrete event class, priority-sorted, built lazily and dropped wholesale on
     //every (un)subscribe. Reading it is lock-free, and the array a post iterates is a snapshot - a
     //subscriber may subscribe or post while it runs.
@@ -200,14 +208,20 @@ public class ECEventBus {
      */
     public List<ECEventSubscription<?>> unsubscribeIf(Predicate<? super ECEventSubscription<?>> filter) {
         Objects.requireNonNull(filter, "'filter' cannot be null when unsubscribing from an ECEventBus!");
-        List<ECEventSubscription<?>> removed = new ArrayList<>();
+        List<Subscription<?>> removed = new ArrayList<>();
         synchronized (mutex) {
-            for (Iterator<Subscription<?>> iterator = subscriptions.iterator(); iterator.hasNext(); ) {
-                Subscription<?> subscription = iterator.next();
-                if (filter.test(subscription)) {
-                    iterator.remove();
-                    subscription.active = false;
-                    removed.add(subscription);
+            for (Iterator<List<Subscription<?>>> lists = subscriptionsByType.values().iterator(); lists.hasNext(); ) {
+                List<Subscription<?>> declared = lists.next();
+                for (Iterator<Subscription<?>> iterator = declared.iterator(); iterator.hasNext(); ) {
+                    Subscription<?> subscription = iterator.next();
+                    if (filter.test(subscription)) {
+                        iterator.remove();
+                        subscription.active = false;
+                        removed.add(subscription);
+                    }
+                }
+                if (declared.isEmpty()) {
+                    lists.remove();
                 }
             }
             if (!removed.isEmpty()) {
@@ -217,7 +231,9 @@ public class ECEventBus {
         if (!removed.isEmpty()) {
             refreshListenerWatches();
         }
-        return Collections.unmodifiableList(removed);
+        //the walk went type by type; the caller is promised subscription order
+        removed.sort(BY_SEQUENCE);
+        return Collections.unmodifiableList(new ArrayList<ECEventSubscription<?>>(removed));
     }
 
     /**
@@ -243,9 +259,14 @@ public class ECEventBus {
 
     /** Every live subscription on this bus, in the order they were taken. A snapshot. */
     public List<ECEventSubscription<?>> getSubscriptions() {
+        List<Subscription<?>> all = new ArrayList<>();
         synchronized (mutex) {
-            return Collections.unmodifiableList(new ArrayList<ECEventSubscription<?>>(subscriptions));
+            for (List<Subscription<?>> declared : subscriptionsByType.values()) {
+                all.addAll(declared);
+            }
         }
+        all.sort(BY_SEQUENCE);
+        return Collections.unmodifiableList(new ArrayList<ECEventSubscription<?>>(all));
     }
 
     /**
@@ -527,11 +548,21 @@ public class ECEventBus {
 
     private void addSubscriptions(List<Subscription<?>> toAdd) {
         synchronized (mutex) {
-            subscriptions.addAll(toAdd);
+            for (Subscription<?> subscription : toAdd) {
+                subscription.sequence = nextSequence++;
+                subscriptionsByType.computeIfAbsent(subscription.eventType, type -> new ArrayList<>()).add(subscription);
+            }
             dispatchIndex = Collections.emptyMap();
         }
         refreshListenerWatches();
     }
+
+    private static final Comparator<Subscription<?>> BY_SEQUENCE = Comparator.comparingLong(subscription -> subscription.sequence);
+
+    //Priority first; a tie keeps the order the subscriptions were taken in, whatever class each one
+    //named - the sequence decides that, not the order the ancestors were walked in.
+    private static final Comparator<Subscription<?>> BY_PRIORITY_THEN_SEQUENCE =
+            Comparator.<Subscription<?>>comparingInt(subscription -> subscription.options.getPriority()).thenComparing(BY_SEQUENCE);
 
     private Subscription<?>[] planFor(Class<?> eventClass) {
         Subscription<?>[] plan = dispatchIndex.get(eventClass);
@@ -546,18 +577,16 @@ public class ECEventBus {
             }
 
             List<Subscription<?>> matching = new ArrayList<>();
-            for (Subscription<?> subscription : subscriptions) {
-                //isAssignableFrom covers superclasses AND interfaces, so subscribing to a marker
-                //interface keeps hearing every event that carries it; an exact subscription hears the
-                //class it named and nothing below it
-                if (subscription.options.isExact()
-                        ? subscription.eventType == eventClass
-                        : subscription.eventType.isAssignableFrom(eventClass)) {
+            for (Class<?> ancestor : ancestorsOf(eventClass)) {
+                List<Subscription<?>> declared = subscriptionsByType.get(ancestor);
+                if (declared == null) continue;
+                for (Subscription<?> subscription : declared) {
+                    //an exact subscription hears the class it named and nothing below it
+                    if (subscription.options.isExact() && ancestor != eventClass) continue;
                     matching.add(subscription);
                 }
             }
-            //Stable sort over a subscription-ordered list: ties keep the order they subscribed in.
-            matching.sort(Comparator.comparingInt(subscription -> subscription.options.getPriority()));
+            matching.sort(BY_PRIORITY_THEN_SEQUENCE);
             plan = matching.toArray(new Subscription<?>[0]);
 
             Map<Class<?>, Subscription<?>[]> updated = new HashMap<>(dispatchIndex);
@@ -567,12 +596,33 @@ public class ECEventBus {
         }
     }
 
+    /**
+     * {@code eventClass} first, then every superclass and interface reachable from it - each once,
+     * however many paths lead to it - which is what makes a subscription to a marker interface hear
+     * every event that carries it, and hear it once.
+     */
+    static List<Class<?>> ancestorsOf(Class<?> eventClass) {
+        Set<Class<?>> ancestors = new LinkedHashSet<>();
+        Deque<Class<?>> pending = new ArrayDeque<>();
+        pending.add(eventClass);
+        while (!pending.isEmpty()) {
+            Class<?> type = pending.poll();
+            if (!ancestors.add(type)) continue;
+            if (type.getSuperclass() != null) {
+                pending.add(type.getSuperclass());
+            }
+            Collections.addAll(pending, type.getInterfaces());
+        }
+        return new ArrayList<>(ancestors);
+    }
+
     private final class Subscription<T extends IECEvent> implements ECEventSubscription<T> {
         final Class<T> eventType;
         final ECSubscribeOptions options;
         final Object subscriber;              // the ECEventSubscriber, or the listener an annotated method belongs to
         final Method method;                  // the annotated method; null for a functional subscription
         final ECEventSubscriber<IECEvent> action;
+        long sequence;                        // assigned under mutex when added: the subscription order
         volatile boolean active = true;
 
         Subscription(Class<T> eventType, ECSubscribeOptions options, Object subscriber, @Nullable Method method, ECEventSubscriber<IECEvent> action) {
