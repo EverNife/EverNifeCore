@@ -6,6 +6,10 @@ import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.eventbus.ECNativeAudience;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
+import org.bukkit.plugin.RegisteredListener;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The Bukkit server as an audience of the event bus. An {@link ECEvent} IS a Bukkit event here, so
@@ -31,6 +35,21 @@ public class McBukkitAudience implements ECNativeAudience {
     @Override
     public boolean hasListeners(Class<? extends IECEvent> eventType) {
         return McHandlerLists.registrationListOf(eventType).getRegisteredListeners().length > 0;
+    }
+
+    /**
+     * {@code plugin listenerClass @PRIORITY}, one per registration in the list a listener of {@code
+     * eventType} lands in - which, for an event that declares no list of its own, is the family list
+     * and so names the listeners of its siblings too, exactly as {@link #hasListeners(Class)} counts them.
+     */
+    @Override
+    public List<String> describeListeners(Class<? extends IECEvent> eventType) {
+        List<String> lines = new ArrayList<>();
+        for (RegisteredListener registered : McHandlerLists.registrationListOf(eventType).getRegisteredListeners()) {
+            lines.add(registered.getPlugin().getName() + " " + registered.getListener().getClass().getName()
+                    + " @" + registered.getPriority());
+        }
+        return lines;
     }
 
     @Override

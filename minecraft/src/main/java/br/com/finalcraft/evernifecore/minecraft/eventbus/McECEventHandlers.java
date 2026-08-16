@@ -81,11 +81,13 @@ public final class McECEventHandlers {
 
             ECEventHandler annotation = method.getAnnotation(ECEventHandler.class);
             Class<? extends Event> eventType = parameterType.asSubclass(Event.class);
+            boolean exact = annotation.exact();
 
             EventExecutor executor = (ignoredListener, event) -> {
                 //the filter Bukkit's own generated executor applies: HandlerLists are shared among
-                //native events too, so the parameter type is what decides who hears what
-                if (!eventType.isInstance(event)) {
+                //native events too, so the parameter type is what decides who hears what - tightened
+                //to the very class when the handler asked to hear no subtype
+                if (exact ? event.getClass() != eventType : !eventType.isInstance(event)) {
                     return;
                 }
                 invoker.invoke(listener, event);

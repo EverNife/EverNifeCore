@@ -2,6 +2,9 @@ package br.com.finalcraft.evernifecore.eventbus;
 
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * One native event bus an {@link ECEventBus} mirrors into (bukkit, hytale, forge...).
  *
@@ -27,5 +30,15 @@ public interface ECNativeAudience {
      * errors: a broken audience never breaks the producer.
      */
     void dispatch(IECEvent event);
+
+    /**
+     * One readable line per native listener a post of {@code eventType} would reach - plugin, listener,
+     * priority - for an operator asking who is there. Descriptive only: {@link #hasListeners(Class)}
+     * stays the authority on presence, and an audience that cannot enumerate its side answers empty and
+     * says so in its documentation.
+     */
+    default List<String> describeListeners(Class<? extends IECEvent> eventType) {
+        return Collections.emptyList();
+    }
 
 }

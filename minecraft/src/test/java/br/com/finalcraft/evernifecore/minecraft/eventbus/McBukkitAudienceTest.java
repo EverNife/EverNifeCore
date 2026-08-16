@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.minecraft.testkit.BukkitEventWorld;
 import br.com.finalcraft.evernifecore.testing.Logs;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.junit.jupiter.api.Test;
 
@@ -83,6 +84,31 @@ class McBukkitAudienceTest {
             assertTrue(world.getAudience().hasListeners(SampleEvent.class), "an event that declares no getHandlerList "
                     + "falls back to the one list of the whole family, so a listener for a sibling is enough to open "
                     + "the gate - the executor filters by type later");
+        }
+    }
+
+    @Test
+    void describeListenersNamesThePluginTheListenerAndThePriorityOfEveryRegistrationInTheList() {
+        try (BukkitEventWorld world = BukkitEventWorld.install(tempDir)) {
+            assertEquals(Collections.emptyList(), world.getAudience().describeListeners(OwnListEvent.class),
+                    "nothing registered, nothing described");
+
+            world.listen(OwnListEvent.class, EventPriority.HIGH, event -> {
+            });
+            world.listen(OwnListEvent.class, event -> {
+            });
+
+            List<String> lines = world.getAudience().describeListeners(OwnListEvent.class);
+
+            assertEquals(2, lines.size(), lines.toString());
+            for (String line : lines) {
+                assertTrue(line.startsWith(world.getPlugin().getName() + " "), "the plugin comes first: " + line);
+                assertTrue(line.contains(BukkitEventWorld.class.getName()), "the listener class is named: " + line);
+            }
+            assertTrue(lines.stream().anyMatch(line -> line.endsWith(" @HIGH")), "the priority as Bukkit spells it: " + lines);
+            assertTrue(lines.stream().anyMatch(line -> line.endsWith(" @NORMAL")), lines.toString());
+            assertEquals(Collections.emptyList(), world.getAudience().describeListeners(OtherOwnListEvent.class),
+                    "a list of its own describes that event alone");
         }
     }
 

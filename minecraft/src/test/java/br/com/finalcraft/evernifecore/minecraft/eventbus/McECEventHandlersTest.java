@@ -51,6 +51,20 @@ class McECEventHandlersTest {
     }
 
     @Test
+    void anExactHandlerHearsItsOwnTypeAndNoSubtypeOfIt() {
+        try (BukkitEventWorld world = BukkitEventWorld.install(tempDir)) {
+            ExactParentListener listener = new ExactParentListener();
+            world.registerECListener(listener);
+
+            world.getPluginManager().callEvent(new ChildEvent());
+            assertTrue(listener.heard.isEmpty(), "a subtype is not the class the exact handler named");
+
+            world.getPluginManager().callEvent(new ParentEvent());
+            assertEquals(Collections.singletonList("parent"), listener.heard);
+        }
+    }
+
+    @Test
     void aHandlerNamingAnECEventIsTakenByTheBusAlone() {
         try (BukkitEventWorld world = BukkitEventWorld.install(tempDir)) {
             EcEventListener listener = new EcEventListener();
@@ -146,6 +160,15 @@ class McECEventHandlersTest {
         @ECEventHandler
         public void onChild(ChildEvent event) {
             heard.add("child");
+        }
+    }
+
+    public static class ExactParentListener implements ECListener {
+        final List<String> heard = new ArrayList<>();
+
+        @ECEventHandler(exact = true)
+        public void onParentOnly(ParentEvent event) {
+            heard.add("parent");
         }
     }
 

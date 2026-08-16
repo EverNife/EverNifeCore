@@ -49,7 +49,8 @@ public class HyHytaleAudience implements ECNativeAudience {
      * Per class, and by poll only: Hytale offers no callback for a registration, so a consumer that
      * registers straight on the server's bus is seen the next time somebody asks - a bus subscription
      * or an {@code @ECEventHandler} still drives the listener watches, a raw {@code registerGlobal}
-     * does not.
+     * does not. Presence is all the server tells: it does not enumerate its consumers, so
+     * {@link #describeListeners} stays the empty default.
      */
     @Override
     public boolean hasListeners(Class<? extends IECEvent> eventType) {

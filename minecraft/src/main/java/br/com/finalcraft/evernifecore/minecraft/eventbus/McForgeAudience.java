@@ -19,7 +19,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * ({@code IEventBus.post(Event)}), and a subclass is a compiled class - reflection can call a bus,
  * it cannot become an event. Each Forge era declares that base under a different name, so the route
  * out is one compiled carrier per era, not one reflective call. Until a carrier exists this audience
- * has no listeners to report, and a hybrid server hears once that it is registered and idle.</p>
+ * has no listeners to report - {@code hasListeners} is false and {@code describeListeners} is the empty
+ * default - and a hybrid server hears once that it is registered and idle.</p>
  */
 public class McForgeAudience implements ECNativeAudience {
 
