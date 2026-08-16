@@ -56,26 +56,27 @@ public final class ECSubscribeOptions {
 
     /** A priority between the {@link ECEventPriority} steps, for the subscriber that has to sit right before or after another one. */
     public ECSubscribeOptions withPriority(short priority) {
-        return create(priority, ignoreCancelled, exact, plugin);
+        return priority == this.priority ? this : create(priority, ignoreCancelled, exact, plugin);
     }
 
     /** Whether to skip the delivery once the event - an {@code ECCancellable} - is cancelled. */
     public ECSubscribeOptions withIgnoreCancelled(boolean ignoreCancelled) {
-        return create(priority, ignoreCancelled, exact, plugin);
+        return ignoreCancelled == this.ignoreCancelled ? this : create(priority, ignoreCancelled, exact, plugin);
     }
 
     /** Whether to hear the named class only: with {@code true} no subtype of it reaches the subscriber. */
     public ECSubscribeOptions withExact(boolean exact) {
-        return create(priority, ignoreCancelled, exact, plugin);
+        return exact == this.exact ? this : create(priority, ignoreCancelled, exact, plugin);
     }
 
     /** The owning plugin, or {@code null} for a subscription nobody drains. */
     public ECSubscribeOptions withPlugin(@Nullable ECPluginData plugin) {
-        return create(priority, ignoreCancelled, exact, plugin);
+        return plugin == this.plugin ? this : create(priority, ignoreCancelled, exact, plugin);
     }
 
+    //a wither that changes nothing hands back the instance it was called on, and the values everybody
+    //uses share one instance - so a plain subscribe allocates nothing here
     private static ECSubscribeOptions create(short priority, boolean ignoreCancelled, boolean exact, ECPluginData plugin) {
-        //the values everybody uses share one instance, so a plain subscribe allocates nothing here
         if (priority == DEFAULTS.priority && !ignoreCancelled && !exact && plugin == null) {
             return DEFAULTS;
         }

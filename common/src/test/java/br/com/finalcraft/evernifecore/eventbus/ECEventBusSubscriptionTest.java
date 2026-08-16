@@ -55,6 +55,11 @@ class ECEventBusSubscriptionTest {
         assertNotSame(ECSubscribeOptions.defaults(), ECSubscribeOptions.defaults().withExact(true));
         assertSame(ECSubscribeOptions.defaults(), ECSubscribeOptions.defaults().withExact(true).withExact(false),
                 "back to the defaults means back to the shared instance");
+
+        ECSubscribeOptions late = ECSubscribeOptions.defaults().withPriority(ECEventPriority.LATE);
+        assertSame(late, late.withPriority(ECEventPriority.LATE), "off the defaults too: a wither that changes nothing allocates nothing");
+        assertSame(late, late.withIgnoreCancelled(false));
+        assertSame(late, late.withPlugin(null));
     }
 
     @Test
