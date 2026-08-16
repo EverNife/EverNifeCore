@@ -105,7 +105,7 @@ public class CoreCommand {
         Class<? extends IECEvent> eventType = resolveEventType(bus, type);
         if (eventType == null) {
             sender.sendMessage("§cNo event type called §e" + type + "§c. Give the full class name, or the simple name of one of "
-                    + "the types subscribed on the bus: §7" + subscribedTypes(bus).stream().map(Class::getSimpleName).sorted().collect(Collectors.joining(", ")));
+                    + "the types the bus knows: §7" + knownTypes(bus).stream().map(Class::getSimpleName).sorted().collect(Collectors.joining(", ")));
             return;
         }
 
@@ -152,7 +152,7 @@ public class CoreCommand {
 
     /**
      * The full class name first - on Bukkit the core's loader finds any plugin's class by name - and
-     * otherwise a simple name that exactly one subscribed type answers to.
+     * otherwise a simple name that exactly one known type answers to.
      */
     private static Class<? extends IECEvent> resolveEventType(ECEventBus bus, String type) {
         try {
@@ -164,10 +164,10 @@ public class CoreCommand {
             //fall through to the simple-name match
         }
         Class<? extends IECEvent> match = null;
-        for (Class<? extends IECEvent> candidate : subscribedTypes(bus)) {
+        for (Class<? extends IECEvent> candidate : knownTypes(bus)) {
             if (candidate.getSimpleName().equalsIgnoreCase(type)) {
                 if (match != null && match != candidate) {
-                    return null; //ambiguous: two subscribed types share the simple name, the full name tells them apart
+                    return null; //ambiguous: two known types share the simple name, the full name tells them apart
                 }
                 match = candidate;
             }
@@ -175,10 +175,18 @@ public class CoreCommand {
         return match;
     }
 
-    private static Set<Class<? extends IECEvent>> subscribedTypes(ECEventBus bus) {
+    /**
+     * Every event type the bus can name: the ones subscribed to AND the ones a listener watch follows.
+     * The watched ones matter most here - an event nobody is subscribed to yet is exactly the one an
+     * operator asks about, and its producer already named it to the bus.
+     */
+    private static Set<Class<? extends IECEvent>> knownTypes(ECEventBus bus) {
         Set<Class<? extends IECEvent>> types = new LinkedHashSet<>();
         for (ECEventSubscription<?> subscription : bus.getSubscriptions()) {
             types.add(subscription.getEventType());
+        }
+        for (ECListenerWatch watch : bus.getListenerWatches()) {
+            types.addAll(watch.getEventTypes());
         }
         return types;
     }

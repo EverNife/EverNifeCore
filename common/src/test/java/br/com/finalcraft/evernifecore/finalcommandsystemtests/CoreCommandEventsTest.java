@@ -141,6 +141,23 @@ class CoreCommandEventsTest {
     }
 
     @Test
+    void aTypeOnlyAListenerWatchKnowsAboutStillResolvesByItsSimpleName() {
+        harness = Commands.harness("EventsWatched", tempDir);
+        FinalCMDPluginCommand command = harness.register(CoreCommand.class);
+        //nobody subscribed to it: a producer named it to the bus and is waiting for the first listener,
+        //which is exactly when an operator asks about it
+        watch = ECEventBus.global().watchListeners(() -> {
+        }, null, CommandProbeEvent.class);
+        TestCommandSender operator = operator();
+
+        harness.dispatch(command, operator, "events CommandProbeEvent");
+
+        List<String> lines = plain(operator);
+        assertTrue(anyContains(lines, CommandProbeEvent.class.getName()), lines.toString());
+        assertTrue(anyContains(lines, "bus: 0 subscription(s)"), lines.toString());
+    }
+
+    @Test
     void anUnknownTypeIsRefusedWithTheNamesItCouldHaveBeen() {
         harness = Commands.harness("EventsUnknown", tempDir);
         FinalCMDPluginCommand command = harness.register(CoreCommand.class);
