@@ -14,6 +14,7 @@ public class PermissionNodes {
     public static final String EVERNIFECORE_COMMAND_ACCOUNT             = "evernifecore.command.account";
     public static final String EVERNIFECORE_COMMAND_ACCOUNT_LINK        = "evernifecore.command.account.link";
     public static final String EVERNIFECORE_COMMAND_GUI                 = "evernifecore.command.gui";
+    public static final String EVERNIFECORE_COMMAND_EVENTS              = "evernifecore.command.events";
     public static final String EVERNIFECORE_PAGEVIEWER_ALL              = "evernifecore.pageviewer.all";
     public static final String EVERNIFECORE_PAGEVIEWER_INTERVAL         = "evernifecore.pageviewer.interval";
 
