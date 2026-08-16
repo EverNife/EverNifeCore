@@ -39,7 +39,8 @@ public class TestPlatform extends AbstractTestPlatform {
     private final List<String> unregisteredLabels = new ArrayList<>();
     private final List<String> consoleCommands = new ArrayList<>();
     private final List<DispatchedCommand> senderCommands = new ArrayList<>();
-    private final List<ActionBarSend> actionBars = new ArrayList<>();
+    //appended by the action bar manager's repeating task while the test reads, so never a plain ArrayList
+    private final List<ActionBarSend> actionBars = new CopyOnWriteArrayList<>();
     private final List<String> infoMessages = new ArrayList<>();
     //appended from whatever thread logs (flusher, idle sweep, cache-sync), so never a plain ArrayList
     private final List<String> loggedMessages = new CopyOnWriteArrayList<>();

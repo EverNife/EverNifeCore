@@ -1,17 +1,20 @@
 package br.com.finalcraft.evernifecore.eventbus;
 
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
+import br.com.finalcraft.evernifecore.testing.FailingExceptionHandler;
 import br.com.finalcraft.evernifecore.testing.Logs;
+import br.com.finalcraft.evernifecore.testing.RecordingExceptionHandler;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -19,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * What a bus does with a subscriber or a watch callback that throws: it goes to the bus's
  * {@link ECEventExceptionHandler}, the queue behind it still runs, and whatever the handler itself
- * throws is the producer's.
+ * throws is the producer's - which is how the engine's {@link FailingExceptionHandler} fails a test.
  */
 @ECoreTest
 class ECEventBusExceptionHandlerTest {
@@ -45,7 +48,6 @@ class ECEventBusExceptionHandlerTest {
         assertSame(posted, failures.get(0)[1]);
         assertSame(broken, failures.get(0)[2]);
         assertSame(ECEventExceptionHandler.LOGGING, ECEventBus.create().getExceptionHandler(), "the default of a scoped bus");
-        assertSame(ECEventExceptionHandler.LOGGING, ECEventBus.global().getExceptionHandler(), "the default of the global bus");
     }
 
     @Test
@@ -64,35 +66,76 @@ class ECEventBusExceptionHandlerTest {
     }
 
     @Test
+    void theEnginesFailingHandlerFailsThePostWithTheSubscribersFailureAsTheCause() {
+        ECEventBus bus = ECEventBus.create(new FailingExceptionHandler());
+        IllegalStateException broken = new IllegalStateException("broken on purpose");
+        ECEventSubscription<SampleEvent> subscription = bus.subscribe(SampleEvent.class, event -> {
+            throw broken;
+        });
+
+        AssertionError failed = assertThrows(AssertionError.class, () -> bus.post(new SampleEvent()));
+
+        assertSame(broken, failed.getCause());
+        assertTrue(failed.getMessage().contains(subscription.toString()), failed.getMessage());
+        assertTrue(failed.getMessage().contains(SampleEvent.class.getName()), failed.getMessage());
+    }
+
+    @Test
+    void underECoreTestABrokenSubscriberOnTheGlobalBusFailsTheTest() {
+        assertTrue(ECEventBus.global().getExceptionHandler() instanceof FailingExceptionHandler,
+                "@ECoreTest makes the global bus strict for the length of the class: " + ECEventBus.global().getExceptionHandler());
+
+        IllegalStateException broken = new IllegalStateException("broken on purpose, on the global bus");
+        ECEventSubscription<SampleEvent> subscription = ECEventBus.global().subscribe(SampleEvent.class, event -> {
+            throw broken;
+        });
+        try {
+            AssertionError failed = assertThrows(AssertionError.class, () -> ECEventBus.global().post(new SampleEvent()));
+            assertSame(broken, failed.getCause());
+        } finally {
+            subscription.unsubscribe();
+        }
+    }
+
+    @Test
+    void installExceptionHandlerSwapsTheHandlerAndHandsBackThePreviousOne() {
+        ECEventBus bus = ECEventBus.create();
+        RecordingExceptionHandler recording = new RecordingExceptionHandler();
+
+        ECEventExceptionHandler previous = EventBuses.installExceptionHandler(bus, recording);
+
+        assertSame(ECEventExceptionHandler.LOGGING, previous);
+        assertSame(recording, bus.getExceptionHandler());
+        assertSame(recording, EventBuses.installExceptionHandler(bus, previous), "the swap back hands the recording one back");
+        assertSame(ECEventExceptionHandler.LOGGING, bus.getExceptionHandler());
+    }
+
+    @Test
     void aSubscriberMayThrowACheckedExceptionWithoutWrappingIt() {
-        List<Throwable> failures = new ArrayList<>();
-        ECEventBus bus = ECEventBus.create((subscription, event, failure) -> failures.add(failure));
-        bus.subscribe(SampleEvent.class, event -> {
+        RecordingExceptionHandler recording = new RecordingExceptionHandler();
+        ECEventBus bus = ECEventBus.create(recording);
+        ECEventSubscription<SampleEvent> subscription = bus.subscribe(SampleEvent.class, event -> {
             throw new IOException("checked, and it compiles");
         });
 
-        bus.post(new SampleEvent());
+        SampleEvent posted = bus.post(new SampleEvent());
 
-        assertEquals(1, failures.size());
-        assertTrue(failures.get(0) instanceof IOException);
+        assertEquals(1, recording.getFailureCount());
+        RecordingExceptionHandler.Failure failure = recording.getFailures().get(0);
+        assertTrue(failure.getThrowable() instanceof IOException);
+        assertSame(subscription, failure.getSubscription());
+        assertSame(posted, failure.getEvent());
+        assertNull(failure.getWatch());
+        recording.reset();
+        assertEquals(0, recording.getFailureCount());
     }
 
     @Test
     void aFailingWatchCallbackReachesTheHandlerWithTheWatchAndTheSideThatFailed() {
-        List<String> failures = new ArrayList<>();
-        ECEventBus bus = ECEventBus.create(new ECEventExceptionHandler() {
-            @Override
-            public void onSubscriberFailure(ECEventSubscription<?> subscription, IECEvent event, Throwable failure) {
-                failures.add("subscriber");
-            }
-
-            @Override
-            public void onWatchFailure(ECListenerWatch watch, boolean onFirstListener, Throwable failure) {
-                failures.add((onFirstListener ? "first" : "gone") + " " + watch);
-            }
-        });
+        RecordingExceptionHandler recording = new RecordingExceptionHandler();
+        ECEventBus bus = ECEventBus.create(recording);
         List<String> transitions = new ArrayList<>();
-        bus.watchListeners(() -> transitions.add("first"), () -> {
+        ECListenerWatch watch = bus.watchListeners(() -> transitions.add("first"), () -> {
             transitions.add("gone");
             throw new IllegalStateException("this watch callback is broken on purpose");
         }, SampleEvent.class);
@@ -102,8 +145,12 @@ class ECEventBusExceptionHandlerTest {
         subscription.unsubscribe();
 
         assertEquals(Arrays.asList("first", "gone"), transitions);
-        assertEquals(Collections.singletonList("gone [SampleEvent] absent"), failures,
-                "the side that failed and the watch, already moved to the state it was going to");
+        assertEquals(1, recording.getFailureCount());
+        RecordingExceptionHandler.Failure failure = recording.getFailures().get(0);
+        assertSame(watch, failure.getWatch());
+        assertFalse(failure.isOnFirstListener(), "it was the last-listener-gone side that broke");
+        assertNull(failure.getSubscription());
+        assertEquals("[SampleEvent] absent", watch.toString(), "already moved to the state it was going to");
     }
 
     @Test

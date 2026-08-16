@@ -1,6 +1,10 @@
 package br.com.finalcraft.evernifecore.testing.junit;
 
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.eventbus.ECEventExceptionHandler;
+import br.com.finalcraft.evernifecore.eventbus.EventBuses;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
+import br.com.finalcraft.evernifecore.testing.FailingExceptionHandler;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -9,7 +13,10 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolver;
 
-/** Drives {@link ECoreTest}: installs the chosen platform for the class and closes it afterwards. */
+/**
+ * Drives {@link ECoreTest}: installs the chosen platform for the class and closes it afterwards, and
+ * makes the global event bus fail the test on a broken subscriber for as long as the class runs.
+ */
 public class ECoreTestExtension implements BeforeAllCallback, AfterAllCallback, ParameterResolver {
 
     private static final ExtensionContext.Namespace NAMESPACE =
@@ -18,10 +25,18 @@ public class ECoreTestExtension implements BeforeAllCallback, AfterAllCallback, 
     @Override
     public void beforeAll(ExtensionContext context) {
         context.getStore(NAMESPACE).put(ECoreTestWorld.class, worldFor(context));
+        //strict by default, like the platform doubles: a subscriber that breaks on the global bus fails
+        //the test at the post that drove it, instead of a SEVERE nobody reads
+        context.getStore(NAMESPACE).put(ECEventExceptionHandler.class,
+                EventBuses.installExceptionHandler(ECEventBus.global(), new FailingExceptionHandler()));
     }
 
     @Override
     public void afterAll(ExtensionContext context) {
+        ECEventExceptionHandler previous = context.getStore(NAMESPACE).remove(ECEventExceptionHandler.class, ECEventExceptionHandler.class);
+        if (previous != null) {
+            EventBuses.installExceptionHandler(ECEventBus.global(), previous);
+        }
         ECoreTestWorld world = context.getStore(NAMESPACE).remove(ECoreTestWorld.class, ECoreTestWorld.class);
         if (world != null) {
             world.close();
