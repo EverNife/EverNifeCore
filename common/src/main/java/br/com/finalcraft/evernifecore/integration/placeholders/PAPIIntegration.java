@@ -11,7 +11,7 @@ import jakarta.annotation.Nullable;
 public class PAPIIntegration {
 
     public static boolean isPresent(){
-        return false;
+        return EverNifeCore.getPlatform().isPAPIPresent();
     }
 
     public static String parse(@Nullable FPlayer player, @Nonnull String text){
