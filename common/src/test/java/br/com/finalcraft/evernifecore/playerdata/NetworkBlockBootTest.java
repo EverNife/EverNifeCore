@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
 import br.com.finalcraft.evernifecore.playerdata.account.Account;
+import br.com.finalcraft.evernifecore.playerdata.account.AccountActor;
 import br.com.finalcraft.evernifecore.playerdata.account.AccountMember;
 import br.com.finalcraft.evernifecore.playerdata.account.Accounts;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
@@ -184,7 +185,7 @@ class NetworkBlockBootTest {
         PlayerController.handleLogin(owner, "Owner").join();
         PlayerController.handleLogin(alt, "Alt").join();
 
-        Account fused = Accounts.get().link(owner, alt).join();
+        Account fused = Accounts.get().link(owner, alt, AccountActor.system()).join();
         assertTrue(fused.getMembers().size() >= 2, "the link must fuse both identities into one account");
 
         //the member now resolves to the canonical key, which is the whole observable effect of a link

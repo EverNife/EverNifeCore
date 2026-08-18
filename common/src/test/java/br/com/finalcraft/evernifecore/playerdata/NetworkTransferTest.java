@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.cooldown.server.ServerCooldowns;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.playerdata.account.Account;
+import br.com.finalcraft.evernifecore.playerdata.account.AccountActor;
 import br.com.finalcraft.evernifecore.playerdata.account.Accounts;
 import br.com.finalcraft.evernifecore.storage.ECNetworkStorage;
 import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
@@ -73,7 +74,7 @@ class NetworkTransferTest {
         UUID alt = UUID.randomUUID();
         PlayerController.handleLogin(owner, "Owner").join();
         PlayerController.handleLogin(alt, "Alt").join();
-        Account fused = Accounts.get().link(owner, alt).join();
+        Account fused = Accounts.get().link(owner, alt, AccountActor.system()).join();
 
         NetworkTransferReport report = PlayerController.get().transferNetwork(TARGET).join();
 

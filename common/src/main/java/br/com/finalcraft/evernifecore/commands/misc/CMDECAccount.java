@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.account.Account;
+import br.com.finalcraft.evernifecore.playerdata.account.AccountActor;
 import br.com.finalcraft.evernifecore.playerdata.account.AccountMember;
 import br.com.finalcraft.evernifecore.playerdata.account.Accounts;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
@@ -151,7 +152,7 @@ public class CMDECAccount {
         }
 
         PlayerController.whenCompleteOnMainThread(
-                Accounts.get().link(target.getUniqueId(), source.getUniqueId()),
+                Accounts.get().link(target.getUniqueId(), source.getUniqueId(), AccountActor.admin(sender.getName())),
                 (account, error) -> {
                     if (error != null) {
                         sendFailure(sender, error);
@@ -185,7 +186,7 @@ public class CMDECAccount {
         }
 
         PlayerController.whenCompleteOnMainThread(
-                Accounts.get().unlink(playerData.getUniqueId()),
+                Accounts.get().unlink(playerData.getUniqueId(), AccountActor.admin(sender.getName())),
                 (account, error) -> {
                     if (error != null) {
                         sendFailure(sender, error);

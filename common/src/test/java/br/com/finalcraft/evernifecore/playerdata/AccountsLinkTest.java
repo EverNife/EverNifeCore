@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.playerdata;
 import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.playerdata.account.Account;
+import br.com.finalcraft.evernifecore.playerdata.account.AccountActor;
 import br.com.finalcraft.evernifecore.playerdata.account.Accounts;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -125,7 +126,7 @@ class AccountsLinkTest {
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "Alpha").join();
 
-        Account account = Accounts.get().linkExternal(uuid, "site", "user-1").join();
+        Account account = Accounts.get().linkExternal(uuid, "site", "user-1", AccountActor.system()).join();
         assertNotEquals(uuid, account.getAccountId(), "the explicit account gets its OWN minted id");
         assertFalse(account.isSingleton());
         assertEquals(2, account.getMembers().size(), "platform member + external member");
@@ -138,7 +139,7 @@ class AccountsLinkTest {
                 "the member uuid resolves to the account through its alias row");
 
         //idempotent re-link of the same identity
-        Account again = Accounts.get().linkExternal(uuid, "site", "user-1").join();
+        Account again = Accounts.get().linkExternal(uuid, "site", "user-1", AccountActor.system()).join();
         assertEquals(account.getAccountId(), again.getAccountId());
 
         PlayerData playerData = PlayerController.handleLogin(uuid, "Alpha").join();
@@ -153,11 +154,11 @@ class AccountsLinkTest {
         PlayerController.handleLogin(uuid, "Rules").join();
 
         CompletionException reserved = assertThrows(CompletionException.class,
-                () -> Accounts.get().linkExternal(uuid, Accounts.platformProvider(), "x").join());
+                () -> Accounts.get().linkExternal(uuid, Accounts.platformProvider(), "x", AccountActor.system()).join());
         assertTrue(rootCause(reserved).getMessage().contains("reserved"));
 
         CompletionException ambiguous = assertThrows(CompletionException.class,
-                () -> Accounts.get().linkExternal(uuid, "si:te", "x").join());
+                () -> Accounts.get().linkExternal(uuid, "si:te", "x", AccountActor.system()).join());
         assertTrue(rootCause(ambiguous).getMessage().contains("ambiguous"));
     }
 
@@ -180,7 +181,7 @@ class AccountsLinkTest {
         achievements.markDirty();
         PlayerController.get().flushAll().join();
 
-        UUID accountId = Accounts.get().linkExternal(uuid, "site", "mover").join().getAccountId();
+        UUID accountId = Accounts.get().linkExternal(uuid, "site", "mover", AccountActor.system()).join().getAccountId();
         assertEquals(5, storedKills(uuid), "the link itself moves NO data - only identity");
 
         PlayerData relogged = PlayerController.handleLogin(uuid, "Mover").join();
@@ -217,8 +218,8 @@ class AccountsLinkTest {
         killsB.markDirty();
         PlayerController.get().flushAll().join();
 
-        UUID accountId = Accounts.get().linkExternal(uuidA, "site", "hub").join().getAccountId();
-        Account fused = Accounts.get().linkExternal(uuidB, "site", "hub").join();
+        UUID accountId = Accounts.get().linkExternal(uuidA, "site", "hub", AccountActor.system()).join().getAccountId();
+        Account fused = Accounts.get().linkExternal(uuidB, "site", "hub", AccountActor.system()).join();
         assertEquals(accountId, fused.getAccountId(),
                 "the second link fuses INTO the account already holding the external identity");
         assertEquals(3, fused.getMembers().size(), "two platform members + the external");
@@ -248,8 +249,8 @@ class AccountsLinkTest {
         PlayerController.handleLogin(uuidB, "Beta").join();
         PlayerController.handleLogin(loner, "Solo").join();
 
-        UUID accountId = Accounts.get().linkExternal(uuidA, "site", "hub").join().getAccountId();
-        Accounts.get().linkExternal(uuidB, "site", "hub").join();
+        UUID accountId = Accounts.get().linkExternal(uuidA, "site", "hub", AccountActor.system()).join().getAccountId();
+        Accounts.get().linkExternal(uuidB, "site", "hub", AccountActor.system()).join();
         //the link moves identity only; a PlayerData row picks its accountId up at the next login
         PlayerController.handleLogin(uuidA, "Alpha").join();
         PlayerController.handleLogin(uuidB, "Beta").join();
@@ -281,14 +282,14 @@ class AccountsLinkTest {
         PlayerController.handleLogin(uuid, "SiteUser").join();
         UUID desired = UUID.randomUUID();
 
-        Account account = Accounts.get().linkExternal(uuid, "site", "u9", desired).join();
+        Account account = Accounts.get().linkExternal(uuid, "site", "u9", desired, AccountActor.system()).join();
         assertEquals(desired, account.getAccountId(), "the account is born under the caller's id");
 
-        Account again = Accounts.get().linkExternal(uuid, "site", "u9", desired).join();
+        Account again = Accounts.get().linkExternal(uuid, "site", "u9", desired, AccountActor.system()).join();
         assertEquals(desired, again.getAccountId(), "restating the same id is an idempotent no-op");
 
         CompletionException rekey = assertThrows(CompletionException.class,
-                () -> Accounts.get().linkExternal(uuid, "site2", "other", UUID.randomUUID()).join());
+                () -> Accounts.get().linkExternal(uuid, "site2", "other", UUID.randomUUID(), AccountActor.system()).join());
         assertTrue(rootCause(rekey).getMessage().contains("never re-keyed"),
                 "a different id against a live account must fail: " + rootCause(rekey).getMessage());
     }
@@ -299,20 +300,20 @@ class AccountsLinkTest {
 
         UUID linkedUuid = UUID.randomUUID();
         PlayerController.handleLogin(linkedUuid, "Taken").join();
-        UUID takenId = Accounts.get().linkExternal(linkedUuid, "site", "taken").join().getAccountId();
+        UUID takenId = Accounts.get().linkExternal(linkedUuid, "site", "taken", AccountActor.system()).join().getAccountId();
 
         //the member's own uuid
         UUID uuidB = UUID.randomUUID();
         PlayerController.handleLogin(uuidB, "SelfKey").join();
         CompletionException memberUuid = assertThrows(CompletionException.class,
-                () -> Accounts.get().linkExternal(uuidB, "site", "uB", uuidB).join());
+                () -> Accounts.get().linkExternal(uuidB, "site", "uB", uuidB, AccountActor.system()).join());
         assertTrue(rootCause(memberUuid).getMessage().contains("member"));
 
         //an id already present in the account collection
         UUID uuidC = UUID.randomUUID();
         PlayerController.handleLogin(uuidC, "CollideAccount").join();
         CompletionException existing = assertThrows(CompletionException.class,
-                () -> Accounts.get().linkExternal(uuidC, "site", "uC", takenId).join());
+                () -> Accounts.get().linkExternal(uuidC, "site", "uC", takenId, AccountActor.system()).join());
         assertTrue(rootCause(existing).getMessage().contains("already"));
 
         //the uuid of a stored PlayerData (a site that keys users by their platform uuid)
@@ -321,7 +322,7 @@ class AccountsLinkTest {
         UUID uuidD = UUID.randomUUID();
         PlayerController.handleLogin(uuidD, "CollidePlayer").join();
         CompletionException playerBase = assertThrows(CompletionException.class,
-                () -> Accounts.get().linkExternal(uuidD, "site", "uD", storedPlayer).join());
+                () -> Accounts.get().linkExternal(uuidD, "site", "uD", storedPlayer, AccountActor.system()).join());
         assertTrue(rootCause(playerBase).getMessage().contains("PlayerData"));
 
         //nothing was written by the failed attempts
@@ -346,7 +347,7 @@ class AccountsLinkTest {
         kills.markDirty();
         PlayerController.get().flushAll().join();
 
-        UUID accountId = Accounts.get().linkExternal(uuid, "site", "sum").join().getAccountId();
+        UUID accountId = Accounts.get().linkExternal(uuid, "site", "sum", AccountActor.system()).join().getAccountId();
         PlayerController.handleLogin(uuid, "Summed").join();
         assertEquals(10, storedKills(accountId));
 
@@ -398,12 +399,12 @@ class AccountsLinkTest {
         killsB.markDirty();
         PlayerController.get().flushAll().join();
 
-        UUID accountId = Accounts.get().linkExternal(uuidA, "site", "duo").join().getAccountId();
-        Accounts.get().linkExternal(uuidB, "site", "duo").join();
+        UUID accountId = Accounts.get().linkExternal(uuidA, "site", "duo", AccountActor.system()).join().getAccountId();
+        Accounts.get().linkExternal(uuidB, "site", "duo", AccountActor.system()).join();
         PlayerController.handleLogin(uuidB, "Beta").join();
         assertEquals(7, storedKills(accountId), "B's kills were absorbed into the account");
 
-        Account after = Accounts.get().unlink(uuidB).join();
+        Account after = Accounts.get().unlink(uuidB, AccountActor.system()).join();
         assertEquals(accountId, after.getAccountId(), "the account stays explicit");
         assertNull(after.findMember(Accounts.platformProvider(), uuidB.toString()),
                 "the member left the account");
@@ -416,7 +417,7 @@ class AccountsLinkTest {
 
         //a never-linked uuid cannot be unlinked
         CompletionException notLinked = assertThrows(CompletionException.class,
-                () -> Accounts.get().unlink(UUID.randomUUID()).join());
+                () -> Accounts.get().unlink(UUID.randomUUID(), AccountActor.system()).join());
         assertTrue(rootCause(notLinked).getMessage().contains("not linked"));
     }
 
@@ -426,13 +427,13 @@ class AccountsLinkTest {
 
         UUID uuid = UUID.randomUUID();
         PlayerController.handleLogin(uuid, "Hubbed").join();
-        UUID accountId = Accounts.get().linkExternal(uuid, "site", "gone").join().getAccountId();
+        UUID accountId = Accounts.get().linkExternal(uuid, "site", "gone", AccountActor.system()).join().getAccountId();
 
-        assertTrue(Accounts.get().unlinkExternal("site", "gone").join());
+        assertTrue(Accounts.get().unlinkExternal("site", "gone", AccountActor.system()).join());
         assertFalse(Accounts.get().findByExternal("site", "gone").join().isPresent());
         assertEquals(accountId, Accounts.get().account(uuid).join().getAccountId(),
                 "the platform member stays on its (now single-member) explicit account");
-        assertFalse(Accounts.get().unlinkExternal("site", "gone").join(),
+        assertFalse(Accounts.get().unlinkExternal("site", "gone", AccountActor.system()).join(),
                 "a second unlink reports the identity as not linked");
     }
 
@@ -452,7 +453,7 @@ class AccountsLinkTest {
         kills.markDirty();
         PlayerController.get().flushAll().join();
 
-        UUID accountId = Accounts.get().linkExternal(uuid, "site", "cmd").join().getAccountId();
+        UUID accountId = Accounts.get().linkExternal(uuid, "site", "cmd", AccountActor.system()).join().getAccountId();
         assertEquals(uuid, PlayerController.getLoaded(uuid).getAccountId(),
                 "the link does not touch the stamp");
 
@@ -477,7 +478,7 @@ class AccountsLinkTest {
         PlayerController.handleLogin(uuidA, "Alpha").join();
         PlayerController.handleLogin(uuidB, "Beta").join();
 
-        Account fused = Accounts.get().link(uuidA, uuidB).join();
+        Account fused = Accounts.get().link(uuidA, uuidB, AccountActor.system()).join();
         assertNotEquals(uuidA, fused.getAccountId(), "two singletons fuse under a MINTED id");
         assertNotEquals(uuidB, fused.getAccountId());
         assertEquals(2, fused.getMembers().size());
@@ -485,13 +486,13 @@ class AccountsLinkTest {
         assertEquals(fused.getAccountId(), Accounts.get().account(uuidB).join().getAccountId());
 
         //idempotent: re-linking the same pair resolves to the same account
-        Account again = Accounts.get().link(uuidA, uuidB).join();
+        Account again = Accounts.get().link(uuidA, uuidB, AccountActor.system()).join();
         assertEquals(fused.getAccountId(), again.getAccountId());
 
         //a third identity joins the EXISTING explicit account (no re-key)
         UUID uuidC = UUID.randomUUID();
         PlayerController.handleLogin(uuidC, "Gamma").join();
-        Account extended = Accounts.get().link(uuidA, uuidC).join();
+        Account extended = Accounts.get().link(uuidA, uuidC, AccountActor.system()).join();
         assertEquals(fused.getAccountId(), extended.getAccountId(),
                 "linking into an explicit account keeps its id");
         assertEquals(3, extended.getMembers().size());

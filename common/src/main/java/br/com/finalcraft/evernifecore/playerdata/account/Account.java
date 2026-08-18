@@ -42,6 +42,13 @@ public class Account {
     /** The canonical accountId this alias points at, or {@code null} on a real account row. */
     private UUID aliasOf;
 
+    /**
+     * Epoch millis when this explicit account was minted, or {@code 0} when unknown - a singleton that
+     * never persisted, or a row written before audit stamping existed. Stamped once at birth and never
+     * rewritten.
+     */
+    private long createdAt;
+
     @OptimisticLock
     private Long lockVersion;
 
@@ -81,6 +88,17 @@ public class Account {
     /** True when this row only redirects a linked member uuid to its canonical account. */
     public boolean isAlias() {
         return aliasOf != null;
+    }
+
+    /**
+     * Stamps the birth time of a freshly minted explicit account (only if not already stamped, so a
+     * merge that reuses a live account keeps its original {@code createdAt}). The account layer is the
+     * only minter.
+     */
+    void markCreatedAt(long millis) {
+        if (createdAt == 0) {
+            createdAt = millis;
+        }
     }
 
     /**

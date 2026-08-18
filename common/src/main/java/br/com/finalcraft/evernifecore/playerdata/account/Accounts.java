@@ -3,7 +3,11 @@ package br.com.finalcraft.evernifecore.playerdata.account;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.PlatformId;
+import br.com.finalcraft.evernifecore.api.events.account.ECAccountLinkedEvent;
+import br.com.finalcraft.evernifecore.api.events.account.ECAccountMergedEvent;
+import br.com.finalcraft.evernifecore.api.events.account.ECAccountUnlinkedEvent;
 import br.com.finalcraft.evernifecore.config.uuids.UUIDsController;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.storage.BindingResolver;
 import br.com.finalcraft.evernifecore.storage.StorageConfigException;
@@ -39,7 +43,7 @@ import java.util.function.Supplier;
  * <p>A uuid that has never been linked resolves to a singleton account whose
  * {@code accountId == uuid}, so account scoping only changes behavior once identities are linked.
  * The first real link mints a brand-new random accountId (never a member's uuid - see
- * {@link #linkExternal(UUID, String, String, UUID)} for the validated escape hatch), persists the
+ * {@link #linkExternal(UUID, String, String, UUID, AccountActor)} for the validated escape hatch), persists the
  * canonical account row, and writes one alias row per identity so every member stays resolvable by
  * its own key. accountIds are OPAQUE: integrations must not derive meaning from them.
  *
@@ -199,8 +203,8 @@ public final class Accounts {
 
     /**
      * True when {@code provider} tags a platform uuid identity. Platform tags are reserved:
-     * {@link #linkExternal(UUID, String, String, UUID)} rejects them (platform uuids are joined
-     * through {@link #link(UUID, UUID)} instead).
+     * {@link #linkExternal(UUID, String, String, UUID, AccountActor)} rejects them (platform uuids are joined
+     * through {@link #link(UUID, UUID, AccountActor)} instead).
      */
     public static boolean isPlatformProvider(String provider) {
         return PLATFORM_PROVIDER.equals(provider)
@@ -372,30 +376,31 @@ public final class Accounts {
     /**
      * Links two platform identities into one account (the admin fallback behind
      * {@code /ecaccount link}): resolves both accounts and fuses them through
-     * {@link #mergeAccounts(Account, Account)}. No data moves here.
+     * {@link #mergeAccounts(Account, Account, AccountActor)}. No data moves here.
      */
-    public CompletableFuture<Account> link(UUID target, UUID source) {
+    public CompletableFuture<Account> link(UUID target, UUID source, AccountActor actor) {
         if (manager == null) {
             return PlayerController.failedFuture(disabled());
         }
         Objects.requireNonNull(target, "target cannot be null");
         Objects.requireNonNull(source, "source cannot be null");
+        Objects.requireNonNull(actor, "actor cannot be null");
         //re-read both member rows: an admin operation must see links decided on other instances
         manager.invalidate(target);
         manager.invalidate(source);
         return account(target).thenCompose(targetAccount ->
                 account(source).thenCompose(sourceAccount ->
-                        mergeAccounts(targetAccount, sourceAccount)));
+                        mergeAccounts(targetAccount, sourceAccount, actor)));
     }
 
     /**
      * Links an external identity {@code (provider, providerUid)} - a Discord id, a registration-site
      * user, ... - into the account of {@code playerUuid}. The caller is responsible for having
      * VERIFIED that the external identity belongs to that player (OTP, OAuth, panel); this only
-     * executes the already-authorized link. See {@link #linkExternal(UUID, String, String, UUID)}.
+     * executes the already-authorized link. See {@link #linkExternal(UUID, String, String, UUID, AccountActor)}.
      */
-    public CompletableFuture<Account> linkExternal(UUID playerUuid, String provider, String providerUid) {
-        return linkExternal(playerUuid, provider, providerUid, null);
+    public CompletableFuture<Account> linkExternal(UUID playerUuid, String provider, String providerUid, AccountActor actor) {
+        return linkExternal(playerUuid, provider, providerUid, null, actor);
     }
 
     /**
@@ -406,7 +411,7 @@ public final class Accounts {
      * <p>Outcomes: identity unknown - it joins the player's account (a never-linked player's explicit
      * account is born NOW, id minted by the core or the validated {@code desiredAccountId}); identity
      * already on the SAME account - idempotent no-op; identity on ANOTHER account - transitive fusion
-     * of both accounts ({@link #mergeAccounts(Account, Account)}).</p>
+     * of both accounts ({@link #mergeAccounts(Account, Account, AccountActor)}).</p>
      *
      * <p>{@code desiredAccountId} rules (any violation fails the link cleanly, nothing is written):
      * it only takes effect when this link CREATES the explicit account; when either side already
@@ -414,13 +419,17 @@ public final class Accounts {
      * (a live account is never re-keyed). On creation it must not exist in the account collection,
      * must not be the uuid of any member of the link, and must not collide with a stored PlayerData
      * uuid. Callers must mint random UUIDs in their OWN id space - never reuse a platform uuid.</p>
+     *
+     * <p>{@code actor} is recorded as the operation's origin: it rides the posted account event and
+     * stamps the newly linked member's {@code linkedBy}.</p>
      */
     public CompletableFuture<Account> linkExternal(UUID playerUuid, String provider, String providerUid,
-                                                   @Nullable UUID desiredAccountId) {
+                                                   @Nullable UUID desiredAccountId, AccountActor actor) {
         if (manager == null) {
             return PlayerController.failedFuture(disabled());
         }
         Objects.requireNonNull(playerUuid, "playerUuid cannot be null");
+        Objects.requireNonNull(actor, "actor cannot be null");
         if (provider == null || provider.isEmpty() || providerUid == null || providerUid.isEmpty()) {
             return PlayerController.failedFuture(new IllegalArgumentException("provider and providerUid cannot be null/empty"));
         }
@@ -438,7 +447,7 @@ public final class Accounts {
                 findByExternal(provider, providerUid).thenCompose(linked -> {
                     if (!linked.isPresent()) {
                         return adoptExternalIdentity(playerUuid, playerAccount, provider, providerUid,
-                                desiredAccountId);
+                                desiredAccountId, actor);
                     }
                     Account externalAccount = linked.get();
                     if (externalAccount.getAccountId().equals(playerAccount.getAccountId())) {
@@ -451,7 +460,7 @@ public final class Accounts {
                     if (desiredAccountId != null && !desiredAccountId.equals(externalAccount.getAccountId())) {
                         return PlayerController.failedFuture(desiredOnLiveAccount(desiredAccountId, externalAccount.getAccountId()));
                     }
-                    return mergeAccounts(externalAccount, playerAccount);
+                    return mergeAccounts(externalAccount, playerAccount, actor);
                 }));
     }
 
@@ -463,10 +472,11 @@ public final class Accounts {
      * @return {@code true} when the identity was linked and is now removed, {@code false} when it
      *         was not linked to begin with
      */
-    public CompletableFuture<Boolean> unlinkExternal(String provider, String providerUid) {
+    public CompletableFuture<Boolean> unlinkExternal(String provider, String providerUid, AccountActor actor) {
         if (manager == null) {
             return PlayerController.failedFuture(disabled());
         }
+        Objects.requireNonNull(actor, "actor cannot be null");
         UUID key = externalKey(provider, providerUid);
         return resolveCanonical(key).thenCompose(linked -> {
             if (!linked.isPresent()) {
@@ -479,7 +489,10 @@ public final class Accounts {
                     return CompletableFuture.completedFuture(true); //dangling alias: now healed
                 }
                 account.getMembers().remove(member);
-                return manager.saveAndCache(account).thenApply(y -> true);
+                return manager.saveAndCache(account).thenApply(y -> {
+                    postUnlinked(account, member, actor);
+                    return true;
+                });
             });
         });
     }
@@ -492,11 +505,12 @@ public final class Accounts {
      * does not absorb its rows). Alias first, then the canonical row - a crash in between leaves the
      * member listed but already resolving standalone; a later re-link heals the list.
      */
-    public CompletableFuture<Account> unlink(UUID memberUuid) {
+    public CompletableFuture<Account> unlink(UUID memberUuid, AccountActor actor) {
         if (manager == null) {
             return PlayerController.failedFuture(disabled());
         }
         Objects.requireNonNull(memberUuid, "memberUuid cannot be null");
+        Objects.requireNonNull(actor, "actor cannot be null");
         //re-read the member row: an unlink decided against a stale cache would misreport "not linked"
         manager.invalidate(memberUuid);
         return resolveCanonical(memberUuid).thenCompose(linked -> {
@@ -518,7 +532,12 @@ public final class Accounts {
                     account.getMembers().remove(member);
                 }
                 return manager.saveAndCache(account);
-            }).thenApply(x -> account);
+            }).thenApply(x -> {
+                if (member != null) {
+                    postUnlinked(account, member, actor);
+                }
+                return account;
+            });
         });
     }
 
@@ -531,13 +550,16 @@ public final class Accounts {
      * <p>Id of the fused account: when one side is already an explicit (stored) account its id
      * survives ({@code target} first when both are - the absorbed account's row becomes an alias);
      * a brand-new random id is minted only when two never-linked identities fuse.</p>
+     *
+     * <p>{@code actor} is recorded as the merge's origin on the posted event.</p>
      */
-    public CompletableFuture<Account> mergeAccounts(Account target, Account source) {
+    public CompletableFuture<Account> mergeAccounts(Account target, Account source, AccountActor actor) {
         if (manager == null) {
             return PlayerController.failedFuture(disabled());
         }
         Objects.requireNonNull(target, "target cannot be null");
         Objects.requireNonNull(source, "source cannot be null");
+        Objects.requireNonNull(actor, "actor cannot be null");
         if (target.getAccountId().equals(source.getAccountId())) {
             return CompletableFuture.completedFuture(target);
         }
@@ -555,11 +577,15 @@ public final class Accounts {
         }
 
         return canonicalId.thenCompose(id -> {
-            Account canonical = buildCanonical(id, target, source);
+            long now = System.currentTimeMillis();
+            Account canonical = buildCanonical(id, target, source, actor, now);
             fillMissingMemberNames(canonical);
             return manager.saveAndCache(canonical)
                     .thenCompose(x -> rewriteAliases(canonical, target, source))
-                    .thenApply(x -> canonical);
+                    .thenApply(x -> {
+                        postMerged(canonical, target, source, actor);
+                        return canonical;
+                    });
         });
     }
 
@@ -570,15 +596,24 @@ public final class Accounts {
     /** The external identity is unknown: it joins the player's account (born now if singleton). */
     private CompletableFuture<Account> adoptExternalIdentity(UUID playerUuid, Account playerAccount,
                                                              String provider, String providerUid,
-                                                             @Nullable UUID desiredAccountId) {
+                                                             @Nullable UUID desiredAccountId, AccountActor actor) {
         AccountMember external = new AccountMember(provider, providerUid, null);
+        long now = System.currentTimeMillis();
         if (!playerAccount.isSingleton()) {
             //an already-linked player gains one more identity: the account id never changes
             return checkDesiredMatches(desiredAccountId, playerAccount).thenCompose(account -> {
-                account.addMember(external); //an already-listed member means a half-done unlink: heal
+                boolean added = account.addMember(external); //an already-listed member means a half-done unlink: heal
+                if (added) {
+                    external.stampLinked(now, actor.describe());
+                }
                 return manager.saveAndCache(account)
                         .thenCompose(x -> writeAlias(externalKey(provider, providerUid), account.getAccountId()))
-                        .thenApply(x -> account);
+                        .thenApply(x -> {
+                            if (added) {
+                                postLinked(account, external, actor);
+                            }
+                            return account;
+                        });
             });
         }
         //the first real link of a never-linked player: the explicit account is born now
@@ -588,15 +623,23 @@ public final class Accounts {
                 : mintAccountId(memberUuids);
         return accountId.thenCompose(id -> {
             Account account = new Account(id);
+            account.markCreatedAt(now);
             for (AccountMember member : playerAccount.getMembers()) {
-                account.addMember(member);
+                if (account.addMember(member)) {
+                    member.stampLinked(now, actor.describe());
+                }
             }
-            account.addMember(external);
+            if (account.addMember(external)) {
+                external.stampLinked(now, actor.describe());
+            }
             fillMissingMemberNames(account);
             return manager.saveAndCache(account)
                     .thenCompose(x -> writeAlias(playerUuid, id))
                     .thenCompose(x -> writeAlias(externalKey(provider, providerUid), id))
-                    .thenApply(x -> account);
+                    .thenApply(x -> {
+                        postLinked(account, external, actor);
+                        return account;
+                    });
         });
     }
 
@@ -647,7 +690,7 @@ public final class Accounts {
     }
 
     /** The canonical account of a merge: the surviving live instance (or a fresh one) holding the member union. */
-    private static Account buildCanonical(UUID id, Account target, Account source) {
+    private static Account buildCanonical(UUID id, Account target, Account source, AccountActor actor, long now) {
         Account canonical;
         if (id.equals(target.getAccountId())) {
             canonical = target;
@@ -655,16 +698,22 @@ public final class Accounts {
             canonical = source;
         } else {
             canonical = new Account(id);
+            canonical.markCreatedAt(now); //genuinely fresh: two singletons fused into a minted id
         }
-        //the union dedups identical identities, which also settles UNIQUE(provider, uid) cross-account
+        //the union dedups identical identities, which also settles UNIQUE(provider, uid) cross-account;
+        //a member that actually joins the canonical is stamped with who linked it and when
         if (canonical != target) {
             for (AccountMember member : target.getMembers()) {
-                canonical.addMember(member);
+                if (canonical.addMember(member)) {
+                    member.stampLinked(now, actor.describe());
+                }
             }
         }
         if (canonical != source) {
             for (AccountMember member : source.getMembers()) {
-                canonical.addMember(member);
+                if (canonical.addMember(member)) {
+                    member.stampLinked(now, actor.describe());
+                }
             }
         }
         return canonical;
@@ -742,6 +791,29 @@ public final class Accounts {
                 }
             }
         }
+    }
+
+    // ------------------------------------------------------------------
+    // Events (bus-only IECEvents, built only when something is listening)
+    // ------------------------------------------------------------------
+
+    /** Announces an identity linked into an account (the adopt paths). */
+    private static void postLinked(Account account, AccountMember linked, AccountActor actor) {
+        ECEventBus.global().postIfListened(ECAccountLinkedEvent.class,
+                () -> new ECAccountLinkedEvent(account.getAccountId(), linked, account.getMembers(), actor));
+    }
+
+    /** Announces two accounts fused into one. */
+    private static void postMerged(Account canonical, Account target, Account source, AccountActor actor) {
+        ECEventBus.global().postIfListened(ECAccountMergedEvent.class,
+                () -> new ECAccountMergedEvent(canonical.getAccountId(), target.getAccountId(),
+                        source.getAccountId(), canonical.getMembers(), actor));
+    }
+
+    /** Announces a member that left an account. */
+    private static void postUnlinked(Account account, AccountMember unlinked, AccountActor actor) {
+        ECEventBus.global().postIfListened(ECAccountUnlinkedEvent.class,
+                () -> new ECAccountUnlinkedEvent(account.getAccountId(), unlinked, account.getMembers(), actor));
     }
 
     private static IllegalStateException disabled() {

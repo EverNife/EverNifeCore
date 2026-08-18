@@ -33,6 +33,16 @@ public class AccountMember {
     @Setter
     private String name;
 
+    /** Epoch millis this identity was first linked into an account, or {@code 0} when unknown. */
+    private long linkedAt;
+
+    /**
+     * Who linked this identity, as {@link AccountActor#describe()} ({@code "admin:Petrus"},
+     * {@code "integration:finalcraftlogin"}, ...), or {@code null} when unknown - an identity present
+     * since before audit stamping, or one that was never explicitly linked.
+     */
+    private String linkedBy;
+
     public AccountMember() {
         //Jackson no-arg constructor
     }
@@ -41,6 +51,18 @@ public class AccountMember {
         this.provider = Objects.requireNonNull(provider, "provider cannot be null");
         this.providerUid = Objects.requireNonNull(providerUid, "providerUid cannot be null");
         this.name = name;
+    }
+
+    /**
+     * Stamps who linked this identity and when, the first time it joins an account via a link
+     * operation (first-link-wins: a later merge that moves it does not rewrite the original stamp).
+     * The account layer is the only caller.
+     */
+    void stampLinked(long millis, String linkedBy) {
+        if (linkedAt == 0) {
+            this.linkedAt = millis;
+            this.linkedBy = linkedBy;
+        }
     }
 
     @Override
