@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.hytale.loader.EverNifeCoreHytalePlugin;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.event.events.player.PlayerConnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerSetupConnectEvent;
@@ -20,14 +21,21 @@ public class PlayerLoginListener implements ECListener {
     @Override
     public void onRegister() {
         EverNifeCoreHytalePlugin.instance.getEventRegistry().registerGlobal(PlayerSetupConnectEvent.class, (event) -> {
-            //Setup-connect runs off the main thread - join() on the async login pipeline.
-            //Bounded by a timeout: a hung backend must not hang the login thread forever.
+            //Setup-connect runs synchronously on the connect thread - join() on the async login
+            //pipeline, bounded by a timeout so a hung backend cannot hang the thread forever.
             try {
                 PlayerController.handleLoginWithTimeout(event.getUuid(), event.getUsername()).join();
             } catch (Throwable loginFailure) {
+                //Fail closed: deny the connect instead of letting a data-less session in, where a
+                //fresh profile could overwrite the player's real data on the next save.
+                //PlayerSetupConnectEvent is ICancellable, so this stops the login (the Hytale
+                //counterpart of the Bukkit KICK_OTHER deny).
                 EverNifeCore.getLog().severe(
                         "Failed to load PlayerData for " + event.getUsername() + " (storage down?): "
                                 + loginFailure.getMessage());
+                event.setReason(Message.raw("Could not load your player data (storage unavailable)."
+                        + " Please try again shortly."));
+                event.setCancelled(true);
             }
         });
 
@@ -43,10 +51,11 @@ public class PlayerLoginListener implements ECListener {
                 //connected AND the data is attached - that is what "fully logged in" means here
                 ECEventBus.global().post(new ECPlayerFullyLoggedInEvent(playerData, false));
             } else {
-                //the setup-connect load failed/timed out and Hytale has no deny API, so the player
-                //got in anyway - retry now (storage may be back) instead of leaving a data-less session
+                //Setup-connect fails closed now, so a connected player normally has data. Reaching
+                //here without it is the odd case - a session that skipped setup-connect (an injected/
+                //fake player) or a race - so retry the load defensively rather than leave it data-less.
                 EverNifeCore.getLog().warning("Player " + fPlayer.getName() + " connected WITHOUT"
-                        + " PlayerData (login-time load failed) - retrying the load now.");
+                        + " PlayerData - retrying the load now.");
                 PlayerController.handleLogin(fPlayer.getUniqueId(), fPlayer.getName())
                         .whenComplete((loaded, retryError) -> {
                             if (loaded != null && fPlayer.isOnline()){
