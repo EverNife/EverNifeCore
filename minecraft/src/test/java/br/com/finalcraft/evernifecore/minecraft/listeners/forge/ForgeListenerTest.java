@@ -6,15 +6,21 @@ import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.ModernMohist
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.MohistForgeListener;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * What a server with no Forge on it gets, which is every server this suite runs on: no adapter, no
  * class-initialization failure anywhere, and a refusal that names what is missing whenever something
- * asks for the route anyway.
+ * asks for the route anyway. Plus which adapter each hybrid runtime is handed, posed class by class,
+ * since no JVM running this suite carries any of those platforms.
  *
  * <p>An adapter that resolved its Forge members while its class initialized would turn the very first
  * of these calls into an {@code ExceptionInInitializerError} and every call after it into a
@@ -22,6 +28,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * assertion below names an exception type on purpose: an {@link Error} fails it.</p>
  */
 class ForgeListenerTest {
+
+    private static final String ARCLIGHT = "io.izzel.arclight.api.Arclight";
+    private static final String NEOFORGE_BUS = "net.neoforged.bus.api.IEventBus";
+    private static final String FORGE_HOME = "net.minecraftforge.common.MinecraftForge";
 
     @Test
     void withNoHybridBehindItThereIsNoAdapterAndAskingIsFree() {
@@ -57,6 +67,33 @@ class ForgeListenerTest {
 
         assertTrue(refusal.getMessage().contains("SubscribeEvent"),
                 "and it names the annotation it could not find: " + refusal.getMessage());
+    }
+
+    @Test
+    void anArclightRunningNeoForgeIsHandedNoAdapterAtAll() {
+        assertNull(ForgeListener.detectHybrid(runtimeWith(ARCLIGHT, NEOFORGE_BUS)),
+                "the Arclight brand is there, but the era it runs renamed every type the branch reaches for");
+    }
+
+    @Test
+    void anArclightThatStillCarriesForgeKeepsTheAdapterMeasuredToWorkOnIt() {
+        assertTrue(ForgeListener.detectHybrid(runtimeWith(ARCLIGHT, FORGE_HOME)) instanceof ArclightForgeListener,
+                "an era with net.minecraftforge on it is exactly what this adapter was written against");
+        assertTrue(ForgeListener.detectHybrid(runtimeWith(ARCLIGHT, FORGE_HOME, NEOFORGE_BUS)) instanceof ArclightForgeListener,
+                "and a build carrying both vocabularies still has the one the route resolves by name");
+    }
+
+    @Test
+    void aServerCarryingNoHybridBrandIsNoHybridWhicheverBusItHas() {
+        assertNull(ForgeListener.detectHybrid(runtimeWith()),
+                "a plain Bukkit server has no Forge side to reach");
+        assertNull(ForgeListener.detectHybrid(runtimeWith(NEOFORGE_BUS)),
+                "and neither has a NeoForge bus with no hybrid brand around it");
+    }
+
+    private static ForgeListener.ClassPresence runtimeWith(String... loaded) {
+        Set<String> present = new HashSet<>(Arrays.asList(loaded));
+        return present::contains;
     }
 
     private static void assertMissingTypeIsNamed(IForgeListener adapter, String expectedType) {
