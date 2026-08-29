@@ -29,12 +29,25 @@ import br.com.finalcraft.evernifecore.logger.ECLogger;
  * optional (no-op by default), except {@link #onECPluginShutdownPre()}, whose default unregisters
  * every listener AND every command the plugin registered - so the plugin's entry points are gone
  * before {@link #onECPluginShutdown()} tears down the resources those listeners/commands could touch.</p>
+ *
+ * <p>The running instance is published for the plugin: an {@link ECBootstrap} declared in the common
+ * bootstrap is filled from {@link #runECPluginInstantiate()} and every {@link #runECPluginEnable()},
+ * and emptied when {@link #runECPluginShutdown()} has finished - the plugin writes no bookkeeping of
+ * its own.</p>
  */
 public interface IECPluginBootstrap {
 
     /** The {@link ECPluginData} of this plugin (created on first access). */
     public default ECPluginData getPluginData(){
         return ECPluginManager.getOrCreateECorePluginData(this);
+    }
+
+    /**
+     * The platform object this bootstrap runs as - a Bukkit {@code JavaPlugin}, a Hytale one - for a
+     * caller that can name it. {@code common} cannot, and gets it as {@link Object}.
+     */
+    public default Object getPlugin(){
+        return getPluginData().getPlugin();
     }
 
     /**
@@ -57,7 +70,10 @@ public interface IECPluginBootstrap {
     //  Enable
     // ------------------------------------------------------------------
 
-    /** Optional enable extras that must run on INSTANTIATE. No-op by default. */
+    /**
+     * Optional extras that must run the moment the platform builds this plugin, before any lifecycle
+     * hook. The instance is already published when it runs. No-op by default.
+     */
     public default void onInstantiate() {
 
     }
@@ -137,11 +153,25 @@ public interface IECPluginBootstrap {
     // ------------------------------------------------------------------
 
     /**
+     * The instantiate entry point invoked by the platform bridge from its constructor: publishes this
+     * instance, then runs {@link #onInstantiate()}. A plugin implementing this interface directly makes
+     * this same call from its own constructor.
+     */
+    public default void runECPluginInstantiate(){
+        ECBootstrap.publish(this);
+        onInstantiate();
+    }
+
+    /**
      * The enable entry point invoked by the platform bridge: this plugin's debug switches are read
      * first, then the Pre -&gt; main -&gt; Post wiring, the enabled banner, and finally the first-tick
      * task (if any). Override only when a plugin needs a different orchestration.
      */
     public default void runECPluginEnable(){
+        //an enable can also follow a shutdown, when a plugin manager disables and re-enables this same
+        //object; the constructor does not run a second time, so only this can publish it back
+        ECBootstrap.publish(this);
+
         ECPluginData pluginData = getPluginData();
         IPluginMetaInfo metaInfo = pluginData.getMetaInfo();
 
@@ -164,7 +194,8 @@ public interface IECPluginBootstrap {
     /**
      * The shutdown entry point invoked by the platform bridge: Pre -&gt; main -&gt; Post teardown
      * (the Pre default unregisters this plugin's listeners before the main teardown closes resources),
-     * and then the file loggers this plugin opened and left open.
+     * then the file loggers this plugin opened and left open, and finally this instance itself - which
+     * is why a plugin's own teardown can still reach it.
      */
     public default void runECPluginShutdown(){
         onECPluginShutdownPre();
@@ -173,6 +204,9 @@ public interface IECPluginBootstrap {
 
         //after the last hook: a plugin writes its closing lines during its own teardown
         getPluginData().closeOpenFileLoggers();
+
+        //last of all, so the plugin's own teardown can still reach itself through its accessor
+        ECBootstrap.unpublish(this);
     }
 
 }

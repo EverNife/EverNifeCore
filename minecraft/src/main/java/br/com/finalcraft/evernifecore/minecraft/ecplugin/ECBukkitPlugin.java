@@ -17,7 +17,7 @@ public abstract class ECBukkitPlugin extends JavaPlugin implements IECPluginBoot
     private volatile ECPluginData pluginData;
 
     {
-        onInstantiate();
+        runECPluginInstantiate();
     }
 
     /** Resolved once and kept here, so a plugin logging from a hot path reads a field. */

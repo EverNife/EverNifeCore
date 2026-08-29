@@ -20,7 +20,7 @@ public abstract class ECHytalePlugin extends JavaPlugin implements IECPluginBoot
     private volatile ECPluginData pluginData;
 
     {
-        onInstantiate();
+        runECPluginInstantiate();
     }
 
     protected ECHytalePlugin(JavaPluginInit init) {
