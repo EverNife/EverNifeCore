@@ -31,10 +31,11 @@ public class HyPAPIIntegration {
     public static <P extends IPlayerData> RegexReplacer<P> createPlaceholderIntegration(@Nonnull ECPluginData plugin, @Nonnull String pluginBaseID, @Nonnull Class<P> playerDataType){
         PAPIRegexReplacer papiRegexReplacer = new PAPIRegexReplacer(playerDataType);
 
-        //Inner caller prevents 'java.lang.NoClassDefFoundError'
-        InnerPAPIRegisterer.register(plugin, pluginBaseID, papiRegexReplacer);
-
-        EverNifeCore.getLog().info("Registering PAPI Hook for the plugin " + plugin.getMetaInfo().getName() + " with prefix '"  + pluginBaseID + "' using Modern PAPI method.");
+        if (isPresent()){
+            //Inner caller prevents 'java.lang.NoClassDefFoundError'
+            InnerPAPIRegisterer.register(plugin, pluginBaseID, papiRegexReplacer);
+            EverNifeCore.getLog().info("Registering PAPI Hook for the plugin " + plugin.getMetaInfo().getName() + " with prefix '"  + pluginBaseID + "' using Modern PAPI method.");
+        }
 
         return papiRegexReplacer.getRegexReplacer();
     }

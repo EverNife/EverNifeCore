@@ -32,8 +32,10 @@ public class McPAPIIntegration {
     public static <P extends IPlayerData> RegexReplacer<P> createPlaceholderIntegration(@Nonnull ECPluginData plugin, @Nonnull String pluginBaseID, @Nonnull Class<P> playerDataType){
         PAPIRegexReplacer papiRegexReplacer = new PAPIRegexReplacer(playerDataType);
 
-        //Inner caller prevents 'java.lang.NoClassDefFoundError'
-        InnerPAPIRegisterer.register(plugin, pluginBaseID, papiRegexReplacer);
+        if (isPresent()) {
+            //Inner caller prevents 'java.lang.NoClassDefFoundError'
+            InnerPAPIRegisterer.register(plugin, pluginBaseID, papiRegexReplacer);
+        }
 
         return papiRegexReplacer.getRegexReplacer();
     }
