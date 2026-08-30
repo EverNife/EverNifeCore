@@ -13,6 +13,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandTreeScanner;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpLine;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
+import br.com.finalcraft.evernifecore.playerdata.AccountSection;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
@@ -58,6 +59,7 @@ public class FinalCMDManager {
         ArgParserManager.addGlobalParser(Double.class, ArgParserNumber.class);
         ArgParserManager.addGlobalParser(NumberWrapper.class, ArgParserNumberWrapper.class);
         ArgParserManager.addGlobalParser(IPlayerData.class, ArgParserIPlayerData.class);
+        ArgParserManager.addGlobalParser(AccountSection.class, ArgParserAccountSection.class);
         ArgParserManager.addGlobalParser(Boolean.class, ArgParserBoolean.class);
         ArgParserManager.addGlobalParser(Enum.class, ArgParserEnum.class);
         ArgParserManager.addGlobalParser(UUID.class, ArgParserUUID.class);
@@ -73,6 +75,7 @@ public class FinalCMDManager {
         ArgParserManager.addGlobalContextualParser(String.class, ArgParserContextualLabel.class);
         ArgParserManager.addGlobalContextualParser(MultiArgumentos.class, ArgParserContextualMultiArgumentos.class);
         ArgParserManager.addGlobalContextualParser(PDSection.class, ArgParserContextualPDSection.class);
+        ArgParserManager.addGlobalContextualParser(AccountSection.class, ArgParserContextualAccountSection.class);
         ArgParserManager.addGlobalContextualParser(PlayerData.class, ArgParserContextualPlayerData.class);
 
         EverNifeCore.getPlatform().registerArgParsers();

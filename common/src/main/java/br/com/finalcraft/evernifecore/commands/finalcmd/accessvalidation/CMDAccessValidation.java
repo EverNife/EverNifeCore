@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.custom.ICustomFinalCMD;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.CMDData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.CMDMethodInterpreter;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandNode;
+import br.com.finalcraft.evernifecore.playerdata.AccountSection;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
@@ -202,6 +203,13 @@ public abstract class CMDAccessValidation {
             if (!isPlayer()) return null;
 
             return PlayerController.getPDSection(sender.getUniqueId(), pdSectionClass).join();
+        }
+
+        /** The sender's ACCOUNT-wide row, shared by every identity linked into their account. */
+        public <P extends AccountSection<P>> P getAccountSection(Class<P> sectionClass){
+            if (!isPlayer()) return null;
+
+            return PlayerController.getAccountSection(sender.getUniqueId(), sectionClass).join();
         }
 
         public boolean hasProperPermission(){

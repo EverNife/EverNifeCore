@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.testing;
 
 import br.com.finalcraft.everydatabase.manager.entityschema.EntitySchemaMigrations;
+import br.com.finalcraft.evernifecore.playerdata.AccountSection;
+import br.com.finalcraft.evernifecore.playerdata.AccountSectionConfiguration;
 import br.com.finalcraft.evernifecore.playerdata.PDSection;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
@@ -29,6 +31,7 @@ public final class PlayerDataWorld implements AutoCloseable {
     private final Storages storages;
     private final Map<Class<? extends PDSection>, String> sections =
             new LinkedHashMap<Class<? extends PDSection>, String>();
+    private final Map<Class<?>, String> accountSections = new LinkedHashMap<Class<?>, String>();
     private File storageYml;
     private boolean closed = false;
 
@@ -59,8 +62,23 @@ public final class PlayerDataWorld implements AutoCloseable {
         return this;
     }
 
+    /** {@link #sections}, for the account-wide family - one row per account instead of per player. */
+    @SafeVarargs
+    public final PlayerDataWorld accountSections(Class<? extends AccountSection<?>>... sectionClasses) {
+        for (Class<? extends AccountSection<?>> sectionClass : sectionClasses) {
+            accountSections.put(sectionClass, defaultIdOf(sectionClass));
+        }
+        return this;
+    }
+
+    /** {@link #section(String, Class)}, for the account-wide family. */
+    public PlayerDataWorld accountSection(String sectionId, Class<? extends AccountSection<?>> sectionClass) {
+        accountSections.put(sectionClass, sectionId);
+        return this;
+    }
+
     /** The test-only id derivation: the class simple name, lowercased. */
-    public static String defaultIdOf(Class<? extends PDSection> sectionClass) {
+    public static String defaultIdOf(Class<?> sectionClass) {
         return sectionClass.getSimpleName().toLowerCase(Locale.ROOT);
     }
 
@@ -71,6 +89,11 @@ public final class PlayerDataWorld implements AutoCloseable {
         for (Map.Entry<Class<? extends PDSection>, String> section : sections.entrySet()) {
             PlayerController.registerPDSectionCfg(
                     PDSectionConfiguration.builder(null, section.getKey(), section.getValue()).build());
+        }
+
+        for (Map.Entry<Class<?>, String> section : accountSections.entrySet()) {
+            PlayerController.registerAccountSectionCfg(
+                    AccountSectionConfiguration.builder(null, (Class) section.getKey(), section.getValue()).build());
         }
 
         PlayerController.initialize(storageYml);
