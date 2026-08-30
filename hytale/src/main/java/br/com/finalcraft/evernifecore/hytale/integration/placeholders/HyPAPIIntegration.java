@@ -23,7 +23,9 @@ public class HyPAPIIntegration {
 
     public static boolean isPresent(){
         if (isPresent == null){
-            isPresent = FCReflectionUtil.getClasses().isClassLoaded("at.helpch.placeholderapi.PlaceholderAPIPlugin");
+            // Probe the API class 'parse' actually calls. isClassLoaded initializes the class,
+            // and a plugin main class may only initialize against a live server.
+            isPresent = FCReflectionUtil.getClasses().isClassLoaded("at.helpch.placeholderapi.PlaceholderAPI");
         }
         return isPresent;
     }

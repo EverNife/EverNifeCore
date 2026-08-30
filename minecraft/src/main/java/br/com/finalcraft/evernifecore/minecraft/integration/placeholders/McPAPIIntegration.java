@@ -24,7 +24,9 @@ public class McPAPIIntegration {
 
     public static boolean isPresent(){
         if (isPresent == null){
-            isPresent = FCReflectionUtil.getClasses().isClassLoaded("at.helpch.placeholderapi.PlaceholderAPIPlugin");
+            // Probe the API class 'parse' actually calls. isClassLoaded initializes the class,
+            // and the plugin's main class only initializes against a live server.
+            isPresent = FCReflectionUtil.getClasses().isClassLoaded("me.clip.placeholderapi.PlaceholderAPI");
         }
         return isPresent;
     }

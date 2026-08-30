@@ -89,6 +89,9 @@ dependencies {
     // back to exercise the Vault bridges against a fake economy.
     testImplementation libs.spigot.api
     testImplementation libs.vaultunlocked
+    // compileOnly in production - PlaceholderAPI is a plugin - brought back so the presence probe
+    // has the real Bukkit PlaceholderAPI to find.
+    testRuntimeOnly name: "PlaceholderAPI-2.11.2"
     testImplementation project(':common-tests')
 }
 

@@ -46,6 +46,9 @@ dependencies {
     testImplementation project(':common-tests')
     // A running Hytale server provides these - compileOnly above - so the test JVM has to bring them back
     testImplementation libs.hytale.server
+    // compileOnly in production - PlaceholderAPI is a plugin - brought back so the presence probe
+    // has the real Hytale PlaceholderAPI to find.
+    testRuntimeOnly libs.placeholderapi.hytale
 }
 
 test {
