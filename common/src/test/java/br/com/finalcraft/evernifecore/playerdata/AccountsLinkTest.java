@@ -29,11 +29,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The linking flows of the account layer: an external identity birthing an explicit account,
- * transitive fusion through a shared external identity, the strict desiredAccountId rules, the
- * lazy roll-forward data migration at login (including the ledger's crash-resume and stale-session
- * re-absorption for a NON-idempotent merge), unlink semantics (the member starts fresh, the account
- * keeps the data) and the forced offline reconciliation.
+ * The linking flows of the account layer: an external identity birthing an explicit account, either
+ * under a minted id or under the one the integration dictates; transitive fusion through a shared
+ * external identity; the desiredAccountId rules; the lazy roll-forward data migration at login
+ * (including the ledger's crash-resume and stale-session re-absorption for a NON-idempotent merge);
+ * unlink semantics (the member starts fresh, the account keeps the data, and the member the account
+ * is keyed by cannot leave); and the forced offline reconciliation.
  */
 @ECoreTest
 class AccountsLinkTest {
@@ -295,40 +296,106 @@ class AccountsLinkTest {
     }
 
     @Test
-    void desiredAccountIdRejectsCollisions() throws IOException {
-        bootstrap("desired_collisions");
+    void desiredAccountIdRefusesAnIdAlreadyInTheAccountCollection() throws IOException {
+        bootstrap("desired_taken");
 
         UUID linkedUuid = UUID.randomUUID();
         PlayerController.handleLogin(linkedUuid, "Taken").join();
         UUID takenId = Accounts.get().linkExternal(linkedUuid, "site", "taken", AccountActor.system()).join().getAccountId();
 
-        //the member's own uuid
-        UUID uuidB = UUID.randomUUID();
-        PlayerController.handleLogin(uuidB, "SelfKey").join();
-        CompletionException memberUuid = assertThrows(CompletionException.class,
-                () -> Accounts.get().linkExternal(uuidB, "site", "uB", uuidB, AccountActor.system()).join());
-        assertTrue(rootCause(memberUuid).getMessage().contains("member"));
-
-        //an id already present in the account collection
+        //an id already stored as an ACCOUNT row
         UUID uuidC = UUID.randomUUID();
         PlayerController.handleLogin(uuidC, "CollideAccount").join();
-        CompletionException existing = assertThrows(CompletionException.class,
+        CompletionException asAccount = assertThrows(CompletionException.class,
                 () -> Accounts.get().linkExternal(uuidC, "site", "uC", takenId, AccountActor.system()).join());
-        assertTrue(rootCause(existing).getMessage().contains("already"));
+        assertTrue(rootCause(asAccount).getMessage().contains("already"), rootCause(asAccount).getMessage());
 
-        //the uuid of a stored PlayerData (a site that keys users by their platform uuid)
-        UUID storedPlayer = UUID.randomUUID();
-        PlayerController.handleLogin(storedPlayer, "Bystander").join();
+        //an id already stored as an ALIAS row: the linked member's own uuid points at the account
+        UUID uuidE = UUID.randomUUID();
+        PlayerController.handleLogin(uuidE, "CollideAlias").join();
+        CompletionException asAlias = assertThrows(CompletionException.class,
+                () -> Accounts.get().linkExternal(uuidE, "site", "uE", linkedUuid, AccountActor.system()).join());
+        assertTrue(rootCause(asAlias).getMessage().contains("already"), rootCause(asAlias).getMessage());
+
+        assertFalse(Accounts.get().findByExternal("site", "uC").join().isPresent());
+        assertFalse(Accounts.get().findByExternal("site", "uE").join().isPresent());
+    }
+
+    @Test
+    void desiredAccountIdRefusesAnotherPlayersStoredPlayerData() throws IOException {
+        bootstrap("desired_other_player");
+
+        UUID bystander = UUID.randomUUID();
+        PlayerController.handleLogin(bystander, "Bystander").join();
         UUID uuidD = UUID.randomUUID();
         PlayerController.handleLogin(uuidD, "CollidePlayer").join();
-        CompletionException playerBase = assertThrows(CompletionException.class,
-                () -> Accounts.get().linkExternal(uuidD, "site", "uD", storedPlayer, AccountActor.system()).join());
-        assertTrue(rootCause(playerBase).getMessage().contains("PlayerData"));
 
-        //nothing was written by the failed attempts
-        assertFalse(Accounts.get().findByExternal("site", "uB").join().isPresent());
-        assertFalse(Accounts.get().findByExternal("site", "uC").join().isPresent());
-        assertFalse(Accounts.get().findByExternal("site", "uD").join().isPresent());
+        CompletionException playerBase = assertThrows(CompletionException.class,
+                () -> Accounts.get().linkExternal(uuidD, "site", "uD", bystander, AccountActor.system()).join());
+        assertTrue(rootCause(playerBase).getMessage().contains("PlayerData"), rootCause(playerBase).getMessage());
+
+        assertFalse(Accounts.get().findByExternal("site", "uD").join().isPresent(),
+                "nothing is written by a refused link");
+    }
+
+    // ------------------------------------------------------------------
+    // an integration that mints the platform uuids themselves: the account
+    // is born under the anchor member's own uuid
+    // ------------------------------------------------------------------
+
+    @Test
+    void anIntegrationDictatesTheAnchorUuidAsTheAccountId() throws IOException {
+        bootstrap("dictated_anchor");
+        registerSections();
+
+        UUID uuid = UUID.randomUUID();
+        PlayerData playerData = PlayerController.handleLogin(uuid, "Anchor").join();
+        KillCountSection kills = playerData.getAccountSection(KillCountSection.class).join();
+        kills.kills = 4;
+        kills.markDirty();
+        PlayerController.get().flushAll().join();
+
+        Account account = Accounts.get()
+                .linkExternal(uuid, "site", "anchor-1", uuid, AccountActor.system()).join();
+
+        assertEquals(uuid, account.getAccountId(),
+                "an integration that mints the platform uuid keeps it as the account id");
+        assertFalse(account.isSingleton(), "the explicit account row was persisted");
+        assertEquals(2, account.getMembers().size(), "platform member + external member");
+
+        //the account row is readable under that uuid, members and all - it was not overwritten by a
+        //self-referencing alias row
+        Account reread = Accounts.get().account(uuid).join();
+        assertEquals(uuid, reread.getAccountId());
+        assertEquals(2, reread.getMembers().size());
+        assertEquals(uuid, Accounts.get().findByExternal("site", "anchor-1").join().get().getAccountId(),
+                "the external identity resolves to the account through its derived alias row");
+
+        //the account-wide data never moves: the key it was written under IS the account id
+        PlayerData relogged = PlayerController.handleLogin(uuid, "Anchor").join();
+        assertEquals(uuid, relogged.getAccountId());
+        assertEquals(4, storedKills(uuid));
+    }
+
+    @Test
+    void linkFusesAnotherIdentityIntoAnAccountKeyedByTheAnchorUuid() throws IOException {
+        bootstrap("dictated_fusion");
+
+        UUID anchor = UUID.randomUUID();
+        UUID other = UUID.randomUUID();
+        PlayerController.handleLogin(anchor, "Anchor").join();
+        PlayerController.handleLogin(other, "Other").join();
+        Accounts.get().linkExternal(anchor, "site", "fuse-1", anchor, AccountActor.system()).join();
+
+        Account fused = Accounts.get().link(anchor, other, AccountActor.system()).join();
+
+        assertEquals(anchor, fused.getAccountId(), "the explicit account's id survives the fusion");
+        assertEquals(3, fused.getMembers().size(), "two platform members + the external");
+        assertEquals(anchor, Accounts.get().account(other).join().getAccountId(),
+                "the joined member resolves through its alias row");
+        assertEquals(anchor, Accounts.get().account(anchor).join().getAccountId(),
+                "the anchor still reads its own account row");
+        assertEquals(anchor, Accounts.get().findByExternal("site", "fuse-1").join().get().getAccountId());
     }
 
     // ------------------------------------------------------------------
@@ -419,6 +486,70 @@ class AccountsLinkTest {
         CompletionException notLinked = assertThrows(CompletionException.class,
                 () -> Accounts.get().unlink(UUID.randomUUID(), AccountActor.system()).join());
         assertTrue(rootCause(notLinked).getMessage().contains("not linked"));
+    }
+
+    @Test
+    void unlinkOfTheMemberTheAccountIsKeyedByNamesTheRealCause() throws IOException {
+        bootstrap("unlink_anchor");
+
+        UUID anchor = UUID.randomUUID();
+        PlayerController.handleLogin(anchor, "Anchor").join();
+        Accounts.get().linkExternal(anchor, "site", "anchor-u", anchor, AccountActor.system()).join();
+
+        CompletionException refused = assertThrows(CompletionException.class,
+                () -> Accounts.get().unlink(anchor, AccountActor.system()).join());
+        String message = rootCause(refused).getMessage();
+
+        assertFalse(message.contains("not linked"),
+                "the member IS linked - the account is keyed by it: " + message);
+        assertTrue(message.contains("re-keying"), message);
+
+        Account intact = Accounts.get().account(anchor).join();
+        assertEquals(anchor, intact.getAccountId(), "the refusal wrote nothing");
+        assertEquals(2, intact.getMembers().size());
+    }
+
+    @Test
+    void unlinkOfAnotherMemberOfAnAccountKeyedByTheAnchorUuid() throws IOException {
+        bootstrap("unlink_from_anchor_account");
+
+        UUID anchor = UUID.randomUUID();
+        UUID other = UUID.randomUUID();
+        PlayerController.handleLogin(anchor, "Anchor").join();
+        PlayerController.handleLogin(other, "Other").join();
+        Accounts.get().linkExternal(anchor, "site", "duo", anchor, AccountActor.system()).join();
+        Accounts.get().link(anchor, other, AccountActor.system()).join();
+
+        Account after = Accounts.get().unlink(other, AccountActor.system()).join();
+
+        assertEquals(anchor, after.getAccountId(), "the account stays keyed by the anchor");
+        assertNull(after.findMember(Accounts.platformProvider(), other.toString()),
+                "the member left the account");
+        assertEquals(anchor, Accounts.get().account(anchor).join().getAccountId(),
+                "the anchor's own row survived the unlink of another member");
+        assertEquals(2, Accounts.get().account(anchor).join().getMembers().size());
+
+        PlayerData relogged = PlayerController.handleLogin(other, "Other").join();
+        assertEquals(other, relogged.getAccountId(), "the unlinked member stamps back to its own uuid");
+    }
+
+    @Test
+    void unlinkOfAMintedAccountIdIsRefusedInsteadOfDeletingTheAccount() throws IOException {
+        bootstrap("unlink_account_id");
+
+        UUID uuid = UUID.randomUUID();
+        PlayerController.handleLogin(uuid, "Minted").join();
+        UUID accountId = Accounts.get()
+                .linkExternal(uuid, "site", "mint", AccountActor.system()).join().getAccountId();
+
+        CompletionException refused = assertThrows(CompletionException.class,
+                () -> Accounts.get().unlink(accountId, AccountActor.system()).join());
+        assertTrue(rootCause(refused).getMessage().contains("not a linked member"),
+                rootCause(refused).getMessage());
+
+        Account intact = Accounts.get().account(uuid).join();
+        assertEquals(accountId, intact.getAccountId(), "the account row must survive");
+        assertEquals(2, intact.getMembers().size());
     }
 
     @Test

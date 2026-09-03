@@ -42,10 +42,10 @@ import java.util.function.Supplier;
  *
  * <p>A uuid that has never been linked resolves to a singleton account whose
  * {@code accountId == uuid}, so account scoping only changes behavior once identities are linked.
- * The first real link mints a brand-new random accountId (never a member's uuid - see
- * {@link #linkExternal(UUID, String, String, UUID, AccountActor)} for the validated escape hatch), persists the
- * canonical account row, and writes one alias row per identity so every member stays resolvable by
- * its own key. accountIds are OPAQUE: integrations must not derive meaning from them.
+ * The first real link persists the canonical account row and writes one alias row per identity, so
+ * every member stays resolvable by its own key. Its id is a brand-new random uuid unless the
+ * integration dictates one (see {@link #linkExternal(UUID, String, String, UUID, AccountActor)}).
+ * accountIds are OPAQUE: nothing here reads meaning into one.
  *
  * <p>Identity only: every operation here writes exclusively to the account collection. The
  * account-wide DATA stored under a former key is absorbed into the canonical rows at each member's
@@ -416,9 +416,14 @@ public final class Accounts {
      * <p>{@code desiredAccountId} rules (any violation fails the link cleanly, nothing is written):
      * it only takes effect when this link CREATES the explicit account; when either side already
      * belongs to one, the id exists - passing the SAME id is a no-op, a DIFFERENT one is an error
-     * (a live account is never re-keyed). On creation it must not exist in the account collection,
-     * must not be the uuid of any member of the link, and must not collide with a stored PlayerData
-     * uuid. Callers must mint random UUIDs in their OWN id space - never reuse a platform uuid.</p>
+     * (a live account is never re-keyed). On creation it must not already exist in the account
+     * collection, and it must not be the uuid of a stored player OTHER than {@code playerUuid}.</p>
+     *
+     * <p>Passing {@code playerUuid} itself IS allowed, and it is how a network whose own backend
+     * mints the platform uuids keeps {@code accountId == platform uuid} past the first link. The
+     * account row then lives under that uuid, which makes that member the account's KEY: it can
+     * never leave (see {@link #unlink(UUID, AccountActor)}), while every other member is an
+     * ordinary alias that can.</p>
      *
      * <p>{@code actor} is recorded as the operation's origin: it rides the posted account event and
      * stamps the newly linked member's {@code linkedBy}.</p>
@@ -504,6 +509,10 @@ public final class Accounts {
      * stamp returns to the uuid (the login migration guard recognizes the left-behind account and
      * does not absorb its rows). Alias first, then the canonical row - a crash in between leaves the
      * member listed but already resolving standalone; a later re-link heals the list.
+     *
+     * <p>Only a member that HAS an alias row can leave. The member an account is keyed by - the one
+     * whose uuid is the accountId - is refused: the account row and every account-wide row live
+     * under that uuid, so there is nothing to delete and nowhere for the account to go.</p>
      */
     public CompletableFuture<Account> unlink(UUID memberUuid, AccountActor actor) {
         if (manager == null) {
@@ -515,8 +524,9 @@ public final class Accounts {
         manager.invalidate(memberUuid);
         return resolveCanonical(memberUuid).thenCompose(linked -> {
             Account account = linked.orElse(null);
-            if (account == null || account.getAccountId().equals(memberUuid)) {
-                return PlayerController.failedFuture(new IllegalStateException("[" + memberUuid + "] is not linked into any account"));
+            if (account == null) {
+                return PlayerController.failedFuture(new IllegalStateException("[" + memberUuid + "] is not linked"
+                        + " into any account - it stands alone already"));
             }
             AccountMember leaving = null;
             for (AccountMember candidate : account.getMembers()) {
@@ -525,6 +535,17 @@ public final class Accounts {
                     leaving = candidate;
                     break;
                 }
+            }
+            if (account.getAccountId().equals(memberUuid)) {
+                if (leaving == null) {
+                    return PlayerController.failedFuture(new IllegalStateException("[" + memberUuid + "] is an"
+                            + " accountId and not a linked member of it - the row under this uuid is the account"
+                            + " itself; unlink one of the identities it lists instead"));
+                }
+                return PlayerController.failedFuture(new IllegalStateException("[" + memberUuid + "] is the id of"
+                        + " the account it belongs to: the account row and every account-wide row are stored"
+                        + " under this uuid, so it cannot leave without re-keying the account - unlink the OTHER"
+                        + " members instead, or drop external identities with unlinkExternal"));
             }
             final AccountMember member = leaving;
             return manager.deleteAndEvict(memberUuid).thenCompose(x -> {
@@ -617,10 +638,9 @@ public final class Accounts {
             });
         }
         //the first real link of a never-linked player: the explicit account is born now
-        Set<UUID> memberUuids = Collections.singleton(playerUuid);
         CompletableFuture<UUID> accountId = desiredAccountId != null
-                ? validateDesiredAccountId(desiredAccountId, memberUuids)
-                : mintAccountId(memberUuids);
+                ? validateDesiredAccountId(desiredAccountId, playerUuid)
+                : mintAccountId(Collections.singleton(playerUuid));
         return accountId.thenCompose(id -> {
             Account account = new Account(id);
             account.markCreatedAt(now);
@@ -653,23 +673,29 @@ public final class Accounts {
                 taken ? mintAccountId(memberUuids) : CompletableFuture.completedFuture(candidate));
     }
 
-    /** Enforces the creation-time rules of a caller-supplied accountId (nothing is written on failure). */
-    private CompletableFuture<UUID> validateDesiredAccountId(UUID desired, Set<UUID> memberUuids) {
-        if (memberUuids.contains(desired)) {
-            return PlayerController.failedFuture(new IllegalArgumentException("desiredAccountId [" + desired + "] is the uuid"
-                    + " of a member of this link - integrations must mint ids in their OWN id space,"
-                    + " never reuse a platform uuid"));
-        }
+    /**
+     * Enforces the creation-time rules of a caller-supplied accountId (nothing is written on
+     * failure). {@code anchorUuid} is the player the account is being created for: its own uuid is
+     * the one platform uuid this id is allowed to be.
+     */
+    private CompletableFuture<UUID> validateDesiredAccountId(UUID desired, UUID anchorUuid) {
         return manager.repository().exists(desired).thenCompose(taken -> {
             if (taken) {
                 return PlayerController.failedFuture(new IllegalArgumentException("desiredAccountId [" + desired + "] already"
-                        + " exists in the account collection (as an account or an alias)"));
+                        + " exists in the account collection (as an account or an alias) - pick an id"
+                        + " nothing uses, or link into the account that already answers to it"));
+            }
+            if (desired.equals(anchorUuid)) {
+                //the account is born under the uuid of the very player it is created for: the
+                //PlayerData stored under it is that player's own, not somebody else's
+                return CompletableFuture.completedFuture(desired);
             }
             return PlayerController.getPlayerData(desired).thenCompose(playerData -> {
                 if (playerData != null) {
                     return PlayerController.failedFuture(new IllegalArgumentException("desiredAccountId [" + desired + "]"
-                            + " collides with a stored PlayerData uuid - integrations must mint ids"
-                            + " in their OWN id space, never reuse a platform uuid"));
+                            + " is ANOTHER player's stored PlayerData uuid - the only platform uuid an"
+                            + " account may be born under is [" + anchorUuid + "], the player this link"
+                            + " is for; mint any other id in your own id space"));
                 }
                 return CompletableFuture.completedFuture(desired);
             });
@@ -767,8 +793,15 @@ public final class Accounts {
         return externalKey(member.getProvider(), member.getProviderUid());
     }
 
-    /** Creates or redirects the alias row under {@code key}, preserving the row's optimistic lock. */
+    /**
+     * Creates or redirects the alias row under {@code key}, preserving the row's optimistic lock. A
+     * key that IS the canonical id gets no row of its own: writing one would redirect the account
+     * row to itself and drop the members it lists.
+     */
     private CompletableFuture<Void> writeAlias(UUID key, UUID canonicalId) {
+        if (key.equals(canonicalId)) {
+            return CompletableFuture.completedFuture(null);
+        }
         return manager.resolve(key).thenCompose(existing -> {
             Account row = existing.orElse(null);
             if (row == null) {

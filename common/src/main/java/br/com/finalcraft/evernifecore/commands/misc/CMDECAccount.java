@@ -24,8 +24,8 @@ import br.com.finalcraft.evernifecore.util.FCMessageUtil;
  * next login). {@code unlink} makes a member stand alone again (it starts fresh; the account keeps
  * the shared data). {@code migrate} forces the login-time data reconciliation for an offline player.
  * External identities (Discord, a registration site, ...) are linked through the
- * {@link Accounts#linkExternal(java.util.UUID, String, String)} API by the integrating
- * plugin/bridge, not through this command.</p>
+ * {@link Accounts#linkExternal(java.util.UUID, String, String, AccountActor)} API by the
+ * integrating plugin/bridge, not through this command.</p>
  *
  * <pre>
  * /ecaccount info &lt;player&gt;
