@@ -19,6 +19,7 @@ import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.hytale.commands.finalcmd.HytaleArgParsers;
 import br.com.finalcraft.evernifecore.hytale.commands.finalcmd.implementation.HyFinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.hytale.integration.placeholders.HyPAPIIntegration;
+import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ECLogLevel;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
@@ -35,6 +36,7 @@ import com.hypixel.hytale.server.core.ShutdownReason;
 import com.hypixel.hytale.server.core.command.system.AbstractCommand;
 import com.hypixel.hytale.server.core.command.system.CommandManager;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
+import com.hypixel.hytale.server.core.plugin.PluginManager;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import jakarta.annotation.Nonnull;
@@ -100,17 +102,22 @@ public class HyPlatform implements IPlatform {
 
     @Override
     public boolean isPluginLoaded(String pluginName) {
-        return false;
+        return PluginManager.get().getPlugins().stream()
+                //a plugin is addressed by name in some APIs and by identifier in others
+                .anyMatch(plugin -> pluginName.equalsIgnoreCase(plugin.getName())
+                        || pluginName.equalsIgnoreCase(plugin.getIdentifier().toString()));
     }
 
     @Override
     public boolean makeConsoleExecuteCommand(String command) {
-        return false;
+        FCHytaleUtil.makeConsoleExecuteCommand(command);
+        return true; //handleCommand hands back CompletableFuture<Void>: dispatch is all there is to report
     }
 
     @Override
     public boolean makePlayerExecuteCommand(FCommandSender sender, String command) {
-        return false;
+        FCHytaleUtil.makePlayerExecuteCommand(sender, command);
+        return true; //no success signal crosses back, same as makeConsoleExecuteCommand
     }
 
     @Override
