@@ -16,7 +16,6 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFCommandSender;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
-import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCServerType;
@@ -38,38 +37,71 @@ import java.util.function.Function;
 
 public class FCBukkitUtil {
 
-    private static Function<String, Boolean> isModLoaded = null;
-    static {
-        try {
-            if (FCReflectionUtil.getClasses().isClassLoaded("cpw.mods.fml.common.Loader")) { //Minecraft 1.7.10
-                isModLoaded = new Function<String, Boolean>() {
-                    private final MethodInvoker<Boolean> isModLoaded = FCReflectionUtil.getMethods().getMethod("cpw.mods.fml.common.Loader", "isModLoaded", String.class);
-                    @Override
-                    public Boolean apply(String modName) {
-                        return isModLoaded.invoke(null, modName);
-                    }
-                };
-            }else if (FCReflectionUtil.getClasses().isClassLoaded("net.minecraftforge.fml.common.Loader")){ //Minecraft 1.12.2
-                isModLoaded = new Function<String, Boolean>() {
-                    private final MethodInvoker<Boolean> isModLoaded = FCReflectionUtil.getMethods().getMethod("net.minecraftforge.fml.common.Loader", "isModLoaded", String.class);
-                    @Override
-                    public Boolean apply(String modName) {
-                        return isModLoaded.invoke(null, modName);
-                    }
-                };
-            }else if (FCReflectionUtil.getClasses().isClassLoaded("net.minecraftforge.fml.ModList")){ //Minecraft 1.16.5
-                isModLoaded = new Function<String, Boolean>() {
-                    private final Object modListObj = FCReflectionUtil.getMethods().getMethod("net.minecraftforge.fml.ModList", "get").invoke(null);
-                    private final MethodInvoker<Boolean> isLoaded = FCReflectionUtil.getMethods().getMethod("net.minecraftforge.fml.ModList", "isLoaded", String.class);
-                    @Override
-                    public Boolean apply(String modName) {
-                        return isLoaded.invoke(modListObj, modName);
-                    }
-                };
-            }
-        }catch (Exception ignored){
+    private static final Function<String, Boolean> isModLoaded = detectModLoader(FCReflectionUtil.getClasses()::getClass);
 
+    private static final List<Class<?>> fakePlayerTypes = resolveFakePlayerTypes(FCReflectionUtil.getClasses()::getClass);
+
+    /**
+     * The mod list of the Forge-family loader behind this server, or {@code null} when there is none.
+     * Each loader generation moved the class that answers "is this mod loaded?", so each is asked by
+     * the name it has in its own era, newest last.
+     *
+     * @param classes resolves a class name to the class, or {@code null} - a parameter so a test can
+     *                pose a loader this JVM does not carry.
+     */
+    static Function<String, Boolean> detectModLoader(Function<String, Class<?>> classes) {
+        try {
+            Class<?> loader;
+            if ((loader = classes.apply("cpw.mods.fml.common.Loader")) != null) {             //Forge 1.7.10
+                return staticModQuery(loader);
+            }
+            if ((loader = classes.apply("net.minecraftforge.fml.common.Loader")) != null) {   //Forge 1.8 - 1.12.2
+                return staticModQuery(loader);
+            }
+            if ((loader = classes.apply("net.minecraftforge.fml.ModList")) != null) {         //Forge 1.13+
+                return modListQuery(loader);
+            }
+            if ((loader = classes.apply("net.neoforged.fml.ModList")) != null) {              //NeoForge
+                return modListQuery(loader);
+            }
+        } catch (RuntimeException | LinkageError failure) {
+            EverNifeCore.getLog().warning("[FCBukkitUtil] This server carries a Forge-family mod loader, but asking"
+                    + " it which mods are loaded failed. isModded(), isModLoaded() and isFakePlayer() answer as on a"
+                    + " plain Bukkit server for the rest of this run - report the server brand and version.", failure);
         }
+        return null;
+    }
+
+    private static Function<String, Boolean> staticModQuery(Class<?> loader) {
+        MethodInvoker<Boolean> isModLoaded = FCReflectionUtil.getMethods().getMethod(loader, "isModLoaded", String.class);
+        Objects.requireNonNull(isModLoaded, () -> loader.getName() + " declares no isModLoaded(String)");
+        return modId -> isModLoaded.invoke(null, modId);
+    }
+
+    private static Function<String, Boolean> modListQuery(Class<?> modListClass) {
+        MethodInvoker<Object> get = FCReflectionUtil.getMethods().getMethod(modListClass, "get");
+        MethodInvoker<Boolean> isLoaded = FCReflectionUtil.getMethods().getMethod(modListClass, "isLoaded", String.class);
+        Objects.requireNonNull(get, () -> modListClass.getName() + " declares no get()");
+        Objects.requireNonNull(isLoaded, () -> modListClass.getName() + " declares no isLoaded(String)");
+        Object modList = get.invoke(null);
+        return modId -> isLoaded.invoke(modList, modId);
+    }
+
+    /**
+     * The base classes a mod extends to act as a player that is not one - a machine breaking a block,
+     * a turtle placing it. Forge kept one name from 1.7.10 on; NeoForge renamed its package.
+     */
+    static List<Class<?>> resolveFakePlayerTypes(Function<String, Class<?>> classes) {
+        List<Class<?>> types = new ArrayList<>(2);
+        for (String name : new String[]{
+                "net.minecraftforge.common.util.FakePlayer",
+                "net.neoforged.neoforge.common.util.FakePlayer"}) {
+            Class<?> type = classes.apply(name);
+            if (type != null) {
+                types.add(type);
+            }
+        }
+        return types;
     }
 
     public static boolean isFakePlayer(String playerName) {
@@ -77,10 +109,31 @@ public class FCBukkitUtil {
         return player == null || isFakePlayer(player);
     }
 
+    /**
+     * Whether {@code player} is a mod's stand-in rather than someone connected - told by the class of
+     * the server entity behind it, the same test Forge's own {@code instanceof FakePlayer} makes.
+     * Always {@code false} on a server without a Forge-family loader, where no such entity exists.
+     */
     public static boolean isFakePlayer(Player player) {
-        if (isModLoaded == null) return false;
-        //TODO Remove this nullCheck
-        return FCBukkitUtil.isModded() && NMSUtils.get() != null ? NMSUtils.get().isFakePlayer(player) : false;
+        return isFakePlayer(player, fakePlayerTypes);
+    }
+
+    static boolean isFakePlayer(Player player, List<Class<?>> fakePlayerTypes) {
+        if (fakePlayerTypes.isEmpty() || player == null) {
+            return false;
+        }
+        //CraftEntity.getHandle() is the door to the server entity on every CraftBukkit-derived server
+        MethodInvoker<Object> getHandle = FCReflectionUtil.getMethods().getMethod(player.getClass(), "getHandle");
+        if (getHandle == null) {
+            return false; //not a server-backed player, so not a mod's entity either
+        }
+        Object handle = getHandle.invoke(player);
+        for (Class<?> fakePlayerType : fakePlayerTypes) {
+            if (fakePlayerType.isInstance(handle)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     //===========================================================================================
