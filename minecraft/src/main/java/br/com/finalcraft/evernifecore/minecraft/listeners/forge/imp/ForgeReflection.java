@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import br.com.finalcraft.everylibs.reflection.FieldAccessor;
 import br.com.finalcraft.everylibs.reflection.MethodInvoker;
+import br.com.finalcraft.everylibs.reflection.lookup.ClassLookup;
 
 import java.util.function.Supplier;
 
@@ -50,16 +51,22 @@ final class ForgeReflection {
 
     /**
      * @return whether {@code bus} is one of the buses Forge hands out from 1.16.5 on, and {@code false}
-     * on a runtime where that interface does not resolve - absent and unlinkable alike, which is one
-     * answer here because the lookup reports both as absent.
-     * @throws IllegalStateException if asking throws instead of answering. This answer picks the route
-     * the adapter takes, so a {@code false} invented by a failed lookup would skip a registration in
-     * silence and nothing would ever say why.
+     * on a runtime that does not carry that interface.
+     * @throws IllegalStateException if the interface is on this runtime but cannot be loaded, or if
+     * asking throws instead of answering. This answer picks the route the adapter takes, so a
+     * {@code false} invented by a failed lookup would skip a registration in silence and nothing would
+     * ever say why.
      */
     static boolean isModernEventBus(Object bus) {
-        Class<?> modernEventBus = byName(MODERN_EVENT_BUS,
-                () -> FCReflectionUtil.getClasses().getClass(MODERN_EVENT_BUS));
-        return modernEventBus != null && modernEventBus.isInstance(bus);
+        ClassLookup modernEventBus = byName(MODERN_EVENT_BUS,
+                () -> FCReflectionUtil.getClasses().lookupClass(MODERN_EVENT_BUS));
+        if (modernEventBus.isUnlinkable()) {
+            throw new IllegalStateException(MODERN_EVENT_BUS + " is on this server but could not be loaded,"
+                    + " so no bus here can be told apart as a modern one and registering on it would be"
+                    + " skipped without a word. Report the server brand and version - the chained cause is"
+                    + " what the server threw while loading it.", modernEventBus.getLinkageError());
+        }
+        return modernEventBus.isFound() && modernEventBus.getType().isInstance(bus);
     }
 
     /**
@@ -89,18 +96,21 @@ final class ForgeReflection {
     }
 
     /**
-     * @throws IllegalStateException if the class cannot be loaded here, which covers both "not on this
-     *                               server" and "on it but failing to link" - the lookup reports either
-     *                               one as absent - and a lookup that throws instead of answering.
+     * @throws IllegalStateException if the class is not on this server, is on it but cannot be loaded,
+     *                               or the lookup throws instead of answering - each with its own message.
      */
     static Class<?> requireClass(String className) {
-        Class<?> resolved = byName(className, () -> FCReflectionUtil.getClasses().getClass(className));
-        if (resolved == null) {
-            throw new IllegalStateException(className + " could not be loaded on this server - it is either"
-                    + " absent or present and unlinkable. Nothing on this route works without it; ask"
-                    + " ForgeListener.isAvailable() before getting this far.");
+        ClassLookup resolved = byName(className, () -> FCReflectionUtil.getClasses().lookupClass(className));
+        if (resolved.isUnlinkable()) {
+            throw new IllegalStateException(className + " is on this server but could not be loaded. Nothing on"
+                    + " this route works without it. Report the server brand and version - the chained cause"
+                    + " is what the server threw while loading it.", resolved.getLinkageError());
         }
-        return resolved;
+        if (resolved.isAbsent()) {
+            throw new IllegalStateException(className + " is not on this server. Nothing on this route works"
+                    + " without it; ask ForgeListener.isAvailable() before getting this far.");
+        }
+        return resolved.getType();
     }
 
     /**
