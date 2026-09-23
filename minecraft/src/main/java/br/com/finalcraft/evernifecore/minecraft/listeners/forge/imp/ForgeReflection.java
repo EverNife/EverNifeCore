@@ -27,6 +27,7 @@ final class ForgeReflection {
     private static final String MINECRAFT_FORGE = "net.minecraftforge.common.MinecraftForge";
     private static final String EVENT_BUS = "EVENT_BUS";
     private static final String MODERN_EVENT_BUS = "net.minecraftforge.eventbus.api.IEventBus";
+    private static final String FML_COMMON_HANDLER = "cpw.mods.fml.common.FMLCommonHandler";
 
     private ForgeReflection() {
 
@@ -47,6 +48,17 @@ final class ForgeReflection {
                     + "registerListener(plugin, listener, eventBus) instead of asking for the default one.");
         }
         return byName(target, eventBus::get);
+    }
+
+    /**
+     * @return FML's own bus on 1.7.10 - a second bus beside {@code MinecraftForge.EVENT_BUS}, where
+     * {@code TickEvent} and FML's {@code PlayerEvent} family (logged in, logged out, respawn,
+     * changed dimension) are posted. From 1.8 on FML hands out {@code MinecraftForge.EVENT_BUS} itself.
+     * @throws IllegalStateException if this runtime does not have it, or if reaching it throws.
+     */
+    static Object fmlEventBus() {
+        Object handler = method(FML_COMMON_HANDLER, "instance", 0).invoke(null);
+        return method(FML_COMMON_HANDLER, "bus", 0).invoke(handler);
     }
 
     /**

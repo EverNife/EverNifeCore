@@ -16,13 +16,10 @@ public interface IForgeListener {
     public void registerListener(Plugin plugin, ECListener listener, Object... eventBus);
 
     /**
-     * Register a Listener to the default EventBuses
-     * Usually this is the:
-     *      MinecraftForge.EVENT_BUS
-     *      FMLCommonHandler.instance().bus()
-     *
-     * But depending on the implementation it can be different
-     * It's a good practice to use {@link #registerListener(Plugin, ECListener, Object...)} instead
+     * Register a Listener to the buses Forge posts its own events on: {@code MinecraftForge.EVENT_BUS},
+     * plus {@code FMLCommonHandler.instance().bus()} on 1.7.10, the one era where FML keeps a bus of its
+     * own ({@code TickEvent}, FML's {@code PlayerEvent} family). A mod's private bus is never among
+     * them - hand it to {@link #registerListener(Plugin, ECListener, Object...)}.
      *
      * @param plugin The plugin that is registering the listener
      * @param listener The listener to register

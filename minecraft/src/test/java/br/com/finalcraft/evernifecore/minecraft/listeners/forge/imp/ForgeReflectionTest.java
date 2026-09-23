@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
 import org.junit.jupiter.api.AfterEach;
@@ -10,7 +11,10 @@ import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandles;
+import java.util.Arrays;
+import java.util.Collections;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -50,6 +54,29 @@ class ForgeReflectionTest {
     @AfterEach
     void clearTheDouble() {
         MinecraftForge.EVENT_BUS = null;
+        FMLCommonHandler.BUS = null;
+    }
+
+    @Test
+    void onTheLegacyEraTheDefaultIsForgesBusAndFmlsOwn() {
+        Object forgeBus = new Object();
+        Object fmlBus = new Object();
+        MinecraftForge.EVENT_BUS = forgeBus;
+        FMLCommonHandler.BUS = fmlBus;
+
+        assertEquals(Arrays.asList(forgeBus, fmlBus), CrucibleForgeListener.defaultEventBuses(),
+                "1.7.10 posts TickEvent and the FML PlayerEvent family on FML's bus, so a default that"
+                        + " skipped it would leave those handlers silent");
+    }
+
+    @Test
+    void whenFmlHandsOutForgesBusItIsRegisteredOnlyOnce() {
+        Object sharedBus = new Object();
+        MinecraftForge.EVENT_BUS = sharedBus;
+        FMLCommonHandler.BUS = sharedBus;
+
+        assertEquals(Collections.singletonList(sharedBus), CrucibleForgeListener.defaultEventBuses(),
+                "the same bus twice would deliver every event twice");
     }
 
     @Test
@@ -88,6 +115,8 @@ class ForgeReflectionTest {
         assertTrue(refusal.getMessage().contains(className),
                 "present and unusable is a refusal that names the class, not an Error escaping from"
                         + " whoever asked: " + refusal.getMessage());
+        assertInstanceOf(LinkageError.class, refusal.getCause(),
+                "and it carries what the server threw, which a class that is simply absent has none of");
     }
 
     @Test
