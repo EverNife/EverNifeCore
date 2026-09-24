@@ -13,8 +13,8 @@ import java.util.UUID;
  * <p>Single currency by design. A plugin that needs several has to talk to its economy plugin
  * directly - {@link #getHandle()} is the way out.</p>
  *
- * <p>Synchronous: call it from the main thread. Thread-safety is whatever the underlying economy
- * plugin offers.</p>
+ * <p>Threading is not enforced - this is a bridge, and thread-safety is whatever the underlying economy
+ * plugin offers. Recommended: read and write from the main thread; off it, only read, never write.</p>
  *
  * <p>Semantics every implementation owes, whichever economy sits below it:</p>
  * <ul>
