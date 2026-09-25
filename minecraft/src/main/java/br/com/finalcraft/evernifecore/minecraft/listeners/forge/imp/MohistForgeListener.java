@@ -114,27 +114,13 @@ public class MohistForgeListener implements IForgeListener, ECListener {
     //  Create Listener for the Core Events
     //------------------------------------------------------------------------------------------------------------------
 
-    private Map<Class<?>, List<Consumer<?>>> eventHandlers = new LinkedHashMap<>();
-    private Map<Class<?>, List<Consumer<?>>> eventHandlerCache = new LinkedHashMap<>();
+    private final ForgeHandlerTable handlers = new ForgeHandlerTable();
 
     private void onBukkitHookForgeEvent(Event event) {
         Object forgeEvent = getEvent.invoke(event);
         Class<?> eventClass = forgeEvent.getClass();
 
-        List<Consumer<?>> consumers = eventHandlerCache.get(eventClass);
-        if (consumers == null) {
-            consumers = new ArrayList<>();
-            for (Map.Entry<Class<?>, List<Consumer<?>>> entry : eventHandlers.entrySet()) {
-                if (entry.getKey().isAssignableFrom(eventClass)) {
-                    consumers.addAll(entry.getValue());
-                }
-            }
-            eventHandlerCache.put(eventClass, consumers);
-        }
-
-        // Call all consumers
-        for (int i = 0; i < consumers.size(); i++) {
-            Consumer consumer = consumers.get(i);
+        for (Consumer consumer : handlers.handlersFor(eventClass)) {
             try {
                 consumer.accept(forgeEvent);
             } catch (Throwable e) {
@@ -143,22 +129,12 @@ public class MohistForgeListener implements IForgeListener, ECListener {
         }
     }
 
-    private void removeEventHandlers(Map<Class<?>, List<Consumer<?>>> handlers){
-        for (Map.Entry<Class<?>, List<Consumer<?>>> entry : handlers.entrySet()) {
-            List<Consumer<?>> consumers = eventHandlers.get(entry.getKey());
-            if (consumers != null) {
-                consumers.removeAll(entry.getValue());
-            }
-        }
-        eventHandlerCache.clear();
+    private void removeEventHandlers(Map<Class<?>, List<Consumer<?>>> registered){
+        handlers.remove(registered);
     }
 
     public <T> void addEventHandler(Class<T> clazz, Consumer<T> consumer){
-        List<Consumer<?>> consumers = eventHandlers.computeIfAbsent(clazz, k -> new ArrayList<>());
-        consumers.add(consumer);
-
-        // Clear cache, because handler mapping has changed
-        eventHandlerCache.clear();
+        handlers.add(clazz, consumer);
     }
 
 }
