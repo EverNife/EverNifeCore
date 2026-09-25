@@ -24,6 +24,7 @@ class BaseFPlayerEqualsTest {
         @Override public boolean isOnline() { return false; }
         @Override public FLocation getLocation() { return null; }
         @Override public boolean teleportTo(FLocation targetLocation) { return false; }
+        @Override public boolean hasPlayedBefore() { return false; }
     }
 
     @Test

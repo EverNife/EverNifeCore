@@ -29,6 +29,7 @@ import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
 import org.joml.Vector3d;
 
+import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -72,6 +73,16 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
     @Override
     public boolean isOnline() {
         return getPlayerRef() != null && getPlayerRef().isValid();
+    }
+
+    @Override
+    public boolean hasPlayedBefore() {
+        try {
+            return Universe.get().getPlayerStorage().getPlayers().contains(getUniqueId());
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not list the universe player storage to tell whether "
+                    + getName() + " played before. The chained cause is what reading that directory threw.", e);
+        }
     }
 
     @Override

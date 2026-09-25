@@ -65,6 +65,11 @@ public abstract class MinecraftFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
     }
 
     @Override
+    public boolean hasPlayedBefore() {
+        return getOfflinePlayer().hasPlayedBefore();
+    }
+
+    @Override
     public void kick(@Nonnull String reason) {
         Player player = getPlayer();
         if (player == null || !player.isOnline()) return; // nothing to kick

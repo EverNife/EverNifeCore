@@ -24,6 +24,7 @@ public class TestFPlayerSender implements FPlayer {
     private final Set<String> permissions = new HashSet<>();
     private final CapturedMessages captured = new CapturedMessages();
     private boolean online = true;
+    private boolean playedBefore = false;
 
     public TestFPlayerSender(String name, UUID uniqueId) {
         this.name = name;
@@ -48,6 +49,17 @@ public class TestFPlayerSender implements FPlayer {
     @Override
     public boolean isOnline() {
         return online;
+    }
+
+    /** Whether the platform would say it saw this player in an earlier session; false until set. */
+    public TestFPlayerSender playedBefore(boolean playedBefore) {
+        this.playedBefore = playedBefore;
+        return this;
+    }
+
+    @Override
+    public boolean hasPlayedBefore() {
+        return playedBefore;
     }
 
     @Override
