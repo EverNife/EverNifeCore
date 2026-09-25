@@ -1,7 +1,5 @@
 package br.com.finalcraft.evernifecore.minecraft.commands.finalcmd;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFCommandSender;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
@@ -22,24 +20,23 @@ import org.bukkit.inventory.ItemStack;
 public class MinecraftArgParsers {
 
     public static void initialize() {
-        ECPluginData core = EverNifeCore.getEcPluginData();
-        ArgParserManager.addGlobalParser(core, Player.class, ArgParserPlayer.class);
-        ArgParserManager.addGlobalParser(core, World.class, ArgParserWorld.class);
+        ArgParserManager.addBuiltinParser(Player.class, ArgParserPlayer.class);
+        ArgParserManager.addBuiltinParser(World.class, ArgParserWorld.class);
 
         if (FCBukkitUtil.isModded()){
-            ArgParserManager.addGlobalParser(core, OreDictEntry.class, ArgParserOreDict.class);
+            ArgParserManager.addBuiltinParser(OreDictEntry.class, ArgParserOreDict.class);
         }
 
         //External Plugins
         if (Bukkit.getPluginManager().isPluginEnabled("WorldGuard")){
-            ArgParserManager.addGlobalParser(core, FCWorldGuardRegion.class, ArgParserFCWorldGuardRegion.class);
+            ArgParserManager.addBuiltinParser(FCWorldGuardRegion.class, ArgParserFCWorldGuardRegion.class);
         }
 
-        ArgParserManager.addGlobalContextualParser(core, CommandSender.class, ArgParserContextualCommandSender.class);
-        ArgParserManager.addGlobalContextualParser(core, MinecraftFCommandSender.class, ArgParserContextualMinecraftFCommandSender.class);
-        ArgParserManager.addGlobalContextualParser(core, MinecraftFPlayer.class, ArgParserContextualMinecraftFPlayer.class);
-        ArgParserManager.addGlobalContextualParser(core, ItemStack.class, ArgParserContextualItemStack.class);
-        ArgParserManager.addGlobalContextualParser(core, Player.class, ArgParserContextualPlayer.class);
+        ArgParserManager.addBuiltinContextualParser(CommandSender.class, ArgParserContextualCommandSender.class);
+        ArgParserManager.addBuiltinContextualParser(MinecraftFCommandSender.class, ArgParserContextualMinecraftFCommandSender.class);
+        ArgParserManager.addBuiltinContextualParser(MinecraftFPlayer.class, ArgParserContextualMinecraftFPlayer.class);
+        ArgParserManager.addBuiltinContextualParser(ItemStack.class, ArgParserContextualItemStack.class);
+        ArgParserManager.addBuiltinContextualParser(Player.class, ArgParserContextualPlayer.class);
     }
 
 }

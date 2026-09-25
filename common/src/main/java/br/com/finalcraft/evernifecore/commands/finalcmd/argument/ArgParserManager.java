@@ -19,6 +19,9 @@ public class ArgParserManager {
     private static volatile ParserContext GLOBAL_CONTEXT_PARSER = new ParserContext();
     private static volatile Map<String,ParserContext> PLUGIN_CONTEXT_MAP = new HashMap<>();
 
+    /** Who owns the parsers the core registers for itself - see {@link #addBuiltinParser}. */
+    public static final String CORE_OWNER = "EverNifeCore";
+
     /**
      * Registers {@code parser} for {@code clazz} for every plugin's commands, owned by {@code owner}: the
      * registration leaves with {@code owner} ({@link #unregisterAll(ECPluginData)} on its shutdown), and a
@@ -26,17 +29,40 @@ public class ArgParserManager {
      * parser another plugin owns logs a warning naming both. {@link #addPluginParser} keeps a parser to one
      * plugin's own commands instead.
      */
-    public static synchronized <T> void addGlobalParser(ECPluginData owner, Class<? extends T> clazz, Class<? extends ArgParser<T>> parser){
-        GLOBAL_CONTEXT_PARSER.addParser(ownerName(owner), clazz, parser);
-        ECDebugModule.ARG_PARSER.debug("Added Global Parser [{}]: {} -> {}", ownerName(owner), clazz.getSimpleName(), parser.getSimpleName());
+    public static <T> void addGlobalParser(ECPluginData owner, Class<? extends T> clazz, Class<? extends ArgParser<T>> parser){
+        addGlobal(ownerName(owner), clazz, parser);
+    }
+
+    /** The contextual counterpart of {@link #addGlobalParser}, with the same ownership. */
+    public static <T> void addGlobalContextualParser(ECPluginData owner, Class<? extends T> clazz, Class<? extends ArgParserContextual<T>> contextualParser){
+        addGlobalContextual(ownerName(owner), clazz, contextualParser);
+    }
+
+    /**
+     * A global parser the core itself provides - its builtins and each platform's own types. They are
+     * registered while classes load, possibly before the core has plugin data of its own, so they are owned
+     * by the core's name ({@value #CORE_OWNER}) and a plugin's {@link #unregisterAll} never reaches them.
+     * Plugins register with {@link #addGlobalParser} instead.
+     */
+    public static <T> void addBuiltinParser(Class<? extends T> clazz, Class<? extends ArgParser<T>> parser){
+        addGlobal(CORE_OWNER, clazz, parser);
+    }
+
+    /** The contextual counterpart of {@link #addBuiltinParser}. */
+    public static <T> void addBuiltinContextualParser(Class<? extends T> clazz, Class<? extends ArgParserContextual<T>> contextualParser){
+        addGlobalContextual(CORE_OWNER, clazz, contextualParser);
+    }
+
+    private static synchronized void addGlobal(String owner, Class<?> clazz, Class<? extends ArgParser> parser){
+        GLOBAL_CONTEXT_PARSER.addParser(owner, clazz, parser);
+        ECDebugModule.ARG_PARSER.debug("Added Global Parser [{}]: {} -> {}", owner, clazz.getSimpleName(), parser.getSimpleName());
         ECPluginData ecPluginData = ECPluginManager.getProvidingPlugin(parser);
         FCLocaleManager.loadLocale(ecPluginData, true, parser);
     }
 
-    /** The contextual counterpart of {@link #addGlobalParser}, with the same ownership. */
-    public static synchronized <T> void addGlobalContextualParser(ECPluginData owner, Class<? extends T> clazz, Class<? extends ArgParserContextual<T>> contextualParser){
-        GLOBAL_CONTEXT_PARSER.addContextualParser(ownerName(owner), clazz, contextualParser);
-        ECDebugModule.CONTEXTUAL_ARG_PARSER.debug("Added Global ContextualParser [{}]: {} -> {}", ownerName(owner), clazz.getSimpleName(), contextualParser.getSimpleName());
+    private static synchronized void addGlobalContextual(String owner, Class<?> clazz, Class<? extends ArgParserContextual> contextualParser){
+        GLOBAL_CONTEXT_PARSER.addContextualParser(owner, clazz, contextualParser);
+        ECDebugModule.CONTEXTUAL_ARG_PARSER.debug("Added Global ContextualParser [{}]: {} -> {}", owner, clazz.getSimpleName(), contextualParser.getSimpleName());
         ECPluginData ecPluginData = ECPluginManager.getProvidingPlugin(contextualParser);
         FCLocaleManager.loadLocale(ecPluginData, true, contextualParser);
     }

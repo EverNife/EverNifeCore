@@ -1,7 +1,5 @@
 package br.com.finalcraft.evernifecore.hytale.commands.finalcmd;
 
-import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserFPlayer;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFCommandSender;
@@ -18,16 +16,15 @@ import com.hypixel.hytale.server.core.universe.world.World;
 public class HytaleArgParsers {
 
     public static void initialize() {
-        ECPluginData core = EverNifeCore.getEcPluginData();
-        ArgParserManager.addGlobalParser(core, World.class, ArgParserWorld.class);
-        ArgParserManager.addGlobalParser(core, PlayerRef.class, ArgParserPlayerRef.class);
-        ArgParserManager.addGlobalParser(core, HytaleFPlayer.class, ArgParserFPlayer.class);
+        ArgParserManager.addBuiltinParser(World.class, ArgParserWorld.class);
+        ArgParserManager.addBuiltinParser(PlayerRef.class, ArgParserPlayerRef.class);
+        ArgParserManager.addBuiltinParser(HytaleFPlayer.class, ArgParserFPlayer.class);
 
-        ArgParserManager.addGlobalContextualParser(core, CommandSender.class, ArgParserContextualCommandSender.class);
-        ArgParserManager.addGlobalContextualParser(core, HytaleFCommandSender.class, ArgParserContextualHytaleFCommandSender.class);
-        ArgParserManager.addGlobalContextualParser(core, HytaleFPlayer.class, ArgParserContextualHytaleFPlayer.class);
-        ArgParserManager.addGlobalContextualParser(core, ItemStack.class, ArgParserContextualItemStack.class);
-        ArgParserManager.addGlobalContextualParser(core, Player.class, ArgParserContextualPlayer.class);
+        ArgParserManager.addBuiltinContextualParser(CommandSender.class, ArgParserContextualCommandSender.class);
+        ArgParserManager.addBuiltinContextualParser(HytaleFCommandSender.class, ArgParserContextualHytaleFCommandSender.class);
+        ArgParserManager.addBuiltinContextualParser(HytaleFPlayer.class, ArgParserContextualHytaleFPlayer.class);
+        ArgParserManager.addBuiltinContextualParser(ItemStack.class, ArgParserContextualItemStack.class);
+        ArgParserManager.addBuiltinContextualParser(Player.class, ArgParserContextualPlayer.class);
     }
 
 }

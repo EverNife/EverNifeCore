@@ -45,39 +45,38 @@ public class FinalCMDManager {
             return;
         }
         builtinParsersRegistered = true;
-        ECPluginData core = EverNifeCore.getEcPluginData();
 
         //Needs to be registered here because we need them for plugins that load before EverNifeCore
-        ArgParserManager.addGlobalParser(core, Argumento.class, ArgParserArgumento.class);
-        ArgParserManager.addGlobalParser(core, String.class, ArgParserString.class);
+        ArgParserManager.addBuiltinParser(Argumento.class, ArgParserArgumento.class);
+        ArgParserManager.addBuiltinParser(String.class, ArgParserString.class);
         //Every numeric wrapper the parser can hand back as itself - a type it cannot narrow to would
         //convert fine here and blow up inside method.invoke instead
-        ArgParserManager.addGlobalParser(core, Integer.class, ArgParserNumber.class);
-        ArgParserManager.addGlobalParser(core, Long.class, ArgParserNumber.class);
-        ArgParserManager.addGlobalParser(core, Short.class, ArgParserNumber.class);
-        ArgParserManager.addGlobalParser(core, Byte.class, ArgParserNumber.class);
-        ArgParserManager.addGlobalParser(core, Float.class, ArgParserNumber.class);
-        ArgParserManager.addGlobalParser(core, Double.class, ArgParserNumber.class);
-        ArgParserManager.addGlobalParser(core, NumberWrapper.class, ArgParserNumberWrapper.class);
-        ArgParserManager.addGlobalParser(core, IPlayerData.class, ArgParserIPlayerData.class);
-        ArgParserManager.addGlobalParser(core, AccountSection.class, ArgParserAccountSection.class);
-        ArgParserManager.addGlobalParser(core, Boolean.class, ArgParserBoolean.class);
-        ArgParserManager.addGlobalParser(core, Enum.class, ArgParserEnum.class);
-        ArgParserManager.addGlobalParser(core, UUID.class, ArgParserUUID.class);
-        ArgParserManager.addGlobalParser(core, PageVisualization.class, ArgParserPageVisualization.class);
-        ArgParserManager.addGlobalParser(core, FCTimeFrame.class, ArgParserFCTimeFrame.class);
-        ArgParserManager.addGlobalParser(core, FPlayer.class, ArgParserFPlayer.class);
+        ArgParserManager.addBuiltinParser(Integer.class, ArgParserNumber.class);
+        ArgParserManager.addBuiltinParser(Long.class, ArgParserNumber.class);
+        ArgParserManager.addBuiltinParser(Short.class, ArgParserNumber.class);
+        ArgParserManager.addBuiltinParser(Byte.class, ArgParserNumber.class);
+        ArgParserManager.addBuiltinParser(Float.class, ArgParserNumber.class);
+        ArgParserManager.addBuiltinParser(Double.class, ArgParserNumber.class);
+        ArgParserManager.addBuiltinParser(NumberWrapper.class, ArgParserNumberWrapper.class);
+        ArgParserManager.addBuiltinParser(IPlayerData.class, ArgParserIPlayerData.class);
+        ArgParserManager.addBuiltinParser(AccountSection.class, ArgParserAccountSection.class);
+        ArgParserManager.addBuiltinParser(Boolean.class, ArgParserBoolean.class);
+        ArgParserManager.addBuiltinParser(Enum.class, ArgParserEnum.class);
+        ArgParserManager.addBuiltinParser(UUID.class, ArgParserUUID.class);
+        ArgParserManager.addBuiltinParser(PageVisualization.class, ArgParserPageVisualization.class);
+        ArgParserManager.addBuiltinParser(FCTimeFrame.class, ArgParserFCTimeFrame.class);
+        ArgParserManager.addBuiltinParser(FPlayer.class, ArgParserFPlayer.class);
 
-        ArgParserManager.addGlobalContextualParser(core, FPlayer.class, ArgParserContextualFPlayer.class);
-        ArgParserManager.addGlobalContextualParser(core, FCommandSender.class, ArgParserContextualFCommandSender.class);
-        ArgParserManager.addGlobalContextualParser(core, HelpContext.class, ArgParserContextualHelpContext.class);
-        ArgParserManager.addGlobalContextualParser(core, HelpLine.class, ArgParserContextualHelpLine.class);
-        ArgParserManager.addGlobalContextualParser(core, CommandPath.class, ArgParserContextualCommandPath.class);
-        ArgParserManager.addGlobalContextualParser(core, String.class, ArgParserContextualLabel.class);
-        ArgParserManager.addGlobalContextualParser(core, MultiArgumentos.class, ArgParserContextualMultiArgumentos.class);
-        ArgParserManager.addGlobalContextualParser(core, PDSection.class, ArgParserContextualPDSection.class);
-        ArgParserManager.addGlobalContextualParser(core, AccountSection.class, ArgParserContextualAccountSection.class);
-        ArgParserManager.addGlobalContextualParser(core, PlayerData.class, ArgParserContextualPlayerData.class);
+        ArgParserManager.addBuiltinContextualParser(FPlayer.class, ArgParserContextualFPlayer.class);
+        ArgParserManager.addBuiltinContextualParser(FCommandSender.class, ArgParserContextualFCommandSender.class);
+        ArgParserManager.addBuiltinContextualParser(HelpContext.class, ArgParserContextualHelpContext.class);
+        ArgParserManager.addBuiltinContextualParser(HelpLine.class, ArgParserContextualHelpLine.class);
+        ArgParserManager.addBuiltinContextualParser(CommandPath.class, ArgParserContextualCommandPath.class);
+        ArgParserManager.addBuiltinContextualParser(String.class, ArgParserContextualLabel.class);
+        ArgParserManager.addBuiltinContextualParser(MultiArgumentos.class, ArgParserContextualMultiArgumentos.class);
+        ArgParserManager.addBuiltinContextualParser(PDSection.class, ArgParserContextualPDSection.class);
+        ArgParserManager.addBuiltinContextualParser(AccountSection.class, ArgParserContextualAccountSection.class);
+        ArgParserManager.addBuiltinContextualParser(PlayerData.class, ArgParserContextualPlayerData.class);
 
         EverNifeCore.getPlatform().registerArgParsers();
     }
