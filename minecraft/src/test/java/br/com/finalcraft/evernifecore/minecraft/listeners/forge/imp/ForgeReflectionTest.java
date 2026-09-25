@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp;
 
+import br.com.finalcraft.evernifecore.minecraft.listeners.forge.ForgeRegistration;
 import cpw.mods.fml.common.FMLCommonHandler;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -11,8 +12,10 @@ import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -188,6 +191,40 @@ class ForgeReflectionTest {
         private static Object refuseToInitialize() {
             throw new UnsupportedOperationException("a stand-in that exists to fail its own initialization");
         }
+    }
+
+    /** A bus of no particular era: all the unregister handle needs from one is its unregister(Object). */
+    public static class RecordingBus {
+        final List<Object> unregistered = new ArrayList<>();
+
+        public void unregister(Object listener) {
+            unregistered.add(listener);
+        }
+    }
+
+    @Test
+    void theHandleTakesTheListenerOffEveryBusItReachedAndOnlyOnce() {
+        RecordingBus forgeBus = new RecordingBus();
+        RecordingBus fmlBus = new RecordingBus();
+        Object listener = new Object();
+
+        ForgeRegistration registration = ForgeReflection.unregisterFrom(Arrays.asList(forgeBus, fmlBus), listener);
+        registration.unregister();
+        registration.unregister();
+
+        assertEquals(Collections.singletonList(listener), forgeBus.unregistered);
+        assertEquals(Collections.singletonList(listener), fmlBus.unregistered,
+                "a second call is a no-op, so a bus that throws on an unknown listener never sees one");
+    }
+
+    @Test
+    void aBusWithNoUnregisterIsRefusedByName() {
+        ForgeRegistration registration = ForgeReflection.unregisterFrom(
+                Collections.<Object>singletonList(new Object()), new Object());
+
+        IllegalStateException refusal = assertThrows(IllegalStateException.class, registration::unregister);
+        assertTrue(refusal.getMessage().contains("java.lang.Object declares no unregister(Object)"),
+                refusal.getMessage());
     }
 
     private static Class<?> defineOwnerWhoseMembersCannotBeRead() {

@@ -1,11 +1,13 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp;
 
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.forge.ForgeRegistration;
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.IForgeListener;
 import br.com.finalcraft.everylibs.reflection.MethodInvoker;
 import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class CrucibleForgeListener implements IForgeListener {
@@ -14,17 +16,20 @@ public class CrucibleForgeListener implements IForgeListener {
     private static final String REGISTER = "register";
 
     @Override
-    public void registerListener(Plugin plugin, ECListener listener, Object... eventBus) {
-        for (Object bus : eventBus) {
-            register().invoke(null, plugin, bus, listener);
-        }
+    public ForgeRegistration registerListener(Plugin plugin, ECListener listener, Object... eventBus) {
+        return registerOn(plugin, listener, Arrays.asList(eventBus));
     }
 
     @Override
-    public void registerListener(Plugin plugin, ECListener listener) {
-        for (Object bus : defaultEventBuses()) {
+    public ForgeRegistration registerListener(Plugin plugin, ECListener listener) {
+        return registerOn(plugin, listener, defaultEventBuses());
+    }
+
+    private static ForgeRegistration registerOn(Plugin plugin, ECListener listener, List<Object> buses) {
+        for (Object bus : buses) {
             register().invoke(null, plugin, bus, listener);
         }
+        return ForgeReflection.unregisterFrom(buses, listener);
     }
 
     /**

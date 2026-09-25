@@ -3,6 +3,10 @@ package br.com.finalcraft.evernifecore.minecraft.listeners.forge;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import org.bukkit.plugin.Plugin;
 
+/**
+ * The route from a Bukkit plugin to the Forge side of one hybrid server brand. Every registration hands back
+ * a {@link ForgeRegistration} that takes the listener off again.
+ */
 public interface IForgeListener {
 
     /**
@@ -12,8 +16,9 @@ public interface IForgeListener {
      * @param listener The listener to register
      * @param eventBus The EventBus to register the listener to.
      *                 Can be anything that is accepted by the specific implementation
+     * @return the handle that unregisters the listener from every bus this call reached
      */
-    public void registerListener(Plugin plugin, ECListener listener, Object... eventBus);
+    public ForgeRegistration registerListener(Plugin plugin, ECListener listener, Object... eventBus);
 
     /**
      * Register a Listener to the buses Forge posts its own events on: {@code MinecraftForge.EVENT_BUS},
@@ -23,7 +28,8 @@ public interface IForgeListener {
      *
      * @param plugin The plugin that is registering the listener
      * @param listener The listener to register
+     * @return the handle that unregisters the listener from those buses
      */
-    public void registerListener(Plugin plugin, ECListener listener);
+    public ForgeRegistration registerListener(Plugin plugin, ECListener listener);
 
 }

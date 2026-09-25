@@ -1,10 +1,13 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp;
 
+import br.com.finalcraft.evernifecore.minecraft.listeners.forge.ForgeRegistration;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import br.com.finalcraft.everylibs.reflection.FieldAccessor;
 import br.com.finalcraft.everylibs.reflection.MethodInvoker;
 import br.com.finalcraft.everylibs.reflection.lookup.ClassLookup;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 
 /**
@@ -79,6 +82,31 @@ final class ForgeReflection {
                     + " what the server threw while loading it.", modernEventBus.getLinkageError());
         }
         return modernEventBus.isFound() && modernEventBus.getType().isInstance(bus);
+    }
+
+    /**
+     * The handle for a listener registered as itself on each of {@code buses}: undoing it calls each bus's own
+     * {@code unregister(Object)}, the member every Forge era's event bus declares for exactly this.
+     */
+    static ForgeRegistration unregisterFrom(List<Object> buses, Object listener) {
+        List<Object> reached = new ArrayList<>(buses);
+        return ForgeRegistration.once(() -> {
+            for (Object bus : reached) {
+                unregisterMethod(bus).invoke(bus, listener);
+            }
+        });
+    }
+
+    private static MethodInvoker<Object> unregisterMethod(Object bus) {
+        Class<?> busType = bus.getClass();
+        MethodInvoker<Object> invoker = byName(busType.getName() + ".unregister",
+                () -> FCReflectionUtil.getMethods().<Object>getMethod(busType, "unregister", Object.class));
+        if (invoker == null) {
+            throw new IllegalStateException(busType.getName() + " declares no unregister(Object), so a listener"
+                    + " registered on it cannot be taken off and stays until the server restarts. Report the"
+                    + " server brand and version.");
+        }
+        return invoker;
     }
 
     /**

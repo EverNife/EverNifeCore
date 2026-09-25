@@ -112,18 +112,26 @@ public class ForgeListener {
         return INSTANCE != null;
     }
 
-    public static void registerListener(Plugin plugin, ECListener listener, Object... eventBus){
+    /**
+     * @see IForgeListener#registerListener(Plugin, ECListener, Object...)
+     * @return the handle a plugin keeps to {@link ForgeRegistration#unregister() unregister} in its shutdown
+     */
+    public static ForgeRegistration registerListener(Plugin plugin, ECListener listener, Object... eventBus){
         if (INSTANCE == null){
             throw new IllegalStateException("Tried to register ForgeEvents but there is no IForgeListener available for EverNifeCore on this Server.");
         }
-        INSTANCE.registerListener(plugin, listener, eventBus);
+        return INSTANCE.registerListener(plugin, listener, eventBus);
     }
 
-    public static void registerListener(Plugin plugin, ECListener listener){
+    /**
+     * @see IForgeListener#registerListener(Plugin, ECListener)
+     * @return the handle a plugin keeps to {@link ForgeRegistration#unregister() unregister} in its shutdown
+     */
+    public static ForgeRegistration registerListener(Plugin plugin, ECListener listener){
         if (INSTANCE == null){
             throw new IllegalStateException("Tried to register ForgeEvents but there is no IForgeListener available for EverNifeCore on this Server.");
         }
-        INSTANCE.registerListener(plugin, listener);
+        return INSTANCE.registerListener(plugin, listener);
     }
 
 }

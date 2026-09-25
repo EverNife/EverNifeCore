@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.forge.ForgeRegistration;
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.IForgeListener;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import br.com.finalcraft.everylibs.reflection.MethodInvoker;
@@ -45,34 +46,36 @@ public class MohistForgeListener implements IForgeListener, ECListener {
     }
 
     @Override
-    public void registerListener(Plugin plugin, ECListener listener, Object... eventBus) {
-        registerListener(plugin, listener); // Mohist does not use BUS to register
+    public ForgeRegistration registerListener(Plugin plugin, ECListener listener, Object... eventBus) {
+        return registerListener(plugin, listener); // Mohist does not use BUS to register
     }
 
     @Override
-    public void registerListener(Plugin plugin, ECListener listener) {
-
+    public ForgeRegistration registerListener(Plugin plugin, ECListener listener) {
+        Map<Class<?>, List<Consumer<?>>> added = new LinkedHashMap<>();
         for (Method declaredMethod : listener.getClass().getDeclaredMethods()) {
             declaredMethod.setAccessible(true);
 
             if (declaredMethod.isAnnotationPresent(subscribeEvent)){
                 try {
                     Class forgeEvent = declaredMethod.getParameters()[0].getType();
-                    this.addEventHandler(forgeEvent, event -> {
+                    Consumer<Object> handler = event -> {
                         try {
                             declaredMethod.invoke(listener, event);
                         } catch (Throwable e) {
                             plugin.getLogger().severe("Error while invoking ForgeEvent " + forgeEvent.getSimpleName() + " on " + listener.getClass().getSimpleName());
                             e.printStackTrace();
                         }
-                    });
+                    };
+                    this.addEventHandler(forgeEvent, handler);
+                    added.computeIfAbsent(forgeEvent, k -> new ArrayList<>()).add(handler);
                 }catch (Throwable e){
                     plugin.getLogger().severe("Failed to register ForgeEvent listener for method: " + declaredMethod.getName());
                     e.printStackTrace();
                 }
             }
         }
-
+        return ForgeRegistration.once(() -> removeEventHandlers(added));
     }
 
     private static Class<? extends Annotation> resolveSubscribeEvent() {
@@ -138,6 +141,16 @@ public class MohistForgeListener implements IForgeListener, ECListener {
                 log.error("[ForgeListener] Error while invoking ForgeEvent " + eventClass.getSimpleName() + " on consumer " + consumer.getClass().getName(), e);
             }
         }
+    }
+
+    private void removeEventHandlers(Map<Class<?>, List<Consumer<?>>> handlers){
+        for (Map.Entry<Class<?>, List<Consumer<?>>> entry : handlers.entrySet()) {
+            List<Consumer<?>> consumers = eventHandlers.get(entry.getKey());
+            if (consumers != null) {
+                consumers.removeAll(entry.getValue());
+            }
+        }
+        eventHandlerCache.clear();
     }
 
     public <T> void addEventHandler(Class<T> clazz, Consumer<T> consumer){
