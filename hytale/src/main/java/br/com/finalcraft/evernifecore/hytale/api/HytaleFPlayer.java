@@ -75,6 +75,12 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         return getPlayerRef() != null && getPlayerRef().isValid();
     }
 
+    /**
+     * Whether the universe's player storage holds a record of this player. The storage API answers only
+     * with the whole set of stored players ({@code PlayerStorage.getPlayers()}, which the disk storage builds
+     * by listing its folder); the per-player path is private to it, and the storage may not be on disk at
+     * all. So each call costs one listing of every stored player - ask once per login, not per tick.
+     */
     @Override
     public boolean hasPlayedBefore() {
         try {
