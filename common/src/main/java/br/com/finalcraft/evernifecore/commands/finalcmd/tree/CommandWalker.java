@@ -27,6 +27,8 @@ public final class CommandWalker {
     public static WalkResult walk(@Nonnull CommandNode root, @Nonnull String[] args, @Nonnull String label) {
         CommandNode node = root;
         int cursor = 0;
+        //A command that turned flags off has no flag to write too early: a dashed word is just a word
+        boolean flagsOn = root.getCmdData().extractsFlags();
 
         List<String> segments = new ArrayList<>();
         List<String> literals = new ArrayList<>();
@@ -49,7 +51,7 @@ public final class CommandWalker {
                 }
                 for (int i = 0; i < width; i++) {
                     String token = args[cursor + i];
-                    if (MultiArgumentos.isFlagMarker(token)){
+                    if (flagsOn && MultiArgumentos.isFlagMarker(token)){
                         return result(node, cursor, captureTokens, pathNodes, label, segments, literals, lastLiteralIndex, WalkResult.Outcome.FLAG_TOO_EARLY, null, token);
                     }
                     captureTokens.add(token);
@@ -66,7 +68,7 @@ public final class CommandWalker {
 
             CommandNode child = node.getChild(token);
             if (child == null){
-                if (MultiArgumentos.isFlagMarker(token)){
+                if (flagsOn && MultiArgumentos.isFlagMarker(token)){
                     //A flag written here is only early if nothing that could read it has been reached.
                     //Once the node standing here declares it, the path IS over: the token belongs to
                     //the window, and refusing it would leave the flag impossible to type at all.

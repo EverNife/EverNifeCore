@@ -28,6 +28,15 @@ public @interface FinalCMD {
 
     FCLocale[] locales() default {};
 
+    /**
+     * Whether the line is scanned for flags at all, for every method of this command - the
+     * {@link SubCMD}s and {@link Node}s under it included. Set false for a command whose arguments are
+     * free text, where a word like {@code -zombie} is a word: every token reaches the method as a
+     * positional, the bare {@code --} included. A method of such a command cannot declare an
+     * {@link Arg.Flag}. To turn it off for one subcommand only, use {@link SubCMD#flags()}.
+     */
+    boolean flags() default true;
+
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     public static @interface SubCMD {
@@ -42,6 +51,12 @@ public @interface FinalCMD {
         Class<? extends CMDAccessValidation>[] validation() default {};
 
         FCLocale[] locales() default {};
+
+        /**
+         * Whether this subcommand's line is scanned for flags - see {@link FinalCMD#flags()}. It can only
+         * turn the scan off: a subcommand of a command declaring {@code flags = false} has none either way.
+         */
+        boolean flags() default true;
     }
 
     @Retention(RetentionPolicy.RUNTIME)

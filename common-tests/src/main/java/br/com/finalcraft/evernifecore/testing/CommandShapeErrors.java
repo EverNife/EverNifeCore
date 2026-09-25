@@ -148,6 +148,9 @@ public final class CommandShapeErrors {
         cases.add(new Case("a node executable takes no positional argument",
                 new NodeExecutableWithAnArg(), "@FinalCMD.Execute", "run", "node", "@FinalCMD.SubCMD"));
 
+        cases.add(new Case("a flag on a command that turned flags off could never be typed",
+                new FlagOnAFlagFreeCommand(), "@Arg.Flag", "leaf", "flags = false", "positional @Arg"));
+
         cases.add(new Case("a flag spelling an ancestor already claims",
                 new FlagClash(), "--force", "leaf", "node"));
 
@@ -440,6 +443,12 @@ public final class CommandShapeErrors {
     public static class MountCycle {
         @FinalCMD.Node(subcmd = "start")
         private final CycleA start = new CycleA();
+    }
+
+    @FinalCMD(aliases = "flagfreecmd", flags = false)
+    public static class FlagOnAFlagFreeCommand {
+        @FinalCMD.SubCMD(subcmd = "leaf")
+        public void leaf(FCommandSender sender, @Arg.Flag("--force") Boolean force) {}
     }
 
     @FinalCMD(aliases = "deadusagecmd")

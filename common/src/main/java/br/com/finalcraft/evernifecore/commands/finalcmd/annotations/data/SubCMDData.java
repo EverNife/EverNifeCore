@@ -24,6 +24,7 @@ public class SubCMDData extends CMDData<SubCMDData> {
                         .collect(Collectors.toList())
                         .toArray(new FCLocaleData[0])
         );
+        setExtractsFlags(subCMD.flags());
     }
 
     public SubCMDData() {

@@ -145,15 +145,20 @@ public class FCDefaultExecutor {
 
                 MultiArgumentos window = new MultiArgumentos(args).sliceFrom(walk.getConsumed());
 
-                //Always, even where nothing declares a flag: the bare "--" escape and the shape of a
-                //flag marker are rules of the line itself, and a line whose meaning depended on what the
-                //target happened to declare had two tokenizers wearing one syntax. It stops where the
-                //variadic tail starts, because from there on the line is somebody's sentence.
-                MultiArgumentos.FlagExtraction extraction = window.extractDeclaredFlags(
-                        target.getAccumulatedFlagExtractionBindings(), executable.getGreedyTailIndex());
-                if (!extraction.isClean()){
-                    sendFlagExtractionError(sender, target, extraction);
-                    return;
+                //Always, even where nothing declares a flag, unless the command opted out with
+                //flags = false: the bare "--" escape and the shape of a flag marker are rules of the
+                //line itself, and a line whose meaning depended on what the target happened to declare
+                //had two tokenizers wearing one syntax. It stops where the variadic tail starts, because
+                //from there on the line is somebody's sentence.
+                if (executable.extractsFlags()){
+                    MultiArgumentos.FlagExtraction extraction = window.extractDeclaredFlags(
+                            target.getAccumulatedFlagExtractionBindings(), executable.getGreedyTailIndex());
+                    if (!extraction.isClean()){
+                        sendFlagExtractionError(sender, target, extraction);
+                        return;
+                    }
+                }else {
+                    window.keepEveryTokenPositional();
                 }
 
                 DispatchContext dispatch = new DispatchContext(label, walk.getPath(), window);

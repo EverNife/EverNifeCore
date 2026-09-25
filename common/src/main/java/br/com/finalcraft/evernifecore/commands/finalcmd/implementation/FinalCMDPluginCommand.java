@@ -224,7 +224,9 @@ public class FinalCMDPluginCommand {
         //The scan runs even where nothing declares a flag, exactly as the dispatch does: a bare "--"
         //disappears off the line there too, and the positional the sender is typing has to be counted
         //against the same tokens the method will see
-        int effectiveIndex = effectivePositionalIndex(extractionBindings, args, walk.getConsumed(), index, greedyTailIndex);
+        int effectiveIndex = interpreter.extractsFlags()
+                ? effectivePositionalIndex(extractionBindings, args, walk.getConsumed(), index, greedyTailIndex)
+                : localIndex;
 
         if (!extractionBindings.isEmpty()){
             List<String> flagSuggestions = tabCompleteFlags(node, extractionBindings, sender, alias, args,
