@@ -27,9 +27,15 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -161,6 +167,80 @@ public final class ConfigFactory {
         final Config config = Config.open(file.toPath(), codec);
         config.setHeader(standardHeader(plugin));
         return config;
+    }
+
+    // ---- a folder of files, and a default file shipped in the jar ------------
+
+    /**
+     * Opens every YAML file ({@code .yml}, {@code .yaml}) directly inside {@code folder} - and inside its
+     * sub-folders too when {@code recursive} - each the way {@link #open(ECPluginData, File)} opens one. The
+     * list is in path order, so it does not depend on how the file system happens to list a folder. A folder
+     * that does not exist yet holds no files, and the list is empty.
+     *
+     * @throws IllegalArgumentException if {@code folder} is a file
+     */
+    public static List<Config> openAll(final ECPluginData plugin, final File folder, final boolean recursive) {
+        if (folder.isFile()) {
+            throw new IllegalArgumentException("[" + folder + "] is a file, and openAll reads a folder. Pass the"
+                    + " folder that holds it, or open the file itself with ConfigFactory.open(plugin, file).");
+        }
+        final List<File> files = new ArrayList<>();
+        collectYamlFiles(folder, recursive, files);
+        Collections.sort(files);
+        final List<Config> configs = new ArrayList<>(files.size());
+        for (final File file : files) {
+            configs.add(open(plugin, file));
+        }
+        return configs;
+    }
+
+    private static void collectYamlFiles(final File folder, final boolean recursive, final List<File> into) {
+        final File[] children = folder.listFiles();
+        if (children == null) {
+            return;
+        }
+        for (final File child : children) {
+            if (child.isDirectory()) {
+                if (recursive) {
+                    collectYamlFiles(child, true, into);
+                }
+            } else if (child.getName().endsWith(".yml") || child.getName().endsWith(".yaml")) {
+                into.add(child);
+            }
+        }
+    }
+
+    /**
+     * Copies {@code assetPath} out of {@code plugin}'s jar to {@code target}, creating its parent folders, when
+     * {@code target} does not exist yet - the way to seed a default file (an example crate, a starter menu)
+     * that the admin owns from then on. An existing {@code target} is never touched.
+     *
+     * @param assetPath the path inside the jar, from its root: {@code "crates/example.yml"}
+     * @return {@code target}
+     * @throws IllegalArgumentException if the jar has nothing at {@code assetPath}
+     * @throws UncheckedIOException if writing {@code target} fails
+     */
+    public static File copyAsset(final ECPluginData plugin, final String assetPath, final File target) {
+        if (target.exists()) {
+            return target;
+        }
+        final ClassLoader jar = plugin.getPlugin().getClass().getClassLoader();
+        try (InputStream asset = jar == null ? ClassLoader.getSystemResourceAsStream(assetPath) : jar.getResourceAsStream(assetPath)) {
+            if (asset == null) {
+                throw new IllegalArgumentException("The jar of " + plugin.getMetaInfo().getName() + " has no asset at ["
+                        + assetPath + "]. The path is read from the jar root with '/' separators and no leading"
+                        + " slash - 'crates/example.yml' for src/main/resources/crates/example.yml.");
+            }
+            final File parent = target.getAbsoluteFile().getParentFile();
+            if (parent != null) {
+                parent.mkdirs();
+            }
+            Files.copy(asset, target.toPath());
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not copy the asset [" + assetPath + "] of "
+                    + plugin.getMetaInfo().getName() + " to [" + target + "].", e);
+        }
+        return target;
     }
 
     // ---- open: header-seeded at an EXPLICIT path (not relocated under the data folder) ------------
