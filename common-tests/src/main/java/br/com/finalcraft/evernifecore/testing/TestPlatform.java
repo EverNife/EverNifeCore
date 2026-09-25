@@ -50,6 +50,7 @@ public class TestPlatform extends AbstractTestPlatform {
     String platformProviderId;
     List<FPlayer> onlinePlayers;
     List<String> loadedPlugins;
+    List<String> disabledPlugins = new ArrayList<>();
     Boolean papiPresent;
     Boolean actionBarSupported;
     Boolean listenersIgnored;
@@ -185,7 +186,14 @@ public class TestPlatform extends AbstractTestPlatform {
 
     @Override
     public boolean isPluginLoaded(String pluginName) {
-        return loadedPlugins != null ? loadedPlugins.contains(pluginName) : super.isPluginLoaded(pluginName);
+        return loadedPlugins != null
+                ? loadedPlugins.contains(pluginName) || disabledPlugins.contains(pluginName)
+                : super.isPluginLoaded(pluginName);
+    }
+
+    @Override
+    public boolean isPluginEnabled(String pluginName) {
+        return loadedPlugins != null ? loadedPlugins.contains(pluginName) : super.isPluginEnabled(pluginName);
     }
 
     @Override

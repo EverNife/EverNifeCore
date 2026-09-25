@@ -53,7 +53,7 @@ public abstract class MinecraftFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         if (onlinePlayer != null) {
             return onlinePlayer.hasPermission(permission);
         }
-        if (EverNifeCore.getPlatform().isPluginLoaded("LuckPerms")) {
+        if (EverNifeCore.getPlatform().isPluginEnabled("LuckPerms")) {
             return LuckPermsIntegration.hasPermission(getUniqueId(), permission);
         }
         return false;

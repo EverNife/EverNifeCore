@@ -83,8 +83,18 @@ public final class Platforms {
         return this;
     }
 
+    /** Plugins installed and running - both {@code isPluginLoaded} and {@code isPluginEnabled} answer true. */
     public Platforms pluginsLoaded(String... pluginNames) {
         platform.loadedPlugins = Arrays.asList(pluginNames);
+        return this;
+    }
+
+    /**
+     * Plugins installed but not running - a plugin that failed to enable, or was disabled: only
+     * {@code isPluginLoaded} answers true. Needs {@link #pluginsLoaded(String...)} too, even an empty one.
+     */
+    public Platforms pluginsDisabled(String... pluginNames) {
+        platform.disabledPlugins = Arrays.asList(pluginNames);
         return this;
     }
 

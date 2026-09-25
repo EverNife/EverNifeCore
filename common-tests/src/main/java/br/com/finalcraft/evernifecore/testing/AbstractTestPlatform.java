@@ -68,6 +68,11 @@ public abstract class AbstractTestPlatform implements IPlatform {
     }
 
     @Override
+    public boolean isPluginEnabled(String pluginName) {
+        throw notConfigured("isPluginEnabled", "Platforms.strict().pluginsLoaded(\"" + pluginName + "\")");
+    }
+
+    @Override
     public boolean makeConsoleExecuteCommand(String command) {
         throw notConfigured("makeConsoleExecuteCommand", "Platforms.strict().capturingCommands()");
     }

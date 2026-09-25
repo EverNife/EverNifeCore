@@ -36,6 +36,7 @@ import com.hypixel.hytale.server.core.ShutdownReason;
 import com.hypixel.hytale.server.core.command.system.AbstractCommand;
 import com.hypixel.hytale.server.core.command.system.CommandManager;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
+import com.hypixel.hytale.server.core.plugin.PluginBase;
 import com.hypixel.hytale.server.core.plugin.PluginManager;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
@@ -102,10 +103,22 @@ public class HyPlatform implements IPlatform {
 
     @Override
     public boolean isPluginLoaded(String pluginName) {
+        return findPlugin(pluginName) != null;
+    }
+
+    @Override
+    public boolean isPluginEnabled(String pluginName) {
+        PluginBase plugin = findPlugin(pluginName);
+        return plugin != null && plugin.isEnabled();
+    }
+
+    private static PluginBase findPlugin(String pluginName) {
         return PluginManager.get().getPlugins().stream()
                 //a plugin is addressed by name in some APIs and by identifier in others
-                .anyMatch(plugin -> pluginName.equalsIgnoreCase(plugin.getName())
-                        || pluginName.equalsIgnoreCase(plugin.getIdentifier().toString()));
+                .filter(plugin -> pluginName.equalsIgnoreCase(plugin.getName())
+                        || pluginName.equalsIgnoreCase(plugin.getIdentifier().toString()))
+                .findFirst()
+                .orElse(null);
     }
 
     @Override

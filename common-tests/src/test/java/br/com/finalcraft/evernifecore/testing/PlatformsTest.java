@@ -45,8 +45,21 @@ class PlatformsTest {
 
         assertEquals("test", platform.getPlatformProviderId());
         assertTrue(platform.isPluginLoaded("Vault"));
+        assertTrue(platform.isPluginEnabled("Vault"));
         assertFalse(platform.isPluginLoaded("AuthMe"));
         assertThrows(UnsupportedOperationException.class, platform::isPAPIPresent);
+    }
+
+    @Test
+    void anInstalledPluginThatIsNotRunningIsLoadedButNotEnabled() {
+        TestPlatform platform = Platforms.strict()
+                .pluginsLoaded("Vault")
+                .pluginsDisabled("WorldGuard")
+                .build();
+
+        assertTrue(platform.isPluginLoaded("WorldGuard"));
+        assertFalse(platform.isPluginEnabled("WorldGuard"));
+        assertTrue(platform.isPluginEnabled("Vault"));
     }
 
     @Test

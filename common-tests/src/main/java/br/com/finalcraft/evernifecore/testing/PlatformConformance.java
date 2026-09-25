@@ -63,6 +63,17 @@ public final class PlatformConformance {
             }
         });
 
+        call(platform, "isPluginEnabled", failures, new Call<Object>() {
+            @Override
+            public Object run(IPlatform target) {
+                //the core itself is the one plugin every real platform has
+                if (target.isPluginEnabled("EverNifeCore") && !target.isPluginLoaded("EverNifeCore")) {
+                    throw new IllegalStateException("answered EverNifeCore enabled but not loaded - an enabled plugin is always a loaded one");
+                }
+                return null;
+            }
+        });
+
         call(platform, "getChatAdapter", failures, new Call<Object>() {
             @Override
             public Object run(IPlatform target) {

@@ -85,6 +85,11 @@ public class McPlatform implements IPlatform {
 
     @Override
     public boolean isPluginLoaded(String pluginName) {
+        return Bukkit.getPluginManager().getPlugin(pluginName) != null;
+    }
+
+    @Override
+    public boolean isPluginEnabled(String pluginName) {
         return Bukkit.getPluginManager().isPluginEnabled(pluginName);
     }
 

@@ -46,7 +46,7 @@ public interface ECListener extends IECBaseListener {
 
             if (requiredPlugins != null && requiredPlugins.length > 0){
                 for (String requiredPlugin : requiredPlugins) { // Register only when every required plugin is present
-                    if (!EverNifeCore.getPlatform().isPluginLoaded(requiredPlugin)){
+                    if (!EverNifeCore.getPlatform().isPluginEnabled(requiredPlugin)){
                         return false;
                     }
                 }

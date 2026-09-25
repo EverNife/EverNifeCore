@@ -32,7 +32,18 @@ public interface IPlatform {
 
     public FPlayer getPlayer(UUID playerUuid);
 
+    /**
+     * Whether a plugin named {@code pluginName} is installed on this server - its jar was picked up,
+     * whether or not it is running. Enough to know its classes can be reached; use
+     * {@link #isPluginEnabled(String)} before calling into it.
+     */
     public boolean isPluginLoaded(String pluginName);
+
+    /**
+     * Whether a plugin named {@code pluginName} is installed AND running right now - the question to
+     * ask before calling its API. An enabled plugin is always a loaded one.
+     */
+    public boolean isPluginEnabled(String pluginName);
 
     public boolean makeConsoleExecuteCommand(String command);
 

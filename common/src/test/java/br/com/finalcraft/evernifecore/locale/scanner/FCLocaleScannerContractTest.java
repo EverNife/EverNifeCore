@@ -194,6 +194,7 @@ public class FCLocaleScannerContractTest {
         @Override public FPlayer getPlayer(String playerName) { return delegate.getPlayer(playerName); }
         @Override public FPlayer getPlayer(UUID playerUuid) { return delegate.getPlayer(playerUuid); }
         @Override public boolean isPluginLoaded(String pluginName) { return delegate.isPluginLoaded(pluginName); }
+        @Override public boolean isPluginEnabled(String pluginName) { return delegate.isPluginEnabled(pluginName); }
         @Override public boolean makeConsoleExecuteCommand(String command) { return delegate.makeConsoleExecuteCommand(command); }
         @Override public boolean makePlayerExecuteCommand(FCommandSender sender, String command) { return delegate.makePlayerExecuteCommand(sender, command); }
         @Override public boolean registerCommand(FinalCMDPluginCommand finalCMDPluginCommand) { return delegate.registerCommand(finalCMDPluginCommand); }
