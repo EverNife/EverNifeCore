@@ -218,6 +218,20 @@ class ForgeReflectionTest {
     }
 
     @Test
+    void aBusThatFailsDoesNotKeepTheListenerOnTheBusesAfterIt() {
+        RecordingBus afterTheFailure = new RecordingBus();
+        Object listener = new Object();
+        ForgeRegistration registration = ForgeReflection.unregisterFrom(
+                Arrays.asList(new Object(), afterTheFailure), listener);
+
+        IllegalStateException refusal = assertThrows(IllegalStateException.class, registration::unregister);
+
+        assertTrue(refusal.getMessage().contains("java.lang.Object declares no unregister(Object)"), refusal.getMessage());
+        assertEquals(Collections.singletonList(listener), afterTheFailure.unregistered,
+                "the bus after the failing one was still unregistered");
+    }
+
+    @Test
     void aBusWithNoUnregisterIsRefusedByName() {
         ForgeRegistration registration = ForgeReflection.unregisterFrom(
                 Collections.<Object>singletonList(new Object()), new Object());

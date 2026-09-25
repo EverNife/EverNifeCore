@@ -10,11 +10,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public interface ForgeRegistration {
 
     /**
-     * Stops delivering Forge events to the listener this registration was made for. Only the first call does
-     * anything; a later one is a no-op.
+     * Stops delivering Forge events to the listener this registration was made for, on every bus it reached.
+     * Only the first call does anything; a later one is a no-op, even when the first one threw.
      *
      * @throws IllegalStateException if the hybrid under this server offers no way to take the listener off a
      *                               bus it reached - the message names the bus and the member it looked for.
+     *                               The other buses were still unregistered.
      */
     void unregister();
 

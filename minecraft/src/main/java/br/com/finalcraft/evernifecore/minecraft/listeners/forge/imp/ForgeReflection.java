@@ -86,13 +86,27 @@ final class ForgeReflection {
 
     /**
      * The handle for a listener registered as itself on each of {@code buses}: undoing it calls each bus's own
-     * {@code unregister(Object)}, the member every Forge era's event bus declares for exactly this.
+     * {@code unregister(Object)}, the member every Forge era's event bus declares for exactly this. Every bus
+     * is attempted even when one of them fails; the first failure is then thrown, carrying the others as
+     * suppressed.
      */
     static ForgeRegistration unregisterFrom(List<Object> buses, Object listener) {
         List<Object> reached = new ArrayList<>(buses);
         return ForgeRegistration.once(() -> {
+            RuntimeException first = null;
             for (Object bus : reached) {
-                unregisterMethod(bus).invoke(bus, listener);
+                try {
+                    unregisterMethod(bus).invoke(bus, listener);
+                } catch (RuntimeException failure) {
+                    if (first == null) {
+                        first = failure;
+                    } else {
+                        first.addSuppressed(failure);
+                    }
+                }
+            }
+            if (first != null) {
+                throw first;
             }
         });
     }
