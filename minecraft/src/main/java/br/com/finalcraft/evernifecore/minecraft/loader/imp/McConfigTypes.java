@@ -159,6 +159,9 @@ public final class McConfigTypes {
                         if (node.isTextual()) {
                             return fromLegacyString(node.asText());
                         }
+                        if (node.isEmpty()) {
+                            return null; //a literal {} carries no coordinates: an unset location, not a broken one
+                        }
                         return new Location(
                                 Bukkit.getWorld(stringOrNull(node.get("worldName"))),
                                 node.get("x").asDouble(),
