@@ -55,6 +55,9 @@ public @interface FinalCMD {
         /**
          * Whether this subcommand's line is scanned for flags - see {@link FinalCMD#flags()}. It can only
          * turn the scan off: a subcommand of a command declaring {@code flags = false} has none either way.
+         * It covers the words after this subcommand's label; the path before it - the labels and any
+         * {@link Capture} of the nodes above - is read before the subcommand is known, so a dashed word
+         * there follows the command's {@link FinalCMD#flags()}.
          */
         boolean flags() default true;
     }
