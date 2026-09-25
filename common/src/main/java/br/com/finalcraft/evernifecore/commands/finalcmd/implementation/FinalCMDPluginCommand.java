@@ -291,10 +291,10 @@ public class FinalCMDPluginCommand {
                                                     FCommandSender sender, String alias, String[] args, int pathLength, int index,
                                                     WalkResult walk, int positionalsTyped, int greedyTailIndex){
         boolean endOfFlagsReached = index > pathLength && Arrays.asList(args).subList(pathLength, index).contains("--");
-        //Once the tail has opened, every remaining word is somebody's sentence - offering flag names
-        //there would suggest a spelling the dispatch is about to hand over as plain text
+        //Once the tail has opened, every remaining word is somebody's sentence - offering a flag there
+        //that is not declared insideTail would suggest a spelling the dispatch hands over as plain text
         boolean insideTheTail = greedyTailIndex >= 0 && positionalsTyped > greedyTailIndex;
-        if (endOfFlagsReached || insideTheTail){
+        if (endOfFlagsReached){
             return null;
         }
 
@@ -302,6 +302,10 @@ public class FinalCMDPluginCommand {
         if (looksLikeAFlagBeingTyped(lastWord)){
             int equalsAt = lastWord.indexOf('=');
             if (equalsAt >= 0){
+                MultiArgumentos.FlagBinding typed = extractionBindings.get(MultiArgumentos.flagLookupName(lastWord));
+                if (insideTheTail && (typed == null || !typed.isInsideTail())){
+                    return null;
+                }
                 return completeInlineFlagValue(node, extractionBindings, sender, alias, args, index, walk, equalsAt);
             }
 
@@ -314,12 +318,14 @@ public class FinalCMDPluginCommand {
                 }
             }
 
-            return node.getAccumulatedFlagBindings().stream()
+            List<String> names = node.getAccumulatedFlagBindings().stream()
+                    .filter(binding -> !insideTheTail || binding.getArgData().isInsideTail())
                     .filter(binding -> binding.getArgData().getPermission().isEmpty() || sender.hasPermission(binding.getArgData().getPermission()))
                     .filter(binding -> !alreadyUsed.contains(binding.getCanonicalName()))
                     .map(binding -> suggestedSpelling(binding, lastWord))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
+            return insideTheTail && names.isEmpty() ? null : names;
         }
 
         if (index > pathLength){
@@ -327,7 +333,7 @@ public class FinalCMDPluginCommand {
             //A marker that already carries its value ("--page=3") took it: what follows is a positional
             if (MultiArgumentos.isFlagMarker(previousToken) && previousToken.indexOf('=') < 0){
                 MultiArgumentos.FlagBinding extractionBinding = extractionBindings.get(MultiArgumentos.flagLookupName(previousToken));
-                if (extractionBinding != null && extractionBinding.getArity() == 1){
+                if (extractionBinding != null && extractionBinding.getArity() == 1 && (!insideTheTail || extractionBinding.isInsideTail())){
                     CMDMethodInterpreter.FlagBinding flagBinding = declaredFlagOf(node, extractionBinding);
                     if (flagBinding != null){
                         return flagBinding.getParser().tabComplete(tabContextAt(sender, alias, args, index, walk));

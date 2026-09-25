@@ -43,8 +43,22 @@ public class MultiArgumentos {
 
         //Manual/sniffed mode: every marker is "recognized" with arity -1 (auto-sniff), so
         //scanFlagMarkers never reports an unknown flag here.
-        ScanOutcome outcome = scanFlagMarkers(rawName -> new Recognition(rawName, -1), -1);
+        ScanOutcome outcome = scanFlagMarkers(rawName -> new Recognition(rawName, -1, false), -1);
         this.flags.addAll(outcome.matched);
+    }
+
+    /**
+     * Marks this line as having no flags at all: every token stays positional as typed, the bare {@code --}
+     * and marker-shaped words included, and {@link #getFlags()} is empty. It is what a command that turned
+     * flag extraction off hands its method, so reading the flags later cannot strip words out of the line.
+     *
+     * @throws IllegalStateException if this instance was already flagified (declared or manual)
+     */
+    public void keepEveryTokenPositional(){
+        if (flagfied){
+            throw new IllegalStateException("MultiArgumentos was already flagified; keepEveryTokenPositional must run before any getFlags()/getFlag() call.");
+        }
+        flagfied = true;
     }
 
     /**
@@ -56,8 +70,10 @@ public class MultiArgumentos {
      * <p>
      * Declared and manual extraction are mutually exclusive on one instance: this marks it flagified.
      *
-     * @param literalTailAt the positional index at which the line stops being scanned at all: from that
-     * token on everything is text, marker-shaped or not. Pass -1 to scan the whole window.
+     * @param literalTailAt the positional index at which the variadic tail opens: from that token on
+     * everything is text, marker-shaped or not, except a marker whose binding {@link FlagBinding#isInsideTail()
+     * is read inside the tail} - that one is still extracted, and leaves the tail. Pass -1 to scan the whole
+     * window.
      * @return what the scan could not turn into a flag - unknown markers, markers whose spelling and
      * declaration disagree about the value, and markers written twice; {@link FlagExtraction#isClean()}
      * when there was none
@@ -71,7 +87,7 @@ public class MultiArgumentos {
 
         ScanOutcome outcome = scanFlagMarkers(rawName -> {
             FlagBinding binding = bindingsByNormalizedNameOrAlias.get(rawName.toLowerCase());
-            return binding == null ? null : new Recognition(binding.getCanonicalName(), binding.getArity());
+            return binding == null ? null : new Recognition(binding.getCanonicalName(), binding.getArity(), binding.isInsideTail());
         }, literalTailAt);
         this.flags.addAll(outcome.matched);
         return new FlagExtraction(outcome.unknownMarkers, outcome.markersMissingValue, outcome.markersRefusingValue, outcome.repeatedMarkers);
@@ -83,9 +99,9 @@ public class MultiArgumentos {
      * {@code --} end-of-flags escape and quoted multi-word groups identically in both modes.
      * <p>
      * The modes differ only in what {@code recognizer} answers for a marker name - arity 0 (presence),
-     * arity 1 (value), negative (sniff the next token) or null (unrecognized). The scan also ends on
-     * its own at {@code literalTailAt}, which is why the {@code --} escape is only ever needed BEFORE
-     * the tail.
+     * arity 1 (value), negative (sniff the next token) or null (unrecognized). From
+     * {@code literalTailAt} on, only a marker recognized as read inside the tail is taken and every
+     * other token is text, which is why the {@code --} escape is only ever needed BEFORE the tail.
      */
     private ScanOutcome scanFlagMarkers(FlagRecognizer recognizer, int literalTailAt){
         List<FlagedArgumento> matched = new ArrayList<FlagedArgumento>();
@@ -96,13 +112,14 @@ public class MultiArgumentos {
         List<Integer> indexesToRemove = new ArrayList<Integer>();
         List<String> claimedNames = new ArrayList<String>();
         boolean endOfFlags = false;
+        boolean insideTail = false;
         int positionalsSeen = 0;
 
         int i = 0;
         while (i < stringArgs.size()) {
             String token = stringArgs.get(i);
 
-            if (!endOfFlags && token.equals("--")){
+            if (!endOfFlags && !insideTail && token.equals("--")){
                 //End-of-flags marker: drop it, everything after stays positional even if it looks like a flag
                 indexesToRemove.add(i);
                 endOfFlags = true;
@@ -110,9 +127,9 @@ public class MultiArgumentos {
                 continue;
             }
 
-            if (!endOfFlags && !isFlagMarker(token)){
+            if (!endOfFlags && !insideTail && !isFlagMarker(token)){
                 if (positionalsSeen == literalTailAt){
-                    endOfFlags = true; //this token opens the tail: it and everything after it is text
+                    insideTail = true; //this token opens the tail: it and everything after it is text
                     continue;
                 }
                 positionalsSeen++;
@@ -134,6 +151,10 @@ public class MultiArgumentos {
             String marker = equalsAt < 0 ? token : token.substring(0, token.length() - spelling.length() + equalsAt);
 
             Recognition recognition = recognizer.recognize(rawName);
+            if (insideTail && (recognition == null || !recognition.insideTail)){
+                i++; //the tail is somebody's sentence: only a flag declared to be read there leaves it
+                continue;
+            }
             if (recognition == null){
                 unknownMarkers.add(token); //declared mode only: left untouched, the caller decides how to react
                 i++;
@@ -250,10 +271,12 @@ public class MultiArgumentos {
     private static final class Recognition {
         private final String canonicalName;
         private final int arity; //0 = presence, 1 = fixed single value, negative = sniff (manual mode)
+        private final boolean insideTail;
 
-        private Recognition(String canonicalName, int arity) {
+        private Recognition(String canonicalName, int arity, boolean insideTail) {
             this.canonicalName = canonicalName;
             this.arity = arity;
+            this.insideTail = insideTail;
         }
     }
 
@@ -339,15 +362,18 @@ public class MultiArgumentos {
      * A declared flag's fixed extraction rule, used by {@link #extractDeclaredFlags}: the
      * canonical name every recognized spelling (long name and aliases alike) is normalized to, and
      * how many following tokens a marker for it consumes (0 = presence-only, e.g. a Boolean flag;
-     * 1 = always consumes the next token or quoted group).
+     * 1 = always consumes the next token or quoted group), and whether it is also read inside the
+     * variadic tail.
      */
     public static final class FlagBinding {
         private final String canonicalName;
         private final int arity;
+        private final boolean insideTail;
 
-        public FlagBinding(String canonicalName, int arity) {
+        public FlagBinding(String canonicalName, int arity, boolean insideTail) {
             this.canonicalName = canonicalName;
             this.arity = arity;
+            this.insideTail = insideTail;
         }
 
         public String getCanonicalName() {
@@ -356,6 +382,11 @@ public class MultiArgumentos {
 
         public int getArity() {
             return arity;
+        }
+
+        /** Whether a marker of this flag written after the variadic tail opened is still extracted. */
+        public boolean isInsideTail() {
+            return insideTail;
         }
     }
 

@@ -130,6 +130,15 @@ public @interface Arg {
          */
         boolean showOnUsage() default true;
 
+        /**
+         * Whether the flag is also read inside the method's variadic tail. By default the tail is somebody's
+         * sentence and a marker in it is text; set true and a marker of THIS flag written after the tail
+         * opened is extracted like anywhere else and leaves the tail - {@code /kit give Steve vip 7d -sb}
+         * reads {@code -sb} as the flag and hands {@code "7d"} to the tail. Any other marker-shaped word
+         * in the tail stays text.
+         */
+        boolean insideTail() default false;
+
     }
 
     /**

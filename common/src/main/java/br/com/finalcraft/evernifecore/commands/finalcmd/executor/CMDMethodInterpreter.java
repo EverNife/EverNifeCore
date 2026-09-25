@@ -267,7 +267,7 @@ public class CMDMethodInterpreter {
                     throw new ArgMountException("The @Arg.Flag spelling [" + spelling + "] on the FinalCMD (" + executor.getClass().getName() + ")[" + method.getName() + "] " +
                             "is already claimed by a name or alias declared earlier on the same method.");
                 }
-                flagExtractionBindings.put(normalizedSpelling, new MultiArgumentos.FlagBinding(canonicalName, parameterClazz == Boolean.class ? 0 : 1));
+                flagExtractionBindings.put(normalizedSpelling, new MultiArgumentos.FlagBinding(canonicalName, parameterClazz == Boolean.class ? 0 : 1, argData.isInsideTail()));
             }
 
             if (ArgParser.class == argData.getParser()){

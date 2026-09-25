@@ -34,6 +34,8 @@ public class ArgData {
     private String usageName = "";
     private String permission = "";
     private boolean showOnUsage = true;
+    /** Flag only: whether a marker written inside the variadic tail is still read as this flag. */
+    private boolean insideTail = false;
     private boolean fromSender = false;
     /** Contextual only: when the parameter resolves, or {@code PARSER_DEFAULT} to let its parser say. */
     private ResolutionPhase phase = ResolutionPhase.PARSER_DEFAULT;
@@ -63,6 +65,7 @@ public class ArgData {
         this.usageName = arg.usageName();
         this.permission = arg.permission();
         this.showOnUsage = arg.showOnUsage();
+        this.insideTail = arg.insideTail();
     }
 
     public ArgData(Arg.Contextual arg) {
