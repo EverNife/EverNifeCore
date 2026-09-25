@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -63,6 +64,7 @@ class PlayerControllerQueryPlayersTest {
         List<PlayerData> everyone = PlayerController.queryPlayers(Query.all()).join();
         assertTrue(everyone.stream().anyMatch(p -> p.getUniqueId().equals(sleeper)),
                 "the query reaches the stored player that is not in memory");
+        assertNull(PlayerController.getLoaded(sleeper), "a player read by the query is not cached by it");
         PlayerData activeMatch = everyone.stream().filter(p -> p.getUniqueId().equals(active)).findFirst().get();
         assertSame(PlayerController.getLoaded(active), activeMatch,
                 "a loaded player comes back as the live instance, not a detached copy");
