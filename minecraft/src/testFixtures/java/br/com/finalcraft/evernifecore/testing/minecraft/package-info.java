@@ -6,12 +6,21 @@
  * the whole {@code evernifecore-common-tests} engine ({@code Platforms}, {@code Plugins},
  * {@code FinalCmdTestHarness}...) linked against the relocated core, and {@link
  * br.com.finalcraft.evernifecore.testing.minecraft.ItemWorld ItemWorld} - a described server with an
- * item factory, named worlds and the Bukkit config codecs. Do not also declare
- * {@code evernifecore-common-tests} or {@code evernifecore-common}: their classes are here already,
- * rewritten onto the names the fat jar carries.</p>
+ * item factory, named worlds and the Bukkit config codecs.</p>
+ *
+ * <p>Never put {@code evernifecore-common-tests} or {@code evernifecore-common} on the same test
+ * classpath: their classes are in here already, rewritten onto the relocated names, and a second,
+ * canonical copy of the same class names means whichever loads first wins.</p>
+ *
+ * <p>What the POM hands over: {@code evernifecore-minecraft} and {@code junit-jupiter} at compile scope -
+ * Gradle keeps the higher of that JUnit and the consumer's own - and {@code commons-lang3},
+ * {@code jackson-annotations} and {@code log4j-api} at runtime, which a server would otherwise supply.
+ * {@code spigot-api} is {@code provided}, so it never reaches the consumer: declare the server API your
+ * plugin compiles against yourself.</p>
  *
  * <pre>{@code
  * testImplementation 'br.com.finalcraft:evernifecore-minecraft-tests:<version>'
+ * testImplementation 'org.spigotmc:spigot-api:<the API your plugin compiles against>'
  * }</pre>
  *
  * <p>There is no Hytale counterpart because {@code evernifecore-hytale} is published thin, with

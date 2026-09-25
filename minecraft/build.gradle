@@ -236,6 +236,10 @@ tasks.register('testKitJar', ShadowJar) {
     from sourceSets.testFixtures.output
     configurations = [project.configurations.testKitEngine, project.configurations.testKitRuntimeStack]
     exclude 'module-info.class', 'META-INF/versions/**/module-info.class'
+    // Every Jackson jar ships its own META-INF/services files; without merging, only the first copy of
+    // each survives, and the relocation rewrites both the file names and the class names inside.
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    mergeServiceFiles()
     applyCoreRelocations(delegate)
 }
 
@@ -319,7 +323,9 @@ publishing {
                     d.appendNode('scope', scope)
                 }
                 addDep(project.group.toString(), 'evernifecore-minecraft', project.version.toString(), 'compile')
-                addDep('org.spigotmc', 'spigot-api', libs.versions.spigot.asProvider().get(), 'compile')
+                // provided: not transitive. The kit compiles against it, but the server API version is the
+                // consumer's own choice (a 1.7.10 plugin must not be handed a 26.x API).
+                addDep('org.spigotmc', 'spigot-api', libs.versions.spigot.asProvider().get(), 'provided')
                 addDep('org.junit.jupiter', 'junit-jupiter', libs.versions.junit.get(), 'compile')
                 // What a server hands the core and a test JVM does not have.
                 addDep('org.apache.commons', 'commons-lang3', libs.versions.commons.lang3.asProvider().get(), 'runtime')
