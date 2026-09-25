@@ -149,7 +149,14 @@ public final class CommandShapeErrors {
                 new NodeExecutableWithAnArg(), "@FinalCMD.Execute", "run", "node", "@FinalCMD.SubCMD"));
 
         cases.add(new Case("a flag on a command that turned flags off could never be typed",
-                new FlagOnAFlagFreeCommand(), "@Arg.Flag", "leaf", "flags = false", "positional @Arg"));
+                new FlagOnAFlagFreeCommand(), "@Arg.Flag", "leaf", "its command's @FinalCMD", "flags = false", "positional @Arg"));
+
+        cases.add(new Case("a flag on a subcommand that turned flags off could never be typed",
+                new FlagOnAFlagFreeSubcommand(), "@Arg.Flag", "leaf", "its own @FinalCMD.SubCMD", "flags = false"));
+
+        cases.add(new Case("a capture's flag on the path of a subcommand that turned flags off could never be typed",
+                new CaptureFlagAboveAFlagFreeSubcommand(), "@FinalCMD.Capture", "leaf", "its own @FinalCMD.SubCMD",
+                "move the flag off the capture"));
 
         cases.add(new Case("a flag spelling an ancestor already claims",
                 new FlagClash(), "--force", "leaf", "node"));
@@ -449,6 +456,24 @@ public final class CommandShapeErrors {
     public static class FlagOnAFlagFreeCommand {
         @FinalCMD.SubCMD(subcmd = "leaf")
         public void leaf(FCommandSender sender, @Arg.Flag("--force") Boolean force) {}
+    }
+
+    @FinalCMD(aliases = "flagfreesubcmd")
+    public static class FlagOnAFlagFreeSubcommand {
+        @FinalCMD.SubCMD(subcmd = "leaf", flags = false)
+        public void leaf(FCommandSender sender, @Arg.Flag("--force") Boolean force) {}
+    }
+
+    @FinalCMD(aliases = "flagfreecapturecmd")
+    public static class CaptureFlagAboveAFlagFreeSubcommand {
+        @FinalCMD.Node(subcmd = "user")
+        public static class UserNode {
+            @FinalCMD.Capture
+            public String capture(@Arg("<user>") String user, @Arg.Flag("--force") Boolean force) { return user; }
+
+            @FinalCMD.SubCMD(subcmd = "leaf", flags = false)
+            public void leaf(FCommandSender sender, @Arg("<word>") String word) {}
+        }
     }
 
     @FinalCMD(aliases = "deadusagecmd")
