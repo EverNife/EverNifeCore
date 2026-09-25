@@ -4,7 +4,13 @@ import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -16,6 +22,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -94,6 +102,34 @@ class IECPluginBootstrapTest {
         assertEquals(0, boot.registeredCountAtMainShutdown,
                 "the pre-shutdown must unregister the listeners BEFORE onECPluginShutdown() runs");
         assertTrue(ECListener.getRegistered(data).isEmpty(), "no listener may remain after shutdown");
+    }
+
+    /** A type only this test parses, so no other registration can answer for it. */
+    public static final class ShutdownToken {
+    }
+
+    public static final class ShutdownTokenParser extends ArgParser<ShutdownToken> {
+        public ShutdownTokenParser(ArgInfo argInfo) {
+            super(argInfo);
+        }
+
+        @Override
+        public ParseResult<ShutdownToken> parse(@Nonnull ParseCall call) {
+            return ParseResult.empty();
+        }
+    }
+
+    @Test
+    void defaultShutdownPreTakesBackTheGlobalParsersThePluginOwns() {
+        ECPluginData data = pluginData("BootParsers");
+        RecordingBootstrap boot = new RecordingBootstrap(data);
+        boot.runECPluginEnable();
+        ArgParserManager.addGlobalParser(data, ShutdownToken.class, ShutdownTokenParser.class);
+        assertSame(ShutdownTokenParser.class, ArgParserManager.getParser(data, ShutdownToken.class));
+
+        boot.runECPluginShutdown();
+
+        assertNull(ArgParserManager.getParser(data, ShutdownToken.class), "the global parser left with its owner");
     }
 
     // ------------------------------------------------------------------

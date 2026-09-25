@@ -4,7 +4,9 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserContextual;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ContextualParseCall;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -163,5 +165,43 @@ class ArgParserRegistrySystemTest {
         ArgParserManager.unregisterAll(harness.ecPluginData);
 
         assertNull(ArgParserManager.getParser(harness.ecPluginData, Vehicle.class));
+    }
+
+    public static class VehicleContextual extends ArgParserContextual<Vehicle> {
+        public VehicleContextual(ArgInfo argInfo) {
+            super(argInfo);
+        }
+
+        @Override
+        public ParseResult<Vehicle> parse(@Nonnull ContextualParseCall call) {
+            return ParseResult.empty();
+        }
+
+        @Override
+        public boolean requiresToBeAPlayer() {
+            return false;
+        }
+    }
+
+    @Test
+    void aContextualParserLeavesWithItsOwnerToo() {
+        newHarness();
+        ArgParserManager.addGlobalContextualParser(harness.ecPluginData, Vehicle.class, VehicleContextual.class);
+        assertSame(VehicleContextual.class, ArgParserManager.getContextualParser(harness.ecPluginData, Vehicle.class));
+
+        assertTrue(ArgParserManager.unregisterGlobalContextualParser(harness.ecPluginData, Vehicle.class));
+        assertNull(ArgParserManager.getContextualParser(harness.ecPluginData, Vehicle.class));
+    }
+
+    @Test
+    void theSameOwnerReplacingItsOwnParserIsInformedNotWarned() {
+        newHarness();
+        ArgParserManager.addGlobalParser(harness.ecPluginData, Truck.class, TruckParser.class);
+
+        List<String> logged = Logs.capture(() -> ArgParserManager.addGlobalParser(harness.ecPluginData, Truck.class, BetterTruckParser.class));
+
+        assertTrue(logged.stream().anyMatch(line -> line.contains("overridden: TruckParser -> BetterTruckParser")), "" + logged);
+        assertFalse(logged.stream().anyMatch(line -> line.contains("every command on this server now reads")),
+                "replacing one's own parser is not a clash between plugins: " + logged);
     }
 }
