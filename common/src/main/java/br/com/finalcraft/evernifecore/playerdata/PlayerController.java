@@ -1175,6 +1175,19 @@ public class PlayerController {
     }
 
     /**
+     * Which players this server keeps in memory: {@code ALL} of them, or only the {@code RECENT} ones - in
+     * which case {@link #getAllLoaded()} is not every player, and {@link #queryPlayers(Query)} is how to reach
+     * the rest.
+     *
+     * @throws IllegalStateException before the controller is bootstrapped.
+     */
+    public static PlayerDataAdminConfig.LoadMode getLoadMode(){
+        PlayerController controller = INSTANCE;
+        if (controller == null) throw notBootstrapped();
+        return controller.storageConfig.getPlayerData().getLoadMode();
+    }
+
+    /**
      * That player's cached section, or null when it isn't loaded (never touches storage).
      *
      * <p>Throws when {@code pdSectionClass} was never registered: {@code null} here means "not in
@@ -1233,6 +1246,34 @@ public class PlayerController {
         PlayerController controller = INSTANCE;
         if (controller == null) return failedFuture(notBootstrapped());
         return controller.ready.thenCompose(v -> controller.findByNameInBackend(playerName));
+    }
+
+    /**
+     * Every stored player that matches {@code query}, whether or not he is in memory - the whole base, where
+     * {@link #getAllLoaded()} is only what the {@link #getLoadMode() load mode} keeps loaded. The query runs
+     * on the stored rows, so it filters on indexed fields ({@code lastSeen}, {@code name}, ...) and judges a
+     * loaded player by what was last flushed for him.
+     *
+     * <p>A matched player who is loaded comes back as the live instance. One who is not comes back as a
+     * detached copy read for this call: it is never cached, so changing it persists nothing - resolve it
+     * with {@link #getPlayerData(UUID)} to edit him.</p>
+     *
+     * @return a future of the matches, failed with {@link IllegalStateException} before the controller is
+     *         bootstrapped, or with the backend's error for a query on a field it does not index.
+     */
+    public static CompletableFuture<List<PlayerData>> queryPlayers(Query query){
+        Objects.requireNonNull(query, "Query can't be null");
+        PlayerController controller = INSTANCE;
+        if (controller == null) return failedFuture(notBootstrapped());
+        return controller.ready
+                .thenCompose(v -> controller.playerDataBinding.getRepository().query(query))
+                .thenApply(rows -> {
+                    List<PlayerData> matches = new ArrayList<>(rows.size());
+                    for (PlayerData row : rows){
+                        matches.add(controller.baseManager().peek(row.getUniqueId()).orElse(row));
+                    }
+                    return matches;
+                });
     }
 
     /**
