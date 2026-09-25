@@ -50,7 +50,7 @@ class AccountSectionTest {
         public Set<String> unlocked = new LinkedHashSet<>();
 
         @Override
-        public AchievementsSection merge(List<AchievementsSection> others) {
+        public AchievementsSection merge(List<AchievementsSection> others, MergeReason reason) {
             AchievementsSection merged = new AchievementsSection();
             merged.unlocked.addAll(this.unlocked);
             for (AchievementsSection other : others) {
@@ -228,6 +228,44 @@ class AccountSectionTest {
     // directly (a real cross-instance conflict needs a lock-enforcing backend - the manual suite).
     // ------------------------------------------------------------------
 
+    /** A balance: it adds up when wallets become one, and keeps the backend's version of a raced row. */
+    public static class BalanceSection extends AccountSection<BalanceSection> {
+        public long balance = 0;
+
+        @Override
+        public BalanceSection merge(List<BalanceSection> others, MergeReason reason) {
+            BalanceSection merged = new BalanceSection();
+            merged.balance = reason == MergeReason.WRITE_CONFLICT ? others.get(0).balance : this.balance;
+            if (reason == MergeReason.IDENTITY_LINK) {
+                for (BalanceSection other : others) {
+                    merged.balance += other.balance;
+                }
+            }
+            return merged;
+        }
+    }
+
+    @Test
+    void theMergeIsToldAConflictFromALink() {
+        BalanceSection raced = new BalanceSection();
+        raced.attachAccountId(UUID.randomUUID());
+        raced.balance = 100;
+        BalanceSection storedWinner = new BalanceSection();
+        storedWinner.attachAccountId(raced.getAccountId());
+        storedWinner.balance = 120;
+        raced.mergeStoredState(storedWinner);
+        assertEquals(120, raced.balance, "a write conflict is one wallet seen twice - nothing is added");
+
+        BalanceSection account = new BalanceSection();
+        account.attachAccountId(UUID.randomUUID());
+        account.balance = 100;
+        BalanceSection memberRow = new BalanceSection();
+        memberRow.attachAccountId(UUID.randomUUID());
+        memberRow.balance = 50;
+        account.absorbMigratedState(memberRow);
+        assertEquals(150, account.balance, "a linked identity brings a wallet of its own");
+    }
+
     @Test
     void mergeStoredStateCombinesBothSidesAndKeepsFrameworkIdentity() {
         UUID accountKey = UUID.randomUUID();
@@ -285,7 +323,7 @@ class AccountSectionTest {
         AchievementsSection other = new AchievementsSection();
         other.unlocked.add("b");
 
-        AchievementsSection merged = base.merge(new ArrayList<>(Arrays.asList(other)));
+        AchievementsSection merged = base.merge(new ArrayList<>(Arrays.asList(other)), AccountSection.MergeReason.IDENTITY_LINK);
         assertNotSame(base, merged);
         assertNotSame(other, merged);
         assertTrue(merged.unlocked.containsAll(Arrays.asList("a", "b")));

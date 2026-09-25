@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.cooldown.CooldownEntry;
 import br.com.finalcraft.evernifecore.cooldown.CooldownRetention;
 import br.com.finalcraft.evernifecore.cooldown.GenericCooldown;
+import br.com.finalcraft.evernifecore.playerdata.AccountSection;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.playerdata.account.Account;
@@ -107,7 +108,7 @@ class CooldownSectionsTest {
         PlayerController.get().flushAll().join();
 
         //the first server's still-started replica merges the peer's stopped state
-        PlayerCooldownsNetwork merged = started.merge(Collections.singletonList(peer));
+        PlayerCooldownsNetwork merged = started.merge(Collections.singletonList(peer), AccountSection.MergeReason.WRITE_CONFLICT);
         assertFalse(merged.cooldown(uuid, "vip").isInCooldown(), "the newer stop must win the merge");
 
         //and a prune inside the retention horizon keeps the tombstone: it is not resurrected
@@ -274,7 +275,7 @@ class CooldownSectionsTest {
         PlayerCooldownsNetwork b = new PlayerCooldownsNetwork();
         b.getPersistedCooldowns().put("home", new CooldownEntry(now, 60_000L, now, true));
 
-        PlayerCooldownsNetwork merged = a.merge(Collections.singletonList(b));
+        PlayerCooldownsNetwork merged = a.merge(Collections.singletonList(b), AccountSection.MergeReason.WRITE_CONFLICT);
 
         assertNotSame(a, merged);
         assertNotSame(b, merged);

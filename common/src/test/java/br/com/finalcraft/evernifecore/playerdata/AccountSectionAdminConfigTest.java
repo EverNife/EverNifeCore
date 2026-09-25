@@ -43,7 +43,7 @@ class AccountSectionAdminConfigTest {
         public Set<String> earned = new LinkedHashSet<>();
 
         @Override
-        public TrophiesSection merge(List<TrophiesSection> others) {
+        public TrophiesSection merge(List<TrophiesSection> others, MergeReason reason) {
             TrophiesSection merged = new TrophiesSection();
             merged.earned.addAll(this.earned);
             for (TrophiesSection other : others) {

@@ -184,7 +184,7 @@ class AccountSectionArgSystemTest {
         }
 
         @Override
-        public WalletSection merge(List<WalletSection> others) {
+        public WalletSection merge(List<WalletSection> others, MergeReason reason) {
             WalletSection merged = new WalletSection();
             merged.balance = this.balance;
             for (WalletSection other : others) {

@@ -70,7 +70,7 @@ public class PlayerCooldownsNetwork extends AccountSection<PlayerCooldownsNetwor
      * row is read (see {@link #pruneExpired}), not folded into the combine.
      */
     @Override
-    public PlayerCooldownsNetwork merge(List<PlayerCooldownsNetwork> others) {
+    public PlayerCooldownsNetwork merge(List<PlayerCooldownsNetwork> others, MergeReason reason) {
         PlayerCooldownsNetwork merged = new PlayerCooldownsNetwork();
         merged.cooldowns.putAll(this.cooldowns);
         for (PlayerCooldownsNetwork other : others) {

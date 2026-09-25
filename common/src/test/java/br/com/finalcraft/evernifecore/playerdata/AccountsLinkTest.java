@@ -53,7 +53,7 @@ class AccountsLinkTest {
         public long kills = 0;
 
         @Override
-        public KillCountSection merge(List<KillCountSection> others) {
+        public KillCountSection merge(List<KillCountSection> others, MergeReason reason) {
             KillCountSection merged = new KillCountSection();
             merged.kills = this.kills;
             for (KillCountSection other : others) {
@@ -68,7 +68,7 @@ class AccountsLinkTest {
         public Set<String> unlocked = new LinkedHashSet<>();
 
         @Override
-        public AchievementsSection merge(List<AchievementsSection> others) {
+        public AchievementsSection merge(List<AchievementsSection> others, MergeReason reason) {
             AchievementsSection merged = new AchievementsSection();
             merged.unlocked.addAll(this.unlocked);
             for (AchievementsSection other : others) {

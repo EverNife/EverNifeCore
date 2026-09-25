@@ -25,17 +25,17 @@ import java.util.concurrent.CompletableFuture;
  * <p>Unlike a {@link PDSection}, an account section belongs to the ACCOUNT, not to one player: it
  * carries no player reference and no player identity (two linked players online at once share the
  * SAME live instance). It can be written from several servers of the network, so consistency is
- * EVENTUAL and convergence is driven by {@link #merge(List)} - which is also how a concurrent-write
- * conflict is resolved.</p>
+ * EVENTUAL and convergence is driven by {@link #merge(List, MergeReason)} - which is also how a
+ * concurrent-write conflict is resolved.</p>
  *
  * <p>The persisted skeleton (schema version, optimistic lock, dirty flag, transient-default
  * bookkeeping, flush lock) lives in {@link StoredSection}; this class adds the account key, the
- * merge-ledger and the {@link #merge(List)} convergence policy.</p>
+ * merge-ledger and the {@link #merge(List, MergeReason)} convergence policy.</p>
  *
  * <p>Contract for subclasses:</p>
  * <ol>
  *   <li>Declare a no-arg constructor (Jackson decodes through it).</li>
- *   <li>Implement {@link #merge(List)}: pure, associative and commutative (see its contract).</li>
+ *   <li>Implement {@link #merge(List, MergeReason)}: pure, associative and commutative (see its contract).</li>
  *   <li>Persistence is automatic on flush when marked dirty via {@code markDirty()}.</li>
  *   <li>Runtime-only fields: mark them as {@code @JsonIgnore}.</li>
  *   <li>The class must be platform-agnostic (the same section is loaded by every platform of the
@@ -66,21 +66,40 @@ public abstract class AccountSection<T extends AccountSection<T>> extends Stored
         return "AccountSection";
     }
 
+    /** Why the framework is combining states of one account - see {@link #merge(List, MergeReason)}. */
+    public enum MergeReason {
+        /**
+         * Rows of different identities (or of an absorbed account) becoming one account: each input is
+         * a separate history, and the account should hold all of them - a balance adds up here.
+         */
+        IDENTITY_LINK,
+        /**
+         * Two versions of the SAME row, written concurrently by two servers: {@code others} holds the one
+         * the backend kept, {@code this} the local one that lost the race. They are one history seen
+         * twice, so adding them counts what both share twice.
+         */
+        WRITE_CONFLICT
+    }
+
     /**
      * Combines this section with {@code others} belonging to the same account, producing the state
-     * the account should hold. Called when linked identities' rows are coalesced AND when a
-     * concurrent-write conflict is resolved - it IS this section's convergence policy.
+     * the account should hold - it IS this section's convergence policy. {@code reason} says which of
+     * the two situations called it; a section whose combination is the same either way (a set union,
+     * a latest-timestamp pick) ignores it.
      *
      * <p><b>Pure:</b> return a NEW instance; never mutate {@code this} or any element of
-     * {@code others}. <b>Associative and commutative:</b> the order the inputs arrive in is
-     * undefined (union sets, max/min timestamps, sum counters - fine; "keep the first one" - not).
-     * It does NOT need to be idempotent: the framework tracks what was already merged.</p>
+     * {@code others}. <b>Associative and commutative</b> for {@link MergeReason#IDENTITY_LINK}: the
+     * order the inputs arrive in is undefined (union sets, max/min timestamps, sum counters - fine;
+     * "keep the first one" - not). A {@link MergeReason#WRITE_CONFLICT} always hands exactly the
+     * backend's version in {@code others}, so keeping it is a valid answer there. It does NOT need to
+     * be idempotent: the framework tracks what was already merged.</p>
      *
      * @param others other states of the same account (never null; may be empty); {@code this} is
      *               NOT included
+     * @param reason why these states are being combined
      * @return a brand-new instance holding the combined state
      */
-    public abstract T merge(List<T> others);
+    public abstract T merge(List<T> others, MergeReason reason);
 
     /** The accountId this row belongs to (the storage key). */
     public final UUID getAccountId() {
@@ -118,7 +137,7 @@ public abstract class AccountSection<T extends AccountSection<T>> extends Stored
      */
     @SuppressWarnings("unchecked")
     final void mergeStoredState(AccountSection<?> stored) {
-        T combined = merge(Collections.singletonList((T) stored));
+        T combined = merge(Collections.singletonList((T) stored), MergeReason.WRITE_CONFLICT);
         //the dev's merge builds a fresh instance: preserve the framework identity/bookkeeping
         UUID key = this.accountId;
         List<MergedKeyRecord> ledger = unionLedgers(this.mergedKeys, stored.mergedKeys);
@@ -141,7 +160,7 @@ public abstract class AccountSection<T extends AccountSection<T>> extends Stored
      */
     @SuppressWarnings("unchecked")
     final void absorbMigratedState(AccountSection<?> oldRow) {
-        T combined = merge(Collections.singletonList((T) oldRow));
+        T combined = merge(Collections.singletonList((T) oldRow), MergeReason.IDENTITY_LINK);
         UUID key = this.accountId;
         Long ownLockVersion = this.lockVersion;
         List<MergedKeyRecord> ledger = unionLedgers(this.mergedKeys, oldRow.mergedKeys);
