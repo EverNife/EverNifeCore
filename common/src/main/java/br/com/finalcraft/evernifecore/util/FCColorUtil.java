@@ -77,6 +77,15 @@ public class FCColorUtil {
         return LEGACY_SECTION_SERIALIZER.deserialize(colored);
     }
 
+    /**
+     * {@code text} as a component, reading only section-sign codes ({@code §a}, {@code §x§R§R§G§G§B§B}): an
+     * {@code &} stays text, unlike {@link #colorfyComponent(String)}.
+     */
+    public static Component sectionCodedComponent(@Nullable String text) {
+        if (text == null) return Component.empty();
+        return LEGACY_SECTION_SERIALIZER.deserialize(text);
+    }
+
     public static List<Component> colorfyComponent(@Nullable List<String> text) {
         if (text == null) return null;
         List<Component> components = new ArrayList<>();

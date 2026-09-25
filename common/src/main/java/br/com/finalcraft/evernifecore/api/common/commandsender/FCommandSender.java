@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.api.common.commandsender;
 import br.com.finalcraft.evernifecore.api.common.IHasDelegate;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
+import br.com.finalcraft.evernifecore.util.FCColorUtil;
 import jakarta.annotation.Nonnull;
 import net.kyori.adventure.text.Component;
 
@@ -40,6 +41,16 @@ public interface FCommandSender extends IHasDelegate {
     }
 
     void sendMessage(@Nonnull Component component);
+
+    /**
+     * Shows {@code message} as written: section-sign colour codes ({@code §a}) apply, and an {@code &} is
+     * plain text - where {@link #sendMessage(String)} reads every {@code &} as a colour code. It is the call
+     * for text somebody typed (a chat relay, a Discord bridge) that has to reach the screen literally, and a
+     * plugin reaches it from platform-neutral code without handling an adventure {@link Component}.
+     */
+    default void sendRawMessage(@Nonnull String message) {
+        sendMessage(FCColorUtil.sectionCodedComponent(message));
+    }
 
 
 }
