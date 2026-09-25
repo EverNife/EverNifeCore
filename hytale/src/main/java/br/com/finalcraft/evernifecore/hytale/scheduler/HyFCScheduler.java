@@ -1,7 +1,9 @@
 package br.com.finalcraft.evernifecore.hytale.scheduler;
 
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
+import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
+import com.hypixel.hytale.server.core.util.thread.TickingThread;
 
 import java.util.concurrent.*;
 
@@ -20,6 +22,31 @@ public class HyFCScheduler {
     }
 
     // -----------------------------------------------------------------------------------------------------------------
+    //  The tick clock
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /**
+     * How many times a second the universe's default world ticks - what a tick count means on this server, since
+     * a Hytale world's tick rate is configurable and not the 20 of Minecraft. {@link TickingThread#TPS} (30), the
+     * server's default rate, while there is no default world to ask.
+     */
+    public int getMainWorldTps() {
+        Universe universe = Universe.get();
+        return tpsOf(universe == null ? null : universe.getDefaultWorld());
+    }
+
+    /** The tick rate {@code world} is set to run at, or {@link TickingThread#TPS} (30) when there is no world to ask. */
+    public static int tpsOf(World world) {
+        int tps = world == null ? 0 : world.getTps();
+        return tps > 0 ? tps : TickingThread.TPS;
+    }
+
+    /** How long {@code ticks} last on a clock running at {@code tps}, in milliseconds. */
+    public static long ticksToMillis(long ticks, int tps) {
+        return ticks * 1000L / tps;
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
     //  Actions to be Executed on the World Thread
     // -----------------------------------------------------------------------------------------------------------------
 
@@ -33,10 +60,12 @@ public class HyFCScheduler {
         }, delayMillis, TimeUnit.MILLISECONDS);
     }
 
+    /** Runs {@code runnable} on {@code world}'s thread after {@code delayTicks} of that world's own ticks. */
     public void scheduleSyncInTicks(World world, Runnable runnable, long delayTicks){
+        long delayMillis = ticksToMillis(delayTicks, tpsOf(world));
         FCScheduler.runAsync(() -> {
             try {
-                Thread.sleep(delayTicks * 50); //TODO Make this respect ticks rather than just wait some random calculated value
+                Thread.sleep(delayMillis);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -81,9 +110,10 @@ public class HyFCScheduler {
             try {
                 FutureTask<T> futureTask = new FutureTask(callable);
 
+                long delayMillis = ticksToMillis(delayTicks, tpsOf(world));
                 FCScheduler.runAsync(() -> {
                     try {
-                        Thread.sleep(delayTicks * 50); //TODO Make this respect ticks rather than just wait some random calculated value
+                        Thread.sleep(delayMillis);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
