@@ -4,7 +4,7 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.events.player.ECPlayerFullyLoggedInEvent;
 import br.com.finalcraft.evernifecore.api.events.player.ECPlayerQuitEvent;
 import br.com.finalcraft.evernifecore.minecraft.testkit.BukkitEventWorld;
-import br.com.finalcraft.evernifecore.minecraft.testkit.Doubles;
+import br.com.finalcraft.evernifecore.testing.minecraft.Doubles;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;

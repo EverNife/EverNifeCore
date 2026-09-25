@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.testkit;
 
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
 import br.com.finalcraft.evernifecore.minecraft.inventory.stored.StoredInventory;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.testkit.ItemWorld;
+import br.com.finalcraft.evernifecore.testing.minecraft.ItemWorld;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.Bukkit;

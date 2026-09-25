@@ -12,7 +12,7 @@ import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.RefusedE
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemProbe;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRequirement;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.testkit.ItemWorld;
+import br.com.finalcraft.evernifecore.testing.minecraft.ItemWorld;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;

@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.gui.testkit;
 
-import br.com.finalcraft.evernifecore.minecraft.testkit.Doubles;
+import br.com.finalcraft.evernifecore.testing.minecraft.Doubles;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.HumanEntity;

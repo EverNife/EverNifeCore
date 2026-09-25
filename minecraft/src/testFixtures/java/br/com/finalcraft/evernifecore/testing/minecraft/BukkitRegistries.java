@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.minecraft.testkit;
+package br.com.finalcraft.evernifecore.testing.minecraft;
 
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;

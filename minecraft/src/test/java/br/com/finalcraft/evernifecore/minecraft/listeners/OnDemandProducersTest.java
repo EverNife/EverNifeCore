@@ -13,7 +13,7 @@ import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPlayerDamage
 import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPlayerDamagedByPlayer;
 import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPlayerdataDamagePlayerdata;
 import br.com.finalcraft.evernifecore.minecraft.testkit.BukkitEventWorld;
-import br.com.finalcraft.evernifecore.minecraft.testkit.Doubles;
+import br.com.finalcraft.evernifecore.testing.minecraft.Doubles;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.Chunk;
 import org.bukkit.Location;

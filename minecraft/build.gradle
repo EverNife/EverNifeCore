@@ -1,3 +1,5 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
 plugins {
     alias(libs.plugins.shadow)
 }
@@ -22,6 +24,35 @@ repositories {
         url = uri("https://repo.codemc.io/repository/maven-public/")
     }
     maven { url = 'https://repo.codemc.io/repository/creatorfromhell/' } // VaultUnlocked
+}
+
+// Declared ahead of the dependencies that fill them - see the evernifecore-minecraft-tests block below.
+configurations {
+    testKitEngine { transitive = false }
+    testKitRuntimeStack { transitive = false }
+}
+
+sourceSets {
+    // The Bukkit half of the test engine: this module's own tests use it, and it is published as
+    // evernifecore-minecraft-tests (see testKitJar below). Wired to the main output directly rather
+    // than through the java-test-fixtures plugin, which would route every consumer through the thin
+    // jar this module does not build.
+    testFixtures {
+        compileClasspath += main.output
+        runtimeClasspath += main.output
+    }
+    test {
+        compileClasspath += testFixtures.output
+        runtimeClasspath += testFixtures.output
+    }
+    // Proves the published shape: a test compiled and run against the deployable fat jar and the test
+    // kit jar alone, with the POM's other dependencies - what a plugin's own build resolves.
+    testKitConsumer
+}
+configurations {
+    testFixturesImplementation.extendsFrom implementation
+    testFixturesCompileOnly.extendsFrom compileOnly
+    testImplementation.extendsFrom testFixturesImplementation
 }
 
 dependencies {
@@ -93,6 +124,57 @@ dependencies {
     // has the real Bukkit PlaceholderAPI to find.
     testRuntimeOnly name: "PlaceholderAPI-2.11.2"
     testImplementation project(':common-tests')
+
+    testFixturesImplementation project(':common-tests')
+    testFixturesImplementation libs.spigot.api
+    // Java 8 bytecode like common-tests: a consumer may run its tests on an old server's toolchain.
+    testFixturesAnnotationProcessor libs.jabel
+    testFixturesCompileOnly libs.jabel
+
+    testKitEngine project(':common-tests')
+    testKitRuntimeStack libs.jackson.core
+    testKitRuntimeStack libs.jackson.databind
+    testKitRuntimeStack libs.jackson.datatype.jsr310
+    testKitRuntimeStack libs.jackson.datatype.jdk8
+    testKitRuntimeStack libs.jackson.dataformat.yaml
+    testKitRuntimeStack libs.jackson.dataformat.toml
+    testKitRuntimeStack libs.snakeyaml
+
+}
+
+tasks.named('compileTestFixturesJava') {
+    sourceCompatibility = 25
+    options.release = 8
+}
+// options.release = 8 would make the fixtures ask for a Java 8 variant of this very module, whose
+// variants the root build tags as 25 - the same pin the main source set compiles under.
+['testFixturesCompileClasspath', 'testFixturesRuntimeClasspath'].each { name ->
+    configurations.named(name) {
+        attributes { attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 25) }
+    }
+}
+
+// Every package the deployable relocates. A jar that has to link against the deployable - the test kit
+// below - applies the same list, so the two never disagree on a name.
+def applyCoreRelocations = { task ->
+    task.relocate 'net.byteflux.libby', 'br.com.finalcraft.libs.net.byteflux'
+    task.relocate 'net.kyori', 'br.com.finalcraft.libs.net.kyori'
+    task.relocate 'de.tr7zw.changeme.nbtapi', 'br.com.finalcraft.libs.minecraft.nbtapi'
+
+    // Rewrites the embedded EveryDatabase/EveryConfig refs onto the coordinates libby delivers at
+    // runtime. The Jackson pairs come from the single source in the root build (rootProject.
+    // jacksonRelocations); EDBDependencies mirrors them at the runtime-download side.
+    rootProject.jacksonRelocations.each { from, to -> task.relocate from, to }
+    // The server ships an older canonical snakeyaml without setCodePointLimit, which EveryConfig's
+    // YamlCodec calls; this points it at the snakeyaml libby delivers.
+    task.relocate 'org.yaml.snakeyaml',               'br.com.finalcraft.everydatabase.libs.snakeyaml'
+    task.relocate 'com.zaxxer.hikari',                'br.com.finalcraft.everydatabase.libs.hikari'
+    task.relocate 'org.slf4j',                        'br.com.finalcraft.everydatabase.libs.slf4j'
+    task.relocate 'com.mongodb',                      'br.com.finalcraft.everydatabase.libs.mongodb'
+    task.relocate 'org.bson',                         'br.com.finalcraft.everydatabase.libs.bson'
+    task.relocate 'org.h2',                           'br.com.finalcraft.everydatabase.libs.h2'
+    task.relocate 'org.postgresql',                   'br.com.finalcraft.everydatabase.libs.postgresql'
+    task.relocate 'com.mysql',                        'br.com.finalcraft.everydatabase.libs.mysql'
 }
 
 shadowJar {
@@ -130,24 +212,54 @@ shadowJar {
         include(dependency('br.com.finalcraft.everylibs:everylibs-executors:'))
     }
 
-    relocate 'net.byteflux.libby', 'br.com.finalcraft.libs.net.byteflux'
-    relocate 'net.kyori', 'br.com.finalcraft.libs.net.kyori'
-    relocate 'de.tr7zw.changeme.nbtapi', 'br.com.finalcraft.libs.minecraft.nbtapi'
+    applyCoreRelocations(delegate)
+}
 
-    // Rewrites the embedded EveryDatabase/EveryConfig refs onto the coordinates libby delivers at
-    // runtime. The Jackson pairs come from the single source in the root build (rootProject.
-    // jacksonRelocations); EDBDependencies mirrors them at the runtime-download side.
-    rootProject.jacksonRelocations.each { from, to -> relocate from, to }
-    // The server ships an older canonical snakeyaml without setCodePointLimit, which EveryConfig's
-    // YamlCodec calls; this points it at the snakeyaml libby delivers.
-    relocate 'org.yaml.snakeyaml',               'br.com.finalcraft.everydatabase.libs.snakeyaml'
-    relocate 'com.zaxxer.hikari',                'br.com.finalcraft.everydatabase.libs.hikari'
-    relocate 'org.slf4j',                        'br.com.finalcraft.everydatabase.libs.slf4j'
-    relocate 'com.mongodb',                      'br.com.finalcraft.everydatabase.libs.mongodb'
-    relocate 'org.bson',                         'br.com.finalcraft.everydatabase.libs.bson'
-    relocate 'org.h2',                           'br.com.finalcraft.everydatabase.libs.h2'
-    relocate 'org.postgresql',                   'br.com.finalcraft.everydatabase.libs.postgresql'
-    relocate 'com.mysql',                        'br.com.finalcraft.everydatabase.libs.mysql'
+// ======================================================================
+//  evernifecore-minecraft-tests: the test engine for a plugin's Bukkit-side tests
+//
+//  A plugin's minecraft module compiles against evernifecore-minecraft, whose classes link against
+//  RELOCATED names (Jackson, snakeyaml, kyori) and whose Jackson stack is downloaded by libby when the
+//  server boots. A headless test JVM has no libby and no server, so this jar brings what the server
+//  would: that same Jackson stack, relocated the same way, plus the engine - common-tests and the Bukkit
+//  test fixtures (ItemWorld and its doubles: a described server, an item factory, named worlds) -
+//  rewritten onto the relocated names. Its POM therefore depends on evernifecore-minecraft and never on
+//  evernifecore-common: the common classes the engine drives are the relocated copies inside the fat jar.
+//  Why Hytale has no counterpart, and when it gets one: src/testFixtures/.../testing/minecraft/package-info.
+// ======================================================================
+tasks.register('testKitJar', ShadowJar) {
+    description = 'Builds evernifecore-minecraft-tests: the test engine and the runtime Jackson stack, relocated like the deployable.'
+    group = 'build'
+    archiveBaseName.set('evernifecore-minecraft-tests')
+    archiveClassifier.set('')
+    destinationDirectory.set(layout.buildDirectory.dir('test-kit'))
+    from sourceSets.testFixtures.output
+    configurations = [project.configurations.testKitEngine, project.configurations.testKitRuntimeStack]
+    exclude 'module-info.class', 'META-INF/versions/**/module-info.class'
+    applyCoreRelocations(delegate)
+}
+
+dependencies {
+    testKitConsumerImplementation files(tasks.named('shadowJar'), tasks.named('testKitJar'))
+    testKitConsumerImplementation libs.spigot.api
+    testKitConsumerImplementation platform(libs.junit.bom)
+    testKitConsumerImplementation libs.junit.jupiter
+    testKitConsumerRuntimeOnly libs.junit.platform.launcher
+    testKitConsumerRuntimeOnly libs.commons.lang3
+    testKitConsumerRuntimeOnly libs.jackson.annotations
+    testKitConsumerRuntimeOnly libs.log4j.api
+}
+
+tasks.register('testKitConsumerTest', Test) {
+    description = 'Runs a plugin-shaped test against evernifecore-minecraft plus evernifecore-minecraft-tests.'
+    group = 'verification'
+    testClassesDirs = sourceSets.testKitConsumer.output.classesDirs
+    classpath = sourceSets.testKitConsumer.runtimeClasspath
+    useJUnitPlatform()
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('testKitConsumerTest')
 }
 
 java {
@@ -193,6 +305,29 @@ publishing {
         }
     }
     publications {
+        testKit(MavenPublication) {
+            groupId = project.group
+            artifactId = "evernifecore-minecraft-tests"
+            artifact tasks.named('testKitJar')
+            pom.withXml {
+                def deps = asNode().appendNode('dependencies')
+                def addDep = { String g, String a, String v, String scope ->
+                    def d = deps.appendNode('dependency')
+                    d.appendNode('groupId', g)
+                    d.appendNode('artifactId', a)
+                    d.appendNode('version', v)
+                    d.appendNode('scope', scope)
+                }
+                addDep(project.group.toString(), 'evernifecore-minecraft', project.version.toString(), 'compile')
+                addDep('org.spigotmc', 'spigot-api', libs.versions.spigot.asProvider().get(), 'compile')
+                addDep('org.junit.jupiter', 'junit-jupiter', libs.versions.junit.get(), 'compile')
+                // What a server hands the core and a test JVM does not have.
+                addDep('org.apache.commons', 'commons-lang3', libs.versions.commons.lang3.asProvider().get(), 'runtime')
+                addDep('com.fasterxml.jackson.core', 'jackson-annotations', libs.versions.jackson.annotations.get(), 'runtime')
+                addDep('org.apache.logging.log4j', 'log4j-api', libs.versions.log4j.get(), 'runtime')
+                asNode().appendNode('url', 'https://petrus.dev')
+            }
+        }
         petrus(MavenPublication) {
             groupId = project.group
             artifactId = "evernifecore-minecraft"

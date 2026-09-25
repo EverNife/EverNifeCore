@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.Plugins;
+import br.com.finalcraft.evernifecore.testing.minecraft.ItemWorld;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import br.com.finalcraft.everyconfig.config.Config;
 import org.bukkit.Location;
@@ -27,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class McLocationCodecTest {
 
     private static final AtomicInteger UNIQUE_SUFFIX = new AtomicInteger();
-    private static boolean typesRegistered = false;
 
     @TempDirNobodyCleans
     Path tempDir;
@@ -40,10 +40,7 @@ class McLocationCodecTest {
                 Plugins.fake("McLocationCodec_" + UNIQUE_SUFFIX.incrementAndGet(), tempDir.toFile()));
         ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(new Object());
         EverNifeCore.instance.onLoaderInstantiate(ecPluginData);
-        if (!typesRegistered) {
-            McConfigTypes.register();
-            typesRegistered = true;
-        }
+        ItemWorld.registerConfigTypes();
     }
 
     @AfterEach

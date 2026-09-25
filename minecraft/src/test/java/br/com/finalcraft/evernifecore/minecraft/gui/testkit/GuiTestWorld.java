@@ -11,15 +11,15 @@ import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiViews;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemProbe;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.testkit.ItemMetaDouble;
-import br.com.finalcraft.evernifecore.minecraft.loader.imp.McConfigTypes;
-import br.com.finalcraft.evernifecore.minecraft.testkit.BukkitRegistries;
+import br.com.finalcraft.evernifecore.testing.minecraft.ItemMetaDouble;
+import br.com.finalcraft.evernifecore.testing.minecraft.BukkitRegistries;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
-import br.com.finalcraft.evernifecore.minecraft.testkit.Doubles;
+import br.com.finalcraft.evernifecore.testing.minecraft.Doubles;
+import br.com.finalcraft.evernifecore.testing.minecraft.ItemWorld;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.UnsafeValues;
@@ -86,8 +86,6 @@ public final class GuiTestWorld implements AutoCloseable {
     private static final ItemRuntime SPEAKING_ITEMS = ItemRuntime.of(MCDetailedVersion.v1_21_R1,
             ItemProbe.ITEM_META, ItemProbe.ENCHANT_REGISTRY);
 
-    private static boolean configTypesRegistered = false;
-
     private final ECoreTestWorld platformWorld;
     private final String pluginName;
     private final ECPluginData ecPluginData;
@@ -116,7 +114,8 @@ public final class GuiTestWorld implements AutoCloseable {
         this.previousServer = Bukkit.getServer();
         setBukkitServer(buildServer());
         ItemEngine.install(runtime);
-        registerConfigTypes();
+        //the platform's own config codecs - slot lists, item stacks, locations - a layout file is unreadable without
+        ItemWorld.registerConfigTypes();
     }
 
     /** A screen over items that carry no metadata - two stacks then compare by type and amount alone. */
@@ -138,16 +137,6 @@ public final class GuiTestWorld implements AutoCloseable {
     /** The runtime this world's item engine stands on, for a test that wants to name what it lost. */
     public ItemRuntime getItemRuntime() {
         return runtime;
-    }
-
-    /** The platform's own config codecs - slot lists, item stacks, locations - which a layout file is
-     *  unreadable without. The registry is process-wide, so a second pass would be the bootstrap
-     *  running twice. */
-    private static synchronized void registerConfigTypes() {
-        if (!configTypesRegistered) {
-            configTypesRegistered = true;
-            McConfigTypes.register();
-        }
     }
 
     // -----------------------------------------------------------------------------------------------------------------

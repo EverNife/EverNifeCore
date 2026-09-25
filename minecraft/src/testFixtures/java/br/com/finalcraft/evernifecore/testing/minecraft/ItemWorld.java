@@ -1,19 +1,22 @@
-package br.com.finalcraft.evernifecore.minecraft.itemstack.testkit;
+package br.com.finalcraft.evernifecore.testing.minecraft;
 
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemProbe;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
-import br.com.finalcraft.evernifecore.minecraft.testkit.BukkitRegistries;
+import br.com.finalcraft.evernifecore.minecraft.loader.imp.McConfigTypes;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
-import br.com.finalcraft.evernifecore.minecraft.testkit.Doubles;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
+import org.bukkit.World;
 import org.bukkit.inventory.ItemFactory;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 /**
  * A server described rather than run: the item engine stands on exactly the runtime a test names,
@@ -34,6 +37,10 @@ import java.lang.reflect.Proxy;
  * <p>The main thread is whichever thread installed this rig, and no other. Answering everyone yes
  * would be the same rig quietly disarming every main-thread guard in the code under test, for as long
  * as it is installed - the answer follows the thread that asks.</p>
+ *
+ * <p>Any world name resolves to a world that answers its name ({@link #world(String)}), so a stored
+ * {@code Location} reads back with its world. Reading one out of a config also needs the Bukkit config
+ * codecs: {@link #registerConfigTypes()}.</p>
  */
 public final class ItemWorld implements AutoCloseable {
 
@@ -45,6 +52,30 @@ public final class ItemWorld implements AutoCloseable {
     /** A runtime described exactly, for the tests that are about what it cannot do. */
     public static ItemWorld install(ItemRuntime runtime) {
         return new ItemWorld(runtime);
+    }
+
+    private static boolean configTypesRegistered = false;
+    private static final Map<String, World> WORLDS = new ConcurrentHashMap<>();
+
+    /**
+     * Registers the Bukkit config codecs - {@code Location}, {@code ItemStack}, slot lists, stored
+     * inventories - the way the platform does at boot, once per JVM: the registry is process-wide, so a
+     * second pass would be the bootstrap running twice. Call it after a platform is installed
+     * ({@code Platforms.lenient().install()}).
+     */
+    public static synchronized void registerConfigTypes() {
+        if (!configTypesRegistered) {
+            configTypesRegistered = true;
+            McConfigTypes.register();
+        }
+    }
+
+    /** The world this rig answers for {@code name}: it knows its name, and the same name is the same world. */
+    public static World world(String name) {
+        return WORLDS.computeIfAbsent(name, worldName -> Doubles.of(World.class)
+                .on("getName", args -> worldName)
+                .on("toString", args -> "World{" + worldName + "}")
+                .build());
     }
 
     private final Server previousServer;
@@ -120,6 +151,10 @@ public final class ItemWorld implements AutoCloseable {
                                 return BukkitRegistries.forType((Class<?>) args[0]);
                             case "getBukkitVersion":
                                 return bukkitVersion;
+                            case "getWorld":
+                                return args[0] instanceof String ? world((String) args[0]) : null;
+                            case "getLogger":
+                                return Logger.getLogger("ItemWorld");
                             case "getVersion":
                                 return bukkitVersion;
                             case "isPrimaryThread":

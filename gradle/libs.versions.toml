@@ -57,6 +57,10 @@ commons-lang3-legacy = "3.0"
 # same line EveryDatabase/EveryConfig compile against (their POMs declare jackson-databind 2.22.0),
 # so the embedded classes and their relocated references stay on one Jackson version.
 jackson = "2.22.0"
+# jackson-annotations dropped the patch component at 2.20, so its line is "2.22". Together with snakeyaml,
+# this is the stack EDBDependencies downloads at boot; evernifecore-minecraft-tests bundles the same one.
+jackson-annotations = "2.22"
+snakeyaml = "2.6"
 
 # Test
 junit = "5.10.0"
@@ -111,6 +115,12 @@ commons-lang3-legacy = { module = "org.apache.commons:commons-lang3", version.re
 
 jackson-core = { module = "com.fasterxml.jackson.core:jackson-core", version.ref = "jackson" }
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations", version.ref = "jackson-annotations" }
+jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson" }
+jackson-datatype-jdk8 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jdk8", version.ref = "jackson" }
+jackson-dataformat-yaml = { module = "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml", version.ref = "jackson" }
+jackson-dataformat-toml = { module = "com.fasterxml.jackson.dataformat:jackson-dataformat-toml", version.ref = "jackson" }
+snakeyaml = { module = "org.yaml:snakeyaml", version.ref = "snakeyaml" }
 
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }

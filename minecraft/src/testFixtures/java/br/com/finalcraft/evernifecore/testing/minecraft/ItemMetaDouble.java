@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.minecraft.itemstack.testkit;
+package br.com.finalcraft.evernifecore.testing.minecraft;
 
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.meta.Damageable;

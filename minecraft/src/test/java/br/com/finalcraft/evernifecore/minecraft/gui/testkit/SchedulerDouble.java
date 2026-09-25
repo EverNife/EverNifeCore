@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.gui.testkit;
 
 import br.com.finalcraft.evernifecore.minecraft.gui.model.Cancellable;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiScheduler;
-import br.com.finalcraft.evernifecore.minecraft.testkit.Doubles;
+import br.com.finalcraft.evernifecore.testing.minecraft.Doubles;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 

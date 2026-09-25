@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.testkit;
 
+import br.com.finalcraft.evernifecore.testing.minecraft.Doubles;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;

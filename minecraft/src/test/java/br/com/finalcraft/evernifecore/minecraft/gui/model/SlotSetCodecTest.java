@@ -4,10 +4,10 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
-import br.com.finalcraft.evernifecore.minecraft.loader.imp.McConfigTypes;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.Plugins;
+import br.com.finalcraft.evernifecore.testing.minecraft.ItemWorld;
 import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.junit.jupiter.api.AfterEach;
@@ -36,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SlotSetCodecTest {
 
     private static final AtomicInteger UNIQUE_SUFFIX = new AtomicInteger();
-    private static boolean typesRegistered = false;
 
     @TempDirNobodyCleans
     Path tempDir;
@@ -50,12 +49,7 @@ class SlotSetCodecTest {
         ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(new Object());
         EverNifeCore.instance.onLoaderInstantiate(ecPluginData);
 
-        if (!typesRegistered) {
-            //the registry is process-wide; registering the platform types a second time would be the
-            //bootstrap running twice, which the platform's own guard is what prevents in production
-            McConfigTypes.register();
-            typesRegistered = true;
-        }
+        ItemWorld.registerConfigTypes();
     }
 
     @AfterEach

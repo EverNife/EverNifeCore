@@ -15,7 +15,7 @@ import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.RegisteredPart;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.ItemLineException;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemProbe;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
-import br.com.finalcraft.evernifecore.minecraft.itemstack.testkit.ItemWorld;
+import br.com.finalcraft.evernifecore.testing.minecraft.ItemWorld;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemFlag;
