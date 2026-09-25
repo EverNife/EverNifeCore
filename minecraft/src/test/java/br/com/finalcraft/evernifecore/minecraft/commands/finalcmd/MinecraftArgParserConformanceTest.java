@@ -40,8 +40,8 @@ class MinecraftArgParserConformanceTest {
     void thePlatformsOwnContextualParsersAreTheOnesResolved() {
         //the harness registers the builtins; the platform's own registrations come after, as on a server
         harness = new FinalCmdTestHarness("McArgParsers", tempDir);
-        ArgParserManager.addGlobalContextualParser(MinecraftFCommandSender.class, ArgParserContextualMinecraftFCommandSender.class);
-        ArgParserManager.addGlobalContextualParser(MinecraftFPlayer.class, ArgParserContextualMinecraftFPlayer.class);
+        ArgParserManager.addGlobalContextualParser(harness.ecPluginData, MinecraftFCommandSender.class, ArgParserContextualMinecraftFCommandSender.class);
+        ArgParserManager.addGlobalContextualParser(harness.ecPluginData, MinecraftFPlayer.class, ArgParserContextualMinecraftFPlayer.class);
 
         Map<Class<?>, Class<?>> expected = new LinkedHashMap<>();
         expected.put(MinecraftFCommandSender.class, ArgParserContextualMinecraftFCommandSender.class);

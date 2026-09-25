@@ -5,7 +5,6 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
-import br.com.finalcraft.everylibs.commons.Tuple;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,35 +19,73 @@ public class ArgParserManager {
     private static volatile ParserContext GLOBAL_CONTEXT_PARSER = new ParserContext();
     private static volatile Map<String,ParserContext> PLUGIN_CONTEXT_MAP = new HashMap<>();
 
-    public static <T> void addGlobalParser(Class<? extends T> clazz, Class<? extends ArgParser<T>> parser){
-        GLOBAL_CONTEXT_PARSER.addParser(clazz, parser);
-        ECDebugModule.ARG_PARSER.debug("Added Global Parser: {} -> {}", clazz.getSimpleName(), parser.getSimpleName());
+    /**
+     * Registers {@code parser} for {@code clazz} for every plugin's commands, owned by {@code owner}: the
+     * registration leaves with {@code owner} ({@link #unregisterAll(ECPluginData)} on its shutdown), and a
+     * parser another plugin had registered for the same type answers again from then on. Registering over a
+     * parser another plugin owns logs a warning naming both. {@link #addPluginParser} keeps a parser to one
+     * plugin's own commands instead.
+     */
+    public static synchronized <T> void addGlobalParser(ECPluginData owner, Class<? extends T> clazz, Class<? extends ArgParser<T>> parser){
+        GLOBAL_CONTEXT_PARSER.addParser(ownerName(owner), clazz, parser);
+        ECDebugModule.ARG_PARSER.debug("Added Global Parser [{}]: {} -> {}", ownerName(owner), clazz.getSimpleName(), parser.getSimpleName());
         ECPluginData ecPluginData = ECPluginManager.getProvidingPlugin(parser);
         FCLocaleManager.loadLocale(ecPluginData, true, parser);
     }
 
-    public static <T> void addGlobalContextualParser(Class<? extends T> clazz, Class<? extends ArgParserContextual<T>> contextualParser){
-        GLOBAL_CONTEXT_PARSER.addContextualParser(clazz, contextualParser);
-        ECDebugModule.CONTEXTUAL_ARG_PARSER.debug("Added Global ContextualParser: {} -> {}", clazz.getSimpleName(), contextualParser.getSimpleName());
+    /** The contextual counterpart of {@link #addGlobalParser}, with the same ownership. */
+    public static synchronized <T> void addGlobalContextualParser(ECPluginData owner, Class<? extends T> clazz, Class<? extends ArgParserContextual<T>> contextualParser){
+        GLOBAL_CONTEXT_PARSER.addContextualParser(ownerName(owner), clazz, contextualParser);
+        ECDebugModule.CONTEXTUAL_ARG_PARSER.debug("Added Global ContextualParser [{}]: {} -> {}", ownerName(owner), clazz.getSimpleName(), contextualParser.getSimpleName());
         ECPluginData ecPluginData = ECPluginManager.getProvidingPlugin(contextualParser);
         FCLocaleManager.loadLocale(ecPluginData, true, contextualParser);
     }
 
-    public static <T> void addPluginParser(ECPluginData plugin, Class<? extends T> clazz, Class<? extends ArgParser<T>> parser){
-        PLUGIN_CONTEXT_MAP.computeIfAbsent(plugin.getMetaInfo().getName(), s -> new ParserContext())
-                .addParser(clazz, parser);
+    /**
+     * Takes back the global parser {@code owner} registered for {@code clazz}; the one registered before it,
+     * if any, answers again. A parser another plugin owns is never touched.
+     *
+     * @return whether {@code owner} had one registered for {@code clazz}
+     */
+    public static synchronized boolean unregisterGlobalParser(ECPluginData owner, Class<?> clazz){
+        return GLOBAL_CONTEXT_PARSER.removeParser(ownerName(owner), clazz);
+    }
 
-        ECDebugModule.ARG_PARSER.debug("Added Plugin [{}] Parser: {} -> {}", plugin.getMetaInfo().getName(), clazz.getSimpleName(), parser.getSimpleName());
+    /** The contextual counterpart of {@link #unregisterGlobalParser}. */
+    public static synchronized boolean unregisterGlobalContextualParser(ECPluginData owner, Class<?> clazz){
+        return GLOBAL_CONTEXT_PARSER.removeContextualParser(ownerName(owner), clazz);
+    }
+
+    /**
+     * Takes back everything {@code plugin} registered: its own plugin parsers and every global one it owns.
+     * The default {@code onECPluginShutdownPre} calls it together with the command teardown, so a plugin that
+     * is disabled or reloaded leaves no parser behind.
+     */
+    public static synchronized void unregisterAll(ECPluginData plugin){
+        String owner = ownerName(plugin);
+        PLUGIN_CONTEXT_MAP.remove(owner);
+        GLOBAL_CONTEXT_PARSER.removeOwner(owner);
+    }
+
+    private static String ownerName(ECPluginData plugin){
+        return plugin.getMetaInfo().getName();
+    }
+
+    public static synchronized <T> void addPluginParser(ECPluginData plugin, Class<? extends T> clazz, Class<? extends ArgParser<T>> parser){
+        PLUGIN_CONTEXT_MAP.computeIfAbsent(ownerName(plugin), s -> new ParserContext())
+                .addParser(ownerName(plugin), clazz, parser);
+
+        ECDebugModule.ARG_PARSER.debug("Added Plugin [{}] Parser: {} -> {}", ownerName(plugin), clazz.getSimpleName(), parser.getSimpleName());
 
         ECPluginData ecPluginData = ECPluginManager.getProvidingPlugin(parser);//Not always the same as the plugin adding it
         FCLocaleManager.loadLocale(ecPluginData, true, parser);
     }
 
-    public static <T> void addPluginContextualParser(ECPluginData plugin, Class<? extends T> clazz, Class<? extends ArgParserContextual<T>> parser){
-        PLUGIN_CONTEXT_MAP.computeIfAbsent(plugin.getMetaInfo().getName(), s -> new ParserContext())
-                .addContextualParser(clazz, parser);
+    public static synchronized <T> void addPluginContextualParser(ECPluginData plugin, Class<? extends T> clazz, Class<? extends ArgParserContextual<T>> parser){
+        PLUGIN_CONTEXT_MAP.computeIfAbsent(ownerName(plugin), s -> new ParserContext())
+                .addContextualParser(ownerName(plugin), clazz, parser);
 
-        ECDebugModule.CONTEXTUAL_ARG_PARSER.debug("Added Plugin [{}] ContextualParser: {} -> {}", plugin.getMetaInfo().getName(), clazz.getSimpleName(), parser.getSimpleName());
+        ECDebugModule.CONTEXTUAL_ARG_PARSER.debug("Added Plugin [{}] ContextualParser: {} -> {}", ownerName(plugin), clazz.getSimpleName(), parser.getSimpleName());
 
         ECPluginData ecPluginData = ECPluginManager.getProvidingPlugin(parser);//Not always the same as the plugin adding it
         FCLocaleManager.loadLocale(ecPluginData, true, parser);
@@ -133,84 +170,126 @@ public class ArgParserManager {
      * which is exactly the shape every platform registration has, since the builtins are in place
      * before {@code registerArgParsers()} ever runs. Asking for the type itself first means
      * "I registered a parser for MyType" holds no matter what was registered before it.
+     * <p>
+     * Each type keeps every owner's registration, newest last: the newest answers, and taking it back
+     * lets the one under it answer again.
      */
     private static class ParserContext{
-        private final Map<Class, Class<? extends ArgParser>> exactParsers = new LinkedHashMap<>();
-        private final Map<Class, Class<? extends ArgParserContextual>> exactContextualParsers = new LinkedHashMap<>();
-        private final List<Tuple<Class, Class<? extends ArgParser>>> argParsers = new ArrayList<>();
-        private final List<Tuple<Class, Class<? extends ArgParserContextual>>> contextualArgParsers = new ArrayList<>();
+        private final Map<Class, List<Owned<ArgParser>>> parsers = new LinkedHashMap<>();
+        private final Map<Class, List<Owned<ArgParserContextual>>> contextualParsers = new LinkedHashMap<>();
 
         private ParserContext(){
         }
 
         private ParserContext(ParserContext other){
-            exactParsers.putAll(other.exactParsers);
-            exactContextualParsers.putAll(other.exactContextualParsers);
-            argParsers.addAll(other.argParsers);
-            contextualArgParsers.addAll(other.contextualArgParsers);
+            copyInto(other.parsers, parsers);
+            copyInto(other.contextualParsers, contextualParsers);
         }
 
-        public void addParser(Class argument, Class<? extends ArgParser> parser){
-            Class<? extends ArgParser> previous = exactParsers.put(argument, parser);
-            replace(argParsers, argument, parser, previous);
-            logOverride(argument, previous, parser);
-        }
-
-        public void addContextualParser(Class argument, Class<? extends ArgParserContextual> parser){
-            Class<? extends ArgParserContextual> previous = exactContextualParsers.put(argument, parser);
-            replace(contextualArgParsers, argument, parser, previous);
-            logOverride(argument, previous, parser);
-        }
-
-        /** Keeps the assignable pass consistent with the exact one: one entry per type, its place kept. */
-        private static <P> void replace(List<Tuple<Class, P>> registered, Class argument, P parser, P previous){
-            if (previous == null){
-                registered.add(Tuple.of(argument, parser));
-                return;
+        private static <P> void copyInto(Map<Class, List<Owned<P>>> from, Map<Class, List<Owned<P>>> to){
+            for (Map.Entry<Class, List<Owned<P>>> entry : from.entrySet()) {
+                to.put(entry.getKey(), new ArrayList<>(entry.getValue()));
             }
-            for (int i = 0; i < registered.size(); i++) {
-                if (registered.get(i).getLeft().equals(argument)){
-                    registered.set(i, Tuple.of(argument, parser));
-                    return;
-                }
+        }
+
+        public void addParser(String owner, Class argument, Class<? extends ArgParser> parser){
+            push(parsers, owner, argument, parser);
+        }
+
+        public void addContextualParser(String owner, Class argument, Class<? extends ArgParserContextual> parser){
+            push(contextualParsers, owner, argument, parser);
+        }
+
+        public boolean removeParser(String owner, Class argument){
+            return remove(parsers, owner, argument);
+        }
+
+        public boolean removeContextualParser(String owner, Class argument){
+            return remove(contextualParsers, owner, argument);
+        }
+
+        public void removeOwner(String owner){
+            for (Class argument : new ArrayList<>(parsers.keySet())) {
+                remove(parsers, owner, argument);
             }
+            for (Class argument : new ArrayList<>(contextualParsers.keySet())) {
+                remove(contextualParsers, owner, argument);
+            }
+        }
+
+        /** One registration per owner and type: registering again replaces the owner's own and moves it on top. */
+        private static <P> void push(Map<Class, List<Owned<P>>> registry, String owner, Class argument, Class<? extends P> parser){
+            List<Owned<P>> stack = registry.computeIfAbsent(argument, k -> new ArrayList<>());
+            Owned<P> previous = stack.isEmpty() ? null : stack.get(stack.size() - 1);
+            stack.removeIf(registration -> registration.owner.equals(owner));
+            stack.add(new Owned<P>(owner, parser));
+            logOverride(argument, previous, owner, parser);
+        }
+
+        private static <P> boolean remove(Map<Class, List<Owned<P>>> registry, String owner, Class argument){
+            List<Owned<P>> stack = registry.get(argument);
+            if (stack == null || !stack.removeIf(registration -> registration.owner.equals(owner))){
+                return false;
+            }
+            if (stack.isEmpty()){
+                registry.remove(argument);
+            }
+            return true;
         }
 
         /**
          * Registering the same exact type twice is a deliberate override - a platform replacing a
          * builtin - so the last one wins and says so once, instead of the first one winning in silence.
+         * Over ANOTHER owner's parser it is a warning: two plugins disagree on how a type is read, and
+         * every command on the server now reads it the newer one's way.
          */
-        private static void logOverride(Class argument, Object previous, Object parser){
-            if (previous != null && !previous.equals(parser)){
-                EverNifeCore.getLog().info("[FinalCMD] Parser for " + argument.getSimpleName() + " overridden: "
-                        + ((Class<?>) previous).getSimpleName() + " -> " + ((Class<?>) parser).getSimpleName());
+        private static <P> void logOverride(Class argument, Owned<P> previous, String owner, Class<? extends P> parser){
+            if (previous == null || previous.parser.equals(parser)){
+                return;
             }
+            if (previous.owner.equals(owner)){
+                EverNifeCore.getLog().info("[FinalCMD] Parser for " + argument.getSimpleName() + " overridden: "
+                        + previous.parser.getSimpleName() + " -> " + parser.getSimpleName());
+                return;
+            }
+            EverNifeCore.getLog().warning("[FinalCMD] " + owner + " registered " + parser.getSimpleName()
+                    + " as the global parser for " + argument.getSimpleName() + ", over " + previous.owner + "'s "
+                    + previous.parser.getSimpleName() + ": every command on this server now reads that type the "
+                    + owner + " way, and " + previous.owner + "'s comes back when " + owner + " unregisters it. If only "
+                    + owner + "'s own commands need it, register it with ArgParserManager.addPluginParser instead.");
         }
 
         public Class<? extends ArgParser> getParser(Class argument){
-            Class<? extends ArgParser> exact = exactParsers.get(argument);
+            return lookup(parsers, argument);
+        }
+
+        public Class<? extends ArgParserContextual> getContextualParser(Class argument){
+            return lookup(contextualParsers, argument);
+        }
+
+        private static <P> Class<? extends P> lookup(Map<Class, List<Owned<P>>> registry, Class argument){
+            List<Owned<P>> exact = registry.get(argument);
             if (exact != null){
-                return exact;
+                return exact.get(exact.size() - 1).parser;
             }
-            for (Tuple<Class, Class<? extends ArgParser>> parser : argParsers) {
-                if (parser.getLeft().isAssignableFrom(argument)){
-                    return parser.getRight();
+            for (Map.Entry<Class, List<Owned<P>>> entry : registry.entrySet()) {
+                if (entry.getKey().isAssignableFrom(argument)){
+                    List<Owned<P>> stack = entry.getValue();
+                    return stack.get(stack.size() - 1).parser;
                 }
             }
             return null;
         }
+    }
 
-        public Class<? extends ArgParserContextual> getContextualParser(Class argument){
-            Class<? extends ArgParserContextual> exact = exactContextualParsers.get(argument);
-            if (exact != null){
-                return exact;
-            }
-            for (Tuple<Class, Class<? extends ArgParserContextual>> parser : contextualArgParsers) {
-                if (parser.getLeft().isAssignableFrom(argument)){
-                    return parser.getRight();
-                }
-            }
-            return null;
+    /** A parser and the plugin that registered it. */
+    private static final class Owned<P>{
+        private final String owner;
+        private final Class<? extends P> parser;
+
+        private Owned(String owner, Class<? extends P> parser){
+            this.owner = owner;
+            this.parser = parser;
         }
     }
 

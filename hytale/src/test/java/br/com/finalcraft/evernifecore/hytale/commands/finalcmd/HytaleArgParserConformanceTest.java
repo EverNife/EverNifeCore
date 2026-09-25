@@ -41,8 +41,8 @@ class HytaleArgParserConformanceTest {
     void thePlatformsOwnContextualParsersAreTheOnesResolved() {
         //the harness registers the builtins; the platform's own registrations come after, as on a server
         harness = new FinalCmdTestHarness("HyArgParsers", tempDir);
-        ArgParserManager.addGlobalContextualParser(HytaleFCommandSender.class, ArgParserContextualHytaleFCommandSender.class);
-        ArgParserManager.addGlobalContextualParser(HytaleFPlayer.class, ArgParserContextualHytaleFPlayer.class);
+        ArgParserManager.addGlobalContextualParser(harness.ecPluginData, HytaleFCommandSender.class, ArgParserContextualHytaleFCommandSender.class);
+        ArgParserManager.addGlobalContextualParser(harness.ecPluginData, HytaleFPlayer.class, ArgParserContextualHytaleFPlayer.class);
 
         Map<Class<?>, Class<?>> expected = new LinkedHashMap<>();
         expected.put(HytaleFCommandSender.class, ArgParserContextualHytaleFCommandSender.class);

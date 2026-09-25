@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.ecplugin;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
@@ -101,7 +102,8 @@ public interface IECPluginBootstrap {
     /**
      * Optional shutdown extras that run BEFORE the shared teardown. The default takes back every
      * entry point this plugin opened - the listeners registered through {@link ECListener#register},
-     * the commands registered through {@link FinalCMDManager} and the subscriptions taken in this
+     * the commands registered through {@link FinalCMDManager}, the argument parsers registered through
+     * {@link ArgParserManager} (its own and the global ones it owns) and the subscriptions taken in this
      * plugin's name on the {@link ECEventBus} - so nothing still reaches it when
      * {@link #onECPluginShutdown()} closes the resources those touch. An override REPLACES that
      * cleanup, so it has to ask for it back: {@code super.onECPluginShutdownPre()} from a subclass of
@@ -112,6 +114,7 @@ public interface IECPluginBootstrap {
     public default void onECPluginShutdownPre() {
         ECListener.unregisterAll(getPluginData());
         FinalCMDManager.unregisterAllCommands(getPluginData());
+        ArgParserManager.unregisterAll(getPluginData());
         EverNifeCore.getEventBus().unsubscribeAll(getPluginData());
     }
 
