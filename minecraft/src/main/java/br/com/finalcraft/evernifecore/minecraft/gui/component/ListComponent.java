@@ -30,8 +30,8 @@ import java.util.function.Supplier;
  * with it, without a line of Java. The page itself lives in the view, so two players browsing the same
  * screen never move each other.</p>
  *
- * <p>What makes the list draw again is a state it {@link #dependsOn(State...)}, a page turn, or a
- * refresh; the source is never polled. Drawing again is cheap either way: the commit at the end of the
+ * <p>What makes the list draw again is a state it {@link #dependsOn(State...)}, a page turn, a
+ * refresh, or the clock it runs on with {@link #every(long)}; the source is never polled otherwise. Drawing again is cheap either way: the commit at the end of the
  * tick writes only the slots whose rendered item actually changed, so a list that answered the same
  * entries costs zero writes.</p>
  *
@@ -68,6 +68,7 @@ public final class ListComponent<T, L extends LayoutBase> {
 
     private final List<State<?>> dependencies = new ArrayList<>();
     private Pager shared;
+    private long everyTicks;
 
     public ListComponent(@Nonnull Gui<L> gui, @Nullable Supplier<List<T>> materialized,
                          @Nullable PageSource<T> paged) {
@@ -148,6 +149,16 @@ public final class ListComponent<T, L extends LayoutBase> {
     }
 
     /**
+     * Draws the list again every {@code ticks} while the screen is open - {@code every(20)} is once a
+     * second - for entries that read a clock, like a countdown. The source is read again on each pass.
+     */
+    @Nonnull
+    public ListComponent<T, L> every(long ticks) {
+        this.everyTicks = Math.max(0L, ticks);
+        return this;
+    }
+
+    /**
      * Browses through {@code pager} instead of one of this list's own, which is what lets the title
      * read the page - and what makes several lists turn together.
      *
@@ -195,6 +206,9 @@ public final class ListComponent<T, L extends LayoutBase> {
         component.remember(pager);
         for (State<?> dependency : dependencies) {
             component.remember(dependency);
+        }
+        if (everyTicks > 0) {
+            component.every(everyTicks);
         }
         component.render(writer -> renderPage(writer, pager));
     }

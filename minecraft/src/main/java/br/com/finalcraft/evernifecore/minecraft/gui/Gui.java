@@ -199,7 +199,7 @@ public class Gui<L extends LayoutBase> {
      *
      * <p>The source is read whenever the list renders. What makes it render again is a state it
      * {@link ListComponent#dependsOn(br.com.finalcraft.evernifecore.minecraft.gui.state.State...)},
-     * a page turn or a refresh - never a poll of the source.</p>
+     * a page turn, a refresh or its own {@link ListComponent#every(long) clock}.</p>
      */
     @Nonnull
     public <T> ListComponent<T, L> list(@Nonnull Supplier<List<T>> source) {

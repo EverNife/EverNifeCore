@@ -123,6 +123,28 @@ class ListSourceTest {
         }
     }
 
+    /** A countdown read inside the render: only a clock makes the list notice that time went by. */
+    @Test
+    void aListOnAClockDrawsAgainOnEveryPeriod() {
+        AtomicInteger seconds = new AtomicInteger(1);
+        Gui<?> gui = Gui.of(3);
+        gui.list(Collections.singletonList(0))
+                .into(Slots.of(0))
+                .render((entry, icon) -> icon.from(new ItemStack(Material.PAPER, seconds.get())))
+                .every(20);
+
+        world.openDetached(gui, world.newPlayer("Steve"));
+        SurfaceDouble surface = world.getSurface();
+        world.advanceTicks(1);
+        assertEquals(Collections.singletonList(1), amountsOf(surface, 1));
+
+        seconds.set(2);
+        world.advanceTicks(21);
+
+        assertEquals(Collections.singletonList(2), amountsOf(surface, 1),
+                "the period redrew the entry with what the clock reads now");
+    }
+
     // -----------------------------------------------------------------------------------------------------------------
     //  The order on screen is the order the source answered in
     // -----------------------------------------------------------------------------------------------------------------
