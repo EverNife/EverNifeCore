@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -31,6 +32,28 @@ public final class ECIgnores {
             }
         }
         return false;
+    }
+
+    /**
+     * {@link #isIgnoring} through each provider's {@link IIgnoreProvider#isIgnoringAsync}: the providers
+     * are asked one after the other, completing {@code true} on the first that says so and {@code false}
+     * only after every one in the chain answered. A provider that fails fails the future.
+     */
+    public CompletableFuture<Boolean> isIgnoringAsync(UUID ignorer, UUID ignored, IgnoreKind kind) {
+        if (ignorer.equals(ignored)) {
+            return CompletableFuture.completedFuture(false);
+        }
+        return askFrom(kind, ignorer, ignored);
+    }
+
+    private CompletableFuture<Boolean> askFrom(IgnoreKind kind, UUID ignorer, UUID ignored) {
+        if (kind == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+        return getProvider(kind).isIgnoringAsync(ignorer, ignored)
+                .thenCompose(ignoring -> ignoring
+                        ? CompletableFuture.completedFuture(true)
+                        : askFrom(kind.getBroader(), ignorer, ignored));
     }
 
     public IIgnoreProvider getProvider(IgnoreKind kind) {
