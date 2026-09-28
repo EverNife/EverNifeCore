@@ -13,6 +13,365 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.49] - 2026-09-28
+
+Reading an item stops losing what an older server keeps in the tag, and a single-page gui list can use
+its arrow slots.
+
+### Added
+
+- **`ListComponent.spillIntoPageArrows(boolean)`.** While the whole list fits on one page counting the
+  page-button slots, those slots hold entries: a 24-slot region with two arrows shows up to 26 entries
+  on one screen, filling the region first and then previous, then next. From 27 on the list pages over
+  the region alone and the arrows are drawn, so every page keeps the same size. Works for a materialized
+  list and for a `PageSource` with `total(...)`.
+
+### Changed
+
+- **`ItemDataPartNBT` takes its engine in the constructor, and `getKeysOwnedElsewhere()` is gone.**
+  `getPathsOwnedElsewhere()` answers the tag paths left out on that engine's runtime.
+
+### Fixed
+
+- **`nbt:` leaves out only what an active key already writes.** It used to strip `ench`, `Enchantments`,
+  `HideFlags`, `CustomModelData` and `Damage` on every server, so on a server too old for `enchant:`
+  (below 1.13) an enchanted item was read, and saved, without its enchants. The whole `display` compound
+  was stripped too, which lost a leather armour's colour on every version: now only `Name` and `Lore`
+  are left to `name:` and `lore:`. From 1.20.5 the tag is custom data only and nothing is stripped.
+- **A read no longer reports the keys a server is too old for.** Every item read on 1.7.10 came back
+  incomplete, naming `CustomModelData`, `hideflags`, `components` and `enchant`, which warned on every
+  config save. Only a capability missing on a server new enough is a gap now.
+- **`/iteminfo` keeps the copyable item-data block clean.** A real gap is shown on a line of its own
+  instead of inside the block that is pasted into configs.
+
+## [3.0.1-alpha.48] - 2026-09-24
+
+The command framework learns to leave text alone and to clean up after itself: flags can be switched
+off per command or per subcommand, read inside a variadic tail, and every global argument parser has an
+owner that takes it back.
+
+### Added
+
+- **`@FinalCMD(flags = false)` and `@SubCMD(flags = false)`.** A command whose arguments are free text
+  turns flag extraction off: every token reaches the method as a positional, the bare `--` included,
+  and a word like `-zombie` is just a word. A method of such a command cannot declare an `@Arg.Flag`,
+  and the refusal names the declaration that turned flags off. On a subcommand the switch covers its
+  own window only; the words before its label are walked before the subcommand is known, so they follow
+  the command's setting. A subcommand can only turn the scan off, never back on.
+- **A declared flag readable inside the variadic tail.** `@Arg.Flag(insideTail = true)` makes a marker
+  of that flag extracted even after the tail opened, and it leaves the tail: `/kit give Steve vip 7d -sb`
+  reads `-sb` as the flag and hands `"7d"` to the tail. Any other marker-shaped word in the tail stays
+  text, so the `--` escape is still only needed before the tail.
+- **`ArgParserManager.addGlobalParser(owner, ...)` / `addGlobalContextualParser(owner, ...)`, with
+  `unregisterGlobalParser` / `unregisterGlobalContextualParser`.** A global parser is now owned by a
+  plugin. Taking it back restores the parser it had covered, so a plugin reload never leaves a type
+  without one, and registering over another plugin's parser logs a warning naming both.
+
+### Changed
+
+- **`ArgParserManager.unregisterAll(ECPluginData)` releases the global parsers too.** The default
+  `onECPluginShutdownPre` calls it together with the command teardown, so a plugin that is disabled or
+  reloaded leaves no parser behind. The platform's builtin parsers are owned by the core itself, so a
+  plugin's `unregisterAll` can never take them.
+
+## [3.0.1-alpha.47] - 2026-09-24
+
+A round of small additions the sibling plugins were asking for: ignore providers, a way to tell an
+installed plugin from a running one, player queries beyond the loaded set, and a handful of
+conveniences on `FPlayer`, config, the GUI list and the ontime provider.
+
+### Added
+
+- **`ECIgnores`, per-kind player ignore providers.** `IgnoreKind` names what is ignored (chat, private
+  messages, teleport requests) and each kind can be answered by a different plugin through an
+  `IIgnoreProvider`; a kind nobody answers ignores nobody. `isIgnoring` also honours a broader kind
+  that covers the asked one - ignoring `CHAT` hides private messages too. Providers must be
+  thread-safe, because chat asks once per recipient per line, and `removeProvider` only evicts the
+  provider it is given, so a disabling plugin never removes its successor. Reached through
+  `ECProviders.getIgnores()`.
+- **`PlayerController.queryPlayers(Query)` and `getLoadMode()`.** `queryPlayers` matches the stored
+  rows, so it reaches players `getAllLoaded()` does not hold when the load mode is `RECENT`. A loaded
+  match comes back as the live instance; an unloaded one is a detached copy that is never cached and
+  persists nothing - resolve it with `getPlayerData(UUID)` to edit it.
+- **`IPlatform.isPluginEnabled(String)`.** `isPluginLoaded` now means installed, `isPluginEnabled`
+  means installed and running; `ECListener`'s required plugins and the LuckPerms fallback ask the
+  latter. The test engine gains `Platforms.pluginsDisabled(...)` for the installed-but-not-running case.
+- **`FPlayer.hasPlayedBefore()`, on both platforms.** Bukkit answers from the player file, so during a
+  first session it stays `false` until the player leaves; Hytale answers whether its universe player
+  storage holds a file for the player, which the server writes on its own schedule, so it can turn
+  `true` while the first session is still running.
+- **`FCommandSender.sendRawMessage(String)`.** Shows text as written: section-sign codes apply and an
+  `&` stays plain text, for a chat relay or a Discord bridge. `FCColorUtil.sectionCodedComponent`
+  is the matching component builder.
+- **`ConfigFactory.openAll(plugin, folder, recursive)` and `ConfigFactory.copyAsset(plugin, assetPath,
+  target)`.** `openAll` opens every `.yml` / `.yaml` in a folder, in path order, and returns an empty
+  list for a folder that does not exist yet. `copyAsset` seeds a default file out of the plugin's jar
+  and never touches a target that already exists.
+- **`ListComponent.every(long ticks)`.** A GUI list can redraw on a clock of its own while the screen is
+  open, for entries that read a clock such as a countdown; the source is read again on each pass.
+- **`OntimeManager.removeProvider(provider)`.** A provider takes itself back on shutdown and the core's
+  own answer (zero for everyone) returns; a provider already replaced is left alone.
+- **`HyFCScheduler.getMainWorldTps()`, `tpsOf(World)` and `ticksToMillis(ticks, tps)`.** Hytale ticks
+  are scheduled on the world's own configured tick rate instead of a fixed 20, falling back to the
+  server default of 30 when there is no world to ask.
+
+### Changed
+
+- **`AccountSection.merge` receives a `MergeReason`.** `IDENTITY_LINK` combines the rows of different
+  identities, where a balance must add up; `WRITE_CONFLICT` reconciles two versions of the same row
+  written by two servers, where adding would count the shared history twice and keeping the backend's
+  version is a valid answer. A section whose combination is the same either way ignores it. The
+  signature changed, so existing `merge` overrides must take the new parameter.
+- **`IEconomyProvider` recommends main-thread writes instead of requiring them.** Threading is not
+  enforced by the bridge; reading and writing from the main thread is recommended, and off it only
+  reads are.
+- **A stored location map that is empty reads as an unset location** instead of failing to decode.
+- **The build moves to EveryDatabase 1.5.0**, where a `BigDecimal` read back from storage keeps its
+  scale instead of coming back as a double.
+
+## [3.0.1-alpha.46] - 2026-09-24
+
+The Forge route gets an exit: every registration hands back a handle that undoes it.
+
+### Added
+
+- **`ForgeRegistration`, returned by every `ForgeListener.registerListener(...)`.** `unregister()` takes
+  the listener off every bus that registration reached, so a plugin can undo its Forge listeners in its
+  own shutdown instead of asking for a server restart. Only the first call does anything, and a hybrid
+  that offers no way to take a listener off a bus fails with an `IllegalStateException` naming the bus
+  and the member it looked for.
+
+### Fixed
+
+- **`unregister()` reaches every bus even when one of them fails**, instead of stopping at the first
+  failure and leaving the rest registered.
+- **The Mohist handler table is safe to change while an event is posting**, so a listener registered or
+  removed mid-post no longer disturbs the dispatch in flight.
+
+## [3.0.1-alpha.45] - 2026-09-24
+
+The Bukkit half of the test engine is published, so a plugin's own Bukkit tests run on the same doubles
+this repository uses.
+
+### Added
+
+- **`evernifecore-minecraft-tests`.** A plugin's Bukkit tests link against the relocated fat jar, so the
+  kit brings the Jackson stack libby would download at runtime plus the `common-tests` engine rewritten
+  onto the same relocated names. `spigot-api` is left out of its POM (the server API version is the
+  consumer's choice) and the relocated Jackson modules stay discoverable through their service files.
+
+## [3.0.1-alpha.44] - 2026-09-23
+
+Forge and NeoForge detection made honest, and the dependency floor moved up.
+
+### Changed
+
+- **The build moves to EveryLibs 1.1.0 and `hytale-server` 0.6.8.**
+- **The 1.7.10 default Forge registration also listens on FML's own bus.** 1.7.10 posts `TickEvent` and
+  the FML `PlayerEvent` family on a bus of its own, so a registration on `MinecraftForge.EVENT_BUS`
+  alone never heard them. From 1.8 FML hands out that same bus and it is registered once.
+
+### Fixed
+
+- **A Forge bus the server carries but cannot load is refused, not skipped in silence.** It used to read
+  as absent, so the Arclight registration dropped every bus without a word.
+- **NeoForge hybrids are recognised.** The loader detection stopped at the Forge 1.13+ `ModList`, so a
+  NeoForge hybrid read as a plain Bukkit server and `isModded`, `isModLoaded` and `isFakePlayer` all
+  answered `false`. Fake players are now recognised by reading the entity class directly, without
+  needing NMSUtils.
+
+## [3.0.1-alpha.43] - 2026-09-06
+
+Accounts get friendlier to integrations and to commands, and the Hytale platform stops stubbing three
+calls.
+
+### Added
+
+- **`AccountSection` as a command argument.** The token still names a player, but the row handed to the
+  method is the one of that player's account, so two linked identities resolve to the same live
+  instance. The value carries no player identity, so a command that also needs the name or the online
+  state declares the player as a second parameter. The player lookup shared with `IPlayerData` moved
+  into a common base.
+
+### Changed
+
+- **An account can be created under its anchor member's uuid.** `Accounts.linkExternal(...)` with an
+  explicit account id may now pass the uuid of the player the account is being created for, which is how
+  a network whose backend mints the platform uuids keeps `accountId == platform uuid` past the first
+  link. That member is then the account's key and can never leave through `unlink`; every other member
+  is an ordinary alias. The uuid of any other stored player is still refused.
+
+### Fixed
+
+- **Hytale `IPlatform` console and player command dispatch, and the third stub, are wired to the real
+  API.** The code already existed in `FCHytaleUtil` and was never reached. The returned boolean reports
+  dispatch only, since Hytale hands back no success signal.
+
+## [3.0.1-alpha.42] - 2026-08-30
+
+PlaceholderAPI presence is answered by the platform that owns it, the running bootstrap is published by
+the core, and the Arclight Forge route stops claiming NeoForge servers.
+
+### Added
+
+- **`ECBootstrap`, the running bootstrap instance published by the core.** A plugin's common bootstrap
+  declares `ECBootstrap<MyBootstrap> INSTANCE = ECBootstrap.of(MyBootstrap.class)` and reads it back
+  through its own accessor. Publishing used to be the plugin's job across four lifecycle hooks, and
+  missing the last one silently kept handing out an instance that had already shut down.
+
+### Fixed
+
+- **`PAPIIntegration.isPresent()` asks the platform.** It returned a hardcoded `false` while its
+  siblings delegated, so every guarded registration was disabled on every server, with no error and no
+  log, including the core's own Hytale loader.
+- **The PlaceholderAPI probe names each platform's own class.** The Bukkit probe named the Hytale
+  plugin's main class, which no Bukkit server loads, so the expansion never registered and `parse()`
+  returned third-party tokens unresolved.
+- **`InnerPAPIRegisterer.register` is only called when PlaceholderAPI is present**, on both platforms,
+  so a server without it no longer risks a `NoClassDefFoundError`.
+- **The Arclight Forge route is refused on a NeoForge runtime.** The Arclight brand spans eras that
+  disagree on where the Forge types live; on a NeoForge Arclight the route used to win detection and
+  die at first use with an unrelated `NoClassDefFoundError`. Now `isAvailable()` answers `false`,
+  callers get the clean `IllegalStateException` a plain Bukkit server gives, and one warning names both
+  classes.
+
+## [3.0.1-alpha.41] - 2026-08-18
+
+Account lifecycle becomes observable, and a Hytale player whose data failed to load is no longer let in.
+
+### Added
+
+- **`ECAccountLinkedEvent`, `ECAccountMergedEvent` and `ECAccountUnlinkedEvent`.** `Accounts` posts them
+  on the bus as each operation completes. They are bus-only events (never mirrored into a platform bus)
+  and are posted on the account pipeline's completion thread, so a handler must not assume the main
+  thread. A link that attaches an identity without fusing a second account is `Linked`; two whole
+  accounts fusing is `Merged`.
+- **Audit stamps on accounts.** `Account` records `createdAt`, and a linked member records `linkedAt`
+  and `linkedBy` (an `AccountActor`, the player, console or integration that performed the link).
+
+### Changed
+
+- **The build moves to `hytale-server` 0.5.9.**
+
+### Fixed
+
+- **The Hytale connect is denied when player data fails to load.** A failed login-time load used to
+  admit a data-less session, where a fresh profile could overwrite the stored one. The setup connect
+  event is now cancelled with a reason instead.
+
+## [3.0.1-alpha.40] - 2026-08-16
+
+The event bus becomes inspectable: a subscription is a value with options and a failure policy, lookups
+no longer scan every handler, and `/ecore events` shows who listens to what.
+
+### Added
+
+- **`/ecore events [type]`.** Without a type it lists the subscribed event types with their counts and
+  the active listener watches; with one it prints the bus subscriptions in delivery order and what
+  every native audience reports, listening or silent, with the native listeners it can name. A type that
+  only implements `IECEvent` is not put to the audiences, since no platform can ever see it. The type
+  may also be one only a listener watch knows about, which is the case for an event nobody has
+  subscribed to yet.
+- **`ECSubscribeOptions` on functional subscriptions.** A subscription can skip cancelled events or
+  hear only the exact class it named, the same options the annotation reads. The subscription handed
+  back is a view an operator can list: type, options, subscriber and owner.
+- **`ECEventExceptionHandler`.** A subscriber that throws goes to the bus's handler: the global bus
+  keeps logging, a scoped bus may fail the test instead. Under `@ECoreTest` the global handler is
+  swapped for a failing one for the length of the class, so a broken subscriber fails the test at the
+  post that drove it.
+- **`describeListeners` on the audience SPI.** Descriptive only; `hasListeners` keeps deciding
+  presence. The Hytale and Forge audiences inherit the empty default.
+
+### Changed
+
+- **Bus subscriptions are indexed by the class they named.** The plan of a concrete event class is
+  assembled from the lists of its ancestors, so registering a plugin's listeners no longer costs every
+  other plugin's handlers per event class. Ties keep the global subscription order.
+- **The Bukkit audience honours the `exact` option.**
+- **A `with...` change that alters nothing hands back the same `ECSubscribeOptions` instance.**
+
+## [3.0.1-alpha.39] - 2026-08-15
+
+Bukkit events run through the bus, and a producer costs nothing while nobody listens.
+
+### Added
+
+- **`ECEventBus.hasListeners(Class)` and `postIfListened`.** The bus answers whether a post of exactly
+  that class would reach anyone: local handlers by assignability, native audiences only for an
+  `ECEvent` on a mirroring bus. `postIfListened` builds the event only on a yes. The audience SPI now
+  takes the class instead of an instance, since the question is asked before the event exists.
+- **`watchListeners`.** Follows a class's listener presence and runs one action when the first listener
+  arrives and another when the last leaves, with the callbacks outside every lock. A native audience
+  that can see its own registrations pushes changes through `refreshListenerWatches`; one that cannot
+  is polled. `unsubscribeAll` drains the plugin's watches after its subscriptions.
+- **`ECListener.registerWhileListened`.** Registers an on-demand producer on the first listener, bus or
+  server, and unregisters it on the last.
+- **`ECEvent.getHandlerListOf(Class)`.** Every EC event gets a `HandlerList` of its own on Bukkit, so
+  the native gate answers per event type instead of for the whole family, and the common events
+  declare the static `getHandlerList` that points at it. Every EC list reports its mutations to the
+  bus.
+
+### Changed
+
+- **The chunk-change, craft and damage events extend `ECEvent`.** Bus subscribers and
+  `@ECEventHandler` methods hear them, the thread guard covers them, and a Bukkit `@EventHandler`
+  works unchanged. `PlayerMoveListener` compares chunk coordinates arithmetically and only looks
+  chunks up when a listener exists.
+- **The Forge audience reports no listeners while nothing can cross.** Answering the hybrid flag held
+  every listener watch open, and built every gated event, on the hybrid servers this project runs on,
+  for a bus no event reaches yet.
+
+### Fixed
+
+- **A producer whose registration blew up is retried.** The registered flag drops back on any exit that
+  did not register, so a producer never stands as registered while nothing is.
+
+## [3.0.1-alpha.38] - 2026-08-15
+
+The Forge listener code moves into the core and resolves the Forge side by name, so a Bukkit jar builds
+without any Forge artifact.
+
+### Added
+
+- **A forge audience.** `McForgeAudience` mirrors `ECEvent`s into the Forge bus next to the Bukkit
+  one, registered in the Post enable hook.
+
+### Changed
+
+- **The Forge listeners live under the `minecraft` package.** This is a source-incompatible move:
+  the previous package shipped in the deployed jar, so every plugin importing it needs its import
+  rewritten. The CatServer adapter was dropped; nothing referenced it.
+- **The Forge side is resolved by name, and its build-time jars are gone.** A compiled Forge type puts
+  a descriptor in the bytecode, and the eras disagree on it (`MinecraftForge.EVENT_BUS` is a `cpw.mods`
+  bus on 1.7.10 and an `IEventBus` from 1.16.5 on). The Mohist bridge registers programmatically instead
+  of through an `@EventHandler` method. Building `:minecraft` needs `mohist-1.16.5-api.jar` in
+  `PublicLibs/Bukkit`.
+- **Detection is total.** A platform that only half-matches loses the Forge route and says so, where it
+  used to fail the class initialization and turn every later call into a `NoClassDefFoundError`.
+
+### Fixed
+
+- **A by-name lookup that throws is refused, not only one that misses.** A hybrid's rewritten
+  classloader raises a `LinkageError` from inside the lookup, and the raw error that escaped named a
+  Bukkit class for a failure on the Forge side.
+
+## [3.0.1-alpha.37] - 2026-08-14
+
+Logging stops reading external text as a format string, and the test count learns its scope.
+
+### Added
+
+- **A `countTests` Gradle task.** Runs every module's test task and prints one line per task, the total
+  with how many tasks it summed, and the tasks it left out, so a number never travels without its scope.
+
+### Fixed
+
+- **Externally built text is logged as a parameter, not concatenated into the format string.** A player
+  name, a region name from config, a collection name or an exception message can contain `{}`, and when
+  a `Throwable` followed, the placeholder consumed it and the stack trace never reached the line meant to
+  explain the failure. Sites pasting only class names, method names, enum constants or numbers are
+  unchanged; `ItemEngine.warn` keeps its single-`String` signature.
+
 ## [3.0.1-alpha.36] - 2026-08-14
 
 The logging stack, rebuilt: a message format that cannot throw, one door for modular logging, and a
