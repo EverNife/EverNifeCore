@@ -25,8 +25,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -160,6 +162,45 @@ class DataComponentTest {
         assertTrue(isEmpty(surface, 18),
                 "an arrow with nowhere to go is a slot taken for nothing: " + surface.getItem(18));
         assertTrue(isEmpty(surface, 26));
+    }
+
+    /** A shop window: 24 slots of goods and the two arrows under them, which hold goods when nothing pages. */
+    private static Gui<?> shopOf(int goods, Pager pager, boolean pagedSource) {
+        Gui<?> gui = Gui.of(6);
+        ListComponent<Integer, ?> list = pagedSource
+                ? gui.<Integer>list((page, size) -> {
+                    List<Integer> all = numbers(goods);
+                    int from = (page - 1) * size;
+                    return all.subList(Math.min(from, goods), Math.min(from + size, goods));
+                }).total(() -> goods)
+                : gui.list(numbers(goods));
+        list.pager(pager)
+                .into(Slots.of(IntStream.range(0, 24).toArray()))
+                .pagedBy(Slots.of(37), Slots.of(43))
+                .spillIntoPageArrows(true)
+                .render((entry, icon) -> icon.from(new ItemStack(Material.PAPER, entry)));
+        return gui;
+    }
+
+    @Test
+    void theArrowSlotsHoldEntriesOnlyWhileEverythingFitsOnOnePage() {
+        for (boolean pagedSource : new boolean[]{false, true}) {
+            Pager pager = new Pager();
+            world.openDetached(shopOf(26, pager, pagedSource), world.newPlayer("Steve"));
+            SurfaceDouble surface = world.getSurface();
+
+            assertEquals(1, pager.getTotalPages(), "26 goods fit 24 slots and the two arrows");
+            assertEquals(25, surface.getItem(37).getAmount(), "the previous arrow slot comes first");
+            assertEquals(26, surface.getItem(43).getAmount());
+
+            pager = new Pager();
+            world.openDetached(shopOf(27, pager, pagedSource), world.newPlayer("Alex"));
+            surface = world.getSurface();
+
+            assertEquals(2, pager.getTotalPages(), "27 do not, so the list pages over the region alone");
+            assertEquals(24, pager.getPageSize(), "and every page is the region's size");
+            assertNotEquals(Material.PAPER, surface.getItem(43).getType(), "the arrows are drawn in their slots");
+        }
     }
 
     @Test

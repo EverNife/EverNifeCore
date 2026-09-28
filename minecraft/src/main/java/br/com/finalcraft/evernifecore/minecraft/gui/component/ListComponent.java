@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.minecraft.gui.Gui;
 import br.com.finalcraft.evernifecore.minecraft.gui.icons.DefaultIcons;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.Icon;
 import br.com.finalcraft.evernifecore.minecraft.gui.layout.LayoutBase;
+import br.com.finalcraft.evernifecore.minecraft.gui.model.GuiGeometry;
 import br.com.finalcraft.evernifecore.minecraft.gui.model.SlotSet;
 import br.com.finalcraft.evernifecore.minecraft.gui.state.State;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.ClickContext;
@@ -14,6 +15,7 @@ import jakarta.annotation.Nullable;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -25,7 +27,8 @@ import java.util.function.Supplier;
 /**
  * A list of data poured into a region of the screen, one entry per slot.
  *
- * <p>The page size is the size of the region and nothing else, so a list of forty entries in a region
+ * <p>The page size is the size of the region - plus the arrow slots, on a list that fits one page with
+ * {@link #spillIntoPageArrows(boolean)} - so a list of forty entries in a region
  * of seven slots paginates on its own - and an admin who widens the region in the yml widens the page
  * with it, without a line of Java. The page itself lives in the view, so two players browsing the same
  * screen never move each other.</p>
@@ -65,6 +68,7 @@ public final class ListComponent<T, L extends LayoutBase> {
     //built on first use and kept: an arrow the framework supplies costs a trip through the item factory
     private Icon defaultPrevious;
     private Icon defaultNext;
+    private boolean spillIntoPageArrows;
 
     private final List<State<?>> dependencies = new ArrayList<>();
     private Pager shared;
@@ -138,6 +142,19 @@ public final class ListComponent<T, L extends LayoutBase> {
         this.previousIcon = back.getIcon();
         this.nextSlots = forward.getSlots();
         this.nextIcon = forward.getIcon();
+        return this;
+    }
+
+    /**
+     * Whether the page-button slots hold entries while the whole list fits on one page counting them.
+     *
+     * <p>A region of 24 with two arrow slots then shows up to 26 entries on a single screen, filling the
+     * region first and the arrow slots after it, previous before next. From 27 on it pages over the
+     * region alone and the arrows are drawn as usual - so every page of a list has the same size.</p>
+     */
+    @Nonnull
+    public ListComponent<T, L> spillIntoPageArrows(boolean spill) {
+        this.spillIntoPageArrows = spill;
         return this;
     }
 
@@ -215,26 +232,34 @@ public final class ListComponent<T, L extends LayoutBase> {
 
     private void renderPage(SlotWriter writer, Pager pager) {
         SlotSet slots = region.resolve(writer.getGeometry());
-        int pageSize = slots.size();
-        if (pageSize == 0) {
+        int[] target = slots.toArray();
+        if (target.length == 0) {
             pager.measure(0, 0);
             return;
         }
 
         List<T> entries;
         try {
-            entries = entriesOf(pager, pageSize);
+            List<T> all = paged == null ? materialized.get() : null;
+            int count = paged != null ? orZero(total.get()) : all == null ? 0 : all.size();
+            if (spillIntoPageArrows) {
+                int[] spilled = withArrowSlots(target, slots, writer.getGeometry());
+                if (count <= spilled.length) {
+                    target = spilled; //a single page: no arrow will be drawn over these
+                }
+            }
+            pager.measure(target.length, count);
+            entries = paged != null ? paged.get(pager.getPage(), target.length) : pageOf(all, pager, target.length);
         } catch (Throwable failure) {
             //the source is as much of a plugin's own code as the render function is, and a screen frozen
             //on the page before is worse than an empty one: the log is what says which of the two happened
             EverNifeCore.getLog().warning("A gui list could not read its source, so the page was left "
                     + "empty: " + failure + ".");
-            pager.measure(pageSize, 0);
+            pager.measure(target.length, 0);
             entries = Collections.emptyList();
         }
 
-        int[] target = slots.toArray();
-        int offset = (pager.getPage() - 1) * pageSize;
+        int offset = (pager.getPage() - 1) * target.length;
         for (int index = 0; index < entries.size() && index < target.length; index++) {
             Icon icon = template == null ? Icon.empty() : template.copy();
             try {
@@ -250,20 +275,35 @@ public final class ListComponent<T, L extends LayoutBase> {
         renderPageButtons(writer, pager);
     }
 
-    /** The entries of the page {@code pager} is on, having told it how big the page and the source are. */
-    private List<T> entriesOf(Pager pager, int pageSize) {
-        if (paged != null) {
-            Integer counted = total.get();
-            pager.measure(pageSize, counted == null ? 0 : counted);
-            return paged.get(pager.getPage(), pageSize);
-        }
-        List<T> all = materialized.get();
-        pager.measure(pageSize, all == null ? 0 : all.size());
+    private static int orZero(Integer counted) {
+        return counted == null ? 0 : counted;
+    }
+
+    private static <T> List<T> pageOf(List<T> all, Pager pager, int pageSize) {
         if (all == null) {
-            return Collections.<T>emptyList();
+            return Collections.emptyList();
         }
         int from = (pager.getPage() - 1) * pageSize;
         return all.subList(Math.min(from, all.size()), Math.min(from + pageSize, all.size()));
+    }
+
+    /** The region's slots followed by the arrow slots it does not already hold, previous before next. */
+    private int[] withArrowSlots(int[] target, SlotSet slots, GuiGeometry geometry) {
+        List<Integer> joined = new ArrayList<>();
+        for (int slot : target) {
+            joined.add(slot);
+        }
+        for (SlotSet arrow : Arrays.asList(previousSlots, nextSlots)) {
+            if (arrow == null) {
+                continue;
+            }
+            for (int slot : arrow.resolve(geometry).toArray()) {
+                if (!slots.contains(slot) && !joined.contains(slot)) {
+                    joined.add(slot);
+                }
+            }
+        }
+        return joined.stream().mapToInt(Integer::intValue).toArray();
     }
 
     /** The arrows, drawn only while there is somewhere to go: one page needs no navigation. */
