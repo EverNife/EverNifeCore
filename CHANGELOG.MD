@@ -13,6 +13,19 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.50] - 2026-09-28
+
+An ignore provider can answer for a player who is not loaded.
+
+### Added
+
+- **`ECIgnores.isIgnoringAsync(ignorer, ignored, kind)` and `IIgnoreProvider.isIgnoringAsync`.** A
+  caller that can wait - an offline ignorer, a command, a queued request - gets a future the provider
+  may complete after loading what it needs, off the calling thread. The chain walks the broader kinds
+  like `isIgnoring`, completing `true` on the first provider that says so and `false` only after all
+  of them answered. A provider that does not override it answers its synchronous `isIgnoring`, which
+  stays the in-memory hot path for chat.
+
 ## [3.0.1-alpha.49] - 2026-09-28
 
 Reading an item stops losing what an older server keeps in the tag, and a single-page gui list can use
