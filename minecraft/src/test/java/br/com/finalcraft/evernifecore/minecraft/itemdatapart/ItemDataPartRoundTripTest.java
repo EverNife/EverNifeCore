@@ -10,8 +10,10 @@ import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPa
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartMaterial;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartNBT;
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart.ItemDataPartName;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ParsedBlock;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.RegisteredPart;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.StandardParts;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.ItemLineException;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemProbe;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
@@ -27,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
@@ -203,15 +206,19 @@ class ItemDataPartRoundTripTest {
         assertEquals(Integer.valueOf(12), part.extract(worn), "a damaged one does");
     }
 
+    // A tag key is left out only where the key that owns it answers: on a server too old for enchant:,
+    // the enchants in the tag are the only place they are read from.
     @Test
-    void theTagHatchLeavesOutWhatAnotherKeyAlreadyWrites() {
-        Set<String> owned = ItemDataPartNBT.getKeysOwnedElsewhere();
-
-        assertTrue(owned.contains("CustomModelData"),
-                "the model has a key of its own, and a tag emitting it too writes it twice: " + owned);
-        assertTrue(owned.containsAll(Arrays.asList("display", "Damage", "HideFlags", "ench", "Enchantments")),
-                "the name, the lore, the damage, the flags and the enchants are keys of their own too: "
-                        + owned);
+    void theTagHatchLeavesOutOnlyWhatAnActiveKeyAlreadyWrites() {
+        assertEquals(new HashSet<>(Arrays.asList("display.Name", "display.Lore")), ownedByHatchOn(MCDetailedVersion.v1_7_R4),
+                "on 1.7.10 only the name and the lore have keys of their own, and damage is not in the tag");
+        assertEquals(new HashSet<>(Arrays.asList("display.Name", "display.Lore", "HideFlags")),
+                ownedByHatchOn(MCDetailedVersion.v1_12_R1), "on 1.12 the enchants stay in the tag");
+        assertEquals(new HashSet<>(Arrays.asList("display.Name", "display.Lore", "Damage", "HideFlags",
+                        "CustomModelData", "ench", "Enchantments")), ownedByHatchOn(MCDetailedVersion.v1_16_R3),
+                "on 1.16 every concept with a key of its own is left to that key");
+        assertTrue(ownedByHatchOn(MCDetailedVersion.v1_21_R1).isEmpty(),
+                "from 1.20.5 the tag is custom data only, and none of it belongs to another key");
     }
 
     @Test
@@ -270,7 +277,7 @@ class ItemDataPartRoundTripTest {
 
     @Test
     void aRawTagSurvivesAsTheTextItWasWrittenAs() {
-        ItemDataPartNBT part = new ItemDataPartNBT();
+        ItemDataPartNBT part = new ItemDataPartNBT(world.getEngine());
 
         survivesTheRoundTrip(part, Arrays.asList("{CustomModelData:1042}"));
         survivesTheRoundTrip(part, Arrays.asList("{display:{Name:\"x\"}}", "{Unbreakable:1b}"));
@@ -318,6 +325,12 @@ class ItemDataPartRoundTripTest {
         SortedMap<String, Integer> enchants = new TreeMap<>();
         enchants.put(key, level);
         return enchants;
+    }
+
+    private static Set<String> ownedByHatchOn(MCDetailedVersion version) {
+        ItemEngine engine = ItemEngine.bootstrap(ItemRuntime.of(version, ItemProbe.ITEM_META, ItemProbe.NBT,
+                ItemProbe.SNBT_IO, ItemProbe.COMPONENTS, ItemProbe.ENCHANT_REGISTRY));
+        return new HashSet<>(((ItemDataPartNBT) engine.find(StandardParts.NBT).getPart()).getPathsOwnedElsewhere());
     }
 
 }

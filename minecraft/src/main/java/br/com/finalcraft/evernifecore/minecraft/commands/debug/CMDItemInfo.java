@@ -59,6 +59,9 @@ public class CMDItemInfo {
     )
     private static LocaleMessage BUKKIT_IDENTIFIER;
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§c ● §eThe lines above are not the whole item: §c${gaps}")
+    private static LocaleMessage UNREAD_GAPS;
+
     @FinalCMD(
             aliases = {"iteminfo"},
             permission = McPermissionNodes.EVERNIFECORE_COMMAND_ITEMINFO
@@ -100,14 +103,16 @@ public class CMDItemInfo {
         ItemDescription description = ItemEngine.get().read(heldItem);
         String itemDataPart = description.getLines().stream()
                 .collect(Collectors.joining("\n - ","\n - ",""));
-        if (!description.isComplete()) {
-            itemDataPart += "\n - (this server cannot read: " + description.describeGaps() + ")";
-        }
 
         BUKKIT_IDENTIFIER
                 .addPlaceholder("bukkit_identifier", FCItemUtils.getBukkitIdentifier(heldItem))
                 .addPlaceholder("item_data_part", itemDataPart)
                 .send(player);
+
+        //outside the block above: that one is copied into configs, and a warning pasted there is a bad line
+        if (!description.isComplete()) {
+            UNREAD_GAPS.addPlaceholder("gaps", description.describeGaps()).send(player);
+        }
 
     }
 

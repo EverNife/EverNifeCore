@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.PartRegistratio
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.StandardParts;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.IncompleteItemException;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.PartFailure;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.PartRefusal;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.RefusedEdit;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemProbe;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRequirement;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -165,6 +167,21 @@ class ItemRecipeScenariosTest {
 
             assertEquals("§6Espada", built.getItemStack().getItemMeta().getDisplayName(),
                     "the rest of the block was applied as usual");
+        }
+    }
+
+    // A part the server is too old for has nothing to read on its items - what older form exists stays in the
+    // tag. Only a capability missing on a server new enough is a hole in the description.
+    @Test
+    void readingOnAnOldServerNamesOnlyTheCapabilitiesItLacksNotTheKeysItPredates() {
+        try (ItemWorld world = ItemWorld.install(
+                ItemRuntime.of(MCDetailedVersion.v1_7_R4, ItemProbe.ITEM_META))) {
+
+            ItemDescription description = world.getEngine().read(new ItemStack(Material.DIAMOND_SWORD));
+
+            assertEquals(Arrays.asList("nbt"), namesOfRefusals(description),
+                    "enchant, hideflags, CustomModelData and components are not holes on 1.7.10: "
+                            + description.describeGaps());
         }
     }
 
@@ -322,6 +339,10 @@ class ItemRecipeScenariosTest {
     }
 
     // -----------------------------------------------------------------------------------------------------------------
+
+    private static List<String> namesOfRefusals(ItemDescription description) {
+        return description.getRefusals().stream().map(PartRefusal::getKey).collect(Collectors.toList());
+    }
 
     private static List<String> namesOf(List<RefusedEdit> refused) {
         List<String> names = new java.util.ArrayList<>();

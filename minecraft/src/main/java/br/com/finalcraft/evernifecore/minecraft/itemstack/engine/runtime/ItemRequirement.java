@@ -47,6 +47,11 @@ public final class ItemRequirement {
         return new ItemRequirement(floor, joined);
     }
 
+    /** Whether {@code runtime} is at least the version this needs, whatever it says about the probes. */
+    public boolean meetsFloor(@Nonnull ItemRuntime runtime) {
+        return floor == null || runtime.isAtLeast(floor);
+    }
+
     public boolean isSatisfiedBy(@Nonnull ItemRuntime runtime) {
         if (floor != null && !runtime.isAtLeast(floor)) {
             return false;

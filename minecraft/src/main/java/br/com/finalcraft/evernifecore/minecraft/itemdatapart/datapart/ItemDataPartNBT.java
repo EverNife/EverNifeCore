@@ -1,18 +1,24 @@
 package br.com.finalcraft.evernifecore.minecraft.itemdatapart.datapart;
 
 import br.com.finalcraft.evernifecore.minecraft.itemdatapart.ItemDataPart;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.RegisteredPart;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.StandardParts;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.answer.ItemLineException;
+import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.ItemRuntime;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.NbtDoor;
+import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -23,23 +29,49 @@ import java.util.Set;
  * one server has to mean the same thing on another - so the typed side got its own key instead of
  * quietly taking this one over.</p>
  *
- * <p>What other keys already own is dropped on the way out. Emitting the name inside the tag as
- * well as under {@code name:} would make a round trip write it twice.</p>
+ * <p>What another active key already writes is dropped on the way out: emitting the name inside
+ * the tag as well as under {@code name:} would make a round trip write it twice. What no active key
+ * answers for stays here - an enchant on a server too old for {@code enchant:} is still an enchant.</p>
  */
 public class ItemDataPartNBT extends ItemDataPart<List<String>> {
 
-    private static final Set<String> OWNED_ELSEWHERE = Collections.unmodifiableSet(new LinkedHashSet<>(
-            Arrays.asList("display", "Damage", "HideFlags", "ench", "Enchantments", "CustomModelData")));
+    //each tag path next to the part that writes it; "display" is a compound shared with keys nobody owns
+    private static final Map<String, String> OWNERS = new LinkedHashMap<>();
+    static {
+        OWNERS.put("display.Name", StandardParts.NAME);
+        OWNERS.put("display.Lore", StandardParts.LORE);
+        OWNERS.put("Damage", StandardParts.DURABILITY);
+        OWNERS.put("HideFlags", StandardParts.HIDE_FLAGS);
+        OWNERS.put("CustomModelData", StandardParts.CUSTOM_MODEL_DATA);
+        OWNERS.put("ench", StandardParts.ENCHANT);
+        OWNERS.put("Enchantments", StandardParts.ENCHANT);
+    }
 
-    /**
-     * The tag names another item-data key already writes, which is what this hatch leaves out.
-     *
-     * <p>Every one of them is a concept with a key of its own, so emitting it here as well would
-     * make a round trip write the same value twice.</p>
-     */
+    private final ItemEngine engine;
+
+    public ItemDataPartNBT(@Nonnull ItemEngine engine) {
+        this.engine = engine;
+    }
+
+    /** The tag paths this hatch leaves out on its engine's runtime, because an active key writes them. */
     @Nonnull
-    public static Set<String> getKeysOwnedElsewhere() {
-        return OWNED_ELSEWHERE;
+    public Set<String> getPathsOwnedElsewhere() {
+        ItemRuntime runtime = engine.getRuntime();
+        Set<String> owned = new LinkedHashSet<>();
+        if (runtime.isAtLeast(MCDetailedVersion.v1_20_R4)) {
+            //the tag is custom data only from here on: the server keeps its own concepts in components
+            return owned;
+        }
+        for (Map.Entry<String, String> entry : OWNERS.entrySet()) {
+            if (entry.getKey().equals("Damage") && !runtime.isAtLeast(MCDetailedVersion.v1_13_R1)) {
+                continue; //damage was the stack's own field before 1.13, so a tag "Damage" there is a mod's
+            }
+            RegisteredPart owner = engine.find(entry.getValue());
+            if (owner != null && owner.isActive()) {
+                owned.add(entry.getKey());
+            }
+        }
+        return owned;
     }
 
     @Nonnull
@@ -88,8 +120,18 @@ public class ItemDataPartNBT extends ItemDataPart<List<String>> {
     @Override
     public List<String> extract(@Nonnull ItemStack item) {
         ReadWriteNBT tag = NbtDoor.custom().snapshot(item);
-        for (String owned : OWNED_ELSEWHERE) {
-            tag.removeKey(owned);
+        ReadWriteNBT display = tag.getCompound("display");
+        for (String path : getPathsOwnedElsewhere()) {
+            if (path.startsWith("display.")) {
+                if (display != null) {
+                    display.removeKey(path.substring("display.".length()));
+                }
+            } else {
+                tag.removeKey(path);
+            }
+        }
+        if (display != null && display.getKeys().isEmpty()) {
+            tag.removeKey("display");
         }
         return tag.getKeys().isEmpty() ? null : Collections.singletonList(tag.toString());
     }

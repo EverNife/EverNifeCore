@@ -120,7 +120,7 @@ public final class ItemEngine {
                 new String[]{"description"}, ItemDataPartLore::new));
         engine.register(PartRegistration.of(StandardParts.NBT,
                 ItemRequirement.base().with(ItemProbe.NBT, ItemProbe.SNBT_IO),
-                new String[]{"rawnbt"}, ItemDataPartNBT::new));
+                new String[]{"rawnbt"}, () -> new ItemDataPartNBT(engine)));
         engine.register(PartRegistration.of(StandardParts.COMPONENTS,
                 ItemRequirement.atLeast(MCDetailedVersion.v1_20_R4).with(ItemProbe.COMPONENTS),
                 new String[]{}, ItemDataPartComponents::new)
@@ -246,7 +246,9 @@ public final class ItemEngine {
 
         for (RegisteredPart registered : parts) {
             if (!registered.isActive()) {
-                refusals.add(registered.getRefusal());
+                if (registered.isReadGap()) {
+                    refusals.add(registered.getRefusal());
+                }
                 continue;
             }
             try {

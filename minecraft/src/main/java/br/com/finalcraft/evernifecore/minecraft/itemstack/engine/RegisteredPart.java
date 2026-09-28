@@ -19,10 +19,12 @@ public final class RegisteredPart {
     private final PartRegistration registration;
     private final ItemDataPart<?> part;
     private final String refusal;
+    private final boolean belowFloor;
 
     RegisteredPart(@Nonnull PartRegistration registration, @Nonnull ItemRuntime runtime) {
         this.registration = registration;
         String gap = registration.getRequirement().explain(runtime);
+        this.belowFloor = !registration.getRequirement().meetsFloor(runtime);
         if (gap == null) {
             this.part = registration.newPart();
             this.refusal = null;
@@ -64,6 +66,17 @@ public final class RegisteredPart {
     @Nullable
     public PartRefusal getRefusal() {
         return refusal == null ? null : new PartRefusal(getKey(), refusal);
+    }
+
+    /**
+     * Whether the refusal is a gap in a read of an item from this server.
+     *
+     * <p>A server older than the part cannot put its concept on an item, and whatever older form of
+     * it exists is still in the tag, read by the {@code nbt:} hatch. Only a server new enough that
+     * lacks a capability holds items this engine cannot fully describe.</p>
+     */
+    public boolean isReadGap() {
+        return part == null && !belowFloor;
     }
 
     /**

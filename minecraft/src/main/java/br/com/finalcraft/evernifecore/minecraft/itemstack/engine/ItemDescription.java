@@ -34,7 +34,7 @@ public final class ItemDescription {
         return lines;
     }
 
-    /** Parts this runtime cannot answer for. Their concepts may be on the item and unreported. */
+    /** Parts this server is new enough for but cannot read. Their concepts may be on the item and unreported. */
     @Nonnull
     public List<PartRefusal> getRefusals() {
         return refusals;
