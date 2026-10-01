@@ -92,8 +92,7 @@ public final class ContextualParseCall implements IParseCall {
     /**
      * Every token of the executable's own window - the line as the method sees it, which is the line
      * AFTER the declared flags of the path were pulled out of it. A path that declares no flag at all
-     * extracted nothing, so the window still holds every token as typed and
-     * {@link MultiArgumentos#flagify()} on it still sniffs; either way, what is here is what the
+     * extracted nothing, so the window holds every token as typed; either way, what is here is what the
      * method's positionals were read from.
      */
     public @Nonnull MultiArgumentos getArgumentos() {

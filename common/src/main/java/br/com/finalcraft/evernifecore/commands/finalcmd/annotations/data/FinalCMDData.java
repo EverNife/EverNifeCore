@@ -31,7 +31,6 @@ public class FinalCMDData extends CMDData<FinalCMDData> {
         );
         this.helpHeader = finalCMD.helpHeader();
         this.helpType = finalCMD.useDefaultHelp();
-        setExtractsFlags(finalCMD.flags());
 
         if (!this.helpHeader.isEmpty()){
             this.helpHeader = EverNifeCore.getPlatform().getChatAdapter().alignCenter(this.helpHeader, "§2§m-§r");

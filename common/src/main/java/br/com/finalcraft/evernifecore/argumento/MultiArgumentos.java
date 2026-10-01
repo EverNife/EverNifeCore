@@ -5,10 +5,14 @@ import br.com.finalcraft.everylibs.util.FCTimeUtil;
 import org.apache.commons.lang3.Validate;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class MultiArgumentos {
@@ -18,6 +22,7 @@ public class MultiArgumentos {
     private final List<Argumento> argumentos = new ArrayList<Argumento>();
 
     private boolean flagfied = false;
+    private Set<String> readableFlagNames; //null = sniffed mode, where any name may come back set
 
     public MultiArgumentos(String[] args) {
         for (String arg : args) {
@@ -43,14 +48,14 @@ public class MultiArgumentos {
 
         //Manual/sniffed mode: every marker is "recognized" with arity -1 (auto-sniff), so
         //scanFlagMarkers never reports an unknown flag here.
-        ScanOutcome outcome = scanFlagMarkers(rawName -> new Recognition(rawName, -1, false), -1);
+        ScanOutcome outcome = scanFlagMarkers(MultiArgumentos::isFlagMarker, rawName -> new Recognition(rawName, -1, false), -1);
         this.flags.addAll(outcome.matched);
     }
 
     /**
      * Marks this line as having no flags at all: every token stays positional as typed, the bare {@code --}
-     * and marker-shaped words included, and {@link #getFlags()} is empty. It is what a command that turned
-     * flag extraction off hands its method, so reading the flags later cannot strip words out of the line.
+     * and dashed words included, {@link #getFlags()} is empty and {@link #getFlag(String)} refuses every
+     * name. It is what a command whose path declares no flag hands its method.
      *
      * @throws IllegalStateException if this instance was already flagified (declared or manual)
      */
@@ -59,6 +64,7 @@ public class MultiArgumentos {
             throw new IllegalStateException("MultiArgumentos was already flagified; keepEveryTokenPositional must run before any getFlags()/getFlag() call.");
         }
         flagfied = true;
+        readableFlagNames = Collections.emptySet();
     }
 
     /**
@@ -68,7 +74,9 @@ public class MultiArgumentos {
      * binding's canonical name, so an alias like {@code -f} resolves the same
      * {@link #getFlag(String)} entry as the long name.
      * <p>
-     * Declared and manual extraction are mutually exclusive on one instance: this marks it flagified.
+     * Which tokens count as markers is {@link #isFlagMarker(String, Collection)} over the declared
+     * spellings. Declared and manual extraction are mutually exclusive on one instance: this marks it
+     * flagified, and from then on {@link #getFlag(String)} only answers the declared names.
      *
      * @param literalTailAt the positional index at which the variadic tail opens: from that token on
      * everything is text, marker-shaped or not, except a marker whose binding {@link FlagBinding#isInsideTail()
@@ -84,8 +92,13 @@ public class MultiArgumentos {
             throw new IllegalStateException("MultiArgumentos was already flagified; extractDeclaredFlags must run exactly once, before any getFlags()/getFlag() call.");
         }
         flagfied = true;
+        readableFlagNames = new HashSet<>(bindingsByNormalizedNameOrAlias.keySet());
+        for (FlagBinding binding : bindingsByNormalizedNameOrAlias.values()) {
+            readableFlagNames.add(binding.getCanonicalName().toLowerCase());
+        }
 
-        ScanOutcome outcome = scanFlagMarkers(rawName -> {
+        Set<String> declaredSpellings = bindingsByNormalizedNameOrAlias.keySet();
+        ScanOutcome outcome = scanFlagMarkers(token -> isFlagMarker(token, declaredSpellings), rawName -> {
             FlagBinding binding = bindingsByNormalizedNameOrAlias.get(rawName.toLowerCase());
             return binding == null ? null : new Recognition(binding.getCanonicalName(), binding.getArity(), binding.isInsideTail());
         }, literalTailAt);
@@ -98,12 +111,13 @@ public class MultiArgumentos {
      * walks the raw tokens once, recognizing markers and consuming their value, honoring the
      * {@code --} end-of-flags escape and quoted multi-word groups identically in both modes.
      * <p>
-     * The modes differ only in what {@code recognizer} answers for a marker name - arity 0 (presence),
-     * arity 1 (value), negative (sniff the next token) or null (unrecognized). From
+     * The modes differ in which tokens {@code isMarker} accepts, and in what {@code recognizer} answers
+     * for a marker name - arity 0 (presence), arity 1 (value), negative (sniff the next token) or null
+     * (unrecognized). From
      * {@code literalTailAt} on, only a marker recognized as read inside the tail is taken and every
      * other token is text, which is why the {@code --} escape is only ever needed BEFORE the tail.
      */
-    private ScanOutcome scanFlagMarkers(FlagRecognizer recognizer, int literalTailAt){
+    private ScanOutcome scanFlagMarkers(Predicate<String> isMarker, FlagRecognizer recognizer, int literalTailAt){
         List<FlagedArgumento> matched = new ArrayList<FlagedArgumento>();
         List<String> unknownMarkers = new ArrayList<String>();
         List<String> markersMissingValue = new ArrayList<String>();
@@ -127,7 +141,7 @@ public class MultiArgumentos {
                 continue;
             }
 
-            if (!endOfFlags && !insideTail && !isFlagMarker(token)){
+            if (!endOfFlags && !insideTail && !isMarker.test(token)){
                 if (positionalsSeen == literalTailAt){
                     insideTail = true; //this token opens the tail: it and everything after it is text
                     continue;
@@ -135,7 +149,7 @@ public class MultiArgumentos {
                 positionalsSeen++;
             }
 
-            if (endOfFlags || !isFlagMarker(token)){
+            if (endOfFlags || !isMarker.test(token)){
                 i++;
                 continue;
             }
@@ -200,7 +214,7 @@ public class MultiArgumentos {
                             ? consumeQuotedValue(inlineValue, nextIndex, consumed)
                             : inlineValue;
                 }
-            }else if (nextToken == null || nextToken.equals("--") || isFlagMarker(nextToken)){
+            }else if (nextToken == null || nextToken.equals("--") || isMarker.test(nextToken)){
                 //"--" is never swallowed as a value in any mode, and neither is another flag marker
                 if (sniffed){
                     value = "true"; //manual mode has no declaration to hold the spelling to
@@ -391,11 +405,9 @@ public class MultiArgumentos {
     }
 
     /**
-     * Whether {@code token} is a flag marker by the same rule {@link #flagify()}/{@link #extractDeclaredFlags}
-     * use internally: one or more leading {@code -} followed by a non-digit (so negative numbers like
-     * {@code -5} stay positional), and at least one character after the dashes. Exposed for
-     * {@code FinalCMDPluginCommand}'s tab-complete, which needs the same recognition rule outside
-     * a real scan (e.g. to tell whether the word currently being typed is itself a flag name).
+     * Whether {@code token} has the SHAPE of a flag marker, which is the whole rule of {@link #flagify()}:
+     * one or more leading {@code -} followed by a non-digit (so negative numbers like {@code -5} stay
+     * positional), and at least one character after the dashes.
      */
     public static boolean isFlagMarker(String token){
         int dashCount = leadingDashCount(token);
@@ -403,6 +415,21 @@ public class MultiArgumentos {
             return false; //no leading dash at all, or the token is dashes only (no name)
         }
         return !Character.isDigit(token.charAt(dashCount)); //negative-number guard
+    }
+
+    /**
+     * Whether {@code token} is a flag marker on a line where {@code declaredLookupNames} (normalized, see
+     * {@link #flagLookupName}) are the flags something declares - the rule the declared scan, the tree
+     * walk and the tab all share. Nothing declared means nothing is a marker. Otherwise a {@code --name}
+     * is always one, so a misspelled long flag is reported instead of running as a stray word, while a
+     * single-dash {@code -name} is one only when it spells a declared flag: {@code -lol} in a sentence or
+     * {@code -base} as a home name stays text.
+     */
+    public static boolean isFlagMarker(String token, Collection<String> declaredLookupNames){
+        if (declaredLookupNames.isEmpty() || !isFlagMarker(token)){
+            return false;
+        }
+        return leadingDashCount(token) >= 2 || declaredLookupNames.contains(flagLookupName(token));
     }
 
     /**
@@ -465,12 +492,23 @@ public class MultiArgumentos {
         return index < this.argumentos.size() ? this.argumentos.get(index) : Argumento.EMPTY_ARG;
     }
 
+    /**
+     * The flag {@code flagName} names, dash-count-agnostic ({@code "x"}, {@code "-x"} and {@code "--x"}
+     * resolve the same flag), or {@link FlagedArgumento#EMPTY_ARG} when it was not typed.
+     *
+     * @throws IllegalStateException on a line the command dispatch scanned, when nothing on the command's
+     * path declares {@code flagName} - such a flag can never come back set
+     */
     public FlagedArgumento getFlag(String flagName){
         flagify();
+        Validate.isTrue(!flagName.isEmpty(), "The flagName cannot be empty");
+        String normalizedName = flagName.substring(leadingDashCount(flagName));
+        if (readableFlagNames != null && !readableFlagNames.contains(normalizedName.toLowerCase())){
+            throw new IllegalStateException("The flag [" + flagName + "] is not one this line was scanned for: on a command line, only the flags"
+                    + " the command's path declares leave it as flags, so this lookup could only come back empty."
+                    + " Declare it as a parameter of the method that reads it: @Arg.Flag(\"--" + normalizedName + "\").");
+        }
         if (flags.size() > 0){
-            Validate.isTrue(!flagName.isEmpty(), "The flagName cannot be empty");
-            String normalizedName = flagName.substring(leadingDashCount(flagName)); //dash-count-agnostic lookup: "x"/"-x"/"--x" all resolve the same flag
-
             for (FlagedArgumento flag : flags) {
                 if (flag.getFlagName().equalsIgnoreCase(normalizedName)){
                     return flag;

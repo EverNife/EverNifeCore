@@ -221,12 +221,11 @@ public class FinalCMDPluginCommand {
         Map<String, MultiArgumentos.FlagBinding> extractionBindings = node.getAccumulatedFlagExtractionBindings();
         int greedyTailIndex = interpreter.getGreedyTailIndex();
 
-        //The scan runs even where nothing declares a flag, exactly as the dispatch does: a bare "--"
-        //disappears off the line there too, and the positional the sender is typing has to be counted
-        //against the same tokens the method will see
-        int effectiveIndex = interpreter.extractsFlags()
-                ? effectivePositionalIndex(extractionBindings, args, walk.getConsumed(), index, greedyTailIndex)
-                : localIndex;
+        //Exactly as the dispatch does: with no flag on the path every token is a positional, otherwise
+        //the one being typed is counted against the tokens the scan will leave the method
+        int effectiveIndex = extractionBindings.isEmpty()
+                ? localIndex
+                : effectivePositionalIndex(extractionBindings, args, walk.getConsumed(), index, greedyTailIndex);
 
         if (!extractionBindings.isEmpty()){
             List<String> flagSuggestions = tabCompleteFlags(node, extractionBindings, sender, alias, args,
@@ -327,7 +326,9 @@ public class FinalCMDPluginCommand {
                     .map(binding -> suggestedSpelling(binding, lastWord))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
-            return insideTheTail && names.isEmpty() ? null : names;
+            //A single dash only makes a flag when it spells a declared one, so a "-word" nothing
+            //answers to is a positional being typed, and its own parser gets the word
+            return names.isEmpty() && (insideTheTail || !lastWord.startsWith("--")) ? null : names;
         }
 
         if (index > pathLength){
@@ -451,7 +452,7 @@ public class FinalCMDPluginCommand {
 
         int positionals = 0;
         for (String token : scan.getStringArgs()) {
-            if (!MultiArgumentos.isFlagMarker(token)){
+            if (!MultiArgumentos.isFlagMarker(token, extractionBindings.keySet())){
                 positionals++;
             }
         }

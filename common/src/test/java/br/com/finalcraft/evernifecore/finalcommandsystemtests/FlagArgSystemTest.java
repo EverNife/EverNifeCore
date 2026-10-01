@@ -399,10 +399,9 @@ class FlagArgSystemTest {
     }
 
     // ------------------------------------------------------------------
-    // the marker syntax belongs to the LINE, not to the declaration: a method without
-    // @Arg.Flag refuses "--x" instead of taking it as a positional, and the bare "--" escape is what
-    // delivers it; a method WITH @Arg.Flag still parses a negative number positional correctly (the
-    // negative-number guard is untouched by the declarative pipeline)
+    // a method without @Arg.Flag has no flag to misspell, so "--x" reaches it as a positional; a method
+    // WITH @Arg.Flag still parses a negative number positional correctly (the negative-number guard is
+    // untouched by the declarative pipeline)
     // ------------------------------------------------------------------
 
     @FinalCMD(aliases = "flagnone")
@@ -426,26 +425,15 @@ class FlagArgSystemTest {
     }
 
     @Test
-    void methodWithoutFlagArgRefusesADashTokenAndTeachesTheEscape() {
+    void methodWithoutFlagArgTakesADashTokenAsAPositional() {
         FinalCMDPluginCommand command = newHarness().register(new NoFlagDeclared_Cmd());
         NoFlagDeclared_Cmd.received = null;
         TestCommandSender sender = new TestCommandSender("console");
 
         harness.dispatch(command, sender, "sub --qualquer");
 
-        assertNull(NoFlagDeclared_Cmd.received);
-        sender.assertAnyMessageContains("--qualquer");
-        sender.assertAnyMessageContains("plain text"); //the refusal teaches the escape that makes it a positional
-    }
-
-    @Test
-    void theEscapeDeliversADashTokenAsAPositionalWithNoFlagDeclaredAtAll() {
-        FinalCMDPluginCommand command = newHarness().register(new NoFlagDeclared_Cmd());
-        NoFlagDeclared_Cmd.received = null;
-
-        harness.dispatch(command, new TestCommandSender("console"), "sub -- --qualquer");
-
         assertEquals("--qualquer", NoFlagDeclared_Cmd.received);
+        sender.assertNoMessageSent();
     }
 
     @Test

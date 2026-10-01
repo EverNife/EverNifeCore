@@ -5,7 +5,6 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessageImp;
 import br.com.finalcraft.evernifecore.locale.data.FCLocaleData;
 import br.com.finalcraft.evernifecore.placeholder.replacer.CompoundReplacer;
 import br.com.finalcraft.evernifecore.util.FCArrayUtil;
-import lombok.AccessLevel;
 import lombok.Getter;
 
 import java.util.Arrays;
@@ -30,8 +29,6 @@ public class CMDData<T extends CMDData<T>> {
     private String context = "";
     private CMDAccessValidation[] cmdAccessValidations = new CMDAccessValidation[0];
     private FCLocaleData[] locales = new FCLocaleData[0];
-    @Getter(AccessLevel.NONE)
-    private boolean extractsFlags = true;
 
     public CMDData() {
 
@@ -56,16 +53,6 @@ public class CMDData<T extends CMDData<T>> {
         if (override.getLocales().length > 0) this.locales = override.getLocales();
         if (override.getCmdAccessValidations().length > 0) this.cmdAccessValidations = override.getCmdAccessValidations();
         if (override.getLocales().length > 0) this.locales = override.getLocales();
-        return (T) this;
-    }
-
-    /** Whether this declaration lets the line be scanned for flags ({@code flags()} on its annotation). */
-    public boolean extractsFlags() {
-        return extractsFlags;
-    }
-
-    public T setExtractsFlags(boolean extractsFlags) {
-        this.extractsFlags = extractsFlags;
         return (T) this;
     }
 

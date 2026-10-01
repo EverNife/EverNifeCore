@@ -6,6 +6,7 @@ import jakarta.annotation.Nonnull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Resolves which node a line reaches, and how many tokens that costs.
@@ -27,8 +28,6 @@ public final class CommandWalker {
     public static WalkResult walk(@Nonnull CommandNode root, @Nonnull String[] args, @Nonnull String label) {
         CommandNode node = root;
         int cursor = 0;
-        //A command that turned flags off has no flag to write too early: a dashed word is just a word
-        boolean flagsOn = root.getCmdData().extractsFlags();
 
         List<String> segments = new ArrayList<>();
         List<String> literals = new ArrayList<>();
@@ -42,6 +41,9 @@ public final class CommandWalker {
                 return result(node, cursor, captureTokens, pathNodes, label, segments, literals, lastLiteralIndex, terminalOutcome(node), null, null);
             }
 
+            //Only what a line through here could still recognize is a flag: with nothing declared
+            //below, a dashed word is a word - a home called -base, a capture of -steve
+            Set<String> flagNamesAhead = node.getFlagLookupNamesAtOrBelow();
             CaptureBinding capture = node.getCapture();
 
             if (capture != null){
@@ -51,7 +53,7 @@ public final class CommandWalker {
                 }
                 for (int i = 0; i < width; i++) {
                     String token = args[cursor + i];
-                    if (flagsOn && MultiArgumentos.isFlagMarker(token)){
+                    if (MultiArgumentos.isFlagMarker(token, flagNamesAhead)){
                         return result(node, cursor, captureTokens, pathNodes, label, segments, literals, lastLiteralIndex, WalkResult.Outcome.FLAG_TOO_EARLY, null, token);
                     }
                     captureTokens.add(token);
@@ -68,7 +70,7 @@ public final class CommandWalker {
 
             CommandNode child = node.getChild(token);
             if (child == null){
-                if (flagsOn && MultiArgumentos.isFlagMarker(token)){
+                if (MultiArgumentos.isFlagMarker(token, flagNamesAhead)){
                     //A flag written here is only early if nothing that could read it has been reached.
                     //Once the node standing here declares it, the path IS over: the token belongs to
                     //the window, and refusing it would leave the flag impossible to type at all.

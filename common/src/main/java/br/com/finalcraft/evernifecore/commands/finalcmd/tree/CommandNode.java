@@ -14,10 +14,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * One segment of a registered command tree. The same type covers all three shapes:
@@ -279,6 +281,19 @@ public class CommandNode {
             accumulated.putAll(executable.getFlagExtractionBindings());
         }
         return accumulated;
+    }
+
+    /**
+     * Every flag spelling (normalized) some line through this node could still recognize: what this
+     * node already accumulates, plus whatever any node below it declares. The traversal asks it before
+     * the target is known, to tell a flag written too early from a word that merely starts with a dash.
+     */
+    public Set<String> getFlagLookupNamesAtOrBelow() {
+        Set<String> names = new HashSet<>(getAccumulatedFlagExtractionBindings().keySet());
+        for (CommandNode child : children) {
+            names.addAll(child.getFlagLookupNamesAtOrBelow());
+        }
+        return names;
     }
 
     /** The declared side of {@link #getAccumulatedFlagExtractionBindings()} - what help and tab show. */

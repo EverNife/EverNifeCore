@@ -145,20 +145,18 @@ public class FCDefaultExecutor {
 
                 MultiArgumentos window = new MultiArgumentos(args).sliceFrom(walk.getConsumed());
 
-                //Always, even where nothing declares a flag, unless the command opted out with
-                //flags = false: the bare "--" escape and the shape of a flag marker are rules of the
-                //line itself, and a line whose meaning depended on what the target happened to declare
-                //had two tokenizers wearing one syntax. It stops where the variadic tail starts, because
-                //from there on the line is somebody's sentence.
-                if (executable.extractsFlags()){
-                    MultiArgumentos.FlagExtraction extraction = window.extractDeclaredFlags(
-                            target.getAccumulatedFlagExtractionBindings(), executable.getGreedyTailIndex());
+                //A path that declares no flag has no flag to misspell: every token, "-lol" and the bare
+                //"--" included, is the sender's text. The scan stops where the variadic tail starts,
+                //because from there on the line is somebody's sentence.
+                Map<String, MultiArgumentos.FlagBinding> flagBindings = target.getAccumulatedFlagExtractionBindings();
+                if (flagBindings.isEmpty()){
+                    window.keepEveryTokenPositional();
+                }else {
+                    MultiArgumentos.FlagExtraction extraction = window.extractDeclaredFlags(flagBindings, executable.getGreedyTailIndex());
                     if (!extraction.isClean()){
                         sendFlagExtractionError(sender, target, extraction);
                         return;
                     }
-                }else {
-                    window.keepEveryTokenPositional();
                 }
 
                 DispatchContext dispatch = new DispatchContext(label, walk.getPath(), window);
@@ -312,8 +310,8 @@ public class FCDefaultExecutor {
      * nobody declared travel in one sentence, and each declared flag whose value is missing or unwanted
      * gets its own - those two teach a form, and a form is per flag.
      * <p>
-     * A target that declares no flag at all still reaches here, because the marker syntax is the line's
-     * and not the declaration's: there the answer is not a list of alternatives but the escape.
+     * When every declared flag is kept off the usage line or behind a permission this sender lacks,
+     * there is nothing to list, so the answer is the escape instead.
      */
     private static void sendFlagExtractionError(FCommandSender sender, CommandNode target, MultiArgumentos.FlagExtraction extraction){
         if (!extraction.getUnknownMarkers().isEmpty()){

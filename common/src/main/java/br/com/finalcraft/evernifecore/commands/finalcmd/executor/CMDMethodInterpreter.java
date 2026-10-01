@@ -72,7 +72,6 @@ public class CMDMethodInterpreter {
     private final String[] labels; //Alias of the command or name of the subCMD
     private final boolean rendersPath; //everything but the root's own method is reached through a path, and shows it
     private final boolean playerOnly;
-    private final boolean extractsFlags;
     private final Map<Integer, ArgParser> arguments = new LinkedHashMap<>(); // Args with @Arg annotation
     //Args without any annotation or with @Arg.Contextual, split by the phase they resolve in so a
     //dispatch iterates the group of the turn whole instead of filtering one out of the other
@@ -122,21 +121,6 @@ public class CMDMethodInterpreter {
         String whereMethod = "on the FinalCMD (" + executor.getClass().getName() + ")[" + method.getName() + "]";
         refuseMixedAnnotationFamilies(methodData, whereMethod);
         refuseRepeatedDeclaredNames(methodData, whereMethod);
-
-        this.extractsFlags = cmdData.extractsFlags() && ownerNode.getRoot().getCmdData().extractsFlags();
-        if (!extractsFlags){
-            String declaredBy = flagsOffDeclaration(ownerNode);
-            if (!methodData.getFlagArgDataMap().isEmpty()){
-                throw new ArgMountException("The @Arg.Flag parameters " + whereMethod + " can never be typed: this method's line is"
-                        + " not scanned for flags, because " + declaredBy + " declares flags = false. Drop flags = false there,"
-                        + " or turn each flag into a positional @Arg.");
-            }
-            if (!ownerNode.getAccumulatedFlagExtractionBindings().isEmpty()){
-                throw new ArgMountException("A @FinalCMD.Capture on the path of " + whereMethod + " declares an @Arg.Flag, but"
-                        + " this method's line is not scanned for flags, because " + declaredBy + " declares flags = false - on this"
-                        + " path that flag could never be typed. Drop flags = false there, or move the flag off the capture.");
-            }
-        }
 
         //Local to this method's own window: the path (labels and captured tokens) is sliced off before
         //the tokens ever reach here, so the first positional of ANY executable sits at 0
@@ -853,24 +837,6 @@ public class CMDMethodInterpreter {
 
     public boolean isPlayerOnly() {
         return playerOnly;
-    }
-
-    /** Which declaration turned flags off for this method: its own, or its command's. */
-    private String flagsOffDeclaration(CommandNode ownerNode) {
-        if (!cmdData.extractsFlags()){
-            return "its own " + (cmdData instanceof FinalCMDData ? "@FinalCMD" : "@FinalCMD.SubCMD");
-        }
-        CommandNode root = ownerNode.getRoot();
-        return "its command's @FinalCMD (" + root.getNodeInstance().getClass().getName() + ", /" + root.getPrimaryLabel() + ")";
-    }
-
-    /**
-     * Whether a dispatch to this method scans its window for flags. False when its own declaration or
-     * its command's {@code @FinalCMD} says {@code flags = false}: then every token, the bare {@code --}
-     * included, is a positional.
-     */
-    public boolean extractsFlags() {
-        return extractsFlags;
     }
 
     public Map<Integer, ArgParser> getCustomArguments() {

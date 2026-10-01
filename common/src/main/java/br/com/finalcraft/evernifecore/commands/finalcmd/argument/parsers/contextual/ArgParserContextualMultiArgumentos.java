@@ -8,17 +8,10 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import jakarta.annotation.Nonnull;
 
 /**
- * Hands the method the executable's own window, as the dispatch left it. The dispatch scans every
- * command, whether or not anything on the path declares an {@code @Arg.Flag}, so this window is ALWAYS
- * already extracted: the flag tokens and the bare {@code --} are gone from it, and
- * {@link MultiArgumentos#flagify()} is a no-op, which means {@code getFlags()} answers exactly what the
- * path declared and never sniffs. There is one reading of this parameter, not one per declaration.
- * <p>
- * That the window comes post-extraction is the honest thing to hand over: it is exactly what the
- * method's own positionals were read from, so a parameter that walks the tokens sees the same line the
- * framework did. Sniffed mode is what an instance nothing has scanned still does - one built by hand,
- * one from {@link MultiArgumentos#sliceFrom(int)}, or a variadic tail, which arrives exactly as typed
- * because the scan stops where the tail begins.
+ * Hands the method the executable's own window, as the dispatch left it: the declared flags of the path
+ * and the bare {@code --} already taken out, or every token as typed when the path declares no flag. It
+ * is exactly what the method's own positionals were read from, so a parameter that walks the tokens sees
+ * the same line the framework did, and {@code getFlag} answers only what the path declared.
  */
 public class ArgParserContextualMultiArgumentos extends ArgParserContextual<MultiArgumentos> {
 
