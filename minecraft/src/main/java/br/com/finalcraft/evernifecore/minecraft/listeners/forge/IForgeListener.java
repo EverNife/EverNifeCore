@@ -21,10 +21,11 @@ public interface IForgeListener {
     public ForgeRegistration registerListener(Plugin plugin, ECListener listener, Object... eventBus);
 
     /**
-     * Register a Listener to the buses Forge posts its own events on: {@code MinecraftForge.EVENT_BUS},
+     * Register a Listener to the buses the mod loader posts its own events on: {@code MinecraftForge.EVENT_BUS},
      * plus {@code FMLCommonHandler.instance().bus()} on 1.7.10, the one era where FML keeps a bus of its
-     * own ({@code TickEvent}, FML's {@code PlayerEvent} family). A mod's private bus is never among
-     * them - hand it to {@link #registerListener(Plugin, ECListener, Object...)}.
+     * own ({@code TickEvent}, FML's {@code PlayerEvent} family) - or {@code NeoForge.EVENT_BUS} where the
+     * Forge side is NeoForge. A mod's private bus is never among them - hand it to
+     * {@link #registerListener(Plugin, ECListener, Object...)}.
      *
      * @param plugin The plugin that is registering the listener
      * @param listener The listener to register

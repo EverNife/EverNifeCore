@@ -1,9 +1,11 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp;
 
+import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.ForgeRegistration;
 import cpw.mods.fml.common.FMLCommonHandler;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
+import net.neoforged.neoforge.common.NeoForge;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -58,6 +60,7 @@ class ForgeReflectionTest {
     void clearTheDouble() {
         MinecraftForge.EVENT_BUS = null;
         FMLCommonHandler.BUS = null;
+        NeoForge.EVENT_BUS = null;
     }
 
     @Test
@@ -170,9 +173,65 @@ class ForgeReflectionTest {
                 "and the question survives a null bus instead of throwing on it");
     }
 
+    @Test
+    void aNeoForgeBusIsToldApartFromAForgeOneAndFromAnythingElse() {
+        assertTrue(ForgeReflection.isNeoForgeEventBus(new NeoForgeEraBus()));
+        assertFalse(ForgeReflection.isNeoForgeEventBus(new ModernEraBus()),
+                "the two interfaces share a simple name and nothing else");
+        assertFalse(ForgeReflection.isModernEventBus(new NeoForgeEraBus()), "and the reverse");
+        assertFalse(ForgeReflection.isNeoForgeEventBus(null));
+    }
+
+    @Test
+    void onNeoForgeTheDefaultRouteRegistersOnItsMainBusAndTheHandleTakesTheListenerOff() {
+        NeoForgeEraBus mainBus = new NeoForgeEraBus();
+        NeoForge.EVENT_BUS = mainBus;
+        MinecraftForge.EVENT_BUS = new Object();
+
+        ForgeRegistration registration = new ArclightNeoForgeListener().registerListener(null, LISTENER);
+
+        assertEquals(Collections.<Object>singletonList(LISTENER), mainBus.registered,
+                "NeoForge.EVENT_BUS is the bus that received it, not the Forge one beside it");
+        registration.unregister();
+        assertEquals(Collections.<Object>singletonList(LISTENER), mainBus.unregistered);
+    }
+
+    @Test
+    void onNeoForgeABusOfAnotherKindIsRefusedBeforeAnythingIsRegistered() {
+        NeoForgeEraBus first = new NeoForgeEraBus();
+        ModernEraBus forgeBus = new ModernEraBus();
+
+        IllegalArgumentException refusal = assertThrows(IllegalArgumentException.class,
+                () -> new ArclightNeoForgeListener().registerListener(null, LISTENER, first, forgeBus));
+
+        assertTrue(refusal.getMessage().contains(ModernEraBus.class.getName()),
+                "the refusal names the bus it could not use: " + refusal.getMessage());
+        assertTrue(first.registered.isEmpty(),
+                "a listener left on half the buses would have no handle to take it off again");
+    }
+
     // -----------------------------------------------------------------------------------------------------------------
     //  stand-ins
     // -----------------------------------------------------------------------------------------------------------------
+
+    private static final ECListener LISTENER = new ECListener() {
+    };
+
+    /** A NeoForge bus that records what was asked of it. */
+    static class NeoForgeEraBus implements net.neoforged.bus.api.IEventBus {
+        final List<Object> registered = new ArrayList<>();
+        final List<Object> unregistered = new ArrayList<>();
+
+        @Override
+        public void register(Object listener) {
+            registered.add(listener);
+        }
+
+        @Override
+        public void unregister(Object listener) {
+            unregistered.add(listener);
+        }
+    }
 
     /** A bus from the eras where implementing that interface is what makes a bus the modern kind. */
     static class ModernEraBus implements IEventBus {

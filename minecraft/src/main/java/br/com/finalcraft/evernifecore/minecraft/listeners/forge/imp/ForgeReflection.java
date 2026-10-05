@@ -17,7 +17,8 @@ import java.util.function.Supplier;
  * bytecode carries no Forge descriptor. That is what lets one adapter serve eras that disagree on
  * types: {@code MinecraftForge.EVENT_BUS} is a {@code cpw.mods.fml.common.eventhandler.EventBus} on
  * 1.7.10 and a {@code net.minecraftforge.eventbus.api.IEventBus} from 1.16.5 on, and a by-name read
- * hands back either one as an opaque handle for the bus to receive later.</p>
+ * hands back either one as an opaque handle for the bus to receive later. NeoForge renamed the whole
+ * tree, so its bus is reached under its own names.</p>
  *
  * <p>Every entry point answers one of two things: the result, or an {@link IllegalStateException}
  * naming the class and member the route wanted. That covers the by-name step that comes back empty
@@ -31,6 +32,8 @@ final class ForgeReflection {
     private static final String EVENT_BUS = "EVENT_BUS";
     private static final String MODERN_EVENT_BUS = "net.minecraftforge.eventbus.api.IEventBus";
     private static final String FML_COMMON_HANDLER = "cpw.mods.fml.common.FMLCommonHandler";
+    private static final String NEOFORGE = "net.neoforged.neoforge.common.NeoForge";
+    private static final String NEOFORGE_EVENT_BUS = "net.neoforged.bus.api.IEventBus";
 
     private ForgeReflection() {
 
@@ -41,12 +44,24 @@ final class ForgeReflection {
      * @throws IllegalStateException if this runtime does not have it, or if reaching it throws.
      */
     static Object defaultEventBus() {
-        Class<?> minecraftForge = requireClass(MINECRAFT_FORGE);
-        String target = MINECRAFT_FORGE + "." + EVENT_BUS;
+        return mainEventBusOf(MINECRAFT_FORGE);
+    }
+
+    /**
+     * @return NeoForge's main event bus, the one its game events are posted on.
+     * @throws IllegalStateException if this runtime does not have it, or if reaching it throws.
+     */
+    static Object neoForgeEventBus() {
+        return mainEventBusOf(NEOFORGE);
+    }
+
+    private static Object mainEventBusOf(String home) {
+        Class<?> owner = requireClass(home);
+        String target = home + "." + EVENT_BUS;
         FieldAccessor<Object> eventBus = byName(target,
-                () -> FCReflectionUtil.getFields().<Object>getField(minecraftForge, EVENT_BUS));
+                () -> FCReflectionUtil.getFields().<Object>getField(owner, EVENT_BUS));
         if (eventBus == null) {
-            throw new IllegalStateException(MINECRAFT_FORGE + " is on this server but declares no field named '"
+            throw new IllegalStateException(home + " is on this server but declares no field named '"
                     + EVENT_BUS + "'. Hand the bus you already hold to "
                     + "registerListener(plugin, listener, eventBus) instead of asking for the default one.");
         }
@@ -73,20 +88,43 @@ final class ForgeReflection {
      * ever say why.
      */
     static boolean isModernEventBus(Object bus) {
-        ClassLookup modernEventBus = byName(MODERN_EVENT_BUS,
-                () -> FCReflectionUtil.getClasses().lookupClass(MODERN_EVENT_BUS));
-        if (modernEventBus.isUnlinkable()) {
-            throw new IllegalStateException(MODERN_EVENT_BUS + " is on this server but could not be loaded,"
-                    + " so no bus here can be told apart as a modern one and registering on it would be"
+        return isBusOfType(MODERN_EVENT_BUS, bus);
+    }
+
+    /**
+     * @return whether {@code bus} is a NeoForge bus, and {@code false} on a runtime that does not carry
+     * that interface.
+     * @throws IllegalStateException under the same conditions as {@link #isModernEventBus(Object)}.
+     */
+    static boolean isNeoForgeEventBus(Object bus) {
+        return isBusOfType(NEOFORGE_EVENT_BUS, bus);
+    }
+
+    private static boolean isBusOfType(String busInterface, Object bus) {
+        ClassLookup eventBus = byName(busInterface,
+                () -> FCReflectionUtil.getClasses().lookupClass(busInterface));
+        if (eventBus.isUnlinkable()) {
+            throw new IllegalStateException(busInterface + " is on this server but could not be loaded,"
+                    + " so no bus here can be told apart as one of its kind and registering on it would be"
                     + " skipped without a word. Report the server brand and version - the chained cause is"
-                    + " what the server threw while loading it.", modernEventBus.getLinkageError());
+                    + " what the server threw while loading it.", eventBus.getLinkageError());
         }
-        return modernEventBus.isFound() && modernEventBus.getType().isInstance(bus);
+        return eventBus.isFound() && eventBus.getType().isInstance(bus);
+    }
+
+    /**
+     * Registers {@code listener} on a NeoForge bus through the bus's own {@code register(Object)}.
+     *
+     * @throws IllegalStateException if the bus interface or that member is not on this runtime, or if
+     *                               the lookup throws instead of answering.
+     */
+    static void registerOnNeoForgeBus(Object bus, Object listener) {
+        method(NEOFORGE_EVENT_BUS, "register", 1).invoke(bus, listener);
     }
 
     /**
      * The handle for a listener registered as itself on each of {@code buses}: undoing it calls each bus's own
-     * {@code unregister(Object)}, the member every Forge era's event bus declares for exactly this. Every bus
+     * {@code unregister(Object)}, the member every Forge and NeoForge event bus declares for exactly this. Every bus
      * is attempted even when one of them fails; the first failure is then thrown, carrying the others as
      * suppressed.
      */
@@ -112,6 +150,11 @@ final class ForgeReflection {
     }
 
     private static MethodInvoker<Object> unregisterMethod(Object bus) {
+        if (isNeoForgeEventBus(bus)) {
+            //resolved on the interface NeoForge publishes: the class behind it sits in a named module
+            //and nothing says its package is open to a plugin
+            return method(NEOFORGE_EVENT_BUS, "unregister", 1);
+        }
         Class<?> busType = bus.getClass();
         MethodInvoker<Object> invoker = byName(busType.getName() + ".unregister",
                 () -> FCReflectionUtil.getMethods().<Object>getMethod(busType, "unregister", Object.class));

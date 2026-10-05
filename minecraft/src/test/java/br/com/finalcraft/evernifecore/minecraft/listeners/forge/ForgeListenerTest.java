@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners.forge;
 
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.ArclightForgeListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.ArclightNeoForgeListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.CrucibleForgeListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.ModernMohistForgeListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.MohistForgeListener;
@@ -70,9 +71,9 @@ class ForgeListenerTest {
     }
 
     @Test
-    void anArclightRunningNeoForgeIsHandedNoAdapterAtAll() {
-        assertNull(ForgeListener.detectHybrid(runtimeWith(ARCLIGHT, NEOFORGE_BUS)),
-                "the Arclight brand is there, but the era it runs renamed every type the branch reaches for");
+    void anArclightRunningNeoForgeIsHandedTheAdapterThatSpeaksNeoForge() {
+        assertTrue(ForgeListener.detectHybrid(runtimeWith(ARCLIGHT, NEOFORGE_BUS)) instanceof ArclightNeoForgeListener,
+                "the Arclight brand is there, but the era it runs renamed every type the Forge adapter reaches for");
     }
 
     @Test

@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.listeners.forge;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.ArclightForgeListener;
+import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.ArclightNeoForgeListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.CrucibleForgeListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.ModernMohistForgeListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.MohistForgeListener;
@@ -36,8 +37,8 @@ public class ForgeListener {
                 return new CrucibleForgeListener();
             }else if (runtime.isLoaded("io.izzel.arclight.api.Arclight")){
                 if (speaksNeoForgeOnly(runtime)){
-                    reportEraNotServed();
-                    return null;
+                    //Present on 1.21.1
+                    return new ArclightNeoForgeListener();
                 }
                 //Present on 1.12.2 and 1.16.5 and 1.20.x
                 return new ArclightForgeListener();
@@ -59,8 +60,8 @@ public class ForgeListener {
 
     /**
      * Whether this runtime's Forge side is NeoForge with no {@code net.minecraftforge} left to reach -
-     * the era the Arclight branch cannot serve, because its one entry point takes a bus typed as
-     * {@code net.minecraftforge.eventbus.api.IEventBus} and NeoForge renamed that whole tree.
+     * the era where every Forge type lives under {@code net.neoforged} and a listener is annotated for
+     * that tree.
      */
     static boolean speaksNeoForgeOnly(ClassPresence runtime){
         return runtime.isLoaded(NEOFORGE_BUS) && !runtime.isLoaded(FORGE_HOME);
@@ -75,20 +76,6 @@ public class ForgeListener {
         return FCReflectionUtil.getClasses().isClassLoaded(className);
     }
 
-    private static void reportEraNotServed(){
-        try {
-            EverNifeCore.getLog().warning("[ForgeListener] This server is an Arclight hybrid whose Forge"
-                    + " side is NeoForge: '{}' is on this runtime and '{}' is not. Everything this route"
-                    + " reaches for it reaches by name under net.minecraftforge, so the route is refused"
-                    + " here rather than dying inside the server's own class remapper. Bukkit listeners"
-                    + " and every other EverNifeCore feature are unaffected - ask"
-                    + " ForgeListener.isAvailable() before building a Forge route. This is said once.",
-                    NEOFORGE_BUS, FORGE_HOME);
-        }catch (Throwable ignored){
-            //Saying so is the one step that must not take the class initialization down with it.
-        }
-    }
-
     private static void reportUnavailable(Throwable failure){
         try {
             EverNifeCore.getLog().severe("[ForgeListener] This server looks like a hybrid Bukkit+Forge"
@@ -101,7 +88,7 @@ public class ForgeListener {
 
     /**
      * Whether a Forge route can be built on this server - the cheap question anything bridging to the
-     * Forge side asks before it builds anything. A hybrid running an era no adapter serves answers
+     * Forge side asks before it builds anything. A hybrid no adapter serves answers
      * {@code false} here, the same as a plain Bukkit server does: what a caller needs to know is
      * whether anything of theirs would arrive, not which brand is underneath.
      *
