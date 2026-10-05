@@ -6,7 +6,7 @@ import br.com.finalcraft.evernifecore.minecraft.listeners.forge.IForgeListener;
 import br.com.finalcraft.everylibs.reflection.MethodInvoker;
 import org.bukkit.plugin.Plugin;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -17,14 +17,20 @@ public class ArclightForgeListener implements IForgeListener {
 
     @Override
     public ForgeRegistration registerListener(Plugin plugin, ECListener listener, Object... eventBus) {
-        List<Object> reached = new ArrayList<>();
-        for (Object bus : eventBus) {
-            if (ForgeReflection.isModernEventBus(bus)){
-                registerForgeEvent().invoke(null, plugin, bus, listener);
-                reached.add(bus);
+        List<Object> buses = Arrays.asList(eventBus);
+        for (Object bus : buses) {
+            if (!ForgeReflection.isModernEventBus(bus)){
+                throw new IllegalArgumentException("Cannot register " + listener.getClass().getName() + " on "
+                        + (bus == null ? "a null bus" : "a bus of type " + bus.getClass().getName())
+                        + ": on this server only a net.minecraftforge.eventbus.api.IEventBus can take a"
+                        + " listener. Nothing was registered - hand over MinecraftForge.EVENT_BUS, a mod's own"
+                        + " IEventBus, or use registerListener(plugin, listener) for the default one.");
             }
         }
-        return ForgeReflection.unregisterFrom(reached, listener);
+        for (Object bus : buses) {
+            registerForgeEvent().invoke(null, plugin, bus, listener);
+        }
+        return ForgeReflection.unregisterFrom(buses, listener);
     }
 
     @Override

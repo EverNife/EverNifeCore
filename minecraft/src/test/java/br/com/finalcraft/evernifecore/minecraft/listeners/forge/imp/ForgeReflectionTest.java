@@ -210,6 +210,15 @@ class ForgeReflectionTest {
                 "a listener left on half the buses would have no handle to take it off again");
     }
 
+    @Test
+    void onForgeEraArclightABusOfAnotherKindIsRefusedTheSameWay() {
+        IllegalArgumentException refusal = assertThrows(IllegalArgumentException.class,
+                () -> new ArclightForgeListener().registerListener(null, LISTENER, new ModernEraBus(), new NeoForgeEraBus()));
+
+        assertTrue(refusal.getMessage().contains(NeoForgeEraBus.class.getName()),
+                "the refusal names the bus it could not use: " + refusal.getMessage());
+    }
+
     // -----------------------------------------------------------------------------------------------------------------
     //  stand-ins
     // -----------------------------------------------------------------------------------------------------------------
