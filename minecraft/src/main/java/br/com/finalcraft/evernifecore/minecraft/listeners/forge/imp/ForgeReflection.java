@@ -6,8 +6,10 @@ import br.com.finalcraft.everylibs.reflection.FieldAccessor;
 import br.com.finalcraft.everylibs.reflection.MethodInvoker;
 import br.com.finalcraft.everylibs.reflection.lookup.ClassLookup;
 
+import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -31,6 +33,8 @@ final class ForgeReflection {
     private static final String MINECRAFT_FORGE = "net.minecraftforge.common.MinecraftForge";
     private static final String EVENT_BUS = "EVENT_BUS";
     private static final String MODERN_EVENT_BUS = "net.minecraftforge.eventbus.api.IEventBus";
+    private static final String MODERN_SUBSCRIBE_EVENT = "net.minecraftforge.eventbus.api.SubscribeEvent";
+    private static final String MODERN_EVENT_PRIORITY = "net.minecraftforge.eventbus.api.EventPriority";
     private static final String FML_COMMON_HANDLER = "cpw.mods.fml.common.FMLCommonHandler";
     private static final String NEOFORGE = "net.neoforged.neoforge.common.NeoForge";
     private static final String NEOFORGE_EVENT_BUS = "net.neoforged.bus.api.IEventBus";
@@ -110,6 +114,34 @@ final class ForgeReflection {
                     + " what the server threw while loading it.", eventBus.getLinkageError());
         }
         return eventBus.isFound() && eventBus.getType().isInstance(bus);
+    }
+
+    /**
+     * Subscribes {@code handler} to {@code eventType} on a modern Forge bus, with the priority and the
+     * cancelled-event choice {@code subscribeEvent} declares. The bus is handed a ready consumer, so it
+     * generates no class of its own that would have to see the listener's classloader. The handler is
+     * the key the bus files it under: {@code unregister(handler)} takes it off.
+     *
+     * @param subscribeEvent the {@code net.minecraftforge.eventbus.api.SubscribeEvent} on the method
+     *                       the handler stands for
+     * @throws IllegalStateException if a class or member this needs is not on this runtime, or if the
+     *                               lookup throws instead of answering.
+     */
+    static void addModernListener(Object bus, Annotation subscribeEvent, Class<?> eventType, Consumer<?> handler) {
+        Object priority = method(MODERN_SUBSCRIBE_EVENT, "priority", 0).invoke(subscribeEvent);
+        Object receiveCanceled = method(MODERN_SUBSCRIBE_EVENT, "receiveCanceled", 0).invoke(subscribeEvent);
+
+        Class<?> busType = requireClass(MODERN_EVENT_BUS);
+        Class<?> priorityType = requireClass(MODERN_EVENT_PRIORITY);
+        String target = MODERN_EVENT_BUS + ".addListener";
+        MethodInvoker<Object> addListener = byName(target, () -> FCReflectionUtil.getMethods().<Object>getMethod(
+                busType, "addListener", priorityType, boolean.class, Class.class, Consumer.class));
+        if (addListener == null) {
+            throw new IllegalStateException(MODERN_EVENT_BUS + " is on this server but declares no"
+                    + " addListener(EventPriority, boolean, Class, Consumer). This server runs a build of it"
+                    + " that EverNifeCore does not speak to - report the server brand and version.");
+        }
+        addListener.invoke(bus, priority, receiveCanceled, eventType, handler);
     }
 
     /**

@@ -17,6 +17,7 @@ import org.bukkit.plugin.Plugin;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,12 +48,18 @@ public class MohistForgeListener implements IForgeListener, ECListener {
 
     @Override
     public ForgeRegistration registerListener(Plugin plugin, ECListener listener, Object... eventBus) {
-        return registerListener(plugin, listener); // Mohist does not use BUS to register
+        return registerListener(plugin, listener); // the buses handed in are not used on Mohist
     }
 
     @Override
     public ForgeRegistration registerListener(Plugin plugin, ECListener listener) {
+        //Mohist's mirror is not relied on where the bus itself can take a handler: the 1.16.5 build
+        //measured only mirrors events posted off the main thread, which leaves out nearly all of gameplay
+        Object forgeBus = ForgeReflection.defaultEventBus();
+        boolean straightToTheBus = ForgeReflection.isModernEventBus(forgeBus);
+
         Map<Class<?>, List<Consumer<?>>> added = new LinkedHashMap<>();
+        List<Object> onTheBus = new ArrayList<>();
         for (Method declaredMethod : listener.getClass().getDeclaredMethods()) {
             declaredMethod.setAccessible(true);
 
@@ -67,15 +74,25 @@ public class MohistForgeListener implements IForgeListener, ECListener {
                             e.printStackTrace();
                         }
                     };
-                    this.addEventHandler(forgeEvent, handler);
-                    added.computeIfAbsent(forgeEvent, k -> new ArrayList<>()).add(handler);
+                    if (straightToTheBus) {
+                        ForgeReflection.addModernListener(forgeBus, declaredMethod.getAnnotation(subscribeEvent), forgeEvent, handler);
+                        onTheBus.add(handler);
+                    } else {
+                        this.addEventHandler(forgeEvent, handler);
+                        added.computeIfAbsent(forgeEvent, k -> new ArrayList<>()).add(handler);
+                    }
                 }catch (Throwable e){
                     plugin.getLogger().severe("Failed to register ForgeEvent listener for method: " + declaredMethod.getName());
                     e.printStackTrace();
                 }
             }
         }
-        return ForgeRegistration.once(() -> removeEventHandlers(added));
+        return ForgeRegistration.once(() -> {
+            removeEventHandlers(added);
+            for (Object handler : onTheBus) {
+                ForgeReflection.unregisterFrom(Collections.singletonList(forgeBus), handler).unregister();
+            }
+        });
     }
 
     private static Class<? extends Annotation> resolveSubscribeEvent() {
@@ -90,8 +107,8 @@ public class MohistForgeListener implements IForgeListener, ECListener {
     }
 
     /**
-     * Mohist mirrors every Forge event into Bukkit as a single wrapper event, so this whole inbound
-     * route is one Bukkit handler. It is registered programmatically rather than through an
+     * Mohist mirrors Forge events into Bukkit as a single wrapper event, so on the eras whose bus cannot
+     * be handed a consumer the whole inbound route is one Bukkit handler. It is registered programmatically rather than through an
      * {@code @EventHandler} method because naming the wrapper in a signature is what would compile a
      * Forge-side type into this module.
      */
