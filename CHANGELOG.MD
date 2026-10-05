@@ -16,7 +16,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 ## [3.0.1-alpha.51] - 2026-10-05
 
 A Forge listener is heard on Arclight NeoForge 1.21.1 and on Mohist 1.16.5, a dashed word in a command
-is text unless a flag reads it, and the config layer moves to EveryConfig 1.4.0.
+is text unless a flag reads it, and the config layer moves to EveryConfig 1.4.1.
 
 ### Added
 
@@ -35,11 +35,12 @@ is text unless a flag reads it, and the config layer moves to EveryConfig 1.4.0.
 - **Both Arclight adapters refuse a bus of the wrong kind.** `registerListener(plugin, listener, buses...)`
   throws an `IllegalArgumentException` naming the bus before registering on any of them; the Forge-era
   adapter used to skip such a bus in silence.
-- **EveryConfig 1.4.0.** A typed read of an absent path is `null` for a bean too, no longer a fresh
+- **EveryConfig 1.4.1.** A typed read of an absent path is `null` for a bean too, no longer a fresh
   instance at its defaults (`getValueInto(path, new T())` and `getOrSetValueIfAbsent` ask for the
   defaults). A bean's `List`/`Set`/array field of a `@KeyIndex` type is stored as a section per
   element, keyed by the id; a file holding the plain list still reads and is rewritten keyed on the
-  next binding write.
+  next binding write. A new file lists a bean's keys in field declaration order even when some are
+  renamed with `@Key`/`@JsonProperty`; an existing file keeps its order.
 
 ### Fixed
 
