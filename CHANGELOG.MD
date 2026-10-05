@@ -13,6 +13,45 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.51] - 2026-10-05
+
+A Forge listener is heard on Arclight NeoForge 1.21.1 and on Mohist 1.16.5, a dashed word in a command
+is text unless a flag reads it, and the config layer moves to EveryConfig 1.4.0.
+
+### Added
+
+- **`ForgeListener` serves the NeoForge side of an Arclight hybrid.** On Arclight NeoForge 1.21.1
+  `isAvailable()` now answers `true` and a listener is registered on `NeoForge.EVENT_BUS` (or on the
+  `net.neoforged.bus.api.IEventBus` handed in) through the new `ArclightNeoForgeListener`. The listener
+  has to be annotated with `net.neoforged.bus.api.SubscribeEvent`: on 1.21 a plugin picks its Forge
+  listener by mod loader, not by Minecraft version alone.
+
+### Changed
+
+- **`@FinalCMD(flags = false)` and `@SubCMD(flags = false)` are gone.** A path that declares no flag is
+  no longer scanned for one, and a single-dash word is a flag only when it spells a declared one, so a
+  word like `-zombie` reaches a free-text command as text with nothing to turn off. Reading an
+  undeclared flag off a dispatched line now throws.
+- **Both Arclight adapters refuse a bus of the wrong kind.** `registerListener(plugin, listener, buses...)`
+  throws an `IllegalArgumentException` naming the bus before registering on any of them; the Forge-era
+  adapter used to skip such a bus in silence.
+- **EveryConfig 1.4.0.** A typed read of an absent path is `null` for a bean too, no longer a fresh
+  instance at its defaults (`getValueInto(path, new T())` and `getOrSetValueIfAbsent` ask for the
+  defaults). A bean's `List`/`Set`/array field of a `@KeyIndex` type is stored as a section per
+  element, keyed by the id; a file holding the plain list still reads and is rewritten keyed on the
+  next binding write.
+
+### Fixed
+
+- **A Forge listener on Mohist 1.16.5 hears events posted on the main thread.** The adapter relied on
+  Mohist's Bukkit mirror, which on the build measured only wraps events posted off the main thread, so
+  a `@SubscribeEvent` method registered without an error and was never called for gameplay events.
+  Each method is now subscribed on `MinecraftForge.EVENT_BUS` itself, keeping the annotation's
+  `priority` and `receiveCanceled`. Mohist 1.12.2 still goes through the mirror.
+- **A YAML key that is markup no longer breaks the file.** With EveryConfig 1.3.1 a key starting with
+  an indicator, such as a PlaceholderAPI `%placeholder%`, is written quoted; it used to produce a file
+  that no longer parsed, which the next open backed up and replaced with the defaults.
+
 ## [3.0.1-alpha.50] - 2026-09-28
 
 An ignore provider can answer for a player who is not loaded.
