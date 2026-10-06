@@ -13,6 +13,29 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.54] - 2026-10-06
+
+Regions get flags, access groups and a resolver: what a flag is worth at a point, for a given player.
+
+### Added
+
+- **`region.flag`**: `RegionFlag`/`TristateFlag` over a `FlagType` (`FlagTypes` for the built-in kinds), keyed by
+  `FlagKey` (`owner:name`), with `FlagValue` (permanent or until an `Instant`), per-flag `FlagSettings` saved under
+  `<dataFolder>/regions/flags/<name>.yml`, `TriggerThrottle` and `Revalidation`. `FlagRegistry` relinks stored values
+  when a flag registers late and keeps the raw value of a flag nobody registered. All flag clocks read `RegionTime.now()`.
+- **`region.flag.stock`**: the core's 18 stock flags (`deny-*`, `greeting`, `farewell`, `teleport-point`, `invincible`,
+  ...), registered through `StockFlags.registerAll(owner)`. `deny-pvp` is not bypassable.
+- **`region.group`**: `AccessGroup` with members (optionally until a deadline), a predicate or a permission, and a
+  `MembershipCheck` that says how long a membership answer may be cached.
+- **`region.session.RegionPlayerSession`** and **`RegionLookup.resolve` / `explain` / `isTrue` / `at(FPlayer)`**:
+  resolution by priority bands, where a child stands in for its parent, ties go to the flag's `resolveTie`, and a
+  player's groups override the region's own value. A holder of `evernifecore.region.bypass.*` or
+  `evernifecore.region.bypass.<owner>.<name>` reads the flag's default.
+
+### Changed
+
+- **`RegionId.requireOwner` / `requireName`** are public, so other region packages validate names the same way.
+
 ## [3.0.1-alpha.53] - 2026-10-06
 
 The first pieces of the region system: ids, shapes, the world height a platform reports, and a per-world spatial index.
