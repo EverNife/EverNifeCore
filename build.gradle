@@ -20,9 +20,7 @@ ext.jacksonRelocations = [
 // Local-only jars: paid or otherwise unobtainable plugins the :minecraft side compiles against, plus
 // the Crucible server checkLinkage reads the 1.7.10 API out of. One source, so the two readers cannot
 // drift apart. Without these that module cannot compile; the other modules still can.
-ext.localJarDirs = ['C:/Meus/workshop/workshop/MyOwnPlugins/Bukkit/FinalCraftCore/libs',
-                    'C:/Meus/workshop/workshop/PublicLibs',
-                    'C:/Meus/workshop/workshop/PublicLibs/Bukkit']
+ext.localJarDirs = (System.getenv('ENC_LOCAL_LIBS') ?: '').tokenize(File.pathSeparator)
 
 subprojects {
     apply plugin: 'java'
