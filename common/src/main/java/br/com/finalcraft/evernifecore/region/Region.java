@@ -3,10 +3,18 @@ package br.com.finalcraft.evernifecore.region;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.region.flag.FlagChangeCause;
+import br.com.finalcraft.evernifecore.region.flag.FlagKey;
+import br.com.finalcraft.evernifecore.region.flag.FlagStore;
+import br.com.finalcraft.evernifecore.region.flag.FlagValue;
+import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.annotation.Nullable;
 
+import java.time.Duration;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -26,6 +34,7 @@ public final class Region {
     private volatile int priority;
     private volatile Region parent;
     private final Set<String> tags = new CopyOnWriteArraySet<>();
+    private final FlagStore flags = new FlagStore(this::onFlagChanged);
 
     /**
      * @param name the region name, see {@link RegionId#of}; the owner part of the id is the owner's plugin name
@@ -114,6 +123,63 @@ public final class Region {
 
     public void removeTag(String tag) {
         tags.remove(tag);
+    }
+
+    /** A read-only snapshot of the live local values: no group values, nothing from the parent. */
+    public Map<FlagKey, FlagValue<?>> getFlags() {
+        return flags.getFlags();
+    }
+
+    /**
+     * The live local value of {@code flag}; null when unset or expired. Parents, groups and neighbours are not
+     * consulted - resolving the effective value is {@link RegionLookup}'s job.
+     */
+    public <T> @Nullable T getFlag(RegionFlag<T> flag) {
+        FlagValue<T> value = flags.getValue(flag);
+        return value == null ? null : value.getValue();
+    }
+
+    public <T> @Nullable FlagValue<T> getFlagValue(RegionFlag<T> flag) {
+        return flags.getValue(flag);
+    }
+
+    /**
+     * Sets the permanent local value, dropping any temporary one over it.
+     *
+     * @throws IllegalStateException when {@code flag} is not registered
+     */
+    public <T> void setFlag(RegionFlag<T> flag, T value) {
+        flags.set(flag, value);
+    }
+
+    /**
+     * Sets a temporary local value until now + {@code ttl}; the permanent value underneath, if any, counts again
+     * once it expires.
+     *
+     * @throws IllegalStateException when {@code flag} is not registered
+     */
+    public <T> void setFlag(RegionFlag<T> flag, T value, Duration ttl) {
+        flags.set(flag, value, ttl);
+    }
+
+    /** Removes the local value, permanent and temporary; false when there was none. */
+    public boolean removeFlag(RegionFlag<?> flag) {
+        return flags.remove(flag);
+    }
+
+    /** The stored values of flags that are not registered, raw, by {@code owner:name}. Read-only. */
+    public Map<String, JsonNode> getUnknownFlags() {
+        return flags.getUnknown();
+    }
+
+    /** Internal: the store behind the flag methods, shared with the flag registry. */
+    public FlagStore getFlagStore() {
+        return flags;
+    }
+
+    /** Every change of a local flag value lands here, after the fact. */
+    void onFlagChanged(RegionFlag<?> flag, @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue, FlagChangeCause cause) {
+        //nothing listens yet: the region manager wires the event bus and the storage dirty mark here
     }
 
     public boolean contains(int x, int y, int z) {
