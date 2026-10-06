@@ -61,7 +61,7 @@ class RegionLookupTest {
     }
 
     private Region add(ECPluginData by, String name, String world, Shape shape) {
-        Region region = new Region(by, name, world, shape);
+        Region region = TestRegions.create(by, name, world, shape);
         index.add(region);
         return region;
     }

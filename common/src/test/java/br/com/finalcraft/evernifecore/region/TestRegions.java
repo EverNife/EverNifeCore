@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.region;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
+import br.com.finalcraft.evernifecore.region.shape.Shape;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -25,7 +26,15 @@ public final class TestRegions {
 
     /** A 0..10 box in {@code world}, not indexed. */
     public static Region create(ECPluginData owner, String name, String world) {
-        return new Region(owner, name, world, CuboidShape.of(BlockPos.of(0, 0, 0), BlockPos.of(10, 10, 10)));
+        return create(owner, name, world, CuboidShape.of(BlockPos.of(0, 0, 0), BlockPos.of(10, 10, 10)));
+    }
+
+    /**
+     * A region of a manager that stores nothing and never attaches it: its setters change the fields and nothing
+     * else - no event, no write, no re-index.
+     */
+    public static Region create(ECPluginData owner, String name, String world, Shape shape) {
+        return new Region(new RegionManager(owner, null), name, world, shape, RegionOptions.defaults());
     }
 
     /** As {@link #create}, and published to {@link RegionLookup#get()}. */

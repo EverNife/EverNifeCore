@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.testing;
 
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
@@ -14,8 +15,8 @@ import java.util.UUID;
 /**
  * A minimal but honest {@link FPlayer} fake: real name/uuid (so {@code isPlayer() == true}),
  * a settable permission set, and captured messages - the same {@link CapturedMessages} a
- * {@link TestCommandSender} keeps. {@link #getLocation()} returns {@code null}; nothing in the
- * FinalCMD dispatch/help/tab paths under test reads it.
+ * {@link TestCommandSender} keeps. {@link #getLocation()} returns {@code null} until {@link #at} places the
+ * player - the FinalCMD paths never read it, region code does.
  */
 public class TestFPlayerSender implements FPlayer {
 
@@ -25,6 +26,7 @@ public class TestFPlayerSender implements FPlayer {
     private final CapturedMessages captured = new CapturedMessages();
     private boolean online = true;
     private boolean playedBefore = false;
+    private volatile @Nullable FLocation location;
 
     public TestFPlayerSender(String name, UUID uniqueId) {
         this.name = name;
@@ -62,9 +64,15 @@ public class TestFPlayerSender implements FPlayer {
         return playedBefore;
     }
 
+    /** Stands the player at a point; {@link #getLocation()} answers it from then on. */
+    public TestFPlayerSender at(String world, double x, double y, double z) {
+        this.location = new FLocation(WorldLocPos.of(x, y, z, world), null);
+        return this;
+    }
+
     @Override
-    public FLocation getLocation() {
-        return null;
+    public @Nullable FLocation getLocation() {
+        return location;
     }
 
     @Override

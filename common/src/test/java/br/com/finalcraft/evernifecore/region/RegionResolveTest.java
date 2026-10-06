@@ -159,7 +159,7 @@ class RegionResolveTest {
     }
 
     private Region region(ECPluginData by, String name, int priority, Shape shape, @Nullable Region parent) {
-        Region region = new Region(by, name, WORLD, shape);
+        Region region = TestRegions.create(by, name, WORLD, shape);
         region.setPriority(priority);
         region.setParent(parent);
         index.add(region);

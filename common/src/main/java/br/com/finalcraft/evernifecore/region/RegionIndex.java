@@ -12,9 +12,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -41,6 +43,12 @@ public final class RegionIndex {
     };
 
     static final Region[] NO_REGIONS = new Region[0];
+
+    /**
+     * Every writer holds it - a manager around its mutation and the publish that follows, and every write here -
+     * so a sort key (priority, depth) never changes under a running publish.
+     */
+    static final Object WRITE_LOCK = new Object();   // ponytail: one write lock for every manager; per-world locks if region writes ever contend
 
     private final int hugeChunks;
     //compute() on this map is the per-world write lock; get() is the lock-free read
@@ -71,16 +79,51 @@ public final class RegionIndex {
 
     /** @throws IllegalArgumentException when a region with the same id is already indexed */
     public void add(Region region) {
-        if (byId.putIfAbsent(region.getId(), region) != null) {
-            throw new IllegalArgumentException("A region with id " + region.getId() + " is already indexed - remove it first,"
-                    + " or replace(region) to re-index the same object.");
+        synchronized (WRITE_LOCK) {
+            if (byId.putIfAbsent(region.getId(), region) != null) {
+                throw new IllegalArgumentException("A region with id " + region.getId() + " is already indexed - remove it first,"
+                        + " or replace(region) to re-index the same object.");
+            }
+            publish(region.getWorld(), null, region);
         }
-        publish(region.getWorld(), null, region);
+    }
+
+    /**
+     * Indexes many regions with one publish per world - the path for a bulk load, where {@link #add} in a loop
+     * would copy every world's buckets once per region.
+     *
+     * @throws IllegalArgumentException when any id is already indexed; then nothing is added
+     */
+    public void addAll(Collection<Region> regions) {
+        synchronized (WRITE_LOCK) {
+            Map<String, List<Region>> byWorld = new HashMap<>();
+            Set<RegionId> seen = new HashSet<>();
+            for (Region region : regions) {
+                if (byId.containsKey(region.getId()) || !seen.add(region.getId())) {
+                    throw new IllegalArgumentException("A region with id " + region.getId() + " is already indexed - remove it first,"
+                            + " or load each region once.");
+                }
+                byWorld.computeIfAbsent(region.getWorld(), world -> new ArrayList<>()).add(region);
+            }
+            for (Region region : regions) {
+                byId.put(region.getId(), region);
+            }
+            byWorld.forEach((world, arriving) -> worlds.compute(world, (name, old) -> {
+                WorldSnapshot base = old != null ? old : WorldSnapshot.EMPTY;
+                Builder builder = new Builder(base);
+                for (Region region : arriving) {
+                    builder.place(region);
+                }
+                return builder.build(base.version + 1);
+            }));
+        }
     }
 
     public void remove(Region region) {
-        if (byId.remove(region.getId(), region)) {
-            publish(region.getWorld(), region, null);
+        synchronized (WRITE_LOCK) {
+            if (byId.remove(region.getId(), region)) {
+                publish(region.getWorld(), region, null);
+            }
         }
     }
 
@@ -92,19 +135,23 @@ public final class RegionIndex {
         if (byId.get(region.getId()) != region) {
             throw new IllegalArgumentException("Region " + region.getId() + " is not indexed (or another object holds its id) - add(region) it first.");
         }
-        publish(region.getWorld(), region, region);
+        synchronized (WRITE_LOCK) {
+            publish(region.getWorld(), region, region);
+        }
     }
 
-    /** Rebuilds the whole snapshot of {@code world} from the regions indexed in it - the path for a bulk load. */
+    /** Rebuilds the whole snapshot of {@code world} from the regions indexed in it. */
     public void rebuild(String world) {
-        worlds.compute(world, (name, old) -> {
-            WorldSnapshot base = old != null ? old : WorldSnapshot.EMPTY;
-            Builder builder = new Builder(WorldSnapshot.EMPTY);
-            for (Region region : base.all) {
-                builder.place(region);
-            }
-            return builder.build(base.version + 1);
-        });
+        synchronized (WRITE_LOCK) {
+            worlds.compute(world, (name, old) -> {
+                WorldSnapshot base = old != null ? old : WorldSnapshot.EMPTY;
+                Builder builder = new Builder(WorldSnapshot.EMPTY);
+                for (Region region : base.all) {
+                    builder.place(region);
+                }
+                return builder.build(base.version + 1);
+            });
+        }
     }
 
     private void publish(String world, Region leaving, Region arriving) {

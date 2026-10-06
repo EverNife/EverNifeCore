@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.testing;
 
+import br.com.finalcraft.evernifecore.storage.ECStorage;
+import br.com.finalcraft.evernifecore.storage.ECStorageHandles;
 import br.com.finalcraft.everydatabase.EntityDescriptor;
 import br.com.finalcraft.everydatabase.HealthStatus;
 import br.com.finalcraft.everydatabase.Repository;
@@ -19,7 +21,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * A {@link Storage} that answers exactly like the one it wraps, while counting what its repositories were
- * asked to do and letting a test script a write failure.
+ * asked to do and letting a test script a write or a read failure.
  *
  * <p>Two things no real backend gives a test. <b>Counting</b> is how "the chunk was saved, never deleted and
  * re-created" or "the peek read no backend" become assertions instead of hopes - the facade's return value
@@ -44,6 +46,7 @@ public final class ScriptedStorage implements Storage {
     private final Storage delegate;
     private final Map<String, AtomicInteger> calls = new ConcurrentHashMap<String, AtomicInteger>();
     private final AtomicReference<Throwable> nextSaveAllFailure = new AtomicReference<Throwable>();
+    private final AtomicReference<Throwable> nextAllFailure = new AtomicReference<Throwable>();
 
     private ScriptedStorage(Storage delegate) {
         this.delegate = delegate;
@@ -62,6 +65,20 @@ public final class ScriptedStorage implements Storage {
     public ScriptedStorage failNextSaveAll(Throwable cause) {
         nextSaveAllFailure.set(cause);
         return this;
+    }
+
+    /**
+     * Makes the next full read ({@code Repository.all()}) fail with {@code cause} and every one after it succeed - a
+     * backend that was unreachable once, for the code that loads a whole collection at startup.
+     */
+    public ScriptedStorage failNextAll(Throwable cause) {
+        nextAllFailure.set(cause);
+        return this;
+    }
+
+    /** An {@link ECStorage} handle over this backend, for code that takes one; call {@code init()} first. */
+    public ECStorage asECStorage() {
+        return ECStorageHandles.over(this);
     }
 
     /** How many times the repositories of this storage were asked for {@code method} (e.g. {@code "find"}). */
@@ -156,13 +173,12 @@ public final class ScriptedStorage implements Storage {
             }
             counter.incrementAndGet();
 
-            if ("saveAll".equals(name)) {
-                Throwable scripted = nextSaveAllFailure.getAndSet(null);
-                if (scripted != null) {
-                    CompletableFuture<Object> failed = new CompletableFuture<Object>();
-                    failed.completeExceptionally(scripted);
-                    return failed;
-                }
+            Throwable scripted = "saveAll".equals(name) ? nextSaveAllFailure.getAndSet(null)
+                    : "all".equals(name) ? nextAllFailure.getAndSet(null) : null;
+            if (scripted != null) {
+                CompletableFuture<Object> failed = new CompletableFuture<Object>();
+                failed.completeExceptionally(scripted);
+                return failed;
             }
             try {
                 return method.invoke(real, args);

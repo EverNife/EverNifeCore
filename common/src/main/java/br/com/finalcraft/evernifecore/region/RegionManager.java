@@ -1,0 +1,770 @@
+package br.com.finalcraft.evernifecore.region;
+
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.logger.ECDebugModule;
+import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
+import br.com.finalcraft.evernifecore.region.event.RegionCreatedEvent;
+import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
+import br.com.finalcraft.evernifecore.region.event.RegionGroupChangedEvent;
+import br.com.finalcraft.evernifecore.region.event.RegionLoadFailedEvent;
+import br.com.finalcraft.evernifecore.region.event.RegionRedefinedEvent;
+import br.com.finalcraft.evernifecore.region.event.RegionRemovedEvent;
+import br.com.finalcraft.evernifecore.region.flag.FlagChangeCause;
+import br.com.finalcraft.evernifecore.region.flag.FlagValue;
+import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
+import br.com.finalcraft.evernifecore.region.group.AccessGroup;
+import br.com.finalcraft.evernifecore.region.group.GroupChange;
+import br.com.finalcraft.evernifecore.region.shape.Shape;
+import br.com.finalcraft.evernifecore.region.storage.RegionRecord;
+import br.com.finalcraft.evernifecore.region.storage.RegionStorage;
+import br.com.finalcraft.evernifecore.storage.ECStorage;
+import jakarta.annotation.Nullable;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+/**
+ * The regions of one plugin: creates, changes and removes them, keeps them in the plugin's own {@link ECStorage}
+ * and posts a region event for every change. The core never creates a region by itself.
+ *
+ * <pre>{@code
+ * RegionManager regions = RegionManager.of(pluginData, storage);
+ * regions.load();
+ * CreationResult result = regions.create("arena", "world", shape, RegionOptions.defaults().withPriority(10));
+ * }</pre>
+ *
+ * <p><b>Threads:</b> every method may be called from any thread, on every platform. Writers are serialized by one
+ * lock, lookups never wait for it, and every event goes out on the thread of whoever made the change. Storage I/O
+ * never runs on the caller's thread: changes are written in the background, a tick after they happen.</p>
+ *
+ * <p>The core closes the manager when its owner shuts down (writing what is pending first) but never the owner's
+ * storage: that stays the owner's to close.</p>
+ */
+public final class RegionManager {
+
+    static final long DEFAULT_FLUSH_DELAY_MILLIS = 50;
+    static final long DEFAULT_RETRY_DELAY_MILLIS = 30_000;
+    private static final long CLOSE_TIMEOUT_SECONDS = 30;
+
+    private static final Map<ECPluginData, RegionManager> MANAGERS = new ConcurrentHashMap<>();
+    private static volatile long flushDelayMillis = DEFAULT_FLUSH_DELAY_MILLIS;
+    private static volatile long retryDelayMillis = DEFAULT_RETRY_DELAY_MILLIS;
+
+    private final ECPluginData owner;
+    private final @Nullable ECStorage storage;
+    private final @Nullable RegionStorage regionStorage;
+    private final Set<Region> dirty = ConcurrentHashMap.newKeySet();
+    /** Names whose deletion the backend has not confirmed yet. */
+    private final Set<String> removed = ConcurrentHashMap.newKeySet();
+    private final AtomicBoolean flushScheduled = new AtomicBoolean();
+    private final Object writeChain = new Object();
+    private CompletableFuture<Void> lastWrite = CompletableFuture.completedFuture(null);
+    private volatile boolean closed;
+    private volatile boolean loaded;
+    private volatile boolean loadFailed;
+    private volatile boolean foreignAccess = true;
+
+    /** @param storage null for a manager that writes nothing - tests that only need regions to exist */
+    RegionManager(ECPluginData owner, @Nullable ECStorage storage) {
+        this.owner = Objects.requireNonNull(owner, "owner");
+        this.storage = storage;
+        this.regionStorage = storage == null ? null : new RegionStorage(storage);
+    }
+
+    /**
+     * The manager of {@code owner}, created on first call; later calls with the same storage return the same
+     * manager. Any thread.
+     *
+     * @throws IllegalStateException when {@code owner} already has a manager on another storage, or another plugin
+     *                               already keeps its regions in {@code storage}
+     */
+    public static RegionManager of(ECPluginData owner, ECStorage storage) {
+        Objects.requireNonNull(owner, "'owner' cannot be null when opening a RegionManager!");
+        Objects.requireNonNull(storage, "'storage' cannot be null when opening a RegionManager!");
+        synchronized (MANAGERS) {
+            RegionManager existing = MANAGERS.get(owner);
+            if (existing != null) {
+                if (existing.storage == storage) {
+                    return existing;
+                }
+                throw new IllegalStateException(nameOf(owner) + " already has a RegionManager on another ECStorage - close() it before"
+                        + " opening one on a new storage.");
+            }
+            for (RegionManager other : MANAGERS.values()) {
+                if (other.storage == storage) {
+                    throw new IllegalStateException("That ECStorage already keeps the regions of " + nameOf(other.owner) + ": every plugin"
+                            + " keeps its regions in its own storage, so open a separate ECStorage for " + nameOf(owner) + ".");
+                }
+            }
+            RegionManager created = new RegionManager(owner, storage);
+            MANAGERS.put(owner, created);
+            return created;
+        }
+    }
+
+    /** The open manager of {@code owner}; null when it has none. Any thread. */
+    public static @Nullable RegionManager ofIfPresent(ECPluginData owner) {
+        return MANAGERS.get(owner);
+    }
+
+    public ECPluginData getOwner() {
+        return owner;
+    }
+
+    /** The owner's storage; null only for a manager that writes nothing. */
+    public @Nullable ECStorage getStorage() {
+        return storage;
+    }
+
+    public boolean isClosed() {
+        return closed;
+    }
+
+    // ------------------------------------------------------------------
+    //  Load
+    // ------------------------------------------------------------------
+
+    /**
+     * Reads every region of the owner, of every world, and indexes them with one publish per world. Any thread;
+     * the read runs in the background. A failure leaves the owner with no regions - nothing they would deny is
+     * denied - posts a {@link RegionLoadFailedEvent}, completes the future exceptionally so the owner may refuse
+     * its enable, and retries on its own until it succeeds or the manager closes.
+     */
+    public CompletableFuture<Void> load() {
+        CompletableFuture<Void> done = new CompletableFuture<>();
+        if (regionStorage == null || closed) {
+            done.complete(null);
+            return done;
+        }
+        RegionAgenda.scheduleAsync(() -> loadNow(done), 0);
+        return done;
+    }
+
+    private void loadNow(CompletableFuture<Void> done) {
+        CompletableFuture<List<RegionRecord>> read;
+        try {
+            read = regionStorage.loadAll();
+        } catch (RuntimeException failure) {
+            read = new CompletableFuture<>();
+            read.completeExceptionally(failure);
+        }
+        read.whenComplete((records, error) -> {
+            if (error == null) {
+                try {
+                    publishLoaded(records);
+                    loadFailed = false;
+                    done.complete(null);
+                    return;
+                } catch (RuntimeException failure) {
+                    error = failure;
+                }
+            }
+            onLoadFailed(error instanceof CompletionException && error.getCause() != null ? error.getCause() : error, done);
+        });
+    }
+
+    private void publishLoaded(List<RegionRecord> records) {
+        Map<String, Region> byName = new HashMap<>();
+        Map<Region, String> parents = new HashMap<>();
+        for (RegionRecord record : records) {
+            try {
+                Region region = RegionRecords.toRegion(this, record);
+                byName.put(region.getId().getName(), region);
+                if (record.parent != null) {
+                    parents.put(region, record.parent);
+                }
+            } catch (RuntimeException unreadable) {
+                owner.getLog().warning("Region '{}' of {} does not read ({}); it is skipped and stays in storage untouched.",
+                        record.name, nameOf(owner), unreadable.getMessage());
+            }
+        }
+        parents.forEach((region, parentName) -> {
+            Region parent = byName.get(parentName);
+            try {
+                if (parent == null) {
+                    throw new IllegalArgumentException("there is no region '" + parentName + "'");
+                }
+                region.linkParent(parent);
+            } catch (IllegalArgumentException noParent) {
+                owner.getLog().warning("Region {} loads with no parent: its parent '{}' cannot be linked ({}).", region.getId(), parentName,
+                        noParent.getMessage());
+            }
+        });
+        List<Region> fresh = new ArrayList<>();
+        synchronized (RegionIndex.WRITE_LOCK) {
+            if (closed) {
+                return;
+            }
+            RegionIndex index = index();
+            for (Region region : byName.values()) {
+                if (index.byId(region.getId()) == null) {
+                    fresh.add(region);
+                }
+            }
+            index.addAll(fresh);
+            for (Region region : fresh) {
+                region.setAttached(true);
+            }
+            loaded = true;
+        }
+        ECDebugModule.REGIONS.debug("{} loaded {} region(s) ({} already loaded).", nameOf(owner), fresh.size(), byName.size() - fresh.size());
+    }
+
+    private void onLoadFailed(Throwable error, CompletableFuture<Void> done) {
+        loadFailed = true;
+        ECEventBus.global().postIfListened(RegionLoadFailedEvent.class, () -> new RegionLoadFailedEvent(owner, null, error));
+        owner.getLog().warning("Regions of {} are not loaded ({}); nothing they would deny is denied until they are - the load is"
+                + " retried every {} s, or call load() again.", nameOf(owner), error.toString(), retryDelayMillis / 1000.0);
+        if (!closed) {
+            RegionAgenda.scheduleAsync(() -> {
+                if (!closed && !loaded) {
+                    loadNow(new CompletableFuture<>());
+                }
+            }, retryDelayMillis);
+        }
+        done.completeExceptionally(error);
+    }
+
+    // ------------------------------------------------------------------
+    //  Create, remove, redefine
+    // ------------------------------------------------------------------
+
+    /** {@link #create(String, String, Shape, RegionOptions)} with {@link RegionOptions#defaults()}. */
+    public CreationResult create(String name, String world, Shape shape) {
+        return create(name, world, shape, RegionOptions.defaults());
+    }
+
+    /**
+     * Creates and indexes a region, then posts {@code RegionCreatedEvent}. A name in use, an invalid name, a parent
+     * of another owner or world, or a policy that refuses one of the overlaps is a refusal in the result, never an
+     * exception. Any thread; the event goes out on the caller's.
+     *
+     * @throws IllegalStateException when this manager is closed
+     */
+    public CreationResult create(String name, String world, Shape shape, RegionOptions options) {
+        requireOpen();
+        RegionId id;
+        try {
+            id = RegionId.of(nameOf(owner), name);
+        } catch (IllegalArgumentException invalid) {
+            return CreationResult.refused(invalid.getMessage(), Collections.emptyList());
+        }
+        Region parent = options.getParent();
+        if (parent != null && (parent.getManager() != this || !parent.isAttached())) {
+            return CreationResult.refused("Region " + id + " cannot have " + parent.getId() + " as parent: a parent must be a live region of the"
+                    + " same owner (" + nameOf(owner) + ") - pick one of its regions, or none.", Collections.emptyList());
+        }
+        if (parent != null && !parent.getWorld().equals(world)) {
+            return CreationResult.refused("Region " + id + " cannot have " + parent.getId() + " as parent: a parent must be in the same world"
+                    + " ('" + world + "', not '" + parent.getWorld() + "').", Collections.emptyList());
+        }
+        Region region;
+        List<Overlap> overlaps;
+        synchronized (RegionIndex.WRITE_LOCK) {
+            if (index().byId(id) != null) {
+                return CreationResult.refused("Region " + id + " already exists - pick another name, or redefine or remove the existing one.",
+                        Collections.emptyList());
+            }
+            overlaps = dryRun(world, shape, options.getPriority());
+            String refusal = options.getPolicy().refusal(overlaps);
+            if (refusal != null) {
+                return CreationResult.refused(refusal, overlaps);
+            }
+            region = new Region(this, name, world, shape, options);
+            index().add(region);
+            region.setAttached(true);
+            removed.remove(region.getId().getName());
+        }
+        markDirty(region);
+        ECEventBus.global().postIfListened(RegionCreatedEvent.class, () -> new RegionCreatedEvent(region, overlaps));
+        return CreationResult.created(region, overlaps);
+    }
+
+    /**
+     * What a region with {@code shape} in {@code world} would overlap: our regions (by bounding box beyond cuboids,
+     * see {@link RegionLookup#in}) and what every {@link OverlapProvider} reports. Only reads. Any thread.
+     */
+    public List<Overlap> dryRun(String world, Shape shape) {
+        return dryRun(world, shape, 0);
+    }
+
+    private List<Overlap> dryRun(String world, Shape shape, int priority) {
+        List<Overlap> overlaps = new ArrayList<>();
+        for (Region other : RegionLookup.get().in(world, shape)) {
+            OverlapSource source = other.getOwner() == owner ? OverlapSource.OURS_SAME_OWNER : OverlapSource.OURS_OTHER_OWNER;
+            overlaps.add(new Overlap(source, other.getId().toString(), other.getId().getOwner(), other.getPriority(), other.getPriority() > priority));
+        }
+        for (OverlapProvider provider : OverlapProviders.all()) {
+            try {
+                overlaps.addAll(provider.findOverlaps(world, shape));
+            } catch (RuntimeException broken) {
+                owner.getLog().warning("The {} overlap provider failed and is left out of this check: {}", provider.getSource(), broken.toString());
+            }
+        }
+        return overlaps;
+    }
+
+    /**
+     * Removes a region that has no children, from the index and from storage, then posts {@code RegionRemovedEvent}
+     * with cause {@code API}. Removing a region already removed does nothing. Any thread.
+     *
+     * @throws IllegalStateException when the region has children - the message names the two ways out
+     */
+    public void remove(Region region) {
+        requireOwn(region);
+        int children = childrenOf(region).size();
+        if (children > 0) {
+            throw new IllegalStateException("Region " + region.getId() + " has " + children + " children - remove(region, RemoveStrategy.ORPHAN_CHILDREN)"
+                    + " detaches them, CASCADE removes them too.");
+        }
+        remove(region, RemoveStrategy.ORPHAN_CHILDREN, RegionRemovedEvent.Cause.API);
+    }
+
+    /** Removes a region and handles its children as {@code strategy} says. Any thread. */
+    public void remove(Region region, RemoveStrategy strategy) {
+        requireOwn(region);
+        remove(region, strategy, RegionRemovedEvent.Cause.API);
+    }
+
+    void remove(Region region, RemoveStrategy strategy, RegionRemovedEvent.Cause cause) {
+        List<Region> gone = new ArrayList<>();
+        List<Region> orphans = new ArrayList<>();
+        synchronized (RegionIndex.WRITE_LOCK) {
+            if (!region.isAttached()) {
+                return;
+            }
+            if (strategy == RemoveStrategy.CASCADE) {
+                for (Region other : getAll()) {
+                    if (other.descendsFrom(region)) {
+                        gone.add(other);
+                    }
+                }
+                gone.sort(Comparator.comparingInt(Region::getDepth).reversed());
+            } else {
+                for (Region child : childrenOf(region)) {
+                    child.linkParent(null);
+                    republishSubtree(child);
+                    orphans.add(child);
+                }
+            }
+            gone.add(region);
+            for (Region leaving : gone) {
+                detach(leaving);
+            }
+        }
+        for (Region orphan : orphans) {
+            changed(orphan, RegionChangedEvent.Type.PARENT);
+        }
+        for (Region leaving : gone) {
+            ECEventBus.global().postIfListened(RegionRemovedEvent.class, () -> new RegionRemovedEvent(leaving, cause));
+        }
+        scheduleFlush();
+    }
+
+    /** Takes a region out of the index and, when it is stored, schedules its deletion. Holds the write lock. */
+    private void detach(Region region) {
+        index().remove(region);
+        region.setAttached(false);
+        dirty.remove(region);
+        if (region.getPersistence() == Persistence.PERSISTENT && regionStorage != null) {
+            removed.add(region.getId().getName());
+        }
+    }
+
+    /**
+     * Gives a region a new shape and re-indexes it, then posts {@code RegionRedefinedEvent}. Any thread.
+     *
+     * @throws IllegalStateException when the region was removed
+     */
+    public void redefine(Region region, Shape shape) {
+        requireOwn(region);
+        Objects.requireNonNull(shape, "'shape' cannot be null when redefining a region!");
+        Shape old;
+        synchronized (RegionIndex.WRITE_LOCK) {
+            if (!region.isAttached()) {
+                throw new IllegalStateException("Region " + region.getId() + " was removed, so it has no shape to change - create it again.");
+            }
+            old = region.getShape();
+            region.setShape(shape);
+            index().replace(region);
+        }
+        markDirty(region);
+        ECEventBus.global().postIfListened(RegionRedefinedEvent.class, () -> new RegionRedefinedEvent(region, old, shape));
+    }
+
+    // ------------------------------------------------------------------
+    //  Queries
+    // ------------------------------------------------------------------
+
+    /** The owner's region named {@code name}; null when there is none or the name is invalid. Any thread. */
+    public @Nullable Region get(String name) {
+        try {
+            Region region = RegionLookup.get().byId(RegionId.of(nameOf(owner), name));
+            return region != null && region.getManager() == this ? region : null;
+        } catch (IllegalArgumentException invalidName) {
+            return null;
+        }
+    }
+
+    /** Every live region of the owner, unordered. Any thread. */
+    public Collection<Region> getAll() {
+        return mine(RegionLookup.get().byOwner(owner));
+    }
+
+    /** The owner's regions in {@code world}, in lookup order. Any thread. */
+    public Collection<Region> getByWorld(String world) {
+        return mine(RegionLookup.get().byWorld(world));
+    }
+
+    public Collection<Region> getByTag(String tag) {
+        return mine(RegionLookup.get().byTag(tag));
+    }
+
+    private Collection<Region> mine(Collection<Region> regions) {
+        List<Region> mine = new ArrayList<>();
+        for (Region region : regions) {
+            if (region.getManager() == this) {
+                mine.add(region);
+            }
+        }
+        return mine.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(mine);
+    }
+
+    private List<Region> childrenOf(Region region) {
+        List<Region> children = new ArrayList<>();
+        for (Region other : getAll()) {
+            if (other.getParent() == region) {
+                children.add(other);
+            }
+        }
+        return children;
+    }
+
+    // ------------------------------------------------------------------
+    //  Foreign access
+    // ------------------------------------------------------------------
+
+    /**
+     * Whether other plugins' region commands may change this owner's regions. Never stored - set it on every
+     * enable. The API itself checks nothing: a plugin calling {@code setFlag} on another owner's region writes.
+     */
+    public void setForeignAccess(boolean allowed) {
+        this.foreignAccess = allowed;
+    }
+
+    /** True unless the owner said otherwise. */
+    public boolean isForeignAccessAllowed() {
+        return foreignAccess;
+    }
+
+    // ------------------------------------------------------------------
+    //  Writes
+    // ------------------------------------------------------------------
+
+    /** Writes every pending change and deletion; completes once the backend confirmed them all. Any thread. */
+    public CompletableFuture<Void> flush() {
+        CompletableFuture<Void> done = new CompletableFuture<>();
+        RegionAgenda.scheduleAsync(() -> write().whenComplete((ignored, error) -> {
+            if (error == null) {
+                done.complete(null);
+            } else {
+                done.completeExceptionally(error);
+            }
+        }), 0);
+        return done;
+    }
+
+    /**
+     * Writes what is pending, then takes every region of the owner out of the index ({@code OWNER_DISABLED}) and
+     * forgets the manager. The storage stays open. Any thread; the core calls it when the owner shuts down.
+     */
+    public CompletableFuture<Void> close() {
+        synchronized (MANAGERS) {
+            if (closed) {
+                return CompletableFuture.completedFuture(null);
+            }
+            closed = true;
+            MANAGERS.remove(owner, this);
+        }
+        List<Region> gone = takeAllOut();
+        for (Region region : gone) {
+            ECEventBus.global().postIfListened(RegionRemovedEvent.class, () -> new RegionRemovedEvent(region, RegionRemovedEvent.Cause.OWNER_DISABLED));
+        }
+        ECDebugModule.REGIONS.debug("{} closed its RegionManager: {} region(s) dropped from the index.", nameOf(owner), gone.size());
+        return flush();
+    }
+
+    private List<Region> takeAllOut() {
+        List<Region> gone;
+        synchronized (RegionIndex.WRITE_LOCK) {
+            gone = new ArrayList<>(getAll());
+            for (Region region : gone) {
+                index().remove(region);
+                region.setAttached(false);
+            }
+        }
+        return gone;
+    }
+
+    void markDirty(Region region) {
+        if (region.getPersistence() == Persistence.TRANSIENT || regionStorage == null || closed || !region.isAttached()) {
+            return;
+        }
+        dirty.add(region);
+        scheduleFlush();
+    }
+
+    private void scheduleFlush() {
+        if (regionStorage != null && flushScheduled.compareAndSet(false, true)) {
+            RegionAgenda.scheduleAsync(this::write, flushDelayMillis);
+        }
+    }
+
+    /** Runs after every write already started, so an older state of a region never lands after a newer one. */
+    private CompletableFuture<Void> write() {
+        synchronized (writeChain) {
+            lastWrite = lastWrite.handle((ignored, error) -> null).thenCompose(ignored -> writeNow());
+            return lastWrite;
+        }
+    }
+
+    private CompletableFuture<Void> writeNow() {
+        flushScheduled.set(false);
+        if (regionStorage == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        List<CompletableFuture<Throwable>> deletes = new ArrayList<>();
+        for (String name : new ArrayList<>(removed)) {
+            deletes.add(regionStorage.delete(name).handle((ignored, error) -> {
+                if (error == null) {
+                    removed.remove(name);
+                } else {
+                    owner.getLog().warning("Region '{}' of {} could not be deleted from storage ({}); the next write tries again.", name,
+                            nameOf(owner), error.toString());
+                }
+                return error;
+            }));
+        }
+        return allErrors(deletes).thenCompose(deleteErrors -> {
+            List<CompletableFuture<Throwable>> saves = new ArrayList<>();
+            for (Region region : new ArrayList<>(dirty)) {
+                if (!dirty.remove(region)) {
+                    continue;
+                }
+                RegionRecord record = RegionRecords.toRecord(region);
+                saves.add(regionStorage.save(record).handle((ignored, error) -> {
+                    if (error != null) {
+                        if (region.isAttached()) {
+                            dirty.add(region);
+                        }
+                        owner.getLog().warning("Region {} could not be written to storage ({}); the next write tries again.", region.getId(),
+                                error.toString());
+                    }
+                    return error;
+                }));
+            }
+            int deleted = deletes.size();
+            return allErrors(saves).thenApply(saveErrors -> {
+                ECDebugModule.REGIONS.debug("{} wrote {} region(s) and deleted {}.", nameOf(owner), saves.size(), deleted);
+                Throwable first = deleteErrors != null ? deleteErrors : saveErrors;
+                if (first != null) {
+                    throw new CompletionException(first);
+                }
+                return null;
+            });
+        });
+    }
+
+    /** Completes with the first error among {@code futures}, or null when none failed. */
+    private static CompletableFuture<Throwable> allErrors(List<CompletableFuture<Throwable>> futures) {
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenApply(ignored -> {
+            for (CompletableFuture<Throwable> future : futures) {
+                Throwable error = future.join();
+                if (error != null) {
+                    return error;
+                }
+            }
+            return null;
+        });
+    }
+
+    // ------------------------------------------------------------------
+    //  What regions report
+    // ------------------------------------------------------------------
+
+    void reprioritize(Region region, int priority) {
+        synchronized (RegionIndex.WRITE_LOCK) {
+            region.setPriorityField(priority);
+            republishSubtree(region);
+        }
+        changed(region, RegionChangedEvent.Type.PRIORITY);
+    }
+
+    void reparent(Region region, @Nullable Region parent) {
+        synchronized (RegionIndex.WRITE_LOCK) {
+            region.linkParent(parent);
+            republishSubtree(region);
+        }
+        changed(region, RegionChangedEvent.Type.PARENT);
+    }
+
+    /** Priority and depth order the buckets, and a region's depth is its descendants' too: the whole subtree moves. */
+    private void republishSubtree(Region region) {
+        if (!region.isAttached()) {
+            return;
+        }
+        RegionIndex index = index();
+        index.replace(region);
+        for (Region other : getAll()) {
+            if (other.descendsFrom(region)) {
+                index.replace(other);
+            }
+        }
+    }
+
+    void changed(Region region, RegionChangedEvent.Type type) {
+        if (!region.isAttached()) {
+            return;
+        }
+        markDirty(region);
+        ECEventBus.global().postIfListened(RegionChangedEvent.class, () -> new RegionChangedEvent(region, type));
+    }
+
+    void flagChanged(Region region, @Nullable AccessGroup group, RegionFlag<?> flag, @Nullable FlagValue<?> oldValue,
+                     @Nullable FlagValue<?> newValue, FlagChangeCause cause) {
+        if (!region.isAttached()) {
+            return;
+        }
+        markDirty(region);
+        ECEventBus.global().postIfListened(RegionFlagChangedEvent.class,
+                () -> new RegionFlagChangedEvent(region, group, flag, oldValue, newValue, cause));
+    }
+
+    void groupChanged(Region region, AccessGroup group, GroupChange change, @Nullable UUID player) {
+        if (!region.isAttached()) {
+            return;
+        }
+        if (change != GroupChange.PREDICATE_SET) {   //the predicate is code, never stored
+            markDirty(region);
+        }
+        ECEventBus.global().postIfListened(RegionGroupChangedEvent.class, () -> new RegionGroupChangedEvent(region, group, change, player));
+    }
+
+    // ------------------------------------------------------------------
+    //  Lifecycle of owners
+    // ------------------------------------------------------------------
+
+    /**
+     * Internal: closes the manager of {@code owner}, waiting up to 30 s for its writes, and drops its overlap
+     * providers. The core calls it as the owner starts shutting down, while the owner's storage is still open.
+     */
+    public static void closeOwnedBy(ECPluginData owner) {
+        RegionManager manager = MANAGERS.get(owner);
+        if (manager != null) {
+            try {
+                manager.close().get(CLOSE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            } catch (TimeoutException slow) {
+                owner.getLog().warning("Regions of {} were not all written within {} s of its shutdown; what was not written is lost.",
+                        nameOf(owner), CLOSE_TIMEOUT_SECONDS);
+            } catch (ExecutionException failed) {
+                owner.getLog().warning("Regions of {} could not all be written on shutdown: {}", nameOf(owner), failed.getCause().toString());
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        OverlapProviders.unregisterAll(owner);
+    }
+
+    /**
+     * Internal: the safety net for an owner whose storage already closed - takes its regions out of the index
+     * ({@code OWNER_DISABLED}) and writes nothing; pending changes are dropped and logged.
+     */
+    public static void discardOwnedBy(ECPluginData owner) {
+        RegionManager manager;
+        synchronized (MANAGERS) {
+            manager = MANAGERS.remove(owner);
+            if (manager != null) {
+                manager.closed = true;
+            }
+        }
+        if (manager != null) {
+            List<Region> gone = manager.takeAllOut();
+            for (Region region : gone) {
+                ECEventBus.global().postIfListened(RegionRemovedEvent.class, () -> new RegionRemovedEvent(region, RegionRemovedEvent.Cause.OWNER_DISABLED));
+            }
+            if (!manager.dirty.isEmpty() || !manager.removed.isEmpty()) {
+                ECDebugModule.REGIONS.debug("{} disabled before its regions were written: {} change(s) and {} deletion(s) are dropped. A plugin"
+                        + " implementing IECPluginBootstrap gets them written before its storage closes.", nameOf(owner),
+                        manager.dirty.size(), manager.removed.size());
+            }
+            manager.dirty.clear();
+            manager.removed.clear();
+        }
+        OverlapProviders.unregisterAll(owner);
+    }
+
+    /** Internal: closes every open manager - the core's own shutdown. */
+    public static void closeAll() {
+        for (ECPluginData owner : new ArrayList<>(MANAGERS.keySet())) {
+            closeOwnedBy(owner);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    //  Internals
+    // ------------------------------------------------------------------
+
+    static Collection<RegionManager> all() {
+        return MANAGERS.values();
+    }
+
+    static void setFlushDelayMillis(long millis) {
+        flushDelayMillis = millis;
+    }
+
+    static void setRetryDelayMillis(long millis) {
+        retryDelayMillis = millis;
+    }
+
+    private static RegionIndex index() {
+        return RegionLookup.get().getIndex();
+    }
+
+    private void requireOpen() {
+        if (closed) {
+            throw new IllegalStateException("The RegionManager of " + nameOf(owner) + " is closed - RegionManager.of(owner, storage) opens a new one.");
+        }
+    }
+
+    private void requireOwn(Region region) {
+        if (region.getManager() != this) {
+            throw new IllegalArgumentException("Region " + region.getId() + " belongs to the RegionManager of " + nameOf(region.getOwner())
+                    + " - change it through region.getManager().");
+        }
+    }
+
+    private static String nameOf(ECPluginData owner) {
+        return owner.getMetaInfo().getName();
+    }
+
+    @Override
+    public String toString() {
+        return "RegionManager[" + nameOf(owner) + (closed ? ", closed" : "") + "]";
+    }
+}

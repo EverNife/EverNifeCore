@@ -122,6 +122,54 @@ public final class FlagStore {
         }
     }
 
+    /**
+     * Every stored value in its raw form, by {@code owner:name}: the live ones of registered flags and the kept
+     * ones of flags that are not registered - what storage writes.
+     */
+    public Map<String, JsonNode> toRaw() {
+        Map<String, JsonNode> raw = new LinkedHashMap<>(unknown);
+        values.forEach((key, layers) -> {
+            JsonNode node = toRaw(layers);
+            if (node != null) {
+                raw.put(key.toString(), node);
+            }
+        });
+        return raw;
+    }
+
+    /** The earliest deadline of a temporary value, expired ones included; null when none is temporary. */
+    public @Nullable Instant getNextDeadline() {
+        Instant next = null;
+        for (Layers layers : values.values()) {
+            Instant deadline = layers.timed == null ? null : layers.timed.getExpiresAt();
+            if (deadline != null && (next == null || deadline.isBefore(next))) {
+                next = deadline;
+            }
+        }
+        return next;
+    }
+
+    /**
+     * Drops every temporary value whose deadline is not after {@code now}; the permanent value underneath, if any,
+     * reads again. Each drop is heard as {@link FlagChangeCause#EXPIRED}.
+     */
+    public void expire(Instant now) {
+        for (FlagKey key : values.keySet()) {
+            Layers[] dropped = new Layers[1];
+            Layers kept = values.computeIfPresent(key, (k, layers) -> {
+                Instant deadline = layers.timed == null ? null : layers.timed.getExpiresAt();
+                if (deadline == null || now.isBefore(deadline)) {
+                    return layers;
+                }
+                dropped[0] = layers;
+                return layers.permanent == null ? null : new Layers(layers.flag, layers.permanent, null);
+            });
+            if (dropped[0] != null) {
+                hook.onFlagChanged(dropped[0].flag, dropped[0].timed, kept == null ? null : kept.permanent, FlagChangeCause.EXPIRED);
+            }
+        }
+    }
+
     /** Moves the raw value of {@code flag} into the store; false when there was one and it did not read. */
     boolean relink(RegionFlag<?> flag) {
         String key = flag.getKey().toString();

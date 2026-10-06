@@ -56,7 +56,7 @@ class RegionIndexTest {
     }
 
     private Region region(String name, int x1, int z1, int x2, int z2) {
-        return new Region(owner, name, WORLD, CuboidShape.of(BlockPos.of(x1, 0, z1), BlockPos.of(x2, 255, z2)));
+        return TestRegions.create(owner, name, WORLD, CuboidShape.of(BlockPos.of(x1, 0, z1), BlockPos.of(x2, 255, z2)));
     }
 
     @Test
