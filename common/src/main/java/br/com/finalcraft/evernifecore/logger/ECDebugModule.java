@@ -14,6 +14,7 @@ public enum ECDebugModule implements IDebugModule {
     CONTEXTUAL_ARG_PARSER("Logs related to the CommandSystem '@Arg.Contextual' Context checks.", true),
     SV_WORLD_DATA("Logs what every SVWorldDataManager block store preloads and flushes.", true),
     COMMAND_REGISTRY("Logs every command path removed, and every alias overridden, by a 'commands/<PluginName>.yml' file.", true),
+    REGIONS("Logs what the region sweeper expires and what each RegionManager loads, flushes and drops.", true),
     ;
 
     private final String comment;

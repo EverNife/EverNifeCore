@@ -17,6 +17,7 @@ import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -146,6 +147,26 @@ public abstract class AbstractTestPlatform implements IPlatform {
     @Override
     public WorldHeight getWorldHeight(String worldName) {
         throw notConfigured("getWorldHeight(String)", "Platforms.strict().worldHeight(...)");
+    }
+
+    @Override
+    public boolean isWorldThread(String worldName) {
+        throw notConfigured("isWorldThread", "Platforms.strict().mainThreadInline()");
+    }
+
+    @Override
+    public CompletableFuture<Void> runOnWorldThread(String worldName, Runnable task) {
+        throw notConfigured("runOnWorldThread", "Platforms.strict().mainThreadInline()");
+    }
+
+    @Override
+    public void onWorldLoaded(Consumer<String> listener) {
+        throw notConfigured("onWorldLoaded", "Platforms.strict().worldEvents()");
+    }
+
+    @Override
+    public void onWorldUnloaded(Consumer<String> listener) {
+        throw notConfigured("onWorldUnloaded", "Platforms.strict().worldEvents()");
     }
 
     @Override

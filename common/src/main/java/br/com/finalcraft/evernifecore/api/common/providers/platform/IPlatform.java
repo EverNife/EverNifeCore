@@ -16,6 +16,7 @@ import jakarta.annotation.Nullable;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public interface IPlatform {
@@ -79,6 +80,30 @@ public interface IPlatform {
      * loaded (or does not exist) answers the platform's default height; this never throws.
      */
     public WorldHeight getWorldHeight(String worldName);
+
+    /**
+     * Whether the calling thread owns the world named {@code worldName} and may touch its blocks, entities
+     * and players. Bukkit: the server main thread, whatever the world. Hytale: that world's own ticking thread;
+     * a world that is not loaded answers {@code false}. Never throws.
+     */
+    public boolean isWorldThread(String worldName);
+
+    /**
+     * Runs the task on the thread that owns the world named {@code worldName}: inline when the caller already
+     * is that thread, queued otherwise (Bukkit: the main thread; Hytale: the world's own executor). The future
+     * completes exceptionally when the platform has no thread for that world - on Hytale, a world that is not
+     * loaded: load the world first, or drop work meant for a world that is gone.
+     */
+    public CompletableFuture<Void> runOnWorldThread(String worldName, Runnable task);
+
+    /**
+     * Keeps {@code listener} for the life of the process and calls it with the world's name each time a world
+     * loads. The core registers once; there is no way to remove a listener.
+     */
+    public void onWorldLoaded(Consumer<String> listener);
+
+    /** As {@link #onWorldLoaded(Consumer)}, each time a world unloads. */
+    public void onWorldUnloaded(Consumer<String> listener);
 
     /**
      * Runs the task on the platform's main/server thread: inline, right now, when the calling thread

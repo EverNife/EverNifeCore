@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -216,6 +217,10 @@ public class FCLocaleScannerContractTest {
         @Override public void registerConfigTypes() { delegate.registerConfigTypes(); }
         @Override public void registerArgParsers() { delegate.registerArgParsers(); }
         @Override public WorldHeight getWorldHeight(String worldName) { return delegate.getWorldHeight(worldName); }
+        @Override public boolean isWorldThread(String worldName) { return delegate.isWorldThread(worldName); }
+        @Override public CompletableFuture<Void> runOnWorldThread(String worldName, Runnable task) { return delegate.runOnWorldThread(worldName, task); }
+        @Override public void onWorldLoaded(Consumer<String> listener) { delegate.onWorldLoaded(listener); }
+        @Override public void onWorldUnloaded(Consumer<String> listener) { delegate.onWorldUnloaded(listener); }
         @Override public void shutdown(String reason) { delegate.shutdown(reason); }
     }
 

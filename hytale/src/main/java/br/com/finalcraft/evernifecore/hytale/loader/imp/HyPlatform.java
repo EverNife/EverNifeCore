@@ -42,12 +42,14 @@ import com.hypixel.hytale.server.core.plugin.PluginBase;
 import com.hypixel.hytale.server.core.plugin.PluginManager;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
+import com.hypixel.hytale.server.core.universe.world.World;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -313,6 +315,61 @@ public class HyPlatform implements IPlatform {
     @Override
     public WorldHeight getWorldHeight(String worldName) {
         return WorldHeight.of(ChunkUtil.MIN_Y, ChunkUtil.HEIGHT_MINUS_1);
+    }
+
+    private final List<Consumer<String>> worldLoadedListeners = new CopyOnWriteArrayList<>();
+    private final List<Consumer<String>> worldUnloadedListeners = new CopyOnWriteArrayList<>();
+
+    private static @Nullable World worldOrNull(String worldName) {
+        Universe universe = Universe.get();   //null before the server has built it
+        return universe == null || worldName == null ? null : universe.getWorld(worldName);
+    }
+
+    /** Each world ticks on its own thread; there is no thread that owns every world. */
+    @Override
+    public boolean isWorldThread(String worldName) {
+        World world = worldOrNull(worldName);
+        return world != null && world.isInThread();
+    }
+
+    @Override
+    public CompletableFuture<Void> runOnWorldThread(String worldName, Runnable task) {
+        World world = worldOrNull(worldName);
+        if (world == null) {
+            CompletableFuture<Void> failed = new CompletableFuture<>();
+            failed.completeExceptionally(new IllegalStateException("World '" + worldName + "' is not loaded, so it has no"
+                    + " thread to run on - load the world first, or drop work for a world that is gone."));
+            return failed;
+        }
+        if (world.isInThread()) {
+            task.run();
+            return CompletableFuture.completedFuture(null);
+        }
+        return CompletableFuture.runAsync(task, world);   //World is an Executor: this IS world.execute
+    }
+
+    @Override
+    public void onWorldLoaded(Consumer<String> listener) {
+        worldLoadedListeners.add(Objects.requireNonNull(listener, "'listener' cannot be null when following world loads!"));
+    }
+
+    @Override
+    public void onWorldUnloaded(Consumer<String> listener) {
+        worldUnloadedListeners.add(Objects.requireNonNull(listener, "'listener' cannot be null when following world unloads!"));
+    }
+
+    /** The native world-add hook calls this with the world's name; every listener hears it, in registration order. */
+    public void fireWorldLoaded(String worldName) {
+        for (Consumer<String> listener : worldLoadedListeners) {
+            listener.accept(worldName);
+        }
+    }
+
+    /** The native world-remove hook calls this with the world's name; every listener hears it, in registration order. */
+    public void fireWorldUnloaded(String worldName) {
+        for (Consumer<String> listener : worldUnloadedListeners) {
+            listener.accept(worldName);
+        }
     }
 
     @Override

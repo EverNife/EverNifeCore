@@ -34,9 +34,12 @@ import java.util.function.Predicate;
 public final class AccessGroup {
 
     /** Every mutation of a group lands here, after the fact. */
-    @FunctionalInterface
     public interface ChangeHook {
         void onGroupChanged(AccessGroup group, GroupChange change, @Nullable UUID player);
+
+        /** One of the group's own flag values changed. */
+        void onGroupFlagChanged(AccessGroup group, RegionFlag<?> flag, @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue,
+                                FlagChangeCause cause);
     }
 
     private final Region region;
@@ -106,7 +109,7 @@ public final class AccessGroup {
     }
 
     private void onFlagChanged(RegionFlag<?> flag, @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue, FlagChangeCause cause) {
-        hook.onGroupChanged(this, cause == FlagChangeCause.REMOVED ? GroupChange.FLAG_REMOVED : GroupChange.FLAG_SET, null);
+        hook.onGroupFlagChanged(this, flag, oldValue, newValue, cause);
     }
 
     // ---- explicit members ----
@@ -126,6 +129,33 @@ public final class AccessGroup {
         members.put(uuid, membership);
         hook.onGroupChanged(this, GroupChange.MEMBER_ADDED, uuid);
         return membership;
+    }
+
+    /** Internal: puts back a membership read from storage, as it was stored. Loading is not a change: nothing hears it. */
+    public void restoreMember(UUID uuid, Instant joinedAt, @Nullable Instant expiresAt) {
+        members.put(uuid, new Membership(uuid, joinedAt, expiresAt));
+    }
+
+    /** Internal: the earliest deadline among the explicit memberships, expired ones included; null when none has one. */
+    public @Nullable Instant getNextMemberDeadline() {
+        Instant next = null;
+        for (Membership membership : members.values()) {
+            Instant deadline = membership.getExpiresAt();
+            if (deadline != null && (next == null || deadline.isBefore(next))) {
+                next = deadline;
+            }
+        }
+        return next;
+    }
+
+    /** Internal: drops every membership whose deadline is not after {@code now}, each one heard as {@link GroupChange#MEMBER_EXPIRED}. */
+    public void expireMembers(Instant now) {
+        for (Membership membership : members.values()) {
+            Instant deadline = membership.getExpiresAt();
+            if (deadline != null && !now.isBefore(deadline) && members.remove(membership.getUuid(), membership)) {
+                hook.onGroupChanged(this, GroupChange.MEMBER_EXPIRED, membership.getUuid());
+            }
+        }
     }
 
     /** False when {@code uuid} was not a member. */

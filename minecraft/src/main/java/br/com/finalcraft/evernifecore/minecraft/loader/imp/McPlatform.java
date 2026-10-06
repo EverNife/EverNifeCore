@@ -42,6 +42,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -287,6 +289,43 @@ public class McPlatform implements IPlatform {
         World world = worldName == null ? null : Bukkit.getWorld(worldName);
         int maxY = world != null ? world.getMaxHeight() - 1 : (caveUpdate ? 319 : 255);
         return WorldHeight.of(caveUpdate ? -64 : 0, maxY);
+    }
+
+    private final List<Consumer<String>> worldLoadedListeners = new CopyOnWriteArrayList<>();
+    private final List<Consumer<String>> worldUnloadedListeners = new CopyOnWriteArrayList<>();
+
+    @Override
+    public boolean isWorldThread(String worldName) {
+        return FCBukkitUtil.isMainThread();   //one server thread owns every world here
+    }
+
+    @Override
+    public CompletableFuture<Void> runOnWorldThread(String worldName, Runnable task) {
+        return runOnMainThread(task);
+    }
+
+    @Override
+    public void onWorldLoaded(Consumer<String> listener) {
+        worldLoadedListeners.add(Objects.requireNonNull(listener, "'listener' cannot be null when following world loads!"));
+    }
+
+    @Override
+    public void onWorldUnloaded(Consumer<String> listener) {
+        worldUnloadedListeners.add(Objects.requireNonNull(listener, "'listener' cannot be null when following world unloads!"));
+    }
+
+    /** The native world-load hook calls this with the world's name; every listener hears it, in registration order. */
+    public void fireWorldLoaded(String worldName) {
+        for (Consumer<String> listener : worldLoadedListeners) {
+            listener.accept(worldName);
+        }
+    }
+
+    /** The native world-unload hook calls this with the world's name; every listener hears it, in registration order. */
+    public void fireWorldUnloaded(String worldName) {
+        for (Consumer<String> listener : worldUnloadedListeners) {
+            listener.accept(worldName);
+        }
     }
 
     @Override

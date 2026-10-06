@@ -204,7 +204,7 @@ public final class Region {
         if (existing != null) {
             return existing;
         }
-        AccessGroup created = new AccessGroup(this, key, this::onGroupChanged);
+        AccessGroup created = new AccessGroup(this, key, groupHook);
         AccessGroup raced = groups.putIfAbsent(key, created);
         if (raced != null) {
             return raced;
@@ -231,6 +231,18 @@ public final class Region {
     void onGroupChanged(AccessGroup group, GroupChange change, @Nullable UUID player) {
         RegionLookup.get().invalidate(group);
     }
+
+    private final AccessGroup.ChangeHook groupHook = new AccessGroup.ChangeHook() {
+        @Override
+        public void onGroupChanged(AccessGroup group, GroupChange change, @Nullable UUID player) {
+            Region.this.onGroupChanged(group, change, player);
+        }
+
+        @Override
+        public void onGroupFlagChanged(AccessGroup group, RegionFlag<?> flag, @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue,
+                                       FlagChangeCause cause) {
+        }
+    };
 
     public boolean contains(int x, int y, int z) {
         return shape.contains(x, y, z);

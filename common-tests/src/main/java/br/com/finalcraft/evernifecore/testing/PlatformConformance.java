@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * What every {@link IPlatform} has to hold, whoever implements it - the doubles in this library,
@@ -88,6 +89,47 @@ public final class PlatformConformance {
                 if (target.getWorldHeight("world") == null) {
                     throw new IllegalStateException("returned null; an unloaded world answers the platform's default height");
                 }
+                return null;
+            }
+        });
+
+        call(platform, "isWorldThread", failures, new Call<Object>() {
+            @Override
+            public Object run(IPlatform target) {
+                //an unknown world is a plain answer, never an exception
+                target.isWorldThread("evernifecore-conformance-no-such-world");
+                return null;
+            }
+        });
+
+        call(platform, "runOnWorldThread", failures, new Call<Object>() {
+            @Override
+            public Object run(IPlatform target) {
+                //a missing world may complete exceptionally; throwing or handing back no future may not
+                if (target.runOnWorldThread("world", new Runnable() {
+                    @Override
+                    public void run() {
+                    }
+                }) == null) {
+                    throw new IllegalStateException("returned null instead of a future");
+                }
+                return null;
+            }
+        });
+
+        call(platform, "onWorldLoaded", failures, new Call<Object>() {
+            @Override
+            public Object run(IPlatform target) {
+                target.onWorldLoaded(new Consumer<String>() {
+                    @Override
+                    public void accept(String world) {
+                    }
+                });
+                target.onWorldUnloaded(new Consumer<String>() {
+                    @Override
+                    public void accept(String world) {
+                    }
+                });
                 return null;
             }
         });

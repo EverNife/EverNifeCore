@@ -23,7 +23,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -46,6 +48,11 @@ public class TestPlatform extends AbstractTestPlatform {
     //appended from whatever thread logs (flusher, idle sweep, cache-sync), so never a plain ArrayList
     private final List<String> loggedMessages = new CopyOnWriteArrayList<>();
     private final List<String> shutdownReasons = new ArrayList<>();
+    //region writers run world work from scheduler threads, so never a plain ArrayList
+    private final List<String> worldThreadRuns = new CopyOnWriteArrayList<>();
+    private final AtomicInteger mainThreadRuns = new AtomicInteger();
+    private final List<Consumer<String>> worldLoadedListeners = new CopyOnWriteArrayList<>();
+    private final List<Consumer<String>> worldUnloadedListeners = new CopyOnWriteArrayList<>();
 
     // null means "not configured": the inherited strict method refuses.
     String platformProviderId;
@@ -57,6 +64,7 @@ public class TestPlatform extends AbstractTestPlatform {
     Boolean listenersIgnored;
     Boolean configTypesIgnored;
     Boolean mainThreadInline;
+    Boolean worldEvents;
     Boolean capturingCommands;
     Boolean recordingShutdowns;
     Boolean stdoutLogging;
@@ -129,6 +137,39 @@ public class TestPlatform extends AbstractTestPlatform {
         return shutdownReasons;
     }
 
+    /** The world name of every {@code runOnWorldThread} call, in order. */
+    public List<String> getWorldThreadRuns() {
+        return worldThreadRuns;
+    }
+
+    /** How many {@code runOnMainThread}/{@code runOnMainThreadNextTick} calls this platform ran. */
+    public int getMainThreadRuns() {
+        return mainThreadRuns.get();
+    }
+
+    /** Fires every {@code onWorldLoaded} listener with {@code worldName}, as a real platform does when a world loads. */
+    public void loadWorld(String worldName) {
+        requireWorldEvents("loadWorld");
+        for (Consumer<String> listener : worldLoadedListeners) {
+            listener.accept(worldName);
+        }
+    }
+
+    /** Fires every {@code onWorldUnloaded} listener with {@code worldName}, as a real platform does when a world unloads. */
+    public void unloadWorld(String worldName) {
+        requireWorldEvents("unloadWorld");
+        for (Consumer<String> listener : worldUnloadedListeners) {
+            listener.accept(worldName);
+        }
+    }
+
+    private void requireWorldEvents(String method) {
+        if (worldEvents == null) {
+            throw new IllegalStateException("TestPlatform#" + method + " needs world events - build the platform with"
+                    + " Platforms.strict().worldEvents() (Platforms.lenient() has them).");
+        }
+    }
+
     /** When true, every later {@code registerCommand} rejects without capturing - a platform-level registration failure. */
     public void setForceRegisterFailure(boolean forceRegisterFailure) {
         this.forceRegisterFailure = forceRegisterFailure;
@@ -144,6 +185,8 @@ public class TestPlatform extends AbstractTestPlatform {
         infoMessages.clear();
         loggedMessages.clear();
         shutdownReasons.clear();
+        worldThreadRuns.clear();
+        mainThreadRuns.set(0);
     }
 
     // ------------------------------------------------------------------
@@ -343,6 +386,7 @@ public class TestPlatform extends AbstractTestPlatform {
             return super.runOnMainThread(task);
         }
         //inline: tests have no server thread to be off of
+        mainThreadRuns.incrementAndGet();
         task.run();
         return CompletableFuture.completedFuture(null);
     }
@@ -352,6 +396,7 @@ public class TestPlatform extends AbstractTestPlatform {
         if (mainThreadInline == null) {
             return super.runOnMainThread(task);
         }
+        mainThreadRuns.incrementAndGet();
         return CompletableFuture.completedFuture(task.get());
     }
 
@@ -362,6 +407,7 @@ public class TestPlatform extends AbstractTestPlatform {
         }
         //inline too - tests have no tick. It makes the first-tick legacy import deterministic
         //(PlayerController.bootstrap blocks until the import + load finish)
+        mainThreadRuns.incrementAndGet();
         task.run();
         return CompletableFuture.completedFuture(null);
     }
@@ -371,7 +417,42 @@ public class TestPlatform extends AbstractTestPlatform {
         if (mainThreadInline == null) {
             return super.runOnMainThreadNextTick(task);
         }
+        mainThreadRuns.incrementAndGet();
         return CompletableFuture.completedFuture(task.get());
+    }
+
+    @Override
+    public boolean isWorldThread(String worldName) {
+        //the inline main thread is every thread, so every thread owns every world here
+        return mainThreadInline != null || super.isWorldThread(worldName);
+    }
+
+    @Override
+    public CompletableFuture<Void> runOnWorldThread(String worldName, Runnable task) {
+        if (mainThreadInline == null) {
+            return super.runOnWorldThread(worldName, task);
+        }
+        worldThreadRuns.add(worldName);
+        task.run();
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public void onWorldLoaded(Consumer<String> listener) {
+        if (worldEvents == null) {
+            super.onWorldLoaded(listener);
+            return;
+        }
+        worldLoadedListeners.add(listener);
+    }
+
+    @Override
+    public void onWorldUnloaded(Consumer<String> listener) {
+        if (worldEvents == null) {
+            super.onWorldUnloaded(listener);
+            return;
+        }
+        worldUnloadedListeners.add(listener);
     }
 
     @Override

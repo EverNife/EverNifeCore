@@ -39,8 +39,8 @@ public final class Platforms {
 
     /**
      * A platform with the old no-op answers: no players, no plugins, no PAPI, no action bar, no
-     * chat/vec adapter, listeners and config types ignored, main thread inline, shutdown recorded, every
-     * world 0..255 high.
+     * chat/vec adapter, listeners and config types ignored, main thread inline (every world thread too),
+     * world load/unload events kept for the test to fire, shutdown recorded, every world 0..255 high.
      */
     public static Platforms lenient() {
         return strict()
@@ -61,6 +61,7 @@ public final class Platforms {
                 .ignoringPlatformRegistrations()
                 .loggingToStdout()
                 .mainThreadInline()
+                .worldEvents()
                 .recordingShutdowns()
                 .withoutPlaceholderIntegration()
                 .worldHeight(0, 255);
@@ -169,9 +170,21 @@ public final class Platforms {
         return this;
     }
 
-    /** Runs both main-thread forms (inline and next-tick) in place, which is what makes a boot sequence deterministic in a test. */
+    /**
+     * Runs both main-thread forms (inline and next-tick) and {@code runOnWorldThread} in place, and answers every
+     * thread as the owner of every world - which is what makes a boot sequence deterministic in a test.
+     */
     public Platforms mainThreadInline() {
         platform.mainThreadInline = Boolean.TRUE;
+        return this;
+    }
+
+    /**
+     * Keeps the {@code onWorldLoaded}/{@code onWorldUnloaded} listeners so the test can fire them with
+     * {@link TestPlatform#loadWorld(String)} and {@link TestPlatform#unloadWorld(String)}.
+     */
+    public Platforms worldEvents() {
+        platform.worldEvents = Boolean.TRUE;
         return this;
     }
 
