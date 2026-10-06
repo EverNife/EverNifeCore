@@ -108,8 +108,12 @@ public class GameVecPlatformAdapterConverter {
             super(iVec2i);
         }
 
+        public long getChunkIndex() {
+            return ChunkUtil.indexChunk(this.getDelegate().getX(), this.getDelegate().getZ());
+        }
+
         public WorldChunk getChunk(World world) {
-            return world.getChunk(ChunkUtil.indexChunkFromBlock(this.getDelegate().getX(), this.getDelegate().getZ()));
+            return world.getChunk(getChunkIndex());
         }
 
     }
