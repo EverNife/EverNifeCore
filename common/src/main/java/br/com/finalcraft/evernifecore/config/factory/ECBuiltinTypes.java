@@ -30,6 +30,7 @@ public final class ECBuiltinTypes {
      * */
     public static void register() {
         CFPositionFamily.register();
+        CFShapeFamily.register();
         registerCooldown();
         registerNumberWrapper();
         FancyTextConfigCodec.register();
