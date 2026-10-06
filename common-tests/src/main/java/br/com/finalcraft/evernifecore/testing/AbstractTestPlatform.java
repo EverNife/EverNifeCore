@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
 
 import java.util.List;
 import java.util.UUID;
@@ -140,6 +141,11 @@ public abstract class AbstractTestPlatform implements IPlatform {
     @Override
     public IPlatformChatAdapter getChatAdapter() {
         throw notConfigured("getChatAdapter", "Platforms.strict().chatAdapter(...)");
+    }
+
+    @Override
+    public WorldHeight getWorldHeight(String worldName) {
+        throw notConfigured("getWorldHeight(String)", "Platforms.strict().worldHeight(...)");
     }
 
     @Override

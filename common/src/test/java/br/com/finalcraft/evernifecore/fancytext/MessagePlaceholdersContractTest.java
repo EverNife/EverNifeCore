@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
@@ -202,6 +203,7 @@ public class MessagePlaceholdersContractTest {
         @Override public <T> CompletableFuture<T> runOnMainThreadNextTick(Supplier<T> task) { return delegate.runOnMainThreadNextTick(task); }
         @Override public void registerConfigTypes() { delegate.registerConfigTypes(); }
         @Override public void registerArgParsers() { delegate.registerArgParsers(); }
+        @Override public WorldHeight getWorldHeight(String worldName) { return delegate.getWorldHeight(worldName); }
         @Override public void shutdown(String reason) { delegate.shutdown(reason); }
     }
 

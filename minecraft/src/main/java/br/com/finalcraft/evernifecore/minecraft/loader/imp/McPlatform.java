@@ -22,12 +22,15 @@ import br.com.finalcraft.evernifecore.minecraft.eventbus.McECEventHandlers;
 import br.com.finalcraft.evernifecore.minecraft.integration.placeholders.McPAPIIntegration;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
+import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
@@ -272,6 +275,18 @@ public class McPlatform implements IPlatform {
     @Override
     public IPlatformChatAdapter getChatAdapter() {
         return CHAT_ADAPTER;
+    }
+
+    /**
+     * The top comes from the loaded world; the floor is the server version's (-64 from 1.18, else 0), since the
+     * API this compiles against has no per-world minimum - a 1.18+ nether answers -64 here although it starts at 0.
+     */
+    @Override
+    public WorldHeight getWorldHeight(String worldName) {
+        boolean caveUpdate = MCVersion.isHigherEquals(MCDetailedVersion.v1_18_R1);
+        World world = worldName == null ? null : Bukkit.getWorld(worldName);
+        int maxY = world != null ? world.getMaxHeight() - 1 : (caveUpdate ? 319 : 255);
+        return WorldHeight.of(caveUpdate ? -64 : 0, maxY);
     }
 
     @Override

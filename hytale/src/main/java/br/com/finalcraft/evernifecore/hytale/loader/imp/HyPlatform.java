@@ -24,12 +24,14 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ECLogLevel;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import br.com.finalcraft.everylibs.reflection.MethodInvoker;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import com.hypixel.hytale.event.EventRegistration;
 import com.hypixel.hytale.event.ICancellable;
 import com.hypixel.hytale.event.IEvent;
+import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.server.core.HytaleServer;
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.ShutdownReason;
@@ -305,6 +307,12 @@ public class HyPlatform implements IPlatform {
     @Override
     public IPlatformChatAdapter getChatAdapter() {
         return CHAT_ADAPTER;
+    }
+
+    /** Every Hytale world shares the server's fixed column height. */
+    @Override
+    public WorldHeight getWorldHeight(String worldName) {
+        return WorldHeight.of(ChunkUtil.MIN_Y, ChunkUtil.HEIGHT_MINUS_1);
     }
 
     @Override

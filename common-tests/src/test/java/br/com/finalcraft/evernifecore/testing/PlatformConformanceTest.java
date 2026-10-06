@@ -1,10 +1,12 @@
 package br.com.finalcraft.evernifecore.testing;
 
+import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -48,5 +50,16 @@ class PlatformConformanceTest {
 
         assertEquals(1, failures.size(), failures.toString());
         assertTrue(failures.get(0).contains("blank"), failures.get(0));
+    }
+
+    @Test
+    void theWorldHeightIsAnsweredOnlyWhenTaught() {
+        assertEquals(WorldHeight.of(0, 255), Platforms.lenient().build().getWorldHeight("world"));
+        assertEquals(WorldHeight.of(-64, 319), Platforms.strict().worldHeight(-64, 319).build().getWorldHeight("nether"));
+
+        UnsupportedOperationException refused = assertThrows(UnsupportedOperationException.class,
+                () -> Platforms.strict().build().getWorldHeight("world"));
+        assertTrue(refused.getMessage().contains("Platforms.strict().worldHeight(...)"), refused.getMessage());
+        assertTrue(PlatformConformance.check(Platforms.strict().build()).stream().anyMatch(f -> f.startsWith("getWorldHeight")));
     }
 }

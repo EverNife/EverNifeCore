@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.testing;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
+import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,7 +39,8 @@ public final class Platforms {
 
     /**
      * A platform with the old no-op answers: no players, no plugins, no PAPI, no action bar, no
-     * chat/vec adapter, listeners and config types ignored, main thread inline, shutdown recorded.
+     * chat/vec adapter, listeners and config types ignored, main thread inline, shutdown recorded, every
+     * world 0..255 high.
      */
     public static Platforms lenient() {
         return strict()
@@ -60,7 +62,8 @@ public final class Platforms {
                 .loggingToStdout()
                 .mainThreadInline()
                 .recordingShutdowns()
-                .withoutPlaceholderIntegration();
+                .withoutPlaceholderIntegration()
+                .worldHeight(0, 255);
     }
 
     /**
@@ -131,6 +134,12 @@ public final class Platforms {
     public Platforms vecAdapter(IPlatformVecAdapter vecAdapter) {
         platform.vecAdapterConfigured = Boolean.TRUE;
         platform.vecAdapter = vecAdapter;
+        return this;
+    }
+
+    /** The height every world answers, inclusive on both ends. */
+    public Platforms worldHeight(int minY, int maxY) {
+        platform.worldHeight = WorldHeight.of(minY, maxY);
         return this;
     }
 

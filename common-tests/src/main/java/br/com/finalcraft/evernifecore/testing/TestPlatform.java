@@ -13,6 +13,7 @@ import br.com.finalcraft.evernifecore.logger.ECLogLevel;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -65,6 +66,7 @@ public class TestPlatform extends AbstractTestPlatform {
     Boolean vecAdapterConfigured;
     IPlatformVecAdapter vecAdapter;
     BiFunction<FPlayer, String, String> parser;
+    WorldHeight worldHeight;
 
     private boolean forceRegisterFailure = false;
 
@@ -314,6 +316,11 @@ public class TestPlatform extends AbstractTestPlatform {
     @Override
     public IPlatformChatAdapter getChatAdapter() {
         return chatAdapterConfigured != null ? chatAdapter : super.getChatAdapter();
+    }
+
+    @Override
+    public WorldHeight getWorldHeight(String worldName) {
+        return worldHeight != null ? worldHeight : super.getWorldHeight(worldName);
     }
 
     @Override

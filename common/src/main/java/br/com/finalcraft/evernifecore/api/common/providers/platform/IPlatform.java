@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
@@ -72,6 +73,12 @@ public interface IPlatform {
     public IPlatformVecAdapter getVecAdapter();
 
     public IPlatformChatAdapter getChatAdapter();
+
+    /**
+     * The block Y range of the world named {@code worldName}, inclusive on both ends. A world that is not
+     * loaded (or does not exist) answers the platform's default height; this never throws.
+     */
+    public WorldHeight getWorldHeight(String worldName);
 
     /**
      * Runs the task on the platform's main/server thread: inline, right now, when the calling thread

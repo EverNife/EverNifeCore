@@ -81,6 +81,17 @@ public final class PlatformConformance {
             }
         });
 
+        call(platform, "getWorldHeight", failures, new Call<Object>() {
+            @Override
+            public Object run(IPlatform target) {
+                //WorldHeight.of already refuses min >= max, so the one wrong answer left is no answer
+                if (target.getWorldHeight("world") == null) {
+                    throw new IllegalStateException("returned null; an unloaded world answers the platform's default height");
+                }
+                return null;
+            }
+        });
+
         call(platform, "runOnMainThread", failures, new Call<Object>() {
             @Override
             public Object run(IPlatform target) {
