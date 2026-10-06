@@ -13,6 +13,29 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.52] - 2026-10-06
+
+The region grid takes its heights as (min, max), and a Hytale chunk position resolves to its own chunk.
+
+### Changed
+
+- **`RegionGridOptions(chunkSize, minHeight, maxHeight)`.** The constructor used to declare the two
+  heights as `(maxHeight, minHeight)` while every constant passed them as `(min, max)`, so
+  `getMinHeight()` answered the ceiling and `getMaxHeight()` the floor. The parameters are now
+  `(chunkSize, minHeight, maxHeight)`, and the constructor rejects `minHeight >= maxHeight` with an
+  `IllegalArgumentException` that names both values. The `HYTALE` grid's ceiling is 319, the last
+  valid block, not 320.
+
+### Fixed
+
+- **A `CuboidSelection` keeps its Y range.** With the heights swapped, `recalculate()` clamped every
+  selection to the ceiling: `0,64,0 <> 10,70,10` became a flat slab at Y 255 (volume 121 instead of
+  847), and `expandVert()` could not reach the world limits. Both now use the real floor and ceiling
+  of the current grid; `CuboidSelectionTest` pins it on the three grids.
+- **`AdaptChunkPos.getChunk(World)` on Hytale returns the chunk it names.** The adapter passed chunk
+  coordinates to `ChunkUtil.indexChunkFromBlock`, which divides by the chunk size again, so chunk
+  (5, 5) resolved to chunk (0, 0). It now indexes through the new `getChunkIndex()`, built on
+  `ChunkUtil.indexChunk`.
 ## [3.0.1-alpha.51] - 2026-10-05
 
 A Forge listener is heard on Arclight NeoForge 1.21.1 and on Mohist 1.16.5, a dashed word in a command
