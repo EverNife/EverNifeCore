@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Every flag the server knows, by key. A flag registers at any time: on registering, its settings are read from
@@ -28,6 +29,7 @@ public final class FlagRegistry {
     private static final FlagRegistry INSTANCE = new FlagRegistry();
 
     private final ConcurrentHashMap<FlagKey, RegionFlag<?>> flags = new ConcurrentHashMap<>();
+    private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
 
     private FlagRegistry() {
         ECEventBus.global().subscribe(ECPluginReloadEvent.Post.class, event -> reloadSettings(event.getECPlugin()));
@@ -69,6 +71,7 @@ public final class FlagRegistry {
                     + " does not read as a " + flag.getType().getId() + " value. It is kept raw, nothing was deleted - fix it in storage"
                     + " or set the flag again on those regions.");
         }
+        changed();
     }
 
     /**
@@ -90,6 +93,22 @@ public final class FlagRegistry {
                     group.getFlagStore().unlink(flag);
                 }
             }
+        }
+        changed();
+    }
+
+    /** Internal: runs {@code listener} after every register and unregister - raw values became live, or live ones raw. */
+    public void addChangeListener(Runnable listener) {
+        changeListeners.add(listener);
+    }
+
+    public void removeChangeListener(Runnable listener) {
+        changeListeners.remove(listener);
+    }
+
+    private void changed() {
+        for (Runnable listener : changeListeners) {
+            listener.run();
         }
     }
 
