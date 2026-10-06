@@ -13,6 +13,25 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.53] - 2026-10-06
+
+The first pieces of the region system: ids, shapes, the world height a platform reports, and a per-world spatial index.
+
+### Added
+
+- **`region.RegionId`** (`owner:name`, lowercase, name `[a-z0-9_-]{1,64}`) and **`region.shape`**: `Shape`,
+  `CuboidShape`, `PolygonShape`, `WorldShape`, `BoundingBox`, `WorldHeight`. Shapes are immutable and world-less;
+  an unbounded Y is explicit (`ofUnboundedY`), never clamped to the region grid. `getVolume()` is a `long`.
+- **Config codecs for the shapes**, registered with the core types: a `Shape` field round-trips polymorphically
+  through config and `ECStorage` by its `type` key (`cuboid`, `polygon`, `world`).
+- **`region.Region`, `RegionIndex` and `RegionLookup`**: an immutable per-world snapshot, rebuilt only in the chunks
+  a change touches and read without locks from any thread.
+
+### Changed
+
+- **`IPlatform.getWorldHeight(String worldName)`** is a new abstract method: every direct `IPlatform`
+  implementation must answer it. The test doubles in `evernifecore-common-tests` answer it through
+  `Platforms.strict().worldHeight(minY, maxY)`; the lenient double answers `0..255`.
 ## [3.0.1-alpha.52] - 2026-10-06
 
 The region grid takes its heights as (min, max), and a Hytale chunk position resolves to its own chunk.
