@@ -9,6 +9,10 @@ import br.com.finalcraft.evernifecore.math.vector.base.IVec3d;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3i;
 import lombok.Getter;
 
+/**
+ * A region in the world-save sense: the 32x32-chunk square stored in one {@code .mca} file. Not a protected
+ * area - that is {@code br.com.finalcraft.evernifecore.region}.
+ */
 @Getter
 public class RegionPos extends Vec2i<RegionPos> {
 
