@@ -5,6 +5,8 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.commands.CommandRegisterer;
 import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
+import br.com.finalcraft.evernifecore.region.RegionManager;
+import br.com.finalcraft.evernifecore.region.flag.stock.StockFlags;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -63,6 +65,8 @@ public class EverNifeCore {
         getLog().info("§aLoading up Cooldown System!");
         Cooldown.initialize();
 
+        StockFlags.registerAll(getEcPluginData());
+
         getLog().info("§aRegistering Commands!");
         CommandRegisterer.registerCommands(this.getEcPluginData());
 
@@ -89,6 +93,7 @@ public class EverNifeCore {
     }
 
     public void onUnload() {
+        RegionManager.closeAll(); //what no plugin shutdown closed, and the sweeper
         PlayerController.shutdown(); //flush dirty players + close storage backends
     }
 

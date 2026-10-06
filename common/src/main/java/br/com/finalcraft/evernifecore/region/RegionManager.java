@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.region;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
@@ -15,6 +17,7 @@ import br.com.finalcraft.evernifecore.region.flag.FlagValue;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.group.GroupChange;
+import br.com.finalcraft.evernifecore.region.group.Membership;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.storage.RegionRecord;
 import br.com.finalcraft.evernifecore.region.storage.RegionStorage;
@@ -97,6 +100,7 @@ public final class RegionManager {
     public static RegionManager of(ECPluginData owner, ECStorage storage) {
         Objects.requireNonNull(owner, "'owner' cannot be null when opening a RegionManager!");
         Objects.requireNonNull(storage, "'storage' cannot be null when opening a RegionManager!");
+        followWorlds();
         synchronized (MANAGERS) {
             RegionManager existing = MANAGERS.get(owner);
             if (existing != null) {
@@ -224,6 +228,9 @@ public final class RegionManager {
             loaded = true;
         }
         ECDebugModule.REGIONS.debug("{} loaded {} region(s) ({} already loaded).", nameOf(owner), fresh.size(), byName.size() - fresh.size());
+        if (!fresh.isEmpty()) {
+            RegionSweeper.wake();   //a sweep that finds no deadline stops at once
+        }
     }
 
     private void onLoadFailed(Throwable error, CompletableFuture<Void> done) {
@@ -292,6 +299,9 @@ public final class RegionManager {
             removed.remove(region.getId().getName());
         }
         markDirty(region);
+        if (region.getExpiresAt() != null) {
+            RegionSweeper.wake();
+        }
         ECEventBus.global().postIfListened(RegionCreatedEvent.class, () -> new RegionCreatedEvent(region, overlaps));
         return CreationResult.created(region, overlaps);
     }
@@ -643,6 +653,9 @@ public final class RegionManager {
             return;
         }
         markDirty(region);
+        if (type == RegionChangedEvent.Type.EXPIRES_AT && region.getExpiresAt() != null) {
+            RegionSweeper.wake();
+        }
         ECEventBus.global().postIfListened(RegionChangedEvent.class, () -> new RegionChangedEvent(region, type));
     }
 
@@ -652,6 +665,13 @@ public final class RegionManager {
             return;
         }
         markDirty(region);
+        if (newValue != null && newValue.getExpiresAt() != null) {
+            RegionSweeper.wake();
+        }
+        if (cause == FlagChangeCause.EXPIRED) {
+            ECDebugModule.REGIONS.debug("Region {}{}: the temporary value of {} expired (now {}).", region.getId(),
+                    group == null ? "" : "/" + group.getName(), flag.getKey(), newValue == null ? "unset" : newValue);
+        }
         ECEventBus.global().postIfListened(RegionFlagChangedEvent.class,
                 () -> new RegionFlagChangedEvent(region, group, flag, oldValue, newValue, cause));
     }
@@ -662,6 +682,15 @@ public final class RegionManager {
         }
         if (change != GroupChange.PREDICATE_SET) {   //the predicate is code, never stored
             markDirty(region);
+        }
+        if (change == GroupChange.MEMBER_ADDED && player != null) {
+            Membership membership = group.getMembership(player);
+            if (membership != null && membership.getExpiresAt() != null) {
+                RegionSweeper.wake();
+            }
+        }
+        if (change == GroupChange.MEMBER_EXPIRED) {
+            ECDebugModule.REGIONS.debug("Region {}/{}: the membership of {} expired.", region.getId(), group.getName(), player);
         }
         ECEventBus.global().postIfListened(RegionGroupChangedEvent.class, () -> new RegionGroupChangedEvent(region, group, change, player));
     }
@@ -719,11 +748,62 @@ public final class RegionManager {
         OverlapProviders.unregisterAll(owner);
     }
 
-    /** Internal: closes every open manager - the core's own shutdown. */
+    /** Internal: closes every open manager and stops the sweeper - the core's own shutdown. */
     public static void closeAll() {
         for (ECPluginData owner : new ArrayList<>(MANAGERS.keySet())) {
             closeOwnedBy(owner);
         }
+        RegionSweeper.reset();
+    }
+
+    // ------------------------------------------------------------------
+    //  Worlds
+    // ------------------------------------------------------------------
+
+    private static volatile @Nullable IPlatform followedPlatform;
+
+    /** Hooks the platform's world load and unload once - again only if the platform itself was replaced. */
+    private static void followWorlds() {
+        IPlatform platform = EverNifeCore.getPlatform();
+        if (platform == null || platform == followedPlatform) {
+            return;
+        }
+        synchronized (MANAGERS) {
+            if (platform == followedPlatform) {
+                return;
+            }
+            platform.onWorldLoaded(world -> {
+                for (RegionManager manager : all()) {
+                    manager.onWorldLoaded(world);
+                }
+            });
+            platform.onWorldUnloaded(world -> {
+                for (RegionManager manager : all()) {
+                    manager.onWorldUnloaded(world);
+                }
+            });
+            followedPlatform = platform;
+        }
+    }
+
+    /**
+     * Every region is indexed by {@link #load()} whatever its world - the platform cannot tell which worlds are
+     * loaded, and a world nobody stands in costs nothing - so a world load only retries a load that failed.
+     */
+    private void onWorldLoaded(String world) {
+        if (loadFailed && !loaded && !closed) {
+            load();
+        }
+    }
+
+    /** Transient regions die with their world; the persistent ones are written and stay indexed. */
+    private void onWorldUnloaded(String world) {
+        for (Region region : getByWorld(world)) {
+            if (region.getPersistence() == Persistence.TRANSIENT) {
+                remove(region, RemoveStrategy.ORPHAN_CHILDREN, RegionRemovedEvent.Cause.WORLD_UNLOADED);
+            }
+        }
+        flush();
     }
 
     // ------------------------------------------------------------------
