@@ -135,6 +135,8 @@ class RegionStorageTest extends ManagedRegionFixture {
         Region transientRegion = created(manager.create("fleeting", WORLD, box(20, 20, 29, 29),
                 RegionOptions.defaults().withPersistence(Persistence.TRANSIENT)));
         transientRegion.addTag("changed");
+        manager.flush().join();
+        assertEquals(0, backend.callsTo("save"), "a live transient region is never written, even after a change");
         manager.remove(transientRegion);
         manager.flush().join();
         assertEquals(0, backend.callsTo("save"));
