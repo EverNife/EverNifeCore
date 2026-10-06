@@ -29,17 +29,36 @@ public final class RegionId implements Comparable<RegionId> {
      * @throws IllegalArgumentException naming the offending part, the rule and a valid example
      */
     public static RegionId of(String owner, String name) {
+        return new RegionId(requireOwner(owner), requireName("region", name));
+    }
+
+    /**
+     * The owner part of a region id or a flag key, lowercased.
+     *
+     * @throws IllegalArgumentException naming the value, the rule and a valid example
+     */
+    public static String requireOwner(String owner) {
         String lowerOwner = owner == null ? "" : owner.toLowerCase(Locale.ROOT);
-        String lowerName = name == null ? "" : name.toLowerCase(Locale.ROOT);
         if (!OWNER_RULE.matcher(lowerOwner).matches()) {
-            throw new IllegalArgumentException("Invalid region owner '" + owner + "': the owner is the plugin name and must match "
+            throw new IllegalArgumentException("Invalid owner '" + owner + "': the owner is the plugin name and must match "
                     + OWNER_RULE.pattern() + " once lowercased (letters, digits, '_', '.' or '-'), e.g. 'theduel'.");
         }
+        return lowerOwner;
+    }
+
+    /**
+     * A region, flag or group name, lowercased - all three share one rule.
+     *
+     * @param kind what is being named, for the message ("region", "flag", "group")
+     * @throws IllegalArgumentException naming the value, the rule and a valid example
+     */
+    public static String requireName(String kind, String name) {
+        String lowerName = name == null ? "" : name.toLowerCase(Locale.ROOT);
         if (!NAME_RULE.matcher(lowerName).matches()) {
-            throw new IllegalArgumentException("Invalid region name '" + name + "': it must match " + NAME_RULE.pattern()
+            throw new IllegalArgumentException("Invalid " + kind + " name '" + name + "': it must match " + NAME_RULE.pattern()
                     + " once lowercased (letters, digits, '_' or '-', 1 to 64 characters), e.g. 'dragon' or 'arena_1'.");
         }
-        return new RegionId(lowerOwner, lowerName);
+        return lowerName;
     }
 
     /**
