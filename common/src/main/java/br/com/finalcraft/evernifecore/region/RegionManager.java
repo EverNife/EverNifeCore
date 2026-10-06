@@ -704,6 +704,7 @@ public final class RegionManager {
      * providers. The core calls it as the owner starts shutting down, while the owner's storage is still open.
      */
     public static void closeOwnedBy(ECPluginData owner) {
+        dropHandlersOf(owner);
         RegionManager manager = MANAGERS.get(owner);
         if (manager != null) {
             try {
@@ -725,6 +726,7 @@ public final class RegionManager {
      * ({@code OWNER_DISABLED}) and writes nothing; pending changes are dropped and logged.
      */
     public static void discardOwnedBy(ECPluginData owner) {
+        dropHandlersOf(owner);
         RegionManager manager;
         synchronized (MANAGERS) {
             manager = MANAGERS.remove(owner);
@@ -746,6 +748,13 @@ public final class RegionManager {
             manager.removed.clear();
         }
         OverlapProviders.unregisterAll(owner);
+    }
+
+    /** The handlers a plugin set on any region - its own or another's - hold its classes: they go with it. */
+    private static void dropHandlersOf(ECPluginData owner) {
+        for (Region region : RegionLookup.get().all()) {
+            region.removeFlagHandlersOf(owner);
+        }
     }
 
     /** Internal: closes every open manager and stops the sweeper - the core's own shutdown. */

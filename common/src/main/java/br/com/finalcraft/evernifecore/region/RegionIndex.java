@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 /**
  * Internal: the per-world spatial index behind {@link RegionLookup}. Plugins read through {@link RegionLookup}.
@@ -54,6 +56,7 @@ public final class RegionIndex {
     //compute() on this map is the per-world write lock; get() is the lock-free read
     private final ConcurrentHashMap<String, WorldSnapshot> worlds = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<RegionId, Region> byId = new ConcurrentHashMap<>();
+    private final List<Consumer<String>> publishListeners = new CopyOnWriteArrayList<>();
 
     public RegionIndex() {
         this(DEFAULT_HUGE_CHUNKS);
@@ -108,14 +111,17 @@ public final class RegionIndex {
             for (Region region : regions) {
                 byId.put(region.getId(), region);
             }
-            byWorld.forEach((world, arriving) -> worlds.compute(world, (name, old) -> {
-                WorldSnapshot base = old != null ? old : WorldSnapshot.EMPTY;
-                Builder builder = new Builder(base);
-                for (Region region : arriving) {
-                    builder.place(region);
-                }
-                return builder.build(base.version + 1);
-            }));
+            byWorld.forEach((world, arriving) -> {
+                worlds.compute(world, (name, old) -> {
+                    WorldSnapshot base = old != null ? old : WorldSnapshot.EMPTY;
+                    Builder builder = new Builder(base);
+                    for (Region region : arriving) {
+                        builder.place(region);
+                    }
+                    return builder.build(base.version + 1);
+                });
+                published(world);
+            });
         }
     }
 
@@ -151,6 +157,7 @@ public final class RegionIndex {
                 }
                 return builder.build(base.version + 1);
             });
+            published(world);
         }
     }
 
@@ -166,6 +173,22 @@ public final class RegionIndex {
             }
             return builder.build(base.version + 1);
         });
+        published(world);
+    }
+
+    void addPublishListener(Consumer<String> listener) {
+        publishListeners.add(listener);
+    }
+
+    void removePublishListener(Consumer<String> listener) {
+        publishListeners.remove(listener);
+    }
+
+    /** Called with the write lock held, after the new snapshot is in: a listener only queues work, never writes back. */
+    private void published(String world) {
+        for (Consumer<String> listener : publishListeners) {
+            listener.accept(world);
+        }
     }
 
     static long chunkKey(int chunkX, int chunkZ) {

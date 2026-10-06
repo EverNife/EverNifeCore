@@ -2,9 +2,12 @@ package br.com.finalcraft.evernifecore.region.flag;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.region.TestRegions;
 import br.com.finalcraft.evernifecore.region.flag.stock.DenyEntryMessage;
 import br.com.finalcraft.evernifecore.region.flag.stock.StockFlags;
+import br.com.finalcraft.evernifecore.region.session.MoveCause;
 import br.com.finalcraft.evernifecore.testing.Plugins;
+import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -117,12 +120,17 @@ class StockFlagsTest {
     @Test
     @SuppressWarnings("unchecked")
     void denyFlagsDenyOnTrueAndTheHybridOnDenied() {
+        WorldLocPos at = WorldLocPos.of(5, 5, 5, "world");
+        TestFPlayerSender player = new TestFPlayerSender("player");
+        DamageContext pvpHit = new DamageContext(at, player, null, DamageContext.Kind.PLAYER, new TestFPlayerSender("victim"), "minecraft:player");
         RegionFlag<Tristate> pvp = (RegionFlag<Tristate>) FlagRegistry.get().find("evernifecore:deny-pvp").get();
-        assertEquals(Decision.DENY, pvp.decide(null, Tristate.TRUE));
-        assertEquals(Decision.PASS, pvp.decide(null, Tristate.FALSE));
+        assertEquals(Decision.DENY, pvp.decide(pvpHit, Tristate.TRUE));
+        assertEquals(Decision.PASS, pvp.decide(pvpHit, Tristate.FALSE));
+        MoveContext entering = new MoveContext(player, WorldLocPos.of(20, 5, 5, "world"), at, MoveCause.MOVE, MoveContext.Transition.ENTER,
+                TestRegions.create(core, "arena", "world"));
         RegionFlag<DenyEntryMessage> hybrid = (RegionFlag<DenyEntryMessage>) FlagRegistry.get().find("deny-entry-with-message").get();
-        assertEquals(Decision.DENY, hybrid.decide(null, new DenyEntryMessage(Tristate.TRUE, null)));
-        assertEquals(Decision.PASS, hybrid.decide(null, new DenyEntryMessage(Tristate.UNDEFINED, "x")));
+        assertEquals(Decision.DENY, hybrid.decide(entering, new DenyEntryMessage(Tristate.TRUE, null)));
+        assertEquals(Decision.PASS, hybrid.decide(entering, new DenyEntryMessage(Tristate.UNDEFINED, "x")));
     }
 
     @Test

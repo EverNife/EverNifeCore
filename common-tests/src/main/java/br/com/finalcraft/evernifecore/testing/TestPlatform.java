@@ -65,6 +65,7 @@ public class TestPlatform extends AbstractTestPlatform {
     Boolean configTypesIgnored;
     Boolean mainThreadInline;
     Boolean worldEvents;
+    Boolean worldThreadAnswer;
     Boolean capturingCommands;
     Boolean recordingShutdowns;
     Boolean stdoutLogging;
@@ -423,6 +424,9 @@ public class TestPlatform extends AbstractTestPlatform {
 
     @Override
     public boolean isWorldThread(String worldName) {
+        if (worldThreadAnswer != null) {
+            return worldThreadAnswer;
+        }
         //the inline main thread is every thread, so every thread owns every world here
         return mainThreadInline != null || super.isWorldThread(worldName);
     }

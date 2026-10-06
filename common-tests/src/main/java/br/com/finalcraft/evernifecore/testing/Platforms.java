@@ -180,6 +180,15 @@ public final class Platforms {
     }
 
     /**
+     * Answers {@code isWorldThread} with false for every world while {@code runOnWorldThread} still runs inline - the
+     * caller that should have been on a world's thread and is not.
+     */
+    public Platforms offWorldThread() {
+        platform.worldThreadAnswer = Boolean.FALSE;
+        return this;
+    }
+
+    /**
      * Keeps the {@code onWorldLoaded}/{@code onWorldUnloaded} listeners so the test can fire them with
      * {@link TestPlatform#loadWorld(String)} and {@link TestPlatform#unloadWorld(String)}.
      */

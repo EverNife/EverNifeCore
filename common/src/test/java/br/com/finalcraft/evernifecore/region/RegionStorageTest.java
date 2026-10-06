@@ -106,6 +106,24 @@ class RegionStorageTest extends ManagedRegionFixture {
     }
 
     @Test
+    void aFlagHandlerIsNeverStored() {
+        RoomFlag flag = registeredRoomFlag(owner);
+        Region region = created(manager().create("handled", WORLD, box(0, 0, 9, 9)));
+        region.setFlag(flag, Tristate.TRUE);
+        region.setFlagHandler(owner, flag, context -> {
+        });
+        manager().flush().join();
+        manager().close().join();
+
+        RegionManager reader = manager();
+        reader.load().join();
+        Region loaded = reader.get("handled");
+
+        assertEquals(Tristate.TRUE, loaded.getFlag(flag), "the value is stored");
+        assertNull(loaded.getFlagHandler(flag), "the handler is code: the owner sets it again on every enable");
+    }
+
+    @Test
     void removingARegionDeletesItAndATransientRegionIsNeverWritten() {
         RegionManager manager = manager();
         Region doomed = created(manager.create("doomed", WORLD, box(0, 0, 9, 9)));

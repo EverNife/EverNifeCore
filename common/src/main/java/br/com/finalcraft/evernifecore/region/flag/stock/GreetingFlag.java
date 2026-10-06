@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagTypes;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.SessionContext;
+import jakarta.annotation.Nullable;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -32,5 +33,13 @@ public final class GreetingFlag extends RegionFlag<String> {
     @Override
     public void onEnter(SessionContext context, String value) {
         context.getPlayer().sendMessage(value);
+    }
+
+    /** Crossing straight from one greeting to another greets again, with the new one. */
+    @Override
+    public void onRevalidate(SessionContext context, @Nullable String oldValue, @Nullable String newValue) {
+        if (newValue != null) {
+            context.getPlayer().sendMessage(newValue);
+        }
     }
 }

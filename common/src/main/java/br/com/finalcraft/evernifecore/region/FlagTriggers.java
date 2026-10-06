@@ -1,0 +1,209 @@
+package br.com.finalcraft.evernifecore.region;
+
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.logger.ECDebugModule;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.region.flag.ActionContext;
+import br.com.finalcraft.evernifecore.region.flag.Decision;
+import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.region.flag.FlagCategory;
+import br.com.finalcraft.evernifecore.region.flag.FlagHandler;
+import br.com.finalcraft.evernifecore.region.flag.FlagOutcome;
+import br.com.finalcraft.evernifecore.region.flag.FlagOutcomeContext;
+import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
+import br.com.finalcraft.evernifecore.region.flag.MoveContext;
+import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
+import br.com.finalcraft.evernifecore.region.flag.TriggerThrottle;
+import br.com.finalcraft.evernifecore.region.flag.stock.MoveDenySettings;
+import br.com.finalcraft.evernifecore.region.session.MoveVerdict;
+import br.com.finalcraft.evernifecore.region.session.RegionPlayerSession;
+import br.com.finalcraft.evernifecore.region.session.RevertStrategy;
+import jakarta.annotation.Nullable;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Internal: the one place a protection flag is asked about an action and its consequences run - the flag's
+ * {@link RegionFlag#onApplied} at the pace of its settings, then the region's {@link FlagHandler}, and for a denied
+ * movement the way back: the handler's choice, else the region's settings of the flag, else the server's, else the
+ * last accepted block, moved further back along the trail for a player who keeps being denied.
+ */
+public final class FlagTriggers {
+
+    /** The throttle key of an action no player is behind: one firing per interval for all of them. */
+    static final UUID NO_PLAYER = new UUID(0, 0);
+
+    private static final TriggerThrottle THROTTLE = new TriggerThrottle();
+    private static final Duration DEFAULT_STUCK_WINDOW = Duration.ofSeconds(1);
+
+    private FlagTriggers() {
+    }
+
+    static Decision decide(RegionLookup lookup, ActionContext context) {
+        List<Region> here = lookup.at(context.getPosition());
+        if (here.isEmpty()) {
+            return Decision.PASS;
+        }
+        List<Runnable> passed = new ArrayList<>(2);
+        for (RegionFlag<?> flag : FlagRegistry.get().getBySource(context.getSource())) {
+            if (flag.getCategory() == FlagCategory.PROTECTION && denies(lookup, flag, context, here, passed)) {
+                return Decision.DENY;
+            }
+        }
+        for (Runnable apply : passed) {
+            apply.run();
+        }
+        return Decision.PASS;
+    }
+
+    private static <T> boolean denies(RegionLookup lookup, RegionFlag<T> flag, ActionContext context, List<Region> here, List<Runnable> passed) {
+        FPlayer player = context.getPlayer();
+        Resolution<T> resolution = lookup.resolution(flag, here, player);
+        T value = resolution.getValue();
+        if (value == null) {
+            return false;
+        }
+        Region source = resolution.getSource();
+        if (flag.decide(context, value) == Decision.DENY) {
+            fireApplied(flag, context, value, source);
+            FlagHandler handler = source == null ? null : source.getFlagHandler(flag);
+            if (handler != null) {
+                handler.handle(new FlagOutcomeContext(FlagOutcome.DENIED, player, source, flag, value, context.getSource(), context,
+                        resolution.getReason(), 0));
+            }
+            return true;
+        }
+        if (source != null) {
+            passed.add(() -> fireApplied(flag, context, value, source));
+        }
+        for (Region region : here) {
+            if (region.hasFlagHandlers()) {
+                notifyAllowed(lookup, flag, context, region, value, resolution);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Internal: what the movement flags say about crossing the border of {@code context.getRegion()} - only that
+     * region's values decide, its neighbours have no say on it.
+     */
+    public static MoveVerdict decideCrossing(RegionLookup lookup, MoveContext context, RegionPlayerSession session) {
+        for (RegionFlag<?> flag : FlagRegistry.get().getBySource(EventSource.MOVE)) {
+            if (flag.getCategory() == FlagCategory.PROTECTION) {
+                MoveVerdict verdict = cross(lookup, flag, context, session);
+                if (!verdict.isAllowed()) {
+                    return verdict;
+                }
+            }
+        }
+        return MoveVerdict.allowed();
+    }
+
+    private static <T> MoveVerdict cross(RegionLookup lookup, RegionFlag<T> flag, MoveContext context, RegionPlayerSession session) {
+        Region crossed = context.getRegion();
+        FPlayer player = context.getPlayer();
+        Resolution<T> resolution = lookup.explain(flag, crossed, player);
+        T value = resolution.getValue();
+        if (value == null || flag.decide(context, value) != Decision.DENY) {
+            if (crossed.hasFlagHandlers()) {
+                notifyAllowed(lookup, flag, context, crossed, value, resolution);
+            }
+            return MoveVerdict.allowed();
+        }
+        Region source = resolution.getSource() != null ? resolution.getSource() : crossed;
+        fireApplied(flag, context, value, source);
+        FlagSettings settings = source.getEffectiveFlagSettings(flag);
+        MoveDenySettings moveSettings = settings instanceof MoveDenySettings ? (MoveDenySettings) settings : null;
+        int denials = session.noteDenial(flag.getKey(), RegionTime.now(), moveSettings != null ? moveSettings.getStuckWindow() : DEFAULT_STUCK_WINDOW);
+
+        FlagHandler handler = source.getFlagHandler(flag);
+        if (handler != null) {
+            FlagOutcomeContext outcome = new FlagOutcomeContext(FlagOutcome.DENIED, player, source, flag, value, EventSource.MOVE, context,
+                    resolution.getReason(), denials);
+            handler.handle(outcome);
+            if (outcome.isAllowed()) {
+                return MoveVerdict.allowed();
+            }
+            if (outcome.getRevertTo() != null) {
+                return MoveVerdict.revert(outcome.getRevertTo());
+            }
+            if (outcome.getRevertWith() != null) {
+                return apply(outcome.getRevertWith(), session, context, denials, null);   //the handler saw the count: it decides
+            }
+        }
+        RevertStrategy strategy = moveSettings != null ? moveSettings.getRevert() : RevertStrategy.lastValid();
+        return apply(strategy, session, context, denials, handler == null ? moveSettings : null);
+    }
+
+    /** @param stuck the settings that move a player who keeps being denied further back; null to never escalate */
+    private static MoveVerdict apply(RevertStrategy strategy, RegionPlayerSession session, MoveContext context, int denials,
+                                     @Nullable MoveDenySettings stuck) {
+        int stepsBack;
+        switch (strategy.getKind()) {
+            case FIXED:
+                return MoveVerdict.revert(strategy.getPoint());
+            case ALLOW_AFTER:
+                if (denials >= strategy.getCount()) {
+                    return MoveVerdict.allowed();
+                }
+                stepsBack = 0;
+                break;
+            case TRAIL:
+                stepsBack = strategy.getCount();
+                break;
+            default:
+                stepsBack = 0;
+        }
+        if (stuck != null && strategy.getKind() != RevertStrategy.Kind.ALLOW_AFTER && denials >= stuck.getStuckAfter()) {
+            stepsBack += denials - stuck.getStuckAfter() + 1;
+            if (stepsBack >= session.getTrailSize()) {
+                if (stuck.getStuckFallback() != null) {
+                    return MoveVerdict.revert(stuck.getStuckFallback());
+                }
+                if (stepsBack == session.getTrailSize()) {
+                    ECDebugModule.REGIONS.debug("{} keeps being denied by {} and the way back ran out; no stuck fallback is set, so it stays at"
+                            + " the oldest block it walked.", context.getPlayer().getName(), context.getRegion().getId());
+                }
+            }
+        }
+        WorldLocPos point = session.trailBack(stepsBack);
+        return MoveVerdict.revert(point != null ? point : context.getFrom());
+    }
+
+    /**
+     * The handler of {@code region} hears {@link FlagOutcome#ALLOWED} when the region's own values would deny the
+     * action but this player was not denied - a group or the bypass lifted it. Never for a region that does not
+     * have the flag, nor for an action the flag would not deny anyway.
+     */
+    private static <T> void notifyAllowed(RegionLookup lookup, RegionFlag<T> flag, ActionContext context, Region region,
+                                          @Nullable T effective, Resolution<T> resolution) {
+        FlagHandler handler = region.getFlagHandler(flag);
+        if (handler == null) {
+            return;
+        }
+        Resolution<T> own = lookup.explain(flag, region, null);
+        if (own.getSource() == null || own.getValue() == null || flag.decide(context, own.getValue()) != Decision.DENY) {
+            return;
+        }
+        handler.handle(new FlagOutcomeContext(FlagOutcome.ALLOWED, context.getPlayer(), region, flag, effective, context.getSource(), context,
+                resolution.getReason(), 0));
+    }
+
+    private static <T> void fireApplied(RegionFlag<T> flag, ActionContext context, T value, @Nullable Region source) {
+        FPlayer player = context.getPlayer();
+        Duration interval = source != null ? source.getEffectiveFlagSettings(flag).getTriggerInterval() : flag.getSettings().getTriggerInterval();
+        if (THROTTLE.tryFire(player == null ? NO_PLAYER : player.getUniqueId(), flag, interval)) {
+            flag.onApplied(context, value);
+        }
+    }
+
+    /** Internal: forgets the firing pace of a player who left. */
+    public static void forget(UUID player) {
+        THROTTLE.forget(player);
+    }
+}

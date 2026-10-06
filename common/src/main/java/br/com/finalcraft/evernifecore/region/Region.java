@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
 import br.com.finalcraft.evernifecore.region.flag.FlagChangeCause;
+import br.com.finalcraft.evernifecore.region.flag.FlagHandler;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.flag.FlagStore;
@@ -287,9 +288,60 @@ public final class Region {
         return flags;
     }
 
-    /** Every change of a local flag value lands here, after the fact. */
+    /** Every change of a local flag value lands here, after the fact; a handler goes with the value it handled. */
     void onFlagChanged(RegionFlag<?> flag, @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue, FlagChangeCause cause) {
+        if (newValue == null) {
+            removeFlagHandler(flag);
+        }
         manager.flagChanged(this, null, flag, oldValue, newValue, cause);
+    }
+
+    // ---- flag handlers ----
+
+    private static final class OwnedHandler {
+        final ECPluginData owner;
+        final FlagHandler handler;
+
+        OwnedHandler(ECPluginData owner, FlagHandler handler) {
+            this.owner = owner;
+            this.handler = handler;
+        }
+    }
+
+    private final ConcurrentHashMap<FlagKey, OwnedHandler> flagHandlers = new ConcurrentHashMap<>();
+    private volatile boolean anyFlagHandler;
+
+    /**
+     * Runs {@code handler} on every outcome of {@code flag} in this region - see {@link FlagHandler}. Never stored:
+     * it goes when the flag's value here is removed or expires, when the region goes, and when {@code owner} shuts
+     * down. One handler per flag; a new one replaces the old.
+     */
+    public void setFlagHandler(ECPluginData owner, RegionFlag<?> flag, FlagHandler handler) {
+        flagHandlers.put(flag.getKey(), new OwnedHandler(Objects.requireNonNull(owner, "owner"), Objects.requireNonNull(handler, "handler")));
+        anyFlagHandler = true;
+    }
+
+    /** False when the flag had no handler here. */
+    public boolean removeFlagHandler(RegionFlag<?> flag) {
+        boolean removed = flagHandlers.remove(flag.getKey()) != null;
+        anyFlagHandler = !flagHandlers.isEmpty();
+        return removed;
+    }
+
+    public @Nullable FlagHandler getFlagHandler(RegionFlag<?> flag) {
+        OwnedHandler owned = anyFlagHandler ? flagHandlers.get(flag.getKey()) : null;
+        return owned == null ? null : owned.handler;
+    }
+
+    /** Whether any flag has a handler here - the one question asked before anything is built for one. */
+    public boolean hasFlagHandlers() {
+        return anyFlagHandler;
+    }
+
+    /** Drops the handlers {@code owner} set here, so a plugin that shut down leaves no code behind. */
+    void removeFlagHandlersOf(ECPluginData owner) {
+        flagHandlers.values().removeIf(owned -> owned.owner == owner);
+        anyFlagHandler = !flagHandlers.isEmpty();
     }
 
     // ---- flag settings ----

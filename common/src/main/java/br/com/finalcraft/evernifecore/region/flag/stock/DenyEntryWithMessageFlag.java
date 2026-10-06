@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.region.flag.Decision;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagTypes;
+import br.com.finalcraft.evernifecore.region.flag.MoveContext;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 
@@ -35,9 +36,11 @@ public final class DenyEntryWithMessageFlag extends RegionFlag<DenyEntryMessage>
         return values.get(0);
     }
 
+    /** Denies entering, never leaving: a player already inside walks out freely. */
     @Override
     public Decision decide(ActionContext context, DenyEntryMessage value) {
-        return value.getDenied() == Tristate.TRUE ? Decision.DENY : Decision.PASS;
+        return value.getDenied() == Tristate.TRUE && StockDenyFlag.crossing(context, MoveContext.Transition.ENTER, null)
+                ? Decision.DENY : Decision.PASS;
     }
 
     @Override

@@ -11,11 +11,13 @@ public final class Resolution<T> {
 
     private final @Nullable T value;
     private final @Nullable Region source;
+    private final Step.Reason reason;
     private final List<Step> steps;
 
-    Resolution(@Nullable T value, @Nullable Region source, List<Step> steps) {
+    Resolution(@Nullable T value, @Nullable Region source, Step.Reason reason, List<Step> steps) {
         this.value = value;
         this.source = source;
+        this.reason = reason;
         this.steps = Collections.unmodifiableList(steps);
     }
 
@@ -29,6 +31,16 @@ public final class Resolution<T> {
         return source;
     }
 
+    /**
+     * Why the value is what it is: {@link Step.Reason#GROUP_VALUE}, {@link Step.Reason#LOCAL_VALUE} or
+     * {@link Step.Reason#INHERITED} for a value some region gave, {@link Step.Reason#BYPASS} or
+     * {@link Step.Reason#DEFAULT} for the flag's default.
+     */
+    public Step.Reason getReason() {
+        return reason;
+    }
+
+    /** Every step looked at; empty when the resolution was not asked to record them. */
     public List<Step> getSteps() {
         return steps;
     }

@@ -4,12 +4,12 @@ import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import jakarta.annotation.Nullable;
 
 /**
- * The one place region code schedules work off the caller's thread: flushes, load retries, the sweeper. A test
- * swaps it to run that work when it says so.
+ * Internal: the one place region code schedules work off the caller's thread - writes, load retries, the sweeper,
+ * the session tick, the idle delay of event sources. A test swaps it to run that work when it says so.
  */
-final class RegionAgenda {
+public final class RegionAgenda {
 
-    interface Scheduler {
+    public interface Scheduler {
         void scheduleAsync(Runnable task, long delayMillis);
     }
 
@@ -20,12 +20,12 @@ final class RegionAgenda {
     private RegionAgenda() {
     }
 
-    static void scheduleAsync(Runnable task, long delayMillis) {
+    public static void scheduleAsync(Runnable task, long delayMillis) {
         current.scheduleAsync(task, delayMillis);
     }
 
     /** Replaces the scheduler; {@code null} goes back to the {@code FCScheduler} one. */
-    static void set(@Nullable Scheduler scheduler) {
+    public static void set(@Nullable Scheduler scheduler) {
         current = scheduler == null ? DEFAULT : scheduler;
     }
 }

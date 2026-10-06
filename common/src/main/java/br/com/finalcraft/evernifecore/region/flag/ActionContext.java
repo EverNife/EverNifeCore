@@ -15,13 +15,14 @@ public abstract class ActionContext {
     private final EventSource source;
     private final WorldLocPos position;
     private final @Nullable FPlayer player;
-    private final Object nativeEvent;
+    private final @Nullable Object nativeEvent;
 
-    protected ActionContext(EventSource source, WorldLocPos position, @Nullable FPlayer player, Object nativeEvent) {
+    /** @param nativeEvent the platform's event; null when the action comes from no single event (a movement tick) */
+    protected ActionContext(EventSource source, WorldLocPos position, @Nullable FPlayer player, @Nullable Object nativeEvent) {
         this.source = Objects.requireNonNull(source, "source");
         this.position = Objects.requireNonNull(position, "position");
         this.player = player;
-        this.nativeEvent = Objects.requireNonNull(nativeEvent, "nativeEvent");
+        this.nativeEvent = nativeEvent;
     }
 
     public EventSource getSource() {
@@ -54,8 +55,8 @@ public abstract class ActionContext {
         return type.cast(this);
     }
 
-    /** The platform's own event, for whoever needs more than this context carries. */
-    public Object getNativeEvent() {
+    /** The platform's own event, for whoever needs more than this context carries; null when there was none. */
+    public @Nullable Object getNativeEvent() {
         return nativeEvent;
     }
 }

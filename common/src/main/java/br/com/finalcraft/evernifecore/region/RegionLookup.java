@@ -9,6 +9,8 @@ import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.RegionIndex.WorldSnapshot;
 import br.com.finalcraft.evernifecore.region.Resolution.Step;
+import br.com.finalcraft.evernifecore.region.flag.ActionContext;
+import br.com.finalcraft.evernifecore.region.flag.Decision;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
@@ -27,6 +29,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /**
  * Read-only queries over every indexed region. Every method is safe from any thread and takes no lock: it reads
@@ -230,6 +233,39 @@ public final class RegionLookup {
         return hit == null ? flag.getDefault() : hit.value;
     }
 
+    /**
+     * {@link #resolve(RegionFlag, Region, FPlayer)} step by step: the value {@code region} alone gives, the region of
+     * its chain that gave it, and every step.
+     */
+    public <T> Resolution<T> explain(RegionFlag<T> flag, Region region, @Nullable FPlayer subject) {
+        List<Step> steps = new ArrayList<>();
+        if (bypasses(subject, flag)) {
+            step(steps, null, 0, null, flag.getDefault(), Step.Reason.BYPASS);
+            return new Resolution<>(flag.getDefault(), null, Step.Reason.BYPASS, steps);
+        }
+        Hit<T> hit = effective(region, region.getPriority(), flag, subject, steps);
+        if (hit == null) {
+            step(steps, null, 0, null, flag.getDefault(), Step.Reason.DEFAULT);
+            return new Resolution<>(flag.getDefault(), null, Step.Reason.DEFAULT, steps);
+        }
+        return new Resolution<>(hit.value, hit.source, hit.reason, steps);
+    }
+
+    /** Internal: {@link #resolve} over regions already looked up, with the source and reason but no steps. */
+    public <T> Resolution<T> resolution(RegionFlag<T> flag, List<Region> at, @Nullable FPlayer subject) {
+        return walk(flag, at, subject, null);
+    }
+
+    /**
+     * Whether the action is denied where it happens: the first protection flag that needs its source and denies
+     * it wins, the flags after it are not asked. Each flag that took part runs its {@link RegionFlag#onApplied},
+     * at most once per its trigger interval. A point outside every region passes without asking any flag.
+     * Thread: the thread of the event; it takes no lock.
+     */
+    public Decision decide(ActionContext context) {
+        return FlagTriggers.decide(this, context);
+    }
+
     /** {@link #resolve} with {@link Tristate#UNDEFINED} for no value. */
     public Tristate tristate(TristateFlag flag, String world, double x, double y, double z, @Nullable FPlayer subject) {
         Tristate value = resolve(flag, world, x, y, z, subject);
@@ -249,11 +285,13 @@ public final class RegionLookup {
         final T value;
         final Region source;
         final @Nullable AccessGroup group;
+        final Step.Reason reason;
 
-        Hit(T value, Region source, @Nullable AccessGroup group) {
+        Hit(T value, Region source, @Nullable AccessGroup group, Step.Reason reason) {
             this.value = value;
             this.source = source;
             this.group = group;
+            this.reason = reason;
         }
     }
 
@@ -262,7 +300,7 @@ public final class RegionLookup {
         List<Step> recorded = steps == null ? Collections.emptyList() : steps;
         if (bypasses(subject, flag)) {
             step(steps, null, 0, null, flag.getDefault(), Step.Reason.BYPASS);
-            return new Resolution<>(flag.getDefault(), null, recorded);
+            return new Resolution<>(flag.getDefault(), null, Step.Reason.BYPASS, recorded);
         }
         List<Region> candidates = new ArrayList<>(at.size());
         for (Region region : at) {
@@ -277,7 +315,7 @@ public final class RegionLookup {
         for (int start = 0; start < candidates.size(); ) {
             int band = candidates.get(start).getPriority();
             List<T> values = new ArrayList<>(2);
-            List<Region> sources = new ArrayList<>(2);
+            List<Hit<T>> hits = new ArrayList<>(2);
             int next = start;
             for (; next < candidates.size() && candidates.get(next).getPriority() == band; next++) {
                 Region region = candidates.get(next);
@@ -286,7 +324,7 @@ public final class RegionLookup {
                     step(steps, region, band, null, null, Step.Reason.NO_VALUE);
                 } else {
                     values.add(hit.value);
-                    sources.add(hit.source);
+                    hits.add(hit);
                 }
             }
             if (!values.isEmpty()) {
@@ -295,12 +333,13 @@ public final class RegionLookup {
                     step(steps, null, band, null, value, Step.Reason.TIE);
                 }
                 int index = values.indexOf(value);
-                return new Resolution<>(value, index < 0 ? null : sources.get(index), recorded);
+                Hit<T> winner = index < 0 ? null : hits.get(index);
+                return new Resolution<>(value, winner == null ? null : winner.source, winner == null ? Step.Reason.TIE : winner.reason, recorded);
             }
             start = next;
         }
         step(steps, null, 0, null, flag.getDefault(), Step.Reason.DEFAULT);
-        return new Resolution<>(flag.getDefault(), null, recorded);
+        return new Resolution<>(flag.getDefault(), null, Step.Reason.DEFAULT, recorded);
     }
 
     /** The value {@code region} gives: its groups' for the subject, else its own, else its nearest ancestor's (groups included). */
@@ -314,7 +353,7 @@ public final class RegionLookup {
             T local = current.getFlag(flag);
             if (local != null) {
                 step(steps, current, band, null, local, current == region ? Step.Reason.LOCAL_VALUE : Step.Reason.INHERITED);
-                return new Hit<>(local, current, null);
+                return new Hit<>(local, current, null, current == region ? Step.Reason.LOCAL_VALUE : Step.Reason.INHERITED);
             }
         }
         return null;
@@ -343,7 +382,7 @@ public final class RegionLookup {
         }
         T value = pick(flag, values);
         int index = values.indexOf(value);
-        return new Hit<>(value, region, index < 0 ? null : groups.get(index));
+        return new Hit<>(value, region, index < 0 ? null : groups.get(index), Step.Reason.GROUP_VALUE);
     }
 
     private static <T> T pick(RegionFlag<T> flag, List<T> values) {
@@ -391,19 +430,74 @@ public final class RegionLookup {
         return sessions.computeIfAbsent(player.getUniqueId(), RegionPlayerSession::new);
     }
 
-    /** Forgets every cached membership of {@code player} - for when something the owner tracks (a team, a rank) changed. */
+    public @Nullable RegionPlayerSession getSessionIfPresent(UUID player) {
+        return sessions.get(player);
+    }
+
+    /** Every live session. Read-only. */
+    public Collection<RegionPlayerSession> getSessions() {
+        return Collections.unmodifiableCollection(sessions.values());
+    }
+
+    /**
+     * Forgets every cached membership of {@code player} and has the session flags of the player looked at again -
+     * for when something the owner tracks (a team, a rank) changed.
+     */
     public void invalidate(UUID player) {
         RegionPlayerSession session = sessions.get(player);
         if (session != null) {
             session.invalidate();
+            requestRevalidation(session);
         }
     }
 
-    /** Forgets the cached memberships of every group of {@code region}, in every session. */
+    /**
+     * Forgets the cached memberships of every group of {@code region}, in every session, and has the session flags
+     * of every player inside it looked at again.
+     */
     public void invalidate(Region region) {
         for (AccessGroup group : region.getGroups().values()) {
             invalidate(group);
         }
+        for (RegionPlayerSession session : sessions.values()) {
+            if (session.isAffectedBy(region)) {
+                requestRevalidation(session);
+            }
+        }
+    }
+
+    private volatile @Nullable Consumer<RegionPlayerSession> revalidationListener;
+
+    /** Internal: who runs a revalidation a session asked for; the movement tracker of this lookup. */
+    public void setRevalidationListener(@Nullable Consumer<RegionPlayerSession> listener) {
+        this.revalidationListener = listener;
+    }
+
+    /** Internal: marks every session flag of {@code session} due now and tells whoever runs them. */
+    public void requestRevalidation(RegionPlayerSession session) {
+        session.markRevalidateAll();
+        Consumer<RegionPlayerSession> listener = revalidationListener;
+        if (listener != null) {
+            listener.accept(session);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    //  Publication
+    // ------------------------------------------------------------------
+
+    /** Internal: runs {@code listener} with the world's name after every publish of a world's snapshot. */
+    public void addPublishListener(Consumer<String> listener) {
+        index.addPublishListener(listener);
+    }
+
+    public void removePublishListener(Consumer<String> listener) {
+        index.removePublishListener(listener);
+    }
+
+    /** The version of {@code world}'s current snapshot; it grows with every publish. */
+    public long getSnapshotVersion(String world) {
+        return index.snapshot(world).version;
     }
 
     void invalidate(AccessGroup group) {

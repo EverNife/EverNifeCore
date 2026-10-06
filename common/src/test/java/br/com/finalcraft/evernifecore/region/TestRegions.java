@@ -12,6 +12,9 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Regions for tests outside this package, where the constructor and the global index are out of reach. Every
@@ -50,6 +53,70 @@ public final class TestRegions {
             RegionLookup.get().getIndex().remove(region);
         }
         LOADED.clear();
+    }
+
+    /** A lookup over an index of its own, apart from the global one - with sessions of its own. */
+    public static RegionLookup newLookup() {
+        return new RegionLookup(new RegionIndex());
+    }
+
+    /** Indexes {@code region} in {@code lookup}; its publish listeners hear it. */
+    public static void index(RegionLookup lookup, Region region) {
+        lookup.getIndex().add(region);
+    }
+
+    public static void unindex(RegionLookup lookup, Region region) {
+        lookup.getIndex().remove(region);
+    }
+
+    /** Gives an indexed region another shape the way a bulk load does: in place, then one rebuild of its world. */
+    public static void reshapeAndRebuild(RegionLookup lookup, Region region, Shape shape) {
+        region.setShape(shape);
+        lookup.getIndex().rebuild(region.getWorld());
+    }
+
+    /** A box from (x1, y1, z1) to (x2, y2, z2) in {@code world}, not indexed. */
+    public static Region box(ECPluginData owner, String name, String world, int x1, int y1, int z1, int x2, int y2, int z2) {
+        return create(owner, name, world, CuboidShape.of(BlockPos.of(x1, y1, z1), BlockPos.of(x2, y2, z2)));
+    }
+
+    /** An agenda that runs nothing until told to; {@link #install()} it and {@code RegionAgenda.set(null)} afterwards. */
+    public static final class ManualAgenda implements RegionAgenda.Scheduler {
+
+        private final Queue<Runnable> tasks = new ConcurrentLinkedQueue<>();
+        private final List<Long> delays = new CopyOnWriteArrayList<>();
+
+        public ManualAgenda install() {
+            RegionAgenda.set(this);
+            return this;
+        }
+
+        @Override
+        public void scheduleAsync(Runnable task, long delayMillis) {
+            tasks.add(task);
+            delays.add(delayMillis);
+        }
+
+        /** Runs what is queued now; what those tasks queue waits for the next call. */
+        public void runQueued() {
+            for (int pending = tasks.size(); pending > 0; pending--) {
+                tasks.poll().run();
+            }
+        }
+
+        public int size() {
+            return tasks.size();
+        }
+
+        /** Drops what is queued without running it. */
+        public void discardQueued() {
+            tasks.clear();
+        }
+
+        /** The delay of every task ever scheduled, in order. */
+        public List<Long> getDelays() {
+            return delays;
+        }
     }
 
     /** Installs a clock that only moves when told to; {@link #restoreClock()} puts the system clock back. */

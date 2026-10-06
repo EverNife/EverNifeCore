@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagTypes;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.SessionContext;
+import jakarta.annotation.Nullable;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -32,5 +33,13 @@ public final class FarewellFlag extends RegionFlag<String> {
     @Override
     public void onLeave(SessionContext context, String lastValue) {
         context.getPlayer().sendMessage(lastValue);
+    }
+
+    /** Crossing straight from one farewell to another says the one being left. */
+    @Override
+    public void onRevalidate(SessionContext context, @Nullable String oldValue, @Nullable String newValue) {
+        if (oldValue != null) {
+            context.getPlayer().sendMessage(oldValue);
+        }
     }
 }
