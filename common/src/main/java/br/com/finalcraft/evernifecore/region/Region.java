@@ -8,14 +8,19 @@ import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagStore;
 import br.com.finalcraft.evernifecore.region.flag.FlagValue;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
+import br.com.finalcraft.evernifecore.region.group.AccessGroup;
+import br.com.finalcraft.evernifecore.region.group.GroupChange;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
@@ -35,6 +40,7 @@ public final class Region {
     private volatile Region parent;
     private final Set<String> tags = new CopyOnWriteArraySet<>();
     private final FlagStore flags = new FlagStore(this::onFlagChanged);
+    private final ConcurrentHashMap<String, AccessGroup> groups = new ConcurrentHashMap<>();
 
     /**
      * @param name the region name, see {@link RegionId#of}; the owner part of the id is the owner's plugin name
@@ -180,6 +186,50 @@ public final class Region {
     /** Every change of a local flag value lands here, after the fact. */
     void onFlagChanged(RegionFlag<?> flag, @Nullable FlagValue<?> oldValue, @Nullable FlagValue<?> newValue, FlagChangeCause cause) {
         //nothing listens yet: the region manager wires the event bus and the storage dirty mark here
+    }
+
+    /** A read-only view of the groups, by name. */
+    public Map<String, AccessGroup> getGroups() {
+        return Collections.unmodifiableMap(groups);
+    }
+
+    /**
+     * The group named {@code name}, created when absent. Names follow the region name rule and are lowercased.
+     *
+     * @throws IllegalArgumentException when the name breaks the rule; the message shows it and an example
+     */
+    public AccessGroup getGroup(String name) {
+        String key = RegionId.requireName("group", name);
+        AccessGroup existing = groups.get(key);
+        if (existing != null) {
+            return existing;
+        }
+        AccessGroup created = new AccessGroup(this, key, this::onGroupChanged);
+        AccessGroup raced = groups.putIfAbsent(key, created);
+        if (raced != null) {
+            return raced;
+        }
+        onGroupChanged(created, GroupChange.CREATED, null);
+        return created;
+    }
+
+    public @Nullable AccessGroup getGroupIfPresent(String name) {
+        return name == null ? null : groups.get(name.toLowerCase(Locale.ROOT));
+    }
+
+    /** False when there was no such group. */
+    public boolean removeGroup(String name) {
+        AccessGroup removed = name == null ? null : groups.remove(name.toLowerCase(Locale.ROOT));
+        if (removed == null) {
+            return false;
+        }
+        onGroupChanged(removed, GroupChange.REMOVED, null);
+        return true;
+    }
+
+    /** Every change of a group lands here, after the fact; the cached memberships of the group go, in every session. */
+    void onGroupChanged(AccessGroup group, GroupChange change, @Nullable UUID player) {
+        RegionLookup.get().invalidate(group);
     }
 
     public boolean contains(int x, int y, int z) {

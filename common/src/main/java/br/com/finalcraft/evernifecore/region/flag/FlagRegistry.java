@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
+import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import jakarta.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -57,9 +58,14 @@ public final class FlagRegistry {
             if (!region.getFlagStore().relink(flag)) {
                 unreadable.add(region.getId().toString());
             }
+            for (AccessGroup group : region.getGroups().values()) {
+                if (!group.getFlagStore().relink(flag)) {
+                    unreadable.add(group.toString());
+                }
+            }
         }
         if (!unreadable.isEmpty()) {
-            flag.getOwner().getLog().warning("Flag " + flag.getKey() + ": the stored value in " + unreadable.size() + " region(s) " + unreadable
+            flag.getOwner().getLog().warning("Flag " + flag.getKey() + ": the stored value in " + unreadable.size() + " region(s) or group(s) " + unreadable
                     + " does not read as a " + flag.getType().getId() + " value. It is kept raw, nothing was deleted - fix it in storage"
                     + " or set the flag again on those regions.");
         }
@@ -80,6 +86,9 @@ public final class FlagRegistry {
         for (Region region : RegionLookup.get().all()) {
             for (RegionFlag<?> flag : leaving) {
                 region.getFlagStore().unlink(flag);
+                for (AccessGroup group : region.getGroups().values()) {
+                    group.getFlagStore().unlink(flag);
+                }
             }
         }
     }

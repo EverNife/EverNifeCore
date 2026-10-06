@@ -1,11 +1,19 @@
 package br.com.finalcraft.evernifecore.region;
 
+import br.com.finalcraft.evernifecore.api.common.game.FLocation;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.chunkpos.ChunkPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.RegionIndex.WorldSnapshot;
+import br.com.finalcraft.evernifecore.region.Resolution.Step;
+import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
+import br.com.finalcraft.evernifecore.region.flag.Tristate;
+import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
+import br.com.finalcraft.evernifecore.region.group.AccessGroup;
+import br.com.finalcraft.evernifecore.region.session.RegionPlayerSession;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.shape.ShapeType;
 import jakarta.annotation.Nullable;
@@ -17,6 +25,8 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Read-only queries over every indexed region. Every method is safe from any thread and takes no lock: it reads
@@ -26,12 +36,23 @@ import java.util.Set;
  * parent, then id - the order as of the snapshot read, so a priority changed later shows once the region is
  * re-published. {@code byOwner}, {@code byTag} and {@code all} are unordered. Every returned collection is
  * read-only; a query that finds nothing returns the shared empty list.</p>
+ *
+ * <p>{@code resolve} answers a flag's effective value at a point for a subject: regions are taken in bands of
+ * their current priority, highest first; a parent never competes in its own band - its children carry its values
+ * down as defaults; inside a region, the highest-priority group that contains the subject and defines the flag
+ * overrides the region's own value; distinct values tied in one band go to {@link RegionFlag#resolveTie}; nothing
+ * defined gives {@link RegionFlag#getDefault()}. A subject holding {@code evernifecore.region.bypass.*} or
+ * {@code evernifecore.region.bypass.<owner>.<name>} reads the default of every {@link RegionFlag#isBypassable()
+ * bypassable} flag - both nodes are checked literally, since plain SuperPerms does not expand the wildcard.</p>
  */
 public final class RegionLookup {
 
     private static final RegionLookup GLOBAL = new RegionLookup(new RegionIndex());
 
+    private static final String BYPASS_ALL = "evernifecore.region.bypass.*";
+
     private final RegionIndex index;
+    private final ConcurrentHashMap<UUID, RegionPlayerSession> sessions = new ConcurrentHashMap<>();
 
     RegionLookup(RegionIndex index) {
         this.index = index;
@@ -62,6 +83,16 @@ public final class RegionLookup {
 
     public List<Region> at(WorldLocPos pos) {
         return at(pos.getWorldName(), pos.getX(), pos.getY(), pos.getZ());
+    }
+
+    public List<Region> at(FLocation location) {
+        return at(location.getWorldLocPos());
+    }
+
+    /** The regions at the player's current location; none when the platform has no location for the player. */
+    public List<Region> at(FPlayer player) {
+        FLocation location = player.getLocation();
+        return location == null ? Collections.emptyList() : at(location);
     }
 
     List<Region> at(WorldSnapshot snapshot, int x, int y, int z) {
@@ -174,5 +205,215 @@ public final class RegionLookup {
             found.sort((a, b) -> Integer.compare(snapshot.rank.get(a), snapshot.rank.get(b)));
         }
         return frozen(found);
+    }
+
+    // ------------------------------------------------------------------
+    //  Values
+    // ------------------------------------------------------------------
+
+    /** The effective value of {@code flag} at the point for {@code subject}; a null subject skips groups and bypass. */
+    public <T> @Nullable T resolve(RegionFlag<T> flag, String world, double x, double y, double z, @Nullable FPlayer subject) {
+        return walk(flag, at(world, x, y, z), subject, null).getValue();
+    }
+
+    /** As the point overload, at the subject's current location. */
+    public <T> @Nullable T resolve(RegionFlag<T> flag, FPlayer subject) {
+        return walk(flag, at(subject), subject, null).getValue();
+    }
+
+    /** The value {@code region} alone gives - its groups, its own value, its ancestors - ignoring the regions around it. */
+    public <T> @Nullable T resolve(RegionFlag<T> flag, Region region, @Nullable FPlayer subject) {
+        if (bypasses(subject, flag)) {
+            return flag.getDefault();
+        }
+        Hit<T> hit = effective(region, region.getPriority(), flag, subject, null);
+        return hit == null ? flag.getDefault() : hit.value;
+    }
+
+    /** {@link #resolve} with {@link Tristate#UNDEFINED} for no value. */
+    public Tristate tristate(TristateFlag flag, String world, double x, double y, double z, @Nullable FPlayer subject) {
+        Tristate value = resolve(flag, world, x, y, z, subject);
+        return value == null ? Tristate.UNDEFINED : value;
+    }
+
+    public boolean isTrue(TristateFlag flag, String world, double x, double y, double z, @Nullable FPlayer subject) {
+        return tristate(flag, world, x, y, z, subject) == Tristate.TRUE;
+    }
+
+    /** {@link #resolve} step by step: the same value, plus every region, group and rule it went through. */
+    public <T> Resolution<T> explain(RegionFlag<T> flag, String world, double x, double y, double z, @Nullable FPlayer subject) {
+        return walk(flag, at(world, x, y, z), subject, new ArrayList<>());
+    }
+
+    private static final class Hit<T> {
+        final T value;
+        final Region source;
+        final @Nullable AccessGroup group;
+
+        Hit(T value, Region source, @Nullable AccessGroup group) {
+            this.value = value;
+            this.source = source;
+            this.group = group;
+        }
+    }
+
+    /** @param steps where to record each step, or null to record nothing */
+    private <T> Resolution<T> walk(RegionFlag<T> flag, List<Region> at, @Nullable FPlayer subject, @Nullable List<Step> steps) {
+        List<Step> recorded = steps == null ? Collections.emptyList() : steps;
+        if (bypasses(subject, flag)) {
+            step(steps, null, 0, null, flag.getDefault(), Step.Reason.BYPASS);
+            return new Resolution<>(flag.getDefault(), null, recorded);
+        }
+        List<Region> candidates = new ArrayList<>(at.size());
+        for (Region region : at) {
+            if (isAncestorOfAny(region, at)) {
+                step(steps, region, region.getPriority(), null, null, Step.Reason.SKIPPED_ANCESTOR);
+            } else {
+                candidates.add(region);
+            }
+        }
+        //bands by the live priority - the snapshot may predate a setPriority; the stable sort keeps its order inside a band
+        candidates.sort((a, b) -> Integer.compare(b.getPriority(), a.getPriority()));
+        for (int start = 0; start < candidates.size(); ) {
+            int band = candidates.get(start).getPriority();
+            List<T> values = new ArrayList<>(2);
+            List<Region> sources = new ArrayList<>(2);
+            int next = start;
+            for (; next < candidates.size() && candidates.get(next).getPriority() == band; next++) {
+                Region region = candidates.get(next);
+                Hit<T> hit = effective(region, band, flag, subject, steps);
+                if (hit == null) {
+                    step(steps, region, band, null, null, Step.Reason.NO_VALUE);
+                } else {
+                    values.add(hit.value);
+                    sources.add(hit.source);
+                }
+            }
+            if (!values.isEmpty()) {
+                T value = pick(flag, values);
+                if (!allEqual(values)) {
+                    step(steps, null, band, null, value, Step.Reason.TIE);
+                }
+                int index = values.indexOf(value);
+                return new Resolution<>(value, index < 0 ? null : sources.get(index), recorded);
+            }
+            start = next;
+        }
+        step(steps, null, 0, null, flag.getDefault(), Step.Reason.DEFAULT);
+        return new Resolution<>(flag.getDefault(), null, recorded);
+    }
+
+    /** The value {@code region} gives: its groups' for the subject, else its own, else its nearest ancestor's (groups included). */
+    private <T> @Nullable Hit<T> effective(Region region, int band, RegionFlag<T> flag, @Nullable FPlayer subject, @Nullable List<Step> steps) {
+        for (Region current = region; current != null; current = current.getParent()) {
+            Hit<T> hit = subject == null ? null : groupValue(current, flag, subject);
+            if (hit != null) {
+                step(steps, current, band, hit.group, hit.value, Step.Reason.GROUP_VALUE);
+                return hit;
+            }
+            T local = current.getFlag(flag);
+            if (local != null) {
+                step(steps, current, band, null, local, current == region ? Step.Reason.LOCAL_VALUE : Step.Reason.INHERITED);
+                return new Hit<>(local, current, null);
+            }
+        }
+        return null;
+    }
+
+    /** Among the groups of {@code region} that contain the subject and define the flag, the highest priority's value. */
+    private static <T> @Nullable Hit<T> groupValue(Region region, RegionFlag<T> flag, FPlayer subject) {
+        List<T> values = null;
+        List<AccessGroup> groups = null;
+        int best = Integer.MIN_VALUE;
+        for (AccessGroup group : region.getGroups().values()) {
+            T value = group.getFlag(flag);
+            if (value == null || group.getPriority() < best || !group.contains(subject)) {
+                continue;
+            }
+            if (values == null || group.getPriority() > best) {
+                values = new ArrayList<>(2);
+                groups = new ArrayList<>(2);
+                best = group.getPriority();
+            }
+            values.add(value);
+            groups.add(group);
+        }
+        if (values == null) {
+            return null;
+        }
+        T value = pick(flag, values);
+        int index = values.indexOf(value);
+        return new Hit<>(value, region, index < 0 ? null : groups.get(index));
+    }
+
+    private static <T> T pick(RegionFlag<T> flag, List<T> values) {
+        return allEqual(values) ? values.get(0) : flag.resolveTie(values);
+    }
+
+    private static boolean allEqual(List<?> values) {
+        for (int i = 1; i < values.size(); i++) {
+            if (!values.get(i).equals(values.get(0))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isAncestorOfAny(Region region, List<Region> regions) {
+        for (Region other : regions) {
+            for (Region ancestor = other.getParent(); ancestor != null; ancestor = ancestor.getParent()) {
+                if (ancestor == region) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean bypasses(@Nullable FPlayer subject, RegionFlag<?> flag) {
+        return subject != null && flag.isBypassable() && (subject.hasPermission(BYPASS_ALL)
+                || subject.hasPermission("evernifecore.region.bypass." + flag.getKey().getOwner() + "." + flag.getKey().getName()));
+    }
+
+    private static void step(@Nullable List<Step> steps, @Nullable Region region, int priority, @Nullable AccessGroup group,
+                             @Nullable Object value, Step.Reason reason) {
+        if (steps != null) {
+            steps.add(new Step(region, priority, group, value, reason));
+        }
+    }
+
+    // ------------------------------------------------------------------
+    //  Sessions
+    // ------------------------------------------------------------------
+
+    /** The player's session, created on first use. */
+    public RegionPlayerSession getSession(FPlayer player) {
+        return sessions.computeIfAbsent(player.getUniqueId(), RegionPlayerSession::new);
+    }
+
+    /** Forgets every cached membership of {@code player} - for when something the owner tracks (a team, a rank) changed. */
+    public void invalidate(UUID player) {
+        RegionPlayerSession session = sessions.get(player);
+        if (session != null) {
+            session.invalidate();
+        }
+    }
+
+    /** Forgets the cached memberships of every group of {@code region}, in every session. */
+    public void invalidate(Region region) {
+        for (AccessGroup group : region.getGroups().values()) {
+            invalidate(group);
+        }
+    }
+
+    void invalidate(AccessGroup group) {
+        for (RegionPlayerSession session : sessions.values()) {
+            session.invalidate(group);
+        }
+    }
+
+    /** Drops the session of a player who left. */
+    public void forgetSession(UUID player) {
+        sessions.remove(player);
     }
 }

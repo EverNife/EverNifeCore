@@ -2,6 +2,8 @@ package br.com.finalcraft.evernifecore.region.flag;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.region.Region;
+import br.com.finalcraft.evernifecore.region.RegionLookup;
+import br.com.finalcraft.evernifecore.region.session.RegionPlayerSession;
 
 import java.util.Objects;
 
@@ -22,5 +24,9 @@ public final class SessionContext {
 
     public Region getRegion() {
         return region;
+    }
+
+    public RegionPlayerSession getSession() {
+        return RegionLookup.get().getSession(player);
     }
 }
