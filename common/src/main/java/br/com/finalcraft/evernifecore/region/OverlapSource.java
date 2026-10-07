@@ -6,6 +6,6 @@ public enum OverlapSource {
     OURS_SAME_OWNER,
     /** A region of another plugin, in this core. */
     OURS_OTHER_OWNER,
-    WORLDGUARD,
+    /** A trigger volume another system keeps, reported through an {@code OverlapProvider}. */
     TRIGGER_VOLUMES
 }

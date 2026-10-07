@@ -198,6 +198,62 @@ class RegionCommandNodeTest extends RegionCommandFixture {
         steve.assertAnyMessageContains("revert");
     }
 
+    private MoveDenySettings ownDenyEntrySettings() {
+        return assertInstanceOf(MoveDenySettings.class, arena.getFlagSettings(flag("deny-entry")), steve.getMessages().toString());
+    }
+
+    @Test
+    void flagSettingsSetsTheValueAndTheSettingsInOneLine() {
+        harness.dispatch(mount(), steve, "region flag arena deny-entry true --fs revert=spawn");
+
+        assertEquals(Tristate.TRUE, valueOf(arena, "deny-entry"));
+        assertEquals(RevertStrategy.spawn(), ownDenyEntrySettings().getRevert());
+    }
+
+    @Test
+    void flagSettingsReadsAJsonObject() {
+        harness.dispatch(mount(), steve, "region flag arena deny-entry true --fs {\"revert\":\"worldspawn\"}");
+
+        assertEquals(RevertStrategy.worldSpawn(), ownDenyEntrySettings().getRevert());
+    }
+
+    @Test
+    void repeatedFlagSettingsMergeInOrderAndTheLastKeyWins() {
+        harness.dispatch(mount(), steve, "region flag arena deny-entry true --fs 'revert=spawn stuckAfter=3' --flag-settings revert=trail:2");
+
+        MoveDenySettings own = ownDenyEntrySettings();
+        assertEquals(RevertStrategy.trail(2), own.getRevert(), "the later revert wins");
+        assertEquals(3, own.getStuckAfter(), "a key only the first one named still counts");
+    }
+
+    @Test
+    void anUnknownSettingIsRefusedNamingTheFieldsAndTheValueStays() {
+        harness.dispatch(mount(), steve, "region flag arena deny-entry true --fs color=red");
+
+        assertEquals(Tristate.TRUE, valueOf(arena, "deny-entry"), "the value went in before the settings were read");
+        assertNull(arena.getFlagSettings(flag("deny-entry")));
+        steve.assertAnyMessageContains("color");
+        steve.assertAnyMessageContains("revert");
+        steve.assertAnyMessageContains("The value was set");
+    }
+
+    @Test
+    void flagSettingsWithoutAValueOnlyChangesTheSettings() {
+        harness.dispatch(mount(), steve, "region flag arena deny-entry --fs revert=worldspawn");
+
+        assertNull(arena.getFlagValue(flag("deny-entry")), "no value was written, and nothing was shown instead");
+        assertEquals(RevertStrategy.worldSpawn(), ownDenyEntrySettings().getRevert());
+    }
+
+    @Test
+    void settingsReadsAJsonObjectToo() {
+        harness.dispatch(mount(), steve, "region settings arena deny-entry {\"stuckAfter\":5,\"revert\":\"fixed:1,2,3\"}");
+
+        MoveDenySettings own = ownDenyEntrySettings();
+        assertEquals(5, own.getStuckAfter());
+        assertEquals(RevertStrategy.fixed(1, 2, 3), own.getRevert());
+    }
+
     @Test
     void groupAddRemoveAndFlag() {
         FinalCMDPluginCommand fp = mount();

@@ -36,6 +36,8 @@ import br.com.finalcraft.evernifecore.region.visual.RegionVisualizer;
 import br.com.finalcraft.evernifecore.region.visual.VisualStyle;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -305,14 +307,15 @@ public class RegionCommandNode implements RegionScope {
     }
 
     @FinalCMD.SubCMD(subcmd = "flag", validation = RegionVerbAccess.class, locales = {
-            @FCLocale(lang = LocaleType.EN_US, text = "Set, replace or clear (-) a flag of a region; -t gives the value a time to live"),
-            @FCLocale(lang = LocaleType.PT_BR, text = "Define, troca ou limpa (-) uma flag da região; -t dá prazo ao valor")
+            @FCLocale(lang = LocaleType.EN_US, text = "Set, replace or clear (-) a flag of a region; -t gives the value a time to live, --fs k=v or {json} sets how it acts"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Define, troca ou limpa (-) uma flag da região; -t dá prazo ao valor, --fs k=v ou {json} define como ela age")
     })
     public void flag(FCommandSender sender, @Arg("<region>") Region region,
                      @Arg(value = "<flag>", parser = ArgParserRegionFlag.OrShortcut.class) String flagName,
                      @Arg(value = "[value...]", parser = ArgParserFlagValue.class) String valueText,
-                     @Arg.Flag(value = "--ttl", aliases = {"-t"}, insideTail = true) FCTimeFrame ttl) {
-        if (valueText.isEmpty()) {
+                     @Arg.Flag(value = "--ttl", aliases = {"-t"}, insideTail = true) FCTimeFrame ttl,
+                     @Arg.Flag(value = "--flag-settings", aliases = {"--fs"}, insideTail = true) List<ObjectNode> flagSettings) {
+        if (valueText.isEmpty() && flagSettings == null) {
             for (RegionFlag<?> flag : FlagValues.targets(flagName)) {
                 FlagValue<?> value = region.getFlagValue(flag);
                 FLAG_VALUE.addPlaceholder("flag", flag.getKey()).addPlaceholder("target", region.getId())
@@ -323,7 +326,35 @@ public class RegionCommandNode implements RegionScope {
         if (!requireWritable(sender, region)) {   //own region, or a foreign one this node may edit and whose owner accepts it
             return;
         }
-        applyFlags(sender, region, null, flagName, valueText, ttl);
+        boolean valueApplied = !valueText.isEmpty();
+        if (valueApplied && !applyFlags(sender, region, null, flagName, valueText, ttl)) {
+            return;
+        }
+        if (flagSettings != null) {
+            applySettings(sender, region, flagName, flagSettings, valueApplied);
+        }
+    }
+
+    /**
+     * Writes every {@code --flag-settings} occurrence, merged in order (a later key wins), over the region's current
+     * settings of each flag {@code flagName} targets. A refused key leaves the value already set in place.
+     */
+    private static void applySettings(FCommandSender sender, Region region, String flagName, List<ObjectNode> occurrences, boolean valueApplied) {
+        ObjectNode patch = JsonNodeFactory.instance.objectNode();
+        for (ObjectNode occurrence : occurrences) {
+            patch.setAll(occurrence);
+        }
+        for (RegionFlag<?> flag : FlagValues.targets(flagName)) {
+            FlagSettings settings;
+            try {
+                settings = FlagValues.parseSettings(flag, region.getFlagSettings(flag), patch);
+            } catch (FlagParseException refused) {
+                REFUSED.addPlaceholder("reason", refused.getMessage() + (valueApplied ? " The value was set; its settings were not." : "")).send(sender);
+                return;
+            }
+            region.setFlagSettings(flag, settings);
+            SETTINGS_DONE.addPlaceholder("flag", flag.getKey()).addPlaceholder("region", region.getId()).addPlaceholder("action", "overridden").send(sender);
+        }
     }
 
     @FinalCMD.SubCMD(subcmd = "settings", validation = RegionVerbAccess.class, locales = {
@@ -642,8 +673,9 @@ public class RegionCommandNode implements RegionScope {
     }
 
     /** Parses every target flag first, so a shortcut over two flags sets both or neither. */
-    private void applyFlags(FCommandSender sender, Region region, @Nullable String groupName, String flagName, String valueText,
-                            @Nullable FCTimeFrame ttl) {
+    /** @return false when the value was refused and nothing was set */
+    private boolean applyFlags(FCommandSender sender, Region region, @Nullable String groupName, String flagName, String valueText,
+                               @Nullable FCTimeFrame ttl) {
         List<RegionFlag<?>> flags = FlagValues.targets(flagName);
         List<Object> values = new ArrayList<>();
         for (RegionFlag<?> flag : flags) {
@@ -651,7 +683,7 @@ public class RegionCommandNode implements RegionScope {
                 values.add(FlagValues.parse(flag, valueText));
             } catch (FlagParseException refused) {
                 REFUSED.addPlaceholder("reason", refused.getMessage()).send(sender);
-                return;
+                return false;
             }
         }
         String target = groupName == null ? region.getId().toString() : region.getId() + "/" + groupName;
@@ -677,6 +709,7 @@ public class RegionCommandNode implements RegionScope {
                     .addPlaceholder("ttl", ttl == null ? "" : " for " + ttl.toConfigString())
                     .send(sender);
         }
+        return true;
     }
 
     @SuppressWarnings("unchecked")

@@ -94,12 +94,12 @@ class RegionManagerTest extends ManagedRegionFixture {
         OverlapProviders.register(owner, new OverlapProvider() {
             @Override
             public OverlapSource getSource() {
-                return OverlapSource.WORLDGUARD;
+                return OverlapSource.TRIGGER_VOLUMES;
             }
 
             @Override
             public List<Overlap> findOverlaps(String world, Shape shape) {
-                return Collections.singletonList(new Overlap(OverlapSource.WORLDGUARD, "__global__", null, 0, false));
+                return Collections.singletonList(new Overlap(OverlapSource.TRIGGER_VOLUMES, "spawn-portal", null, 0, false));
             }
         });
 
@@ -109,7 +109,7 @@ class RegionManagerTest extends ManagedRegionFixture {
         for (Overlap overlap : overlaps) {
             sources.add(overlap.getSource());
         }
-        assertEquals(new HashSet<>(Arrays.asList(OverlapSource.OURS_SAME_OWNER, OverlapSource.OURS_OTHER_OWNER, OverlapSource.WORLDGUARD)),
+        assertEquals(new HashSet<>(Arrays.asList(OverlapSource.OURS_SAME_OWNER, OverlapSource.OURS_OTHER_OWNER, OverlapSource.TRIGGER_VOLUMES)),
                 new HashSet<>(sources));
         Overlap mine = overlaps.get(sources.indexOf(OverlapSource.OURS_SAME_OWNER));
         assertEquals("regionowner:mine", mine.getId());
