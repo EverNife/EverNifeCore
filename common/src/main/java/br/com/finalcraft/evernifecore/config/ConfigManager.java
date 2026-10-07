@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.config;
 
+import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
+import br.com.finalcraft.evernifecore.region.selection.SelectionTool;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.commands.finalcmd.executor.FCDefaultExecutor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.help.HelpContext;
@@ -40,7 +42,9 @@ public class ConfigManager {
                 HelpContext.class,
                 FCDefaultExecutor.class,
                 ClassicPageTheme.class,
-                PVExtraMessages.class
+                PVExtraMessages.class,
+                SelectionTool.class,
+                SelectionSession.class
         );
 
         FCLocaleManager.updateEverNifeCoreLocale();
