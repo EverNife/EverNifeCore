@@ -13,6 +13,45 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.56] - 2026-10-07
+
+A command node can lend its verbs to the parent, flags repeat by type, movement denial can send a player to
+spawn, and interact protection splits into blocks and entities through a flag hierarchy.
+
+### Added
+
+- **Hoisted node**: `@FinalCMD.Node(subcmd = "")` mounts a node with no label of its own - its verbs answer right
+  under the parent (`/fprotect define` instead of `/fprotect region define`), while the node's permission,
+  validations and locales still gate each of them, in dispatch, tab and help. A verb clashing with a sibling of the
+  parent is refused at mount; a hoisted node cannot declare `@FinalCMD.Capture` or `@FinalCMD.Execute`.
+- **Repeatable flags**: an `@Arg.Flag` declared as `String` joins every occurrence with one space; `List<E>` keeps
+  each occurrence in order and `Set<E>` keeps the first arrival of each (`LinkedHashSet`), each parsed by the
+  element's own parser. `MultiArgumentos.getFlagValues(name)` reads every occurrence.
+- **`ArgParserObjectNode`** (builtin for `ObjectNode`): `key=value key2="two words"` or a JSON object.
+- **Spawn**: `spawn.ISpawnProvider` (registered by a spawn plugin; read through `ECProviders.getSpawn()` /
+  `getSpawnOrNull()`), `IPlatform.getWorldSpawn(world)` and `spawn.SpawnPoints`, which falls back to the world spawn
+  with one warning per boot while no provider is registered.
+- **`RevertStrategy`**: `spawn`, `worldspawn` and `fixed:x,y,z` (the player's own world) next to
+  `fixed:x,y,z,world`.
+- **`region.flag.EntityContext`** (an entity used, `EventSource.INTERACT`) and **`InteractSettings`** (`only` /
+  `except` by id, `*` wildcards).
+- **Flag hierarchy**: `RegionFlag` takes a parent of the same `FlagType` (`getParent()`, `FlagRegistry.getChildren`);
+  the most specific flag that applies to an action is asked, and where no region defines it, it reads the nearest
+  defined ancestor. New stock flags `deny-interact-blocks` and `deny-interact-entities` refine `deny-interact`.
+- **`--flag-settings` / `--fs`** on the region `flag` verb: `flag arena deny-entry true --fs revert=spawn`, repeated
+  occurrences merged in order.
+
+### Changed
+
+- The text form of a fixed revert is `fixed:x,y,z[,world]`; `fixed:world,x,y,z` is refused.
+- The region `settings` verb also takes a JSON object (`settings arena deny-entry {"revert":"spawn"}`).
+- `RegionFlag.applies(ActionContext)` is public, and `decide(context, value, settings)` receives the settings in
+  effect where the value came from.
+
+### Removed
+
+- `OverlapSource.WORLDGUARD`.
+
 ## [3.0.1-alpha.55] - 2026-10-06
 
 Regions get a selection tool, an outline visualizer, region parsers and a command node a plugin mounts under its
