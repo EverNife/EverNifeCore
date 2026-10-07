@@ -15,7 +15,7 @@ public final class DenyTeleportOutFlag extends StockDenyFlag {
     }
 
     @Override
-    boolean applies(ActionContext context) {
+    public boolean applies(ActionContext context) {
         return crossing(context, MoveContext.Transition.LEAVE, MoveCause.TELEPORT);
     }
 

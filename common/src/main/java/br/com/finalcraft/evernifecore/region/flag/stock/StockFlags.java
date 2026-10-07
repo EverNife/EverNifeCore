@@ -13,8 +13,9 @@ public final class StockFlags {
     private StockFlags() {
     }
 
-    /** Registers every stock flag under {@code owner}. */
+    /** Registers every stock flag under {@code owner}, each parent before the flags that refine it. */
     public static void registerAll(ECPluginData owner) {
+        DenyInteractFlag interact = new DenyInteractFlag(owner);
         List<RegionFlag<?>> stock = Arrays.asList(
                 new DenyPvpFlag(owner),
                 new InvincibleFlag(owner),
@@ -22,7 +23,9 @@ public final class StockFlags {
                 new DenyBlockBreakFlag(owner),
                 new DenyFakePlayerBreakFlag(owner),
                 new DenyBlockPlaceFlag(owner),
-                new DenyInteractFlag(owner),
+                interact,
+                new DenyInteractBlocksFlag(owner, interact),
+                new DenyInteractEntitiesFlag(owner, interact),
                 new DenyEntryFlag(owner),
                 new DenyExitFlag(owner),
                 new DenyTeleportInFlag(owner),

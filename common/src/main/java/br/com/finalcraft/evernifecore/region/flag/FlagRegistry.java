@@ -13,8 +13,10 @@ import jakarta.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -30,6 +32,7 @@ public final class FlagRegistry {
 
     private final ConcurrentHashMap<FlagKey, RegionFlag<?>> flags = new ConcurrentHashMap<>();
     private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
+    private volatile Map<FlagKey, List<RegionFlag<?>>> childrenByParent = Collections.emptyMap();
 
     private FlagRegistry() {
         ECEventBus.global().subscribe(ECPluginReloadEvent.Post.class, event -> reloadSettings(event.getECPlugin()));
@@ -42,7 +45,8 @@ public final class FlagRegistry {
     /**
      * Registers {@code flag}; registering the same object again does nothing.
      *
-     * @throws IllegalArgumentException when another flag already holds the key
+     * @throws IllegalArgumentException when another flag already holds the key, or when the flag refines a parent that
+     * is not registered or that has another value type
      */
     public synchronized <T> void register(RegionFlag<T> flag) {
         RegionFlag<?> existing = flags.get(flag.getKey());
@@ -53,8 +57,21 @@ public final class FlagRegistry {
             throw new IllegalArgumentException("Flag " + flag.getKey() + " is already registered (" + existing.getClass().getName()
                     + "): its owner must unregisterAll first, or give the new flag another name.");
         }
+        RegionFlag<T> parent = flag.getParent();
+        if (parent != null) {
+            if (get(parent.getKey()) != parent) {
+                throw new IllegalArgumentException("Flag " + flag.getKey() + " refines " + parent.getKey() + ", which is not registered:"
+                        + " register the parent first, then the flags that refine it.");
+            }
+            if (!parent.getType().getId().equals(flag.getType().getId())) {
+                throw new IllegalArgumentException("Flag " + flag.getKey() + " (" + flag.getType().getId() + ") refines " + parent.getKey()
+                        + " (" + parent.getType().getId() + "): a flag refines only a flag of the same value type, since it reads the"
+                        + " parent's value where it is not defined.");
+            }
+        }
         flag.setSettings(loadSettings(flag));
         flags.put(flag.getKey(), flag);
+        indexChildren();
         List<String> unreadable = new ArrayList<>();
         for (Region region : RegionLookup.get().all()) {
             if (!region.getFlagStore().relink(flag)) {
@@ -86,6 +103,7 @@ public final class FlagRegistry {
         for (RegionFlag<?> flag : leaving) {
             flags.remove(flag.getKey(), flag);
         }
+        indexChildren(); //a refinement of another owner stays: climbing to a parent that left stops there
         for (Region region : RegionLookup.get().all()) {
             for (RegionFlag<?> flag : leaving) {
                 region.getFlagStore().unlink(flag);
@@ -155,6 +173,24 @@ public final class FlagRegistry {
         return Collections.unmodifiableList(found);
     }
 
+    /** The registered flags whose {@link RegionFlag#getParent() parent} is {@code flag}. */
+    public List<RegionFlag<?>> getChildren(RegionFlag<?> flag) {
+        List<RegionFlag<?>> children = childrenByParent.get(flag.getKey());
+        return children == null ? Collections.<RegionFlag<?>>emptyList() : children;
+    }
+
+    private void indexChildren() {
+        Map<FlagKey, List<RegionFlag<?>>> index = new HashMap<>();
+        for (RegionFlag<?> flag : flags.values()) {
+            RegionFlag<?> parent = flag.getParent();
+            if (parent != null && flags.get(parent.getKey()) == parent) {
+                index.computeIfAbsent(parent.getKey(), key -> new ArrayList<>()).add(flag);
+            }
+        }
+        index.replaceAll((key, children) -> Collections.unmodifiableList(children));
+        childrenByParent = index;
+    }
+
     /** The flags that need events of {@code source}. */
     public Collection<RegionFlag<?>> getBySource(EventSource source) {
         List<RegionFlag<?>> found = new ArrayList<>();
@@ -169,6 +205,7 @@ public final class FlagRegistry {
     /** Forgets every flag; for tests that need an empty registry. */
     synchronized void reset() {
         flags.clear();
+        indexChildren();
     }
 
     private void reloadSettings(ECPluginData owner) {

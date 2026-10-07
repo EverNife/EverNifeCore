@@ -18,7 +18,7 @@ public final class DenyPvpFlag extends StockDenyFlag {
     }
 
     @Override
-    boolean applies(ActionContext context) {
+    public boolean applies(ActionContext context) {
         return hurts(context, DamageContext.Kind.PLAYER) && context.getPlayer() != null;
     }
 }

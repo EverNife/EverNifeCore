@@ -13,7 +13,7 @@ public final class DenyDamageAnimalsFlag extends StockDenyFlag {
     }
 
     @Override
-    boolean applies(ActionContext context) {
+    public boolean applies(ActionContext context) {
         return hurts(context, DamageContext.Kind.ANIMAL);
     }
 }

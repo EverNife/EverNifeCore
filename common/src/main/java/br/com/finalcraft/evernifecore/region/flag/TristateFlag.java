@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.region.flag;
 
+import jakarta.annotation.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -10,8 +12,13 @@ public class TristateFlag extends RegionFlag<Tristate> {
     private final Tristate winner;
 
     public TristateFlag(FlagKey key, Set<EventSource> needs, Tristate defaultValue, Tristate winner) {
+        this(key, needs, defaultValue, winner, null);
+    }
+
+    /** @param parent the flag this one refines, see {@link RegionFlag#getParent()}; null for none */
+    public TristateFlag(FlagKey key, Set<EventSource> needs, Tristate defaultValue, Tristate winner, @Nullable RegionFlag<Tristate> parent) {
         super(key, FlagTypes.TRISTATE, needs, Objects.requireNonNull(defaultValue, () -> "Flag " + key + " needs a default:"
-                + " pass the value it has where no region defines it."));
+                + " pass the value it has where no region defines it."), parent);
         this.winner = Objects.requireNonNull(winner, () -> "Flag " + key + " needs a winner: pass the value that wins when"
                 + " regions of the same priority disagree.");
     }

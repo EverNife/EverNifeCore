@@ -18,18 +18,17 @@ import java.util.EnumSet;
 abstract class StockDenyFlag extends TristateFlag {
 
     StockDenyFlag(ECPluginData owner, String name, EventSource source) {
-        super(FlagKey.of(owner, name), EnumSet.of(source), Tristate.FALSE, Tristate.TRUE);
+        this(owner, name, source, null);
+    }
+
+    StockDenyFlag(ECPluginData owner, String name, EventSource source, @Nullable StockDenyFlag parent) {
+        super(FlagKey.of(owner, name), EnumSet.of(source), Tristate.FALSE, Tristate.TRUE, parent);
     }
 
     /** TRUE denies, for the actions {@link #applies} accepts. */
     @Override
     public final Decision decide(ActionContext context, Tristate value) {
         return value == Tristate.TRUE && applies(context) ? Decision.DENY : Decision.PASS;
-    }
-
-    /** Whether this flag speaks about {@code context} at all; a context of another kind is never denied. */
-    boolean applies(ActionContext context) {
-        return true;
     }
 
     /** A crossing of the region this flag's value comes from, in {@code transition}, optionally only by {@code cause}. */

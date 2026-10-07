@@ -13,7 +13,7 @@ public final class DenyFakePlayerBreakFlag extends StockDenyFlag {
     }
 
     @Override
-    boolean applies(ActionContext context) {
+    public boolean applies(ActionContext context) {
         return context instanceof BlockContext && ((BlockContext) context).isFakePlayer();
     }
 }

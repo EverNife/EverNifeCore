@@ -15,6 +15,10 @@ import java.util.Set;
  * never a listener of its own. Each flag declares its default and how ties resolve; there is no global rule.
  *
  * <p>The flag's name says what TRUE does: {@code deny-pvp = TRUE} denies PvP.</p>
+ *
+ * <p>A flag may refine another of the same {@link FlagType} ({@link #getParent()}): for an action both
+ * {@link #applies apply} to, the refinement is the one asked, and where no region defines it, it reads the value of
+ * the nearest ancestor that is defined - the decision stays the refinement's own.</p>
  */
 public abstract class RegionFlag<T> {
 
@@ -23,6 +27,7 @@ public abstract class RegionFlag<T> {
     private final FlagType<T> type;
     private final Set<EventSource> needs;
     private final @Nullable T defaultValue;
+    private final @Nullable RegionFlag<T> parent;
     private volatile @Nullable FlagSettings settings;
 
     /**
@@ -30,6 +35,14 @@ public abstract class RegionFlag<T> {
      * @param needs the events the flag must hear; {@link EventSource#NONE} for a value nobody enforces
      */
     protected RegionFlag(FlagKey key, FlagType<T> type, Set<EventSource> needs, @Nullable T defaultValue) {
+        this(key, type, needs, defaultValue, null);
+    }
+
+    /**
+     * @param parent the flag this one refines - registered before it, with the same {@link FlagType}; null for none
+     */
+    protected RegionFlag(FlagKey key, FlagType<T> type, Set<EventSource> needs, @Nullable T defaultValue, @Nullable RegionFlag<T> parent) {
+        this.parent = parent;
         this.key = Objects.requireNonNull(key, "key");
         this.owner = Objects.requireNonNull(key.getPlugin(), () -> "The key " + key + " was parsed, so it names no plugin:"
                 + " build a flag's key with FlagKey.of(ownerPluginData, name).");
@@ -59,6 +72,22 @@ public abstract class RegionFlag<T> {
         return needs;
     }
 
+    /**
+     * The flag this one refines, or null. It is fixed at construction and must be registered first, so a chain of
+     * parents can never loop back to the flag that starts it.
+     */
+    public @Nullable RegionFlag<T> getParent() {
+        return parent;
+    }
+
+    /**
+     * Whether this flag speaks about {@code context} at all. A flag that does not apply is never asked, and a parent is
+     * not asked about an action one of its refinements applies to.
+     */
+    public boolean applies(ActionContext context) {
+        return true;
+    }
+
     public FlagCategory getCategory() {
         return FlagCategory.PROTECTION;
     }
@@ -74,6 +103,14 @@ public abstract class RegionFlag<T> {
     /** {@link Decision#DENY} cancels the action. */
     public Decision decide(ActionContext context, T value) {
         return Decision.PASS;
+    }
+
+    /**
+     * As {@link #decide(ActionContext, Object)}, with the settings in effect where the value came from - the region's own
+     * for this flag, else the server's. Override this one when the settings narrow what the value covers.
+     */
+    public Decision decide(ActionContext context, T value, FlagSettings settings) {
+        return decide(context, value);
     }
 
     /** Runs after {@link #decide} denied (or after the value applied), at most once per {@link FlagSettings#getTriggerInterval()}. */

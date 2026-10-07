@@ -41,7 +41,7 @@ class StockFlagsTest {
 
     static {
         for (String name : Arrays.asList("deny-pvp", "invincible", "deny-damage-animals", "deny-block-break", "deny-fake-player-break",
-                "deny-block-place", "deny-interact", "deny-entry", "deny-exit", "deny-teleport-in", "deny-teleport-out",
+                "deny-block-place", "deny-interact", "deny-interact-blocks", "deny-interact-entities", "deny-entry", "deny-exit", "deny-teleport-in", "deny-teleport-out",
                 "deny-monster-spawn", "deny-animal-spawn")) {
             CATALOG.put(name, "tristate-true");
         }
@@ -64,6 +64,7 @@ class StockFlagsTest {
     void tearDown() {
         try {
             assertTrue(iterated >= 18, "the tie test must have run over the whole catalog, ran " + iterated);
+            assertEquals(20, iterated, "the catalog holds 20 flags");
         } finally {
             FlagRegistry.get().reset();
             Plugins.forget(CORE);

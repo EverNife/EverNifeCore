@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.region.TestRegions.ManualClock;
 import br.com.finalcraft.evernifecore.region.flag.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.BlockContext;
 import br.com.finalcraft.evernifecore.region.flag.DamageContext;
+import br.com.finalcraft.evernifecore.region.flag.EntityContext;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
@@ -13,7 +14,11 @@ import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.SpawnContext;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
+import br.com.finalcraft.evernifecore.region.flag.stock.DenyInteractBlocksFlag;
+import br.com.finalcraft.evernifecore.region.flag.stock.DenyInteractEntitiesFlag;
+import br.com.finalcraft.evernifecore.region.flag.stock.DenyInteractFlag;
 import br.com.finalcraft.evernifecore.region.flag.stock.DenyMonsterSpawnFlag;
+import br.com.finalcraft.evernifecore.region.flag.stock.InteractSettings;
 import br.com.finalcraft.evernifecore.region.flag.stock.DenyPvpFlag;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
@@ -25,6 +30,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -185,5 +191,105 @@ class RegionLookupDecideTest {
         DenyPvpFlag denyPvp = new DenyPvpFlag(owner);
 
         assertEquals(Decision.PASS, denyPvp.decide(breakAt(5, new TestFPlayerSender("breaker")), Tristate.TRUE));
+    }
+
+    // ------------------------------------------------------------------
+    // deny-interact and its refinements: the most specific flag defined decides, no listener combines them
+    // ------------------------------------------------------------------
+
+    private static final class Interact {
+        final DenyInteractFlag any;
+        final DenyInteractBlocksFlag blocks;
+        final DenyInteractEntitiesFlag entities;
+
+        Interact(ECPluginData owner) {
+            any = new DenyInteractFlag(owner);
+            blocks = new DenyInteractBlocksFlag(owner, any);
+            entities = new DenyInteractEntitiesFlag(owner, any);
+            FlagRegistry.get().register(any);
+            FlagRegistry.get().register(blocks);
+            FlagRegistry.get().register(entities);
+        }
+    }
+
+    private static BlockContext use(String blockId, TestFPlayerSender player) {
+        return new BlockContext(EventSource.INTERACT, WorldLocPos.of(5, 5, 5, WORLD), player, null, blockId, null, false);
+    }
+
+    private static EntityContext useEntity(String typeId, TestFPlayerSender player) {
+        return new EntityContext(WorldLocPos.of(5, 5, 5, WORLD), player, null, typeId, null);
+    }
+
+    @Test
+    void denyInteractCoversAnEntityThroughItsUndefinedRefinement() {
+        Interact interact = new Interact(owner);
+        region.setFlag(interact.any, Tristate.TRUE);
+
+        assertEquals(Decision.DENY, lookup.decide(useEntity("minecraft:villager", new TestFPlayerSender("trader"))));
+    }
+
+    @Test
+    void theMostSpecificDefinedFlagDecides() {
+        Interact interact = new Interact(owner);
+        region.setFlag(interact.any, Tristate.TRUE);
+        region.setFlag(interact.blocks, Tristate.FALSE);
+        TestFPlayerSender player = new TestFPlayerSender("user");
+
+        assertEquals(Decision.PASS, lookup.decide(use("minecraft:chest", player)), "blocks = FALSE speaks for blocks");
+        assertEquals(Decision.DENY, lookup.decide(useEntity("minecraft:villager", player)), "entities still read deny-interact");
+    }
+
+    @Test
+    void denyInteractBlocksSaysNothingAboutEntities() {
+        Interact interact = new Interact(owner);
+        region.setFlag(interact.blocks, Tristate.TRUE);
+
+        assertEquals(Decision.PASS, lookup.decide(useEntity("minecraft:villager", new TestFPlayerSender("trader"))));
+    }
+
+    @Test
+    void denyInteractEntitiesSaysNothingAboutBlocks() {
+        Interact interact = new Interact(owner);
+        region.setFlag(interact.entities, Tristate.TRUE);
+
+        assertEquals(Decision.PASS, lookup.decide(use("minecraft:chest", new TestFPlayerSender("user"))));
+    }
+
+    @Test
+    void onlyNarrowsTheDenialToTheListedIds() {
+        Interact interact = new Interact(owner);
+        region.setFlag(interact.blocks, Tristate.TRUE);
+        InteractSettings settings = new InteractSettings();
+        settings.setOnly(Arrays.asList("minecraft:*chest*"));
+        region.setFlagSettings(interact.blocks, settings);
+        TestFPlayerSender player = new TestFPlayerSender("user");
+
+        assertEquals(Decision.DENY, lookup.decide(use("minecraft:chest", player)));
+        assertEquals(Decision.DENY, lookup.decide(use("minecraft:trapped_chest", player)));
+        assertEquals(Decision.PASS, lookup.decide(use("minecraft:furnace", player)));
+    }
+
+    @Test
+    void exceptLeavesTheListedIdsFree() {
+        Interact interact = new Interact(owner);
+        region.setFlag(interact.any, Tristate.TRUE);
+        InteractSettings settings = new InteractSettings();
+        settings.setExcept(Arrays.asList("minecraft:chest"));
+        region.setFlagSettings(interact.any, settings);
+        TestFPlayerSender player = new TestFPlayerSender("user");
+
+        assertEquals(Decision.PASS, lookup.decide(use("minecraft:chest", player)), "the parent's settings travel with its value");
+        assertEquals(Decision.DENY, lookup.decide(use("minecraft:furnace", player)));
+    }
+
+    @Test
+    void aBypassOfTheRefinementLetsThePlayerThroughWhateverTheParentSays() {
+        Interact interact = new Interact(owner);
+        region.setFlag(interact.any, Tristate.TRUE);
+        TestFPlayerSender bypassing = new TestFPlayerSender("admin")
+                .grant("evernifecore.region.bypass." + interact.blocks.getKey().getOwner() + ".deny-interact-blocks");
+
+        assertEquals(Decision.PASS, lookup.decide(use("minecraft:chest", bypassing)));
+        assertEquals(Decision.DENY, lookup.decide(use("minecraft:chest", new TestFPlayerSender("user"))));
     }
 }

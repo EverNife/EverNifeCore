@@ -14,7 +14,7 @@ public final class DenyEntryFlag extends StockDenyFlag {
     }
 
     @Override
-    boolean applies(ActionContext context) {
+    public boolean applies(ActionContext context) {
         return crossing(context, MoveContext.Transition.ENTER, null);
     }
 

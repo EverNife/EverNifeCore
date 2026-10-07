@@ -13,7 +13,7 @@ public final class DenyMonsterSpawnFlag extends StockDenyFlag {
     }
 
     @Override
-    boolean applies(ActionContext context) {
+    public boolean applies(ActionContext context) {
         return context instanceof SpawnContext && ((SpawnContext) context).getEntityKind() == SpawnContext.Kind.MONSTER;
     }
 }
