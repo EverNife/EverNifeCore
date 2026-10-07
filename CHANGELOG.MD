@@ -13,6 +13,19 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.62] - 2026-10-07
+
+A player without a command's permission is told which permission is missing, not "Unknown or incomplete command".
+
+### Changed
+
+- **The `@FinalCMD` permission no longer goes on the Bukkit command.** From 1.13 the players' command tree drops a node
+  whose Bukkit permission the player lacks, so a player without it got `Unknown or incomplete command` (Paper, Arclight
+  and Youer 1.21.1). The executor already refused a missing root permission itself and named it; it is now the only
+  check. Side effect: the command name is offered to players who cannot run it - in the 1.13+ command tree and in the
+  pre-1.13 command-name tab completion (measured on 1.21.1, Spigot 1.12.2 and Crucible 1.7.10).
+- `McFinalCMDPluginCommand.testPermission` override removed: with no Bukkit permission it had nothing to answer.
+
 ## [3.0.1-alpha.61] - 2026-10-07
 
 A command registered after startup reaches players on Arclight, and the core can tell which server software it runs on.
