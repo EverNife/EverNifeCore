@@ -13,6 +13,46 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.55] - 2026-10-06
+
+Regions get a selection tool, an outline visualizer, region parsers and a command node a plugin mounts under its
+own command; `/ecore region` reads every owner's regions.
+
+### Added
+
+- **`region.selection`**: `SelectionTool.start(player, SelectionSpec, onConfirm)` opens one selection per player
+  (left click adds a point, right click removes the last, sneak + right click confirms), gives the `ItemSpec` tool
+  through the platform (default `minecraft:golden_hoe`), expires after `Regions.selection.idle-minutes` and dies on
+  quit or on a click in another world. An open selection holds the `INTERACT` event source.
+- **`region.visual`**: `RegionVisualizer` draws outlines sampled by `OutlineSampler` (step, radius and a per-frame
+  point budget) through the platform's `IOutlineRenderer`; off by default (`Regions.visualizer.enabled`).
+- **Region parsers**: `Region` (`ArgParserRegion`: `owner:name` anywhere, a bare name only when one owner has it -
+  or, under a `RegionScope`, only that scope's owner) and `RegionFlag` (`ArgParserRegionFlag`) are builtin;
+  `ArgParserFlagValue` completes a flag's value from its type, and `FlagValues` reads values and per-region
+  settings (`field=value`, quotes keep spaces).
+- **`region.command.RegionCommandNode`**: the region verbs (`define`, `redefine`, `remove`, `info`, `list`, `flag`,
+  `settings`, `group ... add|remove|flag|list|priority|permission`, `priority`, `parent`, `tp`, `select`, `view`,
+  `tag`, `here`) for one `RegionManager`, mounted with `@FinalCMD.Node` on a field. An optional `permissionBase`
+  gates each verb on `<base>.<verb>` through `RegionVerbAccess`, before parsing and in tab and help.
+  `allowForeign(ForeignAccess.all() | owners(...))` lets the node edit another owner's region named by full id,
+  unless that owner refuses with `RegionManager.setForeignAccess(false)`. `deny-build` sets both build flags.
+- **`/ecore region here|info|list`** (`evernifecore.command.region`): every owner's regions at a player's
+  position with an explanation of each flag that holds there, the full description of a region, and a page of
+  regions filtered by owner and world. None of them changes a region.
+- **Test engine**: `Senders.player(name).at(world, x, y, z)` and `getTeleports()`, `RegionWorld` (an owner with an
+  in-memory storage, a clock and an agenda the test moves), `Plugins.routing()`, `FinalCmdTestHarness.withPluginExtractor`,
+  and `Platforms.recordingOutlines()` / `recordingSelectionItems()`.
+- `Region.getFlagHandlerOwner(flag)` and `SelectionSession.finish()`.
+
+### Changed
+
+- **`IPlatform`** gains `getOutlineRenderer()` and `getSelectionItems()` (`IOutlineRenderer.NONE` /
+  `ISelectionItems.NONE` on both platforms until they draw and hand out items).
+- **`ParseCall.getExecutor()` / `TabContext.getExecutor()`**: a parser knows the object whose method the dispatch
+  invokes. `ParseCall`'s constructor takes it as a new last argument.
+- **`ECSettings.REGIONS_*`**: the `Regions.*` keys of the core `config.yml`, applied on boot and reload by
+  `ECSettings.applyRegionSettings()` (listener idle ticks, sweeper interval, huge-chunk threshold).
+
 ## [3.0.1-alpha.54] - 2026-10-06
 
 Regions get flags, access groups and a resolver: what a flag is worth at a point, for a given player.
