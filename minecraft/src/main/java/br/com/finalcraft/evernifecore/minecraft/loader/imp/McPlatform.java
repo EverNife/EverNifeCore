@@ -26,6 +26,9 @@ import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.version.ServerSoftware;
+import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
+import br.com.finalcraft.evernifecore.minecraft.scheduler.McFCScheduler;
 import br.com.finalcraft.evernifecore.minecraft.region.selection.McSelectionItems;
 import br.com.finalcraft.evernifecore.minecraft.region.visual.McParticleOutlineRenderer;
 import br.com.finalcraft.evernifecore.minecraft.world.WorldHeights;
@@ -37,6 +40,7 @@ import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.Bukkit;
+import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
@@ -50,6 +54,7 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -122,7 +127,37 @@ public class McPlatform implements IPlatform {
         command.setPlatformCommand(iPlatformCMD);
         iPlatformCMD.setPermission(command.getFinalCMD().getPermission());
 
-        return getCommandMap().register(command.getOwningPlugin().getMetaInfo().getName(), iPlatformCMD);
+        boolean registered = getCommandMap().register(command.getOwningPlugin().getMetaInfo().getName(), iPlatformCMD);
+        syncCommandTreeIfTheServerWillNot();
+        return registered;
+    }
+
+    private final AtomicBoolean commandTreeSyncPending = new AtomicBoolean();
+
+    /**
+     * Arclight dispatches player commands against a command tree it only rebuilds at the end of startup,
+     * so a command registered later answers "Unknown or incomplete command" to players while the console
+     * runs it. Rebuilding it through CraftServer#syncCommands (not Bukkit API, and absent before 1.13,
+     * which has no command tree) puts the command in reach; every registration of one tick shares one sync.
+     */
+    private void syncCommandTreeIfTheServerWillNot() {
+        EverNifeCoreBukkitPlugin core = EverNifeCoreBukkitPlugin.instance;
+        if (!ServerSoftware.ARCLIGHT.isCurrent() || MCVersion.isLower(MCVersion.v1_13)
+                || core == null || !core.isEnabled() //before it: still startup, which syncs; after it: shutdown
+                || !commandTreeSyncPending.compareAndSet(false, true)) {
+            return;
+        }
+        McFCScheduler.INSTANCE.runSync(() -> {
+            commandTreeSyncPending.set(false); //a registration made by the sync itself gets its own
+            Server server = Bukkit.getServer();
+            try {
+                server.getClass().getMethod("syncCommands").invoke(server);
+            } catch (ReflectiveOperationException e) {
+                EverNifeCore.getLog().warning("Could not send the commands registered after startup to the"
+                        + " players' command tree, so players may get 'Unknown or incomplete command' for them"
+                        + " until a 'minecraft:reload': {}", e.toString());
+            }
+        });
     }
 
     @Override
