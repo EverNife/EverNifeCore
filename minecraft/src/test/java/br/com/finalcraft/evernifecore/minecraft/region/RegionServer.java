@@ -2,11 +2,13 @@ package br.com.finalcraft.evernifecore.minecraft.region;
 
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.testkit.BukkitEventWorld;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
+import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
 import br.com.finalcraft.evernifecore.testing.RegionWorld;
 import br.com.finalcraft.evernifecore.testing.minecraft.Doubles;
 import org.bukkit.Location;
@@ -17,6 +19,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A Bukkit server with regions on it: the event rig, one region owner and the world {@code "world"} (-64..319). The
@@ -29,6 +33,7 @@ final class RegionServer implements AutoCloseable {
     final BukkitEventWorld server;
     final RegionWorld regions;
     final World world;
+    private final List<Player> players = new ArrayList<>();
 
     private RegionServer(Path dataFolder) {
         server = BukkitEventWorld.install(dataFolder);
@@ -70,7 +75,9 @@ final class RegionServer implements AutoCloseable {
     }
 
     Player player(String name, double x, double y, double z, String... permissions) {
-        return server.player(name, at(x, y, z), permissions);
+        Player player = server.player(name, at(x, y, z), permissions);
+        players.add(player);
+        return player;
     }
 
     /** An entity of {@code type} standing at {@code at}; the builder takes whatever else the test needs it to answer. */
@@ -84,6 +91,8 @@ final class RegionServer implements AutoCloseable {
     @Override
     public void close() {
         try {
+            //the tracker is global and keys sessions by uuid: a player of this test must not be inside anything in the next
+            players.forEach(player -> RegionMovementTracker.get().onQuit(FCBukkitUtil.adapt(player)));
             regions.close();
             FlagRegistry.get().unregisterAll(regions.getOwner());
         } finally {

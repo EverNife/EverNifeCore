@@ -28,7 +28,7 @@ public final class RegionInteractListener implements ECListener {
 
     /**
      * A click in the air never gets here: Bukkit reports it cancelled. From 1.9 a click arrives once per hand, and a
-     * denial simply repeats - the hand is never read, since {@code getHand()} does not exist below 1.9.
+     * denial simply repeats - the hand is never read, since the hand accessor does not exist below 1.9.
      */
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {

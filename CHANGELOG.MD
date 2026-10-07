@@ -13,6 +13,42 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.57] - 2026-10-07
+
+Regions protect for real on Bukkit: each kind of event is heard only while some region needs it, movement denial
+puts the player back, and `ProtectionAll` becomes a registry that the regions answer too.
+
+### Added
+
+- **Region listeners on Bukkit** (`minecraft.region`): `RegionBlockListener` (BREAK and PLACE), `RegionInteractListener`
+  (a block builds a `BlockContext`, an entity an `EntityContext`), `RegionDamageListener` (asked where the victim
+  stands, with the player behind the hit - a projectile's shooter, a primed TNT's igniter, a pet's owner - as the
+  attacker), `RegionSpawnListener` (spawns from `EGG`, `SPAWNER_EGG` and `DISPENSE_EGG` are never asked) and
+  `RegionMoveListener` (walking, teleport, vehicle, join, quit, respawn, world change). `McRegionListeners` puts each on
+  the server only while `EventSourceUsage` says its source is needed; when MOVE arrives every online player is placed
+  in the regions they stand in, so their first step is not an entry. `Regions.disabled-worlds` is read by every handler.
+- **Movement denial**: a denied step is put back with `setTo` on the last valid block (facing where the player turned);
+  a denied teleport is cancelled; a denied vehicle ride ejects and sends back the whole vehicle with every passenger,
+  each passenger being asked.
+- **`McRegionProtectionHandler`** (`getName()` = `EverNifeCore`): the regions answer `ProtectionAll` from their flags;
+  area checks sample the center and the eight corners.
+- **World hooks**: `McWorldListener` fires `McPlatform`'s world load/unload listeners from `WorldLoadEvent` and
+  `WorldUnloadEvent`.
+- **Per-world height**: from 1.17 `McPlatform.getWorldHeight` answers the loaded world's own floor and ceiling (a 1.18+
+  nether starts at 0), through `WorldHeights` in the pinned `VersionedPlugins` module.
+- Test engine: `BukkitEventWorld.world(name, minY, maxY)`, `player(name, at, permissions...)` and the public
+  `isRegistered(HandlerList, Class)`; `TestPlatform.setOnlinePlayers`.
+
+### Changed
+
+- **`ProtectionAll`** is a registry with owners: `register(ECPluginData, ProtectionHandler)` (the same instance twice is
+  one registration), `unregister(handler)`, `unregisterAll(owner)` - run for every plugin that disables. The bundled
+  WorldGuard, GriefDefender and GriefPreventionPlus handlers arrive when their plugin enables, before or after the core,
+  and leave when it disables. The public constructor and the static detection are gone; `getProtectionHandlers()` is an
+  unmodifiable snapshot.
+- `/protectiontest` reads the handler list when it runs, not when it was registered.
+- The `MINECRAFT` region grid (floor -64) applies from 1.18, not 1.19.
+
 ## [3.0.1-alpha.56] - 2026-10-07
 
 A command node can lend its verbs to the parent, flags repeat by type, movement denial can send a player to

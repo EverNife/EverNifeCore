@@ -27,6 +27,8 @@ public final class McRegionListeners {
     /** Starts following every source, in the name of {@code owner}. */
     public static McRegionListeners start(ECPluginData owner) {
         McRegionListeners bridge = new McRegionListeners(owner);
+        //on arrival everyone online is seeded where they stand, or the first step inside a deny-entry would be an entry
+        bridge.follow(EventSource.MOVE, new RegionMoveListener(), RegionMoveListener::seedOnlinePlayers);
         bridge.follow(EventSource.BREAK, new RegionBlockListener(EventSource.BREAK), null);
         bridge.follow(EventSource.PLACE, new RegionBlockListener(EventSource.PLACE), null);
         bridge.follow(EventSource.INTERACT, new RegionInteractListener(), null);

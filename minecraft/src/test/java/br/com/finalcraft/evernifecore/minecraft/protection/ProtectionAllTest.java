@@ -15,6 +15,7 @@ import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
@@ -33,6 +34,12 @@ class ProtectionAllTest {
     Path tempDir;
 
     private final ProtectionAll all = ProtectionAll.getInstance();
+
+    /** The instance is process-wide: nothing a test registered may reach the next one, whatever unregisterAll does. */
+    @AfterEach
+    void dropEveryHandler() {
+        all.getProtectionHandlers().forEach(all::unregister);
+    }
 
     private static ProtectionHandler allowing(boolean allows) {
         return Doubles.of(ProtectionHandler.class)
