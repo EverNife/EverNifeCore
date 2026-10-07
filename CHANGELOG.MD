@@ -13,6 +13,26 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.61] - 2026-10-07
+
+A command registered after startup reaches players on Arclight, and the core can tell which server software it runs on.
+
+### Added
+
+- **`minecraft.version.ServerSoftware`**: `CRUCIBLE`, `ARCLIGHT`, `YOUER`, `MOHIST`, `CATSERVER`, `PAPER`, `SPIGOT`,
+  `CRAFTBUKKIT` or `UNKNOWN`, detected once by a marker class each ships (`getCurrent()`, `isCurrent()`, `isHybrid()`).
+  Hybrids are probed before the Paper/Spigot API they bundle, and Youer (`com.mohistmc.youer.Youer`) before Mohist.
+  `ForgeListener` picks its adapter through it; the adapter each hybrid gets is unchanged. `MCServerType` stays what
+  it was: the owner's personal servers, not server software.
+
+### Fixed
+
+- **Late commands on Arclight**: a command registered through `McPlatform.registerCommand` after the core enabled
+  answered `Unknown or incomplete command` to players (the console ran it), because Arclight only rebuilds the players'
+  command tree at the end of startup. On Arclight 1.13+ the core now calls `CraftServer#syncCommands` on the next tick,
+  one call for every registration of that tick. Other servers, and registrations before the core enables or during its
+  shutdown, are untouched.
+
 ## [3.0.1-alpha.60] - 2026-10-07
 
 A plugin that loads before EverNifeCore keeps its first-tick task.
