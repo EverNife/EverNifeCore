@@ -13,6 +13,28 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.59] - 2026-10-07
+
+Two tests that failed now and then on a busy machine stop depending on the clock, and the test engine names the next
+test that leaves state on the global event bus.
+
+### Added
+
+- **`RecordingAudience.getGateCheckLog()`** (`evernifecore-common-tests`): every question the bus asked the audience's
+  gate, as a `GateCheck` with the event type, the thread and the codebase frames that led to it. `getGateChecks()` is
+  its size, so a failing count assertion can print who asked.
+- **Leak guard in `ECoreTestWorld.close()`**: a listener watch or native audience added to the global event bus since
+  `install()` and still there fails the close with an `AssertionError` naming each one.
+- **`region.RegionRuntime.shutdown()`** (Internal): stops the global `EventSourceUsage` and `RegionMovementTracker`
+  (`shutdown()` on each) and resets the sweeper; each starts again on its next use. The test engine calls it when the
+  last `RegionWorld` and every `ECoreTestWorld` close.
+
+### Fixed
+
+- The locale bootstrap writes a plugin's hardcoded language files (`localization/lang_<LANG>.yml`) synchronously, so
+  they are on disk when `FCLocaleManager.loadLocale` returns. The discarded `saveAsync()` could still be writing
+  when the data folder was deleted or moved, which on Windows failed JUnit's temp dir cleanup.
+
 ## [3.0.1-alpha.58] - 2026-10-07
 
 The selection tool and the outline visualizer work on Bukkit, and a WorldEdit selection can become a region shape.
