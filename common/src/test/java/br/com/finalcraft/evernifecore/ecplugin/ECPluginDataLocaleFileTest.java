@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The hardcoded language file a plugin's locale bootstrap writes is on disk by the time the bootstrap returns - so
+ * The hardcoded language file a plugin's locale loading writes is on disk by the time the bootstrap returns - so
  * nothing is still writing into the data folder when a test, or a server, deletes or moves it.
  */
 @ECoreTest
