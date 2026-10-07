@@ -37,7 +37,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
  */
 class AccountSectionArgSystemTest {
 
-    //NEVER a plain @TempDir: the locale bootstrap's async save can race JUnit's cleanup on Windows.
     @TempDirNobodyCleans
     Path tempDir;
 

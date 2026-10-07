@@ -26,10 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class RegistrationSystemTest {
 
-    //NEVER: ECPluginData's locale bootstrap fires an async saveAsync() (EveryConfig, virtual-thread
-    //executor) for every hardcoded language file; JUnit's default cleanup can race that in-flight
-    //write and fail to delete the directory (observed on Windows). Leftovers land under the OS temp
-    //folder, not the repo.
     @TempDirNobodyCleans
     Path tempDir;
 

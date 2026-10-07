@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class HytaleArgParserConformanceTest {
 
-    //NEVER: the locale bootstrap's async saveAsync() can race JUnit's default @TempDir cleanup on Windows
     @TempDir(cleanup = CleanupMode.NEVER)
     Path tempDir;
 

@@ -247,8 +247,6 @@ class SettingsScannerTest {
         public Integer viewDistance = 8;
     }
 
-    //NEVER: see RegistrationSystemTest - the locale bootstrap's async saveAsync() can race JUnit's
-    //default @TempDir cleanup on Windows.
     @TempDirNobodyCleans
     Path tempDir;
 

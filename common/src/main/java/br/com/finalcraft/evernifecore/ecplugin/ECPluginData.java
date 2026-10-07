@@ -327,7 +327,7 @@ public class ECPluginData {
             File hardcodedFile = entry.getValue().getFile();
             if ((hardcodedFile != null && !hardcodedFile.exists()) || entry.getValue().getBoolean("HasBeenChanged", false)){
                 entry.getValue().setValue("HasBeenChanged", null);
-                entry.getValue().saveAsync();
+                entry.getValue().save(); //synchronous: whoever deletes or moves the data folder next must not race a write in flight
             }
         }
 

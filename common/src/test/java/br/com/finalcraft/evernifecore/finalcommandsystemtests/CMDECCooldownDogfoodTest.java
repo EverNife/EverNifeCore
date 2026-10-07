@@ -49,8 +49,6 @@ class CMDECCooldownDogfoodTest {
 
     private static final AtomicInteger UNIQUE_SUFFIX = new AtomicInteger();
 
-    //NEVER: see RegistrationSystemTest - the locale bootstrap's async saveAsync() can race JUnit's
-    //default @TempDir cleanup on Windows.
     @TempDirNobodyCleans
     Path tempDir;
 

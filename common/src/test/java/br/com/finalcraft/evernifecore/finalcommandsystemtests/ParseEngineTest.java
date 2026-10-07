@@ -47,8 +47,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class ParseEngineTest {
 
-    //NEVER: see RegistrationSystemTest - the locale bootstrap's async saveAsync() can race JUnit's
-    //default @TempDir cleanup on Windows.
     @TempDirNobodyCleans
     Path tempDir;
 

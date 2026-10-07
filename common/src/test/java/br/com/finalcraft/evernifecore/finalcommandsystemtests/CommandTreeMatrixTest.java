@@ -28,8 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class CommandTreeMatrixTest {
 
-    //NEVER: see RegistrationSystemTest - the locale bootstrap's async saveAsync() can race JUnit's
-    //default @TempDir cleanup on Windows.
     @TempDirNobodyCleans
     Path tempDir;
 

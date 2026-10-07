@@ -11,10 +11,10 @@ import java.lang.annotation.Target;
 /**
  * A {@link TempDir} JUnit is told not to delete.
  *
- * <p>A locale bootstrap saves asynchronously, and on Windows a file still being written cannot be
+ * <p>Some writers of a plugin's data folder finish off the test's thread by design, such as the
+ * cooldown file saved asynchronously, and on Windows a file still being written cannot be
  * removed: the default cleanup then fails the test that just passed, over a directory the operating
- * system will clear anyway. Every world this engine builds writes something, so this is the form a
- * temp dir takes here.</p>
+ * system will clear anyway. A test that drives such a writer takes this form of temp dir.</p>
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.PARAMETER})
