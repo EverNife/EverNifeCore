@@ -6,6 +6,9 @@ import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserString;
+import br.com.finalcraft.evernifecore.commands.finalcmd.tab.ITabParser.TabContext;
 import br.com.finalcraft.evernifecore.commands.finalcmd.tree.CommandPath;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
@@ -38,6 +41,8 @@ import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import br.com.finalcraft.evernifecore.util.FCStringUtil;
+import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -519,6 +524,23 @@ public class RegionCommandNode implements RegionScope {
         }
     }
 
+    /** A group member by name or UUID: free text, since a member may be offline, completed with the names online. */
+    public static final class MemberName extends ArgParserString {
+
+        public MemberName(ArgInfo argInfo) {
+            super(argInfo);
+        }
+
+        @Override
+        public @Nonnull List<String> tabComplete(TabContext tabContext) {
+            return EverNifeCore.getPlatform().getOnlinePlayers().stream()
+                    .map(FPlayer::getName)
+                    .filter(name -> FCStringUtil.startsWithIgnoreCase(name, tabContext.getLastWord()))
+                    .sorted(String.CASE_INSENSITIVE_ORDER)
+                    .collect(Collectors.toList());
+        }
+    }
+
     @FinalCMD.Node(subcmd = "group", locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "The access groups of a region: members, flags, priority and permission"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Os grupos de acesso de uma região: membros, flags, prioridade e permissão")
@@ -548,7 +570,7 @@ public class RegionCommandNode implements RegionScope {
                 @FCLocale(lang = LocaleType.EN_US, text = "Add a member (online name or UUID); -t makes it temporary"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Adiciona um membro (nome online ou UUID); -t o torna temporário")
         })
-        public void add(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg("<player>") String player,
+        public void add(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg(value = "<player>", parser = MemberName.class) String player,
                         @Arg.Flag(value = "--ttl", aliases = {"-t"}) FCTimeFrame ttl) {
             if (!requireWritable(sender, target.region)) {
                 return;
@@ -566,7 +588,7 @@ public class RegionCommandNode implements RegionScope {
                 @FCLocale(lang = LocaleType.EN_US, text = "Remove a member (online name or UUID)"),
                 @FCLocale(lang = LocaleType.PT_BR, text = "Remove um membro (nome online ou UUID)")
         })
-        public void remove(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg("<player>") String player) {
+        public void remove(FCommandSender sender, @Arg.NodeCaptured GroupTarget target, @Arg(value = "<player>", parser = MemberName.class) String player) {
             if (!requireWritable(sender, target.region)) {
                 return;
             }

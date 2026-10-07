@@ -28,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -427,6 +428,19 @@ class RegionCommandNodeTest extends RegionCommandFixture {
         List<String> help = moderator.getMessages();
         assertTrue(help.stream().anyMatch(line -> line.contains("info")), help.toString());
         assertFalse(help.stream().anyMatch(line -> line.contains("define") || line.contains("parent")), help.toString());
+    }
+
+    @Test
+    void theGroupPlayerArgumentTabCompletesOnlineNames() {
+        FinalCMDPluginCommand fp = mount();
+        harness.platform.getOnlinePlayers().add(Senders.player("Alex"));
+
+        List<String> adding = harness.tab(fp, steve, "region", "group", "arena", "membros", "add", "");
+        assertTrue(adding.contains("Alex"), adding.toString());
+        assertFalse(adding.contains("<player>"), "the slot's name is not a suggestion: " + adding);
+
+        List<String> removing = harness.tab(fp, steve, "region", "group", "arena", "membros", "remove", "al");
+        assertEquals(Collections.singletonList("Alex"), removing);
     }
 
     // ------------------------------------------------------------------
