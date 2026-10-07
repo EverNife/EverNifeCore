@@ -352,8 +352,8 @@ public final class BukkitEventWorld implements AutoCloseable {
     // -----------------------------------------------------------------------------------------------------------------
 
     /**
-     * Points the platform's two ECListener hooks at the real Bukkit ones and leaves every other answer
-     * the double's. {@code ECListener.register} reaches the server through the platform, and the double
+     * Points the platform's two ECListener hooks and its online players at the real Bukkit ones and leaves
+     * every other answer the double's. {@code ECListener.register} reaches the server through the platform, and the double
      * ignores listeners - in a world whose whole subject is where a registration lands.
      */
     private void installRealListenerRegistration(TestPlatform lenient) {
@@ -366,6 +366,9 @@ public final class BukkitEventWorld implements AutoCloseable {
                     if ("unregisterECListener".equals(method.getName())) {
                         realPlatform().unregisterECListener((ECListener) args[0]);
                         return null;
+                    }
+                    if ("getOnlinePlayers".equals(method.getName())) {
+                        return realPlatform().getOnlinePlayers();   //whoever player(...) put on this server
                     }
                     try {
                         return method.invoke(lenient, args);

@@ -202,11 +202,6 @@ public class TestPlatform extends AbstractTestPlatform {
         }
     }
 
-    /** Who {@code getOnlinePlayers()} answers from now on - players joining a platform that was already installed. */
-    public void setOnlinePlayers(List<FPlayer> onlinePlayers) {
-        this.onlinePlayers = new ArrayList<FPlayer>(onlinePlayers);
-    }
-
     /** When true, every later {@code registerCommand} rejects without capturing - a platform-level registration failure. */
     public void setForceRegisterFailure(boolean forceRegisterFailure) {
         this.forceRegisterFailure = forceRegisterFailure;

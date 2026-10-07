@@ -36,8 +36,8 @@ puts the player back, and `ProtectionAll` becomes a registry that the regions an
   `WorldUnloadEvent`.
 - **Per-world height**: from 1.17 `McPlatform.getWorldHeight` answers the loaded world's own floor and ceiling (a 1.18+
   nether starts at 0), through `WorldHeights` in the pinned `VersionedPlugins` module.
-- Test engine: `BukkitEventWorld.world(name, minY, maxY)`, `player(name, at, permissions...)` and the public
-  `isRegistered(HandlerList, Class)`; `TestPlatform.setOnlinePlayers`.
+- Bukkit test rig: `BukkitEventWorld.world(name, minY, maxY)`, `player(name, at, permissions...)` (online on the rig's
+  server and in the platform's `getOnlinePlayers()`) and the public `isRegistered(HandlerList, Class)`.
 
 ### Changed
 

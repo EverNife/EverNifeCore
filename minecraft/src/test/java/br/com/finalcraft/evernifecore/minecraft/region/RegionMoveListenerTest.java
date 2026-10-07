@@ -3,7 +3,6 @@ package br.com.finalcraft.evernifecore.minecraft.region;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.event.RegionBoundaryEvent;
@@ -272,11 +271,10 @@ class RegionMoveListenerTest {
     void onlinePlayersAreSeededWhenTheMoveListenerArrives() {
         try (RegionServer server = RegionServer.open(tempDir)) {
             Player online = server.player("resident", 5.5, 5, 5.5);
-            Player unseen = server.player("stranger", 5.5, 5, 5.5);
-            server.server.getPlatform().setOnlinePlayers(Collections.singletonList(FCBukkitUtil.adapt(online)));
             McRegionListeners bridge = McRegionListeners.start(server.server.getPluginData());
             try {
                 arena(server);   //the first region that needs MOVE: the listener arrives, and seeds whoever is online
+                Player unseen = server.player("stranger", 5.5, 5, 5.5);   //logged in after the seeding, and never joined
 
                 PlayerMoveEvent resident = server.call(step(server, online, 5.5, 6.5));
                 PlayerMoveEvent stranger = server.call(step(server, unseen, 5.5, 6.5));
