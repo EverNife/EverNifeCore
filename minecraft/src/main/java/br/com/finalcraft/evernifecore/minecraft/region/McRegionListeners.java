@@ -2,6 +2,8 @@ package br.com.finalcraft.evernifecore.minecraft.region;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
+import br.com.finalcraft.evernifecore.minecraft.region.selection.McSelectionItems;
+import br.com.finalcraft.evernifecore.minecraft.region.selection.McSelectionListener;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.region.usage.UsageWatch;
@@ -32,6 +34,8 @@ public final class McRegionListeners {
         bridge.follow(EventSource.BREAK, new RegionBlockListener(EventSource.BREAK), null);
         bridge.follow(EventSource.PLACE, new RegionBlockListener(EventSource.PLACE), null);
         bridge.follow(EventSource.INTERACT, new RegionInteractListener(), null);
+        //a second listener on the same source: the selection tool's clicks, kept on while a selection holds INTERACT
+        bridge.follow(EventSource.INTERACT, new McSelectionListener(new McSelectionItems()), null);
         bridge.follow(EventSource.DAMAGE, new RegionDamageListener(), null);
         bridge.follow(EventSource.SPAWN, new RegionSpawnListener(), null);
         return bridge;

@@ -26,6 +26,7 @@ import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.region.selection.McSelectionItems;
 import br.com.finalcraft.evernifecore.minecraft.world.WorldHeights;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
@@ -318,9 +319,11 @@ public class McPlatform implements IPlatform {
         return IOutlineRenderer.NONE;
     }
 
+    private final McSelectionItems selectionItems = new McSelectionItems();
+
     @Override
     public ISelectionItems getSelectionItems() {
-        return ISelectionItems.NONE;
+        return selectionItems;
     }
 
     @Override

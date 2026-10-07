@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.region.selection;
 
+import br.com.finalcraft.evernifecore.api.platoverride.item.NativeItem;
+import jakarta.annotation.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -9,7 +12,8 @@ import java.util.Objects;
 
 /**
  * A platform-agnostic description of the selection tool: the platform turns it into a native item and maps the
- * material id to whatever name its version uses.
+ * material id to whatever name its version uses - or, when the spec carries a {@link NativeItem}, hands out that item
+ * as it is. The descriptive fields stay meaningful either way, for logs and for a platform that cannot read the item.
  */
 public final class ItemSpec {
 
@@ -22,18 +26,25 @@ public final class ItemSpec {
     private final String materialId;
     private final String displayName;
     private final List<String> lore;
+    private final @Nullable NativeItem nativeItem;
 
-    private ItemSpec(String materialId, String displayName, List<String> lore) {
+    private ItemSpec(String materialId, String displayName, List<String> lore, @Nullable NativeItem nativeItem) {
         this.materialId = materialId;
         this.displayName = displayName;
         this.lore = lore;
+        this.nativeItem = nativeItem;
     }
 
     /** @param materialId a namespaced id such as {@code minecraft:golden_hoe}; it is lower-cased */
     public static ItemSpec of(String materialId, String displayName, List<String> lore) {
         Objects.requireNonNull(materialId, "materialId");
         return new ItemSpec(materialId.toLowerCase(Locale.ROOT), displayName,
-                Collections.unmodifiableList(new ArrayList<>(lore)));
+                Collections.unmodifiableList(new ArrayList<>(lore)), null);
+    }
+
+    /** A copy that carries the plugin's own item: the platform hands it out as given, plus the selection mark. */
+    public ItemSpec withNativeItem(NativeItem nativeItem) {
+        return new ItemSpec(materialId, displayName, lore, Objects.requireNonNull(nativeItem, "nativeItem"));
     }
 
     public String getMaterialId() {
@@ -48,18 +59,24 @@ public final class ItemSpec {
         return lore;
     }
 
+    /** The plugin's own item, or null when the platform builds the tool from this description. */
+    public @Nullable NativeItem getNativeItem() {
+        return nativeItem;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof ItemSpec)) {
             return false;
         }
         ItemSpec other = (ItemSpec) o;
-        return materialId.equals(other.materialId) && Objects.equals(displayName, other.displayName) && lore.equals(other.lore);
+        return materialId.equals(other.materialId) && Objects.equals(displayName, other.displayName) && lore.equals(other.lore)
+                && Objects.equals(nativeItem, other.nativeItem);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(materialId, displayName, lore);
+        return Objects.hash(materialId, displayName, lore, nativeItem);
     }
 
     @Override

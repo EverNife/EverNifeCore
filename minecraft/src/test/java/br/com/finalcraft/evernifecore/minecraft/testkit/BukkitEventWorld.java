@@ -57,6 +57,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -281,14 +282,16 @@ public final class BukkitEventWorld implements AutoCloseable {
     }
 
     /**
-     * An online player standing at {@code at}: {@code teleport} moves them and answers true, {@code hasPermission}
-     * answers true for exactly {@code permissions}, and the server lists them as online.
+     * An online player standing at {@code at}: {@code teleport} moves them and answers true, {@code setSneaking} is
+     * what {@code isSneaking} reads, {@code hasPermission} answers true for exactly {@code permissions}, and the server
+     * lists them as online.
      */
     public Player player(String name, Location at, String... permissions) {
         UUID id = UUID.nameUUIDFromBytes(("player:" + name).getBytes(StandardCharsets.UTF_8));
         AtomicReference<Location> where = new AtomicReference<>(at.clone());
         AtomicReference<Player> self = new AtomicReference<>();
         Set<String> granted = new HashSet<>(Arrays.asList(permissions));
+        AtomicBoolean sneaking = new AtomicBoolean();
         Player player = Doubles.of(Player.class)
                 .returning("getName", name)
                 .returning("getUniqueId", id)
@@ -302,6 +305,11 @@ public final class BukkitEventWorld implements AutoCloseable {
                     return true;
                 })
                 .on("hasPermission", args -> args[0] instanceof String && granted.contains(args[0]))
+                .on("setSneaking", args -> {
+                    sneaking.set((Boolean) args[0]);
+                    return null;
+                })
+                .on("isSneaking", args -> sneaking.get())
                 .build();
         self.set(player);
         players.add(player);

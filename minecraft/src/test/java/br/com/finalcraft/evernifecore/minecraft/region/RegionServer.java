@@ -26,13 +26,13 @@ import java.util.List;
  * A Bukkit server with regions on it: the event rig, one region owner and the world {@code "world"} (-64..319). The
  * flags a test registers through {@link #flag} leave with it, and so do its regions.
  */
-final class RegionServer implements AutoCloseable {
+public final class RegionServer implements AutoCloseable {
 
-    static final String WORLD = "world";
+    public static final String WORLD = "world";
 
-    final BukkitEventWorld server;
-    final RegionWorld regions;
-    final World world;
+    public final BukkitEventWorld server;
+    public final RegionWorld regions;
+    public final World world;
     private final List<Player> players = new ArrayList<>();
 
     private RegionServer(Path dataFolder) {
@@ -41,18 +41,18 @@ final class RegionServer implements AutoCloseable {
         world = server.world(WORLD, -64, 320);
     }
 
-    static RegionServer open(Path dataFolder) {
+    public static RegionServer open(Path dataFolder) {
         return new RegionServer(dataFolder);
     }
 
     /** Registers {@code flag} for the length of this server. */
-    <T, F extends RegionFlag<T>> F flag(F flag) {
+    public <T, F extends RegionFlag<T>> F flag(F flag) {
         FlagRegistry.get().register(flag);
         return flag;
     }
 
     /** A box in {@code "world"} with every flag in {@code denying} set to TRUE. */
-    Region box(String name, int x1, int y1, int z1, int x2, int y2, int z2, TristateFlag... denying) {
+    public Region box(String name, int x1, int y1, int z1, int x2, int y2, int z2, TristateFlag... denying) {
         Region region = regions.cuboid(name, WORLD, x1, y1, z1, x2, y2, z2);
         for (TristateFlag flag : denying) {
             region.setFlag(flag, Tristate.TRUE);
@@ -60,28 +60,28 @@ final class RegionServer implements AutoCloseable {
         return region;
     }
 
-    void listen(ECListener listener) {
+    public void listen(ECListener listener) {
         server.registerECListener(listener);
     }
 
     /** Fires {@code event} through the plugin manager - priorities and {@code ignoreCancelled} included - and hands it back. */
-    <E extends Event> E call(E event) {
+    public <E extends Event> E call(E event) {
         server.getPluginManager().callEvent(event);
         return event;
     }
 
-    Location at(double x, double y, double z) {
+    public Location at(double x, double y, double z) {
         return new Location(world, x, y, z);
     }
 
-    Player player(String name, double x, double y, double z, String... permissions) {
+    public Player player(String name, double x, double y, double z, String... permissions) {
         Player player = server.player(name, at(x, y, z), permissions);
         players.add(player);
         return player;
     }
 
     /** An entity of {@code type} standing at {@code at}; the builder takes whatever else the test needs it to answer. */
-    static <T extends Entity> Doubles.Builder<T> entity(Class<T> type, EntityType kind, Location at) {
+    public static <T extends Entity> Doubles.Builder<T> entity(Class<T> type, EntityType kind, Location at) {
         return Doubles.of(type)
                 .returning("getType", kind)
                 .on("getLocation", args -> at.clone())
