@@ -137,7 +137,7 @@ class CoreCommandEventsTest {
         List<String> lines = plain(operator);
         assertTrue(anyContains(lines, "implements IECEvent only"), lines.toString());
         assertFalse(anyContains(lines, AUDIENCE + ":"), "no audience line for a type that never reaches one: " + lines);
-        assertEquals(0, audience.getGateChecks(), "and none was asked");
+        assertEquals(0, audience.getGateChecks(), () -> "and none was asked: " + audience.getGateCheckLog());
     }
 
     @Test
