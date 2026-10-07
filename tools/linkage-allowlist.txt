@@ -80,3 +80,11 @@
 * method org/bukkit/inventory/PlayerInventory.getItemInOffHand()Lorg/bukkit/inventory/ItemStack; br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.contextualparsers.ArgParserContextualItemStack  # the isLowerEquals(v1_8_R3) ternary yields null below 1.9
 * method org/bukkit/inventory/Inventory.getStorageContents()[Lorg/bukkit/inventory/ItemStack; br.com.finalcraft.evernifecore.minecraft.util.FCInventoryUtil  # storageOf falls back to getContents() on isLower(v1_9_R1) - the member arrived in 1.9
 * method org/bukkit/inventory/Inventory.setStorageContents([Lorg/bukkit/inventory/ItemStack;)V br.com.finalcraft.evernifecore.minecraft.util.FCInventoryUtil  # writeStorage writes slot by slot on isLower(v1_9_R1)
+* method org/bukkit/World.getMinHeight()I br.com.finalcraft.evernifecore.minecraft.world.WorldHeights  # McPlatform.getWorldHeight calls WorldHeights.of only from v1_17_R1, the per-world floor's era; the version floor answers below
+* method org/bukkit/entity/Entity.getPassengers()Ljava/util/List; br.com.finalcraft.evernifecore.minecraft.world.PassengerAccess  # RegionMoveListener.passengersOf calls PassengerAccess.of only from v1_11_R1; getPassenger() answers below
+* method org/bukkit/entity/Player.spawnParticle(Lorg/bukkit/Particle;Lorg/bukkit/Location;I)V br.com.finalcraft.evernifecore.minecraft.region.visual.McParticleOutlineRenderer  # render takes this branch only when isLegacy() is false: 1.9+, or a Crucible carrying the backported org.bukkit.Particle; the Effect.SMOKE branch runs elsewhere
+
+# ---------------------------------------------------------------------------------------------
+# Types that arrived after some supported era, behind a guard of their own.
+# ---------------------------------------------------------------------------------------------
+* class org/bukkit/Particle br.com.finalcraft.evernifecore.minecraft.region.visual.McParticleOutlineRenderer  # resolved only on the spawnParticle branch, the same isLegacy() guard
