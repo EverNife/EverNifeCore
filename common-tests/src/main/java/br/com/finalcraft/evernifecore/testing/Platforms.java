@@ -149,6 +149,7 @@ public final class Platforms {
         return this;
     }
 
+    /** What {@code getOutlineRenderer} answers; {@code null} is kept, as the violation a conformance test needs. */
     public Platforms outlineRenderer(IOutlineRenderer outlineRenderer) {
         platform.outlineRendererConfigured = Boolean.TRUE;
         platform.outlineRenderer = outlineRenderer;
@@ -160,6 +161,7 @@ public final class Platforms {
         return outlineRenderer(platform.recordingRenderer());
     }
 
+    /** What {@code getSelectionItems} answers; {@code null} is kept, as the violation a conformance test needs. */
     public Platforms selectionItems(ISelectionItems selectionItems) {
         platform.selectionItemsConfigured = Boolean.TRUE;
         platform.selectionItems = selectionItems;
