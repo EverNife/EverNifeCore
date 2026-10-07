@@ -13,6 +13,17 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.60] - 2026-10-07
+
+A plugin that loads before EverNifeCore keeps its first-tick task.
+
+### Fixed
+
+- **`McFCScheduler.runSync` before the core enables**: a plugin that enables first (`loadbefore: [EverNifeCore]`) got
+  `IllegalPluginAccessException: Plugin attempted to register task while disabled` from its `runOnFirstTick()`, because
+  the task is owned by the core. The task is now held and scheduled at the end of the core's enable, so it still runs on
+  the first tick, after the core's own first-tick work (the first-boot legacy import included).
+
 ## [3.0.1-alpha.59] - 2026-10-07
 
 Two tests that failed now and then on a busy machine stop depending on the clock, and the test engine names the next
