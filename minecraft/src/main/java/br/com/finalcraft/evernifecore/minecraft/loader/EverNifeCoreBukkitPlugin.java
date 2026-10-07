@@ -37,6 +37,9 @@ import br.com.finalcraft.evernifecore.minecraft.nbt.NBTSelfTest;
 import br.com.finalcraft.evernifecore.minecraft.ontime.McDefaultOntimeManager;
 import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCTickUtil;
+import br.com.finalcraft.evernifecore.minecraft.protection.ProtectionAll;
+import br.com.finalcraft.evernifecore.minecraft.region.McRegionListeners;
+import br.com.finalcraft.evernifecore.minecraft.region.McRegionProtectionHandler;
 import br.com.finalcraft.evernifecore.minecraft.region.McWorldListener;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
@@ -65,6 +68,8 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
 
     /** The platform this plugin registers, kept so the native world hooks fire into the same instance. */
     private final McPlatform platform = new McPlatform();
+
+    private McRegionListeners regionListeners;
     static {
         //First thing to do when this class is loaded is to add REQUIRED dependencies, because there ara plugins that depends
         //on EverNifeCore and are loaded before it, for example, FinalEconomy
@@ -143,6 +148,8 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         ECListener.register(ecPluginData, PluginListener.class);
         ECListener.register(ecPluginData, GuiListener.class);
         ECListener.register(ecPluginData, new McWorldListener(platform));
+        //after the PluginListener, so the handlers of the protection plugins are asked first
+        ProtectionAll.getInstance().register(ecPluginData, new McRegionProtectionHandler());
 
         if (Bukkit.getPluginManager().isPluginEnabled("AuthMe")){
             ECListener.register(ecPluginData, PlayerLoginListener.AuthmeLogin.class);
@@ -160,6 +167,9 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         if (Bukkit.getPluginManager().isPluginEnabled("WorldEdit")) try{WorldEditIntegration.initialize();}catch (Throwable e){e.printStackTrace();}
 
         FCTickUtil.getTickCount();//This will start tickCounting
+
+        //each region listener sits on the server only while some region needs its kind of event
+        regionListeners = McRegionListeners.start(ecPluginData);
     }
 
     // Prints the NBT-API self-test outcome to the console. A failure here is not
@@ -194,6 +204,11 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         //core tears itself down has no business reaching a Bukkit listener
         ECEventBus.global().removeNativeAudience(McBukkitAudience.NAME);
         ECEventBus.global().removeNativeAudience(McForgeAudience.NAME);
+        if (regionListeners != null) {
+            regionListeners.stop();
+            regionListeners = null;
+        }
+        ProtectionAll.getInstance().unregisterAll(getPluginData());
         //and only then the inherited default, which is what unregisters listeners and commands
         super.onECPluginShutdownPre();
     }
