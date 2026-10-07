@@ -93,7 +93,7 @@ final class CommandRegistryFile {
             detail("Removed '{}' and everything under it - disabled in {}", typedPathOf(node, rootLabel), fileName);
             reportEntriesOverruledBy(node, rootLabel);
             if (node.getParent() != null) {
-                node.getParent().removeChild(node);
+                node.getParent().getMountPoint().removeChild(node);
             }
             return false;
         }

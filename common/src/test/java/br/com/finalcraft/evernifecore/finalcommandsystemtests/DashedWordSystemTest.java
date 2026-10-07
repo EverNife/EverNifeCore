@@ -309,7 +309,7 @@ class DashedWordSystemTest {
     @Test
     void aScannedLineAnswersTheFlagsItWasScannedForAndNothingElse() {
         MultiArgumentos line = new MultiArgumentos(new String[]{"x", "-p", "2"});
-        line.extractDeclaredFlags(Collections.singletonMap("p", new MultiArgumentos.FlagBinding("page", 1, false)), -1);
+        line.extractDeclaredFlags(Collections.singletonMap("p", new MultiArgumentos.FlagBinding("page", 1, false, false)), -1);
 
         assertEquals("2", line.getFlag("--page").getFlagValue(), "the alias -p was stored under the canonical name");
         assertThrows(IllegalStateException.class, () -> line.getFlag("--other"));

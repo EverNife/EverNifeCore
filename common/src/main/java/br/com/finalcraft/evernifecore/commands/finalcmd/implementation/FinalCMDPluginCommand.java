@@ -323,7 +323,7 @@ public class FinalCMDPluginCommand {
             List<String> names = node.getAccumulatedFlagBindings().stream()
                     .filter(binding -> !insideTheTail || binding.getArgData().isInsideTail())
                     .filter(binding -> binding.getArgData().getPermission().isEmpty() || sender.hasPermission(binding.getArgData().getPermission()))
-                    .filter(binding -> !alreadyUsed.contains(binding.getCanonicalName()))
+                    .filter(binding -> binding.isRepeatable() || !alreadyUsed.contains(binding.getCanonicalName()))
                     .map(binding -> suggestedSpelling(binding, lastWord))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());

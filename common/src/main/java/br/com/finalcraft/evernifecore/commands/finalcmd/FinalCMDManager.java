@@ -27,6 +27,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.pageviewer.PageVisualization;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.everylibs.util.numberwrapper.NumberWrapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.annotation.Nonnull;
 
 import java.lang.reflect.*;
@@ -54,6 +55,7 @@ public class FinalCMDManager {
         //Needs to be registered here because we need them for plugins that load before EverNifeCore
         ArgParserManager.addBuiltinParser(Argumento.class, ArgParserArgumento.class);
         ArgParserManager.addBuiltinParser(String.class, ArgParserString.class);
+        ArgParserManager.addBuiltinParser(ObjectNode.class, ArgParserObjectNode.class);
         //Every numeric wrapper the parser can hand back as itself - a type it cannot narrow to would
         //convert fine here and blow up inside method.invoke instead
         ArgParserManager.addBuiltinParser(Integer.class, ArgParserNumber.class);

@@ -54,11 +54,13 @@ public class CommandNode {
         this.cmdData = cmdData;
         this.nodeInstance = nodeInstance;
         this.providingPlugin = providingPlugin;
-        this.depth = parent == null ? 0 : parent.depth + 1;
-        this.nodePath = parent == null ? "" : join(parent.nodePath, ".", getPrimaryLabel());
+        boolean hoisted = parent != null && getPrimaryLabel().isEmpty();
+        //A hoisted node spells nothing of its own: its members read as if declared on the parent
+        this.depth = parent == null ? 0 : hoisted ? parent.depth : parent.depth + 1;
+        this.nodePath = parent == null ? "" : hoisted ? parent.nodePath : join(parent.nodePath, ".", getPrimaryLabel());
         //The parent's capture is already bound when its children are scanned, so the ancestors'
         //captured argument names are baked in here once instead of being walked on every render.
-        this.usagePath = parent == null ? "" : join(parent.getUsagePath(), " ", getPrimaryLabel());
+        this.usagePath = parent == null ? "" : hoisted ? parent.getUsagePath() : join(parent.getUsagePath(), " ", getPrimaryLabel());
     }
 
     private static String join(String prefix, String separator, String segment) {
@@ -67,6 +69,24 @@ public class CommandNode {
 
     public @Nullable CommandNode getParent() {
         return parent;
+    }
+
+    /**
+     * Whether this is a node with no label of its own ({@code @FinalCMD.Node(subcmd = "")}): it keeps its
+     * parent, permission, validations and locales, but is nobody's child - its members are filed on
+     * {@link #getMountPoint()} and answer there.
+     */
+    public boolean isHoisted() {
+        return parent != null && getPrimaryLabel().isEmpty();
+    }
+
+    /** Where this node's children are filed: itself, or the nearest ancestor that is not {@link #isHoisted() hoisted}. */
+    public CommandNode getMountPoint() {
+        CommandNode node = this;
+        while (node.isHoisted()) {
+            node = node.parent;
+        }
+        return node;
     }
 
     public String[] getLabels() {
@@ -94,7 +114,7 @@ public class CommandNode {
         System.arraycopy(extraLabels, 0, labels, 1, extraLabels.length);
         cmdData.setLabels(labels);
         if (parent != null) {
-            parent.indexChild(this);
+            parent.getMountPoint().indexChild(this);
         }
     }
 
@@ -159,7 +179,9 @@ public class CommandNode {
     public CommandPath toUsagePath(@Nonnull String label, boolean withOwnCapture) {
         List<CommandNode> ancestry = new ArrayList<>();
         for (CommandNode node = this; node != null && node.parent != null; node = node.parent) {
-            ancestry.add(node);
+            if (!node.isHoisted()) {
+                ancestry.add(node);
+            }
         }
         Collections.reverse(ancestry);
 

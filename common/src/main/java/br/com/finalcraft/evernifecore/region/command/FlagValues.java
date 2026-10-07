@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.region.command;
 
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.parsers.ArgParserObjectNode;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.region.flag.FlagParseException;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
@@ -17,6 +18,7 @@ import jakarta.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,33 +78,47 @@ public final class FlagValues {
     }
 
     /**
-     * New settings for {@code flag}: {@code current} (the region's own, or the server's when null) with each
-     * {@code field=value} of {@code text} written over a copy. Values may be quoted to keep spaces.
+     * New settings for {@code flag}: {@code current} (the region's own, or the server's when null) with what
+     * {@code text} names written over a copy - either {@code field=value} pairs (quote a value to keep spaces) or a
+     * JSON object, read by {@link ArgParserObjectNode#parse(String)}.
      *
      * @throws FlagParseException naming the field that is unknown or that refused its value, and every field accepted
      */
     public static FlagSettings parseSettings(RegionFlag<?> flag, @Nullable FlagSettings current, String text) throws FlagParseException {
+        ObjectNode patch;
+        try {
+            patch = ArgParserObjectNode.parse(text);
+        } catch (IllegalArgumentException refused) {
+            throw new FlagParseException(refused.getMessage() + " The settings of " + flag.getKey() + " are: "
+                    + String.join(", ", getSettingsFieldNames(flag)) + ".", refused);
+        }
+        return parseSettings(flag, current, patch);
+    }
+
+    /**
+     * New settings for {@code flag}: {@code current} (the region's own, or the server's when null) with every field of
+     * {@code patch} written over a copy.
+     *
+     * @throws FlagParseException naming the field that is unknown or that refused its value, and every field accepted
+     */
+    public static FlagSettings parseSettings(RegionFlag<?> flag, @Nullable FlagSettings current, ObjectNode patch) throws FlagParseException {
         ObjectMapper mapper = mapper();
         Map<String, JsonNode> fields = getSettingsFields(flag, current == null ? flag.getSettings() : current);
         ObjectNode tree = mapper.createObjectNode();
         tree.setAll(fields);
-        for (String pair : splitPairs(text)) {
-            int equals = pair.indexOf('=');
-            if (equals <= 0) {
-                throw new FlagParseException("'" + pair + "' is not field=value - write each setting of " + flag.getKey()
-                        + " as field=value, the fields being: " + String.join(", ", fields.keySet()) + ".");
-            }
-            String field = pair.substring(0, equals);
-            if (!fields.containsKey(field)) {
-                throw new FlagParseException("The flag " + flag.getKey() + " has no setting called '" + field + "' - the fields are: "
+        Iterator<Map.Entry<String, JsonNode>> entries = patch.fields();
+        while (entries.hasNext()) {
+            Map.Entry<String, JsonNode> entry = entries.next();
+            if (!fields.containsKey(entry.getKey())) {
+                throw new FlagParseException("The flag " + flag.getKey() + " has no setting called '" + entry.getKey() + "' - the fields are: "
                         + String.join(", ", fields.keySet()) + ".");
             }
-            tree.put(field, pair.substring(equals + 1));
+            tree.set(entry.getKey(), entry.getValue());
         }
         try {
             return mapper.treeToValue(tree, flag.getSettingsType());
         } catch (JsonProcessingException | IllegalArgumentException refused) {
-            throw new FlagParseException("The settings of " + flag.getKey() + " refused '" + text.trim() + "': " + rootMessage(refused)
+            throw new FlagParseException("The settings of " + flag.getKey() + " refused " + patch + ": " + rootMessage(refused)
                     + " - the fields are: " + String.join(", ", fields.keySet()) + ".", refused);
         }
     }
@@ -133,29 +149,6 @@ public final class FlagValues {
             }
         }
         return names;
-    }
-
-    /** Splits on whitespace outside double quotes, dropping the quotes: {@code a=1 b="x y"} gives {@code a=1}, {@code b=x y}. */
-    static List<String> splitPairs(String text) {
-        List<String> pairs = new ArrayList<>();
-        StringBuilder current = new StringBuilder();
-        boolean quoted = false;
-        for (char c : text.toCharArray()) {
-            if (c == '"') {
-                quoted = !quoted;
-            } else if (Character.isWhitespace(c) && !quoted) {
-                if (current.length() > 0) {
-                    pairs.add(current.toString());
-                    current.setLength(0);
-                }
-            } else {
-                current.append(c);
-            }
-        }
-        if (current.length() > 0) {
-            pairs.add(current.toString());
-        }
-        return pairs;
     }
 
     private static String rootMessage(Exception refused) {

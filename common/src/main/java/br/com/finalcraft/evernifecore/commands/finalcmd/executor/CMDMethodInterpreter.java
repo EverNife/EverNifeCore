@@ -240,6 +240,12 @@ public class CMDMethodInterpreter {
             }
             String canonicalName = rawName.substring(2).toLowerCase();
 
+            FlagRepetition repetition = FlagRepetition.of(parameterClazz);
+            if (repetition.isCollection()){
+                //From here on the flag is spoken of by its ELEMENT: one occurrence, one parse
+                parameterClazz = collectionElementOf(method, index, rawName);
+            }
+
             List<String> spellings = new ArrayList<>();
             spellings.add(rawName);
             for (String alias : argData.getAliases()) {
@@ -267,7 +273,7 @@ public class CMDMethodInterpreter {
                     throw new ArgMountException("The @Arg.Flag spelling [" + spelling + "] on the FinalCMD (" + executor.getClass().getName() + ")[" + method.getName() + "] " +
                             "is already claimed by a name or alias declared earlier on the same method.");
                 }
-                flagExtractionBindings.put(normalizedSpelling, new MultiArgumentos.FlagBinding(canonicalName, parameterClazz == Boolean.class ? 0 : 1, argData.isInsideTail()));
+                flagExtractionBindings.put(normalizedSpelling, new MultiArgumentos.FlagBinding(canonicalName, parameterClazz == Boolean.class && !repetition.isCollection() ? 0 : 1, argData.isInsideTail(), repetition != FlagRepetition.NONE));
             }
 
             if (ArgParser.class == argData.getParser()){
@@ -295,7 +301,7 @@ public class CMDMethodInterpreter {
             ECPluginData flagParserPlugin = ECPluginManager.getProvidingPlugin(argData.getParser());
             FCLocaleManager.loadLocale(flagParserPlugin, true, argData.getParser());
 
-            flagBindings.put(index, new FlagBinding(index, canonicalName, rawName, parameterClazz == Boolean.class, argData, flagParserInstance));
+            flagBindings.put(index, new FlagBinding(index, canonicalName, rawName, parameterClazz == Boolean.class && !repetition.isCollection(), repetition, argData, flagParserInstance));
         }
 
         for (Map.Entry<Integer, Tuple<ArgData, Class>> entry : methodData.getContextualArgDataMap().entrySet()) {
@@ -965,6 +971,16 @@ public class CMDMethodInterpreter {
         MultiArgumentos flagSource = dispatch.getFlagSource();
 
         for (FlagBinding binding : flagBindings.values()) {
+            if (binding.repetition != FlagRepetition.NONE){
+                Object[] repeatedValue = new Object[1];
+                if (!resolveRepeatedFlag(binding, flagSource.getFlagValues(binding.canonicalName), sender, executor, dispatch, resolved, helpLine, repeatedValue)){
+                    return Invocation.ABORTED;
+                }
+                theArgs[binding.paramIndex] = repeatedValue[0];
+                resolved.resolved(binding.rawName, repeatedValue[0]);
+                continue;
+            }
+
             FlagedArgumento matchedFlag = flagSource.getFlag(binding.canonicalName);
 
             Object parsedValue;
@@ -1111,6 +1127,103 @@ public class CMDMethodInterpreter {
      * {@link ArgInfo} is REQUIRED, so a value the parser does not recognize gets the parser's own
      * message instead of silently turning into null.
      */
+    /**
+     * Resolves a flag that may be written more than once: a {@code String} reads every occurrence as one
+     * sentence, a {@code List}/{@code Set} parses each occurrence on its own with the element's parser.
+     *
+     * @param out receives the value at index 0
+     * @return false when the dispatch must stop
+     */
+    private boolean resolveRepeatedFlag(FlagBinding binding, List<String> occurrences, FCommandSender sender, Object executor, DispatchContext dispatch,
+                                        ResolvedArguments resolved, HelpLine helpLine, Object[] out) {
+        if (occurrences.isEmpty()){
+            if (binding.argData.getDef().isEmpty()){
+                out[0] = null; //absent, no def(): a flag is never required
+                return true;
+            }
+            //A def() is ONE occurrence, whatever the declared shape
+            ParseOutcome<?> outcome = engine.runDefault(binding.parser, flagCall(binding, sender, executor, dispatch, resolved, Argumento.EMPTY_ARG));
+            if (!isUsable(outcome, sender, helpLine)){
+                return false;
+            }
+            out[0] = binding.repetition.collect(Collections.singletonList(outcome.getValueOrNull()));
+            return true;
+        }
+
+        String permission = binding.argData.getPermission();
+        if (!permission.isEmpty() && !FCMessageUtil.hasThePermission(sender, permission)){
+            return false;
+        }
+
+        List<String> rawValues = binding.repetition == FlagRepetition.CONCATENATED
+                ? Collections.singletonList(joinNonEmpty(occurrences)) //only-empty occurrences reach the parser as one empty value, like a single one
+                : occurrences;
+
+        List<Object> parsed = new ArrayList<>();
+        for (String rawValue : rawValues) {
+            ParseOutcome<?> outcome = engine.run(binding.parser, flagCall(binding, sender, executor, dispatch, resolved, new Argumento(rawValue)));
+            if (!isUsable(outcome, sender, helpLine)){
+                return false;
+            }
+            parsed.add(outcome.getValueOrNull());
+        }
+        out[0] = binding.repetition.collect(parsed);
+        return true;
+    }
+
+    /** Occurrences joined by exactly one space; an empty one counts as written but adds nothing. */
+    private static String joinNonEmpty(List<String> occurrences) {
+        StringJoiner joiner = new StringJoiner(" ");
+        for (String occurrence : occurrences) {
+            if (!occurrence.isEmpty()){
+                joiner.add(occurrence);
+            }
+        }
+        return joiner.toString();
+    }
+
+    private Class<?> collectionElementOf(Method method, int paramIndex, String rawName) {
+        Type declared = method.getGenericParameterTypes()[paramIndex];
+        Type element = declared instanceof ParameterizedType ? ((ParameterizedType) declared).getActualTypeArguments()[0] : null;
+        if (!(element instanceof Class)){
+            throw new ArgMountException("The @Arg.Flag [" + rawName + "] on the FinalCMD (" + executor.getClass().getName() + ")[" + method.getName() + "] " +
+                    "is declared as [" + declared.getTypeName() + "], so the type of each occurrence is unknown. " +
+                    "Name the element: List<String>, Set<String>, or a List/Set of any type an ArgParser answers for.");
+        }
+        return (Class<?>) element;
+    }
+
+    /** How a flag written more than once is read - by the type its parameter declares. */
+    enum FlagRepetition {
+        /** Any other type: one value, a second occurrence is refused. */
+        NONE,
+        /** {@code String}: the occurrences are one sentence. */
+        CONCATENATED,
+        /** {@code List<E>}: each occurrence, in order. */
+        LIST,
+        /** {@code Set<E>}: each occurrence, first arrival kept, in order. */
+        SET;
+
+        static FlagRepetition of(Class<?> parameterClazz) {
+            if (parameterClazz == String.class) return CONCATENATED;
+            if (parameterClazz == List.class) return LIST;
+            if (parameterClazz == Set.class) return SET;
+            return NONE;
+        }
+
+        boolean isCollection() {
+            return this == LIST || this == SET;
+        }
+
+        Object collect(List<Object> parsed) {
+            switch (this) {
+                case LIST: return new ArrayList<>(parsed);
+                case SET: return new LinkedHashSet<>(parsed);
+                default: return parsed.get(0);
+            }
+        }
+    }
+
     private static ParseCall flagCall(FlagBinding binding, FCommandSender sender, Object executor, DispatchContext dispatch,
                                       ResolvedArguments resolved, Argumento value) {
         return new ParseCall(sender, value, binding.parser.getArgInfo(), dispatch, resolved, true, executor);
@@ -1201,14 +1314,16 @@ public class CMDMethodInterpreter {
         private final String canonicalName; //dashes stripped, lowercase - matches MultiArgumentos.FlagBinding's canonical name
         private final String rawName; //as declared, e.g. "--force" - used for error/help/tab display
         private final boolean booleanFlag; //true when the parameter type is Boolean: arity 0, presence == TRUE
+        private final FlagRepetition repetition;
         private final ArgData argData; //carries def/permission/aliases/locales/showOnUsage
-        private final ArgParser parser;
+        private final ArgParser parser; //for a List/Set, the parser of ONE element
 
-        private FlagBinding(int paramIndex, String canonicalName, String rawName, boolean booleanFlag, ArgData argData, ArgParser parser) {
+        private FlagBinding(int paramIndex, String canonicalName, String rawName, boolean booleanFlag, FlagRepetition repetition, ArgData argData, ArgParser parser) {
             this.paramIndex = paramIndex;
             this.canonicalName = canonicalName;
             this.rawName = rawName;
             this.booleanFlag = booleanFlag;
+            this.repetition = repetition;
             this.argData = argData;
             this.parser = parser;
         }
@@ -1232,6 +1347,11 @@ public class CMDMethodInterpreter {
 
         public boolean isBooleanFlag() {
             return booleanFlag;
+        }
+
+        /** Whether the flag may be written more than once ({@code String}, {@code List<E>}, {@code Set<E>}). */
+        public boolean isRepeatable() {
+            return repetition != FlagRepetition.NONE;
         }
 
         public ArgData getArgData() {

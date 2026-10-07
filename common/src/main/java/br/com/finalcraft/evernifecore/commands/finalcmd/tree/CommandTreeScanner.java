@@ -256,8 +256,9 @@ public final class CommandTreeScanner {
 
         CommandNode leaf = new CommandNode(parent, subCMDData, instance, parent.getProvidingPlugin());
         String where = instance.getClass().getName() + "#" + subMethodData.getMethod().getName();
-        rejectLabelClash(parent, leaf, where);
-        parent.addChild(leaf);
+        CommandNode filedOn = parent.getMountPoint();
+        rejectLabelClash(filedOn, leaf, where);
+        filedOn.addChild(leaf);
 
         CMDMethodInterpreter interpreter = new CMDMethodInterpreter(owningPlugin, subMethodData, instance, leaf);
         //A leaf has no capture of its own, so its whole ancestry is what it inherits flags from
@@ -327,16 +328,27 @@ public final class CommandTreeScanner {
                     "A node cannot mount an ancestor of itself, the tree would never end - break the cycle by mounting a different class.");
         }
 
-        requireLiteralLabels(nodeData.getLabels(), "@FinalCMD.Node", where, parent);
+        //The one empty label allowed: a node that lends its members to the parent instead of naming a segment
+        boolean hoisted = nodeData.getLabels().length == 1 && nodeData.getLabels()[0].isEmpty();
+        if (!hoisted){
+            requireLiteralLabels(nodeData.getLabels(), "@FinalCMD.Node", where, parent);
+        }
 
         ECPluginData nodePlugin = ECPluginManager.getProvidingPlugin(nodeClass);
         CommandNode node = new CommandNode(parent, nodeData, nodeInstance, nodePlugin);
-        rejectLabelClash(parent, node, where);
-        parent.addChild(node);
+        CommandNode filedOn = parent.getMountPoint();
+        if (!hoisted){
+            rejectLabelClash(filedOn, node, where);
+            filedOn.addChild(node);
+        }
+        int childrenBefore = hoisted ? filedOn.getChildren().size() : 0;
 
         loadClassLocales(nodePlugin, nodeClass);
 
         List<Method> methods = declaredMethodsDeeply(nodeClass);
+        if (hoisted){
+            rejectEntryPointsOnHoistedNode(methods, where, filedOn);
+        }
 
         CaptureBinding capture = scanCapture(nodePlugin, node, methods, where);
         if (capture != null){
@@ -360,19 +372,39 @@ public final class CommandTreeScanner {
 
         scanChildNodes(nodePlugin, node, nodeInstance, mountChain);
 
-        if (!node.hasChildren()){
+        boolean hasChildren = hoisted ? filedOn.getChildren().size() > childrenBefore : node.hasChildren();
+        if (!hasChildren){
             throw new ArgMountException("The @FinalCMD.Node mounted at [" + where + "] (node path \"" + node.getNodePath() + "\") has no child at all. " +
                     "A node exists to hold children - add a @FinalCMD.SubCMD method or a nested @FinalCMD.Node, or turn it into a plain @FinalCMD.SubCMD.");
         }
 
-        node.sortChildren();
-        node.setHelpLineTemplate(buildNodeHelpLineTemplate(nodePlugin, node));
+        if (!hoisted){
+            node.sortChildren();
+            node.setHelpLineTemplate(buildNodeHelpLineTemplate(nodePlugin, node));
+        }
 
         if (node.getDepth() > DEEP_TREE_WARNING_DEPTH){
             owningPlugin.getLog().warning("The command node \"" + node.getNodePath() + "\" is " + node.getDepth() + " levels deep; its help line is already unreadable in chat.");
         }
 
         mountChain.remove(nodeClass);
+    }
+
+    /**
+     * A hoisted node is no segment of the line, so there is no token for a capture to eat and no word for
+     * an executable to answer to.
+     */
+    private static void rejectEntryPointsOnHoistedNode(List<Method> methods, String where, CommandNode mountPoint) {
+        for (Method method : methods) {
+            String entryPoint = method.isAnnotationPresent(FinalCMD.Capture.class) ? "@FinalCMD.Capture"
+                    : method.isAnnotationPresent(FinalCMD.Execute.class) ? "@FinalCMD.Execute"
+                    : null;
+            if (entryPoint != null){
+                throw new ArgMountException("The @FinalCMD.Node mounted at [" + where + "] has no label of its own (subcmd = \"\"), so its members answer right under \"" +
+                        (mountPoint.getNodePath().isEmpty() ? mountPoint.getPrimaryLabel() : mountPoint.getNodePath()) + "\", but it declares the " + entryPoint + " [" + method.getName() + "]. " +
+                        "A node without a label is never typed, so nothing could reach that method - give the node a label, or move the method to the parent.");
+            }
+        }
     }
 
     private static @Nullable CaptureBinding scanCapture(ECPluginData nodePlugin, CommandNode node, List<Method> methods, String where) {

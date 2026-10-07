@@ -48,7 +48,7 @@ public class MultiArgumentos {
 
         //Manual/sniffed mode: every marker is "recognized" with arity -1 (auto-sniff), so
         //scanFlagMarkers never reports an unknown flag here.
-        ScanOutcome outcome = scanFlagMarkers(MultiArgumentos::isFlagMarker, rawName -> new Recognition(rawName, -1, false), -1);
+        ScanOutcome outcome = scanFlagMarkers(MultiArgumentos::isFlagMarker, rawName -> new Recognition(rawName, -1, false, false), -1);
         this.flags.addAll(outcome.matched);
     }
 
@@ -100,7 +100,7 @@ public class MultiArgumentos {
         Set<String> declaredSpellings = bindingsByNormalizedNameOrAlias.keySet();
         ScanOutcome outcome = scanFlagMarkers(token -> isFlagMarker(token, declaredSpellings), rawName -> {
             FlagBinding binding = bindingsByNormalizedNameOrAlias.get(rawName.toLowerCase());
-            return binding == null ? null : new Recognition(binding.getCanonicalName(), binding.getArity(), binding.isInsideTail());
+            return binding == null ? null : new Recognition(binding.getCanonicalName(), binding.getArity(), binding.isInsideTail(), binding.isRepeatable());
         }, literalTailAt);
         this.flags.addAll(outcome.matched);
         return new FlagExtraction(outcome.unknownMarkers, outcome.markersMissingValue, outcome.markersRefusingValue, outcome.repeatedMarkers);
@@ -176,7 +176,7 @@ public class MultiArgumentos {
             }
 
             boolean sniffed = recognition.arity < 0;
-            if (!sniffed && claimedNames.contains(recognition.canonicalName)){
+            if (!sniffed && !recognition.repeatable && claimedNames.contains(recognition.canonicalName)){
                 //Two answers to one question: taking either would be a guess about which the sender
                 //meant, and the one thing the framework knows is that they did not say
                 repeatedMarkers.add(marker);
@@ -286,11 +286,13 @@ public class MultiArgumentos {
         private final String canonicalName;
         private final int arity; //0 = presence, 1 = fixed single value, negative = sniff (manual mode)
         private final boolean insideTail;
+        private final boolean repeatable;
 
-        private Recognition(String canonicalName, int arity, boolean insideTail) {
+        private Recognition(String canonicalName, int arity, boolean insideTail, boolean repeatable) {
             this.canonicalName = canonicalName;
             this.arity = arity;
             this.insideTail = insideTail;
+            this.repeatable = repeatable;
         }
     }
 
@@ -363,9 +365,9 @@ public class MultiArgumentos {
 
         /**
          * Flags written more than once on the same line, named once each by the SECOND spelling that
-         * claimed them - which is the one the sender can delete. A flag holds one value, so a second
-         * one is not a correction and not a list: it is two answers, and picking either silently is
-         * how {@code --page 1 --page 2} used to quietly mean page one.
+         * claimed them - which is the one the sender can delete. Only a flag whose binding is not
+         * {@link FlagBinding#isRepeatable() repeatable} lands here: it holds one value, so a second one is
+         * not a correction and not a list - it is two answers, and picking either silently would be a guess.
          */
         public List<String> getRepeatedMarkers() {
             return repeatedMarkers;
@@ -376,18 +378,20 @@ public class MultiArgumentos {
      * A declared flag's fixed extraction rule, used by {@link #extractDeclaredFlags}: the
      * canonical name every recognized spelling (long name and aliases alike) is normalized to, and
      * how many following tokens a marker for it consumes (0 = presence-only, e.g. a Boolean flag;
-     * 1 = always consumes the next token or quoted group), and whether it is also read inside the
-     * variadic tail.
+     * 1 = always consumes the next token or quoted group), whether it is also read inside the
+     * variadic tail, and whether it may be written more than once.
      */
     public static final class FlagBinding {
         private final String canonicalName;
         private final int arity;
         private final boolean insideTail;
+        private final boolean repeatable;
 
-        public FlagBinding(String canonicalName, int arity, boolean insideTail) {
+        public FlagBinding(String canonicalName, int arity, boolean insideTail, boolean repeatable) {
             this.canonicalName = canonicalName;
             this.arity = arity;
             this.insideTail = insideTail;
+            this.repeatable = repeatable;
         }
 
         public String getCanonicalName() {
@@ -401,6 +405,11 @@ public class MultiArgumentos {
         /** Whether a marker of this flag written after the variadic tail opened is still extracted. */
         public boolean isInsideTail() {
             return insideTail;
+        }
+
+        /** Whether each occurrence on the line is kept, in order, instead of a second one being refused. */
+        public boolean isRepeatable() {
+            return repeatable;
         }
     }
 
@@ -500,14 +509,7 @@ public class MultiArgumentos {
      * path declares {@code flagName} - such a flag can never come back set
      */
     public FlagedArgumento getFlag(String flagName){
-        flagify();
-        Validate.isTrue(!flagName.isEmpty(), "The flagName cannot be empty");
-        String normalizedName = flagName.substring(leadingDashCount(flagName));
-        if (readableFlagNames != null && !readableFlagNames.contains(normalizedName.toLowerCase())){
-            throw new IllegalStateException("The flag [" + flagName + "] is not one this line was scanned for: on a command line, only the flags"
-                    + " the command's path declares leave it as flags, so this lookup could only come back empty."
-                    + " Declare it as a parameter of the method that reads it: @Arg.Flag(\"--" + normalizedName + "\").");
-        }
+        String normalizedName = readableFlagName(flagName);
         if (flags.size() > 0){
             for (FlagedArgumento flag : flags) {
                 if (flag.getFlagName().equalsIgnoreCase(normalizedName)){
@@ -516,6 +518,35 @@ public class MultiArgumentos {
             }
         }
         return FlagedArgumento.EMPTY_ARG;
+    }
+
+    /**
+     * Every value {@code flagName} was given, in the order the line wrote them - more than one only for a
+     * {@link FlagBinding#isRepeatable() repeatable} flag; empty when it was not typed.
+     *
+     * @throws IllegalStateException under the same rule as {@link #getFlag(String)}
+     */
+    public List<String> getFlagValues(String flagName){
+        String normalizedName = readableFlagName(flagName);
+        List<String> values = new ArrayList<String>();
+        for (FlagedArgumento flag : flags) {
+            if (flag.getFlagName().equalsIgnoreCase(normalizedName)){
+                values.add(flag.getFlagValue());
+            }
+        }
+        return values;
+    }
+
+    private String readableFlagName(String flagName){
+        flagify();
+        Validate.isTrue(!flagName.isEmpty(), "The flagName cannot be empty");
+        String normalizedName = flagName.substring(leadingDashCount(flagName));
+        if (readableFlagNames != null && !readableFlagNames.contains(normalizedName.toLowerCase())){
+            throw new IllegalStateException("The flag [" + flagName + "] is not one this line was scanned for: on a command line, only the flags"
+                    + " the command's path declares leave it as flags, so this lookup could only come back empty."
+                    + " Declare it as a parameter of the method that reads it: @Arg.Flag(\"--" + normalizedName + "\").");
+        }
+        return normalizedName;
     }
 
     public boolean emptyArgs(int... numbers){

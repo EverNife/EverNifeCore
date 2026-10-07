@@ -49,8 +49,17 @@ public abstract class CMDAccessValidation {
         LIST
     }
 
-    /** Whether ONE segment's own declaration lets {@code sender} through - its permission and its validations. */
+    /**
+     * Whether ONE segment's own declaration lets {@code sender} through - its permission and its validations,
+     * plus those of every {@link CommandNode#isHoisted() hoisted} node that lent it to its parent, since that
+     * declaration has no segment of its own to be checked on.
+     */
     public static boolean allows(@Nonnull FCommandSender sender, @Nonnull CommandNode node, @Nonnull AccessMode mode) {
+        for (CommandNode lender = node.getParent(); lender != null && lender.isHoisted(); lender = lender.getParent()) {
+            if (!allows(sender, lender.getCmdData(), new AccessContext(lender, sender), mode)){
+                return false;
+            }
+        }
         return allows(sender, node.getCmdData(), new AccessContext(node, sender), mode);
     }
 
@@ -58,7 +67,9 @@ public abstract class CMDAccessValidation {
     public static boolean allowsPath(@Nonnull FCommandSender sender, @Nonnull CommandNode target, @Nonnull AccessMode mode) {
         List<CommandNode> rootDownToTarget = new ArrayList<>();
         for (CommandNode node = target; node != null; node = node.getParent()) {
-            rootDownToTarget.add(node);
+            if (!node.isHoisted()) { //answered by the segment below it, see allows
+                rootDownToTarget.add(node);
+            }
         }
         Collections.reverse(rootDownToTarget); //the shallowest refusal is the one worth reporting
 
