@@ -983,7 +983,7 @@ public class CMDMethodInterpreter {
                     //toString() for display ("--name value"), and several builtin ArgParsers call
                     //argumento.toString() expecting just the raw value.
                     ParseOutcome<?> outcome = engine.run(binding.parser,
-                            flagCall(binding, sender, dispatch, resolved, new Argumento(matchedFlag.getFlagValue())));
+                            flagCall(binding, sender, executor, dispatch, resolved, new Argumento(matchedFlag.getFlagValue())));
                     if (!isUsable(outcome, sender, helpLine)){
                         return Invocation.ABORTED;
                     }
@@ -994,7 +994,7 @@ public class CMDMethodInterpreter {
                 //token, so the caller states it instead: the def() runs as a def, and a default the
                 //parser cannot read comes back as the command's bug rather than as the sender's
                 ParseOutcome<?> outcome = engine.runDefault(binding.parser,
-                        flagCall(binding, sender, dispatch, resolved, Argumento.EMPTY_ARG));
+                        flagCall(binding, sender, executor, dispatch, resolved, Argumento.EMPTY_ARG));
                 if (!isUsable(outcome, sender, helpLine)){
                     return Invocation.ABORTED;
                 }
@@ -1029,7 +1029,7 @@ public class CMDMethodInterpreter {
                 parsedArgument = greedyValue(info.getArgumentType(), tail);
             }else {
                 Argumento argumento = window.get(info.getIndex());
-                ParseCall call = new ParseCall(sender, argumento, info, dispatch, resolved, false);
+                ParseCall call = new ParseCall(sender, argumento, info, dispatch, resolved, false, executor);
 
                 ParseOutcome<?> outcome = engine.run(parser, call);
 
@@ -1111,9 +1111,9 @@ public class CMDMethodInterpreter {
      * {@link ArgInfo} is REQUIRED, so a value the parser does not recognize gets the parser's own
      * message instead of silently turning into null.
      */
-    private static ParseCall flagCall(FlagBinding binding, FCommandSender sender, DispatchContext dispatch,
+    private static ParseCall flagCall(FlagBinding binding, FCommandSender sender, Object executor, DispatchContext dispatch,
                                       ResolvedArguments resolved, Argumento value) {
-        return new ParseCall(sender, value, binding.parser.getArgInfo(), dispatch, resolved, true);
+        return new ParseCall(sender, value, binding.parser.getArgInfo(), dispatch, resolved, true, executor);
     }
 
     private static List<String> remainingTokens(MultiArgumentos window, int from) {

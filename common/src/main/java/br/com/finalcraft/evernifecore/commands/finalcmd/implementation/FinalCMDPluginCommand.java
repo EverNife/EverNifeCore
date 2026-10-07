@@ -249,7 +249,8 @@ public class FinalCMDPluginCommand {
     }
 
     private static ITabParser.TabContext tabContextAt(FCommandSender sender, String alias, String[] args, int index, WalkResult walk){
-        return new ITabParser.TabContext(sender, alias, args, index, index - walk.getConsumed(), walk.getPath(), capturedTokensByNodePath(walk));
+        return new ITabParser.TabContext(sender, alias, args, index, index - walk.getConsumed(), walk.getPath(), capturedTokensByNodePath(walk),
+                walk.getNode().getNodeInstance());
     }
 
     /**

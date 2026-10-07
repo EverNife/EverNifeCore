@@ -43,7 +43,7 @@ class ParseOutcomeTest {
                 argInfo,
                 null,
                 ResolvedArguments.none(),
-                false);
+                false, null);
     }
 
     private static ParseResult<String> resultOf(ParseResult.Kind kind) {

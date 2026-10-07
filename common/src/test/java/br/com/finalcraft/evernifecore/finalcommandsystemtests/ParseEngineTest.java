@@ -141,7 +141,7 @@ class ParseEngineTest {
                 parser.getArgInfo(),
                 null,
                 ResolvedArguments.none(),
-                false);
+                false, null);
     }
 
     // ------------------------------------------------------------------
@@ -546,7 +546,7 @@ class ParseEngineTest {
 
         RecordingEngine engine = new RecordingEngine();
         ParseOutcome<?> outcome = runRaw(engine, parser, new ParseCall(sender, new Argumento("hello"),
-                parser.getArgInfo(), null, ResolvedArguments.none(), false));
+                parser.getArgInfo(), null, ResolvedArguments.none(), false, null));
 
         assertEquals(ParseResult.Kind.INTERNAL_ERROR, outcome.getResult().getKind());
         assertEquals(Arrays.asList("internalError"), engine.reported);

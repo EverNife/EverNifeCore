@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.testing;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
+import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParserManager;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgMountException;
@@ -131,6 +132,15 @@ public class FinalCmdTestHarness implements AutoCloseable {
      */
     public List<String> tab(FinalCMDPluginCommand cmd, FCommandSender sender, String... args) {
         return cmd.tabComplete(sender, cmd.getPrimaryLabel(), args);
+    }
+
+    /**
+     * Swaps the plugin extractor for the rest of this harness - {@link Plugins#routing()} to make another plugin
+     * provide the classes it mounts. {@link #close()} puts the previous one back.
+     */
+    public FinalCmdTestHarness withPluginExtractor(IECPluginExtractor extractor) {
+        world.withPluginExtractor(extractor);
+        return this;
     }
 
     /** Structural assertions over the tree {@code cmd} registered - see {@link TreeAssert}. */

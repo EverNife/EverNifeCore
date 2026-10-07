@@ -52,7 +52,7 @@ public final class RegionIndex {
      */
     static final Object WRITE_LOCK = new Object();   // ponytail: one write lock for every manager; per-world locks if region writes ever contend
 
-    private final int hugeChunks;
+    private volatile int hugeChunks;
     //compute() on this map is the per-world write lock; get() is the lock-free read
     private final ConcurrentHashMap<String, WorldSnapshot> worlds = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<RegionId, Region> byId = new ConcurrentHashMap<>();
@@ -64,6 +64,19 @@ public final class RegionIndex {
 
     public RegionIndex(int hugeChunks) {
         this.hugeChunks = hugeChunks;
+    }
+
+    /**
+     * The bounding-box chunk count above which a region is kept off the chunk buckets and checked on every lookup
+     * of its world instead. Takes effect on the next publish of each world. Wired from the core config at boot and
+     * reload; tests set it directly.
+     */
+    public void setHugeChunks(int hugeChunks) {
+        this.hugeChunks = hugeChunks;
+    }
+
+    public int getHugeChunks() {
+        return hugeChunks;
     }
 
     /** The current snapshot of {@code world}; {@link WorldSnapshot#EMPTY} when it has never had a region. */

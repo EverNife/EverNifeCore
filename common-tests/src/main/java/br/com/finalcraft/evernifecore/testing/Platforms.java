@@ -3,7 +3,9 @@ package br.com.finalcraft.evernifecore.testing;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
+import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,7 +42,8 @@ public final class Platforms {
     /**
      * A platform with the old no-op answers: no players, no plugins, no PAPI, no action bar, no
      * chat/vec adapter, listeners and config types ignored, main thread inline (every world thread too),
-     * world load/unload events kept for the test to fire, shutdown recorded, every world 0..255 high.
+     * world load/unload events kept for the test to fire, shutdown recorded, every world 0..255 high, no outline
+     * renderer and no selection item ({@code NONE} for both).
      */
     public static Platforms lenient() {
         return strict()
@@ -64,7 +67,9 @@ public final class Platforms {
                 .worldEvents()
                 .recordingShutdowns()
                 .withoutPlaceholderIntegration()
-                .worldHeight(0, 255);
+                .worldHeight(0, 255)
+                .outlineRenderer(IOutlineRenderer.NONE)
+                .selectionItems(ISelectionItems.NONE);
     }
 
     /**
@@ -142,6 +147,28 @@ public final class Platforms {
     public Platforms worldHeight(int minY, int maxY) {
         platform.worldHeight = WorldHeight.of(minY, maxY);
         return this;
+    }
+
+    public Platforms outlineRenderer(IOutlineRenderer outlineRenderer) {
+        platform.outlineRendererConfigured = Boolean.TRUE;
+        platform.outlineRenderer = outlineRenderer;
+        return this;
+    }
+
+    /** A renderer that keeps every frame for {@link TestPlatform#getRenderedOutlines()} instead of drawing it. */
+    public Platforms recordingOutlines() {
+        return outlineRenderer(platform.recordingRenderer());
+    }
+
+    public Platforms selectionItems(ISelectionItems selectionItems) {
+        platform.selectionItemsConfigured = Boolean.TRUE;
+        platform.selectionItems = selectionItems;
+        return this;
+    }
+
+    /** Keeps every tool handed out for {@link TestPlatform#getSelectionItemsGiven()} instead of giving it. */
+    public Platforms recordingSelectionItems() {
+        return selectionItems(platform.recordingItems());
     }
 
     public Platforms parsingWith(BiFunction<FPlayer, String, String> parser) {

@@ -9,7 +9,9 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
@@ -104,6 +106,18 @@ public interface IPlatform {
 
     /** As {@link #onWorldLoaded(Consumer)}, each time a world unloads. */
     public void onWorldUnloaded(Consumer<String> listener);
+
+    /**
+     * How this platform draws region outlines and live selections. {@link IOutlineRenderer#NONE} is the honest
+     * answer of a platform that does not draw; {@code null} is a violation.
+     */
+    public IOutlineRenderer getOutlineRenderer();
+
+    /**
+     * How this platform hands out the region selection tool. {@link ISelectionItems#NONE} is the honest answer of
+     * a platform that gives no item; {@code null} is a violation.
+     */
+    public ISelectionItems getSelectionItems();
 
     /**
      * Runs the task on the platform's main/server thread: inline, right now, when the calling thread

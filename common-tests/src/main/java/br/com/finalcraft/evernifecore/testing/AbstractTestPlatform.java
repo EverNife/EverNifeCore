@@ -12,7 +12,9 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 
 import java.util.List;
 import java.util.UUID;
@@ -167,6 +169,16 @@ public abstract class AbstractTestPlatform implements IPlatform {
     @Override
     public void onWorldUnloaded(Consumer<String> listener) {
         throw notConfigured("onWorldUnloaded", "Platforms.strict().worldEvents()");
+    }
+
+    @Override
+    public IOutlineRenderer getOutlineRenderer() {
+        throw notConfigured("getOutlineRenderer", "Platforms.strict().outlineRenderer(...)");
+    }
+
+    @Override
+    public ISelectionItems getSelectionItems() {
+        throw notConfigured("getSelectionItems", "Platforms.strict().selectionItems(...)");
     }
 
     @Override

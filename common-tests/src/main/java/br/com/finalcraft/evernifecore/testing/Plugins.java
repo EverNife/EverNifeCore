@@ -10,6 +10,8 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.everyconfig.config.Config;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A plugin that exists only for the test: a name, a data folder, and enough metadata for
@@ -35,6 +37,14 @@ public final class Plugins {
      */
     public static IECPluginExtractor fakeRecognisingOnly(String pluginName, File dataFolder, Object thePlugin) {
         return new FakePluginExtractor(pluginName, dataFolder, thePlugin);
+    }
+
+    /**
+     * An extractor that knows several fake plugins and tells which one provides a class by its package, the way a
+     * server tells which jar a class came from - what a test of one plugin mounting another plugin's code needs.
+     */
+    public static Routing routing() {
+        return new Routing();
     }
 
     /**
@@ -68,6 +78,96 @@ public final class Plugins {
         config.setValue("Localization.fileName", "lang_" + LocaleType.normalize(language) + ".yml");
         config.save();
         plugin.reloadAllCustomLocales();
+    }
+
+    /** See {@link #routing()}. Each plugin is answered by a token object of its own. */
+    public static final class Routing implements IECPluginExtractor {
+
+        private final List<Route> routes = new ArrayList<>();
+
+        private Routing() {
+        }
+
+        /**
+         * Declares a plugin that provides every class whose name starts with one of {@code packagePrefixes}. When
+         * prefixes of two plugins match, the longest wins; a class no prefix matches belongs to the first plugin.
+         */
+        public Routing plugin(String name, File dataFolder, String... packagePrefixes) {
+            routes.add(new Route(new Object(), name, dataFolder, packagePrefixes));
+            return this;
+        }
+
+        /** The object that stands for the plugin {@code name}, as {@code getProvidingPlugin} hands it out. */
+        public Object getToken(String name) {
+            for (Route route : routes) {
+                if (route.name.equals(name)) {
+                    return route.token;
+                }
+            }
+            throw new IllegalArgumentException("No plugin [" + name + "] was declared - add it with plugin(name, dir, prefixes...)");
+        }
+
+        @Override
+        public String getPluginName(Object javaPlugin) {
+            return route(javaPlugin).name;
+        }
+
+        @Override
+        public boolean isJavaPlugin(Object plugin) {
+            for (Route route : routes) {
+                if (route.token == plugin) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public Object getProvidingPlugin(Class<?> clazz) {
+            if (routes.isEmpty()) {
+                throw new IllegalStateException("Plugins.routing() knows no plugin - declare one with plugin(name, dir, prefixes...)");
+            }
+            Route best = routes.get(0);
+            int bestLength = -1;
+            for (Route route : routes) {
+                for (String prefix : route.prefixes) {
+                    if (clazz.getName().startsWith(prefix) && prefix.length() > bestLength) {
+                        best = route;
+                        bestLength = prefix.length();
+                    }
+                }
+            }
+            return best.token;
+        }
+
+        @Override
+        public IPluginMetaInfo getPluginMetaInfo(Object javaPlugin) {
+            Route route = route(javaPlugin);
+            return new FakeMetaInfo(javaPlugin, route.name, route.dataFolder);
+        }
+
+        private Route route(Object token) {
+            for (Route route : routes) {
+                if (route.token == token) {
+                    return route;
+                }
+            }
+            throw new IllegalArgumentException("[" + token + "] is not a plugin this routing extractor declared");
+        }
+
+        private static final class Route {
+            final Object token;
+            final String name;
+            final File dataFolder;
+            final String[] prefixes;
+
+            Route(Object token, String name, File dataFolder, String[] prefixes) {
+                this.token = token;
+                this.name = name;
+                this.dataFolder = dataFolder;
+                this.prefixes = prefixes;
+            }
+        }
     }
 
     private static final class FakePluginExtractor implements IECPluginExtractor {

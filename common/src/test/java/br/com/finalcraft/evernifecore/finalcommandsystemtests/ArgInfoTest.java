@@ -139,6 +139,6 @@ class ArgInfoTest {
                 parser.getArgInfo(),
                 null,
                 ResolvedArguments.none(),
-                true);
+                true, null);
     }
 }

@@ -5,7 +5,9 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
 import br.com.finalcraft.evernifecore.text.ITextMetrics;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
@@ -256,6 +258,8 @@ public class FancyHoverRegistryContractTest {
         @Override public CompletableFuture<Void> runOnWorldThread(String worldName, Runnable task) { return delegate.runOnWorldThread(worldName, task); }
         @Override public void onWorldLoaded(Consumer<String> listener) { delegate.onWorldLoaded(listener); }
         @Override public void onWorldUnloaded(Consumer<String> listener) { delegate.onWorldUnloaded(listener); }
+        @Override public IOutlineRenderer getOutlineRenderer() { return delegate.getOutlineRenderer(); }
+        @Override public ISelectionItems getSelectionItems() { return delegate.getSelectionItems(); }
         @Override public void shutdown(String reason) { delegate.shutdown(reason); }
     }
 }

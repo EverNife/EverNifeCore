@@ -25,7 +25,9 @@ import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -293,6 +295,16 @@ public class McPlatform implements IPlatform {
 
     private final List<Consumer<String>> worldLoadedListeners = new CopyOnWriteArrayList<>();
     private final List<Consumer<String>> worldUnloadedListeners = new CopyOnWriteArrayList<>();
+
+    @Override
+    public IOutlineRenderer getOutlineRenderer() {
+        return IOutlineRenderer.NONE;
+    }
+
+    @Override
+    public ISelectionItems getSelectionItems() {
+        return ISelectionItems.NONE;
+    }
 
     @Override
     public boolean isWorldThread(String worldName) {

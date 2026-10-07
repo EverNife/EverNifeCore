@@ -27,15 +27,17 @@ public interface ITabParser {
         private final int localIndex;
         private final CommandPath path;
         private final Map<String, String> captureTokens;
+        private final @Nullable Object executor;
 
         /**
          * @param index      where the word being completed sits in {@code args}
          * @param localIndex where it sits once the command path is sliced off
          * @param path       the segments the traversal consumed to get here
          * @param captureTokens each ancestor node's captured token(s), keyed by node path, exactly as typed
+         * @param executor   the instance of the node the traversal stopped at; null outside a dispatch
          */
         public TabContext(FCommandSender sender, String alias, String[] args, int index, int localIndex,
-                          CommandPath path, Map<String, String> captureTokens) {
+                          CommandPath path, Map<String, String> captureTokens, @Nullable Object executor) {
             this.sender = sender;
             this.alias = alias;
             this.args = args;
@@ -43,6 +45,16 @@ public interface ITabParser {
             this.localIndex = localIndex;
             this.path = path;
             this.captureTokens = captureTokens;
+            this.executor = executor;
+        }
+
+        /**
+         * The instance of the node whose word is being completed - the same object {@link
+         * br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseCall#getExecutor()} hands the dispatch.
+         * Null when the parser is exercised outside a dispatch.
+         */
+        public @Nullable Object getExecutor() {
+            return executor;
         }
 
         public @Nullable FPlayer getPlayer(){

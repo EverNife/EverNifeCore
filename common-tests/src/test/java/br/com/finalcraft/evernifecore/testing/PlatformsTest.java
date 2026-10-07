@@ -3,7 +3,14 @@ package br.com.finalcraft.evernifecore.testing;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.ECBaseProvider;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
+import br.com.finalcraft.evernifecore.region.selection.ItemSpec;
+import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
+import br.com.finalcraft.evernifecore.region.visual.VisualStyle;
 import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -133,5 +140,48 @@ class PlatformsTest {
         assertNotNull(platform.getChatAdapter());
         assertTrue(platform.registrationOrder().isEmpty());
         assertNull(platform.getCaptured("nothing-registered-yet"));
+    }
+
+    @Test
+    void recordingOutlinesKeepsEveryFrame() {
+        TestPlatform platform = Platforms.strict().recordingOutlines().build();
+        TestFPlayerSender steve = Senders.player("Steve");
+
+        platform.getOutlineRenderer().render(steve, Collections.singletonList(WorldLocPos.of(1, 2, 3, "world")), VisualStyle.OWN);
+
+        assertEquals(1, platform.getRenderedOutlines().size());
+        assertSame(steve, platform.getRenderedOutlines().get(0).player);
+        assertEquals(VisualStyle.OWN, platform.getRenderedOutlines().get(0).style);
+        assertEquals(1, platform.getRenderedOutlines().get(0).points.size());
+    }
+
+    @Test
+    void recordingSelectionItemsKeepsEveryTool() {
+        TestPlatform platform = Platforms.strict().recordingSelectionItems().build();
+        TestFPlayerSender steve = Senders.player("Steve");
+
+        platform.getSelectionItems().give(steve, ItemSpec.DEFAULT_TOOL);
+
+        assertEquals(1, platform.getSelectionItemsGiven().size());
+        assertSame(steve, platform.getSelectionItemsGiven().get(0).player);
+        assertEquals(ItemSpec.DEFAULT_TOOL, platform.getSelectionItemsGiven().get(0).spec);
+    }
+
+    @Test
+    void strictRefusesBothRegionSpisNamingTheBuilder() {
+        TestPlatform platform = Platforms.strict().build();
+
+        UnsupportedOperationException renderer = assertThrows(UnsupportedOperationException.class, platform::getOutlineRenderer);
+        assertTrue(renderer.getMessage().contains("Platforms.strict().outlineRenderer(...)"), renderer.getMessage());
+        UnsupportedOperationException items = assertThrows(UnsupportedOperationException.class, platform::getSelectionItems);
+        assertTrue(items.getMessage().contains("Platforms.strict().selectionItems(...)"), items.getMessage());
+    }
+
+    @Test
+    void lenientAnswersNoneForBothRegionSpis() {
+        TestPlatform platform = Platforms.lenient().build();
+
+        assertSame(IOutlineRenderer.NONE, platform.getOutlineRenderer());
+        assertSame(ISelectionItems.NONE, platform.getSelectionItems());
     }
 }

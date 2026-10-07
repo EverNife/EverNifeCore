@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * A minimal but honest {@link FPlayer} fake: real name/uuid (so {@code isPlayer() == true}),
@@ -27,6 +28,7 @@ public class TestFPlayerSender implements FPlayer {
     private boolean online = true;
     private boolean playedBefore = false;
     private volatile @Nullable FLocation location;
+    private final List<FLocation> teleports = new CopyOnWriteArrayList<>();
 
     public TestFPlayerSender(String name, UUID uniqueId) {
         this.name = name;
@@ -75,9 +77,17 @@ public class TestFPlayerSender implements FPlayer {
         return location;
     }
 
+    /** Moves the player there, as a real teleport would, and keeps the target for {@link #getTeleports()}. */
     @Override
     public boolean teleportTo(FLocation targetLocation) {
-        return false;
+        teleports.add(targetLocation);
+        this.location = targetLocation;
+        return true;
+    }
+
+    /** Every location this player was teleported to, in order. */
+    public List<FLocation> getTeleports() {
+        return teleports;
     }
 
     @Override

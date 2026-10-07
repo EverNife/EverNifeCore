@@ -22,30 +22,34 @@ public final class ParseCall implements IParseCall {
     private final @Nullable DispatchContext dispatch;
     private final ResolvedArguments resolved;
     private final boolean flagValue;
+    private final @Nullable Object executor;
 
     /**
      * @param argumento the token this call is about; EMPTY when the parser is being asked to answer
      *                  without one ({@link ArgParser#absent} / {@link ArgParser#fromSender})
      * @param dispatch  the running dispatch, for {@link #getPath()} and {@link #captured}; null when the
      *                  parser is exercised outside one
+     * @param executor  the object whose method the dispatch will invoke; null outside a dispatch
      */
     public ParseCall(@Nonnull FCommandSender sender,
                      @Nonnull Argumento argumento,
                      @Nonnull ArgInfo argInfo,
                      @Nullable DispatchContext dispatch,
                      @Nonnull ResolvedArguments resolved,
-                     boolean flagValue) {
+                     boolean flagValue,
+                     @Nullable Object executor) {
         this.sender = sender;
         this.argumento = argumento;
         this.argInfo = argInfo;
         this.dispatch = dispatch;
         this.resolved = resolved;
         this.flagValue = flagValue;
+        this.executor = executor;
     }
 
     /** The same call about a different token - what a parser that delegates to another one needs. */
     public ParseCall withArgumento(@Nonnull Argumento other) {
-        return new ParseCall(sender, other, argInfo, dispatch, resolved, flagValue);
+        return new ParseCall(sender, other, argInfo, dispatch, resolved, flagValue, executor);
     }
 
     @Override
@@ -87,6 +91,16 @@ public final class ParseCall implements IParseCall {
     @Override
     public <T> @Nullable T previouslyParsed(@Nonnull String declaredName, @Nonnull Class<T> type) {
         return resolved.get(declaredName, type);
+    }
+
+    /**
+     * The object whose method the dispatch is about to invoke - for a verb declared inside a mounted node,
+     * that node's instance (for a verb of a nested node class, the nested instance). A parser reads it to
+     * learn what it runs under, e.g. which owner a bare name belongs to. Null when the parser is exercised
+     * outside a dispatch.
+     */
+    public @Nullable Object getExecutor() {
+        return executor;
     }
 
     /** Whether this token is a flag's value (or its {@code def()}) rather than a positional. */

@@ -62,4 +62,12 @@ class PlatformConformanceTest {
         assertTrue(refused.getMessage().contains("Platforms.strict().worldHeight(...)"), refused.getMessage());
         assertTrue(PlatformConformance.check(Platforms.strict().build()).stream().anyMatch(f -> f.startsWith("getWorldHeight")));
     }
+
+    @Test
+    void aNullOutlineRendererIsAViolationNamingTheMethod() {
+        List<String> failures = PlatformConformance.check(Platforms.lenient().outlineRenderer(null).build());
+
+        assertEquals(1, failures.size(), failures.toString());
+        assertTrue(failures.get(0).startsWith("getOutlineRenderer"), failures.get(0));
+    }
 }

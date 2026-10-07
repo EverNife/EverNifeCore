@@ -13,7 +13,12 @@ import br.com.finalcraft.evernifecore.logger.ECLogLevel;
 import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
+import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
+import br.com.finalcraft.evernifecore.region.selection.ItemSpec;
+import br.com.finalcraft.evernifecore.region.visual.VisualStyle;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -53,6 +58,9 @@ public class TestPlatform extends AbstractTestPlatform {
     private final AtomicInteger mainThreadRuns = new AtomicInteger();
     private final List<Consumer<String>> worldLoadedListeners = new CopyOnWriteArrayList<>();
     private final List<Consumer<String>> worldUnloadedListeners = new CopyOnWriteArrayList<>();
+    //the visualizer draws from the agenda's thread, so never a plain ArrayList
+    private final List<RenderedOutline> renderedOutlines = new CopyOnWriteArrayList<>();
+    private final List<GivenSelectionItem> selectionItemsGiven = new CopyOnWriteArrayList<>();
 
     // null means "not configured": the inherited strict method refuses.
     String platformProviderId;
@@ -76,6 +84,10 @@ public class TestPlatform extends AbstractTestPlatform {
     IPlatformVecAdapter vecAdapter;
     BiFunction<FPlayer, String, String> parser;
     WorldHeight worldHeight;
+    Boolean outlineRendererConfigured;
+    IOutlineRenderer outlineRenderer;
+    Boolean selectionItemsConfigured;
+    ISelectionItems selectionItems;
 
     private boolean forceRegisterFailure = false;
 
@@ -143,6 +155,24 @@ public class TestPlatform extends AbstractTestPlatform {
         return worldThreadRuns;
     }
 
+    /** Every frame a {@link Platforms#recordingOutlines()} renderer was asked to draw, in order. */
+    public List<RenderedOutline> getRenderedOutlines() {
+        return renderedOutlines;
+    }
+
+    /** Every tool a {@link Platforms#recordingSelectionItems()} platform was asked to give, in order. */
+    public List<GivenSelectionItem> getSelectionItemsGiven() {
+        return selectionItemsGiven;
+    }
+
+    IOutlineRenderer recordingRenderer() {
+        return (player, points, style) -> renderedOutlines.add(new RenderedOutline(player, points, style));
+    }
+
+    ISelectionItems recordingItems() {
+        return (player, spec) -> selectionItemsGiven.add(new GivenSelectionItem(player, spec));
+    }
+
     /** How many {@code runOnMainThread}/{@code runOnMainThreadNextTick} calls this platform ran. */
     public int getMainThreadRuns() {
         return mainThreadRuns.get();
@@ -187,6 +217,8 @@ public class TestPlatform extends AbstractTestPlatform {
         loggedMessages.clear();
         shutdownReasons.clear();
         worldThreadRuns.clear();
+        renderedOutlines.clear();
+        selectionItemsGiven.clear();
         mainThreadRuns.set(0);
     }
 
@@ -460,6 +492,17 @@ public class TestPlatform extends AbstractTestPlatform {
     }
 
     @Override
+    public IOutlineRenderer getOutlineRenderer() {
+        //a configured null is kept: it is the violation the conformance suite has to catch
+        return outlineRendererConfigured != null ? outlineRenderer : super.getOutlineRenderer();
+    }
+
+    @Override
+    public ISelectionItems getSelectionItems() {
+        return selectionItemsConfigured != null ? selectionItems : super.getSelectionItems();
+    }
+
+    @Override
     public void shutdown(String reason) {
         if (recordingShutdowns == null) {
             super.shutdown(reason);
@@ -499,6 +542,42 @@ public class TestPlatform extends AbstractTestPlatform {
         @Override
         public String toString() {
             return (player == null ? "?" : player.getName()) + " <- [" + text + "]";
+        }
+    }
+
+    /** One frame a renderer was handed: for whom, which points, and in what style. */
+    public static final class RenderedOutline {
+
+        public final FPlayer player;
+        public final List<WorldLocPos> points;
+        public final VisualStyle style;
+
+        RenderedOutline(FPlayer player, List<WorldLocPos> points, VisualStyle style) {
+            this.player = player;
+            this.points = Collections.unmodifiableList(new ArrayList<>(points));
+            this.style = style;
+        }
+
+        @Override
+        public String toString() {
+            return (player == null ? "?" : player.getName()) + " <- " + style + " x" + points.size();
+        }
+    }
+
+    /** One selection tool the platform was asked to give, and to whom. */
+    public static final class GivenSelectionItem {
+
+        public final FPlayer player;
+        public final ItemSpec spec;
+
+        GivenSelectionItem(FPlayer player, ItemSpec spec) {
+            this.player = player;
+            this.spec = spec;
+        }
+
+        @Override
+        public String toString() {
+            return (player == null ? "?" : player.getName()) + " <- " + spec;
         }
     }
 

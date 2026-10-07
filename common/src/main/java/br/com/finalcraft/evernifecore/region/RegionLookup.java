@@ -65,6 +65,11 @@ public final class RegionLookup {
         return GLOBAL;
     }
 
+    /** See {@link RegionIndex#setHugeChunks(int)}. */
+    public void setHugeChunks(int hugeChunks) {
+        index.setHugeChunks(hugeChunks);
+    }
+
     /** The index this lookup reads; writers publish through it. */
     RegionIndex getIndex() {
         return index;

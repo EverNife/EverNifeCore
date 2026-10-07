@@ -134,6 +134,26 @@ public final class PlatformConformance {
             }
         });
 
+        call(platform, "getOutlineRenderer", failures, new Call<Object>() {
+            @Override
+            public Object run(IPlatform target) {
+                if (target.getOutlineRenderer() == null) {
+                    throw new IllegalStateException("returned null; a platform that does not draw answers IOutlineRenderer.NONE");
+                }
+                return null;
+            }
+        });
+
+        call(platform, "getSelectionItems", failures, new Call<Object>() {
+            @Override
+            public Object run(IPlatform target) {
+                if (target.getSelectionItems() == null) {
+                    throw new IllegalStateException("returned null; a platform that gives no item answers ISelectionItems.NONE");
+                }
+                return null;
+            }
+        });
+
         call(platform, "runOnMainThread", failures, new Call<Object>() {
             @Override
             public Object run(IPlatform target) {

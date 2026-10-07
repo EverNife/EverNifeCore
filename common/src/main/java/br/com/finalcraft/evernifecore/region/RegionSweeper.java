@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * region agenda only while something has a deadline, and applies each world's expirations on the thread that owns
  * that world, so the events they cause go out where a world's events belong.
  */
-final class RegionSweeper {
+public final class RegionSweeper {
 
     static final long DEFAULT_INTERVAL_MILLIS = 1000;   //20 ticks
 
@@ -124,7 +124,8 @@ final class RegionSweeper {
         return a == null ? b : b == null || a.isBefore(b) ? a : b;
     }
 
-    static void setIntervalMillis(long millis) {
+    /** How often the sweeper looks for expired deadlines. Wired from the core config at boot and reload; tests set it directly. */
+    public static void setIntervalMillis(long millis) {
         intervalMillis = millis;
     }
 
