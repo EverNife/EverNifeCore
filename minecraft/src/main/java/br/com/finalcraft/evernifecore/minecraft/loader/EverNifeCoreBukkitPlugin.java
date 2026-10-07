@@ -41,6 +41,7 @@ import br.com.finalcraft.evernifecore.minecraft.protection.ProtectionAll;
 import br.com.finalcraft.evernifecore.minecraft.region.McRegionListeners;
 import br.com.finalcraft.evernifecore.minecraft.region.McRegionProtectionHandler;
 import br.com.finalcraft.evernifecore.minecraft.region.McWorldListener;
+import br.com.finalcraft.evernifecore.minecraft.scheduler.McFCScheduler;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
@@ -170,6 +171,9 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
 
         //each region listener sits on the server only while some region needs its kind of event
         regionListeners = McRegionListeners.start(ecPluginData);
+
+        //last, so what a loadbefore plugin asked for runs after the first-tick work scheduled above
+        McFCScheduler.INSTANCE.releaseTasksHeldUntilTheCoreEnables();
     }
 
     // Prints the NBT-API self-test outcome to the console. A failure here is not

@@ -147,9 +147,10 @@ public interface IPlatform {
      * already called from it. Timing is platform-specific:
      * <ul>
      *   <li><b>Bukkit:</b> the server main thread, on the next tick. A task scheduled during enable
-     *       fires on the first tick, after every plugin has enabled. Running there holds the tick
-     *       until the task finishes - the first-boot legacy import relies on that to freeze the
-     *       server while it migrates.</li>
+     *       fires on the first tick, after every plugin has enabled; one scheduled by a plugin that
+     *       enables before EverNifeCore runs after the first-tick tasks of the core's own enable.
+     *       Running there holds the tick until the task finishes - the first-boot legacy import
+     *       relies on that to freeze the server while it migrates.</li>
      *   <li><b>Hytale:</b> there is no single main thread (schedulers are per-world), so the task runs
      *       on a background thread. It still waits for the start phase - once every plugin has finished
      *       {@code setup()} and all worlds are loaded: tasks submitted before that are buffered and
