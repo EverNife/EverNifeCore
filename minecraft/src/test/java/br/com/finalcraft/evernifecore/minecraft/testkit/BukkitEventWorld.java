@@ -18,7 +18,14 @@ import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Server;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -38,13 +45,18 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -92,6 +104,8 @@ public final class BukkitEventWorld implements AutoCloseable {
     private final List<ECListener> ecListeners = new ArrayList<>();
     private final List<Runnable> scheduledTasks = new ArrayList<>();
     private final BukkitScheduler scheduler = buildScheduler();
+    private final Map<String, World> worlds = new LinkedHashMap<>();
+    private final List<Player> players = new ArrayList<>();
 
     private McPlatform realPlatform;
     private boolean closed = false;
@@ -243,6 +257,96 @@ public final class BukkitEventWorld implements AutoCloseable {
         }
     }
 
+    /**
+     * A world the server knows by {@code name} - {@code Bukkit.getWorld(name)} answers it - whose floor is {@code minY}
+     * and whose {@code getMaxHeight()} is {@code maxY}, exclusive as on a real server. Every block in it is stone. The
+     * same name twice is the same world.
+     */
+    public World world(String name, int minY, int maxY) {
+        return worlds.computeIfAbsent(name, key -> {
+            UUID id = UUID.nameUUIDFromBytes(("world:" + name).getBytes(StandardCharsets.UTF_8));
+            AtomicReference<World> self = new AtomicReference<>();
+            World world = Doubles.of(World.class)
+                    .returning("getName", name)
+                    .returning("getUID", id)
+                    .returning("getMinHeight", minY)
+                    .returning("getMaxHeight", maxY)
+                    .on("getBlockAt", args -> args.length == 3
+                            ? block(self.get(), (Integer) args[0], (Integer) args[1], (Integer) args[2])
+                            : block(self.get(), ((Location) args[0]).getBlockX(), ((Location) args[0]).getBlockY(), ((Location) args[0]).getBlockZ()))
+                    .build();
+            self.set(world);
+            return world;
+        });
+    }
+
+    /**
+     * An online player standing at {@code at}: {@code teleport} moves them and answers true, {@code hasPermission}
+     * answers true for exactly {@code permissions}, and the server lists them as online.
+     */
+    public Player player(String name, Location at, String... permissions) {
+        UUID id = UUID.nameUUIDFromBytes(("player:" + name).getBytes(StandardCharsets.UTF_8));
+        AtomicReference<Location> where = new AtomicReference<>(at.clone());
+        AtomicReference<Player> self = new AtomicReference<>();
+        Set<String> granted = new HashSet<>(Arrays.asList(permissions));
+        Player player = Doubles.of(Player.class)
+                .returning("getName", name)
+                .returning("getUniqueId", id)
+                .returning("isOnline", true)
+                .returning("getType", EntityType.PLAYER)
+                .on("getPlayer", args -> self.get())
+                .on("getLocation", args -> where.get().clone())
+                .on("getWorld", args -> where.get().getWorld())
+                .on("teleport", args -> {
+                    where.set(args[0] instanceof Location ? ((Location) args[0]).clone() : ((Entity) args[0]).getLocation());
+                    return true;
+                })
+                .on("hasPermission", args -> args[0] instanceof String && granted.contains(args[0]))
+                .build();
+        self.set(player);
+        players.add(player);
+        return player;
+    }
+
+    /** Whether some listener of type {@code type} is registered on {@code list} right now. */
+    public static boolean isRegistered(HandlerList list, Class<? extends ECListener> type) {
+        for (RegisteredListener registered : list.getRegisteredListeners()) {
+            if (type.isInstance(registered.getListener())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Block block(World world, int x, int y, int z) {
+        return Doubles.of(Block.class)
+                .returning("getWorld", world)
+                .returning("getType", Material.STONE)
+                .returning("getX", x)
+                .returning("getY", y)
+                .returning("getZ", z)
+                .on("getLocation", args -> new Location(world, x, y, z))
+                .build();
+    }
+
+    private World worldById(UUID id) {
+        for (World world : worlds.values()) {
+            if (world.getUID().equals(id)) {
+                return world;
+            }
+        }
+        return null;
+    }
+
+    private Player playerById(UUID id) {
+        for (Player player : players) {
+            if (player.getUniqueId().equals(id)) {
+                return player;
+            }
+        }
+        return null;
+    }
+
     // -----------------------------------------------------------------------------------------------------------------
     //  The stubbed server
     // -----------------------------------------------------------------------------------------------------------------
@@ -292,6 +396,11 @@ public final class BukkitEventWorld implements AutoCloseable {
                 //first time anything asks
                 .on("getBukkitVersion", args -> "1.21.1-R0.1-SNAPSHOT")
                 .on("getVersion", args -> "1.21.1-R0.1-SNAPSHOT")
+                //by name or by id, over the worlds and players a test made with world(...) and player(...)
+                .on("getWorld", args -> args[0] instanceof UUID ? worldById((UUID) args[0]) : worlds.get((String) args[0]))
+                .on("getWorlds", args -> new ArrayList<>(worlds.values()))
+                .on("getOnlinePlayers", args -> new ArrayList<>(players))
+                .on("getPlayer", args -> args[0] instanceof UUID ? playerById((UUID) args[0]) : null)
                 .build();
     }
 

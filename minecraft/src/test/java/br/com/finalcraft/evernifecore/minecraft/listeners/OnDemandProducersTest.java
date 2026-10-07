@@ -25,7 +25,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.plugin.RegisteredListener;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
@@ -33,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static br.com.finalcraft.evernifecore.minecraft.testkit.BukkitEventWorld.isRegistered;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -228,15 +228,6 @@ class OnDemandProducersTest {
         family.add(ECPetDamagedByPet.class);
         family.add(ECPetDamagedByPlayer.class);
         return family;
-    }
-
-    private static boolean isRegistered(HandlerList list, Class<? extends ECListener> producer) {
-        for (RegisteredListener registered : list.getRegisteredListeners()) {
-            if (producer.isInstance(registered.getListener())) {
-                return true;
-            }
-        }
-        return false;
     }
 
 }

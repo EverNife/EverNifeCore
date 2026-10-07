@@ -5,6 +5,8 @@ package br.com.finalcraft.evernifecore.minecraft.gui.model;
  *
  * <p>The name is how a click is attributed to an area; the slots are what the window has to be
  * measured against before they are indexes.</p>
+ *
+ * <p>Not the protection region: see {@link br.com.finalcraft.evernifecore.region.Region}.</p>
  */
 public final class Region {
 

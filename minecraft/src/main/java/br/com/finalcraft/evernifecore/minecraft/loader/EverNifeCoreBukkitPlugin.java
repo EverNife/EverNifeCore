@@ -37,6 +37,8 @@ import br.com.finalcraft.evernifecore.minecraft.nbt.NBTSelfTest;
 import br.com.finalcraft.evernifecore.minecraft.ontime.McDefaultOntimeManager;
 import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCTickUtil;
+import br.com.finalcraft.evernifecore.minecraft.region.McWorldListener;
+import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
 import org.bukkit.Bukkit;
@@ -60,6 +62,9 @@ import org.bukkit.Bukkit;
 public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
 
     public static EverNifeCoreBukkitPlugin instance;
+
+    /** The platform this plugin registers, kept so the native world hooks fire into the same instance. */
+    private final McPlatform platform = new McPlatform();
     static {
         //First thing to do when this class is loaded is to add REQUIRED dependencies, because there ara plugins that depends
         //on EverNifeCore and are loaded before it, for example, FinalEconomy
@@ -89,14 +94,14 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
 
         EverNifeCore.getProviders().getBaseProvider().register(
                 IPlatform.class,
-                new McPlatform()
+                platform
         );
 
         //Economy resolves lazily, so registering it this early costs nothing and covers the plugins
         //that load before EverNifeCore and charge during their own enable.
         VaultIntegration.register();
 
-        if (MCVersion.isHigherEquals(MCVersion.v1_19)){
+        if (MCVersion.isHigherEquals(MCDetailedVersion.v1_18_R1)){
             RegionGridOptions.setCurrent(RegionGridOptions.MINECRAFT);
         }
 
@@ -137,6 +142,7 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         ECListener.register(ecPluginData, PlayerInteractListener.class);
         ECListener.register(ecPluginData, PluginListener.class);
         ECListener.register(ecPluginData, GuiListener.class);
+        ECListener.register(ecPluginData, new McWorldListener(platform));
 
         if (Bukkit.getPluginManager().isPluginEnabled("AuthMe")){
             ECListener.register(ecPluginData, PlayerLoginListener.AuthmeLogin.class);

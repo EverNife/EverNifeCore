@@ -10,6 +10,8 @@ import br.com.finalcraft.evernifecore.minecraft.autoupdater.SpigotUpdateChecker;
 import br.com.finalcraft.evernifecore.minecraft.listeners.bossshop.BossShopListener;
 import br.com.finalcraft.evernifecore.minecraft.metrics.Metrics;
 import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
+import br.com.finalcraft.evernifecore.minecraft.protection.ProtectionAll;
+import br.com.finalcraft.evernifecore.minecraft.protection.integration.ProtectionHandler;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import org.bukkit.Bukkit;
@@ -21,9 +23,14 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class PluginListener implements ECListener {
+
+    /** The handler EverNifeCore registered for each protection plugin it ships one for, by plugin name. */
+    private final Map<String, ProtectionHandler> builtInProtections = new HashMap<>();
 
     @Override
     public void onRegister() {
@@ -37,6 +44,14 @@ public class PluginListener implements ECListener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPluginEnable(PluginEnableEvent event) {
         final Plugin plugin = event.getPlugin();
+
+        //the handler arrives with its plugin, whenever that enables - before or after this core
+        ProtectionHandler builtIn = builtInProtections.containsKey(plugin.getName()) ? null : ProtectionAll.builtInFor(plugin.getName());
+        if (builtIn != null) {
+            builtInProtections.put(plugin.getName(), builtIn);
+            ProtectionAll.getInstance().register(EverNifeCore.getEcPluginData(), builtIn);
+        }
+
         if (plugin.getName().equalsIgnoreCase("BossShopPro")){
             if (NMSUtils.get() != null){
                 EverNifeCore.getLog().info("Found BossShopPro, registering 'nbt' tag!");
@@ -71,12 +86,18 @@ public class PluginListener implements ECListener {
          */
         String pluginName = event.getPlugin().getName();
 
+        ProtectionHandler builtIn = builtInProtections.remove(pluginName);
+        if (builtIn != null) {
+            ProtectionAll.getInstance().unregister(builtIn);
+        }
+
         //unregister the plugin's PDSections BEFORE its ECPluginData is dropped: a runtime-disabled
         //plugin must not leave bindings pinning its classes/classloader (and a later re-enable
         //re-registers with a fresh Class object, which would collide with the stale claim)
         ECPluginData ecPluginData = ECPluginManager.getECPluginsMap().get(pluginName);
         if (ecPluginData != null){
             PlayerController.unregisterPDSections(ecPluginData);
+            ProtectionAll.getInstance().unregisterAll(ecPluginData);
         }
 
         ECPluginManager.removePluginData(pluginName);

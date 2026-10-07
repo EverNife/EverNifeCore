@@ -26,6 +26,7 @@ import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.world.WorldHeights;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
@@ -284,13 +285,17 @@ public class McPlatform implements IPlatform {
     }
 
     /**
-     * The top comes from the loaded world; the floor is the server version's (-64 from 1.18, else 0), since the
-     * API this compiles against has no per-world minimum - a 1.18+ nether answers -64 here although it starts at 0.
+     * A loaded world answers for itself from 1.17, the first version with a per-world floor. Before that, or for a
+     * world that is not loaded, the floor is the server version's (-64 from 1.18, else 0) and the top the world's
+     * when loaded, the version's otherwise.
      */
     @Override
     public WorldHeight getWorldHeight(String worldName) {
-        boolean caveUpdate = MCVersion.isHigherEquals(MCDetailedVersion.v1_18_R1);
         World world = worldName == null ? null : Bukkit.getWorld(worldName);
+        if (world != null && MCVersion.isHigherEquals(MCDetailedVersion.v1_17_R1)) {
+            return WorldHeights.of(world);   //the nether and the end start at 0 even where the overworld starts at -64
+        }
+        boolean caveUpdate = MCVersion.isHigherEquals(MCDetailedVersion.v1_18_R1);
         int maxY = world != null ? world.getMaxHeight() - 1 : (caveUpdate ? 319 : 255);
         return WorldHeight.of(caveUpdate ? -64 : 0, maxY);
     }

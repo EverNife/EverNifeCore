@@ -39,14 +39,11 @@ import java.util.stream.Collectors;
 
 public class CMDProtectionTest implements ICustomFinalCMD {
 
-    private boolean atLeastOne = false;
-
     @Override
     public void customize(@Nonnull CustomizeContext context) {
         context.replace("%protection_plugins%", "ALL|" +
                 ProtectionAll.getInstance().getProtectionHandlers().stream().map(ProtectionHandler::getName).collect(Collectors.joining("|"))
         );
-        atLeastOne = ProtectionAll.getInstance().getProtectionHandlers().size() > 0;
     }
 
     @FCLocale(lang = LocaleType.EN_US, text = "§c§l ▶ §eThere are no protection plugins detected by EverNifeCore's API!")
@@ -63,7 +60,7 @@ public class CMDProtectionTest implements ICustomFinalCMD {
     )
     public void onCommand(Player player, FPlayer fPlayer, @Arg("[%protection_plugins%]") String procteionHandlerName) {
 
-        if (atLeastOne == false){
+        if (ProtectionAll.getInstance().getProtectionHandlers().isEmpty()){
             NO_PROTECTIONS_DETECTED.send(fPlayer);
             return;
         }
