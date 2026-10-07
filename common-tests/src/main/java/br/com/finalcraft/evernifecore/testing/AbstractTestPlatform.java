@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.testing;
 
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
@@ -149,6 +150,11 @@ public abstract class AbstractTestPlatform implements IPlatform {
     @Override
     public WorldHeight getWorldHeight(String worldName) {
         throw notConfigured("getWorldHeight(String)", "Platforms.strict().worldHeight(...)");
+    }
+
+    @Override
+    public WorldLocPos getWorldSpawn(String worldName) {
+        throw notConfigured("getWorldSpawn(String)", "Platforms.strict().worldSpawn(...)");
     }
 
     @Override

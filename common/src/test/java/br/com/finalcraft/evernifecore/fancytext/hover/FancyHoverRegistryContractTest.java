@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.fancytext.hover;
 
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
@@ -254,6 +255,7 @@ public class FancyHoverRegistryContractTest {
         @Override public void registerConfigTypes() { delegate.registerConfigTypes(); }
         @Override public void registerArgParsers() { delegate.registerArgParsers(); }
         @Override public WorldHeight getWorldHeight(String worldName) { return delegate.getWorldHeight(worldName); }
+        @Override public WorldLocPos getWorldSpawn(String worldName) { return delegate.getWorldSpawn(worldName); }
         @Override public boolean isWorldThread(String worldName) { return delegate.isWorldThread(worldName); }
         @Override public CompletableFuture<Void> runOnWorldThread(String worldName, Runnable task) { return delegate.runOnWorldThread(worldName, task); }
         @Override public void onWorldLoaded(Consumer<String> listener) { delegate.onWorldLoaded(listener); }

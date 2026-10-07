@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.ignore.ECIgnores;
+import br.com.finalcraft.evernifecore.spawn.ISpawnProvider;
 
 public class ECProviders {
 
@@ -38,6 +39,16 @@ public class ECProviders {
     /** Like {@link #getEconomy()} but returns {@code null} instead of throwing when none is registered. */
     public IEconomyProvider getEconomyOrNull(){
         return BASE_PROVIDER.provideOrNull(IEconomyProvider.class);
+    }
+
+    /** The server spawn a spawn plugin registered; throws when none is - see {@link #getSpawnOrNull()}. */
+    public ISpawnProvider getSpawn(){
+        return BASE_PROVIDER.provide(ISpawnProvider.class);
+    }
+
+    /** Like {@link #getSpawn()} but returns {@code null} instead of throwing when no spawn plugin registered one. */
+    public ISpawnProvider getSpawnOrNull(){
+        return BASE_PROVIDER.provideOrNull(ISpawnProvider.class);
     }
 
     /** Who ignores whom, per {@link br.com.finalcraft.evernifecore.ignore.IgnoreKind}. Nobody, until a plugin says otherwise. */

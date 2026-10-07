@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.testing;
 
+import br.com.finalcraft.evernifecore.spawn.ISpawnProvider;
+import br.com.finalcraft.evernifecore.spawn.SpawnPoints;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.ECBaseProvider;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
@@ -28,6 +30,7 @@ public final class ECoreTestWorld implements AutoCloseable {
     private final boolean hadExtractor;
     private final IEconomyProvider previousEconomy;
     private final boolean hadEconomy;
+    private final ISpawnProvider previousSpawn;
     private boolean closed = false;
 
     private ECoreTestWorld(TestPlatform platform, IPlatform previousPlatform, IECPluginExtractor previousExtractor, IEconomyProvider previousEconomy) {
@@ -37,6 +40,7 @@ public final class ECoreTestWorld implements AutoCloseable {
         this.hadExtractor = previousExtractor != null;
         this.previousEconomy = previousEconomy;
         this.hadEconomy = previousEconomy != null;
+        this.previousSpawn = EverNifeCore.getProviders().getSpawnOrNull();
     }
 
     static ECoreTestWorld install(TestPlatform platform) {
@@ -51,6 +55,7 @@ public final class ECoreTestWorld implements AutoCloseable {
         );
 
         providers.register(IPlatform.class, platform);
+        SpawnPoints.resetWarning(); //a new world is a new boot: its first spawn fallback reports again
         return world;
     }
 
@@ -77,6 +82,15 @@ public final class ECoreTestWorld implements AutoCloseable {
         return this;
     }
 
+    /**
+     * Registers a spawn plugin's {@link ISpawnProvider} for the lifetime of this world. Without this call there is
+     * none, and {@code SpawnPoints} falls back to the world spawn ({@code Platforms.worldSpawn}).
+     */
+    public ECoreTestWorld withSpawn(ISpawnProvider spawn) {
+        EverNifeCore.getProviders().getBaseProvider().register(ISpawnProvider.class, spawn);
+        return this;
+    }
+
     @Override
     public void close() {
         if (closed) {
@@ -88,6 +102,8 @@ public final class ECoreTestWorld implements AutoCloseable {
         restore(providers, IPlatform.class, previousPlatform, previousPlatform != null);
         restore(providers, IECPluginExtractor.class, previousExtractor, hadExtractor);
         restore(providers, IEconomyProvider.class, previousEconomy, hadEconomy);
+        restore(providers, ISpawnProvider.class, previousSpawn, previousSpawn != null);
+        SpawnPoints.resetWarning();
     }
 
     private static <T> void restore(ECBaseProvider providers, Class<T> type, T previous, boolean hadPrevious) {

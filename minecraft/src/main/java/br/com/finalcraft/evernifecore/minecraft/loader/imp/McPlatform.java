@@ -1,4 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.loader.imp;
+import org.bukkit.Location;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.util.ExecuteOnce;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
@@ -291,6 +293,16 @@ public class McPlatform implements IPlatform {
         World world = worldName == null ? null : Bukkit.getWorld(worldName);
         int maxY = world != null ? world.getMaxHeight() - 1 : (caveUpdate ? 319 : 255);
         return WorldHeight.of(caveUpdate ? -64 : 0, maxY);
+    }
+
+    @Override
+    public @Nullable WorldLocPos getWorldSpawn(String worldName) {
+        World world = worldName == null ? null : Bukkit.getWorld(worldName);
+        if (world == null) {
+            return null;
+        }
+        Location spawn = world.getSpawnLocation();
+        return WorldLocPos.of(spawn.getX(), spawn.getY(), spawn.getZ(), world.getName());
     }
 
     private final List<Consumer<String>> worldLoadedListeners = new CopyOnWriteArrayList<>();

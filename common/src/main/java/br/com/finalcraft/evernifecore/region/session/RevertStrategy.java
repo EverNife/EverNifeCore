@@ -17,7 +17,18 @@ import java.util.Objects;
 
 /**
  * Where a player whose movement was denied goes back to. Immutable; its text form is what settings files and
- * commands write: {@code last-valid}, {@code trail:2}, {@code allow-after:5}, {@code fixed:world,10,64,-3}.
+ * commands write - one of six:
+ * <ul>
+ *     <li>{@code last-valid} - the center of the last accepted block (the default);</li>
+ *     <li>{@code trail:<n>} - the {@code n}-th accepted block before that one;</li>
+ *     <li>{@code allow-after:<n>} - deny, but let the {@code n}-th denial in a row through;</li>
+ *     <li>{@code fixed:<x>,<y>,<z>[,<world>]} - a point in the named world, or in whatever world the player is in
+ *     when reverted;</li>
+ *     <li>{@code spawn} - the server spawn a spawn plugin registered, else the world's ({@code SpawnPoints});</li>
+ *     <li>{@code worldspawn} - the spawn point of the world the player is in.</li>
+ * </ul>
+ * The numbers come first and the world last because the value lives inside {@code key=value} settings, where a
+ * space would end it.
  */
 public final class RevertStrategy {
 
@@ -28,23 +39,38 @@ public final class RevertStrategy {
         TRAIL,
         /** Deny, but let the {@code n}-th denial in a row through. */
         ALLOW_AFTER,
-        /** A fixed point. */
-        FIXED
+        /** A fixed point, in a named world or in the player's own. */
+        FIXED,
+        /** The server spawn, or the world spawn while no spawn plugin registered one. */
+        SPAWN,
+        /** The spawn point of the player's world. */
+        WORLD_SPAWN
     }
 
-    private static final RevertStrategy LAST_VALID = new RevertStrategy(Kind.LAST_VALID, 0, null);
+    private static final RevertStrategy LAST_VALID = new RevertStrategy(Kind.LAST_VALID, 0, 0, 0, 0, null);
+    private static final RevertStrategy SPAWN = new RevertStrategy(Kind.SPAWN, 0, 0, 0, 0, null);
+    private static final RevertStrategy WORLD_SPAWN = new RevertStrategy(Kind.WORLD_SPAWN, 0, 0, 0, 0, null);
+
+    private static final String ACCEPTED_FORMS = "last-valid, trail:<blocks back>, allow-after:<denials>, fixed:<x>,<y>,<z>[,<world>],"
+            + " spawn or worldspawn - e.g. trail:2, fixed:10,64,-3 or fixed:10,64,-3,world";
 
     /** Reads and writes the text form, for settings and commands. */
     public static final FlagType<RevertStrategy> TYPE = new StrategyType();
 
     private final Kind kind;
     private final int count;
-    private final @Nullable WorldLocPos point;
+    private final double x;
+    private final double y;
+    private final double z;
+    private final @Nullable String world;
 
-    private RevertStrategy(Kind kind, int count, @Nullable WorldLocPos point) {
+    private RevertStrategy(Kind kind, int count, double x, double y, double z, @Nullable String world) {
         this.kind = kind;
         this.count = count;
-        this.point = point;
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.world = world;
     }
 
     /** The default: the center of the last accepted block. */
@@ -57,7 +83,7 @@ public final class RevertStrategy {
         if (stepsBack < 1) {
             throw new IllegalArgumentException("trail(" + stepsBack + ") must go back at least 1 block - trail(0) is lastValid().");
         }
-        return new RevertStrategy(Kind.TRAIL, stepsBack, null);
+        return new RevertStrategy(Kind.TRAIL, stepsBack, 0, 0, 0, null);
     }
 
     /** @throws IllegalArgumentException when {@code denials} is below 1 */
@@ -65,11 +91,28 @@ public final class RevertStrategy {
         if (denials < 1) {
             throw new IllegalArgumentException("allowAfter(" + denials + ") needs at least 1 denial - allowAfter(1) lets the first one through.");
         }
-        return new RevertStrategy(Kind.ALLOW_AFTER, denials, null);
+        return new RevertStrategy(Kind.ALLOW_AFTER, denials, 0, 0, 0, null);
     }
 
+    /** A point in a named world. */
     public static RevertStrategy fixed(WorldLocPos at) {
-        return new RevertStrategy(Kind.FIXED, 0, Objects.requireNonNull(at, "at"));
+        Objects.requireNonNull(at, "at");
+        return new RevertStrategy(Kind.FIXED, 0, at.getX(), at.getY(), at.getZ(), Objects.requireNonNull(at.getWorldName(), "at.worldName"));
+    }
+
+    /** A point in whatever world the player is in when reverted. */
+    public static RevertStrategy fixed(double x, double y, double z) {
+        return new RevertStrategy(Kind.FIXED, 0, x, y, z, null);
+    }
+
+    /** The server spawn ({@code ISpawnProvider}), or the world spawn while no spawn plugin registered one. */
+    public static RevertStrategy spawn() {
+        return SPAWN;
+    }
+
+    /** The spawn point of the player's world. */
+    public static RevertStrategy worldSpawn() {
+        return WORLD_SPAWN;
     }
 
     public Kind getKind() {
@@ -81,9 +124,27 @@ public final class RevertStrategy {
         return count;
     }
 
-    /** The point of {@link Kind#FIXED}; null for the others. */
+    /** The point of a {@link Kind#FIXED} that names its world; null for one in the player's world and for the others. */
     public @Nullable WorldLocPos getPoint() {
-        return point;
+        return kind == Kind.FIXED && world != null ? WorldLocPos.of(x, y, z, world) : null;
+    }
+
+    /** The coordinates of {@link Kind#FIXED}; 0 for the others. */
+    public double getX() {
+        return x;
+    }
+
+    public double getY() {
+        return y;
+    }
+
+    public double getZ() {
+        return z;
+    }
+
+    /** The world a {@link Kind#FIXED} names; null when it is the player's own, and for the other kinds. */
+    public @Nullable String getWorld() {
+        return world;
     }
 
     @JsonValue
@@ -94,7 +155,11 @@ public final class RevertStrategy {
             case ALLOW_AFTER:
                 return "allow-after:" + count;
             case FIXED:
-                return "fixed:" + point.getWorldName() + "," + number(point.getX()) + "," + number(point.getY()) + "," + number(point.getZ());
+                return "fixed:" + number(x) + "," + number(y) + "," + number(z) + (world == null ? "" : "," + world);
+            case SPAWN:
+                return "spawn";
+            case WORLD_SPAWN:
+                return "worldspawn";
             default:
                 return "last-valid";
         }
@@ -103,7 +168,7 @@ public final class RevertStrategy {
     /**
      * The inverse of {@link #toText()}.
      *
-     * @throws IllegalArgumentException naming the text and the four accepted forms
+     * @throws IllegalArgumentException naming the text and the six accepted forms
      */
     @JsonCreator
     public static RevertStrategy parse(String text) {
@@ -112,6 +177,12 @@ public final class RevertStrategy {
             if (trimmed.equals("last-valid")) {
                 return lastValid();
             }
+            if (trimmed.equals("spawn")) {
+                return spawn();
+            }
+            if (trimmed.equals("worldspawn")) {
+                return worldSpawn();
+            }
             if (trimmed.startsWith("trail:")) {
                 return trail(Integer.parseInt(trimmed.substring("trail:".length())));
             }
@@ -119,9 +190,13 @@ public final class RevertStrategy {
                 return allowAfter(Integer.parseInt(trimmed.substring("allow-after:".length())));
             }
             if (trimmed.startsWith("fixed:")) {
+                //the world keeps its case: world names are case sensitive on most platforms
                 String[] parts = text.trim().substring("fixed:".length()).split(",", -1);
-                if (parts.length == 4 && !parts[0].isEmpty()) {
-                    return fixed(WorldLocPos.of(Double.parseDouble(parts[1]), Double.parseDouble(parts[2]), Double.parseDouble(parts[3]), parts[0]));
+                if (parts.length == 3 || (parts.length == 4 && !parts[3].trim().isEmpty())) {
+                    double x = Double.parseDouble(parts[0]);
+                    double y = Double.parseDouble(parts[1]);
+                    double z = Double.parseDouble(parts[2]);
+                    return parts.length == 3 ? fixed(x, y, z) : fixed(WorldLocPos.of(x, y, z, parts[3].trim()));
                 }
             }
         } catch (NumberFormatException notANumber) {
@@ -129,8 +204,7 @@ public final class RevertStrategy {
         } catch (IllegalArgumentException outOfRange) {
             throw new IllegalArgumentException("Invalid revert strategy '" + text + "': " + outOfRange.getMessage(), outOfRange);
         }
-        throw new IllegalArgumentException("Invalid revert strategy '" + text + "': write last-valid, trail:<blocks back>, allow-after:<denials>"
-                + " or fixed:<world>,<x>,<y>,<z>, e.g. trail:2 or fixed:world,10,64,-3.");
+        throw new IllegalArgumentException("Invalid revert strategy '" + text + "': write " + ACCEPTED_FORMS + ".");
     }
 
     private static String number(double value) {
@@ -194,7 +268,7 @@ public final class RevertStrategy {
 
         @Override
         public List<String> tabComplete(String partial) {
-            List<String> forms = new ArrayList<>(Arrays.asList("last-valid", "trail:", "allow-after:", "fixed:"));
+            List<String> forms = new ArrayList<>(Arrays.asList("last-valid", "trail:", "allow-after:", "fixed:", "spawn", "worldspawn"));
             String lower = partial == null ? "" : partial.toLowerCase(Locale.ROOT);
             forms.removeIf(form -> !form.startsWith(lower));
             return forms;

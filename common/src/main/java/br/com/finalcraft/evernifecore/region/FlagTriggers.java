@@ -19,6 +19,7 @@ import br.com.finalcraft.evernifecore.region.flag.stock.MoveDenySettings;
 import br.com.finalcraft.evernifecore.region.session.MoveVerdict;
 import br.com.finalcraft.evernifecore.region.session.RegionPlayerSession;
 import br.com.finalcraft.evernifecore.region.session.RevertStrategy;
+import br.com.finalcraft.evernifecore.spawn.SpawnPoints;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -140,13 +141,39 @@ public final class FlagTriggers {
         return apply(strategy, session, context, denials, handler == null ? moveSettings : null);
     }
 
+    /** Where a point strategy sends the player, read in the world the player is in; null when the platform does not know it. */
+    private static @Nullable WorldLocPos destinationOf(RevertStrategy strategy, MoveContext context) {
+        String world = context.getFrom().getWorldName();
+        switch (strategy.getKind()) {
+            case FIXED:
+                return strategy.getWorld() != null
+                        ? strategy.getPoint()
+                        : WorldLocPos.of(strategy.getX(), strategy.getY(), strategy.getZ(), world);
+            case SPAWN:
+                return SpawnPoints.getServerSpawn(context.getPlayer(), world);
+            case WORLD_SPAWN:
+                return SpawnPoints.getWorldSpawn(world);
+            default:
+                return null;
+        }
+    }
+
     /** @param stuck the settings that move a player who keeps being denied further back; null to never escalate */
     private static MoveVerdict apply(RevertStrategy strategy, RegionPlayerSession session, MoveContext context, int denials,
                                      @Nullable MoveDenySettings stuck) {
         int stepsBack;
         switch (strategy.getKind()) {
             case FIXED:
-                return MoveVerdict.revert(strategy.getPoint());
+            case SPAWN:
+            case WORLD_SPAWN:
+                WorldLocPos destination = destinationOf(strategy, context);
+                if (destination != null) {
+                    return MoveVerdict.revert(destination);
+                }
+                ECDebugModule.REGIONS.debug("{} was denied by {} with revert {}, but the platform knows no such point in world {}; reverting to"
+                        + " the last valid block instead.", context.getPlayer().getName(), context.getRegion().getId(), strategy, context.getFrom().getWorldName());
+                stepsBack = 0;
+                break;
             case ALLOW_AFTER:
                 if (denials >= strategy.getCount()) {
                     return MoveVerdict.allowed();

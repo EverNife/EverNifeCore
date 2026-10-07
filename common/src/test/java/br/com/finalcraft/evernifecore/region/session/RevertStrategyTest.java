@@ -7,13 +7,18 @@ import br.com.finalcraft.evernifecore.region.flag.FlagParseException;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.stock.DenyEntryFlag;
 import br.com.finalcraft.evernifecore.region.flag.stock.MoveDenySettings;
+import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
+import br.com.finalcraft.evernifecore.testing.Platforms;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -108,12 +113,103 @@ class RevertStrategyTest extends TrackerFixture {
                 RevertStrategy.fixed(WorldLocPos.of(1, 2, 3, WORLD))}) {
             assertEquals(strategy, RevertStrategy.TYPE.parse(RevertStrategy.TYPE.format(strategy)));
         }
-        assertEquals("fixed:world,1,2,3", RevertStrategy.fixed(WorldLocPos.of(1, 2, 3, WORLD)).toText());
+        assertEquals("fixed:1,2,3,world", RevertStrategy.fixed(WorldLocPos.of(1, 2, 3, WORLD)).toText());
 
         FlagParseException refused = assertThrows(FlagParseException.class, () -> RevertStrategy.TYPE.parse("trail:0"));
         assertTrue(refused.getMessage().contains("at least 1"), refused.getMessage());
         FlagParseException unknown = assertThrows(FlagParseException.class, () -> RevertStrategy.TYPE.parse("teleport-home"));
         assertTrue(unknown.getMessage().contains("last-valid"), unknown.getMessage());
+    }
+
+    @Test
+    void spawnAndWorldspawnRoundTrip() throws FlagParseException {
+        assertSame(RevertStrategy.spawn(), RevertStrategy.TYPE.parse("spawn"));
+        assertSame(RevertStrategy.worldSpawn(), RevertStrategy.TYPE.parse("WorldSpawn"));
+        assertEquals("spawn", RevertStrategy.TYPE.format(RevertStrategy.spawn()));
+        assertEquals("worldspawn", RevertStrategy.TYPE.format(RevertStrategy.worldSpawn()));
+    }
+
+    @Test
+    void fixedWithThreeNumbersHasNoWorld() throws FlagParseException {
+        RevertStrategy fixed = RevertStrategy.TYPE.parse("fixed:1,2.5,-3");
+
+        assertEquals(RevertStrategy.Kind.FIXED, fixed.getKind());
+        assertNull(fixed.getWorld());
+        assertNull(fixed.getPoint(), "no world, no point - the player's world fills it in at revert time");
+        assertEquals(1, fixed.getX());
+        assertEquals(2.5, fixed.getY());
+        assertEquals(-3, fixed.getZ());
+        assertEquals("fixed:1,2.5,-3", fixed.toText());
+    }
+
+    @Test
+    void fixedNamesItsWorldLastKeepingItsCase() throws FlagParseException {
+        RevertStrategy fixed = RevertStrategy.TYPE.parse("fixed:1,2,3,World_Nether");
+
+        assertEquals("World_Nether", fixed.getWorld());
+        assertEquals(WorldLocPos.of(1, 2, 3, "World_Nether"), fixed.getPoint());
+        assertEquals(fixed, RevertStrategy.TYPE.parse(fixed.toText()));
+    }
+
+    @Test
+    void theOldWorldFirstFormIsRefusedListingTheSixForms() {
+        FlagParseException refused = assertThrows(FlagParseException.class, () -> RevertStrategy.TYPE.parse("fixed:lobby,1,2,3"));
+
+        for (String form : new String[]{"last-valid", "trail:", "allow-after:", "fixed:<x>,<y>,<z>[,<world>]", "spawn", "worldspawn"}) {
+            assertTrue(refused.getMessage().contains(form), form + " missing from: " + refused.getMessage());
+        }
+    }
+
+    @Test
+    void tabCompleteOffersTheSixForms() {
+        assertEquals(Arrays.asList("last-valid", "trail:", "allow-after:", "fixed:", "spawn", "worldspawn"), RevertStrategy.TYPE.tabComplete(""));
+        assertEquals(Collections.singletonList("worldspawn"), RevertStrategy.TYPE.tabComplete("w"));
+    }
+
+    private static MoveDenySettings revertingWith(String strategy) {
+        MoveDenySettings settings = new MoveDenySettings();
+        settings.setRevert(RevertStrategy.parse(strategy));
+        return settings;
+    }
+
+    @Test
+    void revertSpawnSendsThePlayerToTheRegisteredSpawn() {
+        WorldLocPos lobby = WorldLocPos.of(0, 64, 0, "lobby");
+        try (ECoreTestWorld ignored = Platforms.lenient().worldSpawn(WORLD, WorldLocPos.of(7, 70, 7, WORLD)).install().withSpawn(() -> lobby)) {
+            guarded(revertingWith("spawn"));
+            walkUpTo15();
+
+            assertEquals(lobby, tryEntering().getRevertTo());
+        }
+    }
+
+    @Test
+    void revertWorldspawnSendsThePlayerToTheSpawnOfTheWorldItIsIn() {
+        WorldLocPos worldSpawn = WorldLocPos.of(7, 70, 7, WORLD);
+        try (ECoreTestWorld ignored = Platforms.lenient().worldSpawn(WORLD, worldSpawn).worldSpawn("lobby", WorldLocPos.of(0, 64, 0, "lobby")).install()
+                .withSpawn(() -> WorldLocPos.of(0, 64, 0, "lobby"))) {
+            guarded(revertingWith("worldspawn"));
+            walkUpTo15();
+
+            assertEquals(worldSpawn, tryEntering().getRevertTo(), "the world's own spawn, never the spawn plugin's");
+        }
+    }
+
+    @Test
+    void revertFixedWithoutAWorldUsesThePlayersWorld() {
+        guarded(revertingWith("fixed:1,2,3"));
+        walkUpTo15();
+
+        assertEquals(WorldLocPos.of(1, 2, 3, WORLD), tryEntering().getRevertTo());
+    }
+
+    @Test
+    void aSpawnThePlatformDoesNotKnowRevertsToTheLastValidBlock() {
+        //the class platform knows no world spawn, and no spawn plugin is registered
+        guarded(revertingWith("worldspawn"));
+        walkUpTo15();
+
+        assertEquals(at(15.5), tryEntering().getRevertTo());
     }
 
     @Test

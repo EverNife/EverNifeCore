@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.api.common.providers.platform;
 
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
@@ -82,6 +83,12 @@ public interface IPlatform {
      * loaded (or does not exist) answers the platform's default height; this never throws.
      */
     public WorldHeight getWorldHeight(String worldName);
+
+    /**
+     * The spawn point of the world named {@code worldName} - the world's own, not a plugin's server spawn - or
+     * {@code null} when that world is not loaded or does not exist. Never throws.
+     */
+    public @Nullable WorldLocPos getWorldSpawn(String worldName);
 
     /**
      * Whether the calling thread owns the world named {@code worldName} and may touch its blocks, entities

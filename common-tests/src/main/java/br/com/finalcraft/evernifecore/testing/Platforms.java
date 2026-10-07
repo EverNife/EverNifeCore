@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.testing;
 
+import java.util.HashMap;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
@@ -68,6 +70,7 @@ public final class Platforms {
                 .recordingShutdowns()
                 .withoutPlaceholderIntegration()
                 .worldHeight(0, 255)
+                .noWorldSpawns()
                 .outlineRenderer(IOutlineRenderer.NONE)
                 .selectionItems(ISelectionItems.NONE);
     }
@@ -146,6 +149,21 @@ public final class Platforms {
     /** The height every world answers, inclusive on both ends. */
     public Platforms worldHeight(int minY, int maxY) {
         platform.worldHeight = WorldHeight.of(minY, maxY);
+        return this;
+    }
+
+    /** Every world answers {@code getWorldSpawn} with null, as a platform that knows no world does. */
+    public Platforms noWorldSpawns() {
+        if (platform.worldSpawns == null) {
+            platform.worldSpawns = new HashMap<>();
+        }
+        return this;
+    }
+
+    /** {@code world}'s spawn point; repeat once per world. Any other world answers null. */
+    public Platforms worldSpawn(String world, WorldLocPos at) {
+        noWorldSpawns();
+        platform.worldSpawns.put(world, at);
         return this;
     }
 

@@ -84,6 +84,7 @@ public class TestPlatform extends AbstractTestPlatform {
     IPlatformVecAdapter vecAdapter;
     BiFunction<FPlayer, String, String> parser;
     WorldHeight worldHeight;
+    Map<String, WorldLocPos> worldSpawns; //null = not configured; a world missing from it answers null
     Boolean outlineRendererConfigured;
     IOutlineRenderer outlineRenderer;
     Boolean selectionItemsConfigured;
@@ -397,6 +398,11 @@ public class TestPlatform extends AbstractTestPlatform {
     @Override
     public WorldHeight getWorldHeight(String worldName) {
         return worldHeight != null ? worldHeight : super.getWorldHeight(worldName);
+    }
+
+    @Override
+    public WorldLocPos getWorldSpawn(String worldName) {
+        return worldSpawns != null ? worldSpawns.get(worldName) : super.getWorldSpawn(worldName);
     }
 
     @Override

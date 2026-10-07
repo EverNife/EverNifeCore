@@ -144,6 +144,13 @@ public final class PlatformConformance {
             }
         });
 
+        call(platform, "getWorldSpawn", failures, new Call<Object>() {
+            @Override
+            public Object run(IPlatform target) {
+                return target.getWorldSpawn("world"); //null is an answer (no such world); throwing is not
+            }
+        });
+
         call(platform, "getSelectionItems", failures, new Call<Object>() {
             @Override
             public Object run(IPlatform target) {

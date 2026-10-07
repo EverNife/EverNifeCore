@@ -1,4 +1,8 @@
 package br.com.finalcraft.evernifecore.hytale.loader.imp;
+import org.joml.Vector3d;
+import com.hypixel.hytale.math.vector.Transform;
+import com.hypixel.hytale.server.core.universe.world.spawn.ISpawnProvider;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.util.ExecuteOnce;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
@@ -321,6 +325,18 @@ public class HyPlatform implements IPlatform {
 
     private final List<Consumer<String>> worldLoadedListeners = new CopyOnWriteArrayList<>();
     private final List<Consumer<String>> worldUnloadedListeners = new CopyOnWriteArrayList<>();
+
+    @Override
+    public @Nullable WorldLocPos getWorldSpawn(String worldName) {
+        World world = worldOrNull(worldName);
+        ISpawnProvider spawnProvider = world == null ? null : world.getWorldConfig().getSpawnProvider();
+        Transform[] spawnPoints = spawnProvider == null ? null : spawnProvider.getSpawnPoints();
+        if (spawnPoints == null || spawnPoints.length == 0 || spawnPoints[0] == null) {
+            return null;
+        }
+        Vector3d position = spawnPoints[0].getPosition();
+        return WorldLocPos.of(position.x(), position.y(), position.z(), worldName);
+    }
 
     private static @Nullable World worldOrNull(String worldName) {
         Universe universe = Universe.get();   //null before the server has built it
