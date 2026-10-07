@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.ArclightNeoF
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.CrucibleForgeListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.ModernMohistForgeListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.MohistForgeListener;
+import br.com.finalcraft.evernifecore.minecraft.version.ServerSoftware;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -92,7 +93,7 @@ class ForgeListenerTest {
                 "and neither has a NeoForge bus with no hybrid brand around it");
     }
 
-    private static ForgeListener.ClassPresence runtimeWith(String... loaded) {
+    private static ServerSoftware.ClassPresence runtimeWith(String... loaded) {
         Set<String> present = new HashSet<>(Arrays.asList(loaded));
         return present::contains;
     }

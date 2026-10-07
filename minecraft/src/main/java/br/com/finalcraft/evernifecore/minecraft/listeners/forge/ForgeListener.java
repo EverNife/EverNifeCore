@@ -7,6 +7,8 @@ import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.ArclightNeoF
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.CrucibleForgeListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.ModernMohistForgeListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.forge.imp.MohistForgeListener;
+import br.com.finalcraft.evernifecore.minecraft.version.ServerSoftware;
+import br.com.finalcraft.evernifecore.minecraft.version.ServerSoftware.ClassPresence;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import org.bukkit.plugin.Plugin;
 
@@ -14,6 +16,7 @@ public class ForgeListener {
 
     private static final String NEOFORGE_BUS = "net.neoforged.bus.api.IEventBus";
     private static final String FORGE_HOME = "net.minecraftforge.common.MinecraftForge";
+    private static final String MODERN_MOHIST_BUS = "com.mohistmc.forge.MohistEventBus";
 
     private static final IForgeListener INSTANCE = detectHybrid(ForgeListener::isLoadedHere);
 
@@ -32,25 +35,30 @@ public class ForgeListener {
      */
     static IForgeListener detectHybrid(ClassPresence runtime){
         try {
-            if (runtime.isLoaded("io.github.crucible.api.CrucibleEventBus")){
-                //Present on 1.7.10
-                return new CrucibleForgeListener();
-            }else if (runtime.isLoaded("io.izzel.arclight.api.Arclight")){
-                if (speaksNeoForgeOnly(runtime)){
-                    //Present on 1.21.1
-                    return new ArclightNeoForgeListener();
-                }
-                //Present on 1.12.2 and 1.16.5 and 1.20.x
-                return new ArclightForgeListener();
-            }else if (runtime.isLoaded("com.mohistmc.forge.MohistEventBus")){
-                //Present on 1.20.x
-                return new ModernMohistForgeListener();
-            }else if (runtime.isLoaded("com.mohistmc.api.event.BukkitHookForgeEvent")){
-                //present on 1.12.2 and 1.16.5
-                return new MohistForgeListener();
-            }else if (runtime.isLoaded("catserver.api.bukkit.ForgeEventV2")){
-                //present on 1.16.5; CatServer is served by the Mohist bridge and has no adapter of its own
-                return new MohistForgeListener();
+            switch (ServerSoftware.detect(runtime)){
+                case CRUCIBLE:
+                    //Present on 1.7.10
+                    return new CrucibleForgeListener();
+                case ARCLIGHT:
+                    if (speaksNeoForgeOnly(runtime)){
+                        //Present on 1.21.1
+                        return new ArclightNeoForgeListener();
+                    }
+                    //Present on 1.12.2 and 1.16.5 and 1.20.x
+                    return new ArclightForgeListener();
+                case MOHIST:
+                    if (runtime.isLoaded(MODERN_MOHIST_BUS)){
+                        //Present on 1.20.x
+                        return new ModernMohistForgeListener();
+                    }
+                    //present on 1.12.2 and 1.16.5
+                    return new MohistForgeListener();
+                case CATSERVER:
+                    //present on 1.16.5; CatServer is served by the Mohist bridge and has no adapter of its own
+                    return new MohistForgeListener();
+                default:
+                    //Youer included: it ships none of the Mohist bridges above
+                    return null;
             }
         }catch (Throwable failure){
             reportUnavailable(failure);
@@ -65,11 +73,6 @@ public class ForgeListener {
      */
     static boolean speaksNeoForgeOnly(ClassPresence runtime){
         return runtime.isLoaded(NEOFORGE_BUS) && !runtime.isLoaded(FORGE_HOME);
-    }
-
-    /** Whether a class name resolves on the runtime being asked about. */
-    interface ClassPresence {
-        boolean isLoaded(String className);
     }
 
     private static boolean isLoadedHere(String className){
