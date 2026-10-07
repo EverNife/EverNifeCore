@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.region.selection;
 
 import br.com.finalcraft.evernifecore.api.platoverride.item.NativeItem;
+import br.com.finalcraft.evernifecore.minecraft.loader.imp.McPlatform;
+import br.com.finalcraft.evernifecore.minecraft.region.visual.McParticleOutlineRenderer;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.region.selection.ItemSpec;
@@ -124,6 +126,16 @@ class McSelectionItemsTest {
             assertFalse(selectionItems.isSelectionTool(new ItemStack(Material.GOLDEN_HOE)), "the same material without the mark");
             assertFalse(selectionItems.isSelectionTool(null));
             assertFalse(selectionItems.isSelectionTool(air), "an empty hand is never a tool");
+        }
+    }
+
+    @Test
+    void thePlatformAnswersTheBukkitItemsAndRenderer() {
+        try (ECoreTestWorld platform = Platforms.lenient().install(); ItemWorld items = ItemWorld.withMetadata(MCDetailedVersion.v1_21_R1)) {
+            McPlatform bukkit = new McPlatform();
+
+            assertTrue(bukkit.getSelectionItems() instanceof McSelectionItems);
+            assertTrue(bukkit.getOutlineRenderer() instanceof McParticleOutlineRenderer);
         }
     }
 

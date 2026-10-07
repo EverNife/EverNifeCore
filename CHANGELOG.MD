@@ -13,6 +13,34 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.58] - 2026-10-07
+
+The selection tool and the outline visualizer work on Bukkit, and a WorldEdit selection can become a region shape.
+
+### Added
+
+- **Selection tool on Bukkit**: `McSelectionItems` hands out the tool marked with the `enc:selection` NBT tag - the
+  spec's item (the golden hoe by default, resolved per version: `golden_hoe` is `GOLD_HOE` before 1.13) or the plugin's
+  own `ItemStack`, cloned and only marked; a full inventory drops it at the player's feet. `McSelectionListener` turns
+  a click with the tool into `SelectionTool.handleClick` and cancels it, ahead of the region flags, so `deny-interact`
+  never keeps a player from selecting; it is on the server only while some selection is open.
+- **`McSelectionTool.start(Player, SelectionSpec, ItemStack, Consumer<Shape>)`**: a selection with the plugin's own
+  tool item. **`ItemSpec.withNativeItem(NativeItem)`** / `getNativeItem()` carry it through `:common`; `NativeItem`
+  (`api.platoverride.item`) is a compile-time stub that Bukkit and Hytale replace with their own item wrapper.
+- **`McParticleOutlineRenderer`**: outlines drawn with one particle per point - `END_ROD`, `FLAME`, `CRIT`, `NOTE` by
+  style - from 1.9 and on 1.7.10 Crucible (its backported particle API); a smoke puff per point where there is no
+  particle API. `McPlatform` now answers it and `McSelectionItems` instead of `NONE`.
+- **`McWorldEditSelectionBridge.selectionOf(Player)`** and **`WEPlatform.getSelection(Player)`** (WorldEdit 6 and 7):
+  the player's selection as a `Shape`, a polygon with its Y span, anything else as the box of its extremes.
+- The `<player>` of the region command's `group add`/`remove` tab-completes the names online; any name or UUID is
+  still accepted, since a member may be offline.
+
+### Fixed
+
+- `WEPlatform` no longer dies in its static initializer without WorldEdit (`NoClassDefFoundError` on every later
+  touch): `isPresent()` answers first, and `getInstance()` throws `IllegalStateException` naming that check instead
+  of returning `null`.
+
 ## [3.0.1-alpha.57] - 2026-10-07
 
 Regions protect for real on Bukkit: each kind of event is heard only while some region needs it, movement denial
