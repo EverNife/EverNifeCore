@@ -333,6 +333,12 @@ public final class Region {
         return owned == null ? null : owned.handler;
     }
 
+    /** The plugin that set the handler of {@code flag} here; null when there is none. */
+    public @Nullable ECPluginData getFlagHandlerOwner(RegionFlag<?> flag) {
+        OwnedHandler owned = anyFlagHandler ? flagHandlers.get(flag.getKey()) : null;
+        return owned == null ? null : owned.owner;
+    }
+
     /** Whether any flag has a handler here - the one question asked before anything is built for one. */
     public boolean hasFlagHandlers() {
         return anyFlagHandler;

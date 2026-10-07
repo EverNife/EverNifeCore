@@ -18,6 +18,7 @@ import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
 import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
+import br.com.finalcraft.evernifecore.region.command.CoreRegionCommands;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -32,6 +33,12 @@ import java.util.stream.Collectors;
         aliases = {"evernifecore","ecore"}
 )
 public class CoreCommand {
+
+    @FinalCMD.Node(subcmd = "region", permission = PermissionNodes.EVERNIFECORE_COMMAND_REGION, locales = {
+            @FCLocale(lang = LocaleType.EN_US, text = "Read the regions of every plugin: here, info and list"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Lê as regiões de todo plugin: here, info e list")
+    })
+    private final CoreRegionCommands region = new CoreRegionCommands();
 
     /**
      * Built on the first {@code /ecore info}: the executor is instantiated before its locale fields

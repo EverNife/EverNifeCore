@@ -158,6 +158,11 @@ public final class SelectionSession {
         close(SELECTION_CANCELLED);
     }
 
+    /** Ends the session without a word - for a command that already used its shape and tells the player itself. */
+    public void finish() {
+        close(null);
+    }
+
     /** Ends the session once; {@code reason} is what the player is told, null for nothing. */
     void close(@Nullable ILocaleMessageBase reason) {
         if (!active) {
