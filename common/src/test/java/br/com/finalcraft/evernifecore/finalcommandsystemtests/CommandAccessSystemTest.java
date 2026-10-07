@@ -116,6 +116,59 @@ class CommandAccessSystemTest {
         assertTrue(ExecutePermissionCmd.ran, "the permission is a gate, not a wall");
     }
 
+    // ------------------------------------------------------------------
+    // The root's own permission is the framework's to check: the platform command carries none
+    // ------------------------------------------------------------------
+
+    public static class RootPermissionMethodCmd {
+        static boolean ran;
+
+        @FinalCMD(aliases = "rootpermmethodcmd", permission = "access.root.method")
+        public void run(FCommandSender sender) {
+            ran = true;
+        }
+    }
+
+    @FinalCMD(aliases = "rootpermclasscmd", permission = "access.root.class")
+    public static class RootPermissionClassCmd {
+        static boolean ran;
+
+        @FinalCMD.SubCMD(subcmd = "leaf")
+        public void leaf(FCommandSender sender) {
+            ran = true;
+        }
+    }
+
+    @Test
+    void aRootMethodPermissionStopsTheDispatchAndSaysSo() {
+        RootPermissionMethodCmd.ran = false;
+        FinalCMDPluginCommand command = newHarness().register(new RootPermissionMethodCmd());
+        TestCommandSender refused = Senders.console();
+
+        harness.dispatch(command, refused, "");
+
+        assertFalse(RootPermissionMethodCmd.ran, "a sender without the root permission must not run it");
+        assertTrue(refused.anyMessageContains("access.root.method"), "and is told which permission: " + refused.getMessages());
+
+        harness.dispatch(command, Senders.console().grant("access.root.method"), "");
+        assertTrue(RootPermissionMethodCmd.ran);
+    }
+
+    @Test
+    void aRootClassPermissionStopsEverySubcommandAndSaysSo() {
+        RootPermissionClassCmd.ran = false;
+        FinalCMDPluginCommand command = newHarness().register(new RootPermissionClassCmd());
+        TestCommandSender refused = Senders.console();
+
+        harness.dispatch(command, refused, "leaf");
+
+        assertFalse(RootPermissionClassCmd.ran, "the root permission guards what is below it");
+        assertTrue(refused.anyMessageContains("access.root.class"), "and is told which permission: " + refused.getMessages());
+
+        harness.dispatch(command, Senders.console().grant("access.root.class"), "leaf");
+        assertTrue(RootPermissionClassCmd.ran);
+    }
+
     @FinalCMD(aliases = "execvalidationcmd")
     public static class ExecuteValidationCmd {
         static boolean ran;

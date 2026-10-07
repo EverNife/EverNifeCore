@@ -4,8 +4,6 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.IPlatformCMD;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
-import br.com.finalcraft.evernifecore.util.FCMessageUtil;
-import jakarta.annotation.Nonnull;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandException;
 import org.bukkit.command.CommandSender;
@@ -33,16 +31,6 @@ public class McFinalCMDPluginCommand extends Command implements PluginIdentifiab
 
         setAliases(Arrays.asList(finalCMDPluginCommand.getFinalCMD().getLabels()));
         setLabel(getName());
-    }
-
-    @Override
-    public boolean testPermission(@Nonnull CommandSender target) {
-        if (testPermissionSilent(target)) {
-            return true;
-        }
-
-        FCMessageUtil.needsThePermission(FCBukkitUtil.adapt(target), getPermission());
-        return false;
     }
 
     /**

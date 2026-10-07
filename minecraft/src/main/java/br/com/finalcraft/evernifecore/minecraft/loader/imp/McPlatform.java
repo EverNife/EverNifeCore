@@ -124,8 +124,10 @@ public class McPlatform implements IPlatform {
     public boolean registerCommand(FinalCMDPluginCommand command) {
         McFinalCMDPluginCommand iPlatformCMD = new McFinalCMDPluginCommand(command);
 
+        //No Bukkit permission on purpose: from 1.13 the player's command tree drops a node whose permission
+        //the player lacks, and the answer becomes "Unknown command". The executor checks the @FinalCMD
+        //permission itself and names what is missing.
         command.setPlatformCommand(iPlatformCMD);
-        iPlatformCMD.setPermission(command.getFinalCMD().getPermission());
 
         boolean registered = getCommandMap().register(command.getOwningPlugin().getMetaInfo().getName(), iPlatformCMD);
         syncCommandTreeIfTheServerWillNot();
