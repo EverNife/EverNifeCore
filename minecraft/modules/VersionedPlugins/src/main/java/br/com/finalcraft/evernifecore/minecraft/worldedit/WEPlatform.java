@@ -8,29 +8,44 @@ import br.com.finalcraft.evernifecore.minecraft.worldedit.operation.IFCOperation
 import br.com.finalcraft.evernifecore.minecraft.worldedit.region.IFCCuboidRegion;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.world.World;
+import br.com.finalcraft.evernifecore.region.shape.Shape;
+import jakarta.annotation.Nullable;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 
 public abstract class WEPlatform {
 
     private static final WEPlatform INSTANCE;
 
     static {
-        String wgVersion = Bukkit.getPluginManager().getPlugin("WorldEdit").getDescription().getVersion();
-        String apiClassname = wgVersion.startsWith("6")
-                ? "v1_7_R4" //WorldEdit 6.*
-                : "v1_16_R3"; //WorldEdit 7.*
-
-        WEPlatform wgPlatform = null;
-        try {
-            wgPlatform = (WEPlatform) Class.forName("br.com.finalcraft.evernifecore.minecraft.compat." + apiClassname + ".worldedit.ImpWEPlatform").newInstance();
-        } catch (Throwable e) {
-            System.out.println("[EverNifeCore] You do not have WorldEdit present or you did not waited for EverNifeCore to be fully StartedUp!");
-            e.printStackTrace();
+        WEPlatform instance = null;
+        Plugin worldEdit = Bukkit.getPluginManager().getPlugin("WorldEdit");
+        if (worldEdit != null) {
+            String weVersion = worldEdit.getDescription().getVersion();
+            String apiClassname = weVersion.startsWith("6")
+                    ? "v1_7_R4" //WorldEdit 6.*
+                    : "v1_16_R3"; //WorldEdit 7.*
+            try {
+                instance = (WEPlatform) Class.forName("br.com.finalcraft.evernifecore.minecraft.compat." + apiClassname + ".worldedit.ImpWEPlatform").newInstance();
+            } catch (Throwable e) {
+                System.out.println("[EverNifeCore] WorldEdit " + weVersion + " is present but its adapter could not be loaded:");
+                e.printStackTrace();
+            }
         }
-        INSTANCE = wgPlatform;
+        INSTANCE = instance;
     }
 
-    public static WEPlatform getInstance(){
+    /** Whether WorldEdit was installed when this class first loaded; false means {@link #getInstance()} throws. */
+    public static boolean isPresent() {
+        return INSTANCE != null;
+    }
+
+    public static WEPlatform getInstance() {
+        if (INSTANCE == null) {
+            throw new IllegalStateException("WorldEdit is not installed, its adapter failed to load, or EverNifeCore touched WEPlatform"
+                    + " before WorldEdit enabled - check WEPlatform.isPresent() before calling getInstance().");
+        }
         return INSTANCE;
     }
 
@@ -59,4 +74,10 @@ public abstract class WEPlatform {
     public abstract FCBlockArrayClipboard createBlockArrayClipboard(IFCCuboidRegion region);
 
     public abstract void setBlock(World world, BlockPos blockPos, FCBaseBlock blockBase, boolean placeFast) throws WorldEditException;
+
+    /**
+     * The player's WorldEdit selection in the world they stand in: a polygonal selection with its Y span, anything else
+     * (cuboid, sphere, cylinder, convex) as the box of its extremes; null while the selection is incomplete.
+     */
+    public abstract @Nullable Shape getSelection(Player player);
 }

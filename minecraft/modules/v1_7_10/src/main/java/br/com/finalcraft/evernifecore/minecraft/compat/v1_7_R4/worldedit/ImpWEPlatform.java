@@ -16,6 +16,21 @@ import com.sk89q.worldedit.blocks.BaseBlock;
 import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
 import com.sk89q.worldedit.regions.CuboidRegion;
 import com.sk89q.worldedit.world.World;
+import com.sk89q.worldedit.BlockVector2D;
+import com.sk89q.worldedit.bukkit.BukkitUtil;
+import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
+import br.com.finalcraft.evernifecore.region.shape.PolygonShape;
+import br.com.finalcraft.evernifecore.region.shape.Shape;
+import com.sk89q.worldedit.IncompleteRegionException;
+import com.sk89q.worldedit.bukkit.WorldEditPlugin;
+import com.sk89q.worldedit.regions.Polygonal2DRegion;
+import com.sk89q.worldedit.regions.Region;
+import jakarta.annotation.Nullable;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ImpWEPlatform extends WEPlatform {
 
@@ -50,5 +65,28 @@ public class ImpWEPlatform extends WEPlatform {
                 (BaseBlock) blockBase.getHandle(),
                 placeFast
         );
+    }
+
+    @Override
+    public @Nullable Shape getSelection(Player player) {
+        WorldEditPlugin worldEdit = (WorldEditPlugin) Bukkit.getPluginManager().getPlugin("WorldEdit");
+        Region selection;
+        try {
+            selection = worldEdit.getSession(player).getSelection(BukkitUtil.getLocalWorld(player.getWorld()));
+        } catch (IncompleteRegionException incomplete) {
+            return null;
+        }
+        if (selection instanceof Polygonal2DRegion) {
+            Polygonal2DRegion polygon = (Polygonal2DRegion) selection;
+            List<BlockPos> points = new ArrayList<>();
+            for (BlockVector2D point : polygon.getPoints()) {
+                points.add(BlockPos.of(point.getBlockX(), polygon.getMinimumY(), point.getBlockZ()));
+            }
+            return PolygonShape.of(points, polygon.getMinimumY(), polygon.getMaximumY());
+        }
+        Vector min = selection.getMinimumPoint();
+        Vector max = selection.getMaximumPoint();
+        return CuboidShape.of(BlockPos.of(min.getBlockX(), min.getBlockY(), min.getBlockZ()),
+                BlockPos.of(max.getBlockX(), max.getBlockY(), max.getBlockZ()));
     }
 }
