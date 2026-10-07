@@ -87,6 +87,18 @@ public final class RegionMovementTracker {
         return tracker;
     }
 
+    /** Internal: stops the global tracker, if one was created; the next {@link #get()} starts a fresh one. */
+    public static void shutdown() {
+        RegionMovementTracker tracker;
+        synchronized (RegionMovementTracker.class) {
+            tracker = global;
+            global = null;
+        }
+        if (tracker != null) {
+            tracker.stop();
+        }
+    }
+
     /** Lets go of the bus and the index: this tracker hears nothing more. */
     void stop() {
         subscriptions.forEach(ECEventSubscription::unsubscribe);

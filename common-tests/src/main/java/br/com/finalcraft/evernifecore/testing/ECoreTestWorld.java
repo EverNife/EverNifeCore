@@ -7,6 +7,16 @@ import br.com.finalcraft.evernifecore.api.common.providers.ECBaseProvider;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.eventbus.ECListenerWatch;
+import br.com.finalcraft.evernifecore.eventbus.ECNativeAudience;
+import br.com.finalcraft.evernifecore.region.RegionRuntime;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Set;
 
 /**
  * A platform installed in the global provider registry, plus the way to undo it.
@@ -15,6 +25,9 @@ import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
  * that never unwinds is shared state: the next class inherits a platform it did not ask for, and
  * the failure shows up as order-dependent. Closing this world puts back exactly what was there
  * before - including "nothing at all".</p>
+ *
+ * <p>The global event bus is held to the same rule, strictly: a listener watch or a native audience
+ * that was not on it at install and is still on it at {@link #close()} fails the close, by name.</p>
  */
 public final class ECoreTestWorld implements AutoCloseable {
 
@@ -31,6 +44,8 @@ public final class ECoreTestWorld implements AutoCloseable {
     private final IEconomyProvider previousEconomy;
     private final boolean hadEconomy;
     private final ISpawnProvider previousSpawn;
+    private final Set<ECListenerWatch> watchesBefore = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final List<String> audiencesBefore = new ArrayList<>();
     private boolean closed = false;
 
     private ECoreTestWorld(TestPlatform platform, IPlatform previousPlatform, IECPluginExtractor previousExtractor, IEconomyProvider previousEconomy) {
@@ -41,6 +56,10 @@ public final class ECoreTestWorld implements AutoCloseable {
         this.previousEconomy = previousEconomy;
         this.hadEconomy = previousEconomy != null;
         this.previousSpawn = EverNifeCore.getProviders().getSpawnOrNull();
+        this.watchesBefore.addAll(ECEventBus.global().getListenerWatches());
+        for (ECNativeAudience audience : ECEventBus.global().getNativeAudiences()) {
+            this.audiencesBefore.add(audience.name());
+        }
     }
 
     static ECoreTestWorld install(TestPlatform platform) {
@@ -91,6 +110,11 @@ public final class ECoreTestWorld implements AutoCloseable {
         return this;
     }
 
+    /**
+     * Puts the providers back and checks the global event bus.
+     *
+     * @throws AssertionError naming every listener watch and native audience opened since the install and never closed
+     */
     @Override
     public void close() {
         if (closed) {
@@ -98,12 +122,38 @@ public final class ECoreTestWorld implements AutoCloseable {
         }
         closed = true;
 
+        //the region singletons (EventSourceUsage's watch on region enter/leave, the movement tracker) live for the
+        //whole JVM once a test touched them; the engine started them, so the engine stops them before the check
+        RegionRuntime.shutdown();
+        List<String> leaked = leftOnTheGlobalBus();
+
         ECBaseProvider providers = EverNifeCore.getProviders().getBaseProvider();
         restore(providers, IPlatform.class, previousPlatform, previousPlatform != null);
         restore(providers, IECPluginExtractor.class, previousExtractor, hadExtractor);
         restore(providers, IEconomyProvider.class, previousEconomy, hadEconomy);
         restore(providers, ISpawnProvider.class, previousSpawn, previousSpawn != null);
         SpawnPoints.resetWarning();
+
+        if (!leaked.isEmpty()) {
+            throw new AssertionError("The test left " + leaked + " on the global event bus. Whoever opened it closes it"
+                    + " before the world closes: ECListenerWatch.stop() for a watch, ECEventBus.removeNativeAudience(name)"
+                    + " for an audience - otherwise the next test class inherits it and its gate counts change.");
+        }
+    }
+
+    private List<String> leftOnTheGlobalBus() {
+        List<String> leaked = new ArrayList<>();
+        for (ECListenerWatch watch : ECEventBus.global().getListenerWatches()) {
+            if (!watchesBefore.contains(watch)) {
+                leaked.add("watch " + watch);
+            }
+        }
+        for (ECNativeAudience audience : ECEventBus.global().getNativeAudiences()) {
+            if (!audiencesBefore.contains(audience.name())) {
+                leaked.add("audience '" + audience.name() + "'");
+            }
+        }
+        return leaked;
     }
 
     private static <T> void restore(ECBaseProvider providers, Class<T> type, T previous, boolean hadPrevious) {

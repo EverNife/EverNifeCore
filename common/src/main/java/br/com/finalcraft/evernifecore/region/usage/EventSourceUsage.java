@@ -89,6 +89,15 @@ public final class EventSourceUsage {
         return usage;
     }
 
+    /** Internal: stops the global count, if one was created; the next {@link #get()} starts a fresh one. */
+    public static synchronized void shutdown() {
+        EventSourceUsage usage = global;
+        global = null;
+        if (usage != null) {
+            usage.stop();
+        }
+    }
+
     /** Whether events of {@code source} must be heard now. Lock-free; {@link EventSource#NONE} never is. */
     public boolean isNeeded(EventSource source) {
         return needed.get(source.ordinal()) == 1;

@@ -131,6 +131,7 @@ class CoreCommandEventsTest {
         subscriptions.add(ECEventBus.global().subscribe(CommandProbeEvent.class, event -> {
         }));
         TestCommandSender operator = operator();
+        audience.reset(); //the window under test is the command's: the bus may ask the audience for itself before it
 
         harness.dispatch(command, operator, "events " + CommandProbeEvent.class.getName());
 
@@ -138,6 +139,48 @@ class CoreCommandEventsTest {
         assertTrue(anyContains(lines, "implements IECEvent only"), lines.toString());
         assertFalse(anyContains(lines, AUDIENCE + ":"), "no audience line for a type that never reaches one: " + lines);
         assertEquals(0, audience.getGateChecks(), () -> "and none was asked: " + audience.getGateCheckLog());
+    }
+
+    @Test
+    void aTypeNoPlatformCanSeeIsNotAskedOfTheAudiencesEvenWhileAGlobalWatchOnAPlatformEventIsOpen() {
+        harness = Commands.harness("EventsBusOnlyWatched", tempDir);
+        FinalCMDPluginCommand command = harness.register(CoreCommand.class);
+        //what a producer elsewhere in the JVM leaves on the global bus: every refresh asks the audiences about it
+        watch = ECEventBus.global().watchListeners(() -> {
+        }, null, PlatformProbeEvent.class);
+        RecordingAudience audience = new RecordingAudience(AUDIENCE);
+        ECEventBus.global().addNativeAudience(audience);
+        subscriptions.add(ECEventBus.global().subscribe(CommandProbeEvent.class, event -> {
+        }));
+        TestCommandSender operator = operator();
+        audience.reset(); //the window under test is the command's: the bus may ask the audience for itself before it
+
+        harness.dispatch(command, operator, "events " + CommandProbeEvent.class.getName());
+
+        assertTrue(anyContains(plain(operator), "implements IECEvent only"), plain(operator).toString());
+        assertEquals(0, audience.getGateChecks(), () -> "and none was asked by the command: " + audience.getGateCheckLog());
+    }
+
+    @Test
+    void aTypeNoPlatformCanSeeIsNotAskedOfTheAudiencesEvenWhileAnotherThreadPostsAPlatformEvent() throws InterruptedException {
+        harness = Commands.harness("EventsBusOnlyPosted", tempDir);
+        FinalCMDPluginCommand command = harness.register(CoreCommand.class);
+        RecordingAudience audience = new RecordingAudience(AUDIENCE);
+        ECEventBus.global().addNativeAudience(audience);
+        subscriptions.add(ECEventBus.global().subscribe(CommandProbeEvent.class, event -> {
+        }));
+        //what a scheduler thread of another test does while this audience is registered
+        Thread poster = new Thread(() -> ECEventBus.global().postIfListened(PlatformProbeEvent.class, PlatformProbeEvent::new), "events-poster");
+        poster.start();
+        poster.join();
+        assertEquals(1, audience.getDispatchedOf(PlatformProbeEvent.class).size(), "the audience was registered while the post went by");
+        TestCommandSender operator = operator();
+        audience.reset(); //the window under test is the command's: the bus may ask the audience for itself before it
+
+        harness.dispatch(command, operator, "events " + CommandProbeEvent.class.getName());
+
+        assertTrue(anyContains(plain(operator), "implements IECEvent only"), plain(operator).toString());
+        assertEquals(0, audience.getGateChecks(), () -> "and none was asked by the command: " + audience.getGateCheckLog());
     }
 
     @Test
