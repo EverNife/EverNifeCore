@@ -19,7 +19,8 @@ public class McFCScheduler {
 
     private final SynchronizedAction synchronizedAction = new SynchronizedAction();
 
-    private List<Runnable> heldUntilTheCoreEnables = new ArrayList<>(); //null once released
+    //null once released; written only under `this`, read without it on the fast path
+    private volatile List<Runnable> heldUntilTheCoreEnables = new ArrayList<>();
 
     public McFCScheduler() {
 
@@ -56,10 +57,13 @@ public class McFCScheduler {
      */
     public void runSync(Runnable runnable){
         EverNifeCoreBukkitPlugin core = EverNifeCoreBukkitPlugin.instance;
-        synchronized (this) {
-            if (heldUntilTheCoreEnables != null && core != null && !core.isEnabled()) {
-                heldUntilTheCoreEnables.add(runnable);
-                return;
+        if (heldUntilTheCoreEnables != null) { //only until the core's enable ends - the steady state never locks
+            synchronized (this) {
+                List<Runnable> held = heldUntilTheCoreEnables; //re-read: a release may have run since the check
+                if (held != null && core != null && !core.isEnabled()) {
+                    held.add(runnable);
+                    return;
+                }
             }
         }
         wrapRunnable(runnable).runTask(core);
