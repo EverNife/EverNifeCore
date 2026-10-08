@@ -13,6 +13,39 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.64] - 2026-10-08
+
+The in-server probe becomes `ECoreConformance`, a plugin that runs the core's conformance suites inside a real server,
+and its first run across the matrix caught Paper being detected as Hytale.
+
+### Added
+
+- **`ECoreConformance`** (module `conformance/`: `:conformance:common` + `:conformance:minecraft`). A Bukkit plugin,
+  routed beside the core for a check-up and never shipped with it, that runs 13 declared suites where only a live
+  server can answer: `items`, `nbt` (with a write/read pair across a restart), `platform` (the `PlatformConformance`,
+  `ECEventConformance` and `EconomyConformance` checks against the registered platform), `version`, `commands`, `gui`
+  (11 screens), `scheduler`, `playerdata` (write/read), `events`, `selection-click`, `particles`, `text-metrics` and
+  `hooks`. `/ecc list|run|write|read <suite|all> [--player <p>] [--cid <id>]`, plus `/ecc gui|click|text <...>` to
+  leave a screen or a wand in front of a client. Every case is a readable `[ECoreConformance]` line, an
+  `ENCTEST {...}` marker and a line in the plugin's own NDJSON report. Version-dependent cases carry
+  `expected=<bool> since=<version>` in their detail.
+- `conformance/scripts/conformance-matrix.py`: boots each flavor of the matrix with the core and the plugin, joins a
+  headless player, runs every suite, opens each screen on both sides, restarts, reads the persisted half back, and
+  writes `build/conformance/<flavor>/` plus a `summary.md`. Exit code 0 only with `failed=0` everywhere.
+
+### Removed
+
+- The throwaway `ECItemProbe` (`/ecprobe`, `minecraft/src/inServerProbe`). Its checks live on in the `items` and `nbt`
+  suites.
+
+### Fixed
+
+- **Paper is Minecraft, not Hytale.** `FCPlatformType` asked only the plugin's own class loader for
+  `org/bukkit/Bukkit.class`, and Bukkit's `PluginClassLoader` answers resources from the plugin jar alone; a server
+  started through a launcher (Paper's paperclip) keeps its classes off the system classpath too. On Paper 1.21.1 the
+  core reported Hytale: FancyText swapped `●`/`▶` for `•` and `/svinfo` printed `Platform: Hytale`. The probe now
+  walks the loader's parents.
+
 ## [3.0.1-alpha.63] - 2026-10-08
 
 The region selection tool marks points on 1.7.10, and the core's `/list` can be turned off in `config.yml`.
