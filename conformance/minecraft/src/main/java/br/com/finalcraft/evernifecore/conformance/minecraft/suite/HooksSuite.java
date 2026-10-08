@@ -5,7 +5,11 @@ import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
+import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.integration.placeholders.PAPIIntegration;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import org.bukkit.Bukkit;
 
 import java.util.Arrays;
@@ -13,13 +17,23 @@ import java.util.List;
 
 /**
  * The optional hooks, on both of their branches. Without PlaceholderAPI the core says so and hands text back
- * untouched; with it routed beside the core, the core finds it and resolves a placeholder of the player. Without an
- * economy plugin there is no economy provider. Each case runs on the branch this server is on and is SKIPPED on the
- * other, so a matrix with PlaceholderAPI in one flavor covers both.
+ * untouched; with it routed beside the core, the core finds it and resolves a placeholder this plugin registered
+ * through it. Without an economy plugin the always-registered economy provider says none is available. Each case runs
+ * on the branch this server is on and is SKIPPED on the other, so a matrix with PlaceholderAPI in one flavor covers
+ * both.
  */
 public final class HooksSuite implements ConformanceSuite {
 
-    private static final String PLACEHOLDER = "%player_name%";
+    private static final String PLACEHOLDER = "%ecc_name%";
+
+    /**
+     * Gives this plugin a placeholder through the core's own PAPI bridge, so {@code papi-present} proves the whole
+     * round trip (register, then resolve) without depending on an eCloud expansion. A no-op without PlaceholderAPI.
+     */
+    public static void registerPlaceholders(ECPluginData plugin) {
+        PAPIIntegration.createPlaceholderIntegration(plugin, "ecc", IPlayerData.class)
+                .addParser("name", data -> data == null ? null : data.getName());
+    }
 
     @Override
     public String getId() {
@@ -43,8 +57,10 @@ public final class HooksSuite implements ConformanceSuite {
                 }),
                 ConformanceCase.of("economy-absent", () -> {
                     if (Bukkit.getPluginManager().getPlugin("Vault") != null) return Verdict.skipped("Vault is installed here");
-                    Object economy = EverNifeCore.getProviders().getEconomyOrNull();
-                    return Verdict.of(economy == null, "economy=" + economy);
+                    //the lazy provider is always registered; without Vault it must say there is no economy
+                    IEconomyProvider economy = EverNifeCore.getProviders().getEconomyOrNull();
+                    boolean available = economy != null && economy.isAvailable();
+                    return Verdict.of(economy != null && !available, "provider=" + economy + " isAvailable=" + available);
                 }));
     }
 

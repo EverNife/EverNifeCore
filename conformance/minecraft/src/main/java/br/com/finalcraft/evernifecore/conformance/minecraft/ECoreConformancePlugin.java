@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.conformance.minecraft;
 
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.HooksSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.PlayerDataSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SelectionClickSuite;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
@@ -21,6 +22,7 @@ public final class ECoreConformancePlugin extends ECBukkitPlugin {
     public void onECPluginEnable() {
         PlayerController.registerPDSectionCfg(getPluginData(), PlayerDataSuite.Section.class, PlayerDataSuite.SECTION_ID);
         getServer().getPluginManager().registerEvents(new SelectionClickSuite.Recorder(), this);
+        HooksSuite.registerPlaceholders(getPluginData());
         FinalCMDManager.registerCommand(getPluginData(), new ConformanceCommand(Suites.all(), getDataFolder(),
                 () -> MCDetailedVersion.getCurrent() + " " + Bukkit.getVersion(), getLogger()::info,
                 task -> Bukkit.getScheduler().runTask(this, task)));

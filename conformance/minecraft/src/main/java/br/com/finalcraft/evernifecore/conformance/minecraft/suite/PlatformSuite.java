@@ -45,8 +45,9 @@ public final class PlatformSuite implements ConformanceSuite {
                 RegionChangedEvent.class, RegionLoadFailedEvent.class), "9 region events")));
         cases.add(ConformanceCase.of("economy", () -> {
             IEconomyProvider economy = EverNifeCore.getProviders().getEconomyOrNull();
-            if (economy == null) {
-                return Verdict.skipped("no economy provider on this server");
+            //the core always registers a lazy provider; only one with an economy behind it can be checked
+            if (economy == null || !economy.isAvailable()) {
+                return Verdict.skipped("no economy behind the provider on this server");
             }
             return fromViolations(EconomyConformance.check(economy), economy.getClass().getName());
         }));
