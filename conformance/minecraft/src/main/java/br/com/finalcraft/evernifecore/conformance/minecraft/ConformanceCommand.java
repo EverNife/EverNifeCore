@@ -12,6 +12,8 @@ import br.com.finalcraft.evernifecore.conformance.RunIds;
 import br.com.finalcraft.evernifecore.conformance.SuiteRunner;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.GuiSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SelectionClickSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.TextMetricsSuite;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -30,7 +32,8 @@ import java.util.stream.Collectors;
  * {@code /ecc run|write|read <suite|all>}: runs suites on this server and reports every case to the sender, to the
  * log as a human line, and to the log again as an {@code ENCTEST} marker. {@code write} and {@code read} are the
  * two halves of the suites whose subject has to survive a restart. {@code /ecc gui <screen> <player>} opens one
- * sample screen of the {@code gui} suite and leaves it open, to be read from outside the server.
+ * sample screen of the {@code gui} suite and leaves it open, to be read from outside the server; {@code click} and
+ * {@code text} prepare what the {@code selection-click} and {@code text-metrics} suites need from a real client.
  */
 @FinalCMD(aliases = {"ecoreconformance", "ecc"}, permission = "evernifecore.conformance")
 public class ConformanceCommand {
@@ -90,13 +93,35 @@ public class ConformanceCommand {
             sender.sendMessage(SuiteRunner.HUMAN_PREFIX + "unknown screen '" + screen + "' - known: " + GuiSuite.getScreenIds());
             return;
         }
-        Player viewer = Bukkit.getPlayer(player.getUniqueId());
-        if (viewer == null) {
-            sender.sendMessage(SuiteRunner.HUMAN_PREFIX + "gui " + screen + " needs " + player.getName() + " online");
-            return;
-        }
+        Player viewer = online(sender, player, "gui " + screen);
+        if (viewer == null) return;
         GuiSuite.open(screen, viewer).whenComplete((view, refused) -> sender.sendMessage(SuiteRunner.HUMAN_PREFIX + "gui " + screen
                 + (refused == null ? " opened for " + viewer.getName() : " refused: " + Verdict.describe(refused))));
+    }
+
+    /** Hands {@code player} the selection wand and records their block clicks for the {@code selection-click} suite. */
+    @FinalCMD.SubCMD(subcmd = "click")
+    public void click(FCommandSender sender, @Arg("<player>") FPlayer player) {
+        Player clicker = online(sender, player, "click");
+        if (clicker == null) return;
+        SelectionClickSuite.arm(clicker);
+        sender.sendMessage(SuiteRunner.HUMAN_PREFIX + "click armed for " + clicker.getName() + " - wand given, click a block");
+    }
+
+    /** Sends {@code player} the two chat lines of known width the {@code text-metrics} suite measures. */
+    @FinalCMD.SubCMD(subcmd = "text")
+    public void text(FCommandSender sender, @Arg("<player>") FPlayer player) {
+        Player reader = online(sender, player, "text");
+        if (reader == null) return;
+        sender.sendMessage(SuiteRunner.HUMAN_PREFIX + "text sent to " + reader.getName() + ": " + TextMetricsSuite.sendLines(reader));
+    }
+
+    private static Player online(FCommandSender sender, FPlayer player, String subcommand) {
+        Player found = Bukkit.getPlayer(player.getUniqueId());
+        if (found == null) {
+            sender.sendMessage(SuiteRunner.HUMAN_PREFIX + subcommand + " needs " + player.getName() + " online");
+        }
+        return found;
     }
 
     private void execute(FCommandSender sender, String requested, FPlayer player, String cid, String half,

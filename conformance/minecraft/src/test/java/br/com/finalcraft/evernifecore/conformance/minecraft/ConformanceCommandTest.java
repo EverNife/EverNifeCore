@@ -14,6 +14,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -98,5 +99,13 @@ class ConformanceCommandTest {
             assertTrue(seen.add(suite.getId()), "duplicate suite id " + suite.getId());
             assertFalse(suite.getId().startsWith(SuiteRunner.SUITE_PREFIX), suite.getId());
         }
+    }
+
+    @Test
+    void theRegistryHoldsEverySuiteInRunOrder() {
+        List<String> ids = Suites.all().stream().map(ConformanceSuite::getId).collect(Collectors.toList());
+
+        assertEquals(Arrays.asList("items", "nbt", "platform", "version", "commands", "gui", "scheduler", "playerdata",
+                "events", "selection-click", "particles", "text-metrics", "hooks"), ids);
     }
 }

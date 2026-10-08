@@ -2,11 +2,17 @@ package br.com.finalcraft.evernifecore.conformance.minecraft;
 
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.CommandsSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.EventsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.GuiSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.HooksSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ItemsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.NbtSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ParticlesSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.PlatformSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.PlayerDataSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SchedulerSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SelectionClickSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.TextMetricsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.VersionSuite;
 
 import java.util.Arrays;
@@ -26,6 +32,12 @@ public final class Suites {
                 new VersionSuite(),
                 new CommandsSuite(),
                 new GuiSuite(),
-                new SchedulerSuite());
+                new SchedulerSuite(),
+                new PlayerDataSuite(),
+                new EventsSuite(),
+                new SelectionClickSuite(),
+                new ParticlesSuite(),
+                new TextMetricsSuite(),
+                new HooksSuite());
     }
 }
