@@ -23,6 +23,7 @@ from typing import Dict, List, Optional
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CLI = Path("mctf.py")  # set MCTF_CLI
+# 2.11.2 dies in its static init on 1.21.1 (it parses the old craftbukkit package version)
 DEFAULT_PAPI = "PlaceholderAPI.jar"  # pass --papi-jar
 DEFAULT_FLAVORS = "crucible-1.7.10,mohist-1.12.2,mohist-1.16.5,arclight-1.21.1,paper-1.21.1"
 
@@ -68,6 +69,12 @@ def load_ndjson(path) -> List[dict]:
         return [json.loads(line) for line in f if line.strip()]
 
 
+def marker_json(ev: dict) -> str:
+    """One event as the plugin's own marker writes it: compact, keys in emission order, so a grep for
+    '"e":"suite_end"' reads events.ndjson the same way it reads the server log."""
+    return json.dumps(ev, separators=(",", ":"))
+
+
 def half_of(cid: Optional[str]) -> str:
     """The driver mints cids as <prefix>-<half>; anything else is read as a run half."""
     tail = (cid or "").rsplit("-", 1)[-1]
@@ -86,6 +93,12 @@ def suite_table(events: List[dict]) -> Dict[str, Dict[str, dict]]:
         for key in cell:
             cell[key] += int(ev.get(key) or 0)
     return table
+
+
+def routed_but_not_enabled(enabled: List[str], routed: List[str]) -> List[str]:
+    """Plugin names routed into the server that did not come up - a broken fixture, not a suite verdict."""
+    up = {e.split("@", 1)[0] for e in enabled}
+    return [name for name in routed if name not in up]
 
 
 def flavor_ok(result: FlavorResult) -> bool:
@@ -302,6 +315,9 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         enabled = (start.get("plugins") or {}).get("enabled") or []
         if PLUGIN_ID not in enabled:
             raise FlavorFailed("%s not enabled; plugins=%s" % (PLUGIN_ID, start.get("plugins")))
+        dead = routed_but_not_enabled(enabled, ["PlaceholderAPI"] if flavor in a.papi_flavors else [])
+        if dead:
+            r.problems.append("routed but not enabled: %s; not_enabled=%s" % (dead, (start.get("plugins") or {}).get("not_enabled")))
         if start.get("linkage_errors"):
             r.problems.append("linkage_errors=%s at boot" % start["linkage_errors"])
         r.booted = True

@@ -43,6 +43,15 @@ class ParsingTest(unittest.TestCase):
         self.assertEqual(cm.exit_code([cm.FlavorResult("paper-1.21.1", booted=True, events=clean),
                                        cm.FlavorResult("mohist-1.12.2")]), 1)
 
+    def test_events_are_written_compact_in_emission_order(self):
+        ev = {"e": "test_result", "suite": "ecore-hooks", "test": "papi-present", "ok": True}
+        self.assertEqual(cm.marker_json(ev), '{"e":"test_result","suite":"ecore-hooks","test":"papi-present","ok":true}')
+
+    def test_a_routed_plugin_that_did_not_enable_is_named(self):
+        enabled = ["ECoreConformance@3.0.1", "EverNifeCore@3.0.1"]
+        self.assertEqual(cm.routed_but_not_enabled(enabled, ["PlaceholderAPI"]), ["PlaceholderAPI"])
+        self.assertEqual(cm.routed_but_not_enabled(enabled + ["PlaceholderAPI@2.11.6"], ["PlaceholderAPI"]), [])
+
     def test_summary_carries_matrix_and_restart_reason(self):
         r = cm.FlavorResult("paper-1.21.1", booted=True, events=self.events,
                             shutdown_reason="rcon_stop (graceful_shutdown=True)")
@@ -70,7 +79,7 @@ class CliTest(unittest.TestCase):
         self.assertEqual(tools.count("mc_player"), len(cm.SCREENS))
         self.assertIn("ecc run all --player", proc.stdout)
         self.assertIn("connect host.docker.internal", proc.stdout)
-        self.assertIn("PlaceholderAPI-2.11.2.jar", proc.stdout)
+        self.assertIn("PlaceholderAPI-2.11.6.jar", proc.stdout)
         start_line = next(l for l in proc.stdout.splitlines() if l.startswith("[dry-run] mctf mc_start "))
         self.assertNotIn('"to": "mods"', start_line)  # paper has no mod loader: no companion route
 
