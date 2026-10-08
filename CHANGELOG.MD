@@ -15,7 +15,7 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ## [3.0.1-alpha.63] - 2026-10-08
 
-The region selection tool marks points on 1.7.10, and the core leaves the server's own `/list` alone by default.
+The region selection tool marks points on 1.7.10, and the core's `/list` can be turned off in `config.yml`.
 
 ### Fixed
 
@@ -31,9 +31,9 @@ The region selection tool marks points on 1.7.10, and the core leaves the server
   item is edited in place and returned; any other is copied into a server-backed one first and left untouched. The
   component side returns the stack rebuilt from the edited item instead of copying its metadata back.
 - `McSelectionItems.ItemMark.mark` returns the marked stack.
-- **`/list` is opt-in.** The core's player list is `/playerlist`; it also takes `/list` only with
-  `Settings.Commands.LIST_ALIAS: true` in `config.yml` (default `false`). With the default the server's own `/list`
-  is no longer unregistered on Paper.
+- **`/list` can be turned off.** The core's player list is `/playerlist`, and it also takes `/list` while
+  `Settings.Commands.LIST_ALIAS` in `config.yml` is `true` (the default). `false` leaves the server's own `/list` in
+  place - otherwise, on Paper, the core unregisters it with a `Removing existent command [list]` warning.
 
 ## [3.0.1-alpha.62] - 2026-10-07
 
