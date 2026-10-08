@@ -1,0 +1,9 @@
+name: ECItemProbe
+version: ${version}
+main: br.com.finalcraft.evernifecore.probe.ItemProbePlugin
+depend: [ EverNifeCore ]
+api-version: 1.13
+commands:
+  ecprobe:
+    description: Reads what the core wrote into items back from a player's inventory.
+    permission: evernifecore.probe
