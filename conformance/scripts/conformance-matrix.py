@@ -276,6 +276,19 @@ def bot(mctf: Mctf, client_id: str, command: str, **extra) -> dict:
     return mctf("mc_hmc_exec", client_id=client_id, command=command, **extra)
 
 
+def wait_online(mctf: Mctf, server_id: str, seconds: int = 120):
+    """A reconnect answers once the client starts joining; the server logs the player in seconds later, and a
+    command naming him before that finds nobody."""
+    deadline = time.time() + seconds
+    while True:
+        snap = mctf("mc_player", server_id=server_id, player=BOT).get("snapshot") or {}
+        if snap.get("online") or mctf.dry_run:
+            return
+        if time.time() > deadline:
+            raise FlavorFailed("%s not online %ds after the reconnect" % (BOT, seconds))
+        mctf.sleep(3)
+
+
 def click_a_block(mctf: Mctf, client_id: str, r: FlavorResult):
     """Wand in hand (slot 0), look straight down at the block under the feet, left-click it."""
     bot(mctf, client_id, "/mctf slot 0")
@@ -365,6 +378,7 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         reconnect = bot(mctf, client_id, "connect host.docker.internal %s" % restart.get("mapped_game_port"), timeout_seconds=120)
         if not reconnect.get("ok"):
             raise FlavorFailed("bot reconnect after restart: " + _err(reconnect))
+        wait_online(mctf, server_id)
         console(mctf, server_id, "op " + BOT)
         console(mctf, server_id, "gamemode creative " + BOT)
         console(mctf, server_id, "ecc read all --player %s --cid %s" % (BOT, cid["read"]))

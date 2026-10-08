@@ -76,7 +76,7 @@ class CliTest(unittest.TestCase):
         tools = re.findall(r"^\[dry-run\] mctf (\S+)", proc.stdout, re.M)
         key = [t for t in tools if t in ("mc_start", "mc_hmc_start", "mc_restart", "mc_hmc_stop", "mc_stop")]
         self.assertEqual(key, ["mc_start", "mc_hmc_start", "mc_restart", "mc_hmc_stop", "mc_stop"])
-        self.assertEqual(tools.count("mc_player"), len(cm.SCREENS))
+        self.assertEqual(tools.count("mc_player"), len(cm.SCREENS) + 1)  # + the online check after the restart
         self.assertIn("ecc run all --player", proc.stdout)
         self.assertIn("connect host.docker.internal", proc.stdout)
         self.assertIn("PlaceholderAPI-2.11.6.jar", proc.stdout)
