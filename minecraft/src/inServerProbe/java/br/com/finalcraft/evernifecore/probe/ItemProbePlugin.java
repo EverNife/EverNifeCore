@@ -29,7 +29,8 @@ import java.util.List;
  * player's inventory keeps. Every result is one {@code [ECPROBE-ITEMS]} line, to the sender and the log.
  *
  * <p>{@code /ecprobe items <player>} hands the player three items and reads each one back from the inventory;
- * {@code /ecprobe nbtutil <player>} runs every {@code FCNBTUtil} method against this server; the click listener
+ * {@code /ecprobe nbtutil <player>} runs every {@code FCNBTUtil} method against this server, {@code nbtwrite} and
+ * {@code nbtread} write through every {@code modify*} and read it back across a restart; the click listener
  * reports every left or right click with whether the held item reads as a selection tool.</p>
  */
 public final class ItemProbePlugin extends JavaPlugin implements Listener {
@@ -47,8 +48,9 @@ public final class ItemProbePlugin extends JavaPlugin implements Listener {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length != 2 || !(args[0].equalsIgnoreCase("items") || args[0].equalsIgnoreCase("nbtutil"))) {
-            sender.sendMessage("/ecprobe items|nbtutil <player>");
+        String mode = args.length == 2 ? args[0].toLowerCase() : "";
+        if (!mode.equals("items") && !mode.equals("nbtutil") && !mode.equals("nbtwrite") && !mode.equals("nbtread")) {
+            sender.sendMessage("/ecprobe items|nbtutil|nbtwrite|nbtread <player>");
             return true;
         }
         Player player = Bukkit.getPlayerExact(args[1]);
@@ -56,15 +58,17 @@ public final class ItemProbePlugin extends JavaPlugin implements Listener {
             report(sender, "FAIL player " + args[1] + " is not online");
             return true;
         }
-        if (args[0].equalsIgnoreCase("nbtutil")) {
-            List<String> lines = new NbtUtilProbe(getDataFolder()).run(player);
+        if (!mode.equals("items")) {
+            NbtUtilProbe probe = new NbtUtilProbe(getDataFolder());
+            List<String> lines = mode.equals("nbtutil") ? probe.run(player)
+                    : mode.equals("nbtwrite") ? probe.writePersisted(player) : probe.readPersisted(player);
             int failed = 0;
             for (String line : lines) {
                 sender.sendMessage(NBT_PREFIX + line);
                 getLogger().info(NBT_PREFIX + line);
                 failed += line.startsWith("FAIL") ? 1 : 0;
             }
-            report(sender, (failed == 0 ? "PASS" : "FAIL") + " nbtutil summary " + (lines.size() - failed) + "/" + lines.size()
+            report(sender, (failed == 0 ? "PASS" : "FAIL") + " " + mode + " summary " + (lines.size() - failed) + "/" + lines.size()
                     + " on " + MCDetailedVersion.getCurrent() + " " + Bukkit.getVersion());
             return true;
         }
