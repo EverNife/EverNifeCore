@@ -40,7 +40,7 @@ public final class SchedulerSuite implements ConformanceSuite {
                                     "askedOffMain=" + askedOffMain + " ranOnMain=" + ranOnMain));
                         });
                     });
-                    return within(answer);
+                    return PlayerCases.within(answer, TIMEOUT_MILLIS);
                 }),
                 ConformanceCase.later("next-tick-never-inline", () -> {
                     AtomicBoolean ran = new AtomicBoolean();
@@ -52,7 +52,7 @@ public final class SchedulerSuite implements ConformanceSuite {
                     if (ran.get()) {
                         return CompletableFuture.completedFuture(Verdict.fail("ran inline, inside the call that scheduled it"));
                     }
-                    return within(answer);
+                    return PlayerCases.within(answer, TIMEOUT_MILLIS);
                 }),
                 ConformanceCase.later("run-sync-never-inline", () -> {
                     AtomicBoolean ran = new AtomicBoolean();
@@ -64,13 +64,7 @@ public final class SchedulerSuite implements ConformanceSuite {
                     if (ran.get()) {
                         return CompletableFuture.completedFuture(Verdict.fail("ran inline, inside the call that scheduled it"));
                     }
-                    return within(answer);
+                    return PlayerCases.within(answer, TIMEOUT_MILLIS);
                 }));
-    }
-
-    /** A task that never runs is the defect itself, so the case answers FAIL instead of waiting forever. */
-    private static CompletableFuture<Verdict> within(CompletableFuture<Verdict> answer) {
-        FCScheduler.scheduleAsync(() -> answer.complete(Verdict.fail("never ran within " + TIMEOUT_MILLIS + "ms")), TIMEOUT_MILLIS);
-        return answer;
     }
 }

@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.conformance.minecraft;
 
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.CommandsSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.GuiSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ItemsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.NbtSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.PlatformSuite;
@@ -24,6 +25,7 @@ public final class Suites {
                 new PlatformSuite(),
                 new VersionSuite(),
                 new CommandsSuite(),
+                new GuiSuite(),
                 new SchedulerSuite());
     }
 }

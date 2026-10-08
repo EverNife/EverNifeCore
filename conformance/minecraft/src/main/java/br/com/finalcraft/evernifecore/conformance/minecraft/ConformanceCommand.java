@@ -10,6 +10,10 @@ import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.MarkerLine;
 import br.com.finalcraft.evernifecore.conformance.RunIds;
 import br.com.finalcraft.evernifecore.conformance.SuiteRunner;
+import br.com.finalcraft.evernifecore.conformance.Verdict;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.GuiSuite;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -25,7 +29,8 @@ import java.util.stream.Collectors;
 /**
  * {@code /ecc run|write|read <suite|all>}: runs suites on this server and reports every case to the sender, to the
  * log as a human line, and to the log again as an {@code ENCTEST} marker. {@code write} and {@code read} are the
- * two halves of the suites whose subject has to survive a restart.
+ * two halves of the suites whose subject has to survive a restart. {@code /ecc gui <screen> <player>} opens one
+ * sample screen of the {@code gui} suite and leaves it open, to be read from outside the server.
  */
 @FinalCMD(aliases = {"ecoreconformance", "ecc"}, permission = "evernifecore.conformance")
 public class ConformanceCommand {
@@ -77,6 +82,21 @@ public class ConformanceCommand {
     public void read(FCommandSender sender, @Arg("<suite>") String suite,
                      @Arg.Flag("--player") FPlayer player, @Arg.Flag("--cid") String cid) {
         execute(sender, suite, player, cid, "read", ConformanceSuite::getReadCases);
+    }
+
+    @FinalCMD.SubCMD(subcmd = "gui")
+    public void gui(FCommandSender sender, @Arg("<screen>") String screen, @Arg("<player>") FPlayer player) {
+        if (!GuiSuite.getScreenIds().contains(screen)) {
+            sender.sendMessage(SuiteRunner.HUMAN_PREFIX + "unknown screen '" + screen + "' - known: " + GuiSuite.getScreenIds());
+            return;
+        }
+        Player viewer = Bukkit.getPlayer(player.getUniqueId());
+        if (viewer == null) {
+            sender.sendMessage(SuiteRunner.HUMAN_PREFIX + "gui " + screen + " needs " + player.getName() + " online");
+            return;
+        }
+        GuiSuite.open(screen, viewer).whenComplete((view, refused) -> sender.sendMessage(SuiteRunner.HUMAN_PREFIX + "gui " + screen
+                + (refused == null ? " opened for " + viewer.getName() : " refused: " + Verdict.describe(refused))));
     }
 
     private void execute(FCommandSender sender, String requested, FPlayer player, String cid, String half,
