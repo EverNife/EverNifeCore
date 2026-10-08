@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.util;
 import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.everylibs.util.FCInputReader;
-import de.tr7zw.changeme.nbtapi.NBTContainer;
+import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.Material;
@@ -99,9 +99,7 @@ public class FCItemUtils {
         String nbt = null;
         itemStack = NMSUtils.get().validateItemStackHandle(itemStack);
         if (withNbt){
-            NBTContainer nbtContainer = FCNBTUtil.getFrom(
-                    FCNBTUtil.getFrom(itemStack).toString().toString()
-            );
+            ReadWriteNBT nbtContainer = FCNBTUtil.parse(FCNBTUtil.readItem(itemStack).toString());
             if (MCVersion.isHigherEquals(MCVersion.v1_16)){
                 nbtContainer.removeKey("Damage");
             }

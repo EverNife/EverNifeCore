@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.nbt;
 
-import de.tr7zw.changeme.nbtapi.NBTContainer;
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -73,9 +74,9 @@ public final class NBTSelfTest {
         int passed = 0;
         String nms = "?";
         try {
-            NBTContainer a;
+            ReadWriteNBT a;
             try {
-                a = new NBTContainer("{}"); // fails to link here on a headless JVM (no craftbukkit)
+                a = NBT.createNBTObject(); // fails to link here on a headless JVM (no craftbukkit)
             } catch (LinkageError | Exception e) {
                 boolean unavailable = isLinkageProblem(e);
                 return report(0, (unavailable ? "UNAVAILABLE" : "ERROR") + " (" + describe(e) + ")", e, unavailable, nms);
@@ -105,7 +106,7 @@ public final class NBTSelfTest {
             check("ok".equals(a.getOrCreateCompound("nested").getString("child")), "nested child mismatch");
             passed++; // 4. nested compound
 
-            NBTContainer b = new NBTContainer("{}");
+            ReadWriteNBT b = NBT.createNBTObject();
             b.mergeCompound(a);
             check("EverNifeCore".equals(b.getString("name")), "merged name mismatch");
             check(Integer.valueOf(99).equals(b.getInteger("level")), "merged level mismatch");
@@ -113,11 +114,11 @@ public final class NBTSelfTest {
             passed++; // 5. merge into compound B
 
             b.removeKey("flag");
-            check(!b.hasKey("flag"), "removeKey(flag) did not remove the key from B");
-            check(a.hasKey("flag"), "removeKey(flag) leaked into A (compounds are not independent)");
+            check(!b.hasTag("flag"), "removeKey(flag) did not remove the key from B");
+            check(a.hasTag("flag"), "removeKey(flag) leaked into A (compounds are not independent)");
             passed++; // 6. remove key / independence
 
-            NBTContainer roundTrip = new NBTContainer(a.toString());
+            ReadWriteNBT roundTrip = NBT.parseNBT(a.toString());
             check("EverNifeCore".equals(roundTrip.getString("name")), "round-trip name mismatch");
             check(Integer.valueOf(99).equals(roundTrip.getInteger("level")), "round-trip level mismatch");
             passed++; // 7. serialize round-trip

@@ -5,8 +5,7 @@ import br.com.finalcraft.evernifecore.minecraft.integration.bossshop.shops.IECSh
 import br.com.finalcraft.evernifecore.minecraft.itemstack.FCItemFactory;
 import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
 import br.com.finalcraft.evernifecore.minecraft.util.FCNBTUtil;
-import de.tr7zw.changeme.nbtapi.NBTContainer;
-import de.tr7zw.changeme.nbtapi.NBTItem;
+import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import org.black_ixx.bossshop.core.BSBuy;
 import org.black_ixx.bossshop.core.BSShop;
 import org.black_ixx.bossshop.core.BSShopHolder;
@@ -22,14 +21,15 @@ public class ECItemStackTranslator extends ItemStackTranslator {
         ItemStack itemStack = super.translateItemStack(buy, shop, holder, item, target, final_version); //Do Default Tranlation
 
         if (target != null){
-            NBTItem itemNBT = FCNBTUtil.getFrom(itemStack);
+            String nbtString = FCNBTUtil.readItem(itemStack, nbt -> nbt.hasTag(BSItemDataPartNBT.NBT_TAG)
+                    ? nbt.getString(BSItemDataPartNBT.NBT_TAG)
+                    : null);
 
-            if (!FCNBTUtil.isEmpty(itemNBT) && itemNBT.hasTag(BSItemDataPartNBT.NBT_TAG)){
-                String nbtString = itemNBT.getString(BSItemDataPartNBT.NBT_TAG);
+            if (nbtString != null){
                 String parsedNbtString = ClassManager.manager.getStringManager().transform(nbtString, buy, shop, holder, target);
 
                 try {
-                    NBTContainer nbtContent = FCNBTUtil.getFrom(parsedNbtString);
+                    ReadWriteNBT nbtContent = FCNBTUtil.parse(parsedNbtString);
 
                     itemStack = FCItemFactory.from(itemStack)
                             .editNbt(tag -> {

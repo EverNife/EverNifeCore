@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.RegisteredPart;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.StandardParts;
 import br.com.finalcraft.evernifecore.minecraft.util.FCNBTUtil;
-import de.tr7zw.changeme.nbtapi.NBTContainer;
+import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import org.black_ixx.bossshop.core.BSBuy;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -35,7 +35,7 @@ public class BSItemDataPartNBT extends org.black_ixx.bossshop.managers.item.Item
         Matcher matcher = pattern.matcher(argument);
 
         if (matcher.find()) {
-            NBTContainer parked = FCNBTUtil.getFrom("{}");
+            ReadWriteNBT parked = FCNBTUtil.createEmpty();
             parked.setString(NBT_TAG, argument);
             argument = parked.toString();
         }

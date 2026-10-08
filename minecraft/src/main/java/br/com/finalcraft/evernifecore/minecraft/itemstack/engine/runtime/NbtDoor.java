@@ -95,6 +95,21 @@ public final class NbtDoor {
         return (ItemStack) ReflectionMethod.ITEMSTACK_BUKKITMIRROR.run(null, handle);
     }
 
+    /**
+     * The item's tag as it is now, to read as many values as needed without a scope per value. It is a
+     * copy: a change to the item after this call does not show in it, and it cannot be written.
+     */
+    @Nonnull
+    public ReadableNBT view(@Nonnull ItemStack item) {
+        if (componentSide) {
+            if (!MinecraftVersion.isAtLeastVersion(MinecraftVersion.MC1_20_R4)) {
+                throw new NbtApiException("Item components only exist from 1.20.5 on.");
+            }
+            return NBT.itemStackToNBT(item).getOrCreateCompound("components");
+        }
+        return NBT.readNbt(serverBacked(item));
+    }
+
     /** A detached copy of the item's tag, which is what a value read out of an item is made of. */
     @Nonnull
     public ReadWriteNBT snapshot(@Nonnull ItemStack item) {

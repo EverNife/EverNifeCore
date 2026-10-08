@@ -131,7 +131,7 @@ public class PlayerInteractListener implements ECListener {
                 .addPlaceholder("entity_name", entityName)
                 .addPlaceholder("entity_registry_name", NMSUtils.get().getEntityRegistryName(rightClicked))
                 .addPlaceholder("entity_tostring", NMSUtils.get().asMinecraftEntity(rightClicked).toString())
-                .addPlaceholder("entity_nbt", includeNBT ? FCNBTUtil.getFrom(rightClicked).toString() : "(Hold Shift to Scan)")
+                .addPlaceholder("entity_nbt", includeNBT ? FCNBTUtil.readEntity(rightClicked, Object::toString) : "(Hold Shift to Scan)")
                 .send(FCBukkitUtil.adapt(player));
 
     }

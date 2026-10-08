@@ -3,8 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.itemstack;
 import br.com.finalcraft.evernifecore.minecraft.util.FCNBTUtil;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-import de.tr7zw.changeme.nbtapi.NBTCompound;
-import de.tr7zw.changeme.nbtapi.NBTItem;
+import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.inventory.ItemStack;
@@ -13,19 +12,18 @@ import java.util.Objects;
 
 public class ComparableItemComplex extends ComparableItem {
 
-    protected final NBTCompound nbtCompound;
+    protected final ReadWriteNBT nbtCompound;
 
-    protected NBTCompound extractCompound(ItemStack itemStack){
+    protected ReadWriteNBT extractCompound(ItemStack itemStack){
         try {
             ItemStack safeClone = FCItemFactory.from(itemStack).build();
-            NBTItem nbtItem = FCNBTUtil.getFrom(safeClone);
-            return FCNBTUtil.getFrom(nbtItem.toString());
+            return FCNBTUtil.parse(FCNBTUtil.readItem(safeClone).toString());
         }catch (Exception ignored){//Necessary, because some blocks are not able to have NBT
         }
-        return FCNBTUtil.empyNBT();
+        return FCNBTUtil.createEmpty();
     }
 
-    protected NBTCompound extractCompound(ComparableItem comparableItem){
+    protected ReadWriteNBT extractCompound(ComparableItem comparableItem){
         if (comparableItem instanceof ComparableItemComplex){
             return ((ComparableItemComplex) comparableItem).getNbtCompound();
         }
@@ -52,17 +50,17 @@ public class ComparableItemComplex extends ComparableItem {
         this.nbtCompound = extractCompound(this.getItemStack());
     }
 
-    public ComparableItemComplex(ItemStack itemStack, Material material, Short damageValue, NBTCompound nbtCompound) {
+    public ComparableItemComplex(ItemStack itemStack, Material material, Short damageValue, ReadWriteNBT nbtCompound) {
         super(itemStack, material, damageValue);
         this.nbtCompound = nbtCompound;
     }
 
-    public ComparableItemComplex(Material material, Short damageValue, NBTCompound nbtCompound) {
+    public ComparableItemComplex(Material material, Short damageValue, ReadWriteNBT nbtCompound) {
         super(material, damageValue);
         this.nbtCompound = nbtCompound;
     }
 
-    public NBTCompound getNbtCompound() {
+    public ReadWriteNBT getNbtCompound() {
         return nbtCompound;
     }
 
@@ -103,11 +101,11 @@ public class ComparableItemComplex extends ComparableItem {
         // Peel off the optional NBT suffix ({...}) before ComparableItem.deserialize, which splits on
         // ':'/' ' and would choke on the SNBT. Configs saved without NBT have no '{' and load as before.
         String materialPart = serializedLine;
-        NBTCompound nbt = null;
+        ReadWriteNBT nbt = null;
         int nbtStart = serializedLine.indexOf('{');
         if (nbtStart >= 0) {
             materialPart = serializedLine.substring(0, nbtStart).trim();
-            nbt = FCNBTUtil.getFrom(serializedLine.substring(nbtStart).trim());
+            nbt = FCNBTUtil.parse(serializedLine.substring(nbtStart).trim());
         }
         ComparableItem base = ComparableItem.deserialize(materialPart);
         return nbt != null
