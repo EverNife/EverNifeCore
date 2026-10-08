@@ -24,7 +24,8 @@ public final class McSelectionItems implements ISelectionItems {
     /** How the selection mark is written to and read from an item: the item's nbt on a server, anything else in a test. */
     public interface ItemMark {
 
-        void mark(ItemStack item);
+        /** Marks {@code item}; the marked tool is the stack returned, which need not be {@code item} itself. */
+        ItemStack mark(ItemStack item);
 
         boolean isMarked(ItemStack item);
     }
@@ -48,8 +49,7 @@ public final class McSelectionItems implements ISelectionItems {
         }
         Player bukkit = ((MinecraftFPlayer<?>) player).getPlayer();
         //a clone keeps whatever the plugin put on its item - the mark is added, nothing is rewritten
-        ItemStack tool = spec.getNativeItem() != null ? spec.getNativeItem().getItemStack().clone() : build(spec);
-        mark.mark(tool);
+        ItemStack tool = mark.mark(spec.getNativeItem() != null ? spec.getNativeItem().getItemStack().clone() : build(spec));
         for (ItemStack left : bukkit.getInventory().addItem(tool).values()) {
             bukkit.getWorld().dropItemNaturally(bukkit.getLocation(), left);   //a full inventory still gets its tool
         }
@@ -97,8 +97,8 @@ public final class McSelectionItems implements ISelectionItems {
     private static ItemMark nbtMark() {
         return new ItemMark() {
             @Override
-            public void mark(ItemStack item) {
-                NbtDoor.custom().modifyBatch(item, nbt -> nbt.setBoolean(MARK, true));
+            public ItemStack mark(ItemStack item) {
+                return NbtDoor.custom().modifyBatch(item, nbt -> nbt.setBoolean(MARK, true));
             }
 
             @Override

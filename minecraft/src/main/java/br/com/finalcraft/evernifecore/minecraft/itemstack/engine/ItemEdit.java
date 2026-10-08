@@ -230,8 +230,7 @@ public abstract class ItemEdit {
         @Nonnull
         @Override
         ItemStack applyTo(@Nonnull ItemStack item, @Nonnull ItemEngine engine) {
-            NbtDoor.custom().modifyBatch(item, editor);
-            return item;
+            return NbtDoor.custom().modifyBatch(item, editor);
         }
     }
 

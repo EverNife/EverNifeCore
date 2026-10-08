@@ -108,12 +108,11 @@ public class ItemDataPartNBT extends ItemDataPart<List<String>> {
     @Nonnull
     @Override
     public ItemStack apply(@Nonnull List<String> value, @Nonnull ItemStack item) {
-        NbtDoor.custom().modifyBatch(item, tag -> {
+        return NbtDoor.custom().modifyBatch(item, tag -> {
             for (String snbt : value) {
                 tag.mergeCompound(NbtDoor.parse(snbt));
             }
         });
-        return item;
     }
 
     @Nullable

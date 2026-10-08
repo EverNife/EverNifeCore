@@ -54,8 +54,9 @@ class McSelectionListenerTest {
     private final Set<ItemStack> marked = Collections.newSetFromMap(new IdentityHashMap<>());
     private final McSelectionItems items = new McSelectionItems(new McSelectionItems.ItemMark() {
         @Override
-        public void mark(ItemStack item) {
+        public ItemStack mark(ItemStack item) {
             marked.add(item);
+            return item;
         }
 
         @Override

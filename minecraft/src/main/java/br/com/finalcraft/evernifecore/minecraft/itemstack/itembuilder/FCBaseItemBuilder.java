@@ -230,14 +230,13 @@ public abstract class FCBaseItemBuilder<B extends FCBaseItemBuilder<B>> {
         return stack("unbreakable", ItemRequirement.base().with(ItemProbe.ITEM_META, ItemProbe.NBT),
                 ItemDataPart.PRIORITY_LATE, item -> {
                     if (MCVersion.isLower(MCDetailedVersion.v1_11_R1)) {
-                        NbtDoor.custom().modifyBatch(item, tag -> {
+                        return NbtDoor.custom().modifyBatch(item, tag -> {
                             if (unbreakable) {
                                 tag.setBoolean("Unbreakable", true);
                             } else {
                                 tag.removeKey("Unbreakable");
                             }
                         });
-                        return item;
                     }
                     ItemMeta meta = item.getItemMeta();
                     meta.setUnbreakable(unbreakable);

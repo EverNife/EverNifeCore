@@ -34,13 +34,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** The selection tool handed out on Bukkit: built from the spec or taken from the plugin, always marked. */
 class McSelectionItemsTest {
 
-    /** A mark kept beside the items, by identity: the real one lives in the item's nbt, which needs a live server. */
+    /**
+     * A mark kept beside the items, by identity: the real one lives in the item's nbt, which needs a live server.
+     * Like the real one on a plain stack, it marks a copy and leaves the stack it was handed untouched.
+     */
     private static final class RememberedMark implements McSelectionItems.ItemMark {
         final Set<ItemStack> marked = Collections.newSetFromMap(new IdentityHashMap<>());
 
         @Override
-        public void mark(ItemStack item) {
-            marked.add(item);
+        public ItemStack mark(ItemStack item) {
+            ItemStack copy = item.clone();
+            marked.add(copy);
+            return copy;
         }
 
         @Override
@@ -118,7 +123,7 @@ class McSelectionItemsTest {
             RememberedMark mark = new RememberedMark();
             McSelectionItems selectionItems = new McSelectionItems(mark);
             ItemStack marked = new ItemStack(Material.GOLDEN_HOE);
-            mark.mark(marked);
+            marked = mark.mark(marked);
             ItemStack air = new ItemStack(Material.AIR);
             mark.mark(air);
 

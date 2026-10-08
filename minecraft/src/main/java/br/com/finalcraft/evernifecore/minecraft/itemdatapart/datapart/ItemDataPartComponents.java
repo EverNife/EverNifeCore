@@ -61,12 +61,11 @@ public class ItemDataPartComponents extends ItemDataPart<List<String>> {
     @Nonnull
     @Override
     public ItemStack apply(@Nonnull List<String> value, @Nonnull ItemStack item) {
-        NbtDoor.components().modifyBatch(item, components -> {
+        return NbtDoor.components().modifyBatch(item, components -> {
             for (String snbt : value) {
                 components.mergeCompound(NbtDoor.parse(snbt));
             }
         });
-        return item;
     }
 
     @Nullable
