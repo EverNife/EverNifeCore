@@ -263,7 +263,9 @@ tasks.register('checkLinkage') {
                    project(':minecraft:modules:v1_7_10'),
                    project(':minecraft:modules:v1_12_2'),
                    project(':minecraft:modules:v1_16_5'),
-                   project(':minecraft:modules:modern')]
+                   project(':minecraft:modules:modern'),
+                   // not part of the deployable, but it runs on the same servers
+                   project(':conformance:minecraft')]
     scanned.each { dependsOn "${it.path}:classes" }
 
     def classDirs = scanned.collect { it.layout.buildDirectory.dir('classes/java/main') }

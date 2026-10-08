@@ -1,0 +1,19 @@
+// The platform-agnostic half of ECoreConformance: the suite contract, the runner and the ENCTEST/NDJSON
+// emitters. A platform plugin embeds it; it is never published. Java 8 bytecode (root dual-target block).
+
+// :common and :minecraft carry these same project names; a group of their own keeps Gradle from treating
+// the two pairs as one module during conflict resolution.
+group = 'br.com.finalcraft.conformance'
+
+dependencies {
+    // The server provides the core; only the types are needed here.
+    compileOnly project(':common')
+    compileOnly project(':api-contracts')
+
+    testImplementation project(':common-tests')
+    testRuntimeOnly libs.junit.platform.launcher
+}
+
+test {
+    useJUnitPlatform()
+}

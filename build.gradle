@@ -17,6 +17,29 @@ ext.jacksonRelocations = [
         'com.fasterxml.jackson.datatype'  : 'br.com.finalcraft.everydatabase.libs.jackson.datatype',
 ]
 
+// Every package the deployable relocates. A jar that has to link against the deployable - the test kit,
+// the ECoreConformance plugin - applies the same list, so none of them disagrees on a name.
+def applyCoreRelocations = { task ->
+    task.relocate 'net.byteflux.libby', 'br.com.finalcraft.libs.net.byteflux'
+    task.relocate 'net.kyori', 'br.com.finalcraft.libs.net.kyori'
+    task.relocate 'de.tr7zw.changeme.nbtapi', 'br.com.finalcraft.libs.minecraft.nbtapi'
+
+    // Rewrites the embedded EveryDatabase/EveryConfig refs onto the coordinates libby delivers at
+    // runtime; EDBDependencies mirrors the Jackson pairs at the runtime-download side.
+    rootProject.jacksonRelocations.each { from, to -> task.relocate from, to }
+    // The server ships an older canonical snakeyaml without setCodePointLimit, which EveryConfig's
+    // YamlCodec calls; this points it at the snakeyaml libby delivers.
+    task.relocate 'org.yaml.snakeyaml',               'br.com.finalcraft.everydatabase.libs.snakeyaml'
+    task.relocate 'com.zaxxer.hikari',                'br.com.finalcraft.everydatabase.libs.hikari'
+    task.relocate 'org.slf4j',                        'br.com.finalcraft.everydatabase.libs.slf4j'
+    task.relocate 'com.mongodb',                      'br.com.finalcraft.everydatabase.libs.mongodb'
+    task.relocate 'org.bson',                         'br.com.finalcraft.everydatabase.libs.bson'
+    task.relocate 'org.h2',                           'br.com.finalcraft.everydatabase.libs.h2'
+    task.relocate 'org.postgresql',                   'br.com.finalcraft.everydatabase.libs.postgresql'
+    task.relocate 'com.mysql',                        'br.com.finalcraft.everydatabase.libs.mysql'
+}
+ext.applyCoreRelocations = applyCoreRelocations
+
 // Local-only jars: paid or otherwise unobtainable plugins the :minecraft side compiles against, plus
 // the Crucible server checkLinkage reads the 1.7.10 API out of. One source, so the two readers cannot
 // drift apart. Without these that module cannot compile; the other modules still can.
@@ -115,7 +138,9 @@ configure([project(':api-contracts'),
            project(':common-tests'),
            project(':libby'),
            project(':minecraft'),
-           project(':minecraft:modules:modern')]) {
+           project(':minecraft:modules:modern'),
+           project(':conformance:common'),
+           project(':conformance:minecraft')]) {
     dependencies {
         annotationProcessor libs.jabel
         compileOnly libs.jabel
