@@ -13,6 +13,28 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.63] - 2026-10-08
+
+The region selection tool marks points on 1.7.10, and the core leaves the server's own `/list` alone by default.
+
+### Fixed
+
+- **A tag written by the item engine survives on 1.7.10.** Onto a plain Bukkit `ItemStack` the nbt library brought the
+  tag back through `ItemMeta`, and the 1.7.10 metadata (Crucible included) drops every key it does not know: the
+  selection tool lost its `enc:selection` mark (left clicks never set a point) and `setUnbreakable()` below 1.11 lost
+  `Unbreakable`. A recipe built from an `ItemStack` or an identifier was already server-backed and kept its tag.
+  Measured with an in-server probe on Crucible 1.7.10, Mohist 1.12.2 and 1.16.5, Arclight and Paper 1.21.1.
+
+### Changed
+
+- **`NbtDoor.modifyBatch` returns the stack that carries the write** and the caller continues with it. A server-backed
+  item is edited in place and returned; any other is copied into a server-backed one first and left untouched. The
+  component side returns the stack rebuilt from the edited item instead of copying its metadata back.
+- `McSelectionItems.ItemMark.mark` returns the marked stack.
+- **`/list` is opt-in.** The core's player list is `/playerlist`; it also takes `/list` only with
+  `Settings.Commands.LIST_ALIAS: true` in `config.yml` (default `false`). With the default the server's own `/list`
+  is no longer unregistered on Paper.
+
 ## [3.0.1-alpha.62] - 2026-10-07
 
 A player without a command's permission is told which permission is missing, not "Unknown or incomplete command".
