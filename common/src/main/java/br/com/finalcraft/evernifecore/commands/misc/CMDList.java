@@ -5,14 +5,18 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
+import br.com.finalcraft.evernifecore.commands.finalcmd.custom.ICustomFinalCMD;
+import br.com.finalcraft.evernifecore.commands.finalcmd.custom.contexts.CustomizeContext;
+import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
 import br.com.finalcraft.evernifecore.pageviewer.PageVisualization;
 import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
+import jakarta.annotation.Nonnull;
 
-public class CMDList {
+public class CMDList implements ICustomFinalCMD {
 
     @FCLocale(lang = LocaleType.EN_US, text = "§7# ${number}: §e§l- §a ${value}")
     @FCLocale(lang = LocaleType.PT_BR, text = "§7# ${number}: §e§l- §a ${value}")
@@ -36,9 +40,16 @@ public class CMDList {
     }
 
     @FinalCMD(
-            aliases = {"list","playerlist"}
+            aliases = {"playerlist", "list"}
     )
     public void onCommand(FCommandSender sender, @Arg("[page]") PageVisualization page) {
         Page.ONLINE_PLAYERS.send(page, sender);
+    }
+
+    @Override
+    public void customize(@Nonnull CustomizeContext context) {
+        if (!ECSettings.COMMAND_LIST_ALIAS) {
+            context.getFinalCMDData().setLabels("playerlist");   //the server's own /list stays in place
+        }
     }
 }

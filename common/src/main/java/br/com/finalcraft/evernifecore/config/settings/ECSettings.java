@@ -45,6 +45,7 @@ public class ECSettings {
     public static boolean COMMAND_REGISTRY_FILES_ENABLED = false;
     public static List<String> COMMAND_HELP_WORDS = HelpWords.DEFAULTS;
     public static int COMMAND_HELP_PAGE_SIZE = 8;
+    public static boolean COMMAND_LIST_ALIAS = false;
 
     //Regions - initialised to the shipped defaults, since tests and the command harness never run initialize()
     public static List<String> REGIONS_DISABLED_WORLDS = Collections.emptyList();
@@ -143,6 +144,12 @@ public class ECSettings {
                         "\nempty is not a way to turn the help off - the shipped words come back."
         );
         HelpWords.configure(COMMAND_HELP_WORDS);
+
+        COMMAND_LIST_ALIAS = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
+                "Settings.Commands.LIST_ALIAS", false,
+                "Set to 'true' to also answer '/list' with EverNifeCore's online player list. While 'false'" +
+                        "\nthe server keeps its own '/list', and the core's list is '/playerlist' only."
+        );
 
         COMMAND_HELP_PAGE_SIZE = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
                 "Settings.Commands.HELP_PAGE_SIZE", 8,
