@@ -93,3 +93,4 @@
 # The ECoreConformance plugin: suites that read a member only on the versions that have it.
 # ---------------------------------------------------------------------------------------------
 * method org/bukkit/inventory/meta/ItemMeta.isUnbreakable()Z br.com.finalcraft.evernifecore.conformance.minecraft.suite.ItemsSuite  # only on the MCVersion.isLower(v1_20_R4) == false branch; below it the tag is read
+* method org/bukkit/World.getMinHeight()I br.com.finalcraft.evernifecore.conformance.minecraft.suite.VersionSuite  # only on the MCVersion.isHigherEquals(WORLD_FLOOR_SINCE = v1_17_R1) branch

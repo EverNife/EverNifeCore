@@ -1,8 +1,12 @@
 package br.com.finalcraft.evernifecore.conformance.minecraft;
 
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.CommandsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ItemsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.NbtSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.PlatformSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SchedulerSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.VersionSuite;
 
 import java.util.Arrays;
 import java.util.List;
@@ -16,6 +20,10 @@ public final class Suites {
     public static List<ConformanceSuite> all() {
         return Arrays.asList(
                 new ItemsSuite(),
-                new NbtSuite());
+                new NbtSuite(),
+                new PlatformSuite(),
+                new VersionSuite(),
+                new CommandsSuite(),
+                new SchedulerSuite());
     }
 }

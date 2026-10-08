@@ -17,7 +17,8 @@ public final class ECoreConformancePlugin extends ECBukkitPlugin {
     @Override
     public void onECPluginEnable() {
         FinalCMDManager.registerCommand(getPluginData(), new ConformanceCommand(Suites.all(), getDataFolder(),
-                () -> MCDetailedVersion.getCurrent() + " " + Bukkit.getVersion(), getLogger()::info));
+                () -> MCDetailedVersion.getCurrent() + " " + Bukkit.getVersion(), getLogger()::info,
+                task -> Bukkit.getScheduler().runTask(this, task)));
     }
 
     @Override

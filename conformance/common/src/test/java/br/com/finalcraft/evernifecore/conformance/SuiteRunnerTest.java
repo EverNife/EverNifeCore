@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,8 +34,8 @@ class SuiteRunnerTest {
     }
 
     private SuiteRunner.Summary runIn(File folder, ConformanceCase... cases) {
-        SuiteRunner runner = new SuiteRunner(new MarkerLine(log::add), human::add, folder, () -> T, () -> "r-1");
-        return runner.run("demo", "c-1", Arrays.asList(cases), "test-version");
+        SuiteRunner runner = new SuiteRunner(new MarkerLine(log::add), human::add, folder, () -> T, () -> "r-1", Runnable::run);
+        return runner.run("demo", "c-1", Arrays.asList(cases), "test-version").join();
     }
 
     private List<String> markers(String event) {
@@ -169,6 +170,22 @@ class SuiteRunnerTest {
         assertEquals("expected=true since=1.14 UnsupportedOperationException: no pdc", refused.getDetail());
         assertFalse(unexpected.isRefusalExpected());
         assertEquals("k=v expected=false since=1.14", works.getDetail());
+    }
+
+    @Test
+    void aCaseAnsweredLaterHoldsTheRunUntilItCompletesThenTheRestFollows() {
+        CompletableFuture<Verdict> pending = new CompletableFuture<>();
+        SuiteRunner runner = new SuiteRunner(new MarkerLine(log::add), human::add, dataFolder.toFile(), () -> T, () -> "r-1", Runnable::run);
+
+        CompletableFuture<SuiteRunner.Summary> done = runner.run("demo", "c-1", Arrays.asList(
+                ConformanceCase.later("tick", () -> pending),
+                ConformanceCase.of("after", () -> Verdict.pass("x"))), "test-version");
+
+        assertFalse(done.isDone());
+        assertEquals(1, log.size(), "only suite_start before the answer: " + log);
+        pending.complete(Verdict.pass("ran on the main thread"));
+        assertEquals(2, done.join().passed);
+        assertTrue(log.get(1).contains("\"test\":\"tick\"") && log.get(2).contains("\"test\":\"after\""), String.join("\n", log));
     }
 
     @Test

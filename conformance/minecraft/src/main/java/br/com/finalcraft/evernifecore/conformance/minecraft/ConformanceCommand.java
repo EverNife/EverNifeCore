@@ -15,6 +15,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -32,17 +34,21 @@ public class ConformanceCommand {
     private final File dataFolder;
     private final Supplier<String> versionLabel;
     private final Consumer<String> log;
+    private final Executor mainThread;
     private final MarkerLine markers;
 
     /**
      * @param versionLabel asked only when a suite runs, for its summary line
      * @param log          the plugin logger's {@code info}: markers have to reach the server log one line each
+     * @param mainThread   where a run resumes after a case that answered on a later tick
      */
-    public ConformanceCommand(List<ConformanceSuite> suites, File dataFolder, Supplier<String> versionLabel, Consumer<String> log) {
+    public ConformanceCommand(List<ConformanceSuite> suites, File dataFolder, Supplier<String> versionLabel, Consumer<String> log,
+                              Executor mainThread) {
         this.suites = suites;
         this.dataFolder = dataFolder;
         this.versionLabel = versionLabel;
         this.log = log;
+        this.mainThread = mainThread;
         this.markers = new MarkerLine(log);
     }
 
@@ -85,14 +91,16 @@ public class ConformanceCommand {
             sender.sendMessage(line);
             //the console already echoes what it is sent into the log
             if (sender.isPlayer()) log.accept(line);
-        }, dataFolder);
+        }, dataFolder, mainThread);
         String correlation = cid == null ? RunIds.nextCid() : cid;
 
+        //one suite after the other, also when a case of the previous one answered on a later tick
+        CompletableFuture<?> chain = CompletableFuture.completedFuture(null);
         int ran = 0;
         for (ConformanceSuite suite : chosen) {
             List<ConformanceCase> cases = casesOf.apply(suite, ctx);
             if (cases.isEmpty()) continue;
-            runner.run(suite.getId(), correlation, cases, ctx.getVersionLabel());
+            chain = chain.thenCompose(previous -> runner.run(suite.getId(), correlation, cases, ctx.getVersionLabel()));
             ran++;
         }
         if (ran == 0) {

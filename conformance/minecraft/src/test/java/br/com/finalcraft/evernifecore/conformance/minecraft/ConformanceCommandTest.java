@@ -37,7 +37,7 @@ class ConformanceCommandTest {
     @BeforeEach
     void setUp() {
         harness = Commands.harness("Ecc", dataFolder);
-        command = harness.register(new ConformanceCommand(Suites.all(), dataFolder.toFile(), () -> "test-server", log::add));
+        command = harness.register(new ConformanceCommand(Suites.all(), dataFolder.toFile(), () -> "test-server", log::add, Runnable::run));
         console = Senders.console().grant("evernifecore.conformance");
     }
 
