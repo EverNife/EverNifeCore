@@ -75,6 +75,11 @@ def marker_json(ev: dict) -> str:
     return json.dumps(ev, separators=(",", ":"))
 
 
+def write_events(path, events: List[dict]):
+    with open(path, "w", encoding="utf-8") as f:
+        f.writelines(marker_json(ev) + "\n" for ev in events)
+
+
 def half_of(cid: Optional[str]) -> str:
     """The driver mints cids as <prefix>-<half>; anything else is read as a run half."""
     tail = (cid or "").rsplit("-", 1)[-1]
@@ -404,8 +409,7 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         r.problems.append("selection-click was skipped - the bot's block click never armed/arrived")
     if not mctf.dry_run:
         fdir.mkdir(parents=True, exist_ok=True)
-        with open(fdir / "events.ndjson", "w", encoding="utf-8") as f:
-            f.writelines(json.dumps(ev) + "\n" for ev in r.events)
+        write_events(fdir / "events.ndjson", r.events)
         with open(fdir / "summary.md", "w", encoding="utf-8") as f:
             f.write(render_flavor_section(r))
     return r

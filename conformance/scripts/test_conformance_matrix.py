@@ -46,6 +46,10 @@ class ParsingTest(unittest.TestCase):
     def test_events_are_written_compact_in_emission_order(self):
         ev = {"e": "test_result", "suite": "ecore-hooks", "test": "papi-present", "ok": True}
         self.assertEqual(cm.marker_json(ev), '{"e":"test_result","suite":"ecore-hooks","test":"papi-present","ok":true}')
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "events.ndjson"
+            cm.write_events(path, [ev, {"e": "suite_end", "failed": 0}])
+            self.assertEqual(path.read_text(encoding="utf-8").splitlines()[1], '{"e":"suite_end","failed":0}')
 
     def test_a_routed_plugin_that_did_not_enable_is_named(self):
         enabled = ["ECoreConformance@3.0.1", "EverNifeCore@3.0.1"]
