@@ -24,6 +24,9 @@ The region selection tool marks points on 1.7.10, and the core's `/list` can be 
   selection tool lost its `enc:selection` mark (left clicks never set a point) and `setUnbreakable()` below 1.11 lost
   `Unbreakable`. A recipe built from an `ItemStack` or an identifier was already server-backed and kept its tag.
   Measured with an in-server probe on Crucible 1.7.10, Mohist 1.12.2 and 1.16.5, Arclight and Paper 1.21.1.
+- **A tag in an item identifier loads on 1.21.1.** `FCItemUtils.fromMinecraftIdentifier("<id> <n> <meta> {<snbt>}")`
+  called a builder method the core no longer has (`setNbt`) from the bundled ECNmsUtils, a `NoSuchMethodError`
+  waiting for the first identifier that carried a tag. `checkLinkage` does not scan the bundled ECNmsUtils classes.
 
 ### Changed
 
@@ -31,6 +34,17 @@ The region selection tool marks points on 1.7.10, and the core's `/list` can be 
   item is edited in place and returned; any other is copied into a server-backed one first and left untouched. The
   component side returns the stack rebuilt from the edited item instead of copying its metadata back.
 - `McSelectionItems.ItemMark.mark` returns the marked stack.
+- **`FCNBTUtil` is scoped end to end.** Every `getFrom(...)`, `empyNBT()` and `isEmpty(NBTCompound)` is gone, along
+  with the NBT-API constructors they wrapped (deprecated upstream; `NBTBlock`/`NBTChunk` as whole classes). In their
+  place: `createEmpty()`, `parse(String)`, `isEmpty(ReadableNBT)`; `readItem(item)` (a read-only copy),
+  `readItem(item, fn)`, `modifyItem(item, editor)` returning the stack that carries the write; `readEntity`/
+  `modifyEntity` and the PDC pair `readEntityData`/`modifyEntityData`; `readTileEntity`/`modifyTileEntity` and
+  `readTileEntityData`/`modifyTileEntityData`; `readBlockData`/`modifyBlockData` and `readChunkData`/
+  `modifyChunkData` (chunk PDC, 1.16.4+); `readFile`/`writeFile`. Everything returns the `ReadWriteNBT`/
+  `ReadableNBT` interfaces. The old item door wrote through `ItemMeta` in direct-apply mode, which on 1.7.10
+  dropped every custom key, even on an item taken from an inventory.
+- `NbtDoor.view(item)`: a read-only copy of the item's tag. `ComparableItemComplex` holds a `ReadWriteNBT`.
+- `NBTPlayer` removed: a player is an entity, `readEntity`/`modifyEntity` cover it.
 - **`/list` can be turned off.** The core's player list is `/playerlist`, and it also takes `/list` while
   `Settings.Commands.LIST_ALIAS` in `config.yml` is `true` (the default). `false` leaves the server's own `/list` in
   place - otherwise, on Paper, the core unregisters it with a `Removing existent command [list]` warning.
