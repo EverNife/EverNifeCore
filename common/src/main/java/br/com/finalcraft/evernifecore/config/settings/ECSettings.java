@@ -45,7 +45,7 @@ public class ECSettings {
     public static boolean COMMAND_REGISTRY_FILES_ENABLED = false;
     public static List<String> COMMAND_HELP_WORDS = HelpWords.DEFAULTS;
     public static int COMMAND_HELP_PAGE_SIZE = 8;
-    public static boolean COMMAND_LIST_ALIAS = false;
+    public static boolean COMMAND_LIST_ALIAS = true;
 
     //Regions - initialised to the shipped defaults, since tests and the command harness never run initialize()
     public static List<String> REGIONS_DISABLED_WORLDS = Collections.emptyList();
@@ -146,9 +146,9 @@ public class ECSettings {
         HelpWords.configure(COMMAND_HELP_WORDS);
 
         COMMAND_LIST_ALIAS = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
-                "Settings.Commands.LIST_ALIAS", false,
-                "Set to 'true' to also answer '/list' with EverNifeCore's online player list. While 'false'" +
-                        "\nthe server keeps its own '/list', and the core's list is '/playerlist' only."
+                "Settings.Commands.LIST_ALIAS", true,
+                "While 'true' EverNifeCore's online player list also answers '/list', replacing the server's own." +
+                        "\nSet to 'false' to keep the server's '/list'; the core's list stays on '/playerlist'."
         );
 
         COMMAND_HELP_PAGE_SIZE = ConfigManager.getMainConfig().getOrSetValueIfAbsent(

@@ -49,7 +49,7 @@ public class CMDList implements ICustomFinalCMD {
     @Override
     public void customize(@Nonnull CustomizeContext context) {
         if (!ECSettings.COMMAND_LIST_ALIAS) {
-            context.getFinalCMDData().setLabels("playerlist");   //the server's own /list stays in place
+            context.getFinalCMDData().setLabels("playerlist");   //the server keeps its own /list
         }
     }
 }

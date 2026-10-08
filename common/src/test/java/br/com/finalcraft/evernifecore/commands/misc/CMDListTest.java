@@ -13,7 +13,7 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/** The core's player list answers to {@code /playerlist} always, and to {@code /list} only when the config asks for it. */
+/** The core's player list answers to {@code /playerlist} always, and to {@code /list} unless the config turns that off. */
 class CMDListTest {
 
     @TempDirNobodyCleans
@@ -28,25 +28,25 @@ class CMDListTest {
 
     @AfterEach
     void teardown() {
-        ECSettings.COMMAND_LIST_ALIAS = false;
+        ECSettings.COMMAND_LIST_ALIAS = true;
         if (harness != null) harness.close();
     }
 
     @Test
-    void byDefaultTheServersOwnListIsLeftAlone() {
-        FinalCMDPluginCommand command = harness.register(CMDList.class);
-
-        assertEquals("playerlist", command.getPrimaryLabel());
-        assertArrayEquals(new String[0], command.getExtraLabels(), "no /list unless the config asks for it");
-    }
-
-    @Test
-    void theConfigCanHandListToTheCore() {
-        ECSettings.COMMAND_LIST_ALIAS = true;
-
+    void byDefaultTheCoreAnswersList() {
         FinalCMDPluginCommand command = harness.register(CMDList.class);
 
         assertEquals("playerlist", command.getPrimaryLabel());
         assertArrayEquals(new String[]{"list"}, command.getExtraLabels());
+    }
+
+    @Test
+    void theConfigCanLeaveTheServersOwnListAlone() {
+        ECSettings.COMMAND_LIST_ALIAS = false;
+
+        FinalCMDPluginCommand command = harness.register(CMDList.class);
+
+        assertEquals("playerlist", command.getPrimaryLabel());
+        assertArrayEquals(new String[0], command.getExtraLabels(), "no /list once the config turns it off");
     }
 }
