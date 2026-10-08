@@ -48,7 +48,7 @@ public final class VersionSuite implements ConformanceSuite {
                 ConformanceCase.of("server-software", () -> {
                     ServerSoftware software = ServerSoftware.getCurrent();
                     String reported = Bukkit.getName() + " " + Bukkit.getVersion();
-                    boolean named = reported.toLowerCase().contains(software.name().toLowerCase());
+                    boolean named = reported.toLowerCase().contains(announcedAs(software).toLowerCase());
                     return Verdict.of(software != ServerSoftware.UNKNOWN && named,
                             "software=" + software + " hybrid=" + software.isHybrid() + " server=" + reported);
                 }),
@@ -66,6 +66,12 @@ public final class VersionSuite implements ConformanceSuite {
                     boolean installed = Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null;
                     return Verdict.of(present == installed, "isPAPIPresent=" + present + " installed=" + installed);
                 }));
+    }
+
+    /** The name a server software puts in Bukkit.getName()/getVersion(), when it is not its own. */
+    private static String announcedAs(ServerSoftware software) {
+        //Crucible is a Cauldron fork and still says "Cauldron 1.7.10-..." (read on crucible-1.7.10)
+        return software == ServerSoftware.CRUCIBLE ? "Cauldron" : software.name();
     }
 
     private static Verdict worldHeight() {
