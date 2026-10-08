@@ -1,0 +1,11 @@
+{"v":1,"e":"suite_start","t":1000,"cid":"ecc120000-run","runId":"r1","suite":"ecore-items","total":2}
+{"v":1,"e":"test_result","t":1001,"cid":"ecc120000-run","runId":"r1","suite":"ecore-items","test":"give","ok":true,"durationMs":1,"error":null}
+{"v":1,"e":"test_result","t":1002,"cid":"ecc120000-run","runId":"r1","suite":"ecore-items","test":"lore","ok":true,"durationMs":1,"error":null}
+{"v":1,"e":"suite_end","t":1003,"cid":"ecc120000-run","runId":"r1","suite":"ecore-items","passed":2,"failed":0,"skipped":0,"durationMs":3,"report":"reports/r1.ndjson"}
+{"v":1,"e":"suite_start","t":1004,"cid":"ecc120000-run","runId":"r1","suite":"ecore-hooks","total":3}
+{"v":1,"e":"test_result","t":1005,"cid":"ecc120000-run","runId":"r1","suite":"ecore-hooks","test":"papi-present","ok":false,"durationMs":2,"error":"isPAPIPresent=false parse=%player_name%"}
+{"v":1,"e":"suite_end","t":1006,"cid":"ecc120000-run","runId":"r1","suite":"ecore-hooks","passed":1,"failed":1,"skipped":1,"durationMs":2,"report":"reports/r1.ndjson"}
+{"v":1,"e":"suite_start","t":1007,"cid":"ecc120000-write","runId":"r2","suite":"ecore-nbt","total":1}
+{"v":1,"e":"suite_end","t":1008,"cid":"ecc120000-write","runId":"r2","suite":"ecore-nbt","passed":1,"failed":0,"skipped":0,"durationMs":1,"report":"reports/r2.ndjson"}
+{"v":1,"e":"suite_start","t":2000,"cid":"ecc120000-read","runId":"r3","suite":"ecore-nbt","total":1}
+{"v":1,"e":"suite_end","t":2001,"cid":"ecc120000-read","runId":"r3","suite":"ecore-nbt","passed":1,"failed":0,"skipped":0,"durationMs":1,"report":"reports/r3.ndjson"}
