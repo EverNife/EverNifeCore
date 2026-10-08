@@ -243,36 +243,6 @@ tasks.named('check') {
     dependsOn tasks.named('testKitConsumerTest')
 }
 
-// ======================================================================
-//  ECItemProbe: a throwaway plugin that checks, inside each real server, that a tag the core writes
-//  survives on the copy the player's inventory keeps - the one thing no headless test can see. Routed
-//  beside the deployable in a mctf boot; never published, never part of the deployable.
-// ======================================================================
-sourceSets {
-    inServerProbe {
-        compileClasspath += main.output + configurations.compileClasspath
-    }
-}
-dependencies {
-    inServerProbeCompileOnly libs.spigot.api
-}
-tasks.named('compileInServerProbeJava') {
-    options.release = 8
-}
-tasks.named('processInServerProbeResources') {
-    expand(['version': project.version])
-}
-tasks.register('inServerProbeJar', ShadowJar) {
-    description = 'Builds ECItemProbe, the in-server item probe routed beside the deployable in a mctf boot.'
-    group = 'build'
-    archiveBaseName.set('ECItemProbe')
-    archiveClassifier.set('')
-    destinationDirectory.set(layout.buildDirectory.dir('in-server-probe'))
-    from sourceSets.inServerProbe.output
-    configurations = []
-    rootProject.applyCoreRelocations(delegate)
-}
-
 java {
     if (gradle.startParameter.taskNames.any { it.contains('publish') }) {
         withSourcesJar()

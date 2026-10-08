@@ -88,3 +88,8 @@
 # Types that arrived after some supported era, behind a guard of their own.
 # ---------------------------------------------------------------------------------------------
 * class org/bukkit/Particle br.com.finalcraft.evernifecore.minecraft.region.visual.McParticleOutlineRenderer  # resolved only on the spawnParticle branch, the same isLegacy() guard
+
+# ---------------------------------------------------------------------------------------------
+# The ECoreConformance plugin: suites that read a member only on the versions that have it.
+# ---------------------------------------------------------------------------------------------
+* method org/bukkit/inventory/meta/ItemMeta.isUnbreakable()Z br.com.finalcraft.evernifecore.conformance.minecraft.suite.ItemsSuite  # only on the MCVersion.isLower(v1_20_R4) == false branch; below it the tag is read

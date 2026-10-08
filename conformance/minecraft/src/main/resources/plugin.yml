@@ -1,0 +1,6 @@
+name: ECoreConformance
+version: ${version}
+description: Runs the EverNifeCore conformance suites inside a real server.
+main: br.com.finalcraft.evernifecore.conformance.minecraft.ECoreConformancePlugin
+depend: [EverNifeCore]
+api-version: 1.13
