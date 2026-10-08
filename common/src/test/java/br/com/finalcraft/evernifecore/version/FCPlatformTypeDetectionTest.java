@@ -43,6 +43,22 @@ class FCPlatformTypeDetectionTest {
         assertEquals("org/bukkit/Bukkit.class", FCPlatformType.BUKKIT_MARKER);
     }
 
+    /**
+     * Bukkit's PluginClassLoader answers getResource from the plugin jar only; the server classes live in its
+     * parent. Paper booted through paperclip was detected as Hytale because only the plugin loader was asked.
+     */
+    @Test
+    void detectsMinecraftWhenOnlyAParentOfAJarOnlyPluginLoaderServesBukkit() {
+        ClassLoader pluginLoader = new ClassLoader(loaderServing(FCPlatformType.BUKKIT_MARKER)) {
+            @Override
+            public URL getResource(String name) {
+                return null;
+            }
+        };
+
+        assertEquals(FCPlatformType.MINECRAFT, FCPlatformType.detectPlatform(pluginLoader));
+    }
+
     /** A loader that resolves exactly the given resource names and nothing else. */
     private static ClassLoader loaderServing(String... resourceNames) {
         Set<String> served = new HashSet<>();

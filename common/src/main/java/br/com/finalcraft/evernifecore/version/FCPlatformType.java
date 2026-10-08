@@ -44,12 +44,16 @@ public enum FCPlatformType {
     }
 
     static FCPlatformType detectPlatform(ClassLoader loader) {
-        //Our own loader is asked first: it delegates up to whichever loader holds the server
-        //classes, which a server booted through a custom launcher keeps off the system classpath.
-        boolean bukkitPresent = (loader != null && loader.getResource(BUKKIT_MARKER) != null)
-                || ClassLoader.getSystemResource(BUKKIT_MARKER) != null;
+        //Every loader up the chain is asked, not just our own: Bukkit's PluginClassLoader answers
+        //getResource from the plugin's jar alone, and a server booted through a launcher (Paper's
+        //paperclip) keeps its classes in a parent loader that the system classpath never sees.
+        for (ClassLoader current = loader; current != null; current = current.getParent()) {
+            if (current.getResource(BUKKIT_MARKER) != null) {
+                return MINECRAFT;
+            }
+        }
 
-        return bukkitPresent ? MINECRAFT : HYTALE;
+        return ClassLoader.getSystemResource(BUKKIT_MARKER) != null ? MINECRAFT : HYTALE;
     }
 
 }
