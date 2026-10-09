@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.itemstack.engine;
 
-import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
+import br.com.finalcraft.ecnmsutils.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
 import br.com.finalcraft.evernifecore.minecraft.util.FCMaterialUtil;
 import br.com.finalcraft.everylibs.util.FCInputReader;
@@ -98,8 +98,8 @@ public final class ItemBase {
         if (identifier != null) {
             return FCItemUtils.fromIdentifier(identifier);
         }
-        return NMSUtils.get() != null
-                ? NMSUtils.get().validateItemStackHandle(itemStack.clone())
+        return NMSUtils.isSupported()
+                ? NMSUtils.get().items().validateHandle(itemStack.clone())
                 : itemStack.clone();
     }
 

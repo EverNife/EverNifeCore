@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.commands.debug;
 
 
+import br.com.finalcraft.ecnmsutils.NMSUtils;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
@@ -11,7 +12,6 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemDescription;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.ItemEngine;
-import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
 import br.com.finalcraft.evernifecore.util.FCColorUtil;
@@ -76,7 +76,7 @@ public class CMDItemInfo {
         }
 
         player.sendMessage("§7§m" + FCColorUtil.stripColor(EverNifeCore.getPlatform().getChatAdapter().straightLineOf("-")));
-        if (NMSUtils.get() != null){
+        if (NMSUtils.isSupported()){
             String localizedName = FCItemUtils.getLocalizedName(heldItem);
             String uncolorfiedLocalizedName = FCColorUtil.decolorfy(localizedName);
             LOCALIZED_NAME
@@ -94,7 +94,7 @@ public class CMDItemInfo {
                     .send(player);
         }
 
-        if (NMSUtils.get() != null){
+        if (NMSUtils.isSupported()){
             MC_IDENTIFIER
                     .addPlaceholder("mc_identifier", FCItemUtils.getMinecraftIdentifier(heldItem))
                     .send(player);

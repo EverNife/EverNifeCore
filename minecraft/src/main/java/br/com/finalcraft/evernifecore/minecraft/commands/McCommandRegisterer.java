@@ -1,10 +1,9 @@
 package br.com.finalcraft.evernifecore.minecraft.commands;
 
+import br.com.finalcraft.ecnmsutils.NMSUtils;
 import br.com.finalcraft.evernifecore.commands.finalcmd.FinalCMDManager;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.minecraft.commands.debug.*;
-import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
-import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 
 public class McCommandRegisterer {
 
@@ -17,13 +16,9 @@ public class McCommandRegisterer {
         FinalCMDManager.registerCommand(ecPluginData, CMDProtectionTest.class);
         FinalCMDManager.registerCommand(ecPluginData, CMDGuiLayout.class);
 
-        if (FCBukkitUtil.isModded()){
-            try {
-                NMSUtils.get().getOreRegistry();
-                FinalCMDManager.registerCommand(ecPluginData, CMDOreDictInfo.class);
-            }catch (Exception e){
-                // ignored
-            }
+        //every served revision has an item dictionary: Forge's OreDictionary or the item tags
+        if (NMSUtils.isSupported()){
+            FinalCMDManager.registerCommand(ecPluginData, CMDOreDictInfo.class);
         }
 
     }

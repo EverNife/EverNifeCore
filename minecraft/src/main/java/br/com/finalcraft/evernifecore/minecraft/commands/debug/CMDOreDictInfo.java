@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.minecraft.commands.debug;
 
 
+import br.com.finalcraft.ecnmsutils.NMSUtils;
+import br.com.finalcraft.ecnmsutils.registries.OreDictEntry;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.Arg;
@@ -12,8 +14,6 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.parsers.ArgParserOreDict;
-import br.com.finalcraft.evernifecore.minecraft.nms.data.oredict.OreDictEntry;
-import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
 import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
 import br.com.finalcraft.evernifecore.pageviewer.PageVisualization;
@@ -106,7 +106,7 @@ public class CMDOreDictInfo {
     )
     public void onCommand(String label, FPlayer player, ItemStack heldItem) {
 
-        List<String> oreNamesFrom = NMSUtils.get().getOreRegistry().getOreNamesFrom(heldItem);
+        List<String> oreNamesFrom = NMSUtils.get().registries().oreDictionary().getOreNamesFrom(heldItem);
 
         if (oreNamesFrom.size() == 0){
             THIS_ITEM_DO_NOT_HAVE_AN_OREDICT.send(player);
@@ -116,7 +116,7 @@ public class CMDOreDictInfo {
         player.sendMessage("");
 
         oreNamesFrom.forEach(oreName -> {
-            List<ItemStack> itemStacks = NMSUtils.get().getOreRegistry().getOreItemStacks(oreName);
+            List<ItemStack> itemStacks = NMSUtils.get().registries().oreDictionary().getOreItemStacks(oreName);
             OREDICT_INFO
                     .addPlaceholder("oredict_name", oreName)
                     .addPlaceholder("oredict_amount", itemStacks.size())

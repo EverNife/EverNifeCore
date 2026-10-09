@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners;
 
+import br.com.finalcraft.ecnmsutils.NMSUtils;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -9,7 +10,6 @@ import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.autoupdater.SpigotUpdateChecker;
 import br.com.finalcraft.evernifecore.minecraft.listeners.bossshop.BossShopListener;
 import br.com.finalcraft.evernifecore.minecraft.metrics.Metrics;
-import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.protection.ProtectionAll;
 import br.com.finalcraft.evernifecore.minecraft.protection.integration.ProtectionHandler;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
@@ -53,7 +53,7 @@ public class PluginListener implements ECListener {
         }
 
         if (plugin.getName().equalsIgnoreCase("BossShopPro")){
-            if (NMSUtils.get() != null){
+            if (NMSUtils.isSupported()){
                 EverNifeCore.getLog().info("Found BossShopPro, registering 'nbt' tag!");
                 ECListener.register(EverNifeCore.getEcPluginData(), BossShopListener.class);
             }else {

@@ -1,11 +1,11 @@
 package br.com.finalcraft.evernifecore.conformance.minecraft.suite;
 
+import br.com.finalcraft.ecnmsutils.NMSUtils;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
-import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.ServerSoftware;
@@ -52,8 +52,10 @@ public final class VersionSuite implements ConformanceSuite {
                     return Verdict.of(software != ServerSoftware.UNKNOWN && named,
                             "software=" + software + " hybrid=" + software.isHybrid() + " server=" + reported);
                 }),
-                ConformanceCase.of("nms", () -> Verdict.of(NMSUtils.get() != null,
-                        "nms=" + (NMSUtils.get() == null ? null : NMSUtils.get().getClass().getSimpleName()))),
+                ConformanceCase.of("nms", () -> Verdict.of(NMSUtils.isSupported(),
+                        "revision=" + NMSUtils.revision().map(Enum::name).orElse("none")
+                                + " craftbukkit=" + Bukkit.getServer().getClass().getPackage().getName()
+                                + " getBukkitVersion=" + Bukkit.getBukkitVersion())),
                 ConformanceCase.of("world-height", VersionSuite::worldHeight),
                 ConformanceCase.of("action-bar", () -> {
                     boolean expected = MCVersion.isHigher(ACTION_BAR_ABOVE) || Bukkit.getPluginManager().getPlugin("NecroTempus") != null;

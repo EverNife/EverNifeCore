@@ -27,10 +27,11 @@ dependencies {
     implementation project(':conformance:common')
 
     // The server provides the core: compiled against, never embedded. :minecraft keeps :common and the
-    // NBT-API as implementation, so they are named again for the compile classpath.
+    // NBT-API and ECNmsUtils as implementation, so they are named again for the compile classpath.
     compileOnly project(':minecraft')
     compileOnly project(':common')
     compileOnly libs.nbtapi
+    compileOnly libs.ecnmsutils
     compileOnly libs.spigot.api
     compileOnly project(':common-tests')
     conformanceChecks project(':common-tests')

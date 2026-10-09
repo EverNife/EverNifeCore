@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.parsers;
 
+import br.com.finalcraft.ecnmsutils.NMSUtils;
+import br.com.finalcraft.ecnmsutils.registries.OreDictEntry;
 import br.com.finalcraft.evernifecore.cache.CacheableSupplier;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgParser;
@@ -8,8 +10,6 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.minecraft.nms.data.oredict.OreDictEntry;
-import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import jakarta.annotation.Nonnull;
 import org.bukkit.util.StringUtil;
 
@@ -32,7 +32,7 @@ public class ArgParserOreDict extends ArgParser<OreDictEntry> {
 
     @Override
     public ParseResult<OreDictEntry> parse(@Nonnull ParseCall call) {
-        Set<String> allOreNames = new HashSet<>(NMSUtils.get().getOreRegistry().getAllOreNames());
+        Set<String> allOreNames = new HashSet<>(NMSUtils.get().registries().oreDictionary().getAllOreNames());
 
         return allOreNames.contains(call.getArgumento().toString())
                 ? ParseResult.of(new OreDictEntry(call.getArgumento().toString()))
@@ -45,7 +45,7 @@ public class ArgParserOreDict extends ArgParser<OreDictEntry> {
      * Its sorted by the OreDict name
      */
     public static final CacheableSupplier<List<OreDictEntry>> CACHED_OREDICT_ENTRIES = CacheableSupplier.of(
-            () -> NMSUtils.get().getOreRegistry().getAllOreEntries().stream()
+            () -> NMSUtils.get().registries().oreDictionary().getAllOreEntries().stream()
                     .filter(oreDictEntry -> oreDictEntry.getItemStacks().size() > 0)
                     .sorted(Comparator.comparing(oreDictEntry -> oreDictEntry.getOreName()))
                     .collect(Collectors.toList())

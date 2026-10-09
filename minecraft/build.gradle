@@ -67,9 +67,7 @@ dependencies {
     implementation project(':minecraft:modules:v1_16_5')
     implementation project(':minecraft:modules:modern')
 
-    implementation(libs.ecnmsutils) {
-        exclude group: "br.com.finalcraft", module: "*"
-    }
+    implementation libs.ecnmsutils
     implementation libs.libby.core
 
     implementation libs.nbtapi

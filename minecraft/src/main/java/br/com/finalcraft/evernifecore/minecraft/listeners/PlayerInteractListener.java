@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners;
 
+import br.com.finalcraft.ecnmsutils.NMSUtils;
 import br.com.finalcraft.evernifecore.fancytext.ClickActionType;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
@@ -8,7 +9,6 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.minecraft.biome.BiomeAccess;
 import br.com.finalcraft.evernifecore.minecraft.commands.debug.CMDBlockInfo;
 import br.com.finalcraft.evernifecore.minecraft.commands.debug.CMDEntityInfo;
-import br.com.finalcraft.evernifecore.minecraft.nms.util.NMSUtils;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCItemUtils;
 import br.com.finalcraft.evernifecore.minecraft.util.FCNBTUtil;
@@ -129,8 +129,8 @@ public class PlayerInteractListener implements ECListener {
                 .addPlaceholder("z", location.getBlockZ())
                 .addPlaceholder("entity_type", rightClicked.getType().name())
                 .addPlaceholder("entity_name", entityName)
-                .addPlaceholder("entity_registry_name", NMSUtils.get().getEntityRegistryName(rightClicked))
-                .addPlaceholder("entity_tostring", NMSUtils.get().asMinecraftEntity(rightClicked).toString())
+                .addPlaceholder("entity_registry_name", NMSUtils.get().entities().getRegistryName(rightClicked))
+                .addPlaceholder("entity_tostring", NMSUtils.get().entities().asMinecraft(rightClicked).toString())
                 .addPlaceholder("entity_nbt", includeNBT ? FCNBTUtil.readEntity(rightClicked, Object::toString) : "(Hold Shift to Scan)")
                 .send(FCBukkitUtil.adapt(player));
 
