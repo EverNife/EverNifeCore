@@ -20,8 +20,9 @@
 //
 //  What it does NOT see, so nobody reads a green run as more than it is:
 //
-//    * only `org/bukkit/` references are asked about. The shadow jar also carries NBT-API, kyori
-//      and ECNmsUtils, and a member missing from one of those is invisible here;
+//    * only `org/bukkit/` references are asked about here. The FinalCraft libraries the shadow jar
+//      embeds are checked by `checkEmbeddedLinkage` against the jar itself, after shadowJar; NBT-API
+//      and kyori only so far as a FinalCraft class names them under their relocated names;
 //    * a reference whose owner is outside the target's API jar counts as present, except for
 //      `java/`/`javax/`, which are asked of this JVM. A third-party owner is simply unverifiable;
 //    * only what the constant pool names. A member reached by reflection or by
@@ -232,12 +233,22 @@ class TargetApi {
         return false
     }
 
-    /** Name-only, because the question is just whether the JDK supertype could be the source. */
+    /**
+     * Name-only, because the question is just whether the JDK supertype could be the source. Protected
+     * members count: a subclass reaches ByteArrayOutputStream.buf as its own field.
+     */
     private static boolean jdkDeclares(String className, String memberName) {
         try {
             Class<?> loaded = Class.forName(className.replace('/', '.'))
-            return loaded.methods.any { it.name == memberName } ||
-                    loaded.fields.any { it.name == memberName }
+            if (loaded.methods.any { it.name == memberName } || loaded.fields.any { it.name == memberName }) {
+                return true
+            }
+            for (Class<?> c = loaded; c != null; c = c.superclass) {
+                if (c.declaredMethods.any { it.name == memberName } || c.declaredFields.any { it.name == memberName }) {
+                    return true
+                }
+            }
+            return false
         } catch (Throwable ignored) {
             return true
         }
@@ -285,6 +296,7 @@ tasks.register('checkLinkage') {
             String body = line.replaceFirst(/#.*$/, '').trim()
             if (body.isEmpty()) return
             def cells = body.split(/\s+/)
+            if (cells[0] == 'embedded') return // checkEmbeddedLinkage's own exceptions
             if (cells.length != 4) {
                 throw new GradleException("tools/linkage-allowlist.txt line is not <runtime> <kind>"
                         + " <reference> <site>: [${line}]. Four columns - the site is the class the"
@@ -424,4 +436,86 @@ void report(List<String> findings, Set<String> unusedAllowances, Set<String> all
         return
     }
     findings << "  [${runtimeId}] ${kind} ${reference}\n      at ${site} - ${why}"
+}
+
+// ----------------------------------------------------------------------
+//  checkEmbeddedLinkage - does every FinalCraft reference in the shadow jar land inside it?
+//
+//  The jar embeds libraries published from other repositories (EveryLibs, EveryDatabase,
+//  EveryConfig, ECNmsUtils). Each compiles against its own idea of the others, so a member one of
+//  them calls can be missing from the version this jar actually carries, and only the server finds
+//  out. This reads the finished jar - relocations already applied - and asks, for every reference to
+//  a br/com/finalcraft/ class, whether the jar declares that class and the member, with the shape
+//  the call was compiled for. The libraries libby downloads at runtime are relocated under
+//  `runtimeDeliveredPrefixes` and are not in the jar by design, so they are not asked about.
+// ----------------------------------------------------------------------
+
+ext.runtimeDeliveredPrefixes = ['br/com/finalcraft/everydatabase/libs/']
+
+ext.checkEmbeddedLinkage = { File jar ->
+    TargetApi shaded = new TargetApi(id: jar.name)
+    new ZipFile(jar).withCloseable { zip ->
+        zip.entries().each { ZipEntry entry ->
+            if (entry.name.endsWith('.class') && !entry.name.startsWith('META-INF/')) {
+                ClassFile parsed = new ClassReader(zip.getInputStream(entry).bytes).read()
+                shaded.classes[parsed.name] = parsed
+            }
+        }
+    }
+    Set<String> allowed = new LinkedHashSet<>()
+    rootProject.file('tools/linkage-allowlist.txt').eachLine { String line ->
+        def cells = line.replaceFirst(/#.*$/, '').trim().split(/\s+/)
+        if (cells[0] == 'embedded') {
+            if (cells.length != 4) {
+                throw new GradleException("tools/linkage-allowlist.txt line is not 'embedded <kind> <reference> <site>': [${line}]")
+            }
+            allowed << cells.join(' ')
+        }
+    }
+    Set<String> unusedAllowances = new LinkedHashSet<>(allowed)
+    Closure<Boolean> asked = { String owner ->
+        owner.startsWith('br/com/finalcraft/') && !rootProject.ext.runtimeDeliveredPrefixes.any { owner.startsWith(it) }
+    }
+
+    Set<String> findings = new LinkedHashSet<>()
+    shaded.classes.values().each { ClassFile parsed ->
+        String site = parsed.name.replace('/', '.')
+        parsed.classRefs.collect { elementTypeOf(it) }.findAll { asked(it) && !shaded.declares(it) }.each { String ref ->
+            String allowance = "embedded class ${ref} ${site}"
+            if (allowed.contains(allowance)) {
+                unusedAllowances.remove(allowance)
+            } else {
+                findings << "  class ${ref}\n      at ${site} - the jar does not carry that class"
+            }
+        }
+        parsed.memberRefs.each { List<String> ref ->
+            String tag = ref[0], owner = ref[1], name = ref[2], descriptor = ref[3]
+            if (!asked(owner) || !shaded.declares(owner)) return // a missing owner is already reported as a class
+            boolean refWantsInterface = tag == 'InterfaceMethodref'
+            if (tag != 'Fieldref' && refWantsInterface != shaded.isInterface(owner)) {
+                findings << "  shape ${owner}.${name}${descriptor}\n      at ${site} - compiled against ${owner} as" +
+                        " ${refWantsInterface ? 'an interface' : 'a class'}, the jar carries the other shape"
+            } else if (!shaded.resolves(owner, name, descriptor)) {
+                findings << "  ${tag == 'Fieldref' ? 'field' : 'method'} ${owner}.${name}${descriptor}\n" +
+                        "      at ${site} - the class in the jar declares no such member"
+            }
+        }
+    }
+    logger.lifecycle("checkEmbeddedLinkage: ${shaded.classes.size()} classes in ${jar.name}, ${findings.size()} finding(s),"
+            + " ${allowed.size()} allowlist entries, ${unusedAllowances.size()} of them unused")
+    if (!findings.isEmpty()) {
+        throw new GradleException("checkEmbeddedLinkage found ${findings.size()} FinalCraft reference(s) that ${jar.name}" +
+                " cannot satisfy:\n\n" + findings.join('\n') + "\n\n" +
+                "Each one is a NoClassDefFoundError or NoSuchMethodError on the server the moment the line runs." +
+                " Either the library that declares it is missing from the shadow jar's include list" +
+                " (minecraft/build.gradle), or the jar carries a version of it that lacks the member -" +
+                " publish the version the caller was compiled against to mavenLocal and pin it in" +
+                " gradle/libs.versions.toml. A class only another platform loads, behind a guard, goes in" +
+                " tools/linkage-allowlist.txt as 'embedded class <reference> <site>  # <the guard>'.")
+    }
+    if (!unusedAllowances.isEmpty()) {
+        throw new GradleException("tools/linkage-allowlist.txt claims ${unusedAllowances.size()} embedded reference(s)" +
+                " the jar no longer makes:\n\n" + unusedAllowances.collect { "  ${it}" }.join('\n') +
+                "\n\nDelete the line, or point it at the class that makes the reference now.")
+    }
 }

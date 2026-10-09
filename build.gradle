@@ -180,5 +180,8 @@ apply from: 'tools/testcount.gradle'
 project(':minecraft').tasks.named('check') { dependsOn rootProject.tasks.named('checkLinkage') }
 // shadowJar is registered by the module's own plugins block, which is evaluated after this file.
 project(':minecraft').afterEvaluate { minecraft ->
-    minecraft.tasks.named('shadowJar') { dependsOn rootProject.tasks.named('checkLinkage') }
+    minecraft.tasks.named('shadowJar') {
+        dependsOn rootProject.tasks.named('checkLinkage')
+        doLast { rootProject.ext.checkEmbeddedLinkage(archiveFile.get().asFile) }
+    }
 }

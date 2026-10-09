@@ -3,7 +3,8 @@
 #
 #   <runtime> <kind> <reference> <site>   # <how it is guarded>
 #
-# <runtime> is a target id from checkLinkage's own listing, or '*' for "wherever it is absent".
+# <runtime> is a target id from checkLinkage's own listing, '*' for "wherever it is absent", or 'embedded'
+# for checkEmbeddedLinkage (the last section).
 # <kind> is class | field | method | shape.
 # <site> is the compiled class the reference lives in, as the class file names it (nested classes
 # carry their '$'). An exception covers that class and no other: the same reference compiled into a
@@ -94,3 +95,9 @@
 # ---------------------------------------------------------------------------------------------
 * method org/bukkit/inventory/meta/ItemMeta.isUnbreakable()Z br.com.finalcraft.evernifecore.conformance.minecraft.suite.ItemsSuite  # only on the MCVersion.isLower(v1_20_R4) == false branch; below it the tag is read
 * method org/bukkit/World.getMinHeight()I br.com.finalcraft.evernifecore.conformance.minecraft.suite.VersionSuite  # only on the MCVersion.isHigherEquals(WORLD_FLOOR_SINCE = v1_17_R1) branch
+
+# ---------------------------------------------------------------------------------------------
+# checkEmbeddedLinkage: FinalCraft classes the shadow jar does not carry on purpose. <runtime> is
+# always "embedded" here - these are read by that check, not by checkLinkage.
+# ---------------------------------------------------------------------------------------------
+embedded class br/com/finalcraft/evernifecore/hytale/scheduler/HyFCScheduler br.com.finalcraft.evernifecore.scheduler.FCScheduler  # only getHytaleScheduler() names it, and only Hytale code calls that; the Hytale jar carries the real class
