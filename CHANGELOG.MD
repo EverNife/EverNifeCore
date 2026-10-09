@@ -13,6 +13,40 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.65] - 2026-10-09
+
+The NMS bridge becomes ECNmsUtils 2.0.0, a library with no dependency on the core, and the shadow jar now proves that
+every FinalCraft reference it makes lands inside it.
+
+### Changed
+
+- **NMS moved to `br.com.finalcraft.ecnmsutils` (ECNmsUtils 2.0.0)**, embedded unrelocated in `evernifecore-minecraft`.
+  One accessor per subject: `NMSUtils.get().items()`, `.entities()`, `.worlds()`, `.registries()`. `NMSUtils.get()` is
+  never `null` - on a revision with no bridge every subject throws naming the server it saw - and
+  `NMSUtils.isSupported()` / `NMSUtils.revision()` replace the null check. The revision is read by the library itself
+  from the CraftBukkit package and the reported release.
+- The item dictionary (`registries().oreDictionary()`, `OreDictEntry`) answers on every served revision in that
+  revision's own names: Forge's `OreDictionary` up to 1.12.2, the item tags from 1.16.5 on. `/oredictinfo` and the
+  `OreDictEntry` argument parser are registered on every supported server, not only on a modded one.
+- `FCItemUtils.fromMinecraftIdentifier` owns the `<registry name> [amount] [meta] [{snbt}]` grammar and applies the
+  snbt through the NBT-API; a non-numeric amount or meta is an `IllegalArgumentException` naming the form.
+
+### Added
+
+- `nms` suite in `ECoreConformance` (12 cases): registry names both ways, localized name, handle, tool and armor
+  slots, entity and world round trips, fake player, and the item dictionary on each of the five servers.
+- `shadowJar` runs `checkEmbeddedLinkage`: every reference to a `br/com/finalcraft/` class in the finished jar must
+  resolve to a class and member the jar carries, with the shape it was compiled for. Exceptions go in
+  `tools/linkage-allowlist.txt` as `embedded` lines.
+
+### Removed
+
+- `br.com.finalcraft.evernifecore.minecraft.nms` (`INMSUtils`, `NMSUtils`, `OreDictEntry`, `IMCOreRegistry`,
+  `IMCMaterialRegistry`, `IMcBlockWrapper`, `IMcItemWrapper`, `IHasMinecraftIdentifier`). Gone with it from the
+  bridge: `serializeItemStack` (use `FCNBTUtil.readItem(item).toString()`), `autoRespawnOnDeath`
+  (`player.spigot().respawn()`), `getItemFromMinecraftIdentifier` (`FCItemUtils.fromMinecraftIdentifier`) and the
+  block/item registries.
+
 ## [3.0.1-alpha.64] - 2026-10-08
 
 The in-server probe becomes `ECoreConformance`, a plugin that runs the core's conformance suites inside a real server,
