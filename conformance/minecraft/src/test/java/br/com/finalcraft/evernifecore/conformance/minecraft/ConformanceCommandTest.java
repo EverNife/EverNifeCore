@@ -106,6 +106,6 @@ class ConformanceCommandTest {
         List<String> ids = Suites.all().stream().map(ConformanceSuite::getId).collect(Collectors.toList());
 
         assertEquals(Arrays.asList("items", "nbt", "platform", "version", "commands", "gui", "scheduler", "playerdata",
-                "events", "selection-click", "particles", "text-metrics", "hooks"), ids);
+                "events", "selection-click", "particles", "text-metrics", "hooks", "nms"), ids);
     }
 }

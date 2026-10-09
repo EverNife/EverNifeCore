@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.conformance.minecraft.suite.GuiSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.HooksSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ItemsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.NbtSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.NmsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ParticlesSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.PlatformSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.PlayerDataSuite;
@@ -38,6 +39,7 @@ public final class Suites {
                 new SelectionClickSuite(),
                 new ParticlesSuite(),
                 new TextMetricsSuite(),
-                new HooksSuite());
+                new HooksSuite(),
+                new NmsSuite());
     }
 }

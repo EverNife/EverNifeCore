@@ -38,9 +38,9 @@ HYBRIDS = {"crucible-1.7.10", "mohist-1.12.2", "mohist-1.16.5", "arclight-1.21.1
 SCREENS = ["basic", "hopper", "dispenser", "workbench", "nav", "storage", "prompt", "pager",
            "title-long", "layout", "confirm"]
 SUITE_ORDER = ["items", "nbt", "platform", "version", "commands", "gui", "scheduler", "playerdata",
-               "events", "selection-click", "particles", "text-metrics", "hooks"]
+               "events", "selection-click", "particles", "text-metrics", "hooks", "nms"]
 HALVES = ("run", "write", "read")
-EXPECTED_ENDS = {"run": 12, "write": 2, "read": 2}
+EXPECTED_ENDS = {"run": 13, "write": 2, "read": 2}
 WAIT_SECONDS = {"run": 420, "write": 180, "read": 180}
 TEXT_LINES = ("iiiiiiiiii", "WWWWWWWWWW")
 BOT = "EccBot"

@@ -28,17 +28,20 @@ final class PlayerCases {
     }
 
     static ConformanceCase of(String id, ConformanceContext ctx, PlayerBody body) {
-        return ConformanceCase.of(id, () -> {
-            FPlayer named = ctx.getPlayerOrNull();
-            if (named == null) {
-                return Verdict.skipped(ConformanceContext.NEEDS_A_PLAYER);
-            }
-            Player player = Bukkit.getPlayer(named.getUniqueId());
-            if (player == null) {
-                return Verdict.fail("player " + named.getName() + " is not online");
-            }
-            return body.run(player);
-        });
+        return ConformanceCase.of(id, () -> onPlayer(ctx, body));
+    }
+
+    /** The verdict of {@code body} on the {@code --player}; SKIPPED without one, FAIL when they are offline. */
+    static Verdict onPlayer(ConformanceContext ctx, PlayerBody body) throws Exception {
+        FPlayer named = ctx.getPlayerOrNull();
+        if (named == null) {
+            return Verdict.skipped(ConformanceContext.NEEDS_A_PLAYER);
+        }
+        Player player = Bukkit.getPlayer(named.getUniqueId());
+        if (player == null) {
+            return Verdict.fail("player " + named.getName() + " is not online");
+        }
+        return body.run(player);
     }
 
     /** {@link #of} for a case that answers on a later tick; the body owns its timeout ({@link #within}). */
