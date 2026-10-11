@@ -85,19 +85,23 @@ class ECSettingsRegionsTest {
     @Test
     void aTimeKeyNamedForItsUnitIsDroppedUnread() throws Exception {
         Path file = dir.resolve("config.yml");
+        String[] units = {"ticks", "seconds", "minutes"};
         StringBuilder before = new StringBuilder("Regions:\n");
-        for (String unit : new String[]{"ticks", "seconds", "minutes"}) {
+        for (String unit : units) {
             before.append("  sweeper-interval-").append(unit).append(": 7\n");
         }
-        before.append("  visualizer:\n    view-seconds: 30\n");
+        before.append("  visualizer:\n");
+        for (String unit : units) {
+            before.append("    view-").append(unit).append(": 30\n");
+        }
         Files.write(file, before.toString().getBytes(StandardCharsets.UTF_8));
 
         Config written = load(file);
 
-        for (String unit : new String[]{"ticks", "seconds", "minutes"}) {
+        for (String unit : units) {
             assertFalse(written.contains("Regions.sweeper-interval-" + unit), unit);
+            assertFalse(written.contains("Regions.visualizer.view-" + unit), unit);
         }
-        assertFalse(written.contains("Regions.visualizer.view-seconds"));
         assertEquals(Duration.ofSeconds(1), ECSettings.REGIONS_SWEEPER_INTERVAL, "the dropped value is not carried over");
         assertEquals(Duration.ofSeconds(10), ECSettings.REGIONS_VISUALIZER_VIEW_TIME);
     }
