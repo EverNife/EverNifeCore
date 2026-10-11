@@ -29,6 +29,7 @@ import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -237,7 +238,7 @@ class RegionMoveListenerTest {
 
     @Test
     void theMoveListenerSitsOnTheServerOnlyWhileSomeRegionNeedsIt() {
-        int idleTicks = EventSourceUsage.get().getIdleTicks();
+        Duration idleTime = EventSourceUsage.get().getIdleTime();
         try (RegionServer server = RegionServer.open(tempDir)) {
             McRegionListeners bridge = McRegionListeners.start(server.server.getPluginData());
             ECEventSubscription<RegionEnterEvent> subscription = null;
@@ -247,7 +248,7 @@ class RegionMoveListenerTest {
                 Region arena = arena(server);
                 assertTrue(isRegistered(PlayerMoveEvent.getHandlerList(), RegionMoveListener.class));
 
-                EventSourceUsage.get().setIdleTicks(0);
+                EventSourceUsage.get().setIdleTime(Duration.ZERO);
                 server.regions.getManager().remove(arena);
                 server.regions.runDue();
                 assertFalse(isRegistered(PlayerMoveEvent.getHandlerList(), RegionMoveListener.class), "the region that needed it left");
@@ -263,7 +264,7 @@ class RegionMoveListenerTest {
                 bridge.stop();
             }
         } finally {
-            EventSourceUsage.get().setIdleTicks(idleTicks);
+            EventSourceUsage.get().setIdleTime(idleTime);
         }
     }
 

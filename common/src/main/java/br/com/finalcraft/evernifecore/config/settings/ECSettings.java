@@ -8,10 +8,15 @@ import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionSweeper;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.time.DayOfToday;
+import br.com.finalcraft.evernifecore.time.FCTimeFrame;
+import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.everylibs.reflection.FCReflectionUtil;
 import br.com.finalcraft.everylibs.util.FCTimeUtil;
 
+import java.time.Duration;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.regex.Pattern;
 import java.util.Collections;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
@@ -50,15 +55,16 @@ public class ECSettings {
     //Regions - initialised to the shipped defaults, since tests and the command harness never run initialize()
     public static List<String> REGIONS_DISABLED_WORLDS = Collections.emptyList();
     public static int REGIONS_HUGE_CHUNKS = RegionIndex.DEFAULT_HUGE_CHUNKS;
-    public static int REGIONS_LISTENER_IDLE_TICKS = EventSourceUsage.DEFAULT_IDLE_TICKS;
-    public static int REGIONS_SWEEPER_INTERVAL_TICKS = 20;
+    public static Duration REGIONS_LISTENER_IDLE_TIME = EventSourceUsage.DEFAULT_IDLE_TIME;
+    public static Duration REGIONS_SWEEPER_INTERVAL = RegionSweeper.DEFAULT_INTERVAL;
     public static boolean REGIONS_VISUALIZER_ENABLED = false;
     public static int REGIONS_VISUALIZER_STEP = 1;
     public static int REGIONS_VISUALIZER_RADIUS = 48;
     public static int REGIONS_VISUALIZER_POINTS_PER_TICK = 300;
-    public static int REGIONS_VISUALIZER_VIEW_SECONDS = 10;
+    public static Duration REGIONS_VISUALIZER_VIEW_TIME = Duration.ofSeconds(10);
     public static boolean REGIONS_SELECTION_LIVE_PREVIEW = false;
-    public static int REGIONS_SELECTION_IDLE_MINUTES = 5;
+    public static Duration REGIONS_SELECTION_IDLE_TIME = Duration.ofMinutes(5);
+    public static boolean REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = false;
 
     public static void initialize(){
         ZONE_ID_OF_DAY_OF_TODAY = ConfigManager.getMainConfig().getOrSetValueIfAbsent("Settings.Time.ZONE_ID_OF_DAY_OF_TODAY",
@@ -157,56 +163,7 @@ public class ECSettings {
                         "\nsingle page is printed with no page indicator at all, exactly as it always was."
         );
 
-        REGIONS_DISABLED_WORLDS = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
-                "Regions.disabled-worlds", Collections.<String>emptyList(),
-                "Worlds where no region rule is ever checked - regions there still exist and load, but no" +
-                        "\nflag decides anything. Cheaper than an empty world for a minigame map that has its own rules."
-        );
-        REGIONS_HUGE_CHUNKS = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
-                "Regions.huge-chunks", RegionIndex.DEFAULT_HUGE_CHUNKS,
-                "A region whose bounding box spans more chunks than this is not indexed chunk by chunk;" +
-                        "\nit is checked on every lookup of its world instead. Raising it trades memory for lookup speed."
-        );
-        REGIONS_LISTENER_IDLE_TICKS = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
-                "Regions.listener-idle-ticks", EventSourceUsage.DEFAULT_IDLE_TICKS,
-                "How long (in ticks) an event listener nobody needs any more stays registered before it is removed." +
-                        "\nA short value saves the listener's cost sooner; a long one avoids re-registering on churn."
-        );
-        REGIONS_SWEEPER_INTERVAL_TICKS = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
-                "Regions.sweeper-interval-ticks", 20,
-                "How often (in ticks) expired flag values, memberships and transient regions are swept." +
-                        "\nA deadline is honoured at most this late."
-        );
-        REGIONS_VISUALIZER_ENABLED = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
-                "Regions.visualizer.enabled", false,
-                "Draws region outlines and live selections with particles when a command asks for it." +
-                        "\nParticles cost one packet per point per tick, so this stays off until an admin turns it on;" +
-                        "\nstep, radius and points-per-tick below bound the cost once it is on."
-        );
-        REGIONS_VISUALIZER_STEP = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
-                "Regions.visualizer.step", 1,
-                "Blocks between two drawn points of an outline edge. 2 halves the packets."
-        );
-        REGIONS_VISUALIZER_RADIUS = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
-                "Regions.visualizer.radius", 48,
-                "Only the outline points within this many blocks of the viewer are drawn."
-        );
-        REGIONS_VISUALIZER_POINTS_PER_TICK = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
-                "Regions.visualizer.points-per-tick", 300,
-                "The most points one frame of an outline may draw for one player."
-        );
-        REGIONS_VISUALIZER_VIEW_SECONDS = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
-                "Regions.visualizer.view-seconds", 10,
-                "How long an outline asked for by a 'view' command stays on screen."
-        );
-        REGIONS_SELECTION_LIVE_PREVIEW = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
-                "Regions.selection.live-preview", false,
-                "Draws a selection while it is being made. Needs Regions.visualizer.enabled too - it costs the same particles."
-        );
-        REGIONS_SELECTION_IDLE_MINUTES = ConfigManager.getMainConfig().getOrSetValueIfAbsent(
-                "Regions.selection.idle-minutes", 5,
-                "A selection nobody touched for this many minutes is cancelled."
-        );
+        loadRegionSettings(ConfigManager.getMainConfig());
         applyRegionSettings();
 
         if (ConfigManager.getMainConfig().hasNewSeededDefaults()){
@@ -216,13 +173,99 @@ public class ECSettings {
     }
 
     /**
+     * A region time key named for its unit: from before those keys took a duration and lost the unit. Dropped unread,
+     * so a file never holds two keys for one setting with only one of them working.
+     */
+    private static final Pattern RETIRED_TIME_KEY = Pattern.compile(".*-(ticks|seconds|minutes)");
+
+    /** Reads every {@code Regions.*} key of {@code config} into the fields above, seeding what is absent. */
+    public static void loadRegionSettings(Config config){
+        for (String key : new ArrayList<>(config.getKeys("Regions", true))) {
+            if (RETIRED_TIME_KEY.matcher(key).matches()) {
+                config.removeValue("Regions." + key);
+            }
+        }
+        REGIONS_DISABLED_WORLDS = config.getOrSetValueIfAbsent(
+                "Regions.disabled-worlds", Collections.<String>emptyList(),
+                "Worlds where regions are not enforced: no flag of any plugin decides anything there, and the protection" +
+                        "\ncheck other plugins ask (ProtectionAll) answers 'allowed'. Regions in these worlds still exist, load," +
+                        "\nsave and answer the region API. Use it for worlds whose rules come from somewhere else (a minigame" +
+                        "\nmap, a creative world)."
+        );
+        REGIONS_HUGE_CHUNKS = config.getOrSetValueIfAbsent(
+                "Regions.huge-chunks", RegionIndex.DEFAULT_HUGE_CHUNKS,
+                "A region spanning more chunks than this is not indexed chunk by chunk: it is checked on every region" +
+                        "\nlookup in its world, wherever the lookup is, while a smaller region is checked only where it lies." +
+                        "\nRaise it when a few big regions slow down lookups across their whole world (every indexed chunk costs" +
+                        "\nmemory); lower it when memory matters more than lookup speed in worlds with very large regions."
+        );
+        REGIONS_LISTENER_IDLE_TIME = readDuration(config,
+                "Regions.listener-idle-time", EventSourceUsage.DEFAULT_IDLE_TIME,
+                "How long the server keeps listening to a kind of game event (block break, movement, damage...) after the" +
+                        "\nlast region flag that needed it is gone. Short frees the listener sooner; long avoids re-registering it" +
+                        "\nwhen regions with that flag come and go often. It never changes what a flag decides."
+        );
+        REGIONS_SWEEPER_INTERVAL = readDuration(config,
+                "Regions.sweeper-interval", RegionSweeper.DEFAULT_INTERVAL,
+                "How often expired things are swept: temporary regions, flag values set with a time limit and timed" +
+                        "\ngroup memberships. The sweeper only runs while something has a time limit - with none, it costs nothing." +
+                        "\nA time limit is applied at most one interval after it passes (with 1s, a region that expires at 12:00:00" +
+                        "\nis gone by 12:00:01), and its event goes out on the world's thread. Lowering it costs more, since every" +
+                        "\nsweep walks all loaded regions; raise it when exact expiry times do not matter on your server."
+        );
+        REGIONS_VISUALIZER_ENABLED = config.getOrSetValueIfAbsent(
+                "Regions.visualizer.enabled", false,
+                "Draws region outlines and live selections with particles when a command asks for it." +
+                        "\nParticles cost one packet per point per tick, so this stays off until an admin turns it on;" +
+                        "\nstep, radius and points-per-tick below bound the cost once it is on."
+        );
+        REGIONS_VISUALIZER_STEP = config.getOrSetValueIfAbsent(
+                "Regions.visualizer.step", 1,
+                "Blocks between two drawn points of an outline edge. 2 halves the packets."
+        );
+        REGIONS_VISUALIZER_RADIUS = config.getOrSetValueIfAbsent(
+                "Regions.visualizer.radius", 48,
+                "Only the outline points within this many blocks of the viewer are drawn."
+        );
+        REGIONS_VISUALIZER_POINTS_PER_TICK = config.getOrSetValueIfAbsent(
+                "Regions.visualizer.points-per-tick", 300,
+                "The most points one frame of an outline may draw for one player."
+        );
+        REGIONS_VISUALIZER_VIEW_TIME = readDuration(config,
+                "Regions.visualizer.view-time", Duration.ofSeconds(10),
+                "How long an outline asked for by a 'view' command stays on screen."
+        );
+        REGIONS_SELECTION_LIVE_PREVIEW = config.getOrSetValueIfAbsent(
+                "Regions.selection.live-preview", false,
+                "Draws a selection while it is being made. Needs Regions.visualizer.enabled too - it costs the same particles."
+        );
+        REGIONS_SELECTION_IDLE_TIME = readDuration(config,
+                "Regions.selection.idle-time", Duration.ofMinutes(5),
+                "A selection nobody touched for this long is cancelled."
+        );
+        REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = config.getOrSetValueIfAbsent(
+                "Regions.generate-global-settings-configuration-files", false,
+                "Whether region flags keep their server-wide settings in a file: regions/flags/<flag>.yml, in the data" +
+                        "\nfolder of the plugin that owns the flag. While false no such file is written or read - flags run on" +
+                        "\ntheir built-in settings plus what each region overrides, and an old file left behind is ignored (the log" +
+                        "\nsays so). Turn it on to tune a flag for the whole server; a flag may also force its own file on or off." +
+                        "\nA reload of EverNifeCore applies a change to the flags of every plugin."
+        );
+    }
+
+    /** A time key: written readable ({@code 3m}), read in that form or as ISO-8601. */
+    private static Duration readDuration(Config config, String key, Duration def, String comment){
+        return config.getOrSetValueIfAbsent(key, FCTimeFrame.of(def), comment).toDuration();
+    }
+
+    /**
      * Pushes the region keys into the components that hold a copy of them: the listener idle delay, the sweeper
      * interval and the huge-region threshold. Idempotent; the visualizer and the selection read their fields
      * when they need them, and the disabled worlds are read by the platform handler.
      */
     public static void applyRegionSettings(){
-        EventSourceUsage.get().setIdleTicks(REGIONS_LISTENER_IDLE_TICKS);
-        RegionSweeper.setIntervalMillis(REGIONS_SWEEPER_INTERVAL_TICKS * 50L);
+        EventSourceUsage.get().setIdleTime(REGIONS_LISTENER_IDLE_TIME);
+        RegionSweeper.setInterval(REGIONS_SWEEPER_INTERVAL);
         RegionLookup.get().setHugeChunks(REGIONS_HUGE_CHUNKS);
     }
 

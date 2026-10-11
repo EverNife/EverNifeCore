@@ -105,7 +105,7 @@ class EventSourceUsageTest {
         TestRegions.index(lookup, region);
         TestRegions.unindex(lookup, region);
 
-        assertEquals(Long.valueOf(EventSourceUsage.DEFAULT_IDLE_TICKS * 50L), agenda.getDelays().get(0));
+        assertEquals(Long.valueOf(EventSourceUsage.DEFAULT_IDLE_TIME.toMillis()), agenda.getDelays().get(0));
         agenda.runQueued();
         agenda.runQueued();
 

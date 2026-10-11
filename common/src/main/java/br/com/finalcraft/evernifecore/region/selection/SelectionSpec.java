@@ -69,9 +69,9 @@ public final class SelectionSpec {
         return livePreview != null ? livePreview : ECSettings.REGIONS_SELECTION_LIVE_PREVIEW;
     }
 
-    /** As set, or {@code Regions.selection.idle-minutes} from the core config. */
+    /** As set, or {@code Regions.selection.idle-time} from the core config. */
     public Duration getTimeout() {
-        return timeout != null ? timeout : Duration.ofMinutes(ECSettings.REGIONS_SELECTION_IDLE_MINUTES);
+        return timeout != null ? timeout : ECSettings.REGIONS_SELECTION_IDLE_TIME;
     }
 
     @Override

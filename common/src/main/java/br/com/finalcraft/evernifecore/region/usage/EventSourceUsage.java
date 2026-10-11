@@ -18,6 +18,7 @@ import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import jakarta.annotation.Nullable;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -32,13 +33,12 @@ import java.util.function.Consumer;
  * something else holds it ({@link #acquire}); MOVE is also held while anyone listens to region enter or leave events.
  *
  * <p>The answer is an action, not only a question: {@link #watch} runs {@code onNeeded} when a source becomes needed
- * and {@code onIdle} once it has stayed unneeded for {@link #getIdleTicks()} ticks - a source that comes back in the
+ * and {@code onIdle} once it has stayed unneeded for {@link #getIdleTime()} - a source that comes back in the
  * meantime fires nothing, so a region recreated in a loop does not churn listeners.</p>
  */
 public final class EventSourceUsage {
 
-    public static final int DEFAULT_IDLE_TICKS = 100;
-    private static final long MILLIS_PER_TICK = 50;
+    public static final Duration DEFAULT_IDLE_TIME = Duration.ofMinutes(3);
     private static final EventSource[] SOURCES = EventSource.values();
 
     private static volatile @Nullable EventSourceUsage global;
@@ -54,7 +54,7 @@ public final class EventSourceUsage {
     private final Runnable registryListener = this::recount;
     private final ECEventSubscription<RegionFlagChangedEvent> flagSubscription;
     private final ECListenerWatch moveWatch;
-    private volatile int idleTicks = DEFAULT_IDLE_TICKS;
+    private volatile Duration idleTime = DEFAULT_IDLE_TIME;
     private volatile @Nullable UsageHold moveHold;
 
     /** A count over {@code lookup}'s regions that follows the listeners of {@code bus}. */
@@ -108,13 +108,13 @@ public final class EventSourceUsage {
         return uses[source.ordinal()];
     }
 
-    public int getIdleTicks() {
-        return idleTicks;
+    public Duration getIdleTime() {
+        return idleTime;
     }
 
-    /** How long a source stays unneeded before {@code onIdle} runs. */
-    public void setIdleTicks(int idleTicks) {
-        this.idleTicks = Math.max(0, idleTicks);
+    /** How long a source stays unneeded before {@code onIdle} runs; a negative time counts as zero. */
+    public void setIdleTime(Duration idleTime) {
+        this.idleTime = idleTime.isNegative() ? Duration.ZERO : idleTime;
     }
 
     /** Keeps {@code source} needed until the hold is released - for a need that is not a region's, like a selection in progress. */
@@ -139,7 +139,7 @@ public final class EventSourceUsage {
 
     /**
      * Runs {@code onNeeded} whenever {@code source} becomes needed - at once when it already is - and {@code onIdle}
-     * once it has stayed unneeded for {@link #getIdleTicks()} ticks. One callback per transition, through
+     * once it has stayed unneeded for {@link #getIdleTime()}. One callback per transition, through
      * {@code IPlatform.runOnMainThread} because they register native listeners and have no world of their own; a
      * callback that throws is logged and the watch keeps the state it moved to.
      */
@@ -206,7 +206,7 @@ public final class EventSourceUsage {
                 transitions.add(() -> becomeAll(source, true));
             } else {
                 long generation = ++idleGeneration[index];
-                transitions.add(() -> RegionAgenda.scheduleAsync(() -> idleIfStill(source, generation), idleTicks * MILLIS_PER_TICK));
+                transitions.add(() -> RegionAgenda.scheduleAsync(() -> idleIfStill(source, generation), idleTime.toMillis()));
             }
         }
         return transitions == null ? new ArrayList<>(0) : transitions;

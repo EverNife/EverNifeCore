@@ -27,6 +27,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 
@@ -42,7 +43,7 @@ class McRegionListenersTest {
 
     @Test
     void aListenerSitsOnTheServerOnlyWhileSomeRegionNeedsItsSource() {
-        int idleTicks = EventSourceUsage.get().getIdleTicks();
+        Duration idleTime = EventSourceUsage.get().getIdleTime();
         try (RegionServer server = RegionServer.open(tempDir)) {
             McRegionListeners bridge = McRegionListeners.start(server.server.getPluginData());
             try {
@@ -51,7 +52,7 @@ class McRegionListenersTest {
                 Region vault = server.box("vault", 0, 0, 0, 10, 10, 10, server.flag(new DenyBlockBreakFlag(server.regions.getOwner())));
                 assertTrue(isRegistered(BlockBreakEvent.getHandlerList(), RegionBlockListener.class));
 
-                EventSourceUsage.get().setIdleTicks(0);
+                EventSourceUsage.get().setIdleTime(Duration.ZERO);
                 server.regions.getManager().remove(vault);
                 server.regions.runDue();
 
@@ -60,7 +61,7 @@ class McRegionListenersTest {
                 bridge.stop();
             }
         } finally {
-            EventSourceUsage.get().setIdleTicks(idleTicks);
+            EventSourceUsage.get().setIdleTime(idleTime);
         }
     }
 

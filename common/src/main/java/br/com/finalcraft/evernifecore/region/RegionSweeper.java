@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.region.event.RegionRemovedEvent;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import jakarta.annotation.Nullable;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,12 +24,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class RegionSweeper {
 
-    static final long DEFAULT_INTERVAL_MILLIS = 1000;   //20 ticks
+    public static final Duration DEFAULT_INTERVAL = Duration.ofSeconds(1);
 
     private static final AtomicBoolean RUNNING = new AtomicBoolean();
     /** Worlds whose thread refused work; each is logged once until it accepts again. */
     private static final Set<String> UNREACHABLE = ConcurrentHashMap.newKeySet();
-    private static volatile long intervalMillis = DEFAULT_INTERVAL_MILLIS;
+    private static volatile long intervalMillis = DEFAULT_INTERVAL.toMillis();
     private static volatile boolean woken;
 
     private RegionSweeper() {
@@ -125,8 +126,8 @@ public final class RegionSweeper {
     }
 
     /** How often the sweeper looks for expired deadlines. Wired from the core config at boot and reload; tests set it directly. */
-    public static void setIntervalMillis(long millis) {
-        intervalMillis = millis;
+    public static void setInterval(Duration interval) {
+        intervalMillis = interval.toMillis();
     }
 
     /** Forgets the running state - the core's shutdown, and tests that swapped the agenda. */
@@ -134,6 +135,6 @@ public final class RegionSweeper {
         RUNNING.set(false);
         woken = false;
         UNREACHABLE.clear();
-        intervalMillis = DEFAULT_INTERVAL_MILLIS;
+        intervalMillis = DEFAULT_INTERVAL.toMillis();
     }
 }

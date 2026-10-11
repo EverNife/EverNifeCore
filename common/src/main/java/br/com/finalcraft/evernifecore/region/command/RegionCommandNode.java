@@ -462,7 +462,7 @@ public class RegionCommandNode implements RegionScope {
             return;
         }
         VisualStyle style = region.getManager() == manager ? VisualStyle.OWN : VisualStyle.OTHER_OWNER;
-        RegionVisualizer.get().show(player, region.getWorld(), region.getShape(), style, Duration.ofSeconds(ECSettings.REGIONS_VISUALIZER_VIEW_SECONDS));
+        RegionVisualizer.get().show(player, region.getWorld(), region.getShape(), style, ECSettings.REGIONS_VISUALIZER_VIEW_TIME);
     }
 
     @FinalCMD.SubCMD(subcmd = "tag", validation = RegionVerbAccess.class, locales = {

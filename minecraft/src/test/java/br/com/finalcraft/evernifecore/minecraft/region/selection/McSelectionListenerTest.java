@@ -31,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -205,7 +206,7 @@ class McSelectionListenerTest {
 
     @Test
     void theListenerSitsOnTheServerOnlyWhileASelectionIsOpen() {
-        int idleTicks = EventSourceUsage.get().getIdleTicks();
+        Duration idleTime = EventSourceUsage.get().getIdleTime();
         McRegionListeners bridge = McRegionListeners.start(server.server.getPluginData());
         try {
             assertFalse(isRegistered(PlayerInteractEvent.getHandlerList(), McSelectionListener.class), "no selection is open");
@@ -213,13 +214,13 @@ class McSelectionListenerTest {
             start();
             assertTrue(isRegistered(PlayerInteractEvent.getHandlerList(), McSelectionListener.class));
 
-            EventSourceUsage.get().setIdleTicks(0);
+            EventSourceUsage.get().setIdleTime(Duration.ZERO);
             SelectionTool.cancelAll();
             server.regions.runDue();
             assertFalse(isRegistered(PlayerInteractEvent.getHandlerList(), McSelectionListener.class), "the last selection closed");
         } finally {
             bridge.stop();
-            EventSourceUsage.get().setIdleTicks(idleTicks);
+            EventSourceUsage.get().setIdleTime(idleTime);
         }
     }
 }
