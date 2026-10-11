@@ -24,4 +24,9 @@ public final class DenyTeleportInFlag extends StockDenyFlag {
     public Class<? extends FlagSettings> getSettingsType() {
         return MoveDenySettings.class;
     }
+
+    @Override
+    public String getDescription() {
+        return "TRUE: players cannot teleport into the region; walking in is up to deny-entry.";
+    }
 }

@@ -50,4 +50,9 @@ public final class DenyEntryWithMessageFlag extends RegionFlag<DenyEntryMessage>
             player.sendMessage(value.getMessage());
         }
     }
+
+    @Override
+    public String getDescription() {
+        return "Denies entry and tells the player why, in one value: denied=true message=\"Boss fight in progress\".";
+    }
 }

@@ -2,8 +2,12 @@ package br.com.finalcraft.evernifecore.region;
 
 import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
 import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -64,5 +68,25 @@ class RegionFlagSettingsTest extends ManagedRegionFixture {
         }
         assertEquals(1, writesAfterSet);
         assertEquals(2, backend.callsTo("save"));
+    }
+
+    @Test
+    void anOverrideIsStoredWithoutTheFileRootAndAnIsoTimeStoredBeforeStillReads() {
+        RoomFlag flag = registeredRoomFlag(owner);
+        Region region = created(manager().create("room", WORLD, box(0, 0, 9, 9)));
+        RoomSettings own = new RoomSettings();
+        own.setTriggerInterval(Duration.ofMillis(1500));
+        region.setFlagSettings(flag, own);
+
+        JsonNode stored = region.getFlagSettingsForStorage().get(flag.getKey().toString());
+        assertFalse(stored.has("Settings"), stored.toString());
+        assertEquals("1s 500ms", stored.get("triggerInterval").asText(), stored.toString());
+
+        Region other = created(manager().create("hall", WORLD, box(20, 20, 29, 29)));
+        ObjectNode before = JsonNodeFactory.instance.objectNode().put("triggerInterval", "PT5S").put("greeting", "old");
+        other.putRawFlagSettings(flag.getKey().toString(), before);
+        RoomSettings read = other.getFlagSettings(flag);
+        assertEquals(Duration.ofSeconds(5), read.getTriggerInterval());
+        assertEquals("old", read.getGreeting());
     }
 }

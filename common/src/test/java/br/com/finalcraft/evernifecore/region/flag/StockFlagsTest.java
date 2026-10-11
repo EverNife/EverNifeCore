@@ -76,6 +76,16 @@ class StockFlagsTest {
     }
 
     @Test
+    void everyStockFlagSaysWhatItDoes() {
+        List<RegionFlag<?>> flags = stockFlags().collect(Collectors.toList());
+        assertFalse(flags.isEmpty());
+        for (RegionFlag<?> flag : flags) {
+            String description = flag.getDescription();
+            assertTrue(description != null && !description.trim().isEmpty(), flag.getKey().toString());
+        }
+    }
+
+    @Test
     void catalogNamesAreExactlyTheStockOnes() {
         TreeSet<String> registered = FlagRegistry.get().getByOwner(core).stream()
                 .map(flag -> flag.getKey().toString()).collect(Collectors.toCollection(TreeSet::new));

@@ -9,4 +9,9 @@ public final class DenyBlockPlaceFlag extends StockDenyFlag {
     public DenyBlockPlaceFlag(ECPluginData owner) {
         super(owner, "deny-block-place", EventSource.PLACE);
     }
+
+    @Override
+    public String getDescription() {
+        return "TRUE: blocks cannot be placed in the region.";
+    }
 }

@@ -42,4 +42,9 @@ public final class GreetingFlag extends RegionFlag<String> {
             context.getPlayer().sendMessage(newValue);
         }
     }
+
+    @Override
+    public String getDescription() {
+        return "The message a player gets on entering the region.";
+    }
 }

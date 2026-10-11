@@ -21,4 +21,9 @@ public final class DenyPvpFlag extends StockDenyFlag {
     public boolean applies(ActionContext context) {
         return hurts(context, DamageContext.Kind.PLAYER) && context.getPlayer() != null;
     }
+
+    @Override
+    public String getDescription() {
+        return "TRUE: players cannot hurt each other in the region. Holds for everyone - the bypass permission does not lift it.";
+    }
 }

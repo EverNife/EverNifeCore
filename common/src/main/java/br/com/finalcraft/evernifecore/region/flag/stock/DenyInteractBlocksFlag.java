@@ -14,4 +14,9 @@ public final class DenyInteractBlocksFlag extends StockInteractFlag {
     public boolean applies(ActionContext context) {
         return isBlockUse(context);
     }
+
+    @Override
+    public String getDescription() {
+        return "TRUE: blocks in the region cannot be used. Where it is not set, deny-interact decides.";
+    }
 }

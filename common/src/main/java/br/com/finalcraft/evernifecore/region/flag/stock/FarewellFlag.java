@@ -42,4 +42,9 @@ public final class FarewellFlag extends RegionFlag<String> {
             context.getPlayer().sendMessage(oldValue);
         }
     }
+
+    @Override
+    public String getDescription() {
+        return "The message a player gets on leaving the region.";
+    }
 }

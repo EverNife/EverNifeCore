@@ -23,4 +23,9 @@ public final class DenyEntryFlag extends StockDenyFlag {
     public Class<? extends FlagSettings> getSettingsType() {
         return MoveDenySettings.class;
     }
+
+    @Override
+    public String getDescription() {
+        return "TRUE: players cannot get into the region by any means.";
+    }
 }

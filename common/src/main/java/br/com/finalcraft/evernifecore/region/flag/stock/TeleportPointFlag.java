@@ -28,4 +28,9 @@ public final class TeleportPointFlag extends RegionFlag<WorldLocPos> {
     public WorldLocPos resolveTie(List<WorldLocPos> values) {
         return values.get(0);
     }
+
+    @Override
+    public String getDescription() {
+        return "Where teleporting to the region takes a player.";
+    }
 }

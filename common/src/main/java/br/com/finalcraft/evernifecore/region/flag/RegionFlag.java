@@ -133,11 +133,27 @@ public abstract class RegionFlag<T> {
     public void onRevalidate(SessionContext context, @Nullable T oldValue, @Nullable T newValue) {
     }
 
+    /** What the flag does, in a sentence for a server admin - the header of its settings file shows it. Null omits the line. */
+    public @Nullable String getDescription() {
+        return null;
+    }
+
     public Class<? extends FlagSettings> getSettingsType() {
         return FlagSettings.class;
     }
 
-    /** Read from the settings file when the flag registers and again when its owner reloads; defaults before that. */
+    /**
+     * Whether the server-wide settings of this flag live in a file. While none is written, the flag runs on the
+     * defaults of {@link #getSettingsType()} and on the overrides a region sets ({@code Region.setFlagSettings}).
+     */
+    public SettingsFilePolicy getSettingsFilePolicy() {
+        return SettingsFilePolicy.FOLLOW_SERVER;
+    }
+
+    /**
+     * Read from the settings file when the flag registers, again when its owner or EverNifeCore reloads; the defaults
+     * when the file is not in use ({@link #getSettingsFilePolicy()}).
+     */
     @SuppressWarnings("unchecked")
     public <S extends FlagSettings> S getSettings() {
         FlagSettings current = settings;

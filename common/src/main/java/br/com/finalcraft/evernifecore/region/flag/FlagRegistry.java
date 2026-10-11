@@ -1,16 +1,21 @@
 package br.com.finalcraft.evernifecore.region.flag;
 
 import br.com.finalcraft.everyconfig.config.Config;
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.events.reload.ECPluginReloadEvent;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
+import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import jakarta.annotation.Nullable;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,11 +27,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Every flag the server knows, by key. A flag registers at any time: on registering, its settings are read from
- * {@code <owner's data folder>/regions/flags/<name>.yml} (written with the defaults when absent and read again
- * whenever the owner reloads), and every loaded region's raw value for it becomes a live value.
+ * Every flag the server knows, by key. A flag registers at any time: on registering, every loaded region's raw value
+ * for it becomes a live value, and its settings are loaded - from {@code <owner's data folder>/regions/flags/<name>.yml},
+ * under {@value #SETTINGS_ROOT}, while {@link RegionFlag#getSettingsFilePolicy()} has the file in use (written with the
+ * defaults when absent), else from the code defaults. They load again when the owner reloads, and every flag's when
+ * EverNifeCore reloads, since its config decides which files are in use.
  */
 public final class FlagRegistry {
+
+    /** The root the settings sit under in a flag's file. */
+    public static final String SETTINGS_ROOT = "Settings";
+    public static final String GENERATE_FILES_KEY = "Regions.generate-global-settings-configuration-files";
 
     private static final FlagRegistry INSTANCE = new FlagRegistry();
 
@@ -208,17 +219,58 @@ public final class FlagRegistry {
         indexChildren();
     }
 
-    private void reloadSettings(ECPluginData owner) {
-        for (RegionFlag<?> flag : getByOwner(owner)) {
+    private void reloadSettings(ECPluginData reloaded) {
+        //EverNifeCore's reload may have flipped the key that decides which files every owner's flags read
+        Collection<RegionFlag<?>> affected = reloaded == EverNifeCore.getEcPluginData() ? getAll() : getByOwner(reloaded);
+        for (RegionFlag<?> flag : affected) {
             flag.setSettings(loadSettings(flag));
         }
     }
 
+    /** Whether {@code flag}'s settings file is written and read now. */
+    public static boolean isSettingsFileInUse(RegionFlag<?> flag) {
+        switch (flag.getSettingsFilePolicy()) {
+            case ALWAYS:
+                return true;
+            case NEVER:
+                return false;
+            default:
+                return ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES;
+        }
+    }
+
     private static FlagSettings loadSettings(RegionFlag<?> flag) {
-        Config config = ConfigFactory.open(flag.getOwner(), "regions/flags/" + flag.getKey().getName() + ".yml");
-        FlagSettings settings = config.getValueInto("", flag.newSettings());
-        config.mergeValue("", settings);
+        String fileName = "regions/flags/" + flag.getKey().getName() + ".yml";
+        if (!isSettingsFileInUse(flag)) {
+            File file = new File(flag.getOwner().getMetaInfo().getDataFolder(), fileName);
+            if (file.isFile()) {
+                flag.getOwner().getLog().warning("Ignoring {}: the settings files of region flags are not in use, so flag {} runs on its"
+                        + " defaults and the per-region overrides. Set {} to true in EverNifeCore's config.yml to use the file, or delete it.",
+                        file.getPath(), flag.getKey(), GENERATE_FILES_KEY);
+            }
+            return flag.newSettings();
+        }
+        Config config = ConfigFactory.open(flag.getOwner(), fileName);
+        config.setHeader(header(flag, ConfigFactory.standardHeader(flag.getOwner())));
+        FlagSettings settings = config.getValueInto(SETTINGS_ROOT, flag.newSettings());
+        config.mergeValue(SETTINGS_ROOT, settings);
         config.save();
         return settings;
+    }
+
+    /** The standard banner, then what the flag is and the time format its fields take. */
+    static String[] header(RegionFlag<?> flag, String[] banner) {
+        List<String> lines = new ArrayList<>(Arrays.asList(banner));
+        lines.add("");
+        lines.add(" Flag: " + flag.getKey());
+        String description = flag.getDescription();
+        if (description != null && !description.isEmpty()) {
+            lines.add(" What it does: " + description);
+        }
+        lines.add(" Value type: " + flag.getType().getId());
+        lines.add(" Server-wide settings of this flag; a region may override them. Times: " + FCTimeFrame.ACCEPTED_FORMAT);
+        lines.add("");
+        lines.add(banner[banner.length - 1]);
+        return lines.toArray(new String[0]);
     }
 }

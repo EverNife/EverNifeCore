@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.region.flag.stock;
 
 import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
+import br.com.finalcraft.everyconfig.annotation.Comment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +15,11 @@ import java.util.regex.Pattern;
  */
 public class InteractSettings extends FlagSettings {
 
+    @Comment({"The block or entity ids this flag covers, like minecraft:chest; * stands for any run of characters",
+            "(minecraft:*chest*, modid:*). Empty covers every id."})
     private List<String> only = new ArrayList<>();
+
+    @Comment("Ids taken out of what 'only' covers, in the same form - the flag never applies to these.")
     private List<String> except = new ArrayList<>();
 
     public List<String> getOnly() {

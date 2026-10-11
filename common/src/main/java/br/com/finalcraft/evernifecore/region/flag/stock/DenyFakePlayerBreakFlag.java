@@ -16,4 +16,9 @@ public final class DenyFakePlayerBreakFlag extends StockDenyFlag {
     public boolean applies(ActionContext context) {
         return context instanceof BlockContext && ((BlockContext) context).isFakePlayer();
     }
+
+    @Override
+    public String getDescription() {
+        return "TRUE: fake players - machines acting as a player - cannot break blocks in the region.";
+    }
 }

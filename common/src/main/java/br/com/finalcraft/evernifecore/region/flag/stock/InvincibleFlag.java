@@ -16,4 +16,9 @@ public final class InvincibleFlag extends StockDenyFlag {
     public boolean applies(ActionContext context) {
         return hurts(context, DamageContext.Kind.PLAYER);
     }
+
+    @Override
+    public String getDescription() {
+        return "TRUE: players in the region take no damage, whatever hurts them.";
+    }
 }

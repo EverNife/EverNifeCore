@@ -27,4 +27,9 @@ public final class DenyMessageFlag extends RegionFlag<String> {
     public String resolveTie(List<String> values) {
         return values.get(0);
     }
+
+    @Override
+    public String getDescription() {
+        return "The text a player is shown when a deny-* flag of the region stops them.";
+    }
 }

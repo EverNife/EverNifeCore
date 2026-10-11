@@ -3,6 +3,10 @@ package br.com.finalcraft.evernifecore.region.flag.stock;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.session.RevertStrategy;
+import br.com.finalcraft.evernifecore.time.FCTimeFrame;
+import br.com.finalcraft.everyconfig.annotation.Comment;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -14,9 +18,21 @@ import java.time.Duration;
  */
 public class MoveDenySettings extends FlagSettings {
 
+    @Comment({"Where a denied player is sent back to: last-valid (the last block they were allowed on),",
+            "trail:<n> (n blocks further back along their way), allow-after:<n> (deny, but let the n-th denial in a row through),",
+            "fixed:<x>,<y>,<z>[,<world>], spawn (the server spawn) or worldspawn (the spawn of their world)."})
     private RevertStrategy revert = RevertStrategy.lastValid();
+
+    @Comment({"After this many denials inside stuckWindow the player counts as stuck and is sent one block further back",
+            "along their way for every denial past it - lower it if players get trapped against a border."})
     private int stuckAfter = 12;
-    private Duration stuckWindow = Duration.ofSeconds(1);
+
+    @Comment("The window stuckAfter counts denials in.")
+    @JsonProperty
+    private FCTimeFrame stuckWindow = FCTimeFrame.of(Duration.ofSeconds(1));
+
+    @Comment({"Where a stuck player goes once the way back runs out, as a position with its world;",
+            "null keeps sending them to the oldest block of their way back."})
     private @Nullable WorldLocPos stuckFallback;
 
     public RevertStrategy getRevert() {
@@ -35,12 +51,14 @@ public class MoveDenySettings extends FlagSettings {
         this.stuckAfter = stuckAfter;
     }
 
+    @JsonIgnore
     public Duration getStuckWindow() {
-        return stuckWindow;
+        return stuckWindow.toDuration();
     }
 
+    @JsonIgnore
     public void setStuckWindow(Duration stuckWindow) {
-        this.stuckWindow = stuckWindow;
+        this.stuckWindow = FCTimeFrame.of(stuckWindow);
     }
 
     /** Where a stuck player goes once the trail runs out; null keeps reverting to the oldest block of the trail. */

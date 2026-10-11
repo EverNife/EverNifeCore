@@ -15,4 +15,9 @@ public final class DenyInteractEntitiesFlag extends StockInteractFlag {
     public boolean applies(ActionContext context) {
         return context instanceof EntityContext;
     }
+
+    @Override
+    public String getDescription() {
+        return "TRUE: entities in the region cannot be used. Where it is not set, deny-interact decides.";
+    }
 }

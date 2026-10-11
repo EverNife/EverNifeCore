@@ -16,4 +16,9 @@ public final class DenyMonsterSpawnFlag extends StockDenyFlag {
     public boolean applies(ActionContext context) {
         return context instanceof SpawnContext && ((SpawnContext) context).getEntityKind() == SpawnContext.Kind.MONSTER;
     }
+
+    @Override
+    public String getDescription() {
+        return "TRUE: monsters do not spawn in the region.";
+    }
 }

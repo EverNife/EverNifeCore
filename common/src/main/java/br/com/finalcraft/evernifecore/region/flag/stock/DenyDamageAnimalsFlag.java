@@ -16,4 +16,9 @@ public final class DenyDamageAnimalsFlag extends StockDenyFlag {
     public boolean applies(ActionContext context) {
         return hurts(context, DamageContext.Kind.ANIMAL);
     }
+
+    @Override
+    public String getDescription() {
+        return "TRUE: animals in the region cannot be hurt.";
+    }
 }
