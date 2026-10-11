@@ -7,6 +7,9 @@ import br.com.finalcraft.everylibs.util.FCTimeUtil;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
+import java.time.Duration;
+import java.time.format.DateTimeParseException;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 public class FCTimeFrame {
@@ -79,6 +82,10 @@ public class FCTimeFrame {
 
     public long getMillis() {
         return millis;
+    }
+
+    public Duration toDuration() {
+        return Duration.ofMillis(millis);
     }
 
     /** This time-frame's config form: the compact duration string ({@link FCTimeUtil#fromMillis}). Honored by
@@ -162,11 +169,40 @@ public class FCTimeFrame {
         return new FCTimeFrame(millis);
     }
 
-    /** Reads the config-string form written by {@link #toConfigString()}. */
-    @JsonCreator
-    public static FCTimeFrame fromConfigString(String serialized){
-        return FCTimeFrame.of(FCTimeUtil.toMillis(serialized));
+    public static FCTimeFrame of(Duration duration){
+        return new FCTimeFrame(duration.toMillis());
     }
+
+    /**
+     * Reads the config-string form written by {@link #toConfigString()} ({@code 500ms}, {@code 2s}, {@code 1h30m},
+     * {@code 1d}), and also an ISO-8601 duration ({@code PT2S}), the form a {@link Duration} was written in before.
+     *
+     * @throws IllegalArgumentException when {@code text} reads as neither
+     */
+    @JsonCreator
+    public static FCTimeFrame fromConfigString(String text){
+        String trimmed = text == null ? "" : text.trim();
+        if (trimmed.toUpperCase(Locale.ROOT).startsWith("P") || trimmed.startsWith("-P")) {
+            try {
+                return FCTimeFrame.of(Duration.parse(trimmed));
+            } catch (DateTimeParseException notIso) {
+                throw unreadable(text);
+            }
+        }
+        Long millis = FCTimeUtil.toMillis(trimmed);
+        if (millis == null) {
+            throw unreadable(text);
+        }
+        return FCTimeFrame.of(millis);
+    }
+
+    private static IllegalArgumentException unreadable(String text) {
+        return new IllegalArgumentException("'" + text + "' is not a duration. " + ACCEPTED_FORMAT);
+    }
+
+    /** The duration format a config file accepts, with examples - for a file header or an error message. */
+    public static final String ACCEPTED_FORMAT = "Write a duration as numbers with units, like 500ms, 2s, 3m, 1h30m or 1d"
+            + " (ms, s, m, h, d; parts may be separated by spaces, as in '1s 500ms'). ISO-8601 (like PT30S) is read too.";
 
     public static FCTimeFrame now(){
         return new FCTimeFrame(System.currentTimeMillis());
