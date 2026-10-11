@@ -13,6 +13,40 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.66] - 2026-10-11
+
+The region config reads like a server admin writes it: times are durations (`3m`, `1s`) with no unit in the key, and
+a flag's settings file exists only when the server asks for it.
+
+### Changed
+
+- **Region time keys are durations, renamed without their unit**: `Regions.listener-idle-ticks` ->
+  `Regions.listener-idle-time` (default `3m`, was 100 ticks), `Regions.sweeper-interval-ticks` ->
+  `Regions.sweeper-interval` (`1s`), `Regions.visualizer.view-seconds` -> `Regions.visualizer.view-time` (`10s`),
+  `Regions.selection.idle-minutes` -> `Regions.selection.idle-time` (`5m`). A `Regions` key still named for a unit is
+  removed from `config.yml` on load, unread. The `ECSettings` fields follow (`REGIONS_LISTENER_IDLE_TIME`, ...) and are
+  `Duration`s; `EventSourceUsage.setIdleTime(Duration)`/`getIdleTime()` and `RegionSweeper.setInterval(Duration)`
+  replace the tick and millisecond setters.
+- **Flag settings files are written only on demand**: `regions/flags/<name>.yml` exists while
+  `Regions.generate-global-settings-configuration-files` is `true` (or the flag forces it). Its fields sit under a
+  `Settings:` root, every time field is a readable duration, and the header says which flag it is, what it does, its
+  value type and the time format. A file left behind while generation is off is not read, and the log says so once per
+  load. A reload of EverNifeCore re-reads the settings of every plugin's flags. A region's stored override keeps its
+  shape and still reads the ISO form (`PT5S`) it was written in.
+- `FCTimeFrame.fromConfigString` reads ISO-8601 too, and refuses an unreadable text with an `IllegalArgumentException`
+  that quotes it and shows the format, instead of a `NullPointerException`.
+- `build.gradle` tags only the VaultUnlocked dependency with `TargetJvmVersion=25` instead of every configuration, and
+  the Java 8 artifacts publish their Gradle module metadata again.
+
+### Added
+
+- `Regions.generate-global-settings-configuration-files` (default `false`).
+- `RegionFlag.getSettingsFilePolicy()` (`SettingsFilePolicy.FOLLOW_SERVER` / `ALWAYS` / `NEVER`) and
+  `RegionFlag.getDescription()`; every stock flag describes itself.
+- `@Comment` on every field of `FlagSettings`, `InteractSettings` and `MoveDenySettings`.
+- `FCTimeFrame.of(Duration)`, `toDuration()` and `ACCEPTED_FORMAT`.
+- `checkLinkage` also checks the ECNmsUtils classes outside its era packages against every supported server.
+
 ## [3.0.1-alpha.65] - 2026-10-09
 
 The NMS bridge becomes ECNmsUtils 2.0.0, a library with no dependency on the core, and the shadow jar now proves that
