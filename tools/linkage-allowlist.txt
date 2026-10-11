@@ -97,6 +97,14 @@
 * method org/bukkit/World.getMinHeight()I br.com.finalcraft.evernifecore.conformance.minecraft.suite.VersionSuite  # only on the MCVersion.isHigherEquals(WORLD_FLOOR_SINCE = v1_17_R1) branch
 
 # ---------------------------------------------------------------------------------------------
+# ECNmsUtils, embedded: era-neutral classes that only an era class instantiates. NmsRevision loads
+# the era class of the running server by Class.forName, so no other era ever reaches them.
+# ---------------------------------------------------------------------------------------------
+* class org/bukkit/Tag br.com.finalcraft.ecnmsutils.registries.TagOreDictionary  # built only by the 1.16.5+ era classes (NmsV1_16_R3, NmsV1_20_R1/R2, NmsV1_21_R1)
+* class org/bukkit/NamespacedKey br.com.finalcraft.ecnmsutils.registries.TagOreDictionary  # idem
+* method org/bukkit/Bukkit.getTags(Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Iterable; br.com.finalcraft.ecnmsutils.registries.TagOreDictionary  # idem
+
+# ---------------------------------------------------------------------------------------------
 # checkEmbeddedLinkage: FinalCraft classes the shadow jar does not carry on purpose. <runtime> is
 # always "embedded" here - these are read by that check, not by checkLinkage.
 # ---------------------------------------------------------------------------------------------
