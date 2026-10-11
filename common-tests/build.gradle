@@ -30,13 +30,6 @@ test {
     useJUnitPlatform()
 }
 
-// Same reason as common/build.gradle: the root tags every configuration with TargetJvmVersion=25,
-// and baked into Gradle Module Metadata that would make this Java-8 artifact resolve as "JVM 25
-// only" and reject Java 8 consumers.
-tasks.withType(GenerateModuleMetadata) {
-    enabled = false
-}
-
 publishing {
     repositories {
         maven {

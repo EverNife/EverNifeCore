@@ -94,7 +94,10 @@ dependencies {
     implementation libs.log4j.core
 
     compileOnly libs.luckperms.api
-    compileOnly libs.vaultunlocked
+    compileOnly(libs.vaultunlocked) {
+        // VaultUnlocked publishes for JVM 25 only; its API is plain enough for this Java 8 module to compile against
+        attributes { attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 25) }
+    }
     compileOnly libs.commons.lang3.legacy
 
     // Local jars. FeatherBoard and BossShopPro are paid plugins: you must own them to build this.
@@ -117,7 +120,10 @@ dependencies {
     // Both are compileOnly in production - the server ships them - so the test JVM has to bring them
     // back to exercise the Vault bridges against a fake economy.
     testImplementation libs.spigot.api
-    testImplementation libs.vaultunlocked
+    testImplementation(libs.vaultunlocked) {
+        // VaultUnlocked publishes for JVM 25 only; its API is plain enough for this Java 8 module to compile against
+        attributes { attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 25) }
+    }
     // compileOnly in production - PlaceholderAPI is a plugin - brought back so the presence probe
     // has the real Bukkit PlaceholderAPI to find.
     testRuntimeOnly name: "PlaceholderAPI-2.11.2"
