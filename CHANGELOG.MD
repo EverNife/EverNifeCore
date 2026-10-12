@@ -13,6 +13,35 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.69] - 2026-10-12
+
+A clean clone builds: every dependency resolves by a public coordinate, and a GitHub Actions workflow proves it on
+every push.
+
+### Added
+
+- **`.github/workflows/build.yml`** runs `./gradlew build` on JDK 25 (Temurin) for every push and pull request to
+  `master`. It needs no secret.
+
+### Changed
+
+- The plugin APIs the Bukkit side compiles against come from their public repositories, versions in
+  `gradle/libs.versions.toml`: AuthMe 5.4.0 (CodeMC), PlaceholderAPI 2.11.6 (extendedclip; 2.11.2 is not published),
+  WorldGuard 6.1 / 6.2 (`worldguard-legacy`) / 7.0.5 and WorldEdit 6.0 / 7.2.5 (EngineHub, bukkit + core, non-transitive).
+  GriefDefender 2.2.1 and GriefPreventionPlus 13.3, which no public repository carries, come from
+  `EverNife/Petrus-Github-Maven`, a git repository in Maven layout.
+- `checkLinkage` reads the 1.7.10 API from the newest Crucible staging release on GitHub (`staging-ebe44c7`) through
+  an `ivy` repository. That build has `Player.sendTitle(String, String)` and `Player.resetTitle()`, so their three
+  allowlist entries are gone.
+
+### Removed
+
+- **`ENC_LOCAL_LIBS`** and the local-jar directories it fed. mavenLocal stays, filtered to the sibling FinalCraft
+  libraries, for iterating across repositories.
+- The **FeatherBoard**, **MVdWPlaceholderAPI** and **ProtocolLib** dependencies, which no source referenced, and the
+  last two from the `softdepend` of `plugin.yml`.
+- The unused `hytale/libs` directory from the Hytale classpath.
+
 ## [3.0.1-alpha.68] - 2026-10-12
 
 EverNifeCore no longer integrates with BossShopPro. A shop and menu foundation of its own is being specified;
