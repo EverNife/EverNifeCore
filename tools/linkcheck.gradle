@@ -88,9 +88,14 @@ ext.linkageTargets.each { String targetId, Object coordinates ->
     dependencies.add(declaredIn, coordinates)
 }
 
-// ECNmsUtils, as the shadow jar embeds it - from mavenLocal, like every sibling FinalCraft library.
+// ECNmsUtils, as the shadow jar embeds it - resolved like the subprojects resolve it: mavenLocal
+// first (a sibling checkout being iterated on), then maven.petrus.dev (a clean clone).
 repositories {
     mavenLocal {
+        content { includeModule 'br.com.finalcraft', 'ECNmsUtils' }
+    }
+    maven {
+        url = 'https://maven.petrus.dev/public'
         content { includeModule 'br.com.finalcraft', 'ECNmsUtils' }
     }
 }
@@ -384,7 +389,7 @@ tasks.register('checkLinkage') {
         if (nmsClasses == 0) {
             throw new GradleException("checkLinkage found no ECNmsUtils class outside the era packages in"
                     + " ${embeddedNms.files*.name}, so it would vouch for the embedded bridge without reading it."
-                    + " Check that the ecnmsutils version in gradle/libs.versions.toml is in mavenLocal.")
+                    + " Check that the ecnmsutils version in gradle/libs.versions.toml is the one in mavenLocal or on maven.petrus.dev.")
         }
         logger.lifecycle("checkLinkage: ${nmsClasses} ECNmsUtils classes outside the era packages submitted"
                 + " to the org/bukkit check (${embeddedNms.files*.name.join(', ')})")
