@@ -100,7 +100,7 @@ dependencies {
     }
     compileOnly libs.commons.lang3.legacy
 
-    // Local jars. FeatherBoard and BossShopPro are paid plugins: you must own them to build this.
+    // Local jars. FeatherBoard is a paid plugin: you must own it to build this.
     compileOnly name: "AuthMe-5.4.0"
     compileOnly name: "griefdefender-bukkit-2.2.1"
     compileOnly name: "GriefPreventionPlus-13.3"
@@ -108,7 +108,6 @@ dependencies {
     compileOnly name: "worldguard-bukkit-6.2.2" // prior to 1.12
     compileOnly name: "worldedit-bukkit-6.0"    // prior to 1.12
     compileOnly name: "FeatherBoard-4.28.1"
-    compileOnly name: "BossShopPro-v1.9.8"
     compileOnly name: "MVdWPlaceholderAPI"
     compileOnly name: "ProtocolLib"
 

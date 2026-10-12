@@ -275,7 +275,6 @@ Each one is optional and degrades quietly when its plugin is absent.
 | **LuckPerms** | read a player's meta values |
 | **WorldEdit** | schematic pasting |
 | **WorldGuard / GriefDefender / GriefPreventionPlus** | one `canBuild`/`canBreak`/`canInteract` answer over every installed protection plugin |
-| **BossShopPro** | shop items carrying EverNifeCore NBT data parts |
 
 📖 [Integrations](https://github.com/EverNife/EverNifeCore/wiki/Integrations)
 

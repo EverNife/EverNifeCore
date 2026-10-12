@@ -11,7 +11,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-//Samaller Version of BossShopPro ItemDataPart
 public abstract class ItemDataPart {
 
     public static int

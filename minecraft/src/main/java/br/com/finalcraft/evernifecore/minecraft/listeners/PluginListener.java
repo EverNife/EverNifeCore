@@ -1,6 +1,5 @@
 package br.com.finalcraft.evernifecore.minecraft.listeners;
 
-import br.com.finalcraft.ecnmsutils.NMSUtils;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -8,11 +7,9 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.autoupdater.SpigotUpdateChecker;
-import br.com.finalcraft.evernifecore.minecraft.listeners.bossshop.BossShopListener;
 import br.com.finalcraft.evernifecore.minecraft.metrics.Metrics;
 import br.com.finalcraft.evernifecore.minecraft.protection.ProtectionAll;
 import br.com.finalcraft.evernifecore.minecraft.protection.integration.ProtectionHandler;
-import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
@@ -50,16 +47,6 @@ public class PluginListener implements ECListener {
         if (builtIn != null) {
             builtInProtections.put(plugin.getName(), builtIn);
             ProtectionAll.getInstance().register(EverNifeCore.getEcPluginData(), builtIn);
-        }
-
-        if (plugin.getName().equalsIgnoreCase("BossShopPro")){
-            if (NMSUtils.isSupported()){
-                EverNifeCore.getLog().info("Found BossShopPro, registering 'nbt' tag!");
-                ECListener.register(EverNifeCore.getEcPluginData(), BossShopListener.class);
-            }else {
-                EverNifeCore.getLog().warning("Found BossShopPro, but NMS not found for this server version [" + MCVersion.getCurrent() +" ] !");
-            }
-            return;
         }
 
         ECPlugin ecPlugin = plugin.getClass().getAnnotation(ECPlugin.class);
