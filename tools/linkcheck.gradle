@@ -43,7 +43,7 @@ repositories {
         name = 'spigotmc-repo'
         url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots'
     }
-    flatDir { dirs rootProject.ext.localJarDirs }
+    rootProject.addLocalJarRepository(delegate)
 }
 
 // Every server era the project claims to support. 1.7.10 has neither a spigot-api nor an

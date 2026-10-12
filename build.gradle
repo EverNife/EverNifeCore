@@ -42,8 +42,30 @@ ext.applyCoreRelocations = applyCoreRelocations
 
 // Local-only jars: paid or otherwise unobtainable plugins the :minecraft side compiles against, plus
 // the Crucible server checkLinkage reads the 1.7.10 API out of. One source, so the two readers cannot
-// drift apart. Without these that module cannot compile; the other modules still can.
-ext.localJarDirs = (System.getenv('ENC_LOCAL_LIBS') ?: '').tokenize(File.pathSeparator)
+// drift apart. The directories come from ENC_LOCAL_LIBS (File.pathSeparator-separated); without it
+// the list is empty, :minecraft and checkLinkage fail naming the variable, and the rest still builds.
+def encLocalLibs = System.getenv('ENC_LOCAL_LIBS') ?: ''
+ext.localJarDirs = encLocalLibs.tokenize(File.pathSeparator)*.trim().findAll()
+ext.addLocalJarRepository = { RepositoryHandler repos ->
+    if (localJarDirs) repos.flatDir { dirs localJarDirs } // an empty flatDir is a configuration error
+}
+if (!localJarDirs) {
+    allprojects {
+        configurations.configureEach { cfg ->
+            cfg.incoming.afterResolve { ResolvableDependencies resolved ->
+                def missingLocal = resolved.resolutionResult.allDependencies.findAll {
+                    it instanceof UnresolvedDependencyResult &&
+                            it.requested instanceof ModuleComponentSelector && !it.requested.group
+                }
+                if (missingLocal) {
+                    throw new GradleException("${cfg} needs local jars (${missingLocal*.requested*.module.join(', ')}) " +
+                            "and ENC_LOCAL_LIBS is not set. Set it to the directories holding those jars, separated by '" +
+                            File.pathSeparator + "' - the paid/unobtainable plugins and the Crucible server jar.")
+                }
+            }
+        }
+    }
+}
 
 subprojects {
     apply plugin: 'java'
@@ -92,7 +114,7 @@ subprojects {
         maven { url = "https://jitpack.io" }
         maven { url = 'https://libraries.minecraft.net/' }
         maven { url = 'https://maven.petrus.dev/public' }
-        flatDir { dirs rootProject.ext.localJarDirs }
+        rootProject.addLocalJarRepository(delegate)
     }
 
     dependencies {
