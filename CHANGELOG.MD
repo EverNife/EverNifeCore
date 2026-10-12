@@ -13,6 +13,17 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.68] - 2026-10-12
+
+EverNifeCore no longer integrates with BossShopPro. A shop and menu foundation of its own is being specified;
+until it lands, a plugin that needs BossShopPro talks to its API directly.
+
+### Removed
+
+- **BossShopPro integration**: `BossShopIntegration`, `ECShop`, `ECConfigShop`, `IECShop`, the `nbt` item data
+  part for shop items, the replaced `ItemStackTranslator` and the `CopyToLocations` shop option, with the
+  `loadbefore: [ BossShopPro ]` entry of `plugin.yml`.
+
 ## [3.0.1-alpha.67] - 2026-10-11
 
 The repository carries no path of the maintainer's machine: everything local is read from an environment variable,
