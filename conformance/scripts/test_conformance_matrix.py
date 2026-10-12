@@ -15,8 +15,11 @@ cm = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cm)
 
 
-def run_script(*args):
-    env = dict(os.environ, PYTHONIOENCODING="utf-8")
+def run_script(*args, mctf_env=True):
+    env = {k: v for k, v in os.environ.items() if k not in cm.REQUIRED_ENV}
+    env["PYTHONIOENCODING"] = "utf-8"
+    if mctf_env:  # placeholders: --dry-run never touches them
+        env.update(MCTF_HOME="mctf-home", MCTF_CLI="mctf-home/mctf.py")
     return subprocess.run([sys.executable, "-I", str(SCRIPT), *args], capture_output=True,
                           encoding="utf-8", errors="replace", env=env, timeout=60)
 
@@ -83,9 +86,16 @@ class CliTest(unittest.TestCase):
         self.assertEqual(tools.count("mc_player"), len(cm.SCREENS) + 1)  # + the online check after the restart
         self.assertIn("ecc run all --player", proc.stdout)
         self.assertIn("connect host.docker.internal", proc.stdout)
-        self.assertIn("PlaceholderAPI-2.11.6.jar", proc.stdout)
+        self.assertIn("PlaceholderAPI.jar", proc.stdout)
         start_line = next(l for l in proc.stdout.splitlines() if l.startswith("[dry-run] mctf mc_start "))
         self.assertNotIn('"to": "mods"', start_line)  # paper has no mod loader: no companion route
+
+    def test_refuses_without_the_mctf_variables_before_any_call(self):
+        proc = run_script("--dry-run", mctf_env=False)
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("MCTF_HOME", proc.stderr)
+        self.assertIn("MCTF_CLI", proc.stderr)
+        self.assertNotIn("[dry-run]", proc.stdout)
 
 
 if __name__ == "__main__":

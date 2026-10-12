@@ -22,9 +22,10 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CLI = Path("mctf.py")  # set MCTF_CLI
-# 2.11.2 dies in its static init on 1.21.1 (it parses the old craftbukkit package version)
-DEFAULT_PAPI = "PlaceholderAPI.jar"  # pass --papi-jar
+# Copied there by :conformance:minecraft:shadowJar from a public repository (version in libs.versions.toml)
+DEFAULT_PAPI = str(REPO_ROOT / "conformance/minecraft/build/matrix/PlaceholderAPI.jar")
+# The mctf CLI and the framework root (its final-artifacts/ carries the companion mods); machine-local paths
+REQUIRED_ENV = ("MCTF_HOME", "MCTF_CLI")
 DEFAULT_FLAVORS = "crucible-1.7.10,mohist-1.12.2,mohist-1.16.5,arclight-1.21.1,paper-1.21.1"
 
 CLIENT_FOR = {
@@ -432,14 +433,20 @@ def main(argv=None) -> int:
     if unknown:
         p.error("no client pair for %s - known: %s" % (unknown, ", ".join(CLIENT_FOR)))
 
-    cli = os.environ.get("MCTF_CLI") or str(DEFAULT_CLI)
-    # <framework>/<four levels>/mctf.py; realpath sees through a junction
-    fw = Path(os.path.realpath(cli)).parents[4]
+    unset = [k for k in REQUIRED_ENV if not os.environ.get(k)]
+    if unset:
+        print("%s not set. Define MCTF_HOME (the mctf framework root) and MCTF_CLI (its mctf.py) to run the\n"
+              "matrix. It is a local tool of the project owner and needs the mctf daemon; the regular\n"
+              "Gradle build and tests do not need it." % " and ".join(unset), file=sys.stderr)
+        return 2
+    cli = os.environ["MCTF_CLI"]
+    fw = Path(os.environ["MCTF_HOME"])
     if not a.dry_run:
         needed = [a.core_jar, a.ecc_jar, cli] + ([a.papi_jar] if a.papi_flavors & set(flavors) else [])
         missing = [n for n in needed if not Path(n).is_file()]
         if missing:
-            print("missing: %s" % ", ".join(missing), file=sys.stderr)
+            print("missing: %s (the jars come from ./gradlew :minecraft:shadowJar :conformance:minecraft:shadowJar)"
+                  % ", ".join(missing), file=sys.stderr)
             return 2
     out = Path(a.out) if Path(a.out).is_absolute() else REPO_ROOT / a.out
     mctf = Mctf(cli, a.dry_run)

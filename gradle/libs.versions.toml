@@ -30,6 +30,8 @@ hytale-server = "0.6.8"
 luckperms = "5.4"
 vaultunlocked = "2.18.3"
 placeholderapi-hytale = "1.0.4"
+# Only routed into the conformance matrix servers; 2.11.2 dies in its static init on 1.21.1.
+placeholderapi-matrix = "2.11.6"
 
 # Third-party libraries
 lombok = "1.18.46"
@@ -86,6 +88,7 @@ hytale-server = { module = "com.hypixel.hytale:Server", version.ref = "hytale-se
 luckperms-api = { module = "net.luckperms:api", version.ref = "luckperms" }
 vaultunlocked = { module = "net.cfh.vault:VaultUnlocked", version.ref = "vaultunlocked" }
 placeholderapi-hytale = { module = "at.helpch:placeholderapi-hytale", version.ref = "placeholderapi-hytale" }
+placeholderapi-matrix = { module = "me.clip:placeholderapi", version.ref = "placeholderapi-matrix" }
 
 adventure-api = { module = "net.kyori:adventure-api", version.ref = "adventure" }
 adventure-key = { module = "net.kyori:adventure-key", version.ref = "adventure" }

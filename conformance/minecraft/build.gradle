@@ -15,12 +15,18 @@ repositories {
         url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots'
     }
     maven { url = 'https://repo.codemc.io/repository/maven-public/' } // NBT-API
+    maven {
+        url = 'https://repo.extendedclip.com/releases/'
+        content { includeGroup 'me.clip' }
+    }
 }
 
 configurations {
     // common-tests is a JUnit library as a whole; only its three JUnit-free conformance checks ride into the
     // plugin, picked by name in shadowJar below.
     conformanceChecks { transitive = false }
+    // The PlaceholderAPI plugin the matrix driver routes into its servers; the published jar is the shaded plugin.
+    matrixPlaceholderApi { transitive = false }
 }
 
 dependencies {
@@ -35,6 +41,7 @@ dependencies {
     compileOnly libs.spigot.api
     compileOnly project(':common-tests')
     conformanceChecks project(':common-tests')
+    matrixPlaceholderApi libs.placeholderapi.matrix
 
     testImplementation project(':common-tests')
     testImplementation libs.spigot.api
@@ -70,6 +77,17 @@ shadowJar {
     }
     // compiled against the core's own names; the deployed core carries the relocated ones
     rootProject.applyCoreRelocations(delegate)
+}
+
+// conformance-matrix.py reads it from here by default, so the matrix needs no jar from outside the repo.
+def matrixPlaceholderApiJar = tasks.register('matrixPlaceholderApiJar', Copy) {
+    from configurations.matrixPlaceholderApi
+    into layout.buildDirectory.dir('matrix')
+    rename { 'PlaceholderAPI.jar' }
+}
+
+tasks.named('shadowJar') {
+    dependsOn matrixPlaceholderApiJar
 }
 
 tasks.named('build') {
