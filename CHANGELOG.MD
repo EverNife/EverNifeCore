@@ -10,18 +10,24 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > after it is the 2.x -> 3.0 rework, and none of it was ever released: the alpha entries below are
 > development milestones reconstructed from the history, not downloads. They carry a pre-release
 > identifier because that is what they are - `3.0.1-alpha.1` through `3.0.1-alpha.X` all order below
-> `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
-> them: the build has read `3.0.1` out of the version catalog the entire time.
+> `3.0.1`, the version the whole rework converges on. `3.0.1-alpha.68` and older have no tags and no
+> artifacts; from `3.0.1-alpha.69` on, each entry is a GitHub pre-release with its jars. The build still
+> reads `3.0.1` out of the version catalog.
 
 ## [3.0.1-alpha.69] - 2026-10-12
 
 A clean clone builds: every dependency resolves by a public coordinate, and a GitHub Actions workflow proves it on
-every push.
+every push - and, from this version on, publishes each new changelog version as a GitHub pre-release.
 
 ### Added
 
 - **`.github/workflows/build.yml`** runs `./gradlew build` on JDK 25 (Temurin) for every push and pull request to
   `master`. It needs no secret.
+- **A GitHub release per changelog version.** A push to `master` whose newest entry here names a version with no
+  release yet publishes `v<version>` - a pre-release while the version carries a `-alpha.N` suffix - with
+  `EverNifeCore-<version>.jar`, `EverNifeCore-<version>-Hytale.jar` and `CHANGELOG-<version>.md`; the entry is also
+  the release notes. The heading of the entry is the only place the version is written: a new entry is a new
+  release, a push without one republishes nothing. The jars themselves still carry the catalog version (`3.0.1`).
 
 ### Changed
 
@@ -32,7 +38,8 @@ every push.
   `EverNife/Petrus-Github-Maven`, a git repository in Maven layout.
 - `checkLinkage` reads the 1.7.10 API from the newest Crucible staging release on GitHub (`staging-ebe44c7`) through
   an `ivy` repository. That build has `Player.sendTitle(String, String)` and `Player.resetTitle()`, so their three
-  allowlist entries are gone.
+  allowlist entries are gone. The embedded ECNmsUtils it checks resolves from mavenLocal or, in a clean clone,
+  from `maven.petrus.dev`.
 
 ### Removed
 

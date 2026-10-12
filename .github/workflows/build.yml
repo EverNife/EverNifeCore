@@ -1,19 +1,78 @@
 name: build
 
+# Builds every push and pull request to master. A push whose newest CHANGELOG.MD entry names a version
+# that has no release yet also publishes that version as a GitHub release, with the two plugin jars
+# and the entry's own notes. The changelog heading is the only place the version is written.
+
 on:
   push:
     branches: [master]
   pull_request:
     branches: [master]
 
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - run: ./gradlew build
+
+      - name: Read the version of the newest changelog entry
+        id: version
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(sed -n 's/^## \[\([^]]*\)\].*/\1/p' CHANGELOG.MD | head -n 1)
+          if [ -z "$version" ]; then
+            echo "::error::CHANGELOG.MD has no '## [<version>] - <date>' heading - add one above the older entries"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if gh release view "v$version" > /dev/null 2>&1; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "v$version is already released - nothing to publish"
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish the release
+        if: steps.version.outputs.release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p release
+          # The shadow jars carry the catalog version (3.0.1); the release names them by the changelog's
+          one() {
+            set -- $1
+            if [ "$#" -ne 1 ] || [ ! -f "$1" ]; then
+              echo "::error::expected exactly one jar, found: $* - did shadowJar's archive name change?" >&2
+              exit 1
+            fi
+            echo "$1"
+          }
+          cp "$(one 'minecraft/build/libs/EverNifeCore-*[0-9].jar')" "release/EverNifeCore-$VERSION.jar"
+          cp "$(one 'hytale/build/libs/EverNifeCore-*-Hytale.jar')" "release/EverNifeCore-$VERSION-Hytale.jar"
+          # The entry runs from its own heading down to the next one
+          awk -v head="## [$VERSION]" 'index($0, head) == 1 { on = 1; print; next } on && /^## \[/ { exit } on' \
+            CHANGELOG.MD > "release/CHANGELOG-$VERSION.md"
+          prerelease=""
+          case "$VERSION" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "v$VERSION" release/* \
+            --target "$GITHUB_SHA" \
+            --title "EverNifeCore $VERSION" \
+            --notes-file "release/CHANGELOG-$VERSION.md" \
+            $prerelease
