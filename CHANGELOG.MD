@@ -40,6 +40,10 @@ every push - and, from this version on, publishes each new changelog version as 
   an `ivy` repository. That build has `Player.sendTitle(String, String)` and `Player.resetTitle()`, so their three
   allowlist entries are gone. The embedded ECNmsUtils it checks resolves from mavenLocal or, in a clean clone,
   from `maven.petrus.dev`.
+- **EveryConfig 1.4.2.** A config file rewritten with content of the same size inside the same clock tick as the
+  last read is now seen as modified: when the stamp is too recent to trust, the content is compared. A plugin
+  whose `localization_config.yml` switches between two locale names of equal length picks the new language up
+  on the spot.
 
 ### Removed
 
