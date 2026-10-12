@@ -22,7 +22,6 @@ repositories {
 }
 
 dependencies {
-    compileOnly fileTree(dir: 'libs')
     compileOnly libs.hytale.server
 
     compileOnly libs.vaultunlocked
