@@ -13,6 +13,7 @@ dependencies {
     implementation project(':minecraft:modules:VersionedPlugins')
     compileOnly libs.bukkit
 
-    compileOnly name: "worldguard-bukkit-6.2.2"
-    compileOnly name: "worldedit-bukkit-6.0"
+    compileOnly(libs.worldguard62) { transitive = false }
+    compileOnly(libs.worldedit6.bukkit) { transitive = false }
+    compileOnly(libs.worldedit6.core) { transitive = false }
 }

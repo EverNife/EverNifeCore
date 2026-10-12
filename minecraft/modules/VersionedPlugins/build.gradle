@@ -14,10 +14,14 @@ dependencies {
     // and the opcode it compiles is the one old servers can link.
     compileOnly libs.spigot.api.legacy
 
-    compileOnly name: "GriefPreventionPlus-13.3"
-    compileOnly name: "PlaceholderAPI-2.11.2"
-    compileOnly name: "worldguard-bukkit-7.0.5-dist" // up to 1.16
-    compileOnly name: "worldedit-bukkit-7.2.5-dist"  // up to 1.16
+    compileOnly(libs.griefpreventionplus) { transitive = false }
+    compileOnly(libs.placeholderapi) { transitive = false }
+    // The 7.x jars are split in bukkit + core; their Gradle metadata pins gson/guava with `strictly`,
+    // which fights the server API, and none of their transitive graph is needed to compile against them.
+    compileOnly(libs.worldguard7.bukkit) { transitive = false }
+    compileOnly(libs.worldguard7.core) { transitive = false }
+    compileOnly(libs.worldedit7.bukkit) { transitive = false }
+    compileOnly(libs.worldedit7.core) { transitive = false }
 
     compileOnly libs.commons.lang3.legacy
 }

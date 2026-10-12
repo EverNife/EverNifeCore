@@ -30,8 +30,21 @@ hytale-server = "0.6.8"
 luckperms = "5.4"
 vaultunlocked = "2.18.3"
 placeholderapi-hytale = "1.0.4"
-# Only routed into the conformance matrix servers; 2.11.2 dies in its static init on 1.21.1.
-placeholderapi-matrix = "2.11.6"
+# 2.11.2 is not in the public repo; this is also the one the conformance matrix
+# servers load - 2.11.2 dies in its static init on 1.21.1.
+placeholderapi = "2.11.6"
+authme = "5.4.0"
+griefdefender = "2.2.1"
+griefpreventionplus = "13.3"
+# One pair per server era the WorldGuard/WorldEdit compat modules serve.
+worldguard61 = "6.1"
+worldguard62 = "6.2"
+worldedit6 = "6.0"
+worldguard7 = "7.0.5"
+worldedit7 = "7.2.5"
+# The 1.7.10 server checkLinkage reads: a CrucibleMC GitHub release tag, newest staging.
+crucible = "staging-ebe44c7"
+crucible-build = "dev-273"
 
 # Third-party libraries
 lombok = "1.18.46"
@@ -88,7 +101,18 @@ hytale-server = { module = "com.hypixel.hytale:Server", version.ref = "hytale-se
 luckperms-api = { module = "net.luckperms:api", version.ref = "luckperms" }
 vaultunlocked = { module = "net.cfh.vault:VaultUnlocked", version.ref = "vaultunlocked" }
 placeholderapi-hytale = { module = "at.helpch:placeholderapi-hytale", version.ref = "placeholderapi-hytale" }
-placeholderapi-matrix = { module = "me.clip:placeholderapi", version.ref = "placeholderapi-matrix" }
+placeholderapi = { module = "me.clip:placeholderapi", version.ref = "placeholderapi" }
+authme = { module = "fr.xephi:authme", version.ref = "authme" }
+griefdefender = { module = "com.griefdefender:griefdefender-bukkit", version.ref = "griefdefender" }
+griefpreventionplus = { module = "net.kaikk.mc:GriefPreventionPlus", version.ref = "griefpreventionplus" }
+worldguard61 = { module = "com.sk89q:worldguard", version.ref = "worldguard61" }
+worldguard62 = { module = "com.sk89q.worldguard:worldguard-legacy", version.ref = "worldguard62" }
+worldedit6-bukkit = { module = "com.sk89q.worldedit:worldedit-bukkit", version.ref = "worldedit6" }
+worldedit6-core = { module = "com.sk89q.worldedit:worldedit-core", version.ref = "worldedit6" }
+worldguard7-bukkit = { module = "com.sk89q.worldguard:worldguard-bukkit", version.ref = "worldguard7" }
+worldguard7-core = { module = "com.sk89q.worldguard:worldguard-core", version.ref = "worldguard7" }
+worldedit7-bukkit = { module = "com.sk89q.worldedit:worldedit-bukkit", version.ref = "worldedit7" }
+worldedit7-core = { module = "com.sk89q.worldedit:worldedit-core", version.ref = "worldedit7" }
 
 adventure-api = { module = "net.kyori:adventure-api", version.ref = "adventure" }
 adventure-key = { module = "net.kyori:adventure-key", version.ref = "adventure" }

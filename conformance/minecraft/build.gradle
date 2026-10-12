@@ -41,7 +41,7 @@ dependencies {
     compileOnly libs.spigot.api
     compileOnly project(':common-tests')
     conformanceChecks project(':common-tests')
-    matrixPlaceholderApi libs.placeholderapi.matrix
+    matrixPlaceholderApi libs.placeholderapi
 
     testImplementation project(':common-tests')
     testImplementation libs.spigot.api

@@ -40,33 +40,6 @@ def applyCoreRelocations = { task ->
 }
 ext.applyCoreRelocations = applyCoreRelocations
 
-// Local-only jars: paid or otherwise unobtainable plugins the :minecraft side compiles against, plus
-// the Crucible server checkLinkage reads the 1.7.10 API out of. One source, so the two readers cannot
-// drift apart. The directories come from ENC_LOCAL_LIBS (File.pathSeparator-separated); without it
-// the list is empty, :minecraft and checkLinkage fail naming the variable, and the rest still builds.
-def encLocalLibs = System.getenv('ENC_LOCAL_LIBS') ?: ''
-ext.localJarDirs = encLocalLibs.tokenize(File.pathSeparator)*.trim().findAll()
-ext.addLocalJarRepository = { RepositoryHandler repos ->
-    if (localJarDirs) repos.flatDir { dirs localJarDirs } // an empty flatDir is a configuration error
-}
-if (!localJarDirs) {
-    allprojects {
-        configurations.configureEach { cfg ->
-            cfg.incoming.afterResolve { ResolvableDependencies resolved ->
-                def missingLocal = resolved.resolutionResult.allDependencies.findAll {
-                    it instanceof UnresolvedDependencyResult &&
-                            it.requested instanceof ModuleComponentSelector && !it.requested.group
-                }
-                if (missingLocal) {
-                    throw new GradleException("${cfg} needs local jars (${missingLocal*.requested*.module.join(', ')}) " +
-                            "and ENC_LOCAL_LIBS is not set. Set it to the directories holding those jars, separated by '" +
-                            File.pathSeparator + "' - the paid/unobtainable plugins and the Crucible server jar.")
-                }
-            }
-        }
-    }
-}
-
 subprojects {
     apply plugin: 'java'
     apply plugin: 'idea'
@@ -114,7 +87,27 @@ subprojects {
         maven { url = "https://jitpack.io" }
         maven { url = 'https://libraries.minecraft.net/' }
         maven { url = 'https://maven.petrus.dev/public' }
-        rootProject.addLocalJarRepository(delegate)
+        // Third-party plugin APIs the :minecraft side compiles against - each repo pinned to its groups.
+        maven {
+            url = 'https://maven.enginehub.org/repo/'
+            content { includeGroupAndSubgroups 'com.sk89q' }
+        }
+        maven {
+            url = 'https://repo.extendedclip.com/releases/'
+            content { includeGroup 'me.clip' }
+        }
+        maven {
+            url = 'https://repo.codemc.io/repository/maven-public/'
+            content { includeGroup 'fr.xephi' }
+        }
+        // Plugin jars no public repository carries, kept as a plain Maven layout in a git repo.
+        maven {
+            url = 'https://github.com/EverNife/Petrus-Github-Maven/raw/master'
+            content {
+                includeGroup 'com.griefdefender'
+                includeGroup 'net.kaikk.mc'
+            }
+        }
     }
 
     dependencies {

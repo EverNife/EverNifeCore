@@ -14,6 +14,10 @@ dependencies {
     // A pre-1.21 era module: it must not see an API newer than the servers it serves.
     compileOnly libs.spigot.api.legacy
 
-    compileOnly name: "worldguard-bukkit-7.0.5-dist" // up to 1.16
-    compileOnly name: "worldedit-bukkit-7.2.5-dist"  // up to 1.16
+    // The 7.x jars are split in bukkit + core; their Gradle metadata pins gson/guava with `strictly`,
+    // which fights the server API, and none of their transitive graph is needed to compile against them.
+    compileOnly(libs.worldguard7.bukkit) { transitive = false }
+    compileOnly(libs.worldguard7.core) { transitive = false }
+    compileOnly(libs.worldedit7.bukkit) { transitive = false }
+    compileOnly(libs.worldedit7.core) { transitive = false }
 }

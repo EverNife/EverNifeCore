@@ -100,13 +100,14 @@ dependencies {
     }
     compileOnly libs.commons.lang3.legacy
 
-    // Local jars.
-    compileOnly name: "AuthMe-5.4.0"
-    compileOnly name: "griefdefender-bukkit-2.2.1"
-    compileOnly name: "GriefPreventionPlus-13.3"
-    compileOnly name: "PlaceholderAPI-2.11.2"
-    compileOnly name: "worldguard-bukkit-6.2.2" // prior to 1.12
-    compileOnly name: "worldedit-bukkit-6.0"    // prior to 1.12
+    // Plugin APIs; their own dependency graphs are the server's business, never this build's.
+    compileOnly(libs.authme) { transitive = false }
+    compileOnly(libs.griefdefender) { transitive = false }
+    compileOnly(libs.griefpreventionplus) { transitive = false }
+    compileOnly(libs.placeholderapi) { transitive = false }
+    compileOnly(libs.worldguard62) { transitive = false } // prior to 1.12
+    compileOnly(libs.worldedit6.bukkit) { transitive = false } // prior to 1.12
+    compileOnly(libs.worldedit6.core) { transitive = false }
 
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter
@@ -122,7 +123,7 @@ dependencies {
     }
     // compileOnly in production - PlaceholderAPI is a plugin - brought back so the presence probe
     // has the real Bukkit PlaceholderAPI to find.
-    testRuntimeOnly name: "PlaceholderAPI-2.11.2"
+    testRuntimeOnly(libs.placeholderapi) { transitive = false }
     testImplementation project(':common-tests')
 
     testFixturesImplementation project(':common-tests')

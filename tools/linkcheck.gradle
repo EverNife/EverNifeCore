@@ -43,14 +43,24 @@ repositories {
         name = 'spigotmc-repo'
         url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots'
     }
-    rootProject.addLocalJarRepository(delegate)
+    // Crucible publishes its server jar only as a GitHub release asset; this maps a coordinate onto it.
+    ivy {
+        url = 'https://github.com/CrucibleMC/Crucible/releases/download/'
+        patternLayout { artifact '[revision]/[module]-1.7.10-[revision](-[classifier]).[ext]' }
+        metadataSources { artifact() }
+        content { includeModule 'io.github.cruciblemc', 'Crucible' }
+    }
 }
+
+def catalog = extensions.getByType(VersionCatalogsExtension).named('libs')
+def crucibleTag = catalog.findVersion('crucible').get().requiredVersion
+def crucibleBuild = catalog.findVersion('crucible-build').get().requiredVersion
 
 // Every server era the project claims to support. 1.7.10 has neither a spigot-api nor an
 // org.bukkit:bukkit artifact - Crucible is the real Forge/Bukkit 1.7.10 server that carries those
 // classes, and it is already the runtime this project targets there.
 ext.linkageTargets = [
-        '1.7.10' : [name: 'Crucible'],
+        '1.7.10' : "io.github.cruciblemc:Crucible:${crucibleTag}:${crucibleBuild}-server",
         '1.8.8'  : 'org.spigotmc:spigot-api:1.8.8-R0.1-SNAPSHOT',
         '1.9.4'  : 'org.spigotmc:spigot-api:1.9.4-R0.1-SNAPSHOT',
         '1.12.2' : 'org.spigotmc:spigot-api:1.12.2-R0.1-SNAPSHOT',
@@ -89,8 +99,7 @@ configurations.resolvable('linkageEmbeddedNms') {
     extendsFrom configurations.getByName('linkageEmbeddedNms_declared')
     transitive = false
 }
-dependencies.add('linkageEmbeddedNms_declared',
-        extensions.getByType(VersionCatalogsExtension).named('libs').findLibrary('ecnmsutils').get())
+dependencies.add('linkageEmbeddedNms_declared', catalog.findLibrary('ecnmsutils').get())
 
 // ----------------------------------------------------------------------
 //  Class file reading: constant pool, access flags, member tables.

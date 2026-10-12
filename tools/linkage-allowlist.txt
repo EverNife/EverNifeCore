@@ -71,9 +71,6 @@
 * method org/bukkit/entity/Entity.getCustomName()Ljava/lang/String; br.com.finalcraft.evernifecore.minecraft.listeners.PlayerInteractListener  # inside try/catch(NoSuchMethodError)
 * method org/bukkit/entity/Player$Spigot.sendMessage(Lnet/md_5/bungee/api/ChatMessageType;[Lnet/md_5/bungee/api/chat/BaseComponent;)V br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil  # inside try/catch(Throwable)
 * method org/bukkit/entity/Player.getTargetBlock(Ljava/util/Set;I)Lorg/bukkit/block/Block; br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil  # the else of isLowerEquals(v1_7_10)
-1.7.10 method org/bukkit/entity/Player.resetTitle()V br.com.finalcraft.evernifecore.minecraft.title.TitleAPI  # send/clear return early on isLowerEquals(v1_7_10); the member is present from 1.8.8 on
-1.7.10 method org/bukkit/entity/Player.resetTitle()V br.com.finalcraft.evernifecore.minecraft.title.PlayerTitleManager  # the same early return means no manager ever exists there
-1.7.10 method org/bukkit/entity/Player.sendTitle(Ljava/lang/String;Ljava/lang/String;)V br.com.finalcraft.evernifecore.minecraft.title.PlayerTitleManager  # idem - and this pair form is exactly what run() sends below 1.11
 * method org/bukkit/entity/Player.sendTitle(Ljava/lang/String;Ljava/lang/String;III)V br.com.finalcraft.evernifecore.minecraft.title.PlayerTitleManager  # run() picks the pair form on isLower(v1_11_R1); the timed form only runs from 1.11 on
 * method org/bukkit/entity/Player.spawnParticle(Lorg/bukkit/Particle;Lorg/bukkit/Location;ILjava/lang/Object;)V br.com.finalcraft.evernifecore.minecraft.commands.debug.CMDProtectionTest$ParticleCompat  # loaded only when the isHigherEquals(v1_13) branch runs
 * method org/bukkit/inventory/PlayerInventory.getItemInMainHand()Lorg/bukkit/inventory/ItemStack; br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil  # getPlayersHeldItem, the else of isLower(v1_9_R1) - the main-hand pair arrived in 1.9
