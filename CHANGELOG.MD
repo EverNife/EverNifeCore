@@ -13,6 +13,22 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > `3.0.1`, the version the whole rework converges on. There are no tags and no artifacts for any of
 > them: the build has read `3.0.1` out of the version catalog the entire time.
 
+## [3.0.1-alpha.67] - 2026-10-11
+
+The repository carries no path of the maintainer's machine: everything local is read from an environment variable,
+and a build without them still compiles and tests everything but the Bukkit module.
+
+### Changed
+
+- **`ENC_LOCAL_LIBS`** lists the directories of the local-only jars (paid or unobtainable plugins and the Crucible
+  server), separated by the platform path separator. Without it `:minecraft` and `checkLinkage` fail naming the
+  variable; `:common`, `:hytale`, `:api-contracts` and `:libby` build and test as before.
+- **`MCTF_HOME`** (the mctf framework root) and **`MCTF_CLI`** (its `mctf.py`) drive
+  `conformance/scripts/conformance-matrix.py`. Without them it exits with code 2 before any call, `--dry-run`
+  included: the matrix is a maintainer tool, not part of the build.
+- The PlaceholderAPI the matrix routes into its servers (2.11.6) is resolved from the public extendedclip repository
+  by `:conformance:minecraft:shadowJar` into `conformance/minecraft/build/matrix/`, the driver's default.
+
 ## [3.0.1-alpha.66] - 2026-10-11
 
 The region config reads like a server admin writes it: times are durations (`3m`, `1s`) with no unit in the key, and
