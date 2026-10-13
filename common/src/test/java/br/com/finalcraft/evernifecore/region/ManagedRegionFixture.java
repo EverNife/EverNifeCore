@@ -144,7 +144,7 @@ abstract class ManagedRegionFixture {
     /** A {@link RoomFlag} of {@code by}, registered. */
     static RoomFlag registeredRoomFlag(ECPluginData by) {
         RoomFlag flag = new RoomFlag(by);
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(by, flag);
         return flag;
     }
 

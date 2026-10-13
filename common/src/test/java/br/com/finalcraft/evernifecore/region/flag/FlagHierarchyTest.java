@@ -89,7 +89,7 @@ class FlagHierarchyTest {
         BreakFlag parent = new BreakFlag(owner, "parent", null);
         BreakFlag child = new BreakFlag(owner, "child", parent);
 
-        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> FlagRegistry.get().register(child));
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> FlagRegistry.get().register(owner, child));
 
         assertTrue(refused.getMessage().contains("register the parent first"), refused.getMessage());
     }
@@ -98,10 +98,10 @@ class FlagHierarchyTest {
     @SuppressWarnings({"unchecked", "rawtypes"})
     void aRefinementOfAnotherValueTypeIsRefused() {
         TextFlag text = new TextFlag(owner, "text");
-        FlagRegistry.get().register(text);
+        FlagRegistry.get().register(owner, text);
         BreakFlag child = new BreakFlag(owner, "child", (RegionFlag) text);
 
-        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> FlagRegistry.get().register(child));
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> FlagRegistry.get().register(owner, child));
 
         assertTrue(refused.getMessage().contains("same value type"), refused.getMessage());
     }
@@ -110,10 +110,10 @@ class FlagHierarchyTest {
     void theParentKnowsItsRegisteredRefinements() {
         BreakFlag parent = new BreakFlag(owner, "parent", null);
         BreakFlag child = new BreakFlag(owner, "child", parent);
-        FlagRegistry.get().register(parent);
+        FlagRegistry.get().register(owner, parent);
         assertEquals(Collections.emptyList(), FlagRegistry.get().getChildren(parent));
 
-        FlagRegistry.get().register(child);
+        FlagRegistry.get().register(owner, child);
 
         assertSame(parent, child.getParent());
         assertEquals(Collections.singletonList(child), FlagRegistry.get().getChildren(parent));
@@ -123,8 +123,8 @@ class FlagHierarchyTest {
     void unregisteringTheParentKeepsARefinementOfAnotherOwnerResolvable() {
         BreakFlag parent = new BreakFlag(owner, "parent", null);
         BreakFlag child = new BreakFlag(other, "child", parent);
-        FlagRegistry.get().register(parent);
-        FlagRegistry.get().register(child);
+        FlagRegistry.get().register(owner, parent);
+        FlagRegistry.get().register(other, child);
         region.setFlag(child, Tristate.TRUE);
 
         FlagRegistry.get().unregisterAll(owner);
@@ -139,9 +139,9 @@ class FlagHierarchyTest {
         BreakFlag grandparent = new BreakFlag(owner, "grandparent", null);
         BreakFlag parent = new BreakFlag(owner, "parent", grandparent);
         BreakFlag child = new BreakFlag(owner, "child", parent);
-        FlagRegistry.get().register(grandparent);
-        FlagRegistry.get().register(parent);
-        FlagRegistry.get().register(child);
+        FlagRegistry.get().register(owner, grandparent);
+        FlagRegistry.get().register(owner, parent);
+        FlagRegistry.get().register(owner, child);
         TestFPlayerSender player = new TestFPlayerSender("breaker");
 
         region.setFlag(grandparent, Tristate.TRUE);

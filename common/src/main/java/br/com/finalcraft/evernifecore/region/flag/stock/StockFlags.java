@@ -38,7 +38,7 @@ public final class StockFlags {
                 new DenyMessageFlag(owner),
                 new TeleportPointFlag(owner));
         for (RegionFlag<?> flag : stock) {
-            FlagRegistry.get().register(flag);
+            FlagRegistry.get().register(owner, flag);
         }
     }
 }

@@ -70,7 +70,7 @@ class FlagRegistryTest {
         assertTrue(region.getUnknownFlags().containsKey("flagregistryflagowner:deny-late"));
 
         TristateFlag flag = newFlag("deny-late");
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(flagOwner, flag);
 
         assertEquals(Tristate.TRUE, region.getFlag(flag));
         assertTrue(region.getUnknownFlags().isEmpty());
@@ -85,7 +85,7 @@ class FlagRegistryTest {
         second.getFlagStore().putRaw("flagregistryflagowner:deny-bad", bad);
 
         TristateFlag flag = newFlag("deny-bad");
-        List<String> logged = Logs.capture(() -> FlagRegistry.get().register(flag));
+        List<String> logged = Logs.capture(() -> FlagRegistry.get().register(flagOwner, flag));
 
         assertEquals(bad, first.getUnknownFlags().get("flagregistryflagowner:deny-bad"));
         assertEquals(bad, second.getUnknownFlags().get("flagregistryflagowner:deny-bad"));
@@ -99,7 +99,7 @@ class FlagRegistryTest {
     void unregisterAllTurnsValuesBackToRawAndARegisterAgainBringsThemBack() {
         Region region = TestRegions.loaded(regionOwner, "spawn", "world");
         TristateFlag flag = newFlag("deny-leaving");
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(flagOwner, flag);
         region.setFlag(flag, Tristate.TRUE);
         region.setFlag(flag, Tristate.FALSE, Duration.ofHours(1));
 
@@ -113,7 +113,7 @@ class FlagRegistryTest {
         assertTrue(kept.has("expiresAt"));
 
         TristateFlag back = newFlag("deny-leaving");
-        FlagRegistry.get().register(back);
+        FlagRegistry.get().register(flagOwner, back);
         assertEquals(Tristate.FALSE, region.getFlag(back));
         assertTrue(region.getUnknownFlags().isEmpty());
     }
@@ -121,9 +121,9 @@ class FlagRegistryTest {
     @Test
     void registrationRules() {
         TristateFlag flag = newFlag("deny-once");
-        FlagRegistry.get().register(flag);
-        FlagRegistry.get().register(flag);
-        assertThrows(IllegalArgumentException.class, () -> FlagRegistry.get().register(newFlag("deny-once")));
+        FlagRegistry.get().register(flagOwner, flag);
+        FlagRegistry.get().register(flagOwner, flag);
+        assertThrows(IllegalArgumentException.class, () -> FlagRegistry.get().register(flagOwner, newFlag("deny-once")));
 
         assertSame(flag, FlagRegistry.get().get(FlagKey.parse("FlagRegistryFlagOwner:deny-once")));
         assertSame(flag, FlagRegistry.get().find("deny-once").get());
@@ -133,5 +133,64 @@ class FlagRegistryTest {
         assertFalse(FlagRegistry.get().getBySource(EventSource.MOVE).contains(flag));
         assertEquals(1, FlagRegistry.get().getByOwner(flagOwner).size());
         assertTrue(FlagRegistry.get().getByOwner(regionOwner).isEmpty());
+    }
+
+    @Test
+    void aFlagRegisteredByAnotherPluginThanItsKeyNamesIsRefused() {
+        TristateFlag flag = new TristateFlag(FlagKey.of(regionOwner, "deny-owned"), EnumSet.of(EventSource.DAMAGE), Tristate.FALSE, Tristate.TRUE);
+
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> FlagRegistry.get().register(flagOwner, flag));
+
+        assertTrue(refused.getMessage().contains("FlagKey.of(\"flagregistryflagowner\""), refused.getMessage());
+        assertFalse(flag.isRegistered());
+        assertNull(FlagRegistry.get().get(flag.getKey()));
+    }
+
+    @Test
+    void unregisteringOneFlagPutsItsValuesBackToRaw() {
+        Region region = TestRegions.loaded(regionOwner, "spawn", "world");
+        TristateFlag leaving = newFlag("deny-leaving");
+        TristateFlag staying = newFlag("deny-staying");
+        FlagRegistry.get().register(flagOwner, leaving);
+        FlagRegistry.get().register(flagOwner, staying);
+        region.setFlag(leaving, Tristate.TRUE);
+        region.setFlag(staying, Tristate.TRUE);
+
+        assertTrue(FlagRegistry.get().unregister(leaving));
+
+        assertFalse(leaving.isRegistered());
+        assertNull(FlagRegistry.get().get(leaving.getKey()));
+        assertSame(staying, FlagRegistry.get().get(staying.getKey()));
+        assertEquals(Tristate.TRUE, region.getFlag(staying));
+        assertFalse(region.getUnknownFlags().isEmpty());
+        assertEquals("true", region.getUnknownFlags().get("flagregistryflagowner:deny-leaving").get("value").asText());
+        assertFalse(FlagRegistry.get().unregister(leaving), "an instance that is not registered is not unregistered again");
+    }
+
+    @Test
+    void aFlagKnowsWhetherItIsRegisteredAndWhoOwnsIt() {
+        TristateFlag flag = newFlag("deny-known");
+        assertFalse(flag.isRegistered());
+        IllegalStateException ownerless = assertThrows(IllegalStateException.class, flag::getOwner);
+        assertTrue(ownerless.getMessage().contains("register(owner, flag)"), ownerless.getMessage());
+
+        FlagRegistry.get().register(flagOwner, flag);
+        assertTrue(flag.isRegistered());
+        assertSame(flagOwner, flag.getOwner());
+
+        FlagRegistry.get().unregisterAll(flagOwner);
+        assertFalse(flag.isRegistered());
+        assertThrows(IllegalStateException.class, flag::getOwner);
+    }
+
+    @Test
+    void theSameFlagRegisteredAgainUnderAnotherOwnerIsRefused() {
+        TristateFlag flag = newFlag("deny-twice");
+        FlagRegistry.get().register(flagOwner, flag);
+
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> FlagRegistry.get().register(regionOwner, flag));
+
+        assertTrue(refused.getMessage().contains("is registered by FlagRegistryFlagOwner: unregister it there"), refused.getMessage());
+        assertSame(flagOwner, flag.getOwner());
     }
 }

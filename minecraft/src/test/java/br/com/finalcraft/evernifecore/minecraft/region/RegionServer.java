@@ -47,7 +47,7 @@ public final class RegionServer implements AutoCloseable {
 
     /** Registers {@code flag} for the length of this server. */
     public <T, F extends RegionFlag<T>> F flag(F flag) {
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(regions.getOwner(), flag);
         return flag;
     }
 

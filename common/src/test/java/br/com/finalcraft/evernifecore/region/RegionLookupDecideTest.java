@@ -90,7 +90,7 @@ class RegionLookupDecideTest {
 
     private CountingFlag registered(String name) {
         CountingFlag flag = new CountingFlag(owner, name);
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(owner, flag);
         return flag;
     }
 
@@ -163,7 +163,7 @@ class RegionLookupDecideTest {
     @Test
     void denyPvpSpeaksAboutPlayersOnly() {
         DenyPvpFlag denyPvp = new DenyPvpFlag(owner);
-        FlagRegistry.get().register(denyPvp);
+        FlagRegistry.get().register(owner, denyPvp);
         region.setFlag(denyPvp, Tristate.TRUE);
         TestFPlayerSender attacker = new TestFPlayerSender("attacker");
         WorldLocPos victimAt = WorldLocPos.of(5, 5, 5, WORLD);
@@ -178,7 +178,7 @@ class RegionLookupDecideTest {
     @Test
     void denyMonsterSpawnLetsAnimalsSpawn() {
         DenyMonsterSpawnFlag denyMonsters = new DenyMonsterSpawnFlag(owner);
-        FlagRegistry.get().register(denyMonsters);
+        FlagRegistry.get().register(owner, denyMonsters);
         region.setFlag(denyMonsters, Tristate.TRUE);
         WorldLocPos at = WorldLocPos.of(5, 5, 5, WORLD);
 
@@ -206,9 +206,9 @@ class RegionLookupDecideTest {
             any = new DenyInteractFlag(owner);
             blocks = new DenyInteractBlocksFlag(owner, any);
             entities = new DenyInteractEntitiesFlag(owner, any);
-            FlagRegistry.get().register(any);
-            FlagRegistry.get().register(blocks);
-            FlagRegistry.get().register(entities);
+            FlagRegistry.get().register(owner, any);
+            FlagRegistry.get().register(owner, blocks);
+            FlagRegistry.get().register(owner, entities);
         }
     }
 

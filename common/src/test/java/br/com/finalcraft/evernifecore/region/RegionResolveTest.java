@@ -129,8 +129,8 @@ class RegionResolveTest {
         lookup = new RegionLookup(index);
         flag = new CountingFlag(owner, "deny-thing", true);
         strict = new CountingFlag(owner, "deny-strict", false);
-        FlagRegistry.get().register(flag);
-        FlagRegistry.get().register(strict);
+        FlagRegistry.get().register(owner, flag);
+        FlagRegistry.get().register(owner, strict);
     }
 
     @AfterEach

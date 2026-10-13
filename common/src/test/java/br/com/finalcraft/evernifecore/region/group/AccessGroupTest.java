@@ -63,7 +63,7 @@ class AccessGroupTest {
         owner = Plugins.fakePluginData(OWNER, tempDir.toFile());
         clock = TestRegions.manualClock();
         flag = new TristateFlag(FlagKey.of(owner, "deny-pvp-test"), EnumSet.of(EventSource.DAMAGE), Tristate.FALSE, Tristate.TRUE);
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(owner, flag);
         region = TestRegions.create(owner, "arena", "world");
     }
 

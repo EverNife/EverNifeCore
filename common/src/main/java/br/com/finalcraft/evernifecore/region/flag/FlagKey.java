@@ -2,35 +2,36 @@ package br.com.finalcraft.evernifecore.region.flag;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.RegionId;
-import jakarta.annotation.Nullable;
 
 /**
- * The identity of a flag: {@code owner:name}, both lowercased, with the same rules as a {@link RegionId}.
- * Equality and hashing work on the text form only; a key built by {@link #of} also remembers the owning plugin,
- * which is what a {@link RegionFlag} needs.
+ * The identity of a flag: {@code owner:name}, both lowercased, with the same rules as a {@link RegionId}. The owner
+ * part names the plugin that registers the flag ({@link FlagRegistry#register}); equality and hashing work on the text
+ * form only.
  */
 public final class FlagKey {
 
     private final String owner;
     private final String name;
     private final String text;
-    private final @Nullable ECPluginData plugin;
 
-    private FlagKey(String owner, String name, @Nullable ECPluginData plugin) {
+    private FlagKey(String owner, String name) {
         this.owner = owner;
         this.name = name;
         this.text = owner + ":" + name;
-        this.plugin = plugin;
     }
 
-    /** @throws IllegalArgumentException when the name breaks the rule; the message shows it and an example */
+    /** @throws IllegalArgumentException when the owner or the name breaks the rule; the message shows it and an example */
+    public static FlagKey of(String ownerName, String name) {
+        return new FlagKey(RegionId.requireOwner(ownerName), RegionId.requireName("flag", name));
+    }
+
+    /** The key of a flag {@code owner} registers. */
     public static FlagKey of(ECPluginData owner, String name) {
-        return new FlagKey(RegionId.requireOwner(owner.getMetaInfo().getName()), RegionId.requireName("flag", name), owner);
+        return of(owner.getMetaInfo().getName(), name);
     }
 
     /**
-     * Parses {@code owner:name}, case-insensitively. The parsed key carries no plugin: use it to look a flag up,
-     * not to build one.
+     * Parses {@code owner:name}, case-insensitively.
      *
      * @throws IllegalArgumentException when the text is not one owner and one name around a single {@code :}
      */
@@ -40,7 +41,7 @@ public final class FlagKey {
             throw new IllegalArgumentException("Invalid flag key '" + text + "': write it as owner:name with exactly one ':',"
                     + " e.g. 'evernifecore:deny-pvp'.");
         }
-        return new FlagKey(RegionId.requireOwner(text.substring(0, colon)), RegionId.requireName("flag", text.substring(colon + 1)), null);
+        return of(text.substring(0, colon), text.substring(colon + 1));
     }
 
     public String getOwner() {
@@ -49,11 +50,6 @@ public final class FlagKey {
 
     public String getName() {
         return name;
-    }
-
-    /** The plugin this key was built for by {@link #of}; null for a {@link #parse parsed} key. */
-    @Nullable ECPluginData getPlugin() {
-        return plugin;
     }
 
     @Override

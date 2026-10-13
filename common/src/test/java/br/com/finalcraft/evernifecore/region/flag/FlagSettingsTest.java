@@ -132,7 +132,7 @@ class FlagSettingsTest {
     @Test
     void registeringWritesTheDefaultsReadableUnderTheSettingsRoot() throws Exception {
         assertFalse(file.exists());
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(owner, flag);
 
         assertTrue(file.exists(), "expected " + file);
         String text = text();
@@ -148,7 +148,7 @@ class FlagSettingsTest {
 
     @Test
     void theHeaderSaysWhatTheFlagIsBelowTheBanner() throws Exception {
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(owner, flag);
         String text = text();
 
         int banner = text.indexOf("EverNife's Config Manager");
@@ -165,7 +165,7 @@ class FlagSettingsTest {
 
     @Test
     void ownersReloadReadsTheEditedFileAndAnotherPluginsReloadDoesNot() throws Exception {
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(owner, flag);
         edit("triggerInterval: 2s", "triggerInterval: 5s");
         edit("brightness: 7", "brightness: 3");
 
@@ -181,7 +181,7 @@ class FlagSettingsTest {
     @Test
     void serverKeyOffAndAFlagThatFollowsItWritesNoFile() {
         ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = false;
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(owner, flag);
 
         assertFalse(file.exists());
         assertEquals(Duration.ofSeconds(2), flag.getSettings().getTriggerInterval());
@@ -189,7 +189,7 @@ class FlagSettingsTest {
 
     @Test
     void serverKeyOnWritesAndReadsTheFile() throws Exception {
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(owner, flag);
         assertTrue(file.exists());
 
         edit("brightness: 7", "brightness: 4");
@@ -201,7 +201,7 @@ class FlagSettingsTest {
     void aFlagForcingItsFileHasItWithTheServerKeyOff() throws Exception {
         ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = false;
         flag = new GlowFlag(owner, SettingsFilePolicy.ALWAYS);
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(owner, flag);
         assertTrue(file.exists());
 
         edit("brightness: 7", "brightness: 2");
@@ -212,7 +212,7 @@ class FlagSettingsTest {
     @Test
     void aFlagRefusingItsFileHasNoneWithTheServerKeyOn() {
         flag = new GlowFlag(owner, SettingsFilePolicy.NEVER);
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(owner, flag);
 
         assertFalse(file.exists());
         assertEquals(7, flag.<GlowSettings>getSettings().getBrightness());
@@ -220,13 +220,13 @@ class FlagSettingsTest {
 
     @Test
     void anOldFileIsIgnoredWithOneLogLinePerLoad(TestPlatform platform) throws Exception {
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(owner, flag);
         edit("brightness: 7", "brightness: 9");
         FlagRegistry.get().reset();
         ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = false;
         platform.getLoggedMessages().clear();
 
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(owner, flag);
 
         assertEquals(7, flag.<GlowSettings>getSettings().getBrightness(), "the file is not read");
         assertEquals(1, linesNaming(platform, file.getPath(), "generate-global-settings-configuration-files"), platform.getLoggedMessages().toString());
@@ -244,7 +244,7 @@ class FlagSettingsTest {
         coreData.set(EverNifeCore.instance, core);
         try {
             ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = false;
-            FlagRegistry.get().register(flag);
+            FlagRegistry.get().register(owner, flag);
             assertFalse(file.exists());
 
             ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = true;
@@ -285,9 +285,9 @@ class FlagSettingsTest {
     @Test
     void throttleLetsOneFiringPerPlayerAndFlagThroughEachInterval() {
         ManualClock clock = TestRegions.manualClock();
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(owner, flag);
         TristateFlag otherFlag = new TristateFlag(FlagKey.of(owner, "other-flag"), EnumSet.of(EventSource.MOVE), Tristate.FALSE, Tristate.TRUE);
-        FlagRegistry.get().register(otherFlag);
+        FlagRegistry.get().register(owner, otherFlag);
         TriggerThrottle throttle = new TriggerThrottle();
         UUID alice = UUID.randomUUID();
         UUID bob = UUID.randomUUID();
@@ -309,7 +309,7 @@ class FlagSettingsTest {
     @Test
     void throttleReadsTheIntervalOnEveryCallAndZeroTurnsItOff() throws Exception {
         TestRegions.manualClock();
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(owner, flag);
         TriggerThrottle throttle = new TriggerThrottle();
         UUID alice = UUID.randomUUID();
         assertTrue(throttle.tryFire(alice, flag));

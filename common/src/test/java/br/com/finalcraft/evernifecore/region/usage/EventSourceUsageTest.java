@@ -59,7 +59,7 @@ class EventSourceUsageTest {
         bus = EventBuses.mirroring(new FailingExceptionHandler());
         agenda = new ManualAgenda().install();
         breakFlag = new TristateFlag(FlagKey.of(owner, "no-break"), EnumSet.of(EventSource.BREAK), Tristate.FALSE, Tristate.TRUE);
-        FlagRegistry.get().register(breakFlag);
+        FlagRegistry.get().register(owner, breakFlag);
         usage = new EventSourceUsage(lookup, bus);
     }
 
@@ -174,7 +174,7 @@ class EventSourceUsageTest {
             global.recount();
             assertFalse(global.isNeeded(EventSource.BREAK), "a raw value of an unknown flag needs nothing");
 
-            FlagRegistry.get().register(breakFlag);
+            FlagRegistry.get().register(owner, breakFlag);
 
             assertTrue(global.isNeeded(EventSource.BREAK), "registering relinked the raw value, and the count followed");
         } finally {
@@ -186,7 +186,7 @@ class EventSourceUsageTest {
     @Test
     void noneIsNeverNeededAndAStoppedUsageFiresNothing() {
         TristateFlag dataFlag = new TristateFlag(FlagKey.of(owner, "just-data"), EnumSet.of(EventSource.NONE), Tristate.FALSE, Tristate.TRUE);
-        FlagRegistry.get().register(dataFlag);
+        FlagRegistry.get().register(owner, dataFlag);
         Region region = TestRegions.box(owner, "data", WORLD, 0, 0, 0, 10, 10, 10);
         region.setFlag(dataFlag, Tristate.TRUE);
         TestRegions.index(lookup, region);

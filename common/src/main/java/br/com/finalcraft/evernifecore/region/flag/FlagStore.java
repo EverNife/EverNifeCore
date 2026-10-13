@@ -205,9 +205,9 @@ public final class FlagStore {
     }
 
     private <T> void mutate(RegionFlag<T> flag, UnaryOperator<Layers> next, FlagChangeCause cause) {
-        if (FlagRegistry.get().get(flag.getKey()) != flag) {
+        if (!flag.isRegistered()) {
             throw new IllegalStateException("Flag " + flag.getKey() + " is not registered: register it first with"
-                    + " FlagRegistry.get().register(flag), usually in the owner's enable.");
+                    + " FlagRegistry.get().register(owner, flag), usually in the owner's enable.");
         }
         FlagValue<?>[] old = new FlagValue<?>[1];
         Layers updated = values.compute(flag.getKey(), (key, previous) -> {

@@ -23,7 +23,8 @@ import java.util.Set;
 public abstract class RegionFlag<T> {
 
     private final FlagKey key;
-    private final ECPluginData owner;
+    private volatile @Nullable ECPluginData owner;
+    private volatile boolean registered;
     private final FlagType<T> type;
     private final Set<EventSource> needs;
     private final @Nullable T defaultValue;
@@ -31,7 +32,7 @@ public abstract class RegionFlag<T> {
     private volatile @Nullable FlagSettings settings;
 
     /**
-     * @param key   built by {@link FlagKey#of}, which ties it to the owning plugin
+     * @param key   names the plugin that will register the flag
      * @param needs the events the flag must hear; {@link EventSource#NONE} for a value nobody enforces
      */
     protected RegionFlag(FlagKey key, FlagType<T> type, Set<EventSource> needs, @Nullable T defaultValue) {
@@ -44,8 +45,6 @@ public abstract class RegionFlag<T> {
     protected RegionFlag(FlagKey key, FlagType<T> type, Set<EventSource> needs, @Nullable T defaultValue, @Nullable RegionFlag<T> parent) {
         this.parent = parent;
         this.key = Objects.requireNonNull(key, "key");
-        this.owner = Objects.requireNonNull(key.getPlugin(), () -> "The key " + key + " was parsed, so it names no plugin:"
-                + " build a flag's key with FlagKey.of(ownerPluginData, name).");
         this.type = Objects.requireNonNull(type, "type");
         this.needs = Collections.unmodifiableSet(needs.isEmpty() ? EnumSet.noneOf(EventSource.class) : EnumSet.copyOf(needs));
         this.defaultValue = defaultValue;
@@ -55,8 +54,33 @@ public abstract class RegionFlag<T> {
         return key;
     }
 
+    /**
+     * The plugin that registered this flag.
+     *
+     * @throws IllegalStateException while the flag is not registered
+     */
     public ECPluginData getOwner() {
-        return owner;
+        ECPluginData current = owner;
+        if (current == null) {
+            throw new IllegalStateException("Flag " + key + " is not registered, so it has no owner yet:"
+                    + " FlagRegistry.get().register(owner, flag) binds it to the plugin that registers it.");
+        }
+        return current;
+    }
+
+    /** Whether {@link FlagRegistry} holds this very instance now. */
+    public boolean isRegistered() {
+        return registered;
+    }
+
+    void bind(ECPluginData owner) {
+        this.owner = owner;
+        this.registered = true;
+    }
+
+    void unbind() {
+        this.registered = false;
+        this.owner = null;
     }
 
     public FlagType<T> getType() {

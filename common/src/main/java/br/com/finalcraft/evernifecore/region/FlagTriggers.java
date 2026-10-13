@@ -251,7 +251,7 @@ public final class FlagTriggers {
         if (own.getReason() != Resolution.Step.Reason.DEFAULT) {
             return new Climb<>(flag, flag, own);
         }
-        for (RegionFlag<T> ancestor = flag.getParent(); ancestor != null && FlagRegistry.get().get(ancestor.getKey()) == ancestor;
+        for (RegionFlag<T> ancestor = flag.getParent(); ancestor != null && ancestor.isRegistered();
              ancestor = ancestor.getParent()) {
             Resolution<T> theirs = resolve.apply(ancestor);
             if (theirs.getReason() == Resolution.Step.Reason.BYPASS) {

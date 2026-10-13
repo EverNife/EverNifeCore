@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.region.Region;
+import br.com.finalcraft.evernifecore.region.RegionId;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
@@ -54,23 +55,35 @@ public final class FlagRegistry {
     }
 
     /**
-     * Registers {@code flag}; registering the same object again does nothing.
+     * Registers {@code flag} under {@code owner}, the plugin its key names, and binds it to that plugin
+     * ({@link RegionFlag#getOwner()}); registering the same object again under the same owner does nothing.
      *
-     * @throws IllegalArgumentException when another flag already holds the key, or when the flag refines a parent that
-     * is not registered or that has another value type
+     * @throws IllegalArgumentException when the key names another plugin, when the flag is registered by another owner,
+     * when another flag already holds the key, or when the flag refines a parent that is not registered or that has
+     * another value type
      */
-    public synchronized <T> void register(RegionFlag<T> flag) {
+    public synchronized <T> void register(ECPluginData owner, RegionFlag<T> flag) {
         RegionFlag<?> existing = flags.get(flag.getKey());
         if (existing == flag) {
-            return;
+            if (flag.getOwner() == owner) {
+                return;
+            }
+            throw new IllegalArgumentException("Flag " + flag.getKey() + " is registered by " + flag.getOwner().getMetaInfo().getName()
+                    + ": unregister it there before registering it again under " + owner.getMetaInfo().getName() + ".");
         }
         if (existing != null) {
             throw new IllegalArgumentException("Flag " + flag.getKey() + " is already registered (" + existing.getClass().getName()
-                    + "): its owner must unregisterAll first, or give the new flag another name.");
+                    + "): unregister that one first, or give the new flag another name.");
+        }
+        String expected = RegionId.requireOwner(owner.getMetaInfo().getName());
+        if (!flag.getKey().getOwner().equals(expected)) {
+            throw new IllegalArgumentException("Flag " + flag.getKey() + " cannot be registered by " + owner.getMetaInfo().getName()
+                    + ": a flag is registered by the plugin its key names. Register it from that plugin, or build its key with"
+                    + " FlagKey.of(\"" + expected + "\", \"" + flag.getKey().getName() + "\").");
         }
         RegionFlag<T> parent = flag.getParent();
         if (parent != null) {
-            if (get(parent.getKey()) != parent) {
+            if (!parent.isRegistered() || flags.get(parent.getKey()) != parent) {
                 throw new IllegalArgumentException("Flag " + flag.getKey() + " refines " + parent.getKey() + ", which is not registered:"
                         + " register the parent first, then the flags that refine it.");
             }
@@ -80,7 +93,13 @@ public final class FlagRegistry {
                         + " parent's value where it is not defined.");
             }
         }
-        flag.setSettings(loadSettings(flag));
+        flag.bind(owner);
+        try {
+            flag.setSettings(loadSettings(flag));
+        } catch (RuntimeException unreadable) {
+            flag.unbind();
+            throw unreadable;
+        }
         flags.put(flag.getKey(), flag);
         indexChildren();
         List<String> unreadable = new ArrayList<>();
@@ -95,7 +114,7 @@ public final class FlagRegistry {
             }
         }
         if (!unreadable.isEmpty()) {
-            flag.getOwner().getLog().warning("Flag " + flag.getKey() + ": the stored value in " + unreadable.size() + " region(s) or group(s) " + unreadable
+            owner.getLog().warning("Flag " + flag.getKey() + ": the stored value in " + unreadable.size() + " region(s) or group(s) " + unreadable
                     + " does not read as a " + flag.getType().getId() + " value. It is kept raw, nothing was deleted - fix it in storage"
                     + " or set the flag again on those regions.");
         }
@@ -103,27 +122,34 @@ public final class FlagRegistry {
     }
 
     /**
-     * Unregisters every flag of {@code owner}. Their values in loaded regions go back to the raw form, so a region
-     * of another plugin keeps them until the flag returns - nothing is deleted.
+     * Unregisters {@code flag}. Its values in loaded regions go back to the raw form, so they come back when a flag
+     * with the same key registers - nothing is deleted. A refinement of it stays registered: climbing to a parent that
+     * left stops there.
+     *
+     * @return false when this instance was not registered
      */
-    public synchronized void unregisterAll(ECPluginData owner) {
-        List<RegionFlag<?>> leaving = new ArrayList<>(getByOwner(owner));
-        if (leaving.isEmpty()) {
-            return;
+    public synchronized boolean unregister(RegionFlag<?> flag) {
+        if (flags.get(flag.getKey()) != flag) {
+            return false;
         }
-        for (RegionFlag<?> flag : leaving) {
-            flags.remove(flag.getKey(), flag);
-        }
-        indexChildren(); //a refinement of another owner stays: climbing to a parent that left stops there
+        flags.remove(flag.getKey(), flag);
+        indexChildren();
         for (Region region : RegionLookup.get().all()) {
-            for (RegionFlag<?> flag : leaving) {
-                region.getFlagStore().unlink(flag);
-                for (AccessGroup group : region.getGroups().values()) {
-                    group.getFlagStore().unlink(flag);
-                }
+            region.getFlagStore().unlink(flag);
+            for (AccessGroup group : region.getGroups().values()) {
+                group.getFlagStore().unlink(flag);
             }
         }
+        flag.unbind();
         changed();
+        return true;
+    }
+
+    /** {@link #unregister} for every flag of {@code owner}. */
+    public synchronized void unregisterAll(ECPluginData owner) {
+        for (RegionFlag<?> flag : getByOwner(owner)) {
+            unregister(flag);
+        }
     }
 
     /** Internal: runs {@code listener} after every register and unregister - raw values became live, or live ones raw. */
@@ -194,7 +220,7 @@ public final class FlagRegistry {
         Map<FlagKey, List<RegionFlag<?>>> index = new HashMap<>();
         for (RegionFlag<?> flag : flags.values()) {
             RegionFlag<?> parent = flag.getParent();
-            if (parent != null && flags.get(parent.getKey()) == parent) {
+            if (parent != null && parent.isRegistered() && flags.get(parent.getKey()) == parent) {
                 index.computeIfAbsent(parent.getKey(), key -> new ArrayList<>()).add(flag);
             }
         }
@@ -213,8 +239,11 @@ public final class FlagRegistry {
         return Collections.unmodifiableList(found);
     }
 
-    /** Forgets every flag; for tests that need an empty registry. */
+    /** Forgets every flag, unbinding each; for tests that need an empty registry. */
     synchronized void reset() {
+        for (RegionFlag<?> flag : flags.values()) {
+            flag.unbind();
+        }
         flags.clear();
         indexChildren();
     }

@@ -23,6 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -72,7 +73,9 @@ abstract class TrackerFixture {
     }
 
     <F extends RegionFlag<?>> F registered(F flag) {
-        FlagRegistry.get().register((RegionFlag<?>) flag);
+        //register under the fake plugin the key names
+        String keyOwner = flag.getKey().getOwner();
+        FlagRegistry.get().register(keyOwner.equals(OWNER.toLowerCase(Locale.ROOT)) ? owner : other, (RegionFlag<?>) flag);
         return flag;
     }
 

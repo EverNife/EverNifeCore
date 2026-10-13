@@ -40,7 +40,7 @@ class RegionFlagValuesTest {
         ECPluginData owner = Plugins.fakePluginData(OWNER, tempDir.toFile());
         clock = TestRegions.manualClock();
         flag = new TristateFlag(FlagKey.of(owner, "deny-test"), EnumSet.of(EventSource.BREAK), Tristate.FALSE, Tristate.TRUE);
-        FlagRegistry.get().register(flag);
+        FlagRegistry.get().register(owner, flag);
         region = TestRegions.create(owner, "arena", "world");
     }
 
@@ -113,9 +113,13 @@ class RegionFlagValuesTest {
     }
 
     @Test
-    void flagNeedsAKeyThatKnowsItsPluginAndATristateNeedsDefaultAndWinner() {
-        assertThrows(NullPointerException.class, () -> new TristateFlag(FlagKey.parse("someone:flag"), EnumSet.of(EventSource.BREAK),
-                Tristate.FALSE, Tristate.TRUE));
+    void aParsedKeyBuildsAFlagOnlyThePluginItNamesRegistersAndATristateNeedsDefaultAndWinner() {
+        TristateFlag someones = new TristateFlag(FlagKey.parse("someone:flag"), EnumSet.of(EventSource.BREAK), Tristate.FALSE, Tristate.TRUE);
+        assertFalse(someones.isRegistered());
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                () -> FlagRegistry.get().register(flag.getOwner(), someones));
+        assertTrue(refused.getMessage().contains("FlagKey.of(\"regionflagvaluesowner\", \"flag\")"), refused.getMessage());
+        assertFalse(someones.isRegistered());
         assertThrows(NullPointerException.class, () -> new TristateFlag(FlagKey.of(flag.getOwner(), "x"), EnumSet.of(EventSource.BREAK),
                 Tristate.FALSE, null));
         assertThrows(IllegalArgumentException.class, () -> FlagKey.of(flag.getOwner(), "has space"));
