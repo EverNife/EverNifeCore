@@ -101,7 +101,7 @@ class FlagHandlerTest extends TrackerFixture {
 
         assertEquals(1, heard.size());
         assertSame(parent, heard.get(0).getRegion());
-        assertEquals(Resolution.Step.Reason.INHERITED, heard.get(0).getReason());
+        assertEquals(Resolution.Reason.INHERITED, heard.get(0).getReason());
     }
 
     @Test
@@ -127,8 +127,8 @@ class FlagHandlerTest extends TrackerFixture {
 
         assertEquals(2, heard.size());
         assertEquals(FlagOutcome.ALLOWED, heard.get(0).getOutcome());
-        assertEquals(Resolution.Step.Reason.GROUP_VALUE, heard.get(0).getReason());
-        assertEquals(Resolution.Step.Reason.BYPASS, heard.get(1).getReason());
+        assertEquals(Resolution.Reason.GROUP_VALUE, heard.get(0).getReason());
+        assertEquals(Resolution.Reason.BYPASS, heard.get(1).getReason());
     }
 
     @Test

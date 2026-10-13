@@ -242,16 +242,16 @@ public final class ProtectionFlagGate {
      */
     private static <T> Climb<T> climb(RegionFlag<T> flag, Function<RegionFlag<T>, Resolution<T>> resolve) {
         Resolution<T> own = resolve.apply(flag);
-        if (own.getReason() != Resolution.Step.Reason.DEFAULT) {
+        if (own.getReason() != Resolution.Reason.DEFAULT) {
             return new Climb<>(flag, flag, own);
         }
         for (RegionFlag<T> ancestor = flag.getParent(); ancestor != null && ancestor.isRegistered();
              ancestor = ancestor.getParent()) {
             Resolution<T> theirs = resolve.apply(ancestor);
-            if (theirs.getReason() == Resolution.Step.Reason.BYPASS) {
+            if (theirs.getReason() == Resolution.Reason.BYPASS) {
                 break;
             }
-            if (theirs.getReason() != Resolution.Step.Reason.DEFAULT) {
+            if (theirs.getReason() != Resolution.Reason.DEFAULT) {
                 return new Climb<>(flag, ancestor, theirs);
             }
         }

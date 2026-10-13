@@ -246,13 +246,13 @@ public final class RegionLookup {
     public <T> Resolution<T> explain(RegionFlag<T> flag, Region region, @Nullable FPlayer subject) {
         List<Step> steps = new ArrayList<>();
         if (bypasses(subject, flag)) {
-            step(steps, null, 0, null, flag.getDefault(), Step.Reason.BYPASS);
-            return new Resolution<>(flag.getDefault(), null, Step.Reason.BYPASS, steps);
+            step(steps, null, 0, null, flag.getDefault(), Resolution.Reason.BYPASS);
+            return new Resolution<>(flag.getDefault(), null, Resolution.Reason.BYPASS, steps);
         }
         Hit<T> hit = effective(region, region.getPriority(), flag, subject, steps);
         if (hit == null) {
-            step(steps, null, 0, null, flag.getDefault(), Step.Reason.DEFAULT);
-            return new Resolution<>(flag.getDefault(), null, Step.Reason.DEFAULT, steps);
+            step(steps, null, 0, null, flag.getDefault(), Resolution.Reason.DEFAULT);
+            return new Resolution<>(flag.getDefault(), null, Resolution.Reason.DEFAULT, steps);
         }
         return new Resolution<>(hit.value, hit.source, hit.reason, steps);
     }
@@ -291,9 +291,9 @@ public final class RegionLookup {
         final T value;
         final Region source;
         final @Nullable AccessGroup group;
-        final Step.Reason reason;
+        final Resolution.Reason reason;
 
-        Hit(T value, Region source, @Nullable AccessGroup group, Step.Reason reason) {
+        Hit(T value, Region source, @Nullable AccessGroup group, Resolution.Reason reason) {
             this.value = value;
             this.source = source;
             this.group = group;
@@ -305,13 +305,13 @@ public final class RegionLookup {
     private <T> Resolution<T> walk(RegionFlag<T> flag, List<Region> at, @Nullable FPlayer subject, @Nullable List<Step> steps) {
         List<Step> recorded = steps == null ? Collections.emptyList() : steps;
         if (bypasses(subject, flag)) {
-            step(steps, null, 0, null, flag.getDefault(), Step.Reason.BYPASS);
-            return new Resolution<>(flag.getDefault(), null, Step.Reason.BYPASS, recorded);
+            step(steps, null, 0, null, flag.getDefault(), Resolution.Reason.BYPASS);
+            return new Resolution<>(flag.getDefault(), null, Resolution.Reason.BYPASS, recorded);
         }
         List<Region> candidates = new ArrayList<>(at.size());
         for (Region region : at) {
             if (isAncestorOfAny(region, at)) {
-                step(steps, region, region.getPriority(), null, null, Step.Reason.SKIPPED_ANCESTOR);
+                step(steps, region, region.getPriority(), null, null, Resolution.Reason.SKIPPED_ANCESTOR);
             } else {
                 candidates.add(region);
             }
@@ -327,7 +327,7 @@ public final class RegionLookup {
                 Region region = candidates.get(next);
                 Hit<T> hit = effective(region, band, flag, subject, steps);
                 if (hit == null) {
-                    step(steps, region, band, null, null, Step.Reason.NO_VALUE);
+                    step(steps, region, band, null, null, Resolution.Reason.NO_VALUE);
                 } else {
                     values.add(hit.value);
                     hits.add(hit);
@@ -336,16 +336,16 @@ public final class RegionLookup {
             if (!values.isEmpty()) {
                 T value = pick(flag, values);
                 if (!allEqual(values)) {
-                    step(steps, null, band, null, value, Step.Reason.TIE);
+                    step(steps, null, band, null, value, Resolution.Reason.TIE);
                 }
                 int index = values.indexOf(value);
                 Hit<T> winner = index < 0 ? null : hits.get(index);
-                return new Resolution<>(value, winner == null ? null : winner.source, winner == null ? Step.Reason.TIE : winner.reason, recorded);
+                return new Resolution<>(value, winner == null ? null : winner.source, winner == null ? Resolution.Reason.TIE : winner.reason, recorded);
             }
             start = next;
         }
-        step(steps, null, 0, null, flag.getDefault(), Step.Reason.DEFAULT);
-        return new Resolution<>(flag.getDefault(), null, Step.Reason.DEFAULT, recorded);
+        step(steps, null, 0, null, flag.getDefault(), Resolution.Reason.DEFAULT);
+        return new Resolution<>(flag.getDefault(), null, Resolution.Reason.DEFAULT, recorded);
     }
 
     /** The value {@code region} gives: its groups' for the subject, else its own, else its nearest ancestor's (groups included). */
@@ -353,13 +353,13 @@ public final class RegionLookup {
         for (Region current = region; current != null; current = current.getParent()) {
             Hit<T> hit = subject == null ? null : groupValue(current, flag, subject);
             if (hit != null) {
-                step(steps, current, band, hit.group, hit.value, Step.Reason.GROUP_VALUE);
+                step(steps, current, band, hit.group, hit.value, Resolution.Reason.GROUP_VALUE);
                 return hit;
             }
             T local = current.getFlag(flag);
             if (local != null) {
-                step(steps, current, band, null, local, current == region ? Step.Reason.LOCAL_VALUE : Step.Reason.INHERITED);
-                return new Hit<>(local, current, null, current == region ? Step.Reason.LOCAL_VALUE : Step.Reason.INHERITED);
+                step(steps, current, band, null, local, current == region ? Resolution.Reason.LOCAL_VALUE : Resolution.Reason.INHERITED);
+                return new Hit<>(local, current, null, current == region ? Resolution.Reason.LOCAL_VALUE : Resolution.Reason.INHERITED);
             }
         }
         return null;
@@ -388,7 +388,7 @@ public final class RegionLookup {
         }
         T value = pick(flag, values);
         int index = values.indexOf(value);
-        return new Hit<>(value, region, index < 0 ? null : groups.get(index), Step.Reason.GROUP_VALUE);
+        return new Hit<>(value, region, index < 0 ? null : groups.get(index), Resolution.Reason.GROUP_VALUE);
     }
 
     private static <T> T pick(RegionFlag<T> flag, List<T> values) {
@@ -421,7 +421,7 @@ public final class RegionLookup {
     }
 
     private static void step(@Nullable List<Step> steps, @Nullable Region region, int priority, @Nullable AccessGroup group,
-                             @Nullable Object value, Step.Reason reason) {
+                             @Nullable Object value, Resolution.Reason reason) {
         if (steps != null) {
             steps.add(new Step(region, priority, group, value, reason));
         }

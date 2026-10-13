@@ -140,11 +140,11 @@ final class SessionFlags {
     @SuppressWarnings("unchecked")
     private <T> void leave(FPlayer player, RegionFlag<T> flag, Region source, Object lastValue) {
         flag.onLeave(new SessionContext(player, source), (T) lastValue);
-        notifyHandler(player, source, flag, lastValue, FlagOutcome.REMOVED, Resolution.Step.Reason.DEFAULT);
+        notifyHandler(player, source, flag, lastValue, FlagOutcome.REMOVED, Resolution.Reason.DEFAULT);
     }
 
     private static void notifyHandler(FPlayer player, Region region, RegionFlag<?> flag, Object value, FlagOutcome outcome,
-                                      Resolution.Step.Reason reason) {
+                                      Resolution.Reason reason) {
         FlagHandler handler = region.getFlagHandler(flag);
         if (handler != null) {
             handler.handle(new FlagOutcomeContext(outcome, player, region, flag, value, EventSource.MOVE, null, reason, 0));

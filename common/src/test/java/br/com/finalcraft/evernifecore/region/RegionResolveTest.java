@@ -193,7 +193,7 @@ class RegionResolveTest {
         Resolution<Tristate> resolution = lookup.explain(flag, WORLD, 5, 5, 5, null);
         assertEquals(Tristate.TRUE, resolution.getValue());
         assertEquals("b", resolution.getSource().getId().getName());
-        assertTrue(resolution.getSteps().stream().anyMatch(step -> step.getReason() == Step.Reason.TIE));
+        assertTrue(resolution.getSteps().stream().anyMatch(step -> step.getReason() == Resolution.Reason.TIE));
     }
 
     @Test
@@ -212,7 +212,7 @@ class RegionResolveTest {
         region("neighbour", 50, box(20), null).setFlag(flag, Tristate.FALSE);
         assertResolves(Tristate.FALSE, flag, null);
         Resolution<Tristate> resolution = lookup.explain(flag, WORLD, 5, 5, 5, null);
-        assertTrue(resolution.getSteps().stream().anyMatch(step -> step.getReason() == Step.Reason.SKIPPED_ANCESTOR
+        assertTrue(resolution.getSteps().stream().anyMatch(step -> step.getReason() == Resolution.Reason.SKIPPED_ANCESTOR
                 && step.getRegion() == parent), resolution.toString());
     }
 
@@ -271,7 +271,7 @@ class RegionResolveTest {
         assertResolves(Tristate.TRUE, flag, none);
         assertResolves(Tristate.TRUE, strict, all);
         assertTrue(lookup.isTrue(flag, WORLD, 5, 5, 5, null), "no subject, no bypass");
-        assertEquals(Step.Reason.BYPASS, lookup.explain(flag, WORLD, 5, 5, 5, all).getSteps().get(0).getReason());
+        assertEquals(Resolution.Reason.BYPASS, lookup.explain(flag, WORLD, 5, 5, 5, all).getSteps().get(0).getReason());
         assertEquals(Tristate.FALSE, lookup.resolve(flag, lookup.byId(RegionId.of(OWNER, "arena")), all));
     }
 
@@ -289,7 +289,7 @@ class RegionResolveTest {
         assertResolves(Tristate.TRUE, flag, spectator);
         assertResolves(Tristate.TRUE, flag, null);
         Step groupStep = lookup.explain(flag, WORLD, 5, 5, 5, fighter).getSteps().get(0);
-        assertEquals(Step.Reason.GROUP_VALUE, groupStep.getReason());
+        assertEquals(Resolution.Reason.GROUP_VALUE, groupStep.getReason());
         assertSame(fighters, groupStep.getGroup());
     }
 

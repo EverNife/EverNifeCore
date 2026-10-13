@@ -11,10 +11,10 @@ public final class Resolution<T> {
 
     private final @Nullable T value;
     private final @Nullable Region source;
-    private final Step.Reason reason;
+    private final Reason reason;
     private final List<Step> steps;
 
-    Resolution(@Nullable T value, @Nullable Region source, Step.Reason reason, List<Step> steps) {
+    Resolution(@Nullable T value, @Nullable Region source, Reason reason, List<Step> steps) {
         this.value = value;
         this.source = source;
         this.reason = reason;
@@ -32,11 +32,11 @@ public final class Resolution<T> {
     }
 
     /**
-     * Why the value is what it is: {@link Step.Reason#GROUP_VALUE}, {@link Step.Reason#LOCAL_VALUE} or
-     * {@link Step.Reason#INHERITED} for a value some region gave, {@link Step.Reason#BYPASS} or
-     * {@link Step.Reason#DEFAULT} for the flag's default.
+     * Why the value is what it is: {@link Reason#GROUP_VALUE}, {@link Reason#LOCAL_VALUE} or
+     * {@link Reason#INHERITED} for a value some region gave, {@link Reason#BYPASS} or
+     * {@link Reason#DEFAULT} for the flag's default.
      */
-    public Step.Reason getReason() {
+    public Reason getReason() {
         return reason;
     }
 
@@ -50,27 +50,27 @@ public final class Resolution<T> {
         return value + " from " + source + " " + steps;
     }
 
+    public enum Reason {
+        /** The subject holds a bypass permission: the flag reads as its default. */
+        BYPASS,
+        /** A group of the region that contains the subject defines the flag. */
+        GROUP_VALUE,
+        /** The region defines the flag itself. */
+        LOCAL_VALUE,
+        /** The region does not define it; an ancestor does. */
+        INHERITED,
+        /** A parent of another candidate: its child speaks for it. */
+        SKIPPED_ANCESTOR,
+        /** Neither the region, its groups nor its ancestors define it. */
+        NO_VALUE,
+        /** Regions of the same priority disagree; the flag picked this one. */
+        TIE,
+        /** Nothing defines it: the flag's default. */
+        DEFAULT
+    }
+
     /** One thing the resolution looked at. */
     public static final class Step {
-
-        public enum Reason {
-            /** The subject holds a bypass permission: the flag reads as its default. */
-            BYPASS,
-            /** A group of the region that contains the subject defines the flag. */
-            GROUP_VALUE,
-            /** The region defines the flag itself. */
-            LOCAL_VALUE,
-            /** The region does not define it; an ancestor does. */
-            INHERITED,
-            /** A parent of another candidate: its child speaks for it. */
-            SKIPPED_ANCESTOR,
-            /** Neither the region, its groups nor its ancestors define it. */
-            NO_VALUE,
-            /** Regions of the same priority disagree; the flag picked this one. */
-            TIE,
-            /** Nothing defines it: the flag's default. */
-            DEFAULT
-        }
 
         private final @Nullable Region region;
         private final int priority;

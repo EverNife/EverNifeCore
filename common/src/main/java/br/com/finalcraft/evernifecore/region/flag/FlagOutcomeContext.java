@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.region.flag;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.Resolution.Step;
+import br.com.finalcraft.evernifecore.region.Resolution;
 import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.session.RevertStrategy;
 import jakarta.annotation.Nullable;
@@ -24,7 +24,7 @@ public final class FlagOutcomeContext {
     private final @Nullable Object value;
     private final EventSource source;
     private final @Nullable ActionContext action;
-    private final Step.Reason reason;
+    private final Resolution.Reason reason;
     private final int consecutiveDenials;
     private @Nullable WorldLocPos revertTo;
     private @Nullable RevertStrategy revertWith;
@@ -32,7 +32,7 @@ public final class FlagOutcomeContext {
 
     /** Internal: built by the region system for each outcome. */
     public FlagOutcomeContext(FlagOutcome outcome, @Nullable FPlayer player, Region region, RegionFlag<?> flag, @Nullable Object value,
-                              EventSource source, @Nullable ActionContext action, Step.Reason reason, int consecutiveDenials) {
+                              EventSource source, @Nullable ActionContext action, Resolution.Reason reason, int consecutiveDenials) {
         this.outcome = Objects.requireNonNull(outcome, "outcome");
         this.player = player;
         this.region = Objects.requireNonNull(region, "region");
@@ -77,7 +77,7 @@ public final class FlagOutcomeContext {
     }
 
     /** How the value was reached: by a group, the region's own value, a parent's, or the bypass. */
-    public Step.Reason getReason() {
+    public Resolution.Reason getReason() {
         return reason;
     }
 
