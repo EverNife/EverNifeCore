@@ -1,12 +1,12 @@
 package br.com.finalcraft.evernifecore.minecraft.region;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.region.flag.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
+import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyBlockBreakFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyFakePlayerBreakFlag;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;

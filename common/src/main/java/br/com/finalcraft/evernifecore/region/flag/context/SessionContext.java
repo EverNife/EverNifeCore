@@ -1,8 +1,9 @@
-package br.com.finalcraft.evernifecore.region.flag;
+package br.com.finalcraft.evernifecore.region.flag.context;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
+import br.com.finalcraft.evernifecore.region.flag.FlagCategory;
 import br.com.finalcraft.evernifecore.region.session.RegionPlayerSession;
 
 import java.util.Objects;

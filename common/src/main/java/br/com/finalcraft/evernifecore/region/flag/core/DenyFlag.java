@@ -1,13 +1,13 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.region.flag.ActionContext;
-import br.com.finalcraft.evernifecore.region.flag.DamageContext;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.MoveContext;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
+import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
+import br.com.finalcraft.evernifecore.region.flag.context.DamageContext;
+import br.com.finalcraft.evernifecore.region.flag.context.MoveContext;
 import br.com.finalcraft.evernifecore.region.session.MoveCause;
 import jakarta.annotation.Nullable;
 

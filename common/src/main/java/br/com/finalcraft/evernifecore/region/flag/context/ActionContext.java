@@ -1,7 +1,8 @@
-package br.com.finalcraft.evernifecore.region.flag;
+package br.com.finalcraft.evernifecore.region.flag.context;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import jakarta.annotation.Nullable;
 
 import java.util.Objects;

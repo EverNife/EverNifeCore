@@ -2,8 +2,8 @@ package br.com.finalcraft.evernifecore.minecraft.region;
 
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.region.flag.DamageContext;
-import br.com.finalcraft.evernifecore.region.flag.SpawnContext;
+import br.com.finalcraft.evernifecore.region.flag.context.DamageContext;
+import br.com.finalcraft.evernifecore.region.flag.context.SpawnContext;
 import jakarta.annotation.Nullable;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;

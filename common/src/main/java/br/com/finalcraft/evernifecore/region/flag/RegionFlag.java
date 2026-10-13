@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.region.flag;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
+import br.com.finalcraft.evernifecore.region.flag.context.SessionContext;
 import jakarta.annotation.Nullable;
 
 import java.util.Collections;

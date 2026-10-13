@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.region;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
-import br.com.finalcraft.evernifecore.region.flag.SpawnContext;
+import br.com.finalcraft.evernifecore.region.flag.context.SpawnContext;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;

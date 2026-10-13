@@ -1,10 +1,10 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.region.flag.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
-import br.com.finalcraft.evernifecore.region.flag.MoveContext;
+import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
+import br.com.finalcraft.evernifecore.region.flag.context.MoveContext;
 
 /** TRUE: players cannot get into the region by any means. */
 public final class DenyEntryFlag extends DenyFlag {

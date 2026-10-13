@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.region.flag.ActionContext;
-import br.com.finalcraft.evernifecore.region.flag.BlockContext;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
+import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
+import br.com.finalcraft.evernifecore.region.flag.context.BlockContext;
 
 /** TRUE: fake players - machines acting as a player - cannot break blocks in the region. */
 public final class DenyFakePlayerBreakFlag extends DenyFlag {

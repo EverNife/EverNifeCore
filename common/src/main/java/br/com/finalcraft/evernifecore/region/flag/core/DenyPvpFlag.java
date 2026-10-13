@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.region.flag.ActionContext;
-import br.com.finalcraft.evernifecore.region.flag.DamageContext;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
+import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
+import br.com.finalcraft.evernifecore.region.flag.context.DamageContext;
 
 /** TRUE: players cannot hurt each other in the region. Holds for everyone - the bypass permission does not lift it. */
 public final class DenyPvpFlag extends DenyFlag {

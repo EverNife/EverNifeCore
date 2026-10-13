@@ -2,8 +2,10 @@ package br.com.finalcraft.evernifecore.region.flag;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.region.TestRegions;
 import br.com.finalcraft.evernifecore.region.Region;
+import br.com.finalcraft.evernifecore.region.TestRegions;
+import br.com.finalcraft.evernifecore.region.flag.context.DamageContext;
+import br.com.finalcraft.evernifecore.region.flag.context.MoveContext;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryMessage;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyPvpFlag;

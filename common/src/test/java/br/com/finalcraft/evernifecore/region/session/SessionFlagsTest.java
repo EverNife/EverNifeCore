@@ -14,7 +14,7 @@ import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.flag.FlagTypes;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Revalidation;
-import br.com.finalcraft.evernifecore.region.flag.SessionContext;
+import br.com.finalcraft.evernifecore.region.flag.context.SessionContext;
 import br.com.finalcraft.evernifecore.region.flag.core.FarewellFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.GreetingFlag;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;

@@ -17,7 +17,7 @@ import br.com.finalcraft.evernifecore.region.flag.FlagOutcomeContext;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Revalidation;
-import br.com.finalcraft.evernifecore.region.flag.SessionContext;
+import br.com.finalcraft.evernifecore.region.flag.context.SessionContext;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;

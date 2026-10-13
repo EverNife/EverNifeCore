@@ -15,7 +15,7 @@ import br.com.finalcraft.evernifecore.region.event.RegionEnterEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionGroupChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
-import br.com.finalcraft.evernifecore.region.flag.MoveContext;
+import br.com.finalcraft.evernifecore.region.flag.context.MoveContext;
 import jakarta.annotation.Nullable;
 
 import java.util.ArrayList;

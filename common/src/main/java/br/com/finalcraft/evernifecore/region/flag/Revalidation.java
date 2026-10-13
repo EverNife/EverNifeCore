@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.region.flag;
 
 import br.com.finalcraft.evernifecore.region.RegionTime;
+import br.com.finalcraft.evernifecore.region.flag.context.SessionContext;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;

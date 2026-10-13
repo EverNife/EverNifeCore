@@ -1,13 +1,13 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.region.flag.ActionContext;
-import br.com.finalcraft.evernifecore.region.flag.BlockContext;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
-import br.com.finalcraft.evernifecore.region.flag.EntityContext;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
+import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
+import br.com.finalcraft.evernifecore.region.flag.context.BlockContext;
+import br.com.finalcraft.evernifecore.region.flag.context.EntityContext;
 import jakarta.annotation.Nullable;
 
 /** The shape of an interact deny flag: TRUE denies using a block or an entity, narrowed by {@link InteractSettings}. */
