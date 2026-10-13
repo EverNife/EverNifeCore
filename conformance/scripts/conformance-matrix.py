@@ -133,6 +133,8 @@ def render_flavor_section(r: FlavorResult) -> str:
     out = ["## %s - %s" % (r.flavor, "OK" if flavor_ok(r) else "FAILED"), ""]
     out.append("- booted: %s" % r.booted)
     out.append("- restart shutdown_reason: %s" % (r.shutdown_reason or "n/a"))
+    ends = [ev for ev in r.events if ev.get("e") == "suite_end"]
+    out.append("- cases: " + " ".join("%s=%d" % (k, sum(int(ev.get(k) or 0) for ev in ends)) for k in ("passed", "failed", "skipped")))
     for p in r.problems:
         out.append("- problem: %s" % p)
     papi = [ev for ev in r.events if ev.get("e") == "test_result" and ev.get("test") == "papi-present"]
