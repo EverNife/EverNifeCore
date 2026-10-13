@@ -10,7 +10,7 @@ import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECListenerWatch;
 import br.com.finalcraft.evernifecore.eventbus.ECNativeAudience;
-import br.com.finalcraft.evernifecore.region.RegionRuntime;
+import br.com.finalcraft.evernifecore.region.RegionManager;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -122,9 +122,9 @@ public final class ECoreTestWorld implements AutoCloseable {
         }
         closed = true;
 
-        //the region singletons (EventSourceUsage's watch on region enter/leave, the movement tracker) live for the
-        //whole JVM once a test touched them; the engine started them, so the engine stops them before the check
-        RegionRuntime.shutdown();
+        //the region singletons (EventSourceUsage's watch on region enter/leave, the movement tracker) and any manager a
+        //test left open live for the whole JVM; the engine shuts them down the way the core does, before the check
+        RegionManager.closeAll();
         List<String> leaked = leftOnTheGlobalBus();
 
         ECBaseProvider providers = EverNifeCore.getProviders().getBaseProvider();

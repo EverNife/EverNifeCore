@@ -22,9 +22,11 @@ import br.com.finalcraft.evernifecore.region.overlap.Overlap;
 import br.com.finalcraft.evernifecore.region.overlap.OverlapProvider;
 import br.com.finalcraft.evernifecore.region.overlap.OverlapProviders;
 import br.com.finalcraft.evernifecore.region.overlap.OverlapSource;
+import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.storage.RegionRecord;
 import br.com.finalcraft.evernifecore.region.storage.RegionStorage;
+import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
 import jakarta.annotation.Nullable;
 
@@ -761,12 +763,18 @@ public final class RegionManager {
         }
     }
 
-    /** Internal: closes every open manager and stops the sweeper - the core's own shutdown. */
+    /**
+     * Internal: closes every open manager and stops everything the region system hangs on the global bus - the
+     * sweeper, the event-source count and the movement tracker - the core's own shutdown. Each starts again on its
+     * next use.
+     */
     public static void closeAll() {
         for (ECPluginData owner : new ArrayList<>(MANAGERS.keySet())) {
             closeOwnedBy(owner);
         }
         RegionSweeper.reset();
+        EventSourceUsage.shutdown();
+        RegionMovementTracker.shutdown();
     }
 
     // ------------------------------------------------------------------

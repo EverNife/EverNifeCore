@@ -93,7 +93,7 @@ public class EverNifeCore {
     }
 
     public void onUnload() {
-        RegionManager.closeAll(); //what no plugin shutdown closed, and the sweeper
+        RegionManager.closeAll(); //what no plugin shutdown closed, and the region system's hold on the global bus
         PlayerController.shutdown(); //flush dirty players + close storage backends
     }
 

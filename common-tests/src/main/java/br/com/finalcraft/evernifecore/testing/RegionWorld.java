@@ -12,7 +12,6 @@ import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionScheduler;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionManager;
-import br.com.finalcraft.evernifecore.region.RegionRuntime;
 import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
@@ -216,7 +215,7 @@ public final class RegionWorld implements AutoCloseable {
         synchronized (SHARED_LOCK) {
             if (--shared.users == 0) {
                 //stopped while the scheduler is still this one: whatever they schedule on the way out never reaches a real thread
-                RegionRuntime.shutdown();
+                RegionManager.closeAll();
                 RegionScheduler.set(null);
                 RegionClock.setClock(null);
                 shared = null;
