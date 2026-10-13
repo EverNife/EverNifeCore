@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -38,13 +39,18 @@ class ConformanceCommandTest {
     @BeforeEach
     void setUp() {
         harness = Commands.harness("Ecc", dataFolder);
-        command = harness.register(new ConformanceCommand(Suites.all(), dataFolder.toFile(), () -> "test-server", log::add, Runnable::run));
+        command = harness.register(new ConformanceCommand(suites(), dataFolder.toFile(), () -> "test-server", log::add, Runnable::run));
         console = Senders.console().grant("evernifecore.conformance");
     }
 
     @AfterEach
     void tearDown() {
         harness.close();
+    }
+
+    /** No case runs a region here, so the regions suite needs no manager. */
+    private static List<ConformanceSuite> suites() {
+        return Suites.all(null, CompletableFuture.completedFuture(null));
     }
 
     private List<String> markers(String event) {
@@ -56,7 +62,7 @@ class ConformanceCommandTest {
     void listNamesEverySuite() {
         harness.dispatch(command, console, "list");
 
-        for (ConformanceSuite suite : Suites.all()) {
+        for (ConformanceSuite suite : suites()) {
             console.assertAnyMessageContains(SuiteRunner.HUMAN_PREFIX + suite.getId() + " cases=");
         }
     }
@@ -66,7 +72,7 @@ class ConformanceCommandTest {
         harness.dispatch(command, console, "run nope");
 
         console.assertAnyMessageContains("unknown suite 'nope'");
-        for (ConformanceSuite suite : Suites.all()) {
+        for (ConformanceSuite suite : suites()) {
             console.assertAnyMessageContains(suite.getId());
         }
         assertTrue(log.isEmpty(), "nothing ran, so nothing reaches the log: " + log);
@@ -95,7 +101,7 @@ class ConformanceCommandTest {
     @Test
     void suiteIdsAreUniqueAndLeaveThePrefixToTheRunner() {
         Set<String> seen = new HashSet<>();
-        for (ConformanceSuite suite : Suites.all()) {
+        for (ConformanceSuite suite : suites()) {
             assertTrue(seen.add(suite.getId()), "duplicate suite id " + suite.getId());
             assertFalse(suite.getId().startsWith(SuiteRunner.SUITE_PREFIX), suite.getId());
         }
@@ -103,9 +109,9 @@ class ConformanceCommandTest {
 
     @Test
     void theRegistryHoldsEverySuiteInRunOrder() {
-        List<String> ids = Suites.all().stream().map(ConformanceSuite::getId).collect(Collectors.toList());
+        List<String> ids = suites().stream().map(ConformanceSuite::getId).collect(Collectors.toList());
 
         assertEquals(Arrays.asList("items", "nbt", "platform", "version", "commands", "gui", "scheduler", "playerdata",
-                "events", "selection-click", "particles", "text-metrics", "hooks", "nms"), ids);
+                "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions"), ids);
     }
 }
