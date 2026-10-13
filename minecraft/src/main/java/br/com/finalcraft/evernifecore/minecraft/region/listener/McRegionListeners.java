@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.minecraft.region;
+package br.com.finalcraft.evernifecore.minecraft.region.listener;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;

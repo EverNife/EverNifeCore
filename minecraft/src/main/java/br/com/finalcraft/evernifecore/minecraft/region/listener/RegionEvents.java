@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.minecraft.region;
+package br.com.finalcraft.evernifecore.minecraft.region.listener;
 
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
@@ -21,43 +21,43 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.Locale;
 
-/** What every region listener repeats: the disabled-world check, positions, platform-neutral ids and the player behind a hit. */
-final class RegionEvents {
+/** Internal: what every region listener repeats - the disabled-world check, positions, platform-neutral ids and the player behind a hit. */
+public final class RegionEvents {
 
     private RegionEvents() {
     }
 
     /** The only reader of {@code Regions.disabled-worlds}: nothing in such a world is asked of a region. */
-    static boolean isDisabled(World world) {
+    public static boolean isDisabled(World world) {
         return ECSettings.REGIONS_DISABLED_WORLDS.contains(world.getName());
     }
 
-    static WorldLocPos position(Location at) {
+    public static WorldLocPos position(Location at) {
         return WorldLocPos.of(at.getX(), at.getY(), at.getZ(), at.getWorld().getName());
     }
 
     /** {@code at} as a location, facing where {@code like} faces. */
-    static Location toLocation(WorldLocPos at, Location like) {
+    public static Location toLocation(WorldLocPos at, Location like) {
         World world = like.getWorld().getName().equals(at.getWorldName()) ? like.getWorld() : Bukkit.getWorld(at.getWorldName());
         return new Location(world, at.getX(), at.getY(), at.getZ(), like.getYaw(), like.getPitch());
     }
 
-    static String id(Material material) {
+    public static String id(Material material) {
         return "minecraft:" + material.name().toLowerCase(Locale.ROOT);
     }
 
-    static String id(EntityType type) {
+    public static String id(EntityType type) {
         return "minecraft:" + type.name().toLowerCase(Locale.ROOT);
     }
 
     @SuppressWarnings("deprecation")   //getItemInHand is the one form every served version has
-    static @Nullable String itemInHandId(Player player) {
+    public static @Nullable String itemInHandId(Player player) {
         ItemStack held = player.getItemInHand();
         return held == null || held.getType() == Material.AIR ? null : id(held.getType());
     }
 
     /** The player behind {@code damager}: the shooter of a projectile, the igniter of TNT, the owner of a pet; null for none. */
-    static @Nullable Player rootPlayer(@Nullable Entity damager) {
+    public static @Nullable Player rootPlayer(@Nullable Entity damager) {
         if (damager instanceof Player) {
             return (Player) damager;
         }
@@ -74,7 +74,7 @@ final class RegionEvents {
         return null;
     }
 
-    static DamageContext.Kind victimKind(Entity victim) {
+    public static DamageContext.Kind victimKind(Entity victim) {
         if (victim instanceof Player) {
             return DamageContext.Kind.PLAYER;
         }
@@ -84,7 +84,7 @@ final class RegionEvents {
         return victim instanceof Monster ? DamageContext.Kind.MONSTER : DamageContext.Kind.OTHER;
     }
 
-    static SpawnContext.Kind spawnKind(Entity spawned) {
+    public static SpawnContext.Kind spawnKind(Entity spawned) {
         if (spawned instanceof Animals) {
             return SpawnContext.Kind.ANIMAL;
         }

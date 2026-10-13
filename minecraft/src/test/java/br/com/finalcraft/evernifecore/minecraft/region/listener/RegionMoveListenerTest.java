@@ -1,8 +1,9 @@
-package br.com.finalcraft.evernifecore.minecraft.region;
+package br.com.finalcraft.evernifecore.minecraft.region.listener;
 
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.minecraft.region.RegionServer;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.event.RegionBoundaryEvent;

@@ -1,5 +1,6 @@
-package br.com.finalcraft.evernifecore.minecraft.region;
+package br.com.finalcraft.evernifecore.minecraft.region.listener;
 
+import br.com.finalcraft.evernifecore.minecraft.region.RegionServer;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyPvpFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.InvincibleFlag;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;

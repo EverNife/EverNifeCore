@@ -1,6 +1,7 @@
-package br.com.finalcraft.evernifecore.minecraft.region;
+package br.com.finalcraft.evernifecore.minecraft.region.listener;
 
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.minecraft.region.RegionServer;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyBlockBreakFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyBlockPlaceFlag;

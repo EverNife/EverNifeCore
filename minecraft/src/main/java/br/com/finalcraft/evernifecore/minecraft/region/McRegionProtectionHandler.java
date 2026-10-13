@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.region;
 import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.protection.integration.ProtectionHandler;
+import br.com.finalcraft.evernifecore.minecraft.region.listener.RegionEvents;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
