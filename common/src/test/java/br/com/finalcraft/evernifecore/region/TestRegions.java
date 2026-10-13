@@ -80,14 +80,14 @@ public final class TestRegions {
         return create(owner, name, world, CuboidShape.of(BlockPos.of(x1, y1, z1), BlockPos.of(x2, y2, z2)));
     }
 
-    /** An agenda that runs nothing until told to; {@link #install()} it and {@code RegionAgenda.set(null)} afterwards. */
-    public static final class ManualAgenda implements RegionAgenda.Scheduler {
+    /** An agenda that runs nothing until told to; {@link #install()} it and {@code RegionScheduler.set(null)} afterwards. */
+    public static final class ManualAgenda implements RegionScheduler.Backend {
 
         private final Queue<Runnable> tasks = new ConcurrentLinkedQueue<>();
         private final List<Long> delays = new CopyOnWriteArrayList<>();
 
         public ManualAgenda install() {
-            RegionAgenda.set(this);
+            RegionScheduler.set(this);
             return this;
         }
 

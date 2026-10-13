@@ -11,7 +11,7 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
-import br.com.finalcraft.evernifecore.region.RegionAgenda;
+import br.com.finalcraft.evernifecore.region.RegionScheduler;
 import br.com.finalcraft.evernifecore.region.RegionTime;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
@@ -170,7 +170,7 @@ public final class SelectionTool {
     private static void scheduleExpiry(SelectionSession session, Duration timeout) {
         Instant deadline = session.getLastTouch().plus(timeout);
         long delayMillis = Math.max(0, Duration.between(RegionTime.now(), deadline).toMillis());
-        RegionAgenda.scheduleAsync(() -> checkExpiry(session, timeout), delayMillis);
+        RegionScheduler.scheduleAsync(() -> checkExpiry(session, timeout), delayMillis);
     }
 
     private static void checkExpiry(SelectionSession session, Duration timeout) {
@@ -181,7 +181,7 @@ public final class SelectionTool {
             scheduleExpiry(session, timeout);   //touched since: wait out what is left of the new deadline
             return;
         }
-        //the agenda's thread is nobody's: only the world's thread may talk to the player
+        //the scheduler's thread is nobody's: only the world's thread may talk to the player
         EverNifeCore.getPlatform().runOnWorldThread(session.getWorld(), () -> session.close(SELECTION_EXPIRED))
                 .exceptionally(error -> {
                     ECDebugModule.REGIONS.debug("Dropped the expired selection of {}: world {} has no thread ({}).",

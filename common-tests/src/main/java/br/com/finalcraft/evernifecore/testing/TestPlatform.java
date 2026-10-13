@@ -58,7 +58,7 @@ public class TestPlatform extends AbstractTestPlatform {
     private final AtomicInteger mainThreadRuns = new AtomicInteger();
     private final List<Consumer<String>> worldLoadedListeners = new CopyOnWriteArrayList<>();
     private final List<Consumer<String>> worldUnloadedListeners = new CopyOnWriteArrayList<>();
-    //the visualizer draws from the agenda's thread, so never a plain ArrayList
+    //the visualizer draws from the scheduler's thread, so never a plain ArrayList
     private final List<RenderedOutline> renderedOutlines = new CopyOnWriteArrayList<>();
     private final List<GivenSelectionItem> selectionItemsGiven = new CopyOnWriteArrayList<>();
 

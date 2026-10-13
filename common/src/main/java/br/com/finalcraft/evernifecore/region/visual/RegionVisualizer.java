@@ -7,7 +7,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.region.RegionAgenda;
+import br.com.finalcraft.evernifecore.region.RegionScheduler;
 import br.com.finalcraft.evernifecore.region.RegionTime;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
@@ -76,7 +76,7 @@ public final class RegionVisualizer {
 
     private void start(View view) {
         views.put(view.player.getUniqueId(), view);
-        RegionAgenda.scheduleAsync(() -> frame(view), 0);
+        RegionScheduler.scheduleAsync(() -> frame(view), 0);
     }
 
     private void frame(View view) {
@@ -89,7 +89,7 @@ public final class RegionVisualizer {
         }
         IPlatform platform = EverNifeCore.getPlatform();
         platform.runOnWorldThread(view.world, () -> draw(platform, view));
-        RegionAgenda.scheduleAsync(() -> frame(view), FRAME_MILLIS);
+        RegionScheduler.scheduleAsync(() -> frame(view), FRAME_MILLIS);
     }
 
     private static void draw(IPlatform platform, View view) {

@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The one sweeper of everything with a deadline: regions, temporary flag values, timed memberships. It runs on the
- * region agenda only while something has a deadline, and applies each world's expirations on the thread that owns
+ * region scheduler only while something has a deadline, and applies each world's expirations on the thread that owns
  * that world, so the events they cause go out where a world's events belong.
  */
 public final class RegionSweeper {
@@ -39,7 +39,7 @@ public final class RegionSweeper {
     static void wake() {
         woken = true;
         if (RUNNING.compareAndSet(false, true)) {
-            RegionAgenda.scheduleAsync(RegionSweeper::tick, intervalMillis);
+            RegionScheduler.scheduleAsync(RegionSweeper::tick, intervalMillis);
         }
     }
 
@@ -87,12 +87,12 @@ public final class RegionSweeper {
         });
         //what expired may uncover a later deadline, and a world that refused keeps its own: one more look either way
         if (pending || !due.isEmpty()) {
-            RegionAgenda.scheduleAsync(RegionSweeper::tick, intervalMillis);
+            RegionScheduler.scheduleAsync(RegionSweeper::tick, intervalMillis);
             return;
         }
         RUNNING.set(false);
         if (woken && RUNNING.compareAndSet(false, true)) {
-            RegionAgenda.scheduleAsync(RegionSweeper::tick, intervalMillis);
+            RegionScheduler.scheduleAsync(RegionSweeper::tick, intervalMillis);
         }
     }
 
@@ -130,7 +130,7 @@ public final class RegionSweeper {
         intervalMillis = interval.toMillis();
     }
 
-    /** Forgets the running state - the core's shutdown, and tests that swapped the agenda. */
+    /** Forgets the running state - the core's shutdown, and tests that swapped the scheduler. */
     static void reset() {
         RUNNING.set(false);
         woken = false;

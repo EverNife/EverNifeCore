@@ -35,7 +35,7 @@ class RegionOwnerShutdownTest extends ManagedRegionFixture {
     @Test
     void discardingAnOwnerWhoseStorageIsGoneWritesNothing() {
         Queue<Runnable> held = new ArrayDeque<>();
-        RegionAgenda.set((task, delayMillis) -> held.add(task));
+        RegionScheduler.set((task, delayMillis) -> held.add(task));
         created(manager().create("a", WORLD, box(0, 0, 9, 9)));
         List<RegionRemovedEvent> removed = record(RegionRemovedEvent.class);
 

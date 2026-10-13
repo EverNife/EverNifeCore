@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.testing;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.RegionAgenda;
+import br.com.finalcraft.evernifecore.region.RegionScheduler;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionTime;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
@@ -44,7 +44,7 @@ class RegionWorldTest {
         try (RegionWorld prot = RegionWorld.open("RegionWorldClock", tempDir)) {
             Instant start = RegionTime.now();
             AtomicInteger ran = new AtomicInteger();
-            RegionAgenda.scheduleAsync(ran::incrementAndGet, 1000);
+            RegionScheduler.scheduleAsync(ran::incrementAndGet, 1000);
 
             assertEquals(start, RegionTime.now());
             prot.runDue();

@@ -6,7 +6,7 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.EventBuses;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.RegionAgenda;
+import br.com.finalcraft.evernifecore.region.RegionScheduler;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.TestRegions;
 import br.com.finalcraft.evernifecore.region.TestRegions.ManualAgenda;
@@ -67,7 +67,7 @@ abstract class TrackerFixture {
     @AfterEach
     void closeTracker() {
         tracker.stop();
-        RegionAgenda.set(null);
+        RegionScheduler.set(null);
         TestRegions.restoreClock();
         FlagRegistry.get().unregisterAll(owner);
         FlagRegistry.get().unregisterAll(other);

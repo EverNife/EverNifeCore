@@ -66,7 +66,7 @@ abstract class ManagedRegionFixture {
     @AfterEach
     void closeWorld() {
         subscriptions.forEach(ECEventSubscription::unsubscribe);
-        RegionAgenda.set(null);   //first: a held agenda would hold the closing writes for the whole 30 s timeout
+        RegionScheduler.set(null);   //first: a held agenda would hold the closing writes for the whole 30 s timeout
         RegionManager.closeAll();
         RegionManager.setFlushDelayMillis(RegionManager.DEFAULT_FLUSH_DELAY_MILLIS);
         RegionManager.setRetryDelayMillis(RegionManager.DEFAULT_RETRY_DELAY_MILLIS);

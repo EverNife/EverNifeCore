@@ -9,7 +9,7 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.region.CreationResult;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.RegionAgenda;
+import br.com.finalcraft.evernifecore.region.RegionScheduler;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.RegionRuntime;
@@ -35,7 +35,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * One plugin that owns regions, for a test: its plugin data, an in-memory storage that counts calls, its
  * {@link RegionManager}, and - shared by every {@code RegionWorld} open at once - a clock that only moves when told
- * and an agenda that only runs when told. Needs a platform with {@code mainThreadInline()} and {@code worldEvents()}.
+ * and a scheduler that only runs when told. Needs a platform with {@code mainThreadInline()} and {@code worldEvents()}.
  *
  * <pre>{@code
  * try (RegionWorld prot = RegionWorld.open("FakeProt", tempDir)) {
@@ -127,7 +127,7 @@ public final class RegionWorld implements AutoCloseable {
     }
 
     /**
-     * Runs every task on the region agenda whose delay has passed by the clock, once. A task they schedule waits for
+     * Runs every task on the region scheduler whose delay has passed by the clock, once. A task they schedule waits for
      * the next call, even with no delay - so a self-rescheduling task runs once per call.
      *
      * @return how many tasks ran
@@ -150,14 +150,14 @@ public final class RegionWorld implements AutoCloseable {
         return due.size();
     }
 
-    /** How many tasks wait on the agenda, due or not. */
+    /** How many tasks wait on the scheduler, due or not. */
     public int getPendingTasks() {
         synchronized (shared.pending) {
             return shared.pending.size();
         }
     }
 
-    /** Writes every pending change of this owner now, running the agenda for it. */
+    /** Writes every pending change of this owner now, running the scheduler for it. */
     public void flush() {
         CompletableFuture<Void> done = manager.flush();
         for (int round = 0; !done.isDone() && round < 100; round++) {
@@ -179,7 +179,7 @@ public final class RegionWorld implements AutoCloseable {
         return seen;
     }
 
-    /** Closes the manager (its regions leave the index) and the storage, and forgets the plugin; the last one open restores clock and agenda. */
+    /** Closes the manager (its regions leave the index) and the storage, and forgets the plugin; the last one open restores clock and scheduler. */
     @Override
     public void close() {
         if (closed) {
@@ -202,7 +202,7 @@ public final class RegionWorld implements AutoCloseable {
             if (shared == null) {
                 shared = new Shared();
                 RegionTime.setClock(shared.clock);
-                RegionAgenda.set((task, delayMillis) -> {
+                RegionScheduler.set((task, delayMillis) -> {
                     synchronized (shared.pending) {
                         shared.pending.add(new Scheduled(task, shared.clock.now.plusMillis(Math.max(0, delayMillis))));
                     }
@@ -215,9 +215,9 @@ public final class RegionWorld implements AutoCloseable {
     private static void releaseShared() {
         synchronized (SHARED_LOCK) {
             if (--shared.users == 0) {
-                //stopped while the agenda is still this one: whatever they schedule on the way out never reaches a real thread
+                //stopped while the scheduler is still this one: whatever they schedule on the way out never reaches a real thread
                 RegionRuntime.shutdown();
-                RegionAgenda.set(null);
+                RegionScheduler.set(null);
                 RegionTime.setClock(null);
                 shared = null;
             }

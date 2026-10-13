@@ -6,7 +6,7 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.eventbus.ECListenerWatch;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.RegionAgenda;
+import br.com.finalcraft.evernifecore.region.RegionScheduler;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.event.RegionEnterEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
@@ -206,7 +206,7 @@ public final class EventSourceUsage {
                 transitions.add(() -> becomeAll(source, true));
             } else {
                 long generation = ++idleGeneration[index];
-                transitions.add(() -> RegionAgenda.scheduleAsync(() -> idleIfStill(source, generation), idleTime.toMillis()));
+                transitions.add(() -> RegionScheduler.scheduleAsync(() -> idleIfStill(source, generation), idleTime.toMillis()));
             }
         }
         return transitions == null ? new ArrayList<>(0) : transitions;

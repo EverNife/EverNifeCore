@@ -4,7 +4,7 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.RegionAgenda;
+import br.com.finalcraft.evernifecore.region.RegionScheduler;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionTime;
 import br.com.finalcraft.evernifecore.region.Resolution;
@@ -159,7 +159,7 @@ final class SessionFlags {
     void wake() {
         woken = true;
         if (ticking.compareAndSet(false, true)) {
-            RegionAgenda.scheduleAsync(this::tick, TICK_MILLIS);
+            RegionScheduler.scheduleAsync(this::tick, TICK_MILLIS);
         }
     }
 
@@ -206,12 +206,12 @@ final class SessionFlags {
             });
         });
         if (pending || !due.isEmpty()) {
-            RegionAgenda.scheduleAsync(this::tick, TICK_MILLIS);
+            RegionScheduler.scheduleAsync(this::tick, TICK_MILLIS);
             return;
         }
         ticking.set(false);
         if (woken && ticking.compareAndSet(false, true)) {
-            RegionAgenda.scheduleAsync(this::tick, TICK_MILLIS);
+            RegionScheduler.scheduleAsync(this::tick, TICK_MILLIS);
         }
     }
 }

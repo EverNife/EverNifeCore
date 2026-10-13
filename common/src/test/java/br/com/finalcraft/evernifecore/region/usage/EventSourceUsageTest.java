@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.eventbus.EventBuses;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.RegionAgenda;
+import br.com.finalcraft.evernifecore.region.RegionScheduler;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.TestRegions;
 import br.com.finalcraft.evernifecore.region.TestRegions.ManualAgenda;
@@ -66,7 +66,7 @@ class EventSourceUsageTest {
     @AfterEach
     void tearDown() {
         usage.stop();
-        RegionAgenda.set(null);
+        RegionScheduler.set(null);
         FlagRegistry.get().unregisterAll(owner);
         Plugins.forget(OWNER);
     }

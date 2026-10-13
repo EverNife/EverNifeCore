@@ -160,7 +160,7 @@ public final class RegionManager {
             done.complete(null);
             return done;
         }
-        RegionAgenda.scheduleAsync(() -> loadNow(done), 0);
+        RegionScheduler.scheduleAsync(() -> loadNow(done), 0);
         return done;
     }
 
@@ -243,7 +243,7 @@ public final class RegionManager {
         owner.getLog().warning("Regions of {} are not loaded ({}); nothing they would deny is denied until they are - the load is"
                 + " retried every {} s, or call load() again.", nameOf(owner), error.toString(), retryDelayMillis / 1000.0);
         if (!closed) {
-            RegionAgenda.scheduleAsync(() -> {
+            RegionScheduler.scheduleAsync(() -> {
                 if (!closed && !loaded) {
                     loadNow(new CompletableFuture<>());
                 }
@@ -494,7 +494,7 @@ public final class RegionManager {
     /** Writes every pending change and deletion; completes once the backend confirmed them all. Any thread. */
     public CompletableFuture<Void> flush() {
         CompletableFuture<Void> done = new CompletableFuture<>();
-        RegionAgenda.scheduleAsync(() -> write().whenComplete((ignored, error) -> {
+        RegionScheduler.scheduleAsync(() -> write().whenComplete((ignored, error) -> {
             if (error == null) {
                 done.complete(null);
             } else {
@@ -546,7 +546,7 @@ public final class RegionManager {
 
     private void scheduleFlush() {
         if (regionStorage != null && flushScheduled.compareAndSet(false, true)) {
-            RegionAgenda.scheduleAsync(this::write, flushDelayMillis);
+            RegionScheduler.scheduleAsync(this::write, flushDelayMillis);
         }
     }
 

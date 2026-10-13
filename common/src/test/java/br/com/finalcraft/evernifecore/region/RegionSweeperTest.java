@@ -34,7 +34,7 @@ class RegionSweeperTest extends ManagedRegionFixture {
     @BeforeEach
     void holdTheAgenda() {
         clock = TestRegions.manualClock();
-        RegionAgenda.set((task, delayMillis) -> agenda.add(task));
+        RegionScheduler.set((task, delayMillis) -> agenda.add(task));
     }
 
     /** Runs what the agenda holds now - one sweep, plus whatever writes were queued with it. */
