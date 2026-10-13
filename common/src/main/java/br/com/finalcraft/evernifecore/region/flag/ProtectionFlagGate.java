@@ -66,8 +66,9 @@ public final class ProtectionFlagGate {
             return false;
         }
         Region source = resolution.getSource();
-        if (flag.decide(context, value, climb.getSettings(null)) == Decision.DENY) {
-            fireApplied(flag, context, value, source);
+        FlagSettings settings = climb.getSettings(null);
+        if (flag.decide(context, value, settings) == Decision.DENY) {
+            fireApplied(flag, context, value, source, settings);
             FlagHandler handler = source == null ? null : source.getFlagHandler(flag);
             if (handler != null) {
                 handler.handle(new FlagOutcomeContext(FlagOutcome.DENIED, player, source, flag, value, context.getSource(), context,
@@ -76,7 +77,7 @@ public final class ProtectionFlagGate {
             return true;
         }
         if (source != null) {
-            passed.add(() -> fireApplied(flag, context, value, source));
+            passed.add(() -> fireApplied(flag, context, value, source, settings));
         }
         for (Region region : here) {
             if (region.hasFlagHandlers()) {
@@ -116,7 +117,7 @@ public final class ProtectionFlagGate {
             return MoveVerdict.allowed();
         }
         Region source = resolution.getSource() != null ? resolution.getSource() : crossed;
-        fireApplied(flag, context, value, source);
+        fireApplied(flag, context, value, source, settings);
         MoveDenySettings moveSettings = settings instanceof MoveDenySettings ? (MoveDenySettings) settings : null;
         int denials = session.noteDenial(flag.getKey(), RegionClock.now(), moveSettings != null ? moveSettings.getStuckWindow() : DEFAULT_STUCK_WINDOW);
 
@@ -283,10 +284,11 @@ public final class ProtectionFlagGate {
         }
     }
 
-    private static <T> void fireApplied(RegionFlag<T> flag, ActionContext context, T value, @Nullable Region source) {
+    /** @param settings those {@code decide} saw; the pace is read from the asked flag's own settings where the value came from */
+    private static <T> void fireApplied(RegionFlag<T> flag, ActionContext context, T value, @Nullable Region source, FlagSettings settings) {
         Duration interval = source != null ? source.getEffectiveFlagSettings(flag).getTriggerInterval() : flag.getSettings().getTriggerInterval();
         if (THROTTLE.tryFire(paceKey(context), flag, interval)) {
-            flag.onApplied(context, value);
+            flag.onApplied(context, value, settings);
         }
     }
 

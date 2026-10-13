@@ -144,6 +144,14 @@ public abstract class RegionFlag<T> {
     public void onApplied(ActionContext context, T value) {
     }
 
+    /**
+     * As {@link #onApplied(ActionContext, Object)}, with the settings {@link #decide(ActionContext, Object, FlagSettings)} saw.
+     * Override this one when the settings tell whether the value applied was a denial.
+     */
+    public void onApplied(ActionContext context, T value, FlagSettings settings) {
+        onApplied(context, value);
+    }
+
     public Revalidation getRevalidation() {
         return Revalidation.onBoundary();
     }

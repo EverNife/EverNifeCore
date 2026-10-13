@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.region.event.RegionBoundaryEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionEnterEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
+import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyExitFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyTeleportInFlag;
@@ -50,6 +51,30 @@ class RegionMovementTrackerTest extends TrackerFixture {
         assertEquals(at(12.5), verdict.getRevertTo());
         assertTrue(session().getCurrent().isEmpty(), "a denied move leaves the session where it was");
         assertTrue(enters.isEmpty(), "a denied move posts nothing");
+    }
+
+    @Test
+    void aDeniedEntryTellsThePlayerTheCrossedRegionsDenyMessage() {
+        Region arena = region("arena", 0, 10);
+        arena.setFlag(registered(CoreFlags.DENY_ENTRY), Tristate.TRUE);
+        arena.setFlag(registered(CoreFlags.DENY_MESSAGE), "the arena is closed");
+
+        MoveVerdict verdict = walk(12.7, 10.5);
+
+        assertEquals(at(12.5), verdict.getRevertTo());
+        assertEquals(Arrays.asList("the arena is closed"), player.getMessages());
+    }
+
+    @Test
+    void aDeniedEntryIntoARegionWithoutADenyMessageSaysNothing() {
+        Region arena = region("arena", 0, 10);
+        arena.setFlag(registered(CoreFlags.DENY_ENTRY), Tristate.TRUE);
+        registered(CoreFlags.DENY_MESSAGE);
+
+        MoveVerdict verdict = walk(12.7, 10.5);
+
+        assertEquals(at(12.5), verdict.getRevertTo());
+        assertTrue(player.getMessages().isEmpty(), player.getMessages().toString());
     }
 
     @Test

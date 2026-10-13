@@ -14,6 +14,8 @@ import br.com.finalcraft.evernifecore.region.flag.context.BlockContext;
 import br.com.finalcraft.evernifecore.region.flag.context.DamageContext;
 import br.com.finalcraft.evernifecore.region.flag.context.EntityContext;
 import br.com.finalcraft.evernifecore.region.flag.context.SpawnContext;
+import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyInteractBlocksFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyInteractEntitiesFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyInteractFlag;
@@ -35,6 +37,7 @@ import java.util.EnumSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** One protected action asked of the flags where it happens: first denial wins, consequences at their pace. */
 @ECoreTest
@@ -89,6 +92,7 @@ class RegionLookupDecideTest {
 
     @AfterEach
     void tearDown() {
+        TestRegions.unindex(RegionLookup.get(), region);
         FlagRegistry.get().unregisterAll(owner);
         FlagRegistry.get().unregisterAll(core);
         TestRegions.restoreClock();
@@ -223,6 +227,87 @@ class RegionLookupDecideTest {
         DenyPvpFlag denyPvp = new DenyPvpFlag();
 
         assertEquals(Decision.PASS, denyPvp.decide(breakAt(5, new TestFPlayerSender("breaker")), Tristate.TRUE));
+    }
+
+    // ------------------------------------------------------------------
+    // deny-message: what a DenyFlag tells the player it denied
+    // ------------------------------------------------------------------
+
+    /** Counts the effect a DenyFlag runs after a denial. */
+    private static final class CountingDenyFlag extends DenyFlag {
+        final AtomicInteger effects = new AtomicInteger();
+
+        CountingDenyFlag(ECPluginData owner) {
+            super(FlagKey.of(owner, "counted-deny"), EventSource.BREAK);
+        }
+
+        @Override
+        public void onApplied(ActionContext context, Tristate value) {
+            effects.incrementAndGet();
+        }
+    }
+
+    /** The region also in the global lookup, where a DenyFlag reads the deny-message at the point of the action. */
+    private void sayingDenyMessage(String message) {
+        FlagRegistry.get().register(core, CoreFlags.DENY_MESSAGE);
+        TestRegions.index(RegionLookup.get(), region);
+        region.setFlag(CoreFlags.DENY_MESSAGE, message);
+    }
+
+    @Test
+    void aDeniedActionTellsThePlayerTheRegionsDenyMessage() {
+        FlagRegistry.get().register(core, CoreFlags.DENY_BLOCK_BREAK);
+        region.setFlag(CoreFlags.DENY_BLOCK_BREAK, Tristate.TRUE);
+        sayingDenyMessage("stay out");
+        TestFPlayerSender player = new TestFPlayerSender("breaker");
+
+        assertEquals(Decision.DENY, lookup.decide(breakAt(5, player)));
+
+        assertEquals(Arrays.asList("stay out"), player.getMessages());
+    }
+
+    @Test
+    void anAllowedActionSendsNoDenyMessage() {
+        FlagRegistry.get().register(core, CoreFlags.DENY_BLOCK_BREAK);
+        region.setFlag(CoreFlags.DENY_BLOCK_BREAK, Tristate.FALSE);
+        sayingDenyMessage("stay out");
+        TestFPlayerSender player = new TestFPlayerSender("breaker");
+
+        assertEquals(Decision.PASS, lookup.decide(breakAt(5, player)));
+
+        assertTrue(player.getMessages().isEmpty(), player.getMessages().toString());
+    }
+
+    @Test
+    void anInteractLetThroughByItsSettingsSendsNoDenyMessage() {
+        Interact interact = new Interact(core);
+        region.setFlag(interact.any, Tristate.TRUE);
+        InteractSettings settings = new InteractSettings();
+        settings.setExcept(Arrays.asList("minecraft:chest"));
+        region.setFlagSettings(interact.any, settings);
+        sayingDenyMessage("hands off");
+        TestFPlayerSender player = new TestFPlayerSender("user");
+
+        assertEquals(Decision.PASS, lookup.decide(use("minecraft:chest", player)));
+        assertTrue(player.getMessages().isEmpty(), "TRUE with the chest excepted is no denial: " + player.getMessages());
+
+        assertEquals(Decision.DENY, lookup.decide(use("minecraft:furnace", player)));
+        assertEquals(Arrays.asList("hands off"), player.getMessages());
+    }
+
+    @Test
+    void aDenyFlagsEffectRunsOnlyAfterADenial() {
+        CountingDenyFlag flag = new CountingDenyFlag(owner);
+        FlagRegistry.get().register(owner, flag);
+        TestFPlayerSender player = new TestFPlayerSender("breaker");
+
+        region.setFlag(flag, Tristate.TRUE);
+        assertEquals(Decision.DENY, lookup.decide(breakAt(5, player)));
+        assertEquals(1, flag.effects.get());
+
+        region.setFlag(flag, Tristate.FALSE);
+        assertEquals(Decision.PASS, lookup.decide(breakAt(5, player)));
+        assertEquals(1, flag.effects.get(), "FALSE applied, but denied nothing");
     }
 
     // ------------------------------------------------------------------
