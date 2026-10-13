@@ -1,14 +1,22 @@
 package br.com.finalcraft.evernifecore.region;
 
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.ecplugin.IECPluginBootstrap;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECListenerWatch;
 import br.com.finalcraft.evernifecore.region.event.RegionRemovedEvent;
+import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.region.flag.FlagKey;
+import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.region.flag.Tristate;
+import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
 import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 
@@ -74,5 +82,40 @@ class RegionOwnerShutdownTest extends ManagedRegionFixture {
         }
         assertNotSame(usage, EventSourceUsage.get(), "the next use starts a fresh count");
         assertNotSame(tracker, RegionMovementTracker.get(), "the next use starts a fresh tracker");
+    }
+
+    @Test
+    void aPluginsEventSourcesLeaveWithItsFlags() {
+        EventSource duelHit = EventSource.register(owner, "duel-hit");
+        FlagRegistry.get().register(owner, new TristateFlag(FlagKey.of(owner, "deny-duel-hit"), Collections.singleton(duelHit),
+                Tristate.FALSE, Tristate.TRUE));
+        assertTrue(EventSource.all().contains(duelHit));
+        assertFalse(FlagRegistry.get().getByOwner(owner).isEmpty());
+
+        shuttingDown(owner).onECPluginShutdownPre();
+
+        assertFalse(EventSource.all().contains(duelHit));
+        assertTrue(FlagRegistry.get().getByOwner(owner).isEmpty());
+    }
+
+    private static IECPluginBootstrap shuttingDown(ECPluginData plugin) {
+        return new IECPluginBootstrap() {
+            @Override
+            public ECPluginData getPluginData() {
+                return plugin;
+            }
+
+            @Override
+            public void onECPluginEnable() {
+            }
+
+            @Override
+            public void onECPluginShutdown() {
+            }
+
+            @Override
+            public void onECPluginReload() {
+            }
+        };
     }
 }

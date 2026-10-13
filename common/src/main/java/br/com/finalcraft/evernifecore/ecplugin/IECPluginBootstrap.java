@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.logger.ECLogger;
 import br.com.finalcraft.evernifecore.region.RegionManager;
+import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 
 /**
@@ -104,7 +105,7 @@ public interface IECPluginBootstrap {
     /**
      * Optional shutdown extras that run BEFORE the shared teardown. The default first closes the plugin's
      * {@link RegionManager} - writing its regions while the plugin's storage is still open - and unregisters
-     * its region flags, then takes back every entry point this plugin opened - the listeners registered through {@link ECListener#register},
+     * its region flags and event sources, then takes back every entry point this plugin opened - the listeners registered through {@link ECListener#register},
      * the commands registered through {@link FinalCMDManager}, the argument parsers registered through
      * {@link ArgParserManager} (its own and the global ones it owns) and the subscriptions taken in this
      * plugin's name on the {@link ECEventBus} - so nothing still reaches it when
@@ -118,6 +119,7 @@ public interface IECPluginBootstrap {
         //regions first: their write needs the plugin's storage, which the plugin closes right after this hook
         RegionManager.closeOwnedBy(getPluginData());
         FlagRegistry.get().unregisterAll(getPluginData());
+        EventSource.unregisterAll(getPluginData());
         ECListener.unregisterAll(getPluginData());
         FinalCMDManager.unregisterAllCommands(getPluginData());
         ArgParserManager.unregisterAll(getPluginData());
