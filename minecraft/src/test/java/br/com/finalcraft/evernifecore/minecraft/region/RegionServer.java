@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.region;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.testkit.BukkitEventWorld;
@@ -43,7 +45,9 @@ public final class RegionServer implements AutoCloseable {
     private RegionServer(Path dataFolder) {
         server = BukkitEventWorld.install(dataFolder);
         regions = RegionWorld.open("RegionServerOwner", dataFolder.resolve("regions"));
-        core = Plugins.fakeCore(dataFolder.resolve("core").toFile());
+        IECPluginExtractor serverExtractor = EverNifeCore.getProviders().getBaseProvider().provideOrNull(IECPluginExtractor.class);
+        core = Plugins.fakePluginData("EverNifeCore", dataFolder.resolve("core").toFile());
+        EverNifeCore.getProviders().getBaseProvider().register(IECPluginExtractor.class, serverExtractor); //the server's plugin keeps answering
         world = server.world(WORLD, -64, 320);
     }
 

@@ -181,6 +181,10 @@ class FlagRegistryTest {
         FlagRegistry.get().unregisterAll(flagOwner);
         assertFalse(flag.isRegistered());
         assertThrows(IllegalStateException.class, flag::getOwner);
+
+        FlagRegistry.get().register(flagOwner, flag);
+        FlagRegistry.get().reset();
+        assertFalse(flag.isRegistered(), "emptying the registry unbinds what it held");
     }
 
     @Test

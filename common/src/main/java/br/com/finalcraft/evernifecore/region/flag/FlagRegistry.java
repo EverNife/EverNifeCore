@@ -83,7 +83,7 @@ public final class FlagRegistry {
         }
         RegionFlag<T> parent = flag.getParent();
         if (parent != null) {
-            if (!parent.isRegistered() || flags.get(parent.getKey()) != parent) {
+            if (!parent.isRegistered()) {
                 throw new IllegalArgumentException("Flag " + flag.getKey() + " refines " + parent.getKey() + ", which is not registered:"
                         + " register the parent first, then the flags that refine it.");
             }
@@ -129,7 +129,7 @@ public final class FlagRegistry {
      * @return false when this instance was not registered
      */
     public synchronized boolean unregister(RegionFlag<?> flag) {
-        if (flags.get(flag.getKey()) != flag) {
+        if (!flag.isRegistered()) {
             return false;
         }
         flags.remove(flag.getKey(), flag);
