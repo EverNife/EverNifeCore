@@ -57,11 +57,11 @@ public final class RegionBlockListener implements ECListener {
     }
 
     private void decide(EventSource source, Block block, Player player, Cancellable event) {
-        if (RegionEvents.isDisabled(block.getWorld())) {
+        if (RegionContexts.isDisabled(block.getWorld())) {
             return;
         }
-        BlockContext context = new BlockContext(source, RegionEvents.position(block.getLocation()), FCBukkitUtil.adapt(player), event,
-                RegionEvents.id(block.getType()), RegionEvents.itemInHandId(player), fakePlayers.test(player));
+        BlockContext context = new BlockContext(source, RegionContexts.position(block.getLocation()), FCBukkitUtil.adapt(player), event,
+                RegionContexts.id(block.getType()), RegionContexts.itemInHandId(player), fakePlayers.test(player));
         if (RegionLookup.get().decide(context) == Decision.DENY) {
             event.setCancelled(true);
         }

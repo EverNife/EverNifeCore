@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.region;
 import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.protection.integration.ProtectionHandler;
-import br.com.finalcraft.evernifecore.minecraft.region.listener.RegionEvents;
+import br.com.finalcraft.evernifecore.minecraft.region.listener.RegionContexts;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
@@ -45,12 +45,12 @@ public final class McRegionProtectionHandler implements ProtectionHandler {
 
     @Override
     public boolean canAttack(Player player, Entity victim) {
-        if (RegionEvents.isDisabled(victim.getWorld())) {
+        if (RegionContexts.isDisabled(victim.getWorld())) {
             return true;
         }
-        return allows(new DamageContext(RegionEvents.position(victim.getLocation()), FCBukkitUtil.adapt(player), null,
-                RegionEvents.victimKind(victim), victim instanceof Player ? FCBukkitUtil.adapt((Player) victim) : null,
-                RegionEvents.id(victim.getType())));
+        return allows(new DamageContext(RegionContexts.position(victim.getLocation()), FCBukkitUtil.adapt(player), null,
+                RegionContexts.victimKind(victim), victim instanceof Player ? FCBukkitUtil.adapt((Player) victim) : null,
+                RegionContexts.id(victim.getType())));
     }
 
     @Override
@@ -77,7 +77,7 @@ public final class McRegionProtectionHandler implements ProtectionHandler {
     }
 
     private boolean allowsArea(EventSource source, Player player, World world, double x1, double y1, double z1, double x2, double y2, double z2) {
-        if (RegionEvents.isDisabled(world)) {
+        if (RegionContexts.isDisabled(world)) {
             return true;
         }
         if (!allowsBlock(source, player, new Location(world, (x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2))) {
@@ -96,11 +96,11 @@ public final class McRegionProtectionHandler implements ProtectionHandler {
     }
 
     private boolean allowsBlock(EventSource source, Player player, Location at) {
-        if (RegionEvents.isDisabled(at.getWorld())) {
+        if (RegionContexts.isDisabled(at.getWorld())) {
             return true;
         }
-        return allows(new BlockContext(source, RegionEvents.position(at), FCBukkitUtil.adapt(player), null,
-                RegionEvents.id(at.getBlock().getType()), RegionEvents.itemInHandId(player), FCBukkitUtil.isFakePlayer(player)));
+        return allows(new BlockContext(source, RegionContexts.position(at), FCBukkitUtil.adapt(player), null,
+                RegionContexts.id(at.getBlock().getType()), RegionContexts.itemInHandId(player), FCBukkitUtil.isFakePlayer(player)));
     }
 
     private static boolean allows(ActionContext context) {

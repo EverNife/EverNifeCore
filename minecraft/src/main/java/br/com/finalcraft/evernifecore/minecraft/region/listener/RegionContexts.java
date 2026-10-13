@@ -21,10 +21,10 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.Locale;
 
-/** Internal: what every region listener repeats - the disabled-world check, positions, platform-neutral ids and the player behind a hit. */
-public final class RegionEvents {
+/** Internal: what every region listener repeats to build an ActionContext - the disabled-world check, positions, platform-neutral ids and the player behind a hit. */
+public final class RegionContexts {
 
-    private RegionEvents() {
+    private RegionContexts() {
     }
 
     /** The only reader of {@code Regions.disabled-worlds}: nothing in such a world is asked of a region. */

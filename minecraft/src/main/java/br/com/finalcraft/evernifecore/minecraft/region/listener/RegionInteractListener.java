@@ -33,12 +33,12 @@ public final class RegionInteractListener implements ECListener {
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
         Block block = event.getClickedBlock();
-        if (block == null || RegionEvents.isDisabled(block.getWorld())) {
+        if (block == null || RegionContexts.isDisabled(block.getWorld())) {
             return;
         }
         Player player = event.getPlayer();
-        BlockContext context = new BlockContext(EventSource.INTERACT, RegionEvents.position(block.getLocation()), FCBukkitUtil.adapt(player),
-                event, RegionEvents.id(block.getType()), RegionEvents.itemInHandId(player), FCBukkitUtil.isFakePlayer(player));
+        BlockContext context = new BlockContext(EventSource.INTERACT, RegionContexts.position(block.getLocation()), FCBukkitUtil.adapt(player),
+                event, RegionContexts.id(block.getType()), RegionContexts.itemInHandId(player), FCBukkitUtil.isFakePlayer(player));
         if (RegionLookup.get().decide(context) == Decision.DENY) {
             event.setCancelled(true);
         }
@@ -47,11 +47,11 @@ public final class RegionInteractListener implements ECListener {
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onInteractEntity(PlayerInteractEntityEvent event) {
         Entity entity = event.getRightClicked();
-        if (RegionEvents.isDisabled(entity.getWorld())) {
+        if (RegionContexts.isDisabled(entity.getWorld())) {
             return;
         }
-        EntityContext context = new EntityContext(RegionEvents.position(entity.getLocation()), FCBukkitUtil.adapt(event.getPlayer()), event,
-                RegionEvents.id(entity.getType()), entity instanceof Player ? FCBukkitUtil.adapt((Player) entity) : null);
+        EntityContext context = new EntityContext(RegionContexts.position(entity.getLocation()), FCBukkitUtil.adapt(event.getPlayer()), event,
+                RegionContexts.id(entity.getType()), entity instanceof Player ? FCBukkitUtil.adapt((Player) entity) : null);
         if (RegionLookup.get().decide(context) == Decision.DENY) {
             event.setCancelled(true);
         }

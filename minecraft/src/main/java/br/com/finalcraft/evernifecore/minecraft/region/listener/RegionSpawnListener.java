@@ -20,7 +20,7 @@ public final class RegionSpawnListener implements ECListener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onSpawn(CreatureSpawnEvent event) {
         Entity spawned = event.getEntity();
-        if (RegionEvents.isDisabled(spawned.getWorld())) {
+        if (RegionContexts.isDisabled(spawned.getWorld())) {
             return;
         }
         switch (event.getSpawnReason()) {   //a switch, not ==: a constant a server lacks then reads as no match instead of failing to link
@@ -31,8 +31,8 @@ public final class RegionSpawnListener implements ECListener {
             default:
                 break;
         }
-        SpawnContext context = new SpawnContext(RegionEvents.position(spawned.getLocation()), event, RegionEvents.spawnKind(spawned),
-                RegionEvents.id(spawned.getType()), event.getSpawnReason().name());
+        SpawnContext context = new SpawnContext(RegionContexts.position(spawned.getLocation()), event, RegionContexts.spawnKind(spawned),
+                RegionContexts.id(spawned.getType()), event.getSpawnReason().name());
         if (RegionLookup.get().decide(context) == Decision.DENY) {
             event.setCancelled(true);
         }

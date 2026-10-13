@@ -22,13 +22,13 @@ public final class RegionDamageListener implements ECListener {
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent event) {
         Entity victim = event.getEntity();
-        if (RegionEvents.isDisabled(victim.getWorld())) {
+        if (RegionContexts.isDisabled(victim.getWorld())) {
             return;
         }
-        Player attacker = RegionEvents.rootPlayer(event.getDamager());   //null for a monster: the flag decides what that means
-        DamageContext context = new DamageContext(RegionEvents.position(victim.getLocation()), attacker == null ? null : FCBukkitUtil.adapt(attacker),
-                event, RegionEvents.victimKind(victim), victim instanceof Player ? FCBukkitUtil.adapt((Player) victim) : null,
-                RegionEvents.id(victim.getType()));
+        Player attacker = RegionContexts.rootPlayer(event.getDamager());   //null for a monster: the flag decides what that means
+        DamageContext context = new DamageContext(RegionContexts.position(victim.getLocation()), attacker == null ? null : FCBukkitUtil.adapt(attacker),
+                event, RegionContexts.victimKind(victim), victim instanceof Player ? FCBukkitUtil.adapt((Player) victim) : null,
+                RegionContexts.id(victim.getType()));
         if (RegionLookup.get().decide(context) == Decision.DENY) {
             event.setCancelled(true);
         }
