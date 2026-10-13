@@ -7,7 +7,6 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.region.FlagTriggers;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
@@ -15,6 +14,7 @@ import br.com.finalcraft.evernifecore.region.event.RegionEnterEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionGroupChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
+import br.com.finalcraft.evernifecore.region.flag.ProtectionFlagGate;
 import br.com.finalcraft.evernifecore.region.flag.context.MoveContext;
 import jakarta.annotation.Nullable;
 
@@ -137,13 +137,13 @@ public final class RegionMovementTracker {
         }
         if (cause.isCancellable()) {
             for (Region region : exited) {
-                MoveVerdict verdict = FlagTriggers.decideCrossing(lookup, new MoveContext(player, from, to, cause, MoveContext.Transition.LEAVE, region), session);
+                MoveVerdict verdict = ProtectionFlagGate.decideCrossing(lookup, new MoveContext(player, from, to, cause, MoveContext.Transition.LEAVE, region), session);
                 if (!verdict.isAllowed()) {
                     return verdict;
                 }
             }
             for (Region region : entered) {
-                MoveVerdict verdict = FlagTriggers.decideCrossing(lookup, new MoveContext(player, from, to, cause, MoveContext.Transition.ENTER, region), session);
+                MoveVerdict verdict = ProtectionFlagGate.decideCrossing(lookup, new MoveContext(player, from, to, cause, MoveContext.Transition.ENTER, region), session);
                 if (!verdict.isAllowed()) {
                     return verdict;
                 }
@@ -181,7 +181,7 @@ public final class RegionMovementTracker {
             return;
         }
         lookup.forgetSession(uuid);
-        FlagTriggers.forget(uuid);
+        ProtectionFlagGate.forget(uuid);
         FPlayer player = session.getOnlinePlayer();
         if (player != null) {
             postCrossings(player, session.getPosition(), null, MoveCause.QUIT, session.getCurrent(), Collections.emptyList());

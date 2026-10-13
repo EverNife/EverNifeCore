@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.RegionIndex.WorldSnapshot;
 import br.com.finalcraft.evernifecore.region.Resolution.Step;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
+import br.com.finalcraft.evernifecore.region.flag.ProtectionFlagGate;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
@@ -268,7 +269,7 @@ public final class RegionLookup {
      * Thread: the thread of the event; it takes no lock.
      */
     public Decision decide(ActionContext context) {
-        return FlagTriggers.decide(this, context);
+        return ProtectionFlagGate.decide(this, context);
     }
 
     /** {@link #resolve} with {@link Tristate#UNDEFINED} for no value. */

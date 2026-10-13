@@ -1,18 +1,12 @@
-package br.com.finalcraft.evernifecore.region;
+package br.com.finalcraft.evernifecore.region.flag;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.region.flag.Decision;
-import br.com.finalcraft.evernifecore.region.flag.EventSource;
-import br.com.finalcraft.evernifecore.region.flag.FlagCategory;
-import br.com.finalcraft.evernifecore.region.flag.FlagHandler;
-import br.com.finalcraft.evernifecore.region.flag.FlagOutcome;
-import br.com.finalcraft.evernifecore.region.flag.FlagOutcomeContext;
-import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
-import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
-import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.TriggerThrottle;
+import br.com.finalcraft.evernifecore.region.Region;
+import br.com.finalcraft.evernifecore.region.RegionLookup;
+import br.com.finalcraft.evernifecore.region.RegionTime;
+import br.com.finalcraft.evernifecore.region.Resolution;
 import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.context.MoveContext;
 import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
@@ -34,7 +28,7 @@ import java.util.function.Function;
  * movement the way back: the handler's choice, else the region's settings of the flag, else the server's, else the
  * last accepted block, moved further back along the trail for a player who keeps being denied.
  */
-public final class FlagTriggers {
+public final class ProtectionFlagGate {
 
     /** The throttle key of an action no player is behind: one firing per interval for all of them. */
     static final UUID NO_PLAYER = new UUID(0, 0);
@@ -42,10 +36,10 @@ public final class FlagTriggers {
     private static final TriggerThrottle THROTTLE = new TriggerThrottle();
     private static final Duration DEFAULT_STUCK_WINDOW = Duration.ofSeconds(1);
 
-    private FlagTriggers() {
+    private ProtectionFlagGate() {
     }
 
-    static Decision decide(RegionLookup lookup, ActionContext context) {
+    public static Decision decide(RegionLookup lookup, ActionContext context) {
         List<Region> here = lookup.at(context.getPosition());
         if (here.isEmpty()) {
             return Decision.PASS;
