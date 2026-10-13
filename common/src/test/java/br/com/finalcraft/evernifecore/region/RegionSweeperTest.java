@@ -109,7 +109,7 @@ class RegionSweeperTest extends ManagedRegionFixture {
         runAgenda();
 
         assertEquals(1, changes.size());
-        assertEquals(GroupChange.MEMBER_EXPIRED, changes.get(0).getType());
+        assertEquals(GroupChange.MEMBER_EXPIRED, changes.get(0).getChange());
         assertEquals(guest, changes.get(0).getPlayer());
         assertNull(members.getNextMemberDeadline());
     }

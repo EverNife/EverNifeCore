@@ -17,13 +17,13 @@ public class RegionGroupChangedEvent extends RegionEvent {
     }
 
     private final AccessGroup group;
-    private final GroupChange type;
+    private final GroupChange change;
     private final @Nullable UUID player;
 
-    public RegionGroupChangedEvent(Region region, AccessGroup group, GroupChange type, @Nullable UUID player) {
+    public RegionGroupChangedEvent(Region region, AccessGroup group, GroupChange change, @Nullable UUID player) {
         super(region);
         this.group = group;
-        this.type = type;
+        this.change = change;
         this.player = player;
     }
 
@@ -31,8 +31,8 @@ public class RegionGroupChangedEvent extends RegionEvent {
         return group;
     }
 
-    public GroupChange getType() {
-        return type;
+    public GroupChange getChange() {
+        return change;
     }
 
     /** The member added, removed or expired; null for the other changes. */

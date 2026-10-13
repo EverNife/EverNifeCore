@@ -91,7 +91,7 @@ class RegionEventsTest extends ManagedRegionFixture {
 
         List<GroupChange> types = new ArrayList<>();
         for (RegionGroupChangedEvent change : changes) {
-            types.add(change.getType());
+            types.add(change.getChange());
         }
         assertEquals(Arrays.asList(GroupChange.CREATED, GroupChange.MEMBER_ADDED, GroupChange.MEMBER_REMOVED, GroupChange.PRIORITY_SET,
                 GroupChange.PERMISSION_SET, GroupChange.PREDICATE_SET, GroupChange.REMOVED), types);
