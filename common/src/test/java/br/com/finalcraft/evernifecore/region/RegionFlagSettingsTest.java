@@ -89,4 +89,37 @@ class RegionFlagSettingsTest extends ManagedRegionFixture {
         assertEquals(Duration.ofSeconds(5), read.getTriggerInterval());
         assertEquals("old", read.getGreeting());
     }
+
+    @Test
+    void editingSettingsTheRegionKeepsFromTheServerStartsFromACopy() {
+        RoomFlag flag = registeredRoomFlag(owner);
+        Region region = created(manager().create("room", WORLD, box(0, 0, 9, 9)));
+        RoomSettings server = flag.getSettings();
+        assertNull(region.getFlagSettings(flag));
+        List<RegionChangedEvent> changes = record(RegionChangedEvent.class);
+
+        RoomSettings edited = region.editFlagSettings(flag, (RoomSettings own) -> own.setGreeting("edited here"));
+
+        assertSame(edited, region.getFlagSettings(flag));
+        assertEquals("edited here", edited.getGreeting());
+        assertSame(server, flag.getSettings(), "the server's object stays the flag's");
+        assertEquals("hello", server.getGreeting(), "and keeps its value");
+        assertEquals(1, changes.size());
+        assertEquals(RegionChangedEvent.Type.FLAG_SETTINGS, changes.get(0).getType());
+        assertTrue(region.getFlagSettingsForStorage().containsKey(flag.getKey().toString()));
+    }
+
+    @Test
+    void editingTheRegionsOwnSettingsKeepsTheSameObject() {
+        RoomFlag flag = registeredRoomFlag(owner);
+        Region region = created(manager().create("room", WORLD, box(0, 0, 9, 9)));
+        RoomSettings own = new RoomSettings();
+        region.setFlagSettings(flag, own);
+
+        RoomSettings edited = region.editFlagSettings(flag, (RoomSettings settings) -> settings.setTriggerInterval(Duration.ofSeconds(4)));
+
+        assertSame(own, edited);
+        assertSame(edited, region.getFlagSettings(flag));
+        assertEquals(Duration.ofSeconds(4), own.getTriggerInterval());
+    }
 }

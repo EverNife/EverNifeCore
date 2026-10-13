@@ -20,6 +20,7 @@ import br.com.finalcraft.evernifecore.region.group.GroupChange;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -35,6 +36,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.function.Consumer;
 
 /**
  * A named area of one world, owned by the plugin whose {@link RegionManager} created it. Not the {@code .mca}
@@ -388,6 +390,34 @@ public final class Region {
         flagSettings.put(flag.getKey(), settings);
         rawFlagSettings.remove(flag.getKey().toString());
         manager.changed(this, RegionChangedEvent.Type.FLAG_SETTINGS);
+    }
+
+    /**
+     * Edits this region's own settings for {@code flag} - starting from a copy of the server's when the region keeps
+     * those - and sets the result, so the change is written and {@link RegionChangedEvent.Type#FLAG_SETTINGS} goes out.
+     * The server's object is never touched: changing it would change every region that keeps it.
+     *
+     * @return the settings the region now holds
+     */
+    public <S extends FlagSettings> S editFlagSettings(RegionFlag<?> flag, Consumer<? super S> edit) {
+        S own = getFlagSettings(flag);
+        if (own == null) {
+            own = copyOf(flag.getSettings(), flag);
+        }
+        edit.accept(own);
+        setFlagSettings(flag, own);
+        return own;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <S extends FlagSettings> S copyOf(FlagSettings settings, RegionFlag<?> flag) {
+        ObjectMapper mapper = ConfigFactory.inMemoryCodec().getObjectMapper();
+        try {
+            return (S) mapper.treeToValue(mapper.valueToTree(settings), flag.getSettingsType());
+        } catch (JsonProcessingException unreadable) {
+            throw new IllegalStateException("The settings of flag " + flag.getKey() + " (" + flag.getSettingsType().getName() + ") do not read"
+                    + " back from what they write, so they cannot be copied - make every field a Jackson property both ways.", unreadable);
+        }
     }
 
     /** Goes back to the server's settings for {@code flag}; false when the region had none of its own. */
