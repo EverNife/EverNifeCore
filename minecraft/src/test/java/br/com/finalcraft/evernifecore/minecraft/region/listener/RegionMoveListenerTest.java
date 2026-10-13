@@ -241,7 +241,7 @@ class RegionMoveListenerTest {
     void theMoveListenerSitsOnTheServerOnlyWhileSomeRegionNeedsIt() {
         Duration idleTime = EventSourceUsage.get().getIdleTime();
         try (RegionServer server = RegionServer.open(tempDir)) {
-            McRegionListeners bridge = McRegionListeners.start(server.server.getPluginData());
+            RegionListeners bridge = RegionListeners.start(server.server.getPluginData());
             ECEventSubscription<RegionEnterEvent> subscription = null;
             try {
                 assertFalse(isRegistered(PlayerMoveEvent.getHandlerList(), RegionMoveListener.class), "nothing needs MOVE yet");
@@ -273,7 +273,7 @@ class RegionMoveListenerTest {
     void onlinePlayersAreSeededWhenTheMoveListenerArrives() {
         try (RegionServer server = RegionServer.open(tempDir)) {
             Player online = server.player("resident", 5.5, 5, 5.5);
-            McRegionListeners bridge = McRegionListeners.start(server.server.getPluginData());
+            RegionListeners bridge = RegionListeners.start(server.server.getPluginData());
             try {
                 arena(server);   //the first region that needs MOVE: the listener arrives, and seeds whoever is online
                 Player unseen = server.player("stranger", 5.5, 5, 5.5);   //logged in after the seeding, and never joined

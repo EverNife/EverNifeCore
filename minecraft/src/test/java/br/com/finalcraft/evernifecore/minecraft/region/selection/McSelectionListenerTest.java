@@ -4,7 +4,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.region.RegionServer;
-import br.com.finalcraft.evernifecore.minecraft.region.listener.McRegionListeners;
+import br.com.finalcraft.evernifecore.minecraft.region.listener.RegionListeners;
 import br.com.finalcraft.evernifecore.minecraft.region.listener.RegionInteractListener;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
@@ -206,7 +206,7 @@ class McSelectionListenerTest {
     @Test
     void theListenerSitsOnTheServerOnlyWhileASelectionIsOpen() {
         Duration idleTime = EventSourceUsage.get().getIdleTime();
-        McRegionListeners bridge = McRegionListeners.start(server.server.getPluginData());
+        RegionListeners bridge = RegionListeners.start(server.server.getPluginData());
         try {
             assertFalse(isRegistered(PlayerInteractEvent.getHandlerList(), McSelectionListener.class), "no selection is open");
 

@@ -38,7 +38,7 @@ import br.com.finalcraft.evernifecore.minecraft.ontime.McDefaultOntimeManager;
 import br.com.finalcraft.evernifecore.minecraft.protection.ProtectionAll;
 import br.com.finalcraft.evernifecore.minecraft.region.McRegionProtectionHandler;
 import br.com.finalcraft.evernifecore.minecraft.region.McWorldListener;
-import br.com.finalcraft.evernifecore.minecraft.region.listener.McRegionListeners;
+import br.com.finalcraft.evernifecore.minecraft.region.listener.RegionListeners;
 import br.com.finalcraft.evernifecore.minecraft.scheduler.McFCScheduler;
 import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCTickUtil;
@@ -70,7 +70,7 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
     /** The platform this plugin registers, kept so the native world hooks fire into the same instance. */
     private final McPlatform platform = new McPlatform();
 
-    private McRegionListeners regionListeners;
+    private RegionListeners regionListeners;
     static {
         //First thing to do when this class is loaded is to add REQUIRED dependencies, because there ara plugins that depends
         //on EverNifeCore and are loaded before it, for example, FinalEconomy
@@ -170,7 +170,7 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         FCTickUtil.getTickCount();//This will start tickCounting
 
         //each region listener sits on the server only while some region needs its kind of event
-        regionListeners = McRegionListeners.start(ecPluginData);
+        regionListeners = RegionListeners.start(ecPluginData);
 
         //last, so what a loadbefore plugin asked for runs after the first-tick work scheduled above
         McFCScheduler.INSTANCE.releaseTasksHeldUntilTheCoreEnables();

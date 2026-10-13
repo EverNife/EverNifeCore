@@ -1,14 +1,21 @@
 package br.com.finalcraft.evernifecore.minecraft.region.listener;
 
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.region.RegionServer;
 import br.com.finalcraft.evernifecore.region.Region;
+import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.region.flag.FlagKey;
+import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyBlockBreakFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyBlockPlaceFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyInteractFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyMonsterSpawnFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyPvpFlag;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
+import br.com.finalcraft.evernifecore.region.usage.UsageWatch;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import br.com.finalcraft.evernifecore.testing.minecraft.Doubles;
 import org.bukkit.block.BlockFace;
@@ -16,6 +23,7 @@ import org.bukkit.damage.DamageSource;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -36,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Each region listener is on the server exactly while some region needs its source, and none hears a disabled world. */
-class McRegionListenersTest {
+class RegionListenersTest {
 
     @TempDirNobodyCleans
     Path tempDir;
@@ -45,7 +53,7 @@ class McRegionListenersTest {
     void aListenerSitsOnTheServerOnlyWhileSomeRegionNeedsItsSource() {
         Duration idleTime = EventSourceUsage.get().getIdleTime();
         try (RegionServer server = RegionServer.open(tempDir)) {
-            McRegionListeners bridge = McRegionListeners.start(server.server.getPluginData());
+            RegionListeners bridge = RegionListeners.start(server.server.getPluginData());
             try {
                 assertFalse(isRegistered(BlockBreakEvent.getHandlerList(), RegionBlockListener.class), "no region needs BREAK yet");
 
@@ -65,6 +73,47 @@ class McRegionListenersTest {
         }
     }
 
+    /** A plugin's own listener, standing in for the one that raises its duel hits. */
+    public static final class DuelHitListener implements ECListener {
+        @EventHandler
+        public void onInteract(PlayerInteractEvent event) {
+        }
+    }
+
+    @Test
+    void aPluginsOwnListenerFollowsItsOwnSource() {
+        Duration idleTime = EventSourceUsage.get().getIdleTime();
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            //the server's plugin plays the duel plugin: a listener registers in the name of an enabled plugin
+            ECPluginData duel = server.server.getPluginData();
+            EventSource duelHit = EventSource.register(duel, "duel-hit");
+            DenyFlag denyDuelHit = new DenyFlag(FlagKey.of(duel, "deny-duel-hit"), duelHit) {
+            };
+            FlagRegistry.get().register(duel, denyDuelHit);
+            DuelHitListener listener = new DuelHitListener();
+            UsageWatch watch = RegionListeners.follow(duel, duelHit, listener, null);
+            try {
+                assertFalse(isRegistered(PlayerInteractEvent.getHandlerList(), DuelHitListener.class), "no region needs the duel hit yet");
+
+                Region arena = server.box("arena", 0, 0, 0, 10, 10, 10, denyDuelHit);
+                assertTrue(isRegistered(PlayerInteractEvent.getHandlerList(), DuelHitListener.class));
+
+                EventSourceUsage.get().setIdleTime(Duration.ZERO);
+                server.regions.getManager().remove(arena);
+                server.regions.runDue();
+
+                assertFalse(isRegistered(PlayerInteractEvent.getHandlerList(), DuelHitListener.class), "the last region that needed it left");
+            } finally {
+                watch.stop();
+                listener.unregisterThis();
+                FlagRegistry.get().unregisterAll(duel);
+                EventSource.unregisterAll(duel);
+            }
+        } finally {
+            EventSourceUsage.get().setIdleTime(idleTime);
+        }
+    }
+
     @Test
     void aDisabledWorldSkipsEveryHandler() {
         List<String> before = ECSettings.REGIONS_DISABLED_WORLDS;
@@ -72,7 +121,7 @@ class McRegionListenersTest {
             server.box("plots", 0, 0, 0, 10, 10, 10,
                     server.flag(new DenyBlockBreakFlag()), server.flag(new DenyBlockPlaceFlag()),
                     server.flag(new DenyInteractFlag()), server.flag(new DenyPvpFlag()), server.flag(new DenyMonsterSpawnFlag()));
-            McRegionListeners bridge = McRegionListeners.start(server.server.getPluginData());
+            RegionListeners bridge = RegionListeners.start(server.server.getPluginData());
             try {
                 Player player = server.player("plotter", 5, 5, 5);
                 assertTrue(server.call(new BlockBreakEvent(server.world.getBlockAt(5, 5, 5), player)).isCancelled(),
