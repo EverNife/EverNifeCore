@@ -20,11 +20,14 @@ import jakarta.annotation.Nullable;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicIntegerArray;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 /**
@@ -39,16 +42,13 @@ import java.util.function.Consumer;
 public final class EventSourceUsage {
 
     public static final Duration DEFAULT_IDLE_TIME = Duration.ofMinutes(3);
-    private static final EventSource[] SOURCES = EventSource.values();
 
     private static volatile @Nullable EventSourceUsage global;
 
     private final RegionLookup lookup;
-    private final int[] uses = new int[SOURCES.length];
-    private final int[] holds = new int[SOURCES.length];
-    private final long[] idleGeneration = new long[SOURCES.length];
-    /** 1 when needed; read without a lock on every protected event. */
-    private final AtomicIntegerArray needed = new AtomicIntegerArray(SOURCES.length);
+    // ponytail: the Count of a source its plugin unregistered stays here at zero - harmless; dropping it would tie
+    // EventSource.unregisterAll to this singleton
+    private final ConcurrentHashMap<EventSource, Count> counts = new ConcurrentHashMap<>();
     private final List<UsageWatch> watches = new CopyOnWriteArrayList<>();
     private final Consumer<String> publishListener = world -> recount();
     private final Runnable registryListener = this::recount;
@@ -100,12 +100,14 @@ public final class EventSourceUsage {
 
     /** Whether events of {@code source} must be heard now. Lock-free; {@link EventSource#NONE} never is. */
     public boolean isNeeded(EventSource source) {
-        return needed.get(source.ordinal()) == 1;
+        Count count = counts.get(source);
+        return count != null && count.needed.get() == 1;
     }
 
     /** How many indexed regions hold a value of a flag that needs {@code source}. */
     public synchronized int getUses(EventSource source) {
-        return uses[source.ordinal()];
+        Count count = counts.get(source);
+        return count == null ? 0 : count.uses;
     }
 
     public Duration getIdleTime() {
@@ -121,7 +123,7 @@ public final class EventSourceUsage {
     public UsageHold acquire(EventSource source) {
         List<Runnable> transitions;
         synchronized (this) {
-            holds[source.ordinal()]++;
+            countOf(source).holds++;
             transitions = settle();
         }
         transitions.forEach(Runnable::run);
@@ -131,7 +133,7 @@ public final class EventSourceUsage {
     void release(EventSource source) {
         List<Runnable> transitions;
         synchronized (this) {
-            holds[source.ordinal()]--;
+            countOf(source).holds--;
             transitions = settle();
         }
         transitions.forEach(Runnable::run);
@@ -160,8 +162,8 @@ public final class EventSourceUsage {
      */
     public void recount() {
         // ponytail: a full recount per change is O(regions x flags); count per region incrementally if a profiler ever asks
-        int[] counted = new int[SOURCES.length];
-        Set<EventSource> seen = EnumSet.noneOf(EventSource.class);
+        Map<EventSource, Integer> counted = new HashMap<>();
+        Set<EventSource> seen = new HashSet<>();
         for (Region region : lookup.all()) {
             seen.clear();
             collect(region.getFlags().keySet(), seen);
@@ -169,12 +171,15 @@ public final class EventSourceUsage {
                 collect(group.getFlags().keySet(), seen);
             }
             for (EventSource source : seen) {
-                counted[source.ordinal()]++;
+                counted.merge(source, 1, Integer::sum);
             }
         }
         List<Runnable> transitions;
         synchronized (this) {
-            System.arraycopy(counted, 0, uses, 0, counted.length);
+            for (Count count : counts.values()) {
+                count.uses = 0;
+            }
+            counted.forEach((source, uses) -> countOf(source).uses = uses);
             transitions = settle();
         }
         transitions.forEach(Runnable::run);
@@ -192,30 +197,36 @@ public final class EventSourceUsage {
     /** Holds the lock: flips what changed and returns the callbacks to run outside it. */
     private List<Runnable> settle() {
         List<Runnable> transitions = null;
-        for (EventSource source : SOURCES) {
-            int index = source.ordinal();
-            boolean now = source != EventSource.NONE && (uses[index] > 0 || holds[index] > 0);
-            if (now == (needed.get(index) == 1)) {
+        for (Map.Entry<EventSource, Count> entry : counts.entrySet()) {
+            EventSource source = entry.getKey();
+            Count count = entry.getValue();
+            boolean now = !source.equals(EventSource.NONE) && (count.uses > 0 || count.holds > 0);
+            if (now == (count.needed.get() == 1)) {
                 continue;
             }
-            needed.set(index, now ? 1 : 0);
+            count.needed.set(now ? 1 : 0);
             if (transitions == null) {
                 transitions = new ArrayList<>(2);
             }
             if (now) {
                 transitions.add(() -> becomeAll(source, true));
             } else {
-                long generation = ++idleGeneration[index];
+                long generation = ++count.idleGeneration;
                 transitions.add(() -> RegionScheduler.scheduleAsync(() -> idleIfStill(source, generation), idleTime.toMillis()));
             }
         }
         return transitions == null ? new ArrayList<>(0) : transitions;
     }
 
+    /** Under the lock. */
+    private Count countOf(EventSource source) {
+        return counts.computeIfAbsent(source, key -> new Count());
+    }
+
     private void idleIfStill(EventSource source, long generation) {
         synchronized (this) {
             //needed again meanwhile, or unneeded again later with a wait of its own: this wait is void
-            if (idleGeneration[source.ordinal()] != generation || isNeeded(source)) {
+            if (countOf(source).idleGeneration != generation || isNeeded(source)) {
                 return;
             }
         }
@@ -224,7 +235,7 @@ public final class EventSourceUsage {
 
     private void becomeAll(EventSource source, boolean isNeeded) {
         for (UsageWatch watch : watches) {
-            if (watch.getSource() == source) {
+            if (watch.getSource().equals(source)) {
                 run(watch, watch.become(isNeeded));
             }
         }
@@ -257,5 +268,12 @@ public final class EventSourceUsage {
         for (UsageWatch watch : new ArrayList<>(watches)) {
             watch.stop();
         }
+    }
+
+    private static final class Count {
+        int uses;            //indexed regions holding a value of a flag that needs the source
+        int holds;           //acquire() holds
+        long idleGeneration; //bumps when the source goes unneeded; an idle wait of an older generation is void
+        final AtomicInteger needed = new AtomicInteger(); //1 while needed; read lock-free on every protected event
     }
 }

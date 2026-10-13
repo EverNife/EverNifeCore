@@ -18,7 +18,6 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,7 +36,7 @@ class FlagHierarchyTest {
     /** Denies BREAK on TRUE. */
     private static final class BreakFlag extends TristateFlag {
         BreakFlag(ECPluginData owner, String name, RegionFlag<Tristate> parent) {
-            super(FlagKey.of(owner, name), EnumSet.of(EventSource.BREAK), Tristate.FALSE, Tristate.TRUE, parent);
+            super(FlagKey.of(owner, name), Collections.singleton(EventSource.BREAK), Tristate.FALSE, Tristate.TRUE, parent);
         }
 
         @Override
@@ -48,7 +47,7 @@ class FlagHierarchyTest {
 
     private static final class TextFlag extends RegionFlag<String> {
         TextFlag(ECPluginData owner, String name) {
-            super(FlagKey.of(owner, name), FlagTypes.TEXT, EnumSet.of(EventSource.BREAK), null);
+            super(FlagKey.of(owner, name), FlagTypes.TEXT, Collections.singleton(EventSource.BREAK), null);
         }
 
         @Override

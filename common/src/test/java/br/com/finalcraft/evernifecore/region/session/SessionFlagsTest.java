@@ -25,7 +25,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -44,7 +43,7 @@ class SessionFlagsTest extends TrackerFixture {
         private final Revalidation revalidation;
 
         TracingFlag(ECPluginData owner, String name, Revalidation revalidation) {
-            super(FlagKey.of(owner, name), FlagTypes.TEXT, EnumSet.of(EventSource.MOVE), null);
+            super(FlagKey.of(owner, name), FlagTypes.TEXT, Collections.singleton(EventSource.MOVE), null);
             this.revalidation = revalidation;
         }
 

@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
-import java.util.EnumSet;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -58,7 +58,7 @@ class EventSourceUsageTest {
         lookup = TestRegions.newLookup();
         bus = EventBuses.mirroring(new FailingExceptionHandler());
         agenda = new ManualAgenda().install();
-        breakFlag = new TristateFlag(FlagKey.of(owner, "no-break"), EnumSet.of(EventSource.BREAK), Tristate.FALSE, Tristate.TRUE);
+        breakFlag = new TristateFlag(FlagKey.of(owner, "no-break"), Collections.singleton(EventSource.BREAK), Tristate.FALSE, Tristate.TRUE);
         FlagRegistry.get().register(owner, breakFlag);
         usage = new EventSourceUsage(lookup, bus);
     }
@@ -184,8 +184,34 @@ class EventSourceUsageTest {
     }
 
     @Test
+    void aPluginSourceIsCountedLikeACoreOne() {
+        EventSource probe = EventSource.register(owner, "probe");
+        try {
+            TristateFlag probeFlag = new TristateFlag(FlagKey.of(owner, "no-probe"), Collections.singleton(probe), Tristate.FALSE, Tristate.TRUE);
+            FlagRegistry.get().register(owner, probeFlag);
+            usage.watch(owner, probe, needed::incrementAndGet, idle::incrementAndGet);
+            assertFalse(usage.isNeeded(probe));
+
+            Region region = TestRegions.box(owner, "probed", WORLD, 0, 0, 0, 10, 10, 10);
+            region.setFlag(probeFlag, Tristate.TRUE);
+            TestRegions.index(lookup, region);
+            assertTrue(usage.isNeeded(probe));
+            assertEquals(1, needed.get());
+            assertEquals(1, usage.getUses(probe));
+
+            TestRegions.unindex(lookup, region);
+            assertEquals(0, idle.get(), "unneeded is not idle until the delay passes");
+            agenda.runQueued();
+            assertEquals(1, idle.get());
+            assertFalse(usage.isNeeded(probe));
+        } finally {
+            EventSource.unregisterAll(owner);
+        }
+    }
+
+    @Test
     void noneIsNeverNeededAndAStoppedUsageFiresNothing() {
-        TristateFlag dataFlag = new TristateFlag(FlagKey.of(owner, "just-data"), EnumSet.of(EventSource.NONE), Tristate.FALSE, Tristate.TRUE);
+        TristateFlag dataFlag = new TristateFlag(FlagKey.of(owner, "just-data"), Collections.singleton(EventSource.NONE), Tristate.FALSE, Tristate.TRUE);
         FlagRegistry.get().register(owner, dataFlag);
         Region region = TestRegions.box(owner, "data", WORLD, 0, 0, 0, 10, 10, 10);
         region.setFlag(dataFlag, Tristate.TRUE);

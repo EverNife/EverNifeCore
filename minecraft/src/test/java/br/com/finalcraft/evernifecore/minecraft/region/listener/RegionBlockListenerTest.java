@@ -18,7 +18,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
-import java.util.EnumSet;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,7 +36,7 @@ class RegionBlockListenerTest {
         final AtomicInteger asked = new AtomicInteger();
 
         CountingFlag(ECPluginData owner, EventSource source) {
-            super(FlagKey.of(owner, "counting-" + source.name().toLowerCase()), EnumSet.of(source), Tristate.FALSE, Tristate.TRUE);
+            super(FlagKey.of(owner, "counting-" + source.getName()), Collections.singleton(source), Tristate.FALSE, Tristate.TRUE);
         }
 
         @Override

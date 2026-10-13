@@ -16,7 +16,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.EnumSet;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,7 +54,7 @@ class FlagRegistryTest {
     }
 
     private TristateFlag newFlag(String name) {
-        return new TristateFlag(FlagKey.of(flagOwner, name), EnumSet.of(EventSource.DAMAGE), Tristate.FALSE, Tristate.TRUE);
+        return new TristateFlag(FlagKey.of(flagOwner, name), Collections.singleton(EventSource.DAMAGE), Tristate.FALSE, Tristate.TRUE);
     }
 
     private static ObjectNode raw(JsonNode value) {
@@ -137,7 +137,7 @@ class FlagRegistryTest {
 
     @Test
     void aFlagRegisteredByAnotherPluginThanItsKeyNamesIsRefused() {
-        TristateFlag flag = new TristateFlag(FlagKey.of(regionOwner, "deny-owned"), EnumSet.of(EventSource.DAMAGE), Tristate.FALSE, Tristate.TRUE);
+        TristateFlag flag = new TristateFlag(FlagKey.of(regionOwner, "deny-owned"), Collections.singleton(EventSource.DAMAGE), Tristate.FALSE, Tristate.TRUE);
 
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> FlagRegistry.get().register(flagOwner, flag));
 

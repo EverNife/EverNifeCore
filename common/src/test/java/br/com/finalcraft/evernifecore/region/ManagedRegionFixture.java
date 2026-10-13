@@ -24,7 +24,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.EnumSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -132,7 +132,7 @@ abstract class ManagedRegionFixture {
     /** A tristate flag with settings of its own. */
     static final class RoomFlag extends TristateFlag {
         RoomFlag(ECPluginData owner) {
-            super(FlagKey.of(owner, "room"), EnumSet.of(EventSource.MOVE), Tristate.FALSE, Tristate.TRUE);
+            super(FlagKey.of(owner, "room"), Collections.singleton(EventSource.MOVE), Tristate.FALSE, Tristate.TRUE);
         }
 
         @Override

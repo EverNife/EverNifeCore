@@ -36,7 +36,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -61,7 +61,7 @@ class RegionResolveTest {
         int ties;
 
         CountingFlag(ECPluginData owner, String name, boolean bypassable) {
-            super(FlagKey.of(owner, name), EnumSet.of(EventSource.DAMAGE), Tristate.FALSE, Tristate.TRUE);
+            super(FlagKey.of(owner, name), Collections.singleton(EventSource.DAMAGE), Tristate.FALSE, Tristate.TRUE);
             this.bypassable = bypassable;
         }
 
@@ -252,7 +252,7 @@ class RegionResolveTest {
     void nothingDefinedGivesTheDefault() {
         region("empty", 0, box(20), null);
         assertResolves(Tristate.FALSE, flag, null);
-        assertEquals(Tristate.UNDEFINED, lookup.tristate(new TristateFlag(FlagKey.of(owner, "no-default"), EnumSet.of(EventSource.DAMAGE),
+        assertEquals(Tristate.UNDEFINED, lookup.tristate(new TristateFlag(FlagKey.of(owner, "no-default"), Collections.singleton(EventSource.DAMAGE),
                 Tristate.UNDEFINED, Tristate.TRUE), WORLD, 5, 5, 5, null));
         assertEquals(Tristate.FALSE, lookup.tristate(flag, WORLD, 500, 5, 500, null));
         assertFalse(lookup.isTrue(flag, WORLD, 5, 5, 5, null));

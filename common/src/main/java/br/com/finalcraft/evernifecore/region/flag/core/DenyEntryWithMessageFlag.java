@@ -11,7 +11,7 @@ import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.context.MoveContext;
 
 import java.time.Duration;
-import java.util.EnumSet;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -22,7 +22,7 @@ public final class DenyEntryWithMessageFlag extends RegionFlag<DenyEntryMessage>
 
     public DenyEntryWithMessageFlag() {
         super(FlagKey.of(CoreFlags.OWNER, "deny-entry-with-message"), FlagTypes.jackson("deny-entry-message", DenyEntryMessage.class),
-                EnumSet.of(EventSource.MOVE), null);
+                Collections.singleton(EventSource.MOVE), null);
     }
 
     /** A value that denies wins; otherwise the first. */

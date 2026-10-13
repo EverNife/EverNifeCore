@@ -8,14 +8,14 @@ import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.context.SessionContext;
 import jakarta.annotation.Nullable;
 
-import java.util.EnumSet;
+import java.util.Collections;
 import java.util.List;
 
 /** The message a player gets on leaving the region. */
 public final class FarewellFlag extends RegionFlag<String> {
 
     public FarewellFlag() {
-        super(FlagKey.of(CoreFlags.OWNER, "farewell"), FlagTypes.TEXT, EnumSet.of(EventSource.MOVE), null);
+        super(FlagKey.of(CoreFlags.OWNER, "farewell"), FlagTypes.TEXT, Collections.singleton(EventSource.MOVE), null);
     }
 
     @Override

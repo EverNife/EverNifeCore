@@ -13,7 +13,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.EnumSet;
+import java.util.Collections;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -39,7 +39,7 @@ class RegionFlagValuesTest {
     void setUp() {
         ECPluginData owner = Plugins.fakePluginData(OWNER, tempDir.toFile());
         clock = TestRegions.manualClock();
-        flag = new TristateFlag(FlagKey.of(owner, "deny-test"), EnumSet.of(EventSource.BREAK), Tristate.FALSE, Tristate.TRUE);
+        flag = new TristateFlag(FlagKey.of(owner, "deny-test"), Collections.singleton(EventSource.BREAK), Tristate.FALSE, Tristate.TRUE);
         FlagRegistry.get().register(owner, flag);
         region = TestRegions.create(owner, "arena", "world");
     }
@@ -105,7 +105,7 @@ class RegionFlagValuesTest {
 
     @Test
     void refusesUnregisteredFlagAndNonPositiveDuration() {
-        TristateFlag stranger = new TristateFlag(FlagKey.of(flag.getOwner(), "not-registered"), EnumSet.of(EventSource.BREAK),
+        TristateFlag stranger = new TristateFlag(FlagKey.of(flag.getOwner(), "not-registered"), Collections.singleton(EventSource.BREAK),
                 Tristate.FALSE, Tristate.TRUE);
         IllegalStateException refused = assertThrows(IllegalStateException.class, () -> region.setFlag(stranger, Tristate.TRUE));
         assertTrue(refused.getMessage().contains("FlagRegistry.get().register"), refused.getMessage());
@@ -114,13 +114,13 @@ class RegionFlagValuesTest {
 
     @Test
     void aParsedKeyBuildsAFlagOnlyThePluginItNamesRegistersAndATristateNeedsDefaultAndWinner() {
-        TristateFlag someones = new TristateFlag(FlagKey.parse("someone:flag"), EnumSet.of(EventSource.BREAK), Tristate.FALSE, Tristate.TRUE);
+        TristateFlag someones = new TristateFlag(FlagKey.parse("someone:flag"), Collections.singleton(EventSource.BREAK), Tristate.FALSE, Tristate.TRUE);
         assertFalse(someones.isRegistered());
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
                 () -> FlagRegistry.get().register(flag.getOwner(), someones));
         assertTrue(refused.getMessage().contains("FlagKey.of(\"regionflagvaluesowner\", \"flag\")"), refused.getMessage());
         assertFalse(someones.isRegistered());
-        assertThrows(NullPointerException.class, () -> new TristateFlag(FlagKey.of(flag.getOwner(), "x"), EnumSet.of(EventSource.BREAK),
+        assertThrows(NullPointerException.class, () -> new TristateFlag(FlagKey.of(flag.getOwner(), "x"), Collections.singleton(EventSource.BREAK),
                 Tristate.FALSE, null));
         assertThrows(IllegalArgumentException.class, () -> FlagKey.of(flag.getOwner(), "has space"));
         assertEquals("regionflagvaluesowner:deny-test", flag.getKey().toString());

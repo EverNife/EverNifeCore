@@ -27,7 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.EnumSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -59,7 +59,7 @@ class FlagSettingsTest {
         private final SettingsFilePolicy policy;
 
         GlowFlag(ECPluginData owner, SettingsFilePolicy policy) {
-            super(FlagKey.of(owner, "glow"), EnumSet.of(EventSource.MOVE), Tristate.FALSE, Tristate.TRUE);
+            super(FlagKey.of(owner, "glow"), Collections.singleton(EventSource.MOVE), Tristate.FALSE, Tristate.TRUE);
             this.policy = policy;
         }
 
@@ -305,7 +305,7 @@ class FlagSettingsTest {
         ManualClock clock = TestRegions.manualClock();
         FlagRegistry.get().register(owner, flag);
         flag.getSettings().setTriggerInterval(Duration.ofSeconds(2));
-        TristateFlag otherFlag = new TristateFlag(FlagKey.of(owner, "other-flag"), EnumSet.of(EventSource.MOVE), Tristate.FALSE, Tristate.TRUE);
+        TristateFlag otherFlag = new TristateFlag(FlagKey.of(owner, "other-flag"), Collections.singleton(EventSource.MOVE), Tristate.FALSE, Tristate.TRUE);
         FlagRegistry.get().register(owner, otherFlag);
         TriggerThrottle throttle = new TriggerThrottle();
         UUID alice = UUID.randomUUID();

@@ -8,14 +8,14 @@ import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.context.SessionContext;
 import jakarta.annotation.Nullable;
 
-import java.util.EnumSet;
+import java.util.Collections;
 import java.util.List;
 
 /** The message a player gets on entering the region. */
 public final class GreetingFlag extends RegionFlag<String> {
 
     public GreetingFlag() {
-        super(FlagKey.of(CoreFlags.OWNER, "greeting"), FlagTypes.TEXT, EnumSet.of(EventSource.MOVE), null);
+        super(FlagKey.of(CoreFlags.OWNER, "greeting"), FlagTypes.TEXT, Collections.singleton(EventSource.MOVE), null);
     }
 
     @Override

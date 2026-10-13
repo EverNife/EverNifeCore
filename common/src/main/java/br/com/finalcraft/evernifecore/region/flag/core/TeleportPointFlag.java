@@ -7,14 +7,14 @@ import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagTypes;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 
-import java.util.EnumSet;
+import java.util.Collections;
 import java.util.List;
 
 /** Where teleporting to the region takes a player. */
 public final class TeleportPointFlag extends RegionFlag<WorldLocPos> {
 
     public TeleportPointFlag() {
-        super(FlagKey.of(CoreFlags.OWNER, "teleport-point"), FlagTypes.LOCATION, EnumSet.of(EventSource.NONE), null);
+        super(FlagKey.of(CoreFlags.OWNER, "teleport-point"), FlagTypes.LOCATION, Collections.singleton(EventSource.NONE), null);
     }
 
     @Override

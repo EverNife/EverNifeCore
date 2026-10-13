@@ -7,7 +7,7 @@ import jakarta.annotation.Nullable;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.EnumSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -49,7 +49,7 @@ public abstract class RegionFlag<T> {
         this.parent = parent;
         this.key = Objects.requireNonNull(key, "key");
         this.type = Objects.requireNonNull(type, "type");
-        this.needs = Collections.unmodifiableSet(needs.isEmpty() ? EnumSet.noneOf(EventSource.class) : EnumSet.copyOf(needs));
+        this.needs = needs.isEmpty() ? Collections.emptySet() : Collections.unmodifiableSet(new LinkedHashSet<>(needs));
         this.defaultValue = defaultValue;
     }
 

@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.region;
 
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.TestRegions.ManualClock;
@@ -33,7 +34,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.EnumSet;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -56,7 +57,7 @@ class RegionLookupDecideTest {
         }
 
         CountingFlag(ECPluginData owner, String name, EventSource source) {
-            super(FlagKey.of(owner, name), EnumSet.of(source), Tristate.FALSE, Tristate.TRUE);
+            super(FlagKey.of(owner, name), Collections.singleton(source), Tristate.FALSE, Tristate.TRUE);
         }
 
         @Override
@@ -308,6 +309,48 @@ class RegionLookupDecideTest {
         region.setFlag(flag, Tristate.FALSE);
         assertEquals(Decision.PASS, lookup.decide(breakAt(5, player)));
         assertEquals(1, flag.effects.get(), "FALSE applied, but denied nothing");
+    }
+
+    // ------------------------------------------------------------------
+    // a plugin's own action on its own event source, decided like a core one
+    // ------------------------------------------------------------------
+
+    /** The hit of a duel: an action only the duel plugin raises. */
+    private static final class DuelHitContext extends ActionContext {
+        DuelHitContext(EventSource source, WorldLocPos at, FPlayer hitter) {
+            super(source, at, hitter, null);
+        }
+    }
+
+    private static final class DenyDuelHitFlag extends DenyFlag {
+        DenyDuelHitFlag(ECPluginData owner, EventSource source) {
+            super(FlagKey.of(owner, "deny-duel-hit"), source);
+        }
+
+        @Override
+        public boolean applies(ActionContext context) {
+            return context instanceof DuelHitContext;
+        }
+    }
+
+    @Test
+    void aPluginFlagOnItsOwnSourceDeniesItsOwnContext() {
+        EventSource duelHit = EventSource.register(owner, "duel-hit");
+        try {
+            DenyDuelHitFlag denyDuelHit = new DenyDuelHitFlag(owner, duelHit);
+            FlagRegistry.get().register(owner, denyDuelHit);
+            CountingFlag breakFlag = registered("break-alongside");
+            region.setFlag(denyDuelHit, Tristate.TRUE);
+            region.setFlag(breakFlag, Tristate.TRUE);
+            TestFPlayerSender hitter = new TestFPlayerSender("hitter");
+
+            assertEquals(Decision.DENY, lookup.decide(new DuelHitContext(duelHit, WorldLocPos.of(5, 5, 5, WORLD), hitter)));
+            assertEquals(Decision.PASS, lookup.decide(new DuelHitContext(duelHit, WorldLocPos.of(50, 5, 5, WORLD), hitter)));
+
+            assertEquals(0, breakFlag.decided.get(), "a flag of another source is not asked about a duel hit");
+        } finally {
+            EventSource.unregisterAll(owner);
+        }
     }
 
     // ------------------------------------------------------------------

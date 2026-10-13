@@ -25,7 +25,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.EnumSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
@@ -62,7 +62,7 @@ class AccessGroupTest {
     void setUp() {
         owner = Plugins.fakePluginData(OWNER, tempDir.toFile());
         clock = TestRegions.manualClock();
-        flag = new TristateFlag(FlagKey.of(owner, "deny-pvp-test"), EnumSet.of(EventSource.DAMAGE), Tristate.FALSE, Tristate.TRUE);
+        flag = new TristateFlag(FlagKey.of(owner, "deny-pvp-test"), Collections.singleton(EventSource.DAMAGE), Tristate.FALSE, Tristate.TRUE);
         FlagRegistry.get().register(owner, flag);
         region = TestRegions.create(owner, "arena", "world");
     }

@@ -16,7 +16,7 @@ import br.com.finalcraft.evernifecore.region.session.MoveCause;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
-import java.util.EnumSet;
+import java.util.Collections;
 
 /**
  * The shape of a deny flag: default FALSE, TRUE wins a tie, TRUE denies the actions {@link #applies} accepts. A
@@ -33,7 +33,7 @@ public abstract class DenyFlag extends TristateFlag {
 
     /** @param parent the deny flag this one refines; null for none */
     public DenyFlag(FlagKey key, EventSource source, @Nullable DenyFlag parent) {
-        super(key, EnumSet.of(source), Tristate.FALSE, Tristate.TRUE, parent);
+        super(key, Collections.singleton(source), Tristate.FALSE, Tristate.TRUE, parent);
     }
 
     /** TRUE denies, for the actions {@link #applies} accepts. */

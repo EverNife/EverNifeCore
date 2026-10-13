@@ -34,7 +34,6 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
@@ -74,7 +73,7 @@ class McSelectionListenerTest {
         final AtomicInteger asked = new AtomicInteger();
 
         DenyingProbe(ECPluginData owner) {
-            super(FlagKey.of(owner, "deny-interact-probe"), EnumSet.of(EventSource.INTERACT), Tristate.FALSE, Tristate.TRUE);
+            super(FlagKey.of(owner, "deny-interact-probe"), Collections.singleton(EventSource.INTERACT), Tristate.FALSE, Tristate.TRUE);
         }
 
         @Override
