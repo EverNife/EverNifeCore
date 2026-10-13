@@ -4,7 +4,7 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.RegionTime;
+import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
@@ -90,7 +90,7 @@ public final class RegionPlayerSession {
             return cached.value;
         }
         boolean value = compute.getAsBoolean();
-        memberships.put(group, new Cached(value, boundaryEpoch, RegionTime.now()));
+        memberships.put(group, new Cached(value, boundaryEpoch, RegionClock.now()));
         return value;
     }
 
@@ -336,6 +336,6 @@ public final class RegionPlayerSession {
             return false;
         }
         Duration interval = check.getInterval();
-        return interval == null || Duration.between(cached.at, RegionTime.now()).compareTo(interval) < 0;
+        return interval == null || Duration.between(cached.at, RegionClock.now()).compareTo(interval) < 0;
     }
 }

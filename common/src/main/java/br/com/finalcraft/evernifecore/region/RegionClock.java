@@ -9,11 +9,11 @@ import java.time.Instant;
  * The one source of "now" for everything region-related: flag deadlines, memberships, throttles and sweeps all ask
  * {@link #now()}, so a test that swaps the clock moves every deadline at once.
  */
-public final class RegionTime {
+public final class RegionClock {
 
     private static volatile @Nullable Clock clock;
 
-    private RegionTime() {
+    private RegionClock() {
     }
 
     public static Instant now() {

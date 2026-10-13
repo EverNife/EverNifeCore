@@ -4,7 +4,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionScheduler;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.RegionTime;
+import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import org.junit.jupiter.api.Test;
 
@@ -42,16 +42,16 @@ class RegionWorldTest {
     @Test
     void theClockMovesOnlyWhenToldAndRunDueRunsWhatItReached() {
         try (RegionWorld prot = RegionWorld.open("RegionWorldClock", tempDir)) {
-            Instant start = RegionTime.now();
+            Instant start = RegionClock.now();
             AtomicInteger ran = new AtomicInteger();
             RegionScheduler.scheduleAsync(ran::incrementAndGet, 1000);
 
-            assertEquals(start, RegionTime.now());
+            assertEquals(start, RegionClock.now());
             prot.runDue();
             assertEquals(0, ran.get(), "not due yet");
 
             prot.advance(Duration.ofSeconds(1));
-            assertEquals(start.plusSeconds(1), RegionTime.now());
+            assertEquals(start.plusSeconds(1), RegionClock.now());
             prot.runDue();
             assertEquals(1, ran.get());
         }

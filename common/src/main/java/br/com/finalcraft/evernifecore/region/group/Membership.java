@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.region.group;
 
-import br.com.finalcraft.evernifecore.region.RegionTime;
+import br.com.finalcraft.evernifecore.region.RegionClock;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -37,13 +37,13 @@ public final class Membership {
         if (expiresAt == null) {
             return null;
         }
-        Duration remaining = Duration.between(RegionTime.now(), expiresAt);
+        Duration remaining = Duration.between(RegionClock.now(), expiresAt);
         return remaining.isNegative() ? Duration.ZERO : remaining;
     }
 
     /** An expired membership reads as no membership. */
     public boolean isExpired() {
-        return expiresAt != null && !RegionTime.now().isBefore(expiresAt);
+        return expiresAt != null && !RegionClock.now().isBefore(expiresAt);
     }
 
     @Override

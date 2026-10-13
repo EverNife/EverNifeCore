@@ -49,7 +49,7 @@ public final class RegionSweeper {
 
     static void tick() {
         woken = false;
-        Instant now = RegionTime.now();
+        Instant now = RegionClock.now();
         Map<String, List<Region>> due = new HashMap<>();
         boolean pending = false;
         for (RegionManager manager : RegionManager.all()) {

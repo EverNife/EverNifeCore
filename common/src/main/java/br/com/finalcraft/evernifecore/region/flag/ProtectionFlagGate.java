@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.RegionTime;
+import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.Resolution;
 import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.context.MoveContext;
@@ -117,7 +117,7 @@ public final class ProtectionFlagGate {
         Region source = resolution.getSource() != null ? resolution.getSource() : crossed;
         fireApplied(flag, context, value, source);
         MoveDenySettings moveSettings = settings instanceof MoveDenySettings ? (MoveDenySettings) settings : null;
-        int denials = session.noteDenial(flag.getKey(), RegionTime.now(), moveSettings != null ? moveSettings.getStuckWindow() : DEFAULT_STUCK_WINDOW);
+        int denials = session.noteDenial(flag.getKey(), RegionClock.now(), moveSettings != null ? moveSettings.getStuckWindow() : DEFAULT_STUCK_WINDOW);
 
         FlagHandler handler = source.getFlagHandler(flag);
         if (handler != null) {

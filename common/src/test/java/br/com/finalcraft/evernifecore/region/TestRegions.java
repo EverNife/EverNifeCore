@@ -122,12 +122,12 @@ public final class TestRegions {
     /** Installs a clock that only moves when told to; {@link #restoreClock()} puts the system clock back. */
     public static ManualClock manualClock() {
         ManualClock clock = new ManualClock(Instant.parse("2026-10-06T12:00:00Z"));
-        RegionTime.setClock(clock);
+        RegionClock.setClock(clock);
         return clock;
     }
 
     public static void restoreClock() {
-        RegionTime.setClock(null);
+        RegionClock.setClock(null);
     }
 
     public static final class ManualClock extends Clock {

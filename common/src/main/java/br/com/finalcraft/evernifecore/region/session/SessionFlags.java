@@ -6,7 +6,7 @@ import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionScheduler;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.RegionTime;
+import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.Resolution;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagCategory;
@@ -60,7 +60,7 @@ final class SessionFlags {
     }
 
     void apply(FPlayer player, RegionPlayerSession session, Trigger trigger) {
-        Instant now = RegionTime.now();
+        Instant now = RegionClock.now();
         boolean invalidated = session.takeRevalidateAll();
         boolean all = invalidated || trigger == Trigger.BOUNDARY;
         //a crossing applies what changed; a check that was asked for - by policy or by an invalidation - revalidates even an unchanged value
@@ -169,7 +169,7 @@ final class SessionFlags {
 
     void tick() {
         woken = false;
-        Instant now = RegionTime.now();
+        Instant now = RegionClock.now();
         Map<String, List<RegionPlayerSession>> due = new HashMap<>();
         boolean pending = false;
         for (RegionPlayerSession session : lookup.getSessions()) {

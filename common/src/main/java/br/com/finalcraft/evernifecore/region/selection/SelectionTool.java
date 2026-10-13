@@ -12,7 +12,7 @@ import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.region.RegionScheduler;
-import br.com.finalcraft.evernifecore.region.RegionTime;
+import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
@@ -169,7 +169,7 @@ public final class SelectionTool {
 
     private static void scheduleExpiry(SelectionSession session, Duration timeout) {
         Instant deadline = session.getLastTouch().plus(timeout);
-        long delayMillis = Math.max(0, Duration.between(RegionTime.now(), deadline).toMillis());
+        long delayMillis = Math.max(0, Duration.between(RegionClock.now(), deadline).toMillis());
         RegionScheduler.scheduleAsync(() -> checkExpiry(session, timeout), delayMillis);
     }
 
@@ -177,7 +177,7 @@ public final class SelectionTool {
         if (!session.isActive()) {
             return;
         }
-        if (RegionTime.now().isBefore(session.getLastTouch().plus(timeout))) {
+        if (RegionClock.now().isBefore(session.getLastTouch().plus(timeout))) {
             scheduleExpiry(session, timeout);   //touched since: wait out what is left of the new deadline
             return;
         }

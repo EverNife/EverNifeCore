@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.region.flag;
 
-import br.com.finalcraft.evernifecore.region.RegionTime;
+import br.com.finalcraft.evernifecore.region.RegionClock;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -28,7 +28,7 @@ public final class TriggerThrottle {
         if (interval == null || interval.isZero() || interval.isNegative()) {
             return true;
         }
-        Instant now = RegionTime.now();
+        Instant now = RegionClock.now();
         boolean[] fired = {false};
         lastFired.computeIfAbsent(player, uuid -> new ConcurrentHashMap<>()).compute(flag.getKey(), (key, last) -> {
             if (last != null && now.isBefore(last.plus(interval))) {

@@ -6,7 +6,7 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.locale.ILocaleMessageBase;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
-import br.com.finalcraft.evernifecore.region.RegionTime;
+import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.region.shape.PolygonShape;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
@@ -59,7 +59,7 @@ public final class SelectionSession {
         this.spec = spec;
         this.world = world;
         this.onConfirm = onConfirm;
-        this.lastTouch = RegionTime.now();
+        this.lastTouch = RegionClock.now();
     }
 
     public FPlayer getPlayer() {
@@ -176,6 +176,6 @@ public final class SelectionSession {
     }
 
     private void touch() {
-        lastTouch = RegionTime.now();
+        lastTouch = RegionClock.now();
     }
 }

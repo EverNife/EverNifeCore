@@ -13,7 +13,7 @@ import br.com.finalcraft.evernifecore.region.RegionScheduler;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.RegionRuntime;
-import br.com.finalcraft.evernifecore.region.RegionTime;
+import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
 import br.com.finalcraft.everydatabase.Storages;
@@ -116,7 +116,7 @@ public final class RegionWorld implements AutoCloseable {
         return result.getRegion();
     }
 
-    /** What {@link RegionTime#now()} answers - fixed until {@link #advance(Duration)}. */
+    /** What {@link RegionClock#now()} answers - fixed until {@link #advance(Duration)}. */
     public Instant now() {
         return shared.clock.instant();
     }
@@ -201,7 +201,7 @@ public final class RegionWorld implements AutoCloseable {
         synchronized (SHARED_LOCK) {
             if (shared == null) {
                 shared = new Shared();
-                RegionTime.setClock(shared.clock);
+                RegionClock.setClock(shared.clock);
                 RegionScheduler.set((task, delayMillis) -> {
                     synchronized (shared.pending) {
                         shared.pending.add(new Scheduled(task, shared.clock.now.plusMillis(Math.max(0, delayMillis))));
@@ -218,7 +218,7 @@ public final class RegionWorld implements AutoCloseable {
                 //stopped while the scheduler is still this one: whatever they schedule on the way out never reaches a real thread
                 RegionRuntime.shutdown();
                 RegionScheduler.set(null);
-                RegionTime.setClock(null);
+                RegionClock.setClock(null);
                 shared = null;
             }
         }

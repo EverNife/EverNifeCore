@@ -8,7 +8,7 @@ import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.RegionScheduler;
-import br.com.finalcraft.evernifecore.region.RegionTime;
+import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import jakarta.annotation.Nullable;
@@ -52,8 +52,8 @@ public final class RegionVisualizer {
         if (!isEnabled()) {
             return;
         }
-        Instant until = RegionTime.now().plus(duration);
-        start(new View(player, world, style, () -> RegionTime.now().isBefore(until), () -> shape, null));
+        Instant until = RegionClock.now().plus(duration);
+        start(new View(player, world, style, () -> RegionClock.now().isBefore(until), () -> shape, null));
     }
 
     /** Draws the selection while it is open: its shape once it has one, its loose points before that. */

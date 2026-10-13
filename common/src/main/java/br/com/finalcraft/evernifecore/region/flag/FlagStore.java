@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.region.flag;
 
-import br.com.finalcraft.evernifecore.region.RegionTime;
+import br.com.finalcraft.evernifecore.region.RegionClock;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -91,7 +91,7 @@ public final class FlagStore {
             throw new IllegalArgumentException("A temporary value of flag " + flag.getKey() + " needs a positive duration, not " + ttl
                     + ": use setFlag(flag, value) for a permanent value.");
         }
-        FlagValue<T> timed = FlagValue.until(value, RegionTime.now().plus(ttl));
+        FlagValue<T> timed = FlagValue.until(value, RegionClock.now().plus(ttl));
         mutate(flag, previous -> new Layers(flag, previous == null ? null : previous.permanent, timed), FlagChangeCause.SET);
     }
 

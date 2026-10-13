@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.region.flag;
 
-import br.com.finalcraft.evernifecore.region.RegionTime;
+import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.flag.context.SessionContext;
 import jakarta.annotation.Nullable;
 
@@ -65,7 +65,7 @@ public final class Revalidation {
     /** Checks again {@code margin} before an effect lasting {@code effect} runs out: now + effect - margin. */
     public static Revalidation before(Duration effect, Duration margin) {
         Duration lead = effect.minus(margin);
-        return custom(context -> RegionTime.now().plus(lead));
+        return custom(context -> RegionClock.now().plus(lead));
     }
 
     public Kind getKind() {

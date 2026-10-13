@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.region.flag;
 
-import br.com.finalcraft.evernifecore.region.RegionTime;
+import br.com.finalcraft.evernifecore.region.RegionClock;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -35,9 +35,9 @@ public final class FlagValue<T> {
         return expiresAt;
     }
 
-    /** True once {@link RegionTime#now()} reaches the deadline; an expired value reads as not set. */
+    /** True once {@link RegionClock#now()} reaches the deadline; an expired value reads as not set. */
     public boolean isExpired() {
-        return expiresAt != null && !RegionTime.now().isBefore(expiresAt);
+        return expiresAt != null && !RegionClock.now().isBefore(expiresAt);
     }
 
     /** Null when the value is permanent; never negative. */
@@ -45,7 +45,7 @@ public final class FlagValue<T> {
         if (expiresAt == null) {
             return null;
         }
-        Duration remaining = Duration.between(RegionTime.now(), expiresAt);
+        Duration remaining = Duration.between(RegionClock.now(), expiresAt);
         return remaining.isNegative() ? Duration.ZERO : remaining;
     }
 

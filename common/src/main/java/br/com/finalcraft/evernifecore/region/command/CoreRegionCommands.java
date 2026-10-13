@@ -17,7 +17,7 @@ import br.com.finalcraft.evernifecore.pageviewer.PageViewer;
 import br.com.finalcraft.evernifecore.pageviewer.theme.PageTheme;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.RegionTime;
+import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.Resolution;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
@@ -143,7 +143,7 @@ public class CoreRegionCommands {
         sender.sendMessage("§7priority: §f" + region.getPriority() + " §7parent: §f" + (parent == null ? "-" : parent.getId().toString()));
         Instant expiresAt = region.getExpiresAt();
         sender.sendMessage("§7persistence: §f" + region.getPersistence() + " §7expires: §f"
-                + (expiresAt == null ? "never" : expiresAt + " (" + remaining(Duration.between(RegionTime.now(), expiresAt)) + ")"));
+                + (expiresAt == null ? "never" : expiresAt + " (" + remaining(Duration.between(RegionClock.now(), expiresAt)) + ")"));
         sender.sendMessage("§7foreign edits: §f" + (region.getManager().isForeignAccessAllowed() ? "accepted" : "refused by the owner"));
 
         sender.sendMessage("§7flags: §f" + region.getFlags().size());
