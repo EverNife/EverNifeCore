@@ -198,6 +198,7 @@ DRY_RESULT = {
     "ok": True, "server_id": "<server_id>", "client_id": "<client_id>", "run_dir": None,
     "overrides": [], "plugins": {"enabled": [PLUGIN_ID]}, "linkage_errors": 0,
     "milestones": {"joined": True}, "mapped_game_port": "<mapped_game_port>",
+    "container_name": "<container_name>", "game_port": "<game_port>",
     "shutdown_reason": "<dry-run>", "events": [], "has_more": False,
     "reply": {"ok": True, "x": 0.5, "y": 65.62, "z": 0.5, "hit": "block"},
 }
@@ -274,7 +275,7 @@ def merge_events(*batches: List[dict]) -> List[dict]:
 # ------------------------------------------------------------------------------- per flavor --
 
 def console(mctf: Mctf, server_id: str, command: str) -> dict:
-    res = mctf("mc_exec", server_id=server_id, command=command, correlate=False)
+    res = mctf("mc_exec", server_id=server_id, command=command)
     if not res.get("ok"):
         raise FlavorFailed("mc_exec %r: %s" % (command, _err(res)))
     return res
@@ -383,7 +384,8 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         r.shutdown_reason = "%s (graceful_shutdown=%s)" % (restart.get("shutdown_reason"), restart.get("graceful_shutdown"))
         if not restart.get("ok"):
             raise FlavorFailed("mc_restart: " + _err(restart))
-        reconnect = bot(mctf, client_id, "connect host.docker.internal %s" % restart.get("mapped_game_port"), timeout_seconds=120)
+        # the bot sits on the run's own network: the container name and internal port survive the restart
+        reconnect = bot(mctf, client_id, "connect %s %s" % (start.get("container_name"), start.get("game_port")), timeout_seconds=120)
         if not reconnect.get("ok"):
             raise FlavorFailed("bot reconnect after restart: " + _err(reconnect))
         wait_online(mctf, server_id)

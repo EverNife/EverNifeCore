@@ -85,7 +85,7 @@ class CliTest(unittest.TestCase):
         self.assertEqual(key, ["mc_start", "mc_hmc_start", "mc_restart", "mc_hmc_stop", "mc_stop"])
         self.assertEqual(tools.count("mc_player"), len(cm.SCREENS) + 1)  # + the online check after the restart
         self.assertIn("ecc run all --player", proc.stdout)
-        self.assertIn("connect host.docker.internal", proc.stdout)
+        self.assertIn("connect <container_name> <game_port>", proc.stdout)
         self.assertIn("PlaceholderAPI.jar", proc.stdout)
         start_line = next(l for l in proc.stdout.splitlines() if l.startswith("[dry-run] mctf mc_start "))
         self.assertNotIn('"to": "mods"', start_line)  # paper has no mod loader: no companion route
