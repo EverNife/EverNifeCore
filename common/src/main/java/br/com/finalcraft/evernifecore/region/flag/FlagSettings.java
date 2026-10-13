@@ -20,16 +20,16 @@ import java.time.Duration;
 public class FlagSettings {
 
     @Comment({"The least time between two effects of this flag on the same player (a deny message, a sound...).",
-            "0s lets the flag set its own pace."})
+            "0s runs the effect on every denial; the flag may declare a higher floor."})
     @JsonProperty
-    private FCTimeFrame triggerInterval = FCTimeFrame.of(Duration.ofSeconds(2));
+    private FCTimeFrame triggerInterval = FCTimeFrame.of(Duration.ZERO);
 
     @Comment({"How often a player standing inside a region with this flag is checked again, for flags that re-check",
             "over time. null keeps the interval the flag itself declares."})
     @JsonProperty
     private @Nullable FCTimeFrame revalidationInterval;
 
-    /** At most one {@link RegionFlag#onApplied} per player in this window; zero leaves the pace to the flag. */
+    /** At most one {@link RegionFlag#onApplied} per player in this window; zero runs it every time. */
     @JsonIgnore
     public Duration getTriggerInterval() {
         return triggerInterval.toDuration();

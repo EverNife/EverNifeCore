@@ -7,6 +7,8 @@ import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.context.MoveContext;
 import br.com.finalcraft.evernifecore.region.session.MoveCause;
 
+import java.time.Duration;
+
 /** TRUE: players cannot teleport out of the region; walking out is up to {@code deny-exit}. */
 public final class DenyTeleportOutFlag extends DenyFlag {
 
@@ -23,6 +25,12 @@ public final class DenyTeleportOutFlag extends DenyFlag {
     @Override
     public Class<? extends FlagSettings> getSettingsType() {
         return MoveDenySettings.class;
+    }
+
+    /** A denied crossing repeats every tick while the player pushes the border. */
+    @Override
+    public Duration getDefaultTriggerInterval() {
+        return MOVE_TRIGGER_INTERVAL;
     }
 
     @Override

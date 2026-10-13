@@ -138,11 +138,11 @@ class FlagSettingsTest {
         String text = text();
         assertFalse(text.contains("PT2S"), text);
         assertTrue(text.contains("\nSettings:\n"), text);
-        assertTrue(text.contains("  triggerInterval: 2s"), text);
-        assertEquals("2s", ConfigFactory.open(file).getString(FlagRegistry.SETTINGS_ROOT + ".triggerInterval"));
+        assertTrue(text.contains("  triggerInterval: 0s"), text);
+        assertEquals("0s", ConfigFactory.open(file).getString(FlagRegistry.SETTINGS_ROOT + ".triggerInterval"));
         assertEquals(Integer.valueOf(7), ConfigFactory.open(file).getValue(FlagRegistry.SETTINGS_ROOT + ".brightness"));
         GlowSettings settings = flag.getSettings();
-        assertEquals(Duration.ofSeconds(2), settings.getTriggerInterval());
+        assertEquals(Duration.ZERO, settings.getTriggerInterval());
         assertEquals(7, settings.getBrightness());
     }
 
@@ -166,11 +166,11 @@ class FlagSettingsTest {
     @Test
     void ownersReloadReadsTheEditedFileAndAnotherPluginsReloadDoesNot() throws Exception {
         FlagRegistry.get().register(owner, flag);
-        edit("triggerInterval: 2s", "triggerInterval: 5s");
+        edit("triggerInterval: 0s", "triggerInterval: 5s");
         edit("brightness: 7", "brightness: 3");
 
         ECEventBus.global().post(new ECPluginReloadEvent.Post(other));
-        assertEquals(Duration.ofSeconds(2), flag.getSettings().getTriggerInterval());
+        assertEquals(Duration.ZERO, flag.getSettings().getTriggerInterval());
 
         ECEventBus.global().post(new ECPluginReloadEvent.Post(owner));
         GlowSettings settings = flag.getSettings();
@@ -184,7 +184,7 @@ class FlagSettingsTest {
         FlagRegistry.get().register(owner, flag);
 
         assertFalse(file.exists());
-        assertEquals(Duration.ofSeconds(2), flag.getSettings().getTriggerInterval());
+        assertEquals(Duration.ZERO, flag.getSettings().getTriggerInterval());
     }
 
     @Test
@@ -251,16 +251,34 @@ class FlagSettingsTest {
             ECEventBus.global().post(new ECPluginReloadEvent.Post(core));
             assertTrue(file.exists(), "written by the core's reload, the owner never reloaded");
 
-            edit("triggerInterval: 2s", "triggerInterval: 5s");
+            edit("triggerInterval: 0s", "triggerInterval: 5s");
             ECEventBus.global().post(new ECPluginReloadEvent.Post(core));
             assertEquals(Duration.ofSeconds(5), flag.getSettings().getTriggerInterval());
 
             ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = false;
             ECEventBus.global().post(new ECPluginReloadEvent.Post(core));
-            assertEquals(Duration.ofSeconds(2), flag.getSettings().getTriggerInterval(), "the file is out of use again");
+            assertEquals(Duration.ZERO, flag.getSettings().getTriggerInterval(), "the file is out of use again");
         } finally {
             coreData.set(EverNifeCore.instance, previous);
         }
+    }
+
+    @Test
+    void aFlagSeedsItsOwnTriggerIntervalIntoItsDefaultsAndItsFile() throws Exception {
+        GlowFlag paced = new GlowFlag(owner, SettingsFilePolicy.FOLLOW_SERVER) {
+            @Override
+            public Duration getDefaultTriggerInterval() {
+                return Duration.ofMillis(250);
+            }
+        };
+        ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = false;
+        assertEquals(Duration.ofMillis(250), paced.getSettings().getTriggerInterval(), "the defaults, with no file");
+
+        ECSettings.REGIONS_GENERATE_GLOBAL_SETTINGS_FILES = true;
+        FlagRegistry.get().register(owner, paced);
+
+        assertTrue(text().contains("  triggerInterval: 250ms"), text());
+        assertEquals(Duration.ofMillis(250), paced.getSettings().getTriggerInterval());
     }
 
     @Test
@@ -286,6 +304,7 @@ class FlagSettingsTest {
     void throttleLetsOneFiringPerPlayerAndFlagThroughEachInterval() {
         ManualClock clock = TestRegions.manualClock();
         FlagRegistry.get().register(owner, flag);
+        flag.getSettings().setTriggerInterval(Duration.ofSeconds(2));
         TristateFlag otherFlag = new TristateFlag(FlagKey.of(owner, "other-flag"), EnumSet.of(EventSource.MOVE), Tristate.FALSE, Tristate.TRUE);
         FlagRegistry.get().register(owner, otherFlag);
         TriggerThrottle throttle = new TriggerThrottle();
@@ -310,12 +329,14 @@ class FlagSettingsTest {
     void throttleReadsTheIntervalOnEveryCallAndZeroTurnsItOff() throws Exception {
         TestRegions.manualClock();
         FlagRegistry.get().register(owner, flag);
+        edit("triggerInterval: 0s", "triggerInterval: 3s");
+        ECEventBus.global().post(new ECPluginReloadEvent.Post(owner));
         TriggerThrottle throttle = new TriggerThrottle();
         UUID alice = UUID.randomUUID();
         assertTrue(throttle.tryFire(alice, flag));
         assertFalse(throttle.tryFire(alice, flag));
 
-        edit("triggerInterval: 2s", "triggerInterval: 0s");
+        edit("triggerInterval: 3s", "triggerInterval: 0s");
         ECEventBus.global().post(new ECPluginReloadEvent.Post(owner));
 
         assertTrue(throttle.tryFire(alice, flag));

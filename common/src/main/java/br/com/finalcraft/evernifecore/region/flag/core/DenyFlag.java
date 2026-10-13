@@ -11,6 +11,7 @@ import br.com.finalcraft.evernifecore.region.flag.context.MoveContext;
 import br.com.finalcraft.evernifecore.region.session.MoveCause;
 import jakarta.annotation.Nullable;
 
+import java.time.Duration;
 import java.util.EnumSet;
 
 /**
@@ -18,6 +19,9 @@ import java.util.EnumSet;
  * subclass narrows {@code applies} to the actions it is about, and keeps the decision.
  */
 public abstract class DenyFlag extends TristateFlag {
+
+    /** The trigger interval the movement denials start with: a denied crossing repeats every tick while the player pushes the border. */
+    protected static final Duration MOVE_TRIGGER_INTERVAL = Duration.ofMillis(250);
 
     public DenyFlag(FlagKey key, EventSource source) {
         this(key, source, null);

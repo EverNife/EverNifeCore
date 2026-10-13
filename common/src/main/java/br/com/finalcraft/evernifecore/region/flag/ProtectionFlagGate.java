@@ -8,6 +8,7 @@ import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.Resolution;
 import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
+import br.com.finalcraft.evernifecore.region.flag.context.DamageContext;
 import br.com.finalcraft.evernifecore.region.flag.context.MoveContext;
 import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.region.session.MoveVerdict;
@@ -30,7 +31,7 @@ import java.util.function.Function;
  */
 public final class ProtectionFlagGate {
 
-    /** The throttle key of an action no player is behind: one firing per interval for all of them. */
+    /** The throttle key of an action no player is behind and no player suffers: one firing per interval for all of them. */
     static final UUID NO_PLAYER = new UUID(0, 0);
 
     private static final TriggerThrottle THROTTLE = new TriggerThrottle();
@@ -283,11 +284,19 @@ public final class ProtectionFlagGate {
     }
 
     private static <T> void fireApplied(RegionFlag<T> flag, ActionContext context, T value, @Nullable Region source) {
-        FPlayer player = context.getPlayer();
         Duration interval = source != null ? source.getEffectiveFlagSettings(flag).getTriggerInterval() : flag.getSettings().getTriggerInterval();
-        if (THROTTLE.tryFire(player == null ? NO_PLAYER : player.getUniqueId(), flag, interval)) {
+        if (THROTTLE.tryFire(paceKey(context), flag, interval)) {
             flag.onApplied(context, value);
         }
+    }
+
+    /** Whose pace an effect counts against: the player behind the action, else the player it hurts, else {@link #NO_PLAYER}. */
+    private static UUID paceKey(ActionContext context) {
+        FPlayer player = context.getPlayer();
+        if (player == null && context instanceof DamageContext) {
+            player = ((DamageContext) context).getVictimPlayer();
+        }
+        return player == null ? NO_PLAYER : player.getUniqueId();
     }
 
     /** Internal: forgets the firing pace of a player who left. */

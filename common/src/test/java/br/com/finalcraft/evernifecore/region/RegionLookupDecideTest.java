@@ -49,7 +49,11 @@ class RegionLookupDecideTest {
         final AtomicInteger applied = new AtomicInteger();
 
         CountingFlag(ECPluginData owner, String name) {
-            super(FlagKey.of(owner, name), EnumSet.of(EventSource.BREAK), Tristate.FALSE, Tristate.TRUE);
+            this(owner, name, EventSource.BREAK);
+        }
+
+        CountingFlag(ECPluginData owner, String name, EventSource source) {
+            super(FlagKey.of(owner, name), EnumSet.of(source), Tristate.FALSE, Tristate.TRUE);
         }
 
         @Override
@@ -117,6 +121,7 @@ class RegionLookupDecideTest {
     @Test
     void onAppliedRunsOncePerIntervalAndAgainAfterIt() {
         CountingFlag flag = registered("paced");
+        flag.getSettings().setTriggerInterval(Duration.ofSeconds(2));
         region.setFlag(flag, Tristate.TRUE);
         TestFPlayerSender player = new TestFPlayerSender("breaker");
 
@@ -130,9 +135,8 @@ class RegionLookupDecideTest {
     }
 
     @Test
-    void aZeroIntervalFiresEveryTime() {
+    void theDefaultIntervalFiresOnEveryDenial() {
         CountingFlag flag = registered("unpaced");
-        flag.getSettings().setTriggerInterval(Duration.ZERO);
         region.setFlag(flag, Tristate.TRUE);
         TestFPlayerSender player = new TestFPlayerSender("breaker");
 
@@ -145,6 +149,7 @@ class RegionLookupDecideTest {
     @Test
     void anActionWithNoPlayerIsPacedAsOne() {
         CountingFlag flag = registered("machines");
+        flag.getSettings().setTriggerInterval(Duration.ofSeconds(2));
         region.setFlag(flag, Tristate.TRUE);
         BlockContext noPlayer = new BlockContext(EventSource.BREAK, WorldLocPos.of(5, 5, 5, WORLD), null, null, "minecraft:stone", null, false);
 
@@ -152,6 +157,29 @@ class RegionLookupDecideTest {
         lookup.decide(noPlayer);
 
         assertEquals(1, flag.applied.get(), "every action with no player shares one pace");
+    }
+
+    @Test
+    void aHitWithNoPlayerBehindItIsPacedPerVictim() {
+        CountingFlag flag = new CountingFlag(owner, "mob-hits", EventSource.DAMAGE);
+        FlagRegistry.get().register(owner, flag);
+        flag.getSettings().setTriggerInterval(Duration.ofSeconds(2));
+        region.setFlag(flag, Tristate.TRUE);
+        WorldLocPos at = WorldLocPos.of(5, 5, 5, WORLD);
+        TestFPlayerSender victimA = new TestFPlayerSender("victimA");
+        TestFPlayerSender victimB = new TestFPlayerSender("victimB");
+
+        lookup.decide(new DamageContext(at, null, null, DamageContext.Kind.PLAYER, victimA, "minecraft:player"));
+        lookup.decide(new DamageContext(at, null, null, DamageContext.Kind.PLAYER, victimA, "minecraft:player"));
+        assertEquals(1, flag.applied.get(), "one victim, one pace");
+
+        lookup.decide(new DamageContext(at, null, null, DamageContext.Kind.PLAYER, victimB, "minecraft:player"));
+        lookup.decide(new DamageContext(at, null, null, DamageContext.Kind.PLAYER, victimB, "minecraft:player"));
+        assertEquals(2, flag.applied.get(), "another victim has a pace of its own");
+
+        lookup.decide(new DamageContext(at, null, null, DamageContext.Kind.ANIMAL, null, "minecraft:cow"));
+        lookup.decide(new DamageContext(at, null, null, DamageContext.Kind.ANIMAL, null, "minecraft:cow"));
+        assertEquals(3, flag.applied.get(), "no player on either side shares one pace");
     }
 
     @Test

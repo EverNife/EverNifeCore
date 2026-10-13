@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.context.SessionContext;
 import jakarta.annotation.Nullable;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -168,6 +169,11 @@ public abstract class RegionFlag<T> {
         return FlagSettings.class;
     }
 
+    /** The trigger interval a fresh settings object of this flag starts with; zero runs the effect on every denial. */
+    public Duration getDefaultTriggerInterval() {
+        return Duration.ZERO;
+    }
+
     /**
      * Whether the server-wide settings of this flag live in a file. While none is written, the flag runs on the
      * defaults of {@link #getSettingsType()} and on the overrides a region sets ({@code Region.setFlagSettings}).
@@ -197,7 +203,9 @@ public abstract class RegionFlag<T> {
     FlagSettings newSettings() {
         Class<? extends FlagSettings> settingsType = getSettingsType();
         try {
-            return settingsType.getDeclaredConstructor().newInstance();
+            FlagSettings settings = settingsType.getDeclaredConstructor().newInstance();
+            settings.setTriggerInterval(getDefaultTriggerInterval()); //the flag's floor seeds the defaults and the generated file
+            return settings;
         } catch (ReflectiveOperationException noDefault) {
             throw new IllegalStateException("The settings of flag " + key + " (" + settingsType.getName() + ") need a no-arg constructor:"
                     + " they are built with their defaults before the file is read.", noDefault);

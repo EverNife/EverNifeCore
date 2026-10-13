@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.context.MoveContext;
 
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -48,6 +49,12 @@ public final class DenyEntryWithMessageFlag extends RegionFlag<DenyEntryMessage>
         if (player != null && value.getMessage() != null) {
             player.sendMessage(value.getMessage());
         }
+    }
+
+    /** A denied crossing repeats every tick while the player pushes the border. */
+    @Override
+    public Duration getDefaultTriggerInterval() {
+        return DenyFlag.MOVE_TRIGGER_INTERVAL;
     }
 
     @Override
