@@ -1,7 +1,6 @@
-package br.com.finalcraft.evernifecore.region.flag.stock;
+package br.com.finalcraft.evernifecore.region.flag.core;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.flag.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
@@ -20,8 +19,8 @@ import java.util.List;
  */
 public final class DenyEntryWithMessageFlag extends RegionFlag<DenyEntryMessage> {
 
-    public DenyEntryWithMessageFlag(ECPluginData owner) {
-        super(FlagKey.of(owner, "deny-entry-with-message"), FlagTypes.jackson("deny-entry-message", DenyEntryMessage.class),
+    public DenyEntryWithMessageFlag() {
+        super(FlagKey.of(CoreFlags.OWNER, "deny-entry-with-message"), FlagTypes.jackson("deny-entry-message", DenyEntryMessage.class),
                 EnumSet.of(EventSource.MOVE), null);
     }
 
@@ -39,7 +38,7 @@ public final class DenyEntryWithMessageFlag extends RegionFlag<DenyEntryMessage>
     /** Denies entering, never leaving: a player already inside walks out freely. */
     @Override
     public Decision decide(ActionContext context, DenyEntryMessage value) {
-        return value.getDenied() == Tristate.TRUE && StockDenyFlag.crossing(context, MoveContext.Transition.ENTER, null)
+        return value.getDenied() == Tristate.TRUE && DenyFlag.crossing(context, MoveContext.Transition.ENTER, null)
                 ? Decision.DENY : Decision.PASS;
     }
 

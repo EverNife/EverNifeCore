@@ -27,6 +27,7 @@ import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.flag.FlagValue;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.group.Membership;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
@@ -49,7 +50,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -825,12 +825,9 @@ public class RegionCommandNode implements RegionScope {
 
     /** The {@code teleport-point} flag of the region, else the top of the center of its box; null for a whole-world region. */
     private static @Nullable WorldLocPos getTeleportPoint(Region region) {
-        Optional<RegionFlag<?>> pointFlag = FlagRegistry.get().find("teleport-point");
-        if (pointFlag.isPresent()) {
-            Object point = region.getFlag(pointFlag.get());
-            if (point instanceof WorldLocPos) {
-                return (WorldLocPos) point;
-            }
+        WorldLocPos point = region.getFlag(CoreFlags.TELEPORT_POINT);
+        if (point != null) {
+            return point;
         }
         Shape shape = region.getShape();
         if (shape instanceof WorldShape) {

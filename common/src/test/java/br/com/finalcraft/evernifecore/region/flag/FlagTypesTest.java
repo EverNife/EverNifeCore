@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.region.flag;
 
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyEntryMessage;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryMessage;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import org.junit.jupiter.api.Test;
 

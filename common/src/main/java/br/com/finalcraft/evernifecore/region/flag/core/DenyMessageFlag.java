@@ -1,6 +1,5 @@
-package br.com.finalcraft.evernifecore.region.flag.stock;
+package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagCategory;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
@@ -13,8 +12,8 @@ import java.util.List;
 /** The text a player is shown when a {@code deny-*} flag of the region stops them; read by whoever enforces it. */
 public final class DenyMessageFlag extends RegionFlag<String> {
 
-    public DenyMessageFlag(ECPluginData owner) {
-        super(FlagKey.of(owner, "deny-message"), FlagTypes.TEXT, EnumSet.of(EventSource.NONE), null);
+    public DenyMessageFlag() {
+        super(FlagKey.of(CoreFlags.OWNER, "deny-message"), FlagTypes.TEXT, EnumSet.of(EventSource.NONE), null);
     }
 
     @Override

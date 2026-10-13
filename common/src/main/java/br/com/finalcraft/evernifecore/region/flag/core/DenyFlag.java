@@ -1,6 +1,5 @@
-package br.com.finalcraft.evernifecore.region.flag.stock;
+package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.flag.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.DamageContext;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
@@ -14,15 +13,19 @@ import jakarta.annotation.Nullable;
 
 import java.util.EnumSet;
 
-/** The shape of every stock {@code deny-*} flag: default FALSE, TRUE wins a tie, TRUE denies the actions the flag is about. */
-abstract class StockDenyFlag extends TristateFlag {
+/**
+ * The shape of a deny flag: default FALSE, TRUE wins a tie, TRUE denies the actions {@link #applies} accepts. A
+ * subclass narrows {@code applies} to the actions it is about, and keeps the decision.
+ */
+public abstract class DenyFlag extends TristateFlag {
 
-    StockDenyFlag(ECPluginData owner, String name, EventSource source) {
-        this(owner, name, source, null);
+    public DenyFlag(FlagKey key, EventSource source) {
+        this(key, source, null);
     }
 
-    StockDenyFlag(ECPluginData owner, String name, EventSource source, @Nullable StockDenyFlag parent) {
-        super(FlagKey.of(owner, name), EnumSet.of(source), Tristate.FALSE, Tristate.TRUE, parent);
+    /** @param parent the deny flag this one refines; null for none */
+    public DenyFlag(FlagKey key, EventSource source, @Nullable DenyFlag parent) {
+        super(key, EnumSet.of(source), Tristate.FALSE, Tristate.TRUE, parent);
     }
 
     /** TRUE denies, for the actions {@link #applies} accepts. */
@@ -32,7 +35,7 @@ abstract class StockDenyFlag extends TristateFlag {
     }
 
     /** A crossing of the region this flag's value comes from, in {@code transition}, optionally only by {@code cause}. */
-    static boolean crossing(ActionContext context, MoveContext.Transition transition, @Nullable MoveCause cause) {
+    protected static boolean crossing(ActionContext context, MoveContext.Transition transition, @Nullable MoveCause cause) {
         if (!(context instanceof MoveContext)) {
             return false;
         }
@@ -41,7 +44,7 @@ abstract class StockDenyFlag extends TristateFlag {
     }
 
     /** Damage to a victim of {@code kind}. */
-    static boolean hurts(ActionContext context, DamageContext.Kind kind) {
+    protected static boolean hurts(ActionContext context, DamageContext.Kind kind) {
         return context instanceof DamageContext && ((DamageContext) context).getVictimKind() == kind;
     }
 }

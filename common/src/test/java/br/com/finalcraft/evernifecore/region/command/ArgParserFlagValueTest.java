@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.region.command;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyEntryMessage;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

@@ -1,10 +1,9 @@
 package br.com.finalcraft.evernifecore.minecraft.region;
 
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyInteractBlocksFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyInteractEntitiesFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyInteractFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyInteractBlocksFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyInteractEntitiesFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyInteractFlag;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
@@ -33,10 +32,9 @@ class RegionInteractListenerTest {
         final DenyInteractEntitiesFlag entities;
 
         Interact(RegionServer server) {
-            ECPluginData owner = server.regions.getOwner();
-            any = server.flag(new DenyInteractFlag(owner));
-            blocks = server.flag(new DenyInteractBlocksFlag(owner, any));
-            entities = server.flag(new DenyInteractEntitiesFlag(owner, any));
+            any = server.flag(new DenyInteractFlag());
+            blocks = server.flag(new DenyInteractBlocksFlag(any));
+            entities = server.flag(new DenyInteractEntitiesFlag(any));
         }
     }
 

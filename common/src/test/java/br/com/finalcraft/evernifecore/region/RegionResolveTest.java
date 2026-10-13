@@ -13,8 +13,8 @@ import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyEntryMessage;
-import br.com.finalcraft.evernifecore.region.flag.stock.StockFlags;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryMessage;
+import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
@@ -107,7 +107,7 @@ class RegionResolveTest {
     @BeforeAll
     void registerStock() throws Exception {
         core = Plugins.fakePluginData(CORE, Files.createTempDirectory("resolve-stock").toFile());
-        StockFlags.registerAll(core);
+        CoreFlags.registerAll(core);
     }
 
     @AfterAll

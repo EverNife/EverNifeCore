@@ -3,8 +3,8 @@ package br.com.finalcraft.evernifecore.minecraft.region;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyBlockPlaceFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyPvpFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyBlockPlaceFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyPvpFlag;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
@@ -31,7 +31,7 @@ class McRegionProtectionHandlerTest {
     @Test
     void theHandlerAnswersThePlaceFlagAtEveryCornerAndTheCenter() {
         try (RegionServer server = RegionServer.open(tempDir)) {
-            server.box("vault", 0, 0, 0, 10, 10, 10, server.flag(new DenyBlockPlaceFlag(server.regions.getOwner())));
+            server.box("vault", 0, 0, 0, 10, 10, 10, server.flag(new DenyBlockPlaceFlag()));
             Player builder = server.player("builder", 50, 5, 50);
 
             assertFalse(handler.canBuild(builder, server.at(5, 5, 5)));
@@ -49,7 +49,7 @@ class McRegionProtectionHandlerTest {
     @Test
     void canAttackFollowsDenyPvp() {
         try (RegionServer server = RegionServer.open(tempDir)) {
-            server.box("lobby", 0, 0, 0, 10, 10, 10, server.flag(new DenyPvpFlag(server.regions.getOwner())));
+            server.box("lobby", 0, 0, 0, 10, 10, 10, server.flag(new DenyPvpFlag()));
             Player attacker = server.player("attacker", 50, 5, 50);
 
             assertFalse(handler.canAttack(attacker, server.player("inside", 5, 5, 5)));
@@ -61,8 +61,8 @@ class McRegionProtectionHandlerTest {
     void aDisabledWorldAlwaysAllows() {
         List<String> before = ECSettings.REGIONS_DISABLED_WORLDS;
         try (RegionServer server = RegionServer.open(tempDir)) {
-            server.box("vault", 0, 0, 0, 10, 10, 10, server.flag(new DenyBlockPlaceFlag(server.regions.getOwner())),
-                    server.flag(new DenyPvpFlag(server.regions.getOwner())));
+            server.box("vault", 0, 0, 0, 10, 10, 10, server.flag(new DenyBlockPlaceFlag()),
+                    server.flag(new DenyPvpFlag()));
             Player player = server.player("builder", 5, 5, 5);
             assertFalse(handler.canBuild(player, server.at(5, 5, 5)), "denied while the world is protected");
 

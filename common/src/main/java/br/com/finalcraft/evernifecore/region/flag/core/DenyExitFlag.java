@@ -1,21 +1,21 @@
-package br.com.finalcraft.evernifecore.region.flag.stock;
+package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.flag.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.flag.MoveContext;
 
-/** TRUE: players cannot get into the region by any means. */
-public final class DenyEntryFlag extends StockDenyFlag {
+/** TRUE: players cannot get out of the region by any means. */
+public final class DenyExitFlag extends DenyFlag {
 
-    public DenyEntryFlag(ECPluginData owner) {
-        super(owner, "deny-entry", EventSource.MOVE);
+    public DenyExitFlag() {
+        super(FlagKey.of(CoreFlags.OWNER, "deny-exit"), EventSource.MOVE);
     }
 
     @Override
     public boolean applies(ActionContext context) {
-        return crossing(context, MoveContext.Transition.ENTER, null);
+        return crossing(context, MoveContext.Transition.LEAVE, null);
     }
 
     /** Where a denied player is sent back to, and when a player who keeps trying is moved further out. */
@@ -26,6 +26,6 @@ public final class DenyEntryFlag extends StockDenyFlag {
 
     @Override
     public String getDescription() {
-        return "TRUE: players cannot get into the region by any means.";
+        return "TRUE: players cannot get out of the region by any means.";
     }
 }

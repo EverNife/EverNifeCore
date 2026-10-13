@@ -1,18 +1,20 @@
 package br.com.finalcraft.evernifecore.region.command;
 
 import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.FinalCMD;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
 import br.com.finalcraft.evernifecore.pageviewer.nav.PVExtraMessages;
 import br.com.finalcraft.evernifecore.pageviewer.theme.ClassicPageTheme;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.StockFlags;
+import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSpec;
 import br.com.finalcraft.evernifecore.region.selection.SelectionTool;
 import br.com.finalcraft.evernifecore.testing.Commands;
 import br.com.finalcraft.evernifecore.testing.FinalCmdTestHarness;
+import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.RegionWorld;
 import br.com.finalcraft.evernifecore.testing.Senders;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
@@ -33,6 +35,7 @@ abstract class RegionCommandFixture {
     @TempDirNobodyCleans
     Path tempDir;
 
+    ECPluginData core;
     FinalCmdTestHarness harness;
     RegionWorld prot;
     RegionWorld duel;
@@ -41,9 +44,10 @@ abstract class RegionCommandFixture {
     @BeforeEach
     void openRegionCommandWorld() {
         harness = Commands.harness("RegionCmd", tempDir.resolve("cmd"));
+        core = Plugins.fakeCore(tempDir.resolve("core").toFile());
         prot = RegionWorld.open("FakeProt", tempDir.resolve("prot"));
         duel = RegionWorld.open("TheDuel", tempDir.resolve("duel"));
-        StockFlags.registerAll(harness.ecPluginData);
+        CoreFlags.registerAll(core);
         FCLocaleManager.loadLocale(harness.ecPluginData, ArgParserRegion.class, ArgParserRegionFlag.class, ArgParserFlagValue.class,
                 RegionCommandNode.class, CoreRegionCommands.class, SelectionTool.class, SelectionSession.class,
                 ClassicPageTheme.class, PVExtraMessages.class);
@@ -53,7 +57,8 @@ abstract class RegionCommandFixture {
     @AfterEach
     void closeRegionCommandWorld() {
         SelectionTool.cancelAll();
-        FlagRegistry.get().unregisterAll(harness.ecPluginData);
+        FlagRegistry.get().unregisterAll(core);
+        Plugins.forget(Plugins.CORE);
         duel.close();
         prot.close();
         harness.close();

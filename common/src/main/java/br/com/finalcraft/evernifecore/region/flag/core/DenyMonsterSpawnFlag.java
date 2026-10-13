@@ -1,15 +1,15 @@
-package br.com.finalcraft.evernifecore.region.flag.stock;
+package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.flag.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.SpawnContext;
 
 /** TRUE: monsters do not spawn in the region. */
-public final class DenyMonsterSpawnFlag extends StockDenyFlag {
+public final class DenyMonsterSpawnFlag extends DenyFlag {
 
-    public DenyMonsterSpawnFlag(ECPluginData owner) {
-        super(owner, "deny-monster-spawn", EventSource.SPAWN);
+    public DenyMonsterSpawnFlag() {
+        super(FlagKey.of(CoreFlags.OWNER, "deny-monster-spawn"), EventSource.SPAWN);
     }
 
     @Override

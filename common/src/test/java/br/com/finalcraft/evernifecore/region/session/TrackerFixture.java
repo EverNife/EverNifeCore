@@ -13,6 +13,7 @@ import br.com.finalcraft.evernifecore.region.TestRegions.ManualAgenda;
 import br.com.finalcraft.evernifecore.region.TestRegions.ManualClock;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.testing.FailingExceptionHandler;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
@@ -40,6 +41,7 @@ abstract class TrackerFixture {
     @TempDir
     Path tempDir;
 
+    ECPluginData core;
     ECPluginData owner;
     ECPluginData other;
     RegionLookup lookup;
@@ -51,6 +53,7 @@ abstract class TrackerFixture {
 
     @BeforeEach
     void openTracker() {
+        core = Plugins.fakeCore(tempDir.resolve("core").toFile());
         owner = Plugins.fakePluginData(OWNER, tempDir.resolve("owner").toFile());
         other = Plugins.fakePluginData(OTHER, tempDir.resolve("other").toFile());
         lookup = TestRegions.newLookup();
@@ -68,14 +71,17 @@ abstract class TrackerFixture {
         TestRegions.restoreClock();
         FlagRegistry.get().unregisterAll(owner);
         FlagRegistry.get().unregisterAll(other);
+        FlagRegistry.get().unregisterAll(core);
         Plugins.forget(OWNER);
         Plugins.forget(OTHER);
+        Plugins.forget(Plugins.CORE);
     }
 
     <F extends RegionFlag<?>> F registered(F flag) {
         //register under the fake plugin the key names
         String keyOwner = flag.getKey().getOwner();
-        FlagRegistry.get().register(keyOwner.equals(OWNER.toLowerCase(Locale.ROOT)) ? owner : other, (RegionFlag<?>) flag);
+        ECPluginData by = keyOwner.equals(CoreFlags.OWNER) ? core : keyOwner.equals(OWNER.toLowerCase(Locale.ROOT)) ? owner : other;
+        FlagRegistry.get().register(by, (RegionFlag<?>) flag);
         return flag;
     }
 

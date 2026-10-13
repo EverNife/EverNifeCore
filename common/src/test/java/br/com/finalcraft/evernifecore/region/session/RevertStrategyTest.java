@@ -5,8 +5,8 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.flag.FlagParseException;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyEntryFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.MoveDenySettings;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import org.junit.jupiter.api.Test;
@@ -54,7 +54,7 @@ class RevertStrategyTest extends TrackerFixture {
     }
 
     private Region guarded(MoveDenySettings settings) {
-        DenyEntryFlag denyEntry = registered(new DenyEntryFlag(owner));
+        DenyEntryFlag denyEntry = registered(new DenyEntryFlag());
         Region arena = region("arena", 0, 10);
         arena.setFlag(denyEntry, Tristate.TRUE);
         arena.setFlagSettings(denyEntry, settings);

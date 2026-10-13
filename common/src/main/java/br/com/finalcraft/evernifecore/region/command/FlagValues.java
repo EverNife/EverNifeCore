@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.region.flag.FlagParseException;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -22,7 +23,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * How the region commands turn typed text into a flag value or into a flag's settings - one place, so the region and
@@ -48,10 +48,8 @@ public final class FlagValues {
             return Collections.emptyList();
         }
         if (text.equalsIgnoreCase(DENY_BUILD)) {
-            Optional<RegionFlag<?>> breaking = FlagRegistry.get().find("deny-block-break");
-            Optional<RegionFlag<?>> placing = FlagRegistry.get().find("deny-block-place");
-            return breaking.isPresent() && placing.isPresent()
-                    ? Arrays.<RegionFlag<?>>asList(breaking.get(), placing.get())
+            return CoreFlags.DENY_BLOCK_BREAK.isRegistered() && CoreFlags.DENY_BLOCK_PLACE.isRegistered()
+                    ? Arrays.<RegionFlag<?>>asList(CoreFlags.DENY_BLOCK_BREAK, CoreFlags.DENY_BLOCK_PLACE)
                     : Collections.<RegionFlag<?>>emptyList();
         }
         return FlagRegistry.get().find(text).map(Collections::<RegionFlag<?>>singletonList).orElse(Collections.<RegionFlag<?>>emptyList());

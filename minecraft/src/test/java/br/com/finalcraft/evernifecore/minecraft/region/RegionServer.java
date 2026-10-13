@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.region;
 
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.testkit.BukkitEventWorld;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
@@ -8,7 +9,9 @@ import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
+import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.RegionWorld;
 import br.com.finalcraft.evernifecore.testing.minecraft.Doubles;
 import org.bukkit.Location;
@@ -23,8 +26,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A Bukkit server with regions on it: the event rig, one region owner and the world {@code "world"} (-64..319). The
- * flags a test registers through {@link #flag} leave with it, and so do its regions.
+ * A Bukkit server with regions on it: the event rig, one region owner, a fake EverNifeCore that owns the core flags
+ * and the world {@code "world"} (-64..319). The flags a test registers through {@link #flag} leave with it, and so do
+ * its regions.
  */
 public final class RegionServer implements AutoCloseable {
 
@@ -32,12 +36,14 @@ public final class RegionServer implements AutoCloseable {
 
     public final BukkitEventWorld server;
     public final RegionWorld regions;
+    public final ECPluginData core;
     public final World world;
     private final List<Player> players = new ArrayList<>();
 
     private RegionServer(Path dataFolder) {
         server = BukkitEventWorld.install(dataFolder);
         regions = RegionWorld.open("RegionServerOwner", dataFolder.resolve("regions"));
+        core = Plugins.fakeCore(dataFolder.resolve("core").toFile());
         world = server.world(WORLD, -64, 320);
     }
 
@@ -45,9 +51,9 @@ public final class RegionServer implements AutoCloseable {
         return new RegionServer(dataFolder);
     }
 
-    /** Registers {@code flag} for the length of this server. */
+    /** Registers {@code flag} for the length of this server, under the core or the region owner - whichever its key names. */
     public <T, F extends RegionFlag<T>> F flag(F flag) {
-        FlagRegistry.get().register(regions.getOwner(), flag);
+        FlagRegistry.get().register(flag.getKey().getOwner().equals(CoreFlags.OWNER) ? core : regions.getOwner(), flag);
         return flag;
     }
 
@@ -95,6 +101,8 @@ public final class RegionServer implements AutoCloseable {
             players.forEach(player -> RegionMovementTracker.get().onQuit(FCBukkitUtil.adapt(player)));
             regions.close();
             FlagRegistry.get().unregisterAll(regions.getOwner());
+            FlagRegistry.get().unregisterAll(core);
+            Plugins.forget(Plugins.CORE);
         } finally {
             server.close();
         }

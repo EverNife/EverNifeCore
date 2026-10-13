@@ -3,8 +3,10 @@ package br.com.finalcraft.evernifecore.region.flag;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.TestRegions;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyEntryMessage;
-import br.com.finalcraft.evernifecore.region.flag.stock.StockFlags;
+import br.com.finalcraft.evernifecore.region.Region;
+import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryMessage;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyPvpFlag;
 import br.com.finalcraft.evernifecore.region.session.MoveCause;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
@@ -27,12 +29,14 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The stock catalog: the names, and how each flag breaks a tie - checked against the catalog, not against the flag. */
+/** The core catalog: the static instances, the names, and how each flag breaks a tie - checked against the catalog, not against the flag. */
 @ECoreTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class StockFlagsTest {
+class CoreFlagsTest {
 
     private static final String CORE = "EverNifeCore";
 
@@ -55,9 +59,9 @@ class StockFlagsTest {
     private int iterated;
 
     @BeforeAll
-    void registerStock() throws Exception {
-        core = Plugins.fakePluginData(CORE, Files.createTempDirectory("stock-flags").toFile());
-        StockFlags.registerAll(core);
+    void registerCore() throws Exception {
+        core = Plugins.fakePluginData(CORE, Files.createTempDirectory("core-flags").toFile());
+        CoreFlags.registerAll(core);
     }
 
     @AfterAll
@@ -71,13 +75,13 @@ class StockFlagsTest {
         }
     }
 
-    Stream<RegionFlag<?>> stockFlags() {
+    Stream<RegionFlag<?>> coreFlags() {
         return FlagRegistry.get().getByOwner(core).stream();
     }
 
     @Test
-    void everyStockFlagSaysWhatItDoes() {
-        List<RegionFlag<?>> flags = stockFlags().collect(Collectors.toList());
+    void everyCoreFlagSaysWhatItDoes() {
+        List<RegionFlag<?>> flags = coreFlags().collect(Collectors.toList());
         assertFalse(flags.isEmpty());
         for (RegionFlag<?> flag : flags) {
             String description = flag.getDescription();
@@ -86,7 +90,7 @@ class StockFlagsTest {
     }
 
     @Test
-    void catalogNamesAreExactlyTheStockOnes() {
+    void catalogNamesAreExactlyTheCoreOnes() {
         TreeSet<String> registered = FlagRegistry.get().getByOwner(core).stream()
                 .map(flag -> flag.getKey().toString()).collect(Collectors.toCollection(TreeSet::new));
         TreeSet<String> expected = CATALOG.keySet().stream().map(name -> "evernifecore:" + name).collect(Collectors.toCollection(TreeSet::new));
@@ -95,7 +99,7 @@ class StockFlagsTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @MethodSource("stockFlags")
+    @MethodSource("coreFlags")
     @SuppressWarnings("unchecked")
     void tieResolvesAsTheCatalogSays(RegionFlag<?> flag) {
         iterated++;
@@ -151,5 +155,40 @@ class StockFlagsTest {
         assertEquals(FlagCategory.PROTECTION, FlagRegistry.get().find("deny-exit").get().getCategory());
         assertEquals(5, FlagRegistry.get().getBySource(EventSource.MOVE).stream()
                 .filter(flag -> flag.getOwner() == core && flag.getCategory() == FlagCategory.PROTECTION).count());
+    }
+
+    @Test
+    void everyCoreFlagIsAStaticInstanceRegisteredUnderTheCore() {
+        List<RegionFlag<?>> all = CoreFlags.all();
+        assertEquals(20, all.size());
+        for (RegionFlag<?> flag : all) {
+            assertTrue(flag.isRegistered(), flag.getKey().toString());
+            assertSame(core, flag.getOwner(), flag.getKey().toString());
+        }
+        assertSame(CoreFlags.DENY_PVP, FlagRegistry.get().find("evernifecore:deny-pvp").get());
+        assertSame(CoreFlags.DENY_INTERACT, CoreFlags.DENY_INTERACT_BLOCKS.getParent());
+    }
+
+    @Test
+    void aCoreFlagInstanceCanBeSwappedAndTheStoredValuesFollowTheKey() {
+        DenyPvpFlag original = CoreFlags.DENY_PVP;
+        Region region = TestRegions.loaded(core, "arena-swap", "world");
+        try {
+            region.setFlag(CoreFlags.DENY_PVP, Tristate.TRUE);
+
+            FlagRegistry.get().unregister(CoreFlags.DENY_PVP);
+            assertNull(region.getFlag(CoreFlags.DENY_PVP));
+            assertTrue(region.getUnknownFlags().containsKey("evernifecore:deny-pvp"));
+
+            CoreFlags.DENY_PVP = new DenyPvpFlag();
+            FlagRegistry.get().register(core, CoreFlags.DENY_PVP);
+            assertEquals(Tristate.TRUE, region.getFlag(CoreFlags.DENY_PVP));
+            assertFalse(original.isRegistered());
+        } finally {
+            FlagRegistry.get().unregister(CoreFlags.DENY_PVP);
+            CoreFlags.DENY_PVP = original;
+            FlagRegistry.get().register(core, original);
+            TestRegions.unloadAll();
+        }
     }
 }

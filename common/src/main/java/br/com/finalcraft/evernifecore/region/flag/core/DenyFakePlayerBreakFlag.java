@@ -1,15 +1,15 @@
-package br.com.finalcraft.evernifecore.region.flag.stock;
+package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.flag.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.BlockContext;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 
 /** TRUE: fake players - machines acting as a player - cannot break blocks in the region. */
-public final class DenyFakePlayerBreakFlag extends StockDenyFlag {
+public final class DenyFakePlayerBreakFlag extends DenyFlag {
 
-    public DenyFakePlayerBreakFlag(ECPluginData owner) {
-        super(owner, "deny-fake-player-break", EventSource.BREAK);
+    public DenyFakePlayerBreakFlag() {
+        super(FlagKey.of(CoreFlags.OWNER, "deny-fake-player-break"), EventSource.BREAK);
     }
 
     @Override

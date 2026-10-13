@@ -1,15 +1,15 @@
-package br.com.finalcraft.evernifecore.region.flag.stock;
+package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.flag.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.SpawnContext;
 
 /** TRUE: animals do not spawn in the region. */
-public final class DenyAnimalSpawnFlag extends StockDenyFlag {
+public final class DenyAnimalSpawnFlag extends DenyFlag {
 
-    public DenyAnimalSpawnFlag(ECPluginData owner) {
-        super(owner, "deny-animal-spawn", EventSource.SPAWN);
+    public DenyAnimalSpawnFlag() {
+        super(FlagKey.of(CoreFlags.OWNER, "deny-animal-spawn"), EventSource.SPAWN);
     }
 
     @Override

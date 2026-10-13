@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.region.flag.stock;
+package br.com.finalcraft.evernifecore.region.flag.core;
 
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import jakarta.annotation.Nullable;

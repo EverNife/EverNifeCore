@@ -9,9 +9,9 @@ import br.com.finalcraft.evernifecore.region.event.RegionBoundaryEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionEnterEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyEntryFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyExitFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyTeleportInFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyExitFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyTeleportInFlag;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
@@ -42,7 +42,7 @@ class RegionMovementTrackerTest extends TrackerFixture {
     @Test
     void aDeniedEntryRevertsToTheCenterOfTheLastBlockAndChangesNothing() {
         Region arena = region("arena", 0, 10);
-        arena.setFlag(registered(new DenyEntryFlag(owner)), Tristate.TRUE);
+        arena.setFlag(registered(new DenyEntryFlag()), Tristate.TRUE);
         List<RegionEnterEvent> enters = record(RegionEnterEvent.class);
 
         MoveVerdict verdict = walk(12.7, 10.5);
@@ -55,8 +55,8 @@ class RegionMovementTrackerTest extends TrackerFixture {
     @Test
     void denyExitStopsOnlyLeavingAndDenyEntryLetsThoseInsideWalk() {
         Region arena = region("arena", 0, 10);
-        arena.setFlag(registered(new DenyExitFlag(owner)), Tristate.TRUE);
-        arena.setFlag(registered(new DenyEntryFlag(owner)), Tristate.TRUE);
+        arena.setFlag(registered(new DenyExitFlag()), Tristate.TRUE);
+        arena.setFlag(registered(new DenyEntryFlag()), Tristate.TRUE);
 
         assertTrue(walk(5.5, 7.5).isAllowed(), "moving inside crosses nothing");
         MoveVerdict leaving = tracker.onMove(player, at(7.5), at(12.5), MoveCause.MOVE);
@@ -68,7 +68,7 @@ class RegionMovementTrackerTest extends TrackerFixture {
     @Test
     void denyTeleportInStopsTeleportsAndLetsWalkersIn() {
         Region arena = region("arena", 0, 10);
-        arena.setFlag(registered(new DenyTeleportInFlag(owner)), Tristate.TRUE);
+        arena.setFlag(registered(new DenyTeleportInFlag()), Tristate.TRUE);
         tracker.onJoin(player, at(20.5));
 
         assertTrue(!tracker.onMove(player, at(20.5), at(5.5), MoveCause.TELEPORT).isAllowed());
@@ -105,7 +105,7 @@ class RegionMovementTrackerTest extends TrackerFixture {
     @Test
     void joiningInsideDenyEntryEntersUnasked() {
         Region arena = region("arena", 0, 10);
-        arena.setFlag(registered(new DenyEntryFlag(owner)), Tristate.TRUE);
+        arena.setFlag(registered(new DenyEntryFlag()), Tristate.TRUE);
         List<RegionEnterEvent> enters = record(RegionEnterEvent.class);
 
         tracker.onJoin(player, at(5.5));

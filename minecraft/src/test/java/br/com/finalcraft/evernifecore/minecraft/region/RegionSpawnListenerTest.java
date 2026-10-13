@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.region;
 
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyMonsterSpawnFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyMonsterSpawnFlag;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.entity.Cow;
 import org.bukkit.entity.EntityType;
@@ -27,7 +27,7 @@ class RegionSpawnListenerTest {
     @Test
     void aMonsterSpawnInsideDenyMonsterSpawnIsCancelled() {
         try (RegionServer server = RegionServer.open(tempDir)) {
-            server.box("town", 0, 0, 0, 10, 10, 10, server.flag(new DenyMonsterSpawnFlag(server.regions.getOwner())));
+            server.box("town", 0, 0, 0, 10, 10, 10, server.flag(new DenyMonsterSpawnFlag()));
             server.listen(new RegionSpawnListener());
             Cow cow = RegionServer.entity(Cow.class, EntityType.COW, server.at(5, 5, 5)).build();
 
@@ -40,7 +40,7 @@ class RegionSpawnListenerTest {
     @Test
     void anEggSpawnIsNeverAsked() {
         try (RegionServer server = RegionServer.open(tempDir)) {
-            server.box("town", 0, 0, 0, 10, 10, 10, server.flag(new DenyMonsterSpawnFlag(server.regions.getOwner())));
+            server.box("town", 0, 0, 0, 10, 10, 10, server.flag(new DenyMonsterSpawnFlag()));
             server.listen(new RegionSpawnListener());
 
             assertFalse(server.call(new CreatureSpawnEvent(zombie(server, 5), SpawnReason.SPAWNER_EGG)).isCancelled());

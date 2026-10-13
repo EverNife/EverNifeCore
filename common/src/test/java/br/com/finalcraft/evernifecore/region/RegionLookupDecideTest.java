@@ -14,12 +14,12 @@ import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.SpawnContext;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyInteractBlocksFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyInteractEntitiesFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyInteractFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyMonsterSpawnFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.InteractSettings;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyPvpFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyInteractBlocksFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyInteractEntitiesFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyInteractFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyMonsterSpawnFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.InteractSettings;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyPvpFlag;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
@@ -67,6 +67,7 @@ class RegionLookupDecideTest {
     @TempDir
     Path tempDir;
 
+    private ECPluginData core;
     private ECPluginData owner;
     private RegionLookup lookup;
     private Region region;
@@ -74,6 +75,7 @@ class RegionLookupDecideTest {
 
     @BeforeEach
     void setUp() {
+        core = Plugins.fakeCore(tempDir.resolve("core").toFile());
         owner = Plugins.fakePluginData(OWNER, tempDir.toFile());
         lookup = TestRegions.newLookup();
         region = TestRegions.box(owner, "yard", WORLD, 0, 0, 0, 10, 10, 10);
@@ -84,8 +86,10 @@ class RegionLookupDecideTest {
     @AfterEach
     void tearDown() {
         FlagRegistry.get().unregisterAll(owner);
+        FlagRegistry.get().unregisterAll(core);
         TestRegions.restoreClock();
         Plugins.forget(OWNER);
+        Plugins.forget(Plugins.CORE);
     }
 
     private CountingFlag registered(String name) {
@@ -162,8 +166,8 @@ class RegionLookupDecideTest {
 
     @Test
     void denyPvpSpeaksAboutPlayersOnly() {
-        DenyPvpFlag denyPvp = new DenyPvpFlag(owner);
-        FlagRegistry.get().register(owner, denyPvp);
+        DenyPvpFlag denyPvp = new DenyPvpFlag();
+        FlagRegistry.get().register(core, denyPvp);
         region.setFlag(denyPvp, Tristate.TRUE);
         TestFPlayerSender attacker = new TestFPlayerSender("attacker");
         WorldLocPos victimAt = WorldLocPos.of(5, 5, 5, WORLD);
@@ -177,8 +181,8 @@ class RegionLookupDecideTest {
 
     @Test
     void denyMonsterSpawnLetsAnimalsSpawn() {
-        DenyMonsterSpawnFlag denyMonsters = new DenyMonsterSpawnFlag(owner);
-        FlagRegistry.get().register(owner, denyMonsters);
+        DenyMonsterSpawnFlag denyMonsters = new DenyMonsterSpawnFlag();
+        FlagRegistry.get().register(core, denyMonsters);
         region.setFlag(denyMonsters, Tristate.TRUE);
         WorldLocPos at = WorldLocPos.of(5, 5, 5, WORLD);
 
@@ -188,7 +192,7 @@ class RegionLookupDecideTest {
 
     @Test
     void aContextOfAnotherKindPassesInsteadOfThrowing() {
-        DenyPvpFlag denyPvp = new DenyPvpFlag(owner);
+        DenyPvpFlag denyPvp = new DenyPvpFlag();
 
         assertEquals(Decision.PASS, denyPvp.decide(breakAt(5, new TestFPlayerSender("breaker")), Tristate.TRUE));
     }
@@ -202,13 +206,13 @@ class RegionLookupDecideTest {
         final DenyInteractBlocksFlag blocks;
         final DenyInteractEntitiesFlag entities;
 
-        Interact(ECPluginData owner) {
-            any = new DenyInteractFlag(owner);
-            blocks = new DenyInteractBlocksFlag(owner, any);
-            entities = new DenyInteractEntitiesFlag(owner, any);
-            FlagRegistry.get().register(owner, any);
-            FlagRegistry.get().register(owner, blocks);
-            FlagRegistry.get().register(owner, entities);
+        Interact(ECPluginData core) {
+            any = new DenyInteractFlag();
+            blocks = new DenyInteractBlocksFlag(any);
+            entities = new DenyInteractEntitiesFlag(any);
+            FlagRegistry.get().register(core, any);
+            FlagRegistry.get().register(core, blocks);
+            FlagRegistry.get().register(core, entities);
         }
     }
 
@@ -222,7 +226,7 @@ class RegionLookupDecideTest {
 
     @Test
     void denyInteractCoversAnEntityThroughItsUndefinedRefinement() {
-        Interact interact = new Interact(owner);
+        Interact interact = new Interact(core);
         region.setFlag(interact.any, Tristate.TRUE);
 
         assertEquals(Decision.DENY, lookup.decide(useEntity("minecraft:villager", new TestFPlayerSender("trader"))));
@@ -230,7 +234,7 @@ class RegionLookupDecideTest {
 
     @Test
     void theMostSpecificDefinedFlagDecides() {
-        Interact interact = new Interact(owner);
+        Interact interact = new Interact(core);
         region.setFlag(interact.any, Tristate.TRUE);
         region.setFlag(interact.blocks, Tristate.FALSE);
         TestFPlayerSender player = new TestFPlayerSender("user");
@@ -241,7 +245,7 @@ class RegionLookupDecideTest {
 
     @Test
     void denyInteractBlocksSaysNothingAboutEntities() {
-        Interact interact = new Interact(owner);
+        Interact interact = new Interact(core);
         region.setFlag(interact.blocks, Tristate.TRUE);
 
         assertEquals(Decision.PASS, lookup.decide(useEntity("minecraft:villager", new TestFPlayerSender("trader"))));
@@ -249,7 +253,7 @@ class RegionLookupDecideTest {
 
     @Test
     void denyInteractEntitiesSaysNothingAboutBlocks() {
-        Interact interact = new Interact(owner);
+        Interact interact = new Interact(core);
         region.setFlag(interact.entities, Tristate.TRUE);
 
         assertEquals(Decision.PASS, lookup.decide(use("minecraft:chest", new TestFPlayerSender("user"))));
@@ -257,7 +261,7 @@ class RegionLookupDecideTest {
 
     @Test
     void onlyNarrowsTheDenialToTheListedIds() {
-        Interact interact = new Interact(owner);
+        Interact interact = new Interact(core);
         region.setFlag(interact.blocks, Tristate.TRUE);
         InteractSettings settings = new InteractSettings();
         settings.setOnly(Arrays.asList("minecraft:*chest*"));
@@ -271,7 +275,7 @@ class RegionLookupDecideTest {
 
     @Test
     void exceptLeavesTheListedIdsFree() {
-        Interact interact = new Interact(owner);
+        Interact interact = new Interact(core);
         region.setFlag(interact.any, Tristate.TRUE);
         InteractSettings settings = new InteractSettings();
         settings.setExcept(Arrays.asList("minecraft:chest"));
@@ -284,7 +288,7 @@ class RegionLookupDecideTest {
 
     @Test
     void aBypassOfTheRefinementLetsThePlayerThroughWhateverTheParentSays() {
-        Interact interact = new Interact(owner);
+        Interact interact = new Interact(core);
         region.setFlag(interact.any, Tristate.TRUE);
         TestFPlayerSender bypassing = new TestFPlayerSender("admin")
                 .grant("evernifecore.region.bypass." + interact.blocks.getKey().getOwner() + ".deny-interact-blocks");

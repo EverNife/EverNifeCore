@@ -15,7 +15,7 @@ import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.flag.MoveContext;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.TriggerThrottle;
-import br.com.finalcraft.evernifecore.region.flag.stock.MoveDenySettings;
+import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.region.session.MoveVerdict;
 import br.com.finalcraft.evernifecore.region.session.RegionPlayerSession;
 import br.com.finalcraft.evernifecore.region.session.RevertStrategy;

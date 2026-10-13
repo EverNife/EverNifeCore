@@ -1,17 +1,17 @@
-package br.com.finalcraft.evernifecore.region.flag.stock;
+package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.flag.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.EntityContext;
+import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 
 /**
  * TRUE: blocks and entities in the region cannot be used. {@link DenyInteractBlocksFlag} and
  * {@link DenyInteractEntitiesFlag} refine it - where one of them is defined it decides, where not this one does.
  */
-public final class DenyInteractFlag extends StockInteractFlag {
+public final class DenyInteractFlag extends InteractDenyFlag {
 
-    public DenyInteractFlag(ECPluginData owner) {
-        super(owner, "deny-interact", null);
+    public DenyInteractFlag() {
+        super(FlagKey.of(CoreFlags.OWNER, "deny-interact"), null);
     }
 
     @Override

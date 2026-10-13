@@ -1,15 +1,15 @@
-package br.com.finalcraft.evernifecore.region.flag.stock;
+package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.flag.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.DamageContext;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 
 /** TRUE: animals in the region cannot be hurt. */
-public final class DenyDamageAnimalsFlag extends StockDenyFlag {
+public final class DenyDamageAnimalsFlag extends DenyFlag {
 
-    public DenyDamageAnimalsFlag(ECPluginData owner) {
-        super(owner, "deny-damage-animals", EventSource.DAMAGE);
+    public DenyDamageAnimalsFlag() {
+        super(FlagKey.of(CoreFlags.OWNER, "deny-damage-animals"), EventSource.DAMAGE);
     }
 
     @Override

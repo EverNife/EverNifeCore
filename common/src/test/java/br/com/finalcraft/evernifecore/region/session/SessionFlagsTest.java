@@ -15,8 +15,8 @@ import br.com.finalcraft.evernifecore.region.flag.FlagTypes;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Revalidation;
 import br.com.finalcraft.evernifecore.region.flag.SessionContext;
-import br.com.finalcraft.evernifecore.region.flag.stock.FarewellFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.GreetingFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.FarewellFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.GreetingFlag;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import org.junit.jupiter.api.Test;
 
@@ -85,8 +85,8 @@ class SessionFlagsTest extends TrackerFixture {
 
     @Test
     void greetingAndFarewellSpeakOnceAndAcrossAStraightCrossing() {
-        GreetingFlag greeting = registered(new GreetingFlag(owner));
-        FarewellFlag farewell = registered(new FarewellFlag(owner));
+        GreetingFlag greeting = registered(new GreetingFlag());
+        FarewellFlag farewell = registered(new FarewellFlag());
         Region a = region("a", 0, 10);
         Region b = region("b", 11, 20);
         a.setFlag(greeting, "welcome to A");

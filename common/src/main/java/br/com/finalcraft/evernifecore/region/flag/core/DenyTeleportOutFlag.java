@@ -1,17 +1,17 @@
-package br.com.finalcraft.evernifecore.region.flag.stock;
+package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.flag.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.flag.MoveContext;
 import br.com.finalcraft.evernifecore.region.session.MoveCause;
 
 /** TRUE: players cannot teleport out of the region; walking out is up to {@code deny-exit}. */
-public final class DenyTeleportOutFlag extends StockDenyFlag {
+public final class DenyTeleportOutFlag extends DenyFlag {
 
-    public DenyTeleportOutFlag(ECPluginData owner) {
-        super(owner, "deny-teleport-out", EventSource.MOVE);
+    public DenyTeleportOutFlag() {
+        super(FlagKey.of(CoreFlags.OWNER, "deny-teleport-out"), EventSource.MOVE);
     }
 
     @Override

@@ -1,6 +1,5 @@
-package br.com.finalcraft.evernifecore.region.flag.stock;
+package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagCategory;
@@ -14,8 +13,8 @@ import java.util.List;
 /** Where teleporting to the region takes a player. */
 public final class TeleportPointFlag extends RegionFlag<WorldLocPos> {
 
-    public TeleportPointFlag(ECPluginData owner) {
-        super(FlagKey.of(owner, "teleport-point"), FlagTypes.LOCATION, EnumSet.of(EventSource.NONE), null);
+    public TeleportPointFlag() {
+        super(FlagKey.of(CoreFlags.OWNER, "teleport-point"), FlagTypes.LOCATION, EnumSet.of(EventSource.NONE), null);
     }
 
     @Override

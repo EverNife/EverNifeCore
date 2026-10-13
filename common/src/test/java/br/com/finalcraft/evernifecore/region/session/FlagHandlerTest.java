@@ -12,11 +12,11 @@ import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagOutcome;
 import br.com.finalcraft.evernifecore.region.flag.FlagOutcomeContext;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyBlockBreakFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyEntryFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyEntryMessage;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyEntryWithMessageFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.MoveDenySettings;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyBlockBreakFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryMessage;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryWithMessageFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import org.junit.jupiter.api.Test;
 
@@ -41,7 +41,7 @@ class FlagHandlerTest extends TrackerFixture {
     private final List<FlagOutcomeContext> heard = new CopyOnWriteArrayList<>();
 
     private DenyEntryFlag denyEntry() {
-        return registered(new DenyEntryFlag(owner));
+        return registered(new DenyEntryFlag());
     }
 
     private static MoveDenySettings revertingTo(WorldLocPos point) {
@@ -133,7 +133,7 @@ class FlagHandlerTest extends TrackerFixture {
 
     @Test
     void outsideMovementTheHandlerOnlyReacts() {
-        DenyBlockBreakFlag denyBreak = registered(new DenyBlockBreakFlag(owner));
+        DenyBlockBreakFlag denyBreak = registered(new DenyBlockBreakFlag());
         Region arena = region("arena", 0, 10);
         arena.setFlag(denyBreak, Tristate.TRUE);
         List<IllegalStateException> refused = new CopyOnWriteArrayList<>();
@@ -156,7 +156,7 @@ class FlagHandlerTest extends TrackerFixture {
 
     @Test
     void theFlagsOwnMessageStillGoesOutWithAHandler() {
-        DenyEntryWithMessageFlag denyWithMessage = registered(new DenyEntryWithMessageFlag(owner));
+        DenyEntryWithMessageFlag denyWithMessage = registered(new DenyEntryWithMessageFlag());
         Region arena = region("arena", 0, 10);
         arena.setFlag(denyWithMessage, new DenyEntryMessage(Tristate.TRUE, "Boss fight in progress"));
         arena.setFlagHandler(other, denyWithMessage, context -> context.revertTo(STANDS));

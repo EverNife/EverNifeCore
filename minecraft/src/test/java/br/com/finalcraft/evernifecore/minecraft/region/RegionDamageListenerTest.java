@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.region;
 
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyPvpFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.InvincibleFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyPvpFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.InvincibleFlag;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import br.com.finalcraft.evernifecore.testing.minecraft.Doubles;
 import org.bukkit.damage.DamageSource;
@@ -38,7 +38,7 @@ class RegionDamageListenerTest {
 
     /** An arena where players cannot hurt each other, and the player standing in it. */
     private static Player arenaWithVictim(RegionServer server) {
-        server.box("arena", 0, 0, 0, 10, 10, 10, server.flag(new DenyPvpFlag(server.regions.getOwner())));
+        server.box("arena", 0, 0, 0, 10, 10, 10, server.flag(new DenyPvpFlag()));
         server.listen(new RegionDamageListener());
         return server.player("victim", 5, 5, 5);
     }
@@ -87,7 +87,7 @@ class RegionDamageListenerTest {
     @Test
     void pvpInsideDenyPvpIsCancelled() {
         try (RegionServer server = RegionServer.open(tempDir)) {
-            server.box("lobby", 0, 0, 0, 10, 10, 10, server.flag(new DenyPvpFlag(server.regions.getOwner())));
+            server.box("lobby", 0, 0, 0, 10, 10, 10, server.flag(new DenyPvpFlag()));
             server.listen(new RegionDamageListener());
             Player attacker = server.player("attacker", 30, 5, 30);
             Player inside = server.player("inside", 5, 5, 5);
@@ -101,7 +101,7 @@ class RegionDamageListenerTest {
     @Test
     void aMonsterHittingAnInvinciblePlayerIsCancelled() {
         try (RegionServer server = RegionServer.open(tempDir)) {
-            server.box("spawn", 0, 0, 0, 10, 10, 10, server.flag(new InvincibleFlag(server.regions.getOwner())));
+            server.box("spawn", 0, 0, 0, 10, 10, 10, server.flag(new InvincibleFlag()));
             server.listen(new RegionDamageListener());
             Zombie zombie = RegionServer.entity(Zombie.class, EntityType.ZOMBIE, server.at(5, 5, 5)).build();
             Player inside = server.player("inside", 5, 5, 5);

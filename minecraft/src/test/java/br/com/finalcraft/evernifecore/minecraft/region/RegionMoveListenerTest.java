@@ -8,8 +8,8 @@ import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.event.RegionBoundaryEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionEnterEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyEntryFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyTeleportInFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyTeleportInFlag;
 import br.com.finalcraft.evernifecore.region.session.MoveCause;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
@@ -50,7 +50,7 @@ class RegionMoveListenerTest {
 
     /** The arena, 0..10 on every axis, that nobody may walk into. */
     private static Region arena(RegionServer server) {
-        return server.box("arena", 0, 0, 0, 10, 10, 10, server.flag(new DenyEntryFlag(server.regions.getOwner())));
+        return server.box("arena", 0, 0, 0, 10, 10, 10, server.flag(new DenyEntryFlag()));
     }
 
     private static PlayerMoveEvent step(RegionServer server, Player player, double fromX, double toX) {
@@ -122,7 +122,7 @@ class RegionMoveListenerTest {
     @Test
     void aDeniedTeleportIsCancelled() {
         try (RegionServer server = RegionServer.open(tempDir)) {
-            server.box("vault", 0, 0, 0, 10, 10, 10, server.flag(new DenyTeleportInFlag(server.regions.getOwner())));
+            server.box("vault", 0, 0, 0, 10, 10, 10, server.flag(new DenyTeleportInFlag()));
             server.listen(new RegionMoveListener());
             Player player = server.player("jumper", 20.5, 5, 5.5);
             server.server.getPluginManager().callEvent(new PlayerJoinEvent(player, "joined"));

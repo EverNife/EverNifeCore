@@ -1,20 +1,21 @@
-package br.com.finalcraft.evernifecore.region.flag.stock;
+package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.flag.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.BlockContext;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
 import br.com.finalcraft.evernifecore.region.flag.EntityContext;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import jakarta.annotation.Nullable;
 
-/** The shape of the stock interact flags: TRUE denies using a block or an entity, narrowed by {@link InteractSettings}. */
-abstract class StockInteractFlag extends StockDenyFlag {
+/** The shape of an interact deny flag: TRUE denies using a block or an entity, narrowed by {@link InteractSettings}. */
+public abstract class InteractDenyFlag extends DenyFlag {
 
-    StockInteractFlag(ECPluginData owner, String name, @Nullable StockInteractFlag parent) {
-        super(owner, name, EventSource.INTERACT, parent);
+    /** @param parent the interact flag this one refines; null for none */
+    protected InteractDenyFlag(FlagKey key, @Nullable InteractDenyFlag parent) {
+        super(key, EventSource.INTERACT, parent);
     }
 
     @Override
@@ -34,7 +35,7 @@ abstract class StockInteractFlag extends StockDenyFlag {
     }
 
     /** The block or entity type being used, or null for a context that names neither. */
-    static @Nullable String usedId(ActionContext context) {
+    protected static @Nullable String usedId(ActionContext context) {
         if (context instanceof BlockContext) {
             return ((BlockContext) context).getBlockId();
         }
@@ -44,7 +45,7 @@ abstract class StockInteractFlag extends StockDenyFlag {
         return null;
     }
 
-    static boolean isBlockUse(ActionContext context) {
+    protected static boolean isBlockUse(ActionContext context) {
         return context instanceof BlockContext && context.getSource() == EventSource.INTERACT;
     }
 }

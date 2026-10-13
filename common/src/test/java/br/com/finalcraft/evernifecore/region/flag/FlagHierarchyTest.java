@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.TestRegions;
-import br.com.finalcraft.evernifecore.region.flag.stock.StockFlags;
+import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
@@ -152,10 +152,10 @@ class FlagHierarchyTest {
     }
 
     @Test
-    void theStockRegistersTwentyWithBothRefinementsUnderDenyInteract() {
-        ECPluginData core = Plugins.fakePluginData("HierarchyStock", tempDir.resolve("stock").toFile());
+    void theCoreRegistersTwentyWithBothRefinementsUnderDenyInteract() {
+        ECPluginData core = Plugins.fakeCore(tempDir.resolve("core").toFile());
         try {
-            StockFlags.registerAll(core);
+            CoreFlags.registerAll(core);
             RegionFlag<?> interact = FlagRegistry.get().getByOwner(core).stream()
                     .filter(flag -> flag.getKey().getName().equals("deny-interact")).findFirst().orElseThrow(AssertionError::new);
 
@@ -166,7 +166,7 @@ class FlagHierarchyTest {
             }
         } finally {
             FlagRegistry.get().unregisterAll(core);
-            Plugins.forget("HierarchyStock");
+            Plugins.forget(Plugins.CORE);
         }
     }
 }

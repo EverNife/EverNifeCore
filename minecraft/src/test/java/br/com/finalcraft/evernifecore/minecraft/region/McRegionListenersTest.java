@@ -1,13 +1,12 @@
 package br.com.finalcraft.evernifecore.minecraft.region;
 
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyBlockBreakFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyBlockPlaceFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyInteractFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyMonsterSpawnFlag;
-import br.com.finalcraft.evernifecore.region.flag.stock.DenyPvpFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyBlockBreakFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyBlockPlaceFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyInteractFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyMonsterSpawnFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyPvpFlag;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import br.com.finalcraft.evernifecore.testing.minecraft.Doubles;
@@ -49,7 +48,7 @@ class McRegionListenersTest {
             try {
                 assertFalse(isRegistered(BlockBreakEvent.getHandlerList(), RegionBlockListener.class), "no region needs BREAK yet");
 
-                Region vault = server.box("vault", 0, 0, 0, 10, 10, 10, server.flag(new DenyBlockBreakFlag(server.regions.getOwner())));
+                Region vault = server.box("vault", 0, 0, 0, 10, 10, 10, server.flag(new DenyBlockBreakFlag()));
                 assertTrue(isRegistered(BlockBreakEvent.getHandlerList(), RegionBlockListener.class));
 
                 EventSourceUsage.get().setIdleTime(Duration.ZERO);
@@ -69,10 +68,9 @@ class McRegionListenersTest {
     void aDisabledWorldSkipsEveryHandler() {
         List<String> before = ECSettings.REGIONS_DISABLED_WORLDS;
         try (RegionServer server = RegionServer.open(tempDir)) {
-            ECPluginData owner = server.regions.getOwner();
             server.box("plots", 0, 0, 0, 10, 10, 10,
-                    server.flag(new DenyBlockBreakFlag(owner)), server.flag(new DenyBlockPlaceFlag(owner)),
-                    server.flag(new DenyInteractFlag(owner)), server.flag(new DenyPvpFlag(owner)), server.flag(new DenyMonsterSpawnFlag(owner)));
+                    server.flag(new DenyBlockBreakFlag()), server.flag(new DenyBlockPlaceFlag()),
+                    server.flag(new DenyInteractFlag()), server.flag(new DenyPvpFlag()), server.flag(new DenyMonsterSpawnFlag()));
             McRegionListeners bridge = McRegionListeners.start(server.server.getPluginData());
             try {
                 Player player = server.player("plotter", 5, 5, 5);

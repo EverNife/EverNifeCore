@@ -1,15 +1,15 @@
-package br.com.finalcraft.evernifecore.region.flag.stock;
+package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.flag.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.DamageContext;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 
 /** TRUE: players in the region take no damage, whatever hurts them. */
-public final class InvincibleFlag extends StockDenyFlag {
+public final class InvincibleFlag extends DenyFlag {
 
-    public InvincibleFlag(ECPluginData owner) {
-        super(owner, "invincible", EventSource.DAMAGE);
+    public InvincibleFlag() {
+        super(FlagKey.of(CoreFlags.OWNER, "invincible"), EventSource.DAMAGE);
     }
 
     @Override

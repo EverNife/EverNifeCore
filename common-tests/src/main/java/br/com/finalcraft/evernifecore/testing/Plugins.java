@@ -21,6 +21,9 @@ import java.util.List;
  */
 public final class Plugins {
 
+    /** The name a fake EverNifeCore answers to - the owner the core flags' keys name, once lowercased. */
+    public static final String CORE = "EverNifeCore";
+
     private Plugins() {
     }
 
@@ -56,6 +59,20 @@ public final class Plugins {
     public static ECPluginData fakePluginData(String pluginName, File dataFolder) {
         EverNifeCore.getProviders().getBaseProvider().register(IECPluginExtractor.class, fake(pluginName, dataFolder));
         return ECPluginManager.getOrCreateECorePluginData(new Object());
+    }
+
+    /**
+     * A fake EverNifeCore ({@link #CORE}), the owner the core flags register under. Unlike
+     * {@link #fakePluginData(String, File)} it leaves the extractor already installed answering for classes, so it can
+     * be built at any point of a setup. {@code forget(Plugins.CORE)} removes it again.
+     */
+    public static ECPluginData fakeCore(File dataFolder) {
+        IECPluginExtractor previous = EverNifeCore.getProviders().getBaseProvider().provideOrNull(IECPluginExtractor.class);
+        ECPluginData core = fakePluginData(CORE, dataFolder);
+        if (previous != null) {
+            EverNifeCore.getProviders().getBaseProvider().register(IECPluginExtractor.class, previous);
+        }
+        return core;
     }
 
     /** Removes the plugin data {@link #fakePluginData(String, File)} built under {@code pluginName}. */

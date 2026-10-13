@@ -14,7 +14,7 @@ import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.flag.FlagValue;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.stock.MoveDenySettings;
+import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.selection.SelectionClick;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSpec;
