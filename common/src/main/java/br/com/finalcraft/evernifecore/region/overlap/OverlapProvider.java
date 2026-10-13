@@ -1,5 +1,6 @@
-package br.com.finalcraft.evernifecore.region;
+package br.com.finalcraft.evernifecore.region.overlap;
 
+import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 
 import java.util.List;

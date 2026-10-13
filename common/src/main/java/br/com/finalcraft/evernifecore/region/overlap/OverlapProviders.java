@@ -1,4 +1,4 @@
-package br.com.finalcraft.evernifecore.region;
+package br.com.finalcraft.evernifecore.region.overlap;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 

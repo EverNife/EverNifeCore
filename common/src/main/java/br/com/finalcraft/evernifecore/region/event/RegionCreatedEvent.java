@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.region.event;
 
 import br.com.finalcraft.evernifecore.api.events.base.ECEvent;
-import br.com.finalcraft.evernifecore.region.Overlap;
 import br.com.finalcraft.evernifecore.region.Region;
+import br.com.finalcraft.evernifecore.region.overlap.Overlap;
 
 import java.util.Collections;
 import java.util.List;

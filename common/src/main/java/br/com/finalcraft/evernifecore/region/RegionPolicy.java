@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.region;
 
+import br.com.finalcraft.evernifecore.region.overlap.Overlap;
+import br.com.finalcraft.evernifecore.region.overlap.OverlapSource;
 import jakarta.annotation.Nullable;
 
 import java.util.Arrays;

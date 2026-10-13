@@ -1,4 +1,6 @@
-package br.com.finalcraft.evernifecore.region;
+package br.com.finalcraft.evernifecore.region.overlap;
+
+import br.com.finalcraft.evernifecore.region.RegionManager;
 
 /** Where an overlap found by {@link RegionManager#dryRun} comes from. */
 public enum OverlapSource {
