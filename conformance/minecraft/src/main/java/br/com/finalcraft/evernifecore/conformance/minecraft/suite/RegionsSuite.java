@@ -33,6 +33,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredListener;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -56,6 +57,10 @@ public final class RegionsSuite implements ConformanceSuite {
     private static final String PERSISTED_MESSAGE = "ECC deny message";
     private static final Duration PERSISTED_INTERVAL = Duration.ofMillis(1234);
     private static final long TIMEOUT_MILLIS = 10_000L;
+    /** The longest the probe waits for its source to go idle; the core's default idle time is minutes. */
+    private static final Duration PROBE_IDLE_CAP = Duration.ofSeconds(1);
+    /** How long past the idle wait the listener may still take to leave: the hop to the main thread. */
+    private static final long OFF_GRACE_MILLIS = 2_000L;
     /** The two nodes {@code RegionLookup} reads as a bypass; the bot is OP, and OP holds every undeclared node. */
     private static final List<String> BYPASS_NODES = Arrays.asList("evernifecore.region.bypass.*",
             "evernifecore.region.bypass.evernifecore.deny-block-break");
@@ -81,7 +86,7 @@ public final class RegionsSuite implements ConformanceSuite {
     public List<ConformanceCase> getCases(ConformanceContext ctx) {
         return Arrays.asList(
                 ConformanceCase.of("core-flags-registered", this::coreFlagsRegistered),
-                ConformanceCase.of("plugin-source-follows-need", this::pluginSourceFollowsNeed),
+                ConformanceCase.later("plugin-source-follows-need", this::pluginSourceFollowsNeed),
                 PlayerCases.later("deny-break-is-cancelled", ctx, this::denyBreakIsCancelled));
     }
 
@@ -105,7 +110,12 @@ public final class RegionsSuite implements ConformanceSuite {
                 "registered=" + registered + "/" + all.size() + " sameInstance=" + sameInstance + " owner=" + ownerName);
     }
 
-    private Verdict pluginSourceFollowsNeed() {
+    /**
+     * The listener comes up with the need and leaves once the source has been idle. The idle wait is the core's own
+     * ({@link EventSourceUsage#getIdleTime()}), capped at {@link #PROBE_IDLE_CAP} for the probe's one transition so the
+     * case does not hold the run for minutes; the cap is put back as soon as the wait is scheduled.
+     */
+    private CompletableFuture<Verdict> pluginSourceFollowsNeed() {
         ECPluginData pd = regions.getOwner();
         EventSource probe = EventSource.register(pd, "probe-source");
         DenyFlag flag = new DenyFlag(FlagKey.of(pd, "deny-probe"), probe) {
@@ -113,32 +123,50 @@ public final class RegionsSuite implements ConformanceSuite {
         FlagRegistry.get().register(pd, flag);
         ProbeListener listener = new ProbeListener();
         UsageWatch watch = RegionListeners.follow(pd, probe, listener, null);
-        Region region = null;
-        try {
-            boolean offBefore = !isOn(listener) && !EventSourceUsage.get().isNeeded(probe);
-            World world = Bukkit.getWorlds().get(0);
-            CreationResult created = regions.create("ecc-probe", world.getName(), CuboidShape.of(BlockPos.of(0, 0, 0), BlockPos.of(1, 1, 1)));
-            region = created.getRegion();
-            if (region == null) {
-                return Verdict.fail("ecc-probe refused: " + created.getRefusal());
-            }
-            region.setFlag(flag, Tristate.TRUE);
-            boolean neededWhileHeld = EventSourceUsage.get().isNeeded(probe);
-            boolean onWhileNeeded = isOn(listener);
-            regions.remove(region);
-            region = null;
-            boolean unneededAfter = !EventSourceUsage.get().isNeeded(probe);   //the listener itself leaves after the idle time
-            return Verdict.of(offBefore && neededWhileHeld && onWhileNeeded && unneededAfter, "source=" + probe + " offBefore=" + offBefore
-                    + " neededWhileHeld=" + neededWhileHeld + " onWhileNeeded=" + onWhileNeeded + " unneededAfter=" + unneededAfter);
-        } finally {
-            if (region != null) {
-                regions.remove(region);
-            }
+        Runnable cleanup = () -> {
             watch.stop();
             listener.unregisterThis();
             FlagRegistry.get().unregister(flag);
             EventSource.unregisterAll(pd);
+        };
+        EventSourceUsage usage = EventSourceUsage.get();
+        boolean offBefore = !isOn(listener) && !usage.isNeeded(probe);
+        World world = Bukkit.getWorlds().get(0);
+        CreationResult created = regions.create("ecc-probe", world.getName(), CuboidShape.of(BlockPos.of(0, 0, 0), BlockPos.of(1, 1, 1)));
+        Region region = created.getRegion();
+        if (region == null) {
+            cleanup.run();
+            return CompletableFuture.completedFuture(Verdict.fail("ecc-probe refused: " + created.getRefusal()));
         }
+        region.setFlag(flag, Tristate.TRUE);
+        boolean neededWhileHeld = usage.isNeeded(probe);
+        boolean onWhileNeeded = isOn(listener);
+        Duration configuredIdle = usage.getIdleTime();
+        Duration idle = configuredIdle.compareTo(PROBE_IDLE_CAP) < 0 ? configuredIdle : PROBE_IDLE_CAP;
+        usage.setIdleTime(idle);
+        try {
+            regions.remove(region);   //the unneeded transition schedules its idle wait here, with the idle time set now
+        } finally {
+            usage.setIdleTime(configuredIdle);
+        }
+        boolean unneededAfter = !usage.isNeeded(probe);
+        String detail = "source=" + probe + " offBefore=" + offBefore + " neededWhileHeld=" + neededWhileHeld
+                + " onWhileNeeded=" + onWhileNeeded + " unneededAfter=" + unneededAfter;
+        boolean onSoFar = offBefore && neededWhileHeld && onWhileNeeded && unneededAfter;
+        CompletableFuture<Verdict> answer = new CompletableFuture<>();
+        long deadline = System.currentTimeMillis() + idle.toMillis() + OFF_GRACE_MILLIS;
+        BukkitTask[] poll = new BukkitTask[1];
+        //polls each tick: the listener leaves on the main thread once the idle wait has run out
+        poll[0] = Bukkit.getScheduler().runTaskTimer(plugin(), () -> {
+            boolean offAfter = !isOn(listener);
+            if (!offAfter && System.currentTimeMillis() < deadline) {
+                return;
+            }
+            poll[0].cancel();
+            cleanup.run();
+            answer.complete(Verdict.of(onSoFar && offAfter, detail + " offAfter=" + offAfter + " idle=" + idle.toMillis() + "ms"));
+        }, 1L, 1L);
+        return PlayerCases.within(answer, idle.toMillis() + OFF_GRACE_MILLIS + TIMEOUT_MILLIS);
     }
 
     private CompletableFuture<Verdict> denyBreakIsCancelled(Player player) {
