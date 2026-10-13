@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
 import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
+import br.com.finalcraft.evernifecore.testing.Plugins;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayDeque;
@@ -96,6 +97,17 @@ class RegionOwnerShutdownTest extends ManagedRegionFixture {
 
         assertFalse(EventSource.all().contains(duelHit));
         assertTrue(FlagRegistry.get().getByOwner(owner).isEmpty());
+    }
+
+    @Test
+    void removingAPluginWithoutTheBootstrapDropsItsEventSources() {
+        EventSource round = EventSource.register(other, "round");
+        assertTrue(EventSource.all().contains(round));
+
+        Plugins.forget(OTHER);
+
+        assertFalse(EventSource.all().contains(round));
+        assertTrue(EventSource.all().contains(EventSource.MOVE), "the core's never leave");
     }
 
     private static IECPluginBootstrap shuttingDown(ECPluginData plugin) {
