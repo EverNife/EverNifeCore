@@ -7,11 +7,13 @@ import br.com.finalcraft.evernifecore.conformance.Verdict;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.minecraft.region.listener.RegionContexts;
 import br.com.finalcraft.evernifecore.minecraft.region.listener.RegionListeners;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.region.CreationResult;
 import br.com.finalcraft.evernifecore.region.Region;
+import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
@@ -19,6 +21,8 @@ import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
+import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
+import br.com.finalcraft.evernifecore.region.flag.context.FluidContext;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyFlag;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
@@ -53,7 +57,7 @@ import java.util.concurrent.CompletableFuture;
  * The region system on a live server: the core's flags registered under the real EverNifeCore, a plugin's own event
  * source putting its listener on the server only while a region needs it, a break inside a denying region cancelled,
  * a real TNT held whole by {@code deny-explosion} and cut at a {@code deny-block-break} border, the registry's own block
- * and entity keys, and a region's {@code deny-message} and own flag settings read back after a restart. Every region a case creates is
+ * and entity keys, outside water kept out by a FLUID flag, and a region's {@code deny-message} and own flag settings read back after a restart. Every region a case creates is
  * removed by it, except the one the write half leaves for the read half.
  */
 public final class RegionsSuite implements ConformanceSuite {
@@ -97,7 +101,8 @@ public final class RegionsSuite implements ConformanceSuite {
                 PlayerCases.later("deny-explosion-keeps-every-block", ctx, this::denyExplosionKeepsEveryBlock),
                 PlayerCases.later("explosion-on-a-border", ctx, this::explosionOnABorder),
                 ConformanceCase.of("block-key-is-the-registrys", this::blockKeyIsTheRegistrys),
-                PlayerCases.later("tnt-entity-key", ctx, this::tntEntityKey));
+                PlayerCases.later("tnt-entity-key", ctx, this::tntEntityKey),
+                PlayerCases.later("fluid-stays-out", ctx, this::fluidStaysOut));
     }
 
     @Override
@@ -335,6 +340,86 @@ public final class RegionsSuite implements ConformanceSuite {
         } finally {
             tnt.remove();
         }
+    }
+
+    /**
+     * A FLUID flag that keeps outside liquids out - the shape of FinalProtection's {@code deny-fluid-flow}, which this
+     * plugin cannot reach: water poured west of a region's border spreads on its floor and stops at the border.
+     */
+    private CompletableFuture<Verdict> fluidStaysOut(Player player) {
+        ECPluginData pd = regions.getOwner();
+        DenyFlag[] self = new DenyFlag[1];
+        self[0] = new DenyFlag(FlagKey.of(pd, "deny-probe-flow"), EventSource.FLUID) {
+            @Override
+            public boolean applies(ActionContext context) {
+                if (!(context instanceof FluidContext)) {
+                    return false;
+                }
+                WorldLocPos from = ((FluidContext) context).getFrom();
+                return RegionLookup.get().resolve(self[0], from.getWorldName(), from.getX(), from.getY(), from.getZ(), null) != Tristate.TRUE;
+            }
+        };
+        DenyFlag denyFlow = self[0];
+        FlagRegistry.get().register(pd, denyFlow);
+        World world = player.getWorld();
+        Location at = player.getLocation();
+        int cx = at.getBlockX() - 20, cy = Math.min(at.getBlockY() + 30, world.getMaxHeight() - 10), cz = at.getBlockZ();
+        CreationResult created = regions.create("ecc-pond", world.getName(), CuboidShape.of(BlockPos.of(cx, cy - 10, cz - 6), BlockPos.of(cx + 6, cy + 3, cz + 6)));
+        Region region = created.getRegion();
+        if (region == null) {
+            FlagRegistry.get().unregister(denyFlow);
+            return CompletableFuture.completedFuture(Verdict.fail("ecc-pond refused: " + created.getRefusal()));
+        }
+        region.setFlag(denyFlow, Tristate.TRUE);
+        List<Block> floor = new ArrayList<>();
+        for (int x = cx - 6; x <= cx + 6; x++) {
+            for (int z = cz - 6; z <= cz + 6; z++) {
+                Block block = world.getBlockAt(x, cy, z);
+                block.setType(Material.STONE);
+                floor.add(block);
+                if (Math.abs(x - cx) == 6 || Math.abs(z - cz) == 6) {   //a rim, so no water falls off the floor
+                    Block rim = world.getBlockAt(x, cy + 1, z);
+                    rim.setType(Material.STONE);
+                    floor.add(rim);
+                }
+            }
+        }
+        Runnable cleanup = () -> {
+            for (int x = cx - 8; x <= cx + 8; x++) {
+                for (int y = cy - 12; y <= cy + 2; y++) {
+                    for (int z = cz - 8; z <= cz + 8; z++) {
+                        Block block = world.getBlockAt(x, y, z);
+                        if (block.isLiquid() || floor.contains(block)) {
+                            block.setType(Material.AIR);
+                        }
+                    }
+                }
+            }
+            regions.remove(region);
+            FlagRegistry.get().unregister(denyFlow);
+        };
+        CompletableFuture<Verdict> answer = new CompletableFuture<>();
+        //a tick for the core's FLUID listener to come up with the need, then the water, then time to spread
+        Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+            world.getBlockAt(cx - 3, cy + 1, cz).setType(Material.WATER);
+            Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+                try {
+                    boolean flowedOutside = world.getBlockAt(cx - 1, cy + 1, cz).isLiquid();
+                    int inside = 0;
+                    for (int x = cx; x <= cx + 5; x++) {
+                        for (int z = cz - 5; z <= cz + 5; z++) {
+                            inside += world.getBlockAt(x, cy + 1, z).isLiquid() ? 1 : 0;
+                        }
+                    }
+                    answer.complete(Verdict.of(flowedOutside && inside == 0, "flowedOutside=" + flowedOutside + " liquidInside=" + inside));
+                } catch (Throwable thrown) {
+                    answer.complete(Verdict.fail(Verdict.describe(thrown)));
+                } finally {
+                    cleanup.run();
+                }
+            }, 60L);
+        }, 2L);
+        return PlayerCases.within(answer, TIMEOUT_MILLIS);
     }
 
     private static boolean callBreak(Block block, Player player) {
