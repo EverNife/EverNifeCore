@@ -7,7 +7,9 @@ import br.com.finalcraft.evernifecore.conformance.Verdict;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.minecraft.region.listener.RegionContexts;
 import br.com.finalcraft.evernifecore.minecraft.region.listener.RegionListeners;
+import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.region.CreationResult;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionManager;
@@ -24,9 +26,11 @@ import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.region.usage.UsageWatch;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -39,6 +43,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -47,7 +52,8 @@ import java.util.concurrent.CompletableFuture;
 /**
  * The region system on a live server: the core's flags registered under the real EverNifeCore, a plugin's own event
  * source putting its listener on the server only while a region needs it, a break inside a denying region cancelled,
- * and a region's {@code deny-message} and own flag settings read back after a restart. Every region a case creates is
+ * a real TNT held whole by {@code deny-explosion} and cut at a {@code deny-block-break} border, the registry's own block
+ * and entity keys, and a region's {@code deny-message} and own flag settings read back after a restart. Every region a case creates is
  * removed by it, except the one the write half leaves for the read half.
  */
 public final class RegionsSuite implements ConformanceSuite {
@@ -87,7 +93,11 @@ public final class RegionsSuite implements ConformanceSuite {
         return Arrays.asList(
                 ConformanceCase.of("core-flags-registered", this::coreFlagsRegistered),
                 ConformanceCase.later("plugin-source-follows-need", this::pluginSourceFollowsNeed),
-                PlayerCases.later("deny-break-is-cancelled", ctx, this::denyBreakIsCancelled));
+                PlayerCases.later("deny-break-is-cancelled", ctx, this::denyBreakIsCancelled),
+                PlayerCases.later("deny-explosion-keeps-every-block", ctx, this::denyExplosionKeepsEveryBlock),
+                PlayerCases.later("explosion-on-a-border", ctx, this::explosionOnABorder),
+                ConformanceCase.of("block-key-is-the-registrys", this::blockKeyIsTheRegistrys),
+                PlayerCases.later("tnt-entity-key", ctx, this::tntEntityKey));
     }
 
     @Override
@@ -197,6 +207,134 @@ public final class RegionsSuite implements ConformanceSuite {
             }
         }, 2L);
         return PlayerCases.within(answer, TIMEOUT_MILLIS);
+    }
+
+    /**
+     * A 5x5x5 dirt cube, hollow at its center, high above the player (out of the blast's reach of them), with a region
+     * over the cube or over its west half ({@code westHalfOnly}) holding {@code flag}; a TNT with a one-tick fuse goes off
+     * in the hollow, and {@code verdict} reads the cube once the blast is over.
+     */
+    private CompletableFuture<Verdict> blast(Player player, String name, DenyFlag flag, boolean westHalfOnly, BlastVerdict verdict) {
+        World world = player.getWorld();
+        Location at = player.getLocation();
+        int cx = at.getBlockX() + 20, cy = Math.min(at.getBlockY() + 30, world.getMaxHeight() - 10), cz = at.getBlockZ();
+        CreationResult created = regions.create(name, world.getName(),
+                CuboidShape.of(BlockPos.of(cx - 2, cy - 2, cz - 2), BlockPos.of(westHalfOnly ? cx - 1 : cx + 2, cy + 2, cz + 2)));
+        Region region = created.getRegion();
+        if (region == null) {
+            return CompletableFuture.completedFuture(Verdict.fail(name + " refused: " + created.getRefusal()));
+        }
+        region.setFlag(flag, Tristate.TRUE);
+        List<Block> cube = new ArrayList<>();
+        for (int x = cx - 2; x <= cx + 2; x++) {
+            for (int y = cy - 2; y <= cy + 2; y++) {
+                for (int z = cz - 2; z <= cz + 2; z++) {
+                    Block block = world.getBlockAt(x, y, z);
+                    boolean hollow = x == cx && y == cy && z == cz;
+                    block.setType(hollow ? Material.AIR : Material.DIRT);
+                    if (!hollow) {
+                        cube.add(block);
+                    }
+                }
+            }
+        }
+        CompletableFuture<Verdict> answer = new CompletableFuture<>();
+        //a tick for the core's listener to come up with the need, then the TNT
+        Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+            try {
+                TNTPrimed tnt = world.spawn(new Location(world, cx + 0.5, cy, cz + 0.5), TNTPrimed.class);
+                tnt.setFuseTicks(1);
+            } catch (Throwable thrown) {
+                regions.remove(region);
+                answer.complete(Verdict.fail(Verdict.describe(thrown)));
+                return;
+            }
+            Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+                try {
+                    answer.complete(verdict.read(cube, cx));
+                } catch (Throwable thrown) {
+                    answer.complete(Verdict.fail(Verdict.describe(thrown)));
+                } finally {
+                    regions.remove(region);
+                    cube.forEach(block -> block.setType(Material.AIR));
+                }
+            }, 20L);
+        }, 2L);
+        return PlayerCases.within(answer, TIMEOUT_MILLIS);
+    }
+
+    /** Reads the cube {@link #blast} left. */
+    private interface BlastVerdict {
+        Verdict read(List<Block> cube, int centerX);
+    }
+
+    private static int dirtLeft(List<Block> cube, boolean west, int centerX) {
+        int left = 0;
+        for (Block block : cube) {
+            if ((block.getX() < centerX) == west && block.getType() == Material.DIRT) {
+                left++;
+            }
+        }
+        return left;
+    }
+
+    private static int count(List<Block> cube, boolean west, int centerX) {
+        int count = 0;
+        for (Block block : cube) {
+            if ((block.getX() < centerX) == west) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private CompletableFuture<Verdict> denyExplosionKeepsEveryBlock(Player player) {
+        return blast(player, "ecc-boom-denied", CoreFlags.DENY_EXPLOSION, false, (cube, cx) -> {
+            int left = 0;
+            for (Block block : cube) {
+                left += block.getType() == Material.DIRT ? 1 : 0;
+            }
+            return Verdict.of(left == cube.size(), "dirt left " + left + "/" + cube.size());
+        });
+    }
+
+    /** The region holds the cube's west half (x < center): the blast keeps all of it and breaks into the east half. */
+    private CompletableFuture<Verdict> explosionOnABorder(Player player) {
+        return blast(player, "ecc-boom-border", CoreFlags.DENY_BLOCK_BREAK, true, (cube, cx) -> {
+            int westLeft = dirtLeft(cube, true, cx), westAll = count(cube, true, cx);
+            int eastLeft = dirtLeft(cube, false, cx), eastAll = count(cube, false, cx);
+            return Verdict.of(westLeft == westAll && eastLeft < eastAll,
+                    "inside (west) left " + westLeft + "/" + westAll + ", outside (east) left " + eastLeft + "/" + eastAll);
+        });
+    }
+
+    /**
+     * Block keys come from the block registry: a vanilla block is {@code minecraft:<name>}, redstone dust on the ground
+     * is its block ({@code redstone_wire}, its item is {@code redstone}), and a block with metadata variants answers its
+     * one block name before 1.13 (wool) and each flattened block after.
+     */
+    private Verdict blockKeyIsTheRegistrys() {
+        boolean flattened = MCVersion.isHigherEquals(MCVersion.v1_13);
+        String tnt = RegionContexts.key(Material.TNT).toString();
+        String wire = RegionContexts.key(Material.REDSTONE_WIRE).toString();
+        String wool = RegionContexts.key(Material.valueOf(flattened ? "RED_WOOL" : "WOOL")).toString();
+        String expectedWool = flattened ? "minecraft:red_wool" : "minecraft:wool";
+        return Verdict.of("minecraft:tnt".equals(tnt) && "minecraft:redstone_wire".equals(wire) && expectedWool.equals(wool),
+                "tnt=" + tnt + " redstone_wire=" + wire + " wool=" + wool + " (expected " + expectedWool + ")");
+    }
+
+    /** A primed TNT's key as the entity registry names it: 1.7.10 writes {@code PrimedTnt} with no namespace. */
+    private CompletableFuture<Verdict> tntEntityKey(Player player) {
+        World world = player.getWorld();
+        Location above = player.getLocation().add(0, 40, 0);
+        TNTPrimed tnt = world.spawn(above, TNTPrimed.class);
+        try {
+            String key = RegionContexts.key(tnt).toString();
+            String expected = MCVersion.isEqual(MCVersion.v1_7_10) ? "minecraft:PrimedTnt" : "minecraft:tnt";
+            return CompletableFuture.completedFuture(Verdict.of(expected.equals(key), "key=" + key + " (expected " + expected + ")"));
+        } finally {
+            tnt.remove();
+        }
     }
 
     private static boolean callBreak(Block block, Player player) {
