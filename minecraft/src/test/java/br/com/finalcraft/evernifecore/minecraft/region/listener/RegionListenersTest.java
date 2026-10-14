@@ -8,12 +8,14 @@ import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyBlockBreakFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyBlockPlaceFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyInteractFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyMonsterSpawnFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyPvpFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenySettings;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.region.usage.UsageWatch;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
@@ -26,10 +28,13 @@ import org.bukkit.entity.Zombie;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.junit.jupiter.api.Test;
@@ -143,6 +148,73 @@ class RegionListenersTest {
             }
         } finally {
             ECSettings.REGIONS_DISABLED_WORLDS = before;
+        }
+    }
+
+    @Test
+    void theExplosionListenerIsOnlyOnWhileAnExplosionOrWhatItBreaksIsAsked() {
+        Duration idleTime = EventSourceUsage.get().getIdleTime();
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            RegionListeners bridge = RegionListeners.start(server.server.getPluginData());
+            try {
+                EventSourceUsage.get().setIdleTime(Duration.ZERO);
+                Region plots = server.box("plots", 0, 0, 0, 10, 10, 10, server.flag(CoreFlags.DENY_BLOCK_PLACE));
+                assertTrue(isRegistered(BlockPlaceEvent.getHandlerList(), RegionBlockListener.class), "PLACE is needed");
+                assertFalse(isRegistered(EntityExplodeEvent.getHandlerList(), RegionExplosionListener.class), "nothing asks about an explosion");
+
+                Region bunker = server.box("bunker", 20, 0, 0, 30, 10, 10, server.flag(CoreFlags.DENY_EXPLOSION));
+                assertTrue(isRegistered(EntityExplodeEvent.getHandlerList(), RegionExplosionListener.class));
+                assertTrue(isRegistered(BlockExplodeEvent.getHandlerList(), RegionBlockExplodeListener.class));
+
+                server.regions.getManager().remove(bunker);
+                server.regions.runDue();
+                assertFalse(isRegistered(EntityExplodeEvent.getHandlerList(), RegionExplosionListener.class), "the last region that asked left");
+
+                //deny-block-break alone holds a creeper: what an explosion breaks is a BREAK
+                Region vault = server.box("vault", 40, 0, 0, 50, 10, 10, server.flag(CoreFlags.DENY_BLOCK_BREAK));
+                assertTrue(isRegistered(EntityExplodeEvent.getHandlerList(), RegionExplosionListener.class));
+                server.regions.getManager().remove(vault);
+                server.regions.runDue();
+                assertFalse(isRegistered(EntityExplodeEvent.getHandlerList(), RegionExplosionListener.class));
+                server.regions.getManager().remove(plots);
+            } finally {
+                bridge.stop();
+            }
+        } finally {
+            EventSourceUsage.get().setIdleTime(idleTime);
+        }
+    }
+
+    @Test
+    void theFluidListenerIsOnOnlyForAFlagThatAsksForFluid() {
+        Duration idleTime = EventSourceUsage.get().getIdleTime();
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            RegionListeners bridge = RegionListeners.start(server.server.getPluginData());
+            try {
+                EventSourceUsage.get().setIdleTime(Duration.ZERO);
+                Region vault = server.box("vault", 0, 0, 0, 10, 10, 10, server.flag(CoreFlags.DENY_BLOCK_BREAK),
+                        server.flag(CoreFlags.DENY_BLOCK_PLACE), server.flag(CoreFlags.DENY_EXPLOSION));
+                DenySettings environment = new DenySettings();
+                environment.setActors(Collections.singletonList("environment"));
+                vault.setFlagSettings(CoreFlags.DENY_BLOCK_BREAK, environment);
+
+                assertTrue(isRegistered(BlockBreakEvent.getHandlerList(), RegionBlockListener.class), "BREAK is needed");
+                assertFalse(isRegistered(BlockFromToEvent.getHandlerList(), RegionFluidListener.class),
+                        "no flag of BREAK, PLACE or EXPLOSION - not even one about the environment - asks for a flow");
+
+                DenyFlag denyFlow = new DenyFlag(FlagKey.of(server.regions.getOwner(), "deny-flow"), EventSource.FLUID) {
+                };
+                Region pond = server.box("pond", 20, 0, 0, 30, 10, 10, server.flag(denyFlow));
+                assertTrue(isRegistered(BlockFromToEvent.getHandlerList(), RegionFluidListener.class));
+
+                server.regions.getManager().remove(pond);
+                server.regions.runDue();
+                assertFalse(isRegistered(BlockFromToEvent.getHandlerList(), RegionFluidListener.class), "the flag that asked left with its region");
+            } finally {
+                bridge.stop();
+            }
+        } finally {
+            EventSourceUsage.get().setIdleTime(idleTime);
         }
     }
 }
