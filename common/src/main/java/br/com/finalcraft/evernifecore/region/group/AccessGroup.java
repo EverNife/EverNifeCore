@@ -232,7 +232,7 @@ public final class AccessGroup {
             return false;
         }
         MembershipCheck current = check;
-        if (current.getKind() == MembershipCheck.Kind.EXACT) {
+        if (current.getType() == MembershipCheck.Type.EXACT) {
             return containsNow(player);
         }
         return RegionLookup.get().getSession(player).membership(this, current, () -> containsNow(player));

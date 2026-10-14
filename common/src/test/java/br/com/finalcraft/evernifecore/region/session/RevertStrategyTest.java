@@ -133,7 +133,7 @@ class RevertStrategyTest extends TrackerFixture {
     void fixedWithThreeNumbersHasNoWorld() throws FlagParseException {
         RevertStrategy fixed = RevertStrategy.TYPE.parse("fixed:1,2.5,-3");
 
-        assertEquals(RevertStrategy.Kind.FIXED, fixed.getKind());
+        assertEquals(RevertStrategy.Type.FIXED, fixed.getType());
         assertNull(fixed.getWorld());
         assertNull(fixed.getPoint(), "no world, no point - the player's world fills it in at revert time");
         assertEquals(1, fixed.getX());

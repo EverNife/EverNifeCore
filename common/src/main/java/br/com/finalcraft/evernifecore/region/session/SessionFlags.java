@@ -69,8 +69,8 @@ final class SessionFlags {
             if (flag.getCategory() != FlagCategory.SESSION) {
                 continue;
             }
-            Revalidation.Kind kind = flag.getRevalidation().getKind();
-            if (all || session.isDue(flag.getKey(), now) || (trigger == Trigger.LOOKUP && kind == Revalidation.Kind.EVERY_LOOKUP)) {
+            Revalidation.Type type = flag.getRevalidation().getType();
+            if (all || session.isDue(flag.getKey(), now) || (trigger == Trigger.LOOKUP && type == Revalidation.Type.EVERY_LOOKUP)) {
                 evaluate(player, session, flag, now, asked);
             }
         }
@@ -113,7 +113,7 @@ final class SessionFlags {
 
     private static @Nullable Instant nextCheck(FPlayer player, RegionFlag<?> flag, Region source, Instant now) {
         Revalidation revalidation = flag.getRevalidation();
-        switch (revalidation.getKind()) {
+        switch (revalidation.getType()) {
             case INTERVAL:
                 Duration override = source.getEffectiveFlagSettings(flag).getRevalidationInterval();
                 return now.plus(override != null ? override : revalidation.getInterval());

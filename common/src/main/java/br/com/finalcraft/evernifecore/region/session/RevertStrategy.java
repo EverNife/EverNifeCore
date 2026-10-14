@@ -32,7 +32,7 @@ import java.util.Objects;
  */
 public final class RevertStrategy {
 
-    public enum Kind {
+    public enum Type {
         /** The center of the last block the player stood in with the move accepted. */
         LAST_VALID,
         /** The {@code n}-th accepted block before that one, along the way the player came. */
@@ -47,9 +47,9 @@ public final class RevertStrategy {
         WORLD_SPAWN
     }
 
-    private static final RevertStrategy LAST_VALID = new RevertStrategy(Kind.LAST_VALID, 0, 0, 0, 0, null);
-    private static final RevertStrategy SPAWN = new RevertStrategy(Kind.SPAWN, 0, 0, 0, 0, null);
-    private static final RevertStrategy WORLD_SPAWN = new RevertStrategy(Kind.WORLD_SPAWN, 0, 0, 0, 0, null);
+    private static final RevertStrategy LAST_VALID = new RevertStrategy(Type.LAST_VALID, 0, 0, 0, 0, null);
+    private static final RevertStrategy SPAWN = new RevertStrategy(Type.SPAWN, 0, 0, 0, 0, null);
+    private static final RevertStrategy WORLD_SPAWN = new RevertStrategy(Type.WORLD_SPAWN, 0, 0, 0, 0, null);
 
     private static final String ACCEPTED_FORMS = "last-valid, trail:<blocks back>, allow-after:<denials>, fixed:<x>,<y>,<z>[,<world>],"
             + " spawn or worldspawn - e.g. trail:2, fixed:10,64,-3 or fixed:10,64,-3,world";
@@ -57,15 +57,15 @@ public final class RevertStrategy {
     /** Reads and writes the text form, for settings and commands. */
     public static final FlagType<RevertStrategy> TYPE = new StrategyType();
 
-    private final Kind kind;
+    private final Type type;
     private final int count;
     private final double x;
     private final double y;
     private final double z;
     private final @Nullable String world;
 
-    private RevertStrategy(Kind kind, int count, double x, double y, double z, @Nullable String world) {
-        this.kind = kind;
+    private RevertStrategy(Type type, int count, double x, double y, double z, @Nullable String world) {
+        this.type = type;
         this.count = count;
         this.x = x;
         this.y = y;
@@ -83,7 +83,7 @@ public final class RevertStrategy {
         if (stepsBack < 1) {
             throw new IllegalArgumentException("trail(" + stepsBack + ") must go back at least 1 block - trail(0) is lastValid().");
         }
-        return new RevertStrategy(Kind.TRAIL, stepsBack, 0, 0, 0, null);
+        return new RevertStrategy(Type.TRAIL, stepsBack, 0, 0, 0, null);
     }
 
     /** @throws IllegalArgumentException when {@code denials} is below 1 */
@@ -91,18 +91,18 @@ public final class RevertStrategy {
         if (denials < 1) {
             throw new IllegalArgumentException("allowAfter(" + denials + ") needs at least 1 denial - allowAfter(1) lets the first one through.");
         }
-        return new RevertStrategy(Kind.ALLOW_AFTER, denials, 0, 0, 0, null);
+        return new RevertStrategy(Type.ALLOW_AFTER, denials, 0, 0, 0, null);
     }
 
     /** A point in a named world. */
     public static RevertStrategy fixed(WorldLocPos at) {
         Objects.requireNonNull(at, "at");
-        return new RevertStrategy(Kind.FIXED, 0, at.getX(), at.getY(), at.getZ(), Objects.requireNonNull(at.getWorldName(), "at.worldName"));
+        return new RevertStrategy(Type.FIXED, 0, at.getX(), at.getY(), at.getZ(), Objects.requireNonNull(at.getWorldName(), "at.worldName"));
     }
 
     /** A point in whatever world the player is in when reverted. */
     public static RevertStrategy fixed(double x, double y, double z) {
-        return new RevertStrategy(Kind.FIXED, 0, x, y, z, null);
+        return new RevertStrategy(Type.FIXED, 0, x, y, z, null);
     }
 
     /** The server spawn ({@code ISpawnProvider}), or the world spawn while no spawn plugin registered one. */
@@ -115,21 +115,21 @@ public final class RevertStrategy {
         return WORLD_SPAWN;
     }
 
-    public Kind getKind() {
-        return kind;
+    public Type getType() {
+        return type;
     }
 
-    /** The steps back of {@link Kind#TRAIL}, the denials of {@link Kind#ALLOW_AFTER}; 0 for the others. */
+    /** The steps back of {@link Type#TRAIL}, the denials of {@link Type#ALLOW_AFTER}; 0 for the others. */
     public int getCount() {
         return count;
     }
 
-    /** The point of a {@link Kind#FIXED} that names its world; null for one in the player's world and for the others. */
+    /** The point of a {@link Type#FIXED} that names its world; null for one in the player's world and for the others. */
     public @Nullable WorldLocPos getPoint() {
-        return kind == Kind.FIXED && world != null ? WorldLocPos.of(x, y, z, world) : null;
+        return type == Type.FIXED && world != null ? WorldLocPos.of(x, y, z, world) : null;
     }
 
-    /** The coordinates of {@link Kind#FIXED}; 0 for the others. */
+    /** The coordinates of {@link Type#FIXED}; 0 for the others. */
     public double getX() {
         return x;
     }
@@ -142,14 +142,14 @@ public final class RevertStrategy {
         return z;
     }
 
-    /** The world a {@link Kind#FIXED} names; null when it is the player's own, and for the other kinds. */
+    /** The world a {@link Type#FIXED} names; null when it is the player's own, and for the other kinds. */
     public @Nullable String getWorld() {
         return world;
     }
 
     @JsonValue
     public String toText() {
-        switch (kind) {
+        switch (type) {
             case TRAIL:
                 return "trail:" + count;
             case ALLOW_AFTER:
@@ -217,7 +217,7 @@ public final class RevertStrategy {
             return false;
         }
         RevertStrategy that = (RevertStrategy) other;
-        return kind == that.kind && count == that.count && Objects.equals(toText(), that.toText());
+        return type == that.type && count == that.count && Objects.equals(toText(), that.toText());
     }
 
     @Override

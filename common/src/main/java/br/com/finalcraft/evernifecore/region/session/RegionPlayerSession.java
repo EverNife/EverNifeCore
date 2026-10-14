@@ -82,7 +82,7 @@ public final class RegionPlayerSession {
      * {@code compute}'s, cached. An exact check is never cached.
      */
     public boolean membership(AccessGroup group, MembershipCheck check, BooleanSupplier compute) {
-        if (check.getKind() == MembershipCheck.Kind.EXACT) {
+        if (check.getType() == MembershipCheck.Type.EXACT) {
             return compute.getAsBoolean();
         }
         Cached cached = memberships.get(group);
@@ -332,7 +332,7 @@ public final class RegionPlayerSession {
     }
 
     private boolean isFresh(Cached cached, MembershipCheck check) {
-        if (check.getKind() == MembershipCheck.Kind.EXACT || cached.epoch != boundaryEpoch) {
+        if (check.getType() == MembershipCheck.Type.EXACT || cached.epoch != boundaryEpoch) {
             return false;
         }
         Duration interval = check.getInterval();

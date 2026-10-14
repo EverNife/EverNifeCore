@@ -15,7 +15,7 @@ import java.util.function.Function;
  */
 public final class Revalidation {
 
-    public enum Kind {
+    public enum Type {
         /** Only when the set of regions the player is in changes. */
         ON_BOUNDARY,
         /** On every event and tick: no cache at all. */
@@ -26,15 +26,15 @@ public final class Revalidation {
         CUSTOM
     }
 
-    private static final Revalidation ON_BOUNDARY = new Revalidation(Kind.ON_BOUNDARY, null, null);
-    private static final Revalidation EVERY_LOOKUP = new Revalidation(Kind.EVERY_LOOKUP, null, null);
+    private static final Revalidation ON_BOUNDARY = new Revalidation(Type.ON_BOUNDARY, null, null);
+    private static final Revalidation EVERY_LOOKUP = new Revalidation(Type.EVERY_LOOKUP, null, null);
 
-    private final Kind kind;
+    private final Type type;
     private final @Nullable Duration interval;
     private final @Nullable Function<SessionContext, Instant> nextCheckAt;
 
-    private Revalidation(Kind kind, @Nullable Duration interval, @Nullable Function<SessionContext, Instant> nextCheckAt) {
-        this.kind = kind;
+    private Revalidation(Type type, @Nullable Duration interval, @Nullable Function<SessionContext, Instant> nextCheckAt) {
+        this.type = type;
         this.interval = interval;
         this.nextCheckAt = nextCheckAt;
     }
@@ -54,12 +54,12 @@ public final class Revalidation {
             throw new IllegalArgumentException("Revalidation.interval(" + every + ") needs a positive duration, e.g. Duration.ofSeconds(30);"
                     + " for a check on every lookup use Revalidation.everyLookup().");
         }
-        return new Revalidation(Kind.INTERVAL, every, null);
+        return new Revalidation(Type.INTERVAL, every, null);
     }
 
     /** The flag says, per player, when to look again. */
     public static Revalidation custom(Function<SessionContext, Instant> nextCheckAt) {
-        return new Revalidation(Kind.CUSTOM, null, Objects.requireNonNull(nextCheckAt, "nextCheckAt"));
+        return new Revalidation(Type.CUSTOM, null, Objects.requireNonNull(nextCheckAt, "nextCheckAt"));
     }
 
     /** Checks again {@code margin} before an effect lasting {@code effect} runs out: now + effect - margin. */
@@ -68,16 +68,16 @@ public final class Revalidation {
         return custom(context -> RegionClock.now().plus(lead));
     }
 
-    public Kind getKind() {
-        return kind;
+    public Type getType() {
+        return type;
     }
 
-    /** The period of an {@link Kind#INTERVAL} policy; null for the others. */
+    /** The period of an {@link Type#INTERVAL} policy; null for the others. */
     public @Nullable Duration getInterval() {
         return interval;
     }
 
-    /** When to check {@code context} again under a {@link Kind#CUSTOM} policy; null for the others. */
+    /** When to check {@code context} again under a {@link Type#CUSTOM} policy; null for the others. */
     public @Nullable Instant nextCheckAt(SessionContext context) {
         return nextCheckAt == null ? null : nextCheckAt.apply(context);
     }

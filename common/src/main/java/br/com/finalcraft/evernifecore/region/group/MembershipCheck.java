@@ -13,7 +13,7 @@ import java.util.Objects;
  */
 public final class MembershipCheck {
 
-    public enum Kind {
+    public enum Type {
         /** Ask on every check; nothing is cached. The default. */
         EXACT,
         /** Keep the answer until the set of regions the player is in changes. */
@@ -22,15 +22,15 @@ public final class MembershipCheck {
         INTERVAL
     }
 
-    private static final MembershipCheck EXACT_CHECK = new MembershipCheck(Kind.EXACT, null);
-    private static final MembershipCheck ON_BOUNDARY_CHECK = new MembershipCheck(Kind.ON_BOUNDARY, null);
+    private static final MembershipCheck EXACT_CHECK = new MembershipCheck(Type.EXACT, null);
+    private static final MembershipCheck ON_BOUNDARY_CHECK = new MembershipCheck(Type.ON_BOUNDARY, null);
     private static final String INTERVAL_PREFIX = "interval:";
 
-    private final Kind kind;
+    private final Type type;
     private final @Nullable Duration interval;
 
-    private MembershipCheck(Kind kind, @Nullable Duration interval) {
-        this.kind = kind;
+    private MembershipCheck(Type type, @Nullable Duration interval) {
+        this.type = type;
         this.interval = interval;
     }
 
@@ -48,7 +48,7 @@ public final class MembershipCheck {
             throw new IllegalArgumentException("MembershipCheck.interval(" + every + ") needs a positive duration, e.g. Duration.ofSeconds(30);"
                     + " to ask on every check use MembershipCheck.exact().");
         }
-        return new MembershipCheck(Kind.INTERVAL, every);
+        return new MembershipCheck(Type.INTERVAL, every);
     }
 
     /**
@@ -74,17 +74,17 @@ public final class MembershipCheck {
                 + " e.g. interval:PT30S.");
     }
 
-    public Kind getKind() {
-        return kind;
+    public Type getType() {
+        return type;
     }
 
-    /** The period of an {@link Kind#INTERVAL} check; null for the others. */
+    /** The period of an {@link Type#INTERVAL} check; null for the others. */
     public @Nullable Duration getInterval() {
         return interval;
     }
 
     public String toText() {
-        switch (kind) {
+        switch (type) {
             case EXACT:
                 return "exact";
             case ON_BOUNDARY:
@@ -96,13 +96,13 @@ public final class MembershipCheck {
 
     @Override
     public boolean equals(Object other) {
-        return other instanceof MembershipCheck && kind == ((MembershipCheck) other).kind
+        return other instanceof MembershipCheck && type == ((MembershipCheck) other).type
                 && Objects.equals(interval, ((MembershipCheck) other).interval);
     }
 
     @Override
     public int hashCode() {
-        return 31 * kind.hashCode() + Objects.hashCode(interval);
+        return 31 * type.hashCode() + Objects.hashCode(interval);
     }
 
     @Override

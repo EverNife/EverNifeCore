@@ -143,7 +143,7 @@ public final class ProtectionFlagGate {
     /** Where a point strategy sends the player, read in the world the player is in; null when the platform does not know it. */
     private static @Nullable WorldLocPos destinationOf(RevertStrategy strategy, MoveContext context) {
         String world = context.getFrom().getWorldName();
-        switch (strategy.getKind()) {
+        switch (strategy.getType()) {
             case FIXED:
                 return strategy.getWorld() != null
                         ? strategy.getPoint()
@@ -161,7 +161,7 @@ public final class ProtectionFlagGate {
     private static MoveVerdict apply(RevertStrategy strategy, RegionPlayerSession session, MoveContext context, int denials,
                                      @Nullable MoveDenySettings stuck) {
         int stepsBack;
-        switch (strategy.getKind()) {
+        switch (strategy.getType()) {
             case FIXED:
             case SPAWN:
             case WORLD_SPAWN:
@@ -185,7 +185,7 @@ public final class ProtectionFlagGate {
             default:
                 stepsBack = 0;
         }
-        if (stuck != null && strategy.getKind() != RevertStrategy.Kind.ALLOW_AFTER && denials >= stuck.getStuckAfter()) {
+        if (stuck != null && strategy.getType() != RevertStrategy.Type.ALLOW_AFTER && denials >= stuck.getStuckAfter()) {
             stepsBack += denials - stuck.getStuckAfter() + 1;
             if (stepsBack >= session.getTrailSize()) {
                 if (stuck.getStuckFallback() != null) {
