@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
 import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
+import br.com.finalcraft.evernifecore.region.usage.UsageHold;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import org.junit.jupiter.api.Test;
 
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -50,9 +52,10 @@ class RegionOwnerShutdownTest extends ManagedRegionFixture {
 
     @Test
     void discardingAnOwnerWhoseStorageIsGoneWritesNothing() {
+        RegionManager manager = manager();   //loaded before the writes are held
         Queue<Runnable> held = new ArrayDeque<>();
         RegionScheduler.set((task, delayMillis) -> held.add(task));
-        created(manager().create("a", WORLD, box(0, 0, 9, 9)));
+        created(manager.create("a", WORLD, box(0, 0, 9, 9)));
         List<RegionRemovedEvent> removed = record(RegionRemovedEvent.class);
 
         RegionManager.discardOwnedBy(owner);
@@ -108,6 +111,44 @@ class RegionOwnerShutdownTest extends ManagedRegionFixture {
 
         assertFalse(EventSource.all().contains(round));
         assertTrue(EventSource.all().contains(EventSource.MOVE), "the core's never leave");
+    }
+
+    @Test
+    void aPluginsUsageWatchesStopWithItsShutdown() {
+        AtomicInteger ownerHeard = new AtomicInteger();
+        AtomicInteger otherHeard = new AtomicInteger();
+        EventSourceUsage.get().watch(owner, EventSource.BREAK, ownerHeard::incrementAndGet, () -> {
+        });
+        EventSourceUsage.get().watch(other, EventSource.BREAK, otherHeard::incrementAndGet, () -> {
+        });
+
+        shuttingDown(owner).onECPluginShutdownPre();
+        UsageHold hold = EventSourceUsage.get().acquire(EventSource.BREAK);
+        try {
+            assertEquals(1, otherHeard.get(), "the source did become needed");
+            assertEquals(0, ownerHeard.get(), "a plugin that shut down registers no listener again");
+        } finally {
+            hold.release();
+        }
+    }
+
+    @Test
+    void removingAPluginWithoutTheBootstrapStopsItsUsageWatches() {
+        AtomicInteger ownerHeard = new AtomicInteger();
+        AtomicInteger otherHeard = new AtomicInteger();
+        EventSourceUsage.get().watch(owner, EventSource.BREAK, ownerHeard::incrementAndGet, () -> {
+        });
+        EventSourceUsage.get().watch(other, EventSource.BREAK, otherHeard::incrementAndGet, () -> {
+        });
+
+        Plugins.forget(OWNER);
+        UsageHold hold = EventSourceUsage.get().acquire(EventSource.BREAK);
+        try {
+            assertEquals(1, otherHeard.get(), "the source did become needed");
+            assertEquals(0, ownerHeard.get(), "a removed plugin registers no listener again");
+        } finally {
+            hold.release();
+        }
     }
 
     private static IECPluginBootstrap shuttingDown(ECPluginData plugin) {

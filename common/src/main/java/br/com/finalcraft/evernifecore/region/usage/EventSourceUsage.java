@@ -98,6 +98,22 @@ public final class EventSourceUsage {
         }
     }
 
+    /**
+     * Internal: stops every watch {@code owner} opened on the global count, so no callback of a plugin that shut down
+     * runs again - the watches of other plugins on the same sources go on. Creates no count when there is none.
+     */
+    public static void stopAll(ECPluginData owner) {
+        EventSourceUsage usage = global;
+        if (usage == null) {
+            return;
+        }
+        for (UsageWatch watch : usage.watches) {
+            if (watch.getOwner() == owner) {
+                watch.stop();
+            }
+        }
+    }
+
     /** Whether events of {@code source} must be heard now. Lock-free; {@link EventSource#NONE} never is. */
     public boolean isNeeded(EventSource source) {
         Count count = counts.get(source);

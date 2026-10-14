@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.ecplugin;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
 import br.com.finalcraft.evernifecore.api.events.reload.ECPluginReloadEvent;
@@ -140,6 +141,7 @@ public class ECPluginManager {
         //a plugin without IECPluginBootstrap never had its regions closed; its storage is gone, so nothing is written
         RegionManager.discardOwnedBy(removed);
         EventSource.unregisterAll(removed);
+        EventSourceUsage.stopAll(removed);
 
         //by value, not by removed.getPlugin(): a plugin re-instantiated at runtime leaves two objects
         //answering to one name, and both were handed this very data
