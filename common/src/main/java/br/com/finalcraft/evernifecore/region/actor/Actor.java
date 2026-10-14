@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.region.actor;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.platoverride.block.NativeBlock;
 import br.com.finalcraft.evernifecore.api.platoverride.entity.NativeEntity;
+import br.com.finalcraft.evernifecore.version.FCPlatformType;
 import jakarta.annotation.Nullable;
 
 import java.util.Locale;
@@ -28,6 +29,8 @@ public final class Actor {
             return name().toLowerCase(Locale.ROOT);
         }
     }
+
+    private static final TypeKey PLAYER_KEY = TypeKey.of(FCPlatformType.getCurrent().name().toLowerCase(Locale.ROOT), "player");
 
     private final Type type;
     private final TypeKey key;
@@ -56,6 +59,15 @@ public final class Actor {
      */
     public static Actor entity(TypeKey key, ECEntityType entityType, @Nullable FPlayer rootPlayer, @Nullable Supplier<NativeEntity> entityHandle) {
         return new Actor(Type.ENTITY, key, Objects.requireNonNull(entityType, "entityType"), rootPlayer, entityHandle, null);
+    }
+
+    /**
+     * A player acting as itself, keyed {@code <platform>:player} ({@code minecraft:player}, {@code hytale:player}).
+     *
+     * @param entityHandle makes the platform's handle of the player, called at most once; null when there is none
+     */
+    public static Actor player(FPlayer player, @Nullable Supplier<NativeEntity> entityHandle) {
+        return entity(PLAYER_KEY, ECEntityType.PLAYER, Objects.requireNonNull(player, "player"), entityHandle);
     }
 
     /** @param blockHandle makes the platform's handle of the block, called at most once; null when there is none */

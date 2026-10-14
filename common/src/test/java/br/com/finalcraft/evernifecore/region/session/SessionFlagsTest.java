@@ -94,9 +94,9 @@ class SessionFlagsTest extends TrackerFixture {
         b.setFlag(farewell, "bye from B");
 
         tracker.onJoin(player, at(5.5));
-        tracker.onMove(player, at(5.5), at(6.5), MoveCause.MOVE);
-        tracker.onMove(player, at(10.5), at(11.5), MoveCause.MOVE);
-        tracker.onMove(player, at(11.5), at(30.5), MoveCause.MOVE);
+        tracker.onMove(player, at(5.5), at(6.5), MoveCause.MOVE, null);
+        tracker.onMove(player, at(10.5), at(11.5), MoveCause.MOVE, null);
+        tracker.onMove(player, at(11.5), at(30.5), MoveCause.MOVE, null);
         tracker.onJoin(player, at(15.5));
         tracker.onQuit(player);
 
@@ -117,8 +117,8 @@ class SessionFlagsTest extends TrackerFixture {
         room.setFlag(onBoundary, "y");
 
         tracker.onJoin(player, at(2.5));
-        tracker.onMove(player, at(2.5), at(3.5), MoveCause.MOVE);
-        tracker.onMove(player, at(3.5), at(4.5), MoveCause.MOVE);
+        tracker.onMove(player, at(2.5), at(3.5), MoveCause.MOVE, null);
+        tracker.onMove(player, at(3.5), at(4.5), MoveCause.MOVE, null);
 
         assertEquals(Arrays.asList("enter x", "revalidate x->x", "revalidate x->x"), everyBlock.calls);
         assertEquals(Collections.singletonList("enter y"), onBoundary.calls);
@@ -144,7 +144,7 @@ class SessionFlagsTest extends TrackerFixture {
         assertEquals(Collections.singletonList(WORLD), platform.getWorldThreadRuns());
         assertEquals(Instant.parse("2026-10-06T12:02:01Z"), session().getNextRevalidation(timed));
 
-        tracker.onMove(player, at(5.5), at(30.5), MoveCause.MOVE);
+        tracker.onMove(player, at(5.5), at(30.5), MoveCause.MOVE, null);
         agenda.runQueued();
         agenda.runQueued();
         assertFalse(sessionFlags.isTicking(), "the last interval flag left: the tick stops on its own");
@@ -208,7 +208,7 @@ class SessionFlagsTest extends TrackerFixture {
         room.setFlagHandler(other, plain, heard::add);
 
         tracker.onJoin(player, at(5.5));
-        tracker.onMove(player, at(5.5), at(30.5), MoveCause.MOVE);
+        tracker.onMove(player, at(5.5), at(30.5), MoveCause.MOVE, null);
 
         assertEquals(2, heard.size());
         assertEquals(FlagOutcome.APPLIED, heard.get(0).getOutcome());

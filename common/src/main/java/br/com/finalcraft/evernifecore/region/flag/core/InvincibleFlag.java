@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
+import br.com.finalcraft.evernifecore.region.actor.ECEntityType;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
-import br.com.finalcraft.evernifecore.region.flag.context.DamageContext;
 
 /** TRUE: players in the region take no damage, whatever hurts them. */
 public final class InvincibleFlag extends DenyFlag {
@@ -14,7 +14,7 @@ public final class InvincibleFlag extends DenyFlag {
 
     @Override
     public boolean applies(ActionContext context) {
-        return hurts(context, DamageContext.Kind.PLAYER);
+        return hurts(context, ECEntityType.PLAYER, ECEntityType.FAKE_PLAYER);
     }
 
     @Override

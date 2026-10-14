@@ -9,7 +9,7 @@ import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
 import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyBlockBreakFlag;
-import br.com.finalcraft.evernifecore.region.flag.core.DenyFakePlayerBreakFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -84,7 +84,8 @@ class RegionBlockListenerTest {
     @Test
     void aFakePlayerBreakIsItsOwnFlag() {
         try (RegionServer server = RegionServer.open(tempDir)) {
-            server.box("farm", 0, 0, 0, 10, 10, 10, server.flag(new DenyFakePlayerBreakFlag()));
+            server.flag(CoreFlags.DENY_BLOCK_BREAK);   //the parent registers first
+            server.box("farm", 0, 0, 0, 10, 10, 10, server.flag(CoreFlags.DENY_BLOCK_BREAK_FAKE_PLAYERS));
             Player machine = server.player("[Quarry]", 20, 5, 20);
             Player human = server.player("farmer", 20, 5, 20);
             server.listen(new RegionBlockListener(EventSource.BREAK, player -> player == machine));

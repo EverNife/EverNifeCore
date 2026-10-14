@@ -24,7 +24,7 @@ public final class Actors {
 
     /** {@code player} acting as itself, with no handle. */
     public static Actor player(FPlayer player) {
-        return Actor.entity(TypeKey.of("minecraft", "player"), ECEntityType.PLAYER, player, null);
+        return Actor.player(player, null);
     }
 
     /** A machine posing as {@code player}, with no handle. */

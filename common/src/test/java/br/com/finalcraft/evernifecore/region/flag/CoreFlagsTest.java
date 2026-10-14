@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryMessage;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyPvpFlag;
 import br.com.finalcraft.evernifecore.region.session.MoveCause;
+import br.com.finalcraft.evernifecore.testing.Actors;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
@@ -47,8 +48,9 @@ class CoreFlagsTest {
     private static final Map<String, String> CATALOG = new HashMap<>();
 
     static {
-        for (String name : Arrays.asList("deny-pvp", "invincible", "deny-damage-animals", "deny-block-break", "deny-fake-player-break",
-                "deny-block-place", "deny-interact", "deny-interact-blocks", "deny-interact-entities", "deny-entry", "deny-exit", "deny-teleport-in", "deny-teleport-out",
+        for (String name : Arrays.asList("deny-pvp", "invincible", "deny-damage-animals", "deny-block-break", "deny-block-break-mobs",
+                "deny-block-break-environment", "deny-block-break-fake-players", "deny-block-place", "deny-block-place-fake-players",
+                "deny-explosion", "deny-explosion-mobs", "deny-interact", "deny-interact-blocks", "deny-interact-entities", "deny-entry", "deny-exit", "deny-teleport-in", "deny-teleport-out",
                 "deny-monster-spawn", "deny-animal-spawn")) {
             CATALOG.put(name, "tristate-true");
         }
@@ -71,7 +73,7 @@ class CoreFlagsTest {
     void tearDown() {
         try {
             assertTrue(iterated >= 18, "the tie test must have run over the whole catalog, ran " + iterated);
-            assertEquals(20, iterated, "the catalog holds 20 flags");
+            assertEquals(25, iterated, "the catalog holds 25 flags");
         } finally {
             FlagRegistry.get().reset();
             Plugins.forget(CORE);
@@ -140,12 +142,12 @@ class CoreFlagsTest {
     void denyFlagsDenyOnTrueAndTheHybridOnDenied() {
         WorldLocPos at = WorldLocPos.of(5, 5, 5, "world");
         TestFPlayerSender player = new TestFPlayerSender("player");
-        DamageContext pvpHit = new DamageContext(at, player, null, DamageContext.Kind.PLAYER, new TestFPlayerSender("victim"), "minecraft:player");
+        DamageContext pvpHit = new DamageContext(at, Actors.player(player), null, Actors.player(new TestFPlayerSender("victim")));
         RegionFlag<Tristate> pvp = (RegionFlag<Tristate>) FlagRegistry.get().find("evernifecore:deny-pvp").get();
         assertEquals(Decision.DENY, pvp.decide(pvpHit, Tristate.TRUE));
         assertEquals(Decision.PASS, pvp.decide(pvpHit, Tristate.FALSE));
         MoveContext entering = new MoveContext(player, WorldLocPos.of(20, 5, 5, "world"), at, MoveCause.MOVE, MoveContext.Transition.ENTER,
-                TestRegions.create(core, "arena", "world"));
+                TestRegions.create(core, "arena", "world"), null);
         RegionFlag<DenyEntryMessage> hybrid = (RegionFlag<DenyEntryMessage>) FlagRegistry.get().find("deny-entry-with-message").get();
         assertEquals(Decision.DENY, hybrid.decide(entering, new DenyEntryMessage(Tristate.TRUE, null)));
         assertEquals(Decision.PASS, hybrid.decide(entering, new DenyEntryMessage(Tristate.UNDEFINED, "x")));
@@ -163,13 +165,16 @@ class CoreFlagsTest {
     @Test
     void everyCoreFlagIsAStaticInstanceRegisteredUnderTheCore() {
         List<RegionFlag<?>> all = CoreFlags.all();
-        assertEquals(20, all.size());
+        assertEquals(25, all.size());
         for (RegionFlag<?> flag : all) {
             assertTrue(flag.isRegistered(), flag.getKey().toString());
             assertSame(core, flag.getOwner(), flag.getKey().toString());
         }
         assertSame(CoreFlags.DENY_PVP, FlagRegistry.get().find("evernifecore:deny-pvp").get());
         assertSame(CoreFlags.DENY_INTERACT, CoreFlags.DENY_INTERACT_BLOCKS.getParent());
+        assertSame(CoreFlags.DENY_BLOCK_BREAK, CoreFlags.DENY_BLOCK_BREAK_MOBS.getParent());
+        assertSame(CoreFlags.DENY_BLOCK_PLACE, CoreFlags.DENY_BLOCK_PLACE_FAKE_PLAYERS.getParent());
+        assertSame(CoreFlags.DENY_EXPLOSION, CoreFlags.DENY_EXPLOSION_MOBS.getParent());
     }
 
     @Test
@@ -198,7 +203,7 @@ class CoreFlagsTest {
     @Test
     void onlyTheMovementDenialsStartWithATriggerInterval() {
         List<RegionFlag<?>> all = CoreFlags.all();
-        assertEquals(20, all.size());
+        assertEquals(25, all.size());
         TreeSet<String> paced = new TreeSet<>();
         for (RegionFlag<?> flag : all) {
             Duration floor = flag.getDefaultTriggerInterval();

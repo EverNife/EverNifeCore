@@ -63,13 +63,13 @@ class RevertStrategyTest extends TrackerFixture {
 
     /** Walks from 20 to 15 so the trail holds 20..15, then keeps trying to step into the arena. */
     private MoveVerdict tryEntering() {
-        return tracker.onMove(player, at(15.5), at(10.5), MoveCause.MOVE);
+        return tracker.onMove(player, at(15.5), at(10.5), MoveCause.MOVE, null);
     }
 
     private void walkUpTo15() {
         tracker.onJoin(player, at(20.5));
         for (int x = 19; x >= 15; x--) {
-            assertTrue(tracker.onMove(player, at(x + 1.5), at(x + 0.5), MoveCause.MOVE).isAllowed());
+            assertTrue(tracker.onMove(player, at(x + 1.5), at(x + 0.5), MoveCause.MOVE, null).isAllowed());
         }
     }
 
@@ -242,7 +242,7 @@ class RevertStrategyTest extends TrackerFixture {
         }
         assertTrue(session().getDenials() < 12);
 
-        assertTrue(tracker.onMove(player, at(15.5), at(14.5), MoveCause.MOVE).isAllowed());
+        assertTrue(tracker.onMove(player, at(15.5), at(14.5), MoveCause.MOVE, null).isAllowed());
         assertEquals(0, session().getDenials());
     }
 }

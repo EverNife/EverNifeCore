@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.region.session;
 
 import br.com.finalcraft.evernifecore.api.events.player.ECPlayerQuitEvent;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.region.Region;
@@ -8,7 +9,13 @@ import br.com.finalcraft.evernifecore.region.TestRegions;
 import br.com.finalcraft.evernifecore.region.event.RegionBoundaryEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionEnterEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
+import br.com.finalcraft.evernifecore.region.flag.Decision;
+import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
+import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
+import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
+import br.com.finalcraft.evernifecore.region.flag.context.MoveContext;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyExitFlag;
@@ -20,6 +27,7 @@ import br.com.finalcraft.evernifecore.testing.RecordingAudience;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -37,7 +45,7 @@ class RegionMovementTrackerTest extends TrackerFixture {
         region("arena", 0, 10);
         tracker.onJoin(player, at(5.2));
 
-        assertSame(MoveVerdict.allowed(), tracker.onMove(player, at(5.2), at(5.8), MoveCause.MOVE));
+        assertSame(MoveVerdict.allowed(), tracker.onMove(player, at(5.2), at(5.8), MoveCause.MOVE, null));
     }
 
     @Test
@@ -84,7 +92,7 @@ class RegionMovementTrackerTest extends TrackerFixture {
         arena.setFlag(registered(new DenyEntryFlag()), Tristate.TRUE);
 
         assertTrue(walk(5.5, 7.5).isAllowed(), "moving inside crosses nothing");
-        MoveVerdict leaving = tracker.onMove(player, at(7.5), at(12.5), MoveCause.MOVE);
+        MoveVerdict leaving = tracker.onMove(player, at(7.5), at(12.5), MoveCause.MOVE, null);
 
         assertEquals(at(7.5), leaving.getRevertTo());
         assertEquals(Collections.singletonList(arena), session().getCurrent());
@@ -96,8 +104,8 @@ class RegionMovementTrackerTest extends TrackerFixture {
         arena.setFlag(registered(new DenyTeleportInFlag()), Tristate.TRUE);
         tracker.onJoin(player, at(20.5));
 
-        assertTrue(!tracker.onMove(player, at(20.5), at(5.5), MoveCause.TELEPORT).isAllowed());
-        assertTrue(tracker.onMove(player, at(20.5), at(5.5), MoveCause.MOVE).isAllowed());
+        assertTrue(!tracker.onMove(player, at(20.5), at(5.5), MoveCause.TELEPORT, null).isAllowed());
+        assertTrue(tracker.onMove(player, at(20.5), at(5.5), MoveCause.MOVE, null).isAllowed());
         assertEquals(Collections.singletonList(arena), session().getCurrent());
     }
 
@@ -109,7 +117,7 @@ class RegionMovementTrackerTest extends TrackerFixture {
         tracker.onJoin(player, at(5.5));
         crossings.clear();
 
-        tracker.onMove(player, at(10.5), at(11.5), MoveCause.MOVE);
+        tracker.onMove(player, at(10.5), at(11.5), MoveCause.MOVE, null);
 
         assertEquals(2, crossings.size());
         assertTrue(crossings.get(0) instanceof RegionLeaveEvent && crossings.get(0).getRegion() == a);
@@ -190,8 +198,8 @@ class RegionMovementTrackerTest extends TrackerFixture {
         region("arena", 0, 10);
         try (ECoreTestWorld offThread = Platforms.lenient().offWorldThread().install()) {
             tracker.onJoin(player, at(20.5));
-            assertTrue(tracker.onMove(player, at(20.5), at(5.5), MoveCause.MOVE).isAllowed());
-            tracker.onMove(player, at(5.5), at(6.5), MoveCause.MOVE);
+            assertTrue(tracker.onMove(player, at(20.5), at(5.5), MoveCause.MOVE, null).isAllowed());
+            tracker.onMove(player, at(5.5), at(6.5), MoveCause.MOVE, null);
         }
 
         assertTrue(tracker.hasWarned("onMove"));
@@ -209,5 +217,42 @@ class RegionMovementTrackerTest extends TrackerFixture {
 
         assertTrue(nativeSide.getGateChecks() > 0, "the bus was asked whether anyone listens");
         assertTrue(nativeSide.getDispatched().isEmpty(), "and with nobody listening, nothing was built");
+    }
+
+    /** A stand-in for the platform's move event. */
+    private static final class PlatformMove {
+    }
+
+    /** Never denies; keeps every crossing it was asked about. */
+    private static final class SeeingFlag extends TristateFlag {
+        final List<MoveContext> seen = new ArrayList<>();
+
+        SeeingFlag(ECPluginData owner) {
+            super(FlagKey.of(owner, "seeing"), Collections.singleton(EventSource.MOVE), Tristate.FALSE, Tristate.TRUE);
+        }
+
+        @Override
+        public Decision decide(ActionContext context, Tristate value) {
+            seen.add((MoveContext) context);
+            return Decision.PASS;
+        }
+    }
+
+    @Test
+    void theMoveEventReachesEveryCrossingAndItsEvent() {
+        Region arena = region("arena", 0, 10);
+        SeeingFlag seeing = registered(new SeeingFlag(owner));
+        arena.setFlag(seeing, Tristate.TRUE);
+        List<RegionEnterEvent> enters = record(RegionEnterEvent.class);
+        PlatformMove move = new PlatformMove();
+
+        tracker.onJoin(player, at(12.5));
+        assertTrue(tracker.onMove(player, at(12.5), at(10.5), MoveCause.MOVE, move).isAllowed());
+
+        assertEquals(1, seeing.seen.size());
+        assertSame(move, seeing.seen.get(0).getNativeEvent(PlatformMove.class));
+        assertNull(seeing.seen.get(0).getNativeEvent(String.class));
+        assertSame(move, enters.get(0).getNativeEvent(PlatformMove.class));
+        assertSame(move, enters.get(0).getNativeEvent(Object.class));
     }
 }

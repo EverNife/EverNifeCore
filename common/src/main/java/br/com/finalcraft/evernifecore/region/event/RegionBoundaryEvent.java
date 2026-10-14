@@ -19,11 +19,15 @@ public abstract class RegionBoundaryEvent extends RegionEvent implements ECCance
     private final @Nullable WorldLocPos from;
     private final @Nullable WorldLocPos to;
     private final MoveCause cause;
+    private final @Nullable Object nativeEvent;
     private @Nullable String message;
     private boolean cancelled;
 
-    protected RegionBoundaryEvent(Region region, FPlayer player, @Nullable WorldLocPos from, @Nullable WorldLocPos to, MoveCause cause) {
+    /** @param nativeEvent the platform's event behind the crossing; null when none caused it (a region created, a quit) */
+    protected RegionBoundaryEvent(Region region, FPlayer player, @Nullable WorldLocPos from, @Nullable WorldLocPos to, MoveCause cause,
+                                  @Nullable Object nativeEvent) {
         super(region);
+        this.nativeEvent = nativeEvent;
         this.player = Objects.requireNonNull(player, "player");
         this.from = from;
         this.to = to;
@@ -46,6 +50,11 @@ public abstract class RegionBoundaryEvent extends RegionEvent implements ECCance
 
     public MoveCause getCause() {
         return cause;
+    }
+
+    /** The platform's own event behind the crossing as {@code type}; null when there was none or it is of another class. */
+    public <E> @Nullable E getNativeEvent(Class<E> type) {
+        return type.isInstance(nativeEvent) ? type.cast(nativeEvent) : null;
     }
 
     /** The message the player sees for this crossing; null for none. */

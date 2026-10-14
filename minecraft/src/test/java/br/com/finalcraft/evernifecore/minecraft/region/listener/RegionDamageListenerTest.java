@@ -1,6 +1,14 @@
 package br.com.finalcraft.evernifecore.minecraft.region.listener;
 
+import br.com.finalcraft.evernifecore.api.platoverride.entity.NativeEntity;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.minecraft.region.RegionServer;
+import br.com.finalcraft.evernifecore.region.flag.Decision;
+import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.region.flag.FlagKey;
+import br.com.finalcraft.evernifecore.region.flag.Tristate;
+import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
+import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyPvpFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.InvincibleFlag;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
@@ -19,8 +27,12 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
+import java.util.Collections;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -109,6 +121,42 @@ class RegionDamageListenerTest {
 
             assertTrue(server.call(hit(zombie, inside)).isCancelled(), "no player behind the hit, and the flag still decides");
             assertFalse(server.call(hit(zombie, server.player("outside", 20, 5, 20))).isCancelled());
+        }
+    }
+
+    /** Never denies; keeps the attacker's handle it read while deciding. */
+    static final class HandleKeepingFlag extends TristateFlag {
+        NativeEntity kept;
+        Entity readDuring;
+
+        HandleKeepingFlag(ECPluginData owner) {
+            super(FlagKey.of(owner, "handle-keeping"), Collections.singleton(EventSource.DAMAGE), Tristate.FALSE, Tristate.TRUE);
+        }
+
+        @Override
+        public Decision decide(ActionContext context, Tristate value) {
+            kept = context.getActor().getNativeEntity();
+            readDuring = kept.getEntity();
+            return Decision.PASS;
+        }
+    }
+
+    @Test
+    void aHandleKeptPastTheEventThrowsNamingTheUuid() {
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            HandleKeepingFlag keeping = server.flag(new HandleKeepingFlag(server.regions.getOwner()));
+            server.box("arena", 0, 0, 0, 10, 10, 10, keeping);
+            server.listen(new RegionDamageListener());
+            Player victim = server.player("victim", 5, 5, 5);
+            Player attacker = server.player("attacker", 6, 5, 5);
+
+            server.call(hit(attacker, victim));
+
+            assertSame(attacker, keeping.readDuring, "during the event the handle reads the entity");
+            IllegalStateException late = assertThrows(IllegalStateException.class, keeping.kept::getEntity);
+            assertTrue(late.getMessage().contains(attacker.getUniqueId().toString()), late.getMessage());
+            assertTrue(late.getMessage().contains("not the handle"), late.getMessage());
+            assertEquals(attacker.getUniqueId(), keeping.kept.getUniqueId(), "the UUID stays readable");
         }
     }
 }

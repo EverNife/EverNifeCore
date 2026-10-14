@@ -10,7 +10,6 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.RegionIndex.WorldSnapshot;
 import br.com.finalcraft.evernifecore.region.Resolution.Step;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
-import br.com.finalcraft.evernifecore.region.flag.ProtectionFlagGate;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
@@ -265,11 +264,19 @@ public final class RegionLookup {
     /**
      * Whether the action is denied where it happens: the first protection flag that needs its source and denies
      * it wins, the flags after it are not asked. Each flag that took part runs its {@link RegionFlag#onApplied},
-     * at most once per its trigger interval. A point outside every region passes without asking any flag.
-     * Thread: the thread of the event; it takes no lock.
+     * at most once per its trigger interval. A point outside every region passes without asking any flag. The native
+     * handles of the context's actors are closed when it returns; an event asked in stages goes through one
+     * {@link #dispatch()} instead. Thread: the thread of the event; it takes no lock.
      */
     public Decision decide(ActionContext context) {
-        return ProtectionFlagGate.decide(this, context);
+        try (RegionDispatch dispatch = dispatch()) {
+            return dispatch.decide(context);
+        }
+    }
+
+    /** Several decisions about one platform event, whose native handles stay open until the dispatch is closed. */
+    public RegionDispatch dispatch() {
+        return new RegionDispatch(this);
     }
 
     /** {@link #resolve} with {@link Tristate#UNDEFINED} for no value. */

@@ -8,6 +8,8 @@ import br.com.finalcraft.evernifecore.region.TestRegions;
 import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.context.BlockContext;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
+import br.com.finalcraft.evernifecore.testing.Actors;
+import br.com.finalcraft.evernifecore.region.actor.TypeKey;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
@@ -82,7 +84,7 @@ class FlagHierarchyTest {
     }
 
     private static BlockContext breakAt(TestFPlayerSender player) {
-        return new BlockContext(EventSource.BREAK, WorldLocPos.of(5, 5, 5, WORLD), player, null, "minecraft:stone", null, false);
+        return new BlockContext(EventSource.BREAK, WorldLocPos.of(5, 5, 5, WORLD), Actors.player(player), null, TypeKey.parse("minecraft:stone"), null);
     }
 
     @Test
@@ -153,15 +155,18 @@ class FlagHierarchyTest {
     }
 
     @Test
-    void theCoreRegistersTwentyWithBothRefinementsUnderDenyInteract() {
+    void theCoreRegistersTwentyFiveWithItsRefinementsUnderTheirParents() {
         ECPluginData core = Plugins.fakeCore(tempDir.resolve("core").toFile());
         try {
             CoreFlags.registerAll(core);
             RegionFlag<?> interact = FlagRegistry.get().getByOwner(core).stream()
                     .filter(flag -> flag.getKey().getName().equals("deny-interact")).findFirst().orElseThrow(AssertionError::new);
 
-            assertEquals(20, FlagRegistry.get().getByOwner(core).size());
+            assertEquals(25, FlagRegistry.get().getByOwner(core).size());
             assertEquals(2, FlagRegistry.get().getChildren(interact).size());
+            assertEquals(3, FlagRegistry.get().getChildren(CoreFlags.DENY_BLOCK_BREAK).size(), "mobs, environment, fake players");
+            assertEquals(1, FlagRegistry.get().getChildren(CoreFlags.DENY_BLOCK_PLACE).size());
+            assertEquals(1, FlagRegistry.get().getChildren(CoreFlags.DENY_EXPLOSION).size());
             for (RegionFlag<?> child : FlagRegistry.get().getChildren(interact)) {
                 assertSame(interact, child.getParent(), child.getKey().toString());
             }

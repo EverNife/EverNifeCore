@@ -1,7 +1,6 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.session.RevertStrategy;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import br.com.finalcraft.everyconfig.annotation.Comment;
@@ -16,7 +15,7 @@ import java.time.Duration;
  * being denied - after {@link #getStuckAfter()} denials inside {@link #getStuckWindow()} the player is moved further
  * back along the way they came, and once that runs out, to {@link #getStuckFallback()}.
  */
-public class MoveDenySettings extends FlagSettings {
+public class MoveDenySettings extends DenySettings {
 
     @Comment({"Where a denied player is sent back to: last-valid (the last block they were allowed on),",
             "trail:<n> (n blocks further back along their way), allow-after:<n> (deny, but let the n-th denial in a row through),",

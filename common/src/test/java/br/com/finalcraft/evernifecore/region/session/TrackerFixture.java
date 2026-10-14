@@ -99,7 +99,7 @@ abstract class TrackerFixture {
     /** Joins at {@code from} and walks to {@code to}. */
     MoveVerdict walk(double from, double to) {
         tracker.onJoin(player, at(from));
-        return tracker.onMove(player, at(from), at(to), MoveCause.MOVE);
+        return tracker.onMove(player, at(from), at(to), MoveCause.MOVE, null);
     }
 
     <T extends IECEvent> List<T> record(Class<T> type) {

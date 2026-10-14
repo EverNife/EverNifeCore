@@ -1,19 +1,17 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
+import br.com.finalcraft.evernifecore.region.actor.TypeKey;
 import br.com.finalcraft.everyconfig.annotation.Comment;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.regex.Pattern;
 
 /**
- * Which blocks or entities an interact flag covers, by platform-neutral id: {@link #getOnly()} (empty = every id) minus
- * {@link #getExcept()}. An entry matches by equality or with {@code *} standing for any run of characters -
- * {@code minecraft:*chest*}, {@code modid:*}.
+ * Which blocks or entities an interact flag covers, by type key: {@link #getOnly()} (empty = every key) minus
+ * {@link #getExcept()}. An entry matches as {@link TypeKey#matches} reads it - {@code minecraft:*chest*}, {@code modid:*}.
+ * Who uses them is narrowed by the {@link DenySettings} it extends.
  */
-public class InteractSettings extends FlagSettings {
+public class InteractSettings extends DenySettings {
 
     @Comment({"The block or entity ids this flag covers, like minecraft:chest; * stands for any run of characters",
             "(minecraft:*chest*, modid:*). Empty covers every id."})
@@ -38,29 +36,17 @@ public class InteractSettings extends FlagSettings {
         this.except = except == null ? new ArrayList<>() : except;
     }
 
-    /** Whether the flag covers the block or entity {@code id}. */
-    public boolean matches(String id) {
-        return (only.isEmpty() || anyMatches(only, id)) && !anyMatches(except, id);
+    /** Whether the flag covers the block or entity {@code key}. */
+    public boolean matches(TypeKey key) {
+        return (only.isEmpty() || anyMatches(only, key)) && !anyMatches(except, key);
     }
 
-    private static boolean anyMatches(List<String> patterns, String id) {
-        String lowerId = id.toLowerCase(Locale.ROOT);
+    private static boolean anyMatches(List<String> patterns, TypeKey key) {
         for (String pattern : patterns) {
-            if (globMatches(pattern.toLowerCase(Locale.ROOT), lowerId)) {
+            if (key.matches(pattern)) {
                 return true;
             }
         }
         return false;
-    }
-
-    private static boolean globMatches(String pattern, String id) {
-        if (pattern.indexOf('*') < 0) {
-            return pattern.equals(id);
-        }
-        List<String> literals = new ArrayList<>();
-        for (String literal : pattern.split("\\*", -1)) {
-            literals.add(Pattern.quote(literal));
-        }
-        return Pattern.matches(String.join(".*", literals), id);
     }
 }

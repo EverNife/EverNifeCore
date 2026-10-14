@@ -1,5 +1,7 @@
 package br.com.finalcraft.evernifecore.region.session;
 
+import br.com.finalcraft.evernifecore.testing.Actors;
+import br.com.finalcraft.evernifecore.region.actor.TypeKey;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
@@ -57,16 +59,16 @@ class FlagHandlerTest extends TrackerFixture {
         arena.setFlag(denyEntry, Tristate.TRUE);
         tracker.onJoin(player, at(12.5));
 
-        assertEquals(at(12.5), tracker.onMove(player, at(12.5), at(10.5), MoveCause.MOVE).getRevertTo(), "nothing set: the last block");
+        assertEquals(at(12.5), tracker.onMove(player, at(12.5), at(10.5), MoveCause.MOVE, null).getRevertTo(), "nothing set: the last block");
 
         ((MoveDenySettings) denyEntry.getSettings()).setRevert(RevertStrategy.fixed(SERVER_SPOT));
-        assertEquals(SERVER_SPOT, tracker.onMove(player, at(12.5), at(10.5), MoveCause.MOVE).getRevertTo(), "the server's settings");
+        assertEquals(SERVER_SPOT, tracker.onMove(player, at(12.5), at(10.5), MoveCause.MOVE, null).getRevertTo(), "the server's settings");
 
         arena.setFlagSettings(denyEntry, revertingTo(REGION_SPOT));
-        assertEquals(REGION_SPOT, tracker.onMove(player, at(12.5), at(10.5), MoveCause.MOVE).getRevertTo(), "the region's override");
+        assertEquals(REGION_SPOT, tracker.onMove(player, at(12.5), at(10.5), MoveCause.MOVE, null).getRevertTo(), "the region's override");
 
         arena.setFlagHandler(other, denyEntry, context -> context.revertTo(STANDS));
-        assertEquals(STANDS, tracker.onMove(player, at(12.5), at(10.5), MoveCause.MOVE).getRevertTo(), "the handler");
+        assertEquals(STANDS, tracker.onMove(player, at(12.5), at(10.5), MoveCause.MOVE, null).getRevertTo(), "the handler");
     }
 
     @Test
@@ -78,12 +80,12 @@ class FlagHandlerTest extends TrackerFixture {
         arena.setFlagHandler(other, denyEntry, heard::add);
         tracker.onJoin(player, at(12.5));
 
-        assertEquals(REGION_SPOT, tracker.onMove(player, at(12.5), at(10.5), MoveCause.MOVE).getRevertTo());
+        assertEquals(REGION_SPOT, tracker.onMove(player, at(12.5), at(10.5), MoveCause.MOVE, null).getRevertTo());
         assertEquals(FlagOutcome.DENIED, heard.get(0).getOutcome());
         assertEquals(1, heard.get(0).getConsecutiveDenials());
 
         arena.setFlagHandler(other, denyEntry, FlagOutcomeContext::allow);
-        assertTrue(tracker.onMove(player, at(12.5), at(10.5), MoveCause.MOVE).isAllowed());
+        assertTrue(tracker.onMove(player, at(12.5), at(10.5), MoveCause.MOVE, null).isAllowed());
         assertTrue(session().getCurrent().contains(arena), "allowed by the handler, the move took effect");
     }
 
@@ -97,7 +99,7 @@ class FlagHandlerTest extends TrackerFixture {
         parent.setFlagHandler(other, denyEntry, heard::add);
         tracker.onJoin(player, at(12.5));
 
-        tracker.onMove(player, at(12.5), at(10.5), MoveCause.MOVE);
+        tracker.onMove(player, at(12.5), at(10.5), MoveCause.MOVE, null);
 
         assertEquals(1, heard.size());
         assertSame(parent, heard.get(0).getRegion());
@@ -119,11 +121,11 @@ class FlagHandlerTest extends TrackerFixture {
 
         for (TestFPlayerSender lifted : new TestFPlayerSender[]{fighter, admin}) {
             tracker.onJoin(lifted, at(12.5));
-            assertTrue(tracker.onMove(lifted, at(12.5), at(10.5), MoveCause.MOVE).isAllowed());
+            assertTrue(tracker.onMove(lifted, at(12.5), at(10.5), MoveCause.MOVE, null).isAllowed());
         }
         tracker.onJoin(player, at(28.5));
-        tracker.onMove(player, at(28.5), at(30.5), MoveCause.MOVE);   //a region without the flag
-        tracker.onMove(player, at(30.5), at(28.5), MoveCause.MOVE);
+        tracker.onMove(player, at(28.5), at(30.5), MoveCause.MOVE, null);   //a region without the flag
+        tracker.onMove(player, at(30.5), at(28.5), MoveCause.MOVE, null);
 
         assertEquals(2, heard.size());
         assertEquals(FlagOutcome.ALLOWED, heard.get(0).getOutcome());
@@ -146,7 +148,7 @@ class FlagHandlerTest extends TrackerFixture {
             }
         });
 
-        Decision decision = lookup.decide(new BlockContext(EventSource.BREAK, at(5.5), player, null, "minecraft:stone", null, false));
+        Decision decision = lookup.decide(new BlockContext(EventSource.BREAK, at(5.5), Actors.player(player), null, TypeKey.parse("minecraft:stone"), null));
 
         assertEquals(Decision.DENY, decision);
         assertEquals(1, heard.size());
@@ -162,7 +164,7 @@ class FlagHandlerTest extends TrackerFixture {
         arena.setFlagHandler(other, denyWithMessage, context -> context.revertTo(STANDS));
         tracker.onJoin(player, at(12.5));
 
-        assertEquals(STANDS, tracker.onMove(player, at(12.5), at(10.5), MoveCause.MOVE).getRevertTo());
+        assertEquals(STANDS, tracker.onMove(player, at(12.5), at(10.5), MoveCause.MOVE, null).getRevertTo());
 
         assertTrue(player.getMessages().stream().anyMatch(message -> message.contains("Boss fight in progress")), player.getMessages().toString());
     }

@@ -113,9 +113,10 @@ public final class RegionMovementTracker {
     /**
      * The player moves from {@code from} to {@code to}. Thread: the player's world; never blocks.
      *
+     * @param nativeEvent the platform's move event, handed to each {@link MoveContext} and crossing event; null for none
      * @return {@link MoveVerdict#allowed()}, or where to put the player instead - then nothing changed
      */
-    public MoveVerdict onMove(FPlayer player, WorldLocPos from, WorldLocPos to, MoveCause cause) {
+    public MoveVerdict onMove(FPlayer player, WorldLocPos from, WorldLocPos to, MoveCause cause, @Nullable Object nativeEvent) {
         warnIfOffThread("onMove", to.getWorldName());
         RegionPlayerSession session = lookup.getSession(player);
         session.setOnlinePlayer(player);
@@ -137,25 +138,33 @@ public final class RegionMovementTracker {
         }
         if (cause.isCancellable()) {
             for (Region region : exited) {
-                MoveVerdict verdict = ProtectionFlagGate.decideCrossing(lookup, new MoveContext(player, from, to, cause, MoveContext.Transition.LEAVE, region), session);
+                MoveVerdict verdict = decideCrossing(new MoveContext(player, from, to, cause, MoveContext.Transition.LEAVE, region, nativeEvent), session);
                 if (!verdict.isAllowed()) {
                     return verdict;
                 }
             }
             for (Region region : entered) {
-                MoveVerdict verdict = ProtectionFlagGate.decideCrossing(lookup, new MoveContext(player, from, to, cause, MoveContext.Transition.ENTER, region), session);
+                MoveVerdict verdict = decideCrossing(new MoveContext(player, from, to, cause, MoveContext.Transition.ENTER, region, nativeEvent), session);
                 if (!verdict.isAllowed()) {
                     return verdict;
                 }
             }
         }
-        if (postCrossings(player, from, to, cause, exited, entered)) {
+        if (postCrossings(player, from, to, cause, exited, entered, nativeEvent)) {
             WorldLocPos lastValid = session.lastValid();
             return MoveVerdict.revert(lastValid != null ? lastValid : from);   //a listener that cancels does not pick a strategy
         }
         session.commit(next, to, lookup.getSnapshotVersion(to.getWorldName()));
         sessionFlags.apply(player, session, SessionFlags.Trigger.BOUNDARY);
         return MoveVerdict.allowed();
+    }
+
+    private MoveVerdict decideCrossing(MoveContext context, RegionPlayerSession session) {
+        try {
+            return ProtectionFlagGate.decideCrossing(lookup, context, session);
+        } finally {
+            context.close();
+        }
     }
 
     /** The player appeared at {@code at}: they are inside wherever that is, unasked. Thread: the player's world. */
@@ -165,7 +174,7 @@ public final class RegionMovementTracker {
         RegionPlayerSession session = lookup.getSession(player);
         session.setOnlinePlayer(player);
         List<Region> next = lookup.at(at);
-        postCrossings(player, null, at, MoveCause.JOIN, Collections.emptyList(), next);
+        postCrossings(player, null, at, MoveCause.JOIN, Collections.emptyList(), next, null);
         session.commit(next, at, lookup.getSnapshotVersion(at.getWorldName()));
         sessionFlags.apply(player, session, SessionFlags.Trigger.BOUNDARY);
     }
@@ -184,7 +193,7 @@ public final class RegionMovementTracker {
         ProtectionFlagGate.forget(uuid);
         FPlayer player = session.getOnlinePlayer();
         if (player != null) {
-            postCrossings(player, session.getPosition(), null, MoveCause.QUIT, session.getCurrent(), Collections.emptyList());
+            postCrossings(player, session.getPosition(), null, MoveCause.QUIT, session.getCurrent(), Collections.emptyList(), null);
             sessionFlags.leaveAll(player, session);
         }
     }
@@ -223,10 +232,10 @@ public final class RegionMovementTracker {
         List<Region> exited = minus(session.getCurrent(), next);
         List<Region> entered = minus(next, session.getCurrent());
         for (Region region : exited) {
-            bus.postIfListened(RegionLeaveEvent.class, () -> new RegionLeaveEvent(region, player, at, at, MoveCause.REGION_REMOVED));
+            bus.postIfListened(RegionLeaveEvent.class, () -> new RegionLeaveEvent(region, player, at, at, MoveCause.REGION_REMOVED, null));
         }
         for (Region region : entered) {
-            bus.postIfListened(RegionEnterEvent.class, () -> new RegionEnterEvent(region, player, at, at, MoveCause.REGION_CREATED));
+            bus.postIfListened(RegionEnterEvent.class, () -> new RegionEnterEvent(region, player, at, at, MoveCause.REGION_CREATED, null));
         }
         session.setCurrent(next, lookup.getSnapshotVersion(at.getWorldName()));
         sessionFlags.apply(player, session, SessionFlags.Trigger.BOUNDARY);
@@ -234,15 +243,15 @@ public final class RegionMovementTracker {
 
     /** Leaves, then enters; true when a listener cancelled a cancellable crossing - the ones already posted stay posted. */
     private boolean postCrossings(FPlayer player, @Nullable WorldLocPos from, @Nullable WorldLocPos to, MoveCause cause,
-                                  List<Region> exited, List<Region> entered) {
+                                  List<Region> exited, List<Region> entered, @Nullable Object nativeEvent) {
         for (Region region : exited) {
-            RegionLeaveEvent leave = bus.postIfListened(RegionLeaveEvent.class, () -> new RegionLeaveEvent(region, player, from, to, cause));
+            RegionLeaveEvent leave = bus.postIfListened(RegionLeaveEvent.class, () -> new RegionLeaveEvent(region, player, from, to, cause, nativeEvent));
             if (leave != null && leave.isCancelled()) {
                 return true;
             }
         }
         for (Region region : entered) {
-            RegionEnterEvent enter = bus.postIfListened(RegionEnterEvent.class, () -> new RegionEnterEvent(region, player, from, to, cause));
+            RegionEnterEvent enter = bus.postIfListened(RegionEnterEvent.class, () -> new RegionEnterEvent(region, player, from, to, cause, nativeEvent));
             if (enter != null && enter.isCancelled()) {
                 return true;
             }

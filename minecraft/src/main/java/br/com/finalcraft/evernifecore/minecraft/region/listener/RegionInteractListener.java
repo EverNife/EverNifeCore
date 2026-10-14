@@ -37,8 +37,9 @@ public final class RegionInteractListener implements ECListener {
             return;
         }
         Player player = event.getPlayer();
-        BlockContext context = new BlockContext(EventSource.INTERACT, RegionContexts.position(block.getLocation()), FCBukkitUtil.adapt(player),
-                event, RegionContexts.id(block.getType()), RegionContexts.itemInHandId(player), FCBukkitUtil.isFakePlayer(player));
+        BlockContext context = new BlockContext(EventSource.INTERACT, RegionContexts.position(block.getLocation()),
+                RegionContexts.actor(player, FCBukkitUtil.isFakePlayer(player)), event, RegionContexts.key(block.getType()),
+                RegionContexts.itemInHandKey(player));
         if (RegionLookup.get().decide(context) == Decision.DENY) {
             event.setCancelled(true);
         }
@@ -50,8 +51,8 @@ public final class RegionInteractListener implements ECListener {
         if (RegionContexts.isDisabled(entity.getWorld())) {
             return;
         }
-        EntityContext context = new EntityContext(RegionContexts.position(entity.getLocation()), FCBukkitUtil.adapt(event.getPlayer()), event,
-                RegionContexts.id(entity.getType()), entity instanceof Player ? FCBukkitUtil.adapt((Player) entity) : null);
+        EntityContext context = new EntityContext(RegionContexts.position(entity.getLocation()), RegionContexts.actor(event.getPlayer()), event,
+                RegionContexts.actor(entity));
         if (RegionLookup.get().decide(context) == Decision.DENY) {
             event.setCancelled(true);
         }

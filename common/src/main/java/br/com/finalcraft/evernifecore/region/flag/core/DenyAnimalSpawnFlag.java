@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
+import br.com.finalcraft.evernifecore.region.actor.ECEntityType;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
@@ -14,7 +15,7 @@ public final class DenyAnimalSpawnFlag extends DenyFlag {
 
     @Override
     public boolean applies(ActionContext context) {
-        return context instanceof SpawnContext && ((SpawnContext) context).getEntityKind() == SpawnContext.Kind.ANIMAL;
+        return context instanceof SpawnContext && ((SpawnContext) context).getEntity().getEntityType() == ECEntityType.ANIMAL;
     }
 
     @Override

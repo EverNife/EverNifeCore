@@ -4,7 +4,6 @@ import br.com.finalcraft.evernifecore.math.game.selection.CuboidSelection;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.protection.integration.ProtectionHandler;
 import br.com.finalcraft.evernifecore.minecraft.region.listener.RegionContexts;
-import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
@@ -48,9 +47,8 @@ public final class McRegionProtectionHandler implements ProtectionHandler {
         if (RegionContexts.isDisabled(victim.getWorld())) {
             return true;
         }
-        return allows(new DamageContext(RegionContexts.position(victim.getLocation()), FCBukkitUtil.adapt(player), null,
-                RegionContexts.victimKind(victim), victim instanceof Player ? FCBukkitUtil.adapt((Player) victim) : null,
-                RegionContexts.id(victim.getType())));
+        return allows(new DamageContext(RegionContexts.position(victim.getLocation()), RegionContexts.actor(player), null,
+                RegionContexts.actor(victim)));
     }
 
     @Override
@@ -99,8 +97,8 @@ public final class McRegionProtectionHandler implements ProtectionHandler {
         if (RegionContexts.isDisabled(at.getWorld())) {
             return true;
         }
-        return allows(new BlockContext(source, RegionContexts.position(at), FCBukkitUtil.adapt(player), null,
-                RegionContexts.id(at.getBlock().getType()), RegionContexts.itemInHandId(player), FCBukkitUtil.isFakePlayer(player)));
+        return allows(new BlockContext(source, RegionContexts.position(at), RegionContexts.actor(player), null,
+                RegionContexts.key(at.getBlock().getType()), RegionContexts.itemInHandKey(player)));
     }
 
     private static boolean allows(ActionContext context) {

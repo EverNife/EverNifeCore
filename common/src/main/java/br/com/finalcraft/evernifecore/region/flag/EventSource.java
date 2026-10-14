@@ -11,7 +11,7 @@ import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The kind of game event a flag needs to hear. EverNifeCore ships the eight every server has; a plugin registers the
+ * The kind of game event a flag needs to hear. EverNifeCore ships the nine every server has; a plugin registers the
  * ones only it raises with {@link #register}, and the region system treats them alike: a flag needs them, the count
  * says when they matter, a listener follows them. {@link #NONE} is for a flag that only stores a value.
  */
@@ -25,6 +25,7 @@ public final class EventSource {
     public static final EventSource INTERACT = core("interact");
     public static final EventSource DAMAGE = core("damage");
     public static final EventSource SPAWN = core("spawn");
+    public static final EventSource EXPLOSION = core("explosion");
     public static final EventSource TICK = core("tick");
     public static final EventSource NONE = core("none");
 

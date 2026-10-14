@@ -1,42 +1,36 @@
 package br.com.finalcraft.evernifecore.region.flag.context;
 
-import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.region.actor.Actor;
+import br.com.finalcraft.evernifecore.region.actor.TypeKey;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import jakarta.annotation.Nullable;
 
 import java.util.Objects;
 
-/** A block broken, placed or used. */
+/** A block broken, placed or used - by a player, a mob, a machine, the environment or an explosion. */
 public final class BlockContext extends ActionContext {
 
-    private final String blockId;
-    private final @Nullable String itemInHandId;
-    private final boolean fakePlayer;
+    private final TypeKey blockKey;
+    private final @Nullable TypeKey itemInHandKey;
 
     /**
-     * @param source       {@link EventSource#BREAK}, {@link EventSource#PLACE} or {@link EventSource#INTERACT}
-     * @param blockId      the platform-neutral id of the block, e.g. {@code minecraft:sand}
-     * @param itemInHandId the id of what the player holds; null for an empty hand or no player
-     * @param fakePlayer   whether the actor is a machine posing as a player
+     * @param source        {@link EventSource#BREAK}, {@link EventSource#PLACE} or {@link EventSource#INTERACT}
+     * @param blockKey      what the block is, e.g. {@code minecraft:sand}
+     * @param itemInHandKey what the actor holds; null for an empty hand or no hand at all
      */
-    public BlockContext(EventSource source, WorldLocPos position, @Nullable FPlayer player, @Nullable Object nativeEvent,
-                        String blockId, @Nullable String itemInHandId, boolean fakePlayer) {
-        super(source, position, player, nativeEvent);
-        this.blockId = Objects.requireNonNull(blockId, "blockId");
-        this.itemInHandId = itemInHandId;
-        this.fakePlayer = fakePlayer;
+    public BlockContext(EventSource source, WorldLocPos position, Actor actor, @Nullable Object nativeEvent,
+                        TypeKey blockKey, @Nullable TypeKey itemInHandKey) {
+        super(source, position, actor, nativeEvent);
+        this.blockKey = Objects.requireNonNull(blockKey, "blockKey");
+        this.itemInHandKey = itemInHandKey;
     }
 
-    public String getBlockId() {
-        return blockId;
+    public TypeKey getBlockKey() {
+        return blockKey;
     }
 
-    public @Nullable String getItemInHandId() {
-        return itemInHandId;
-    }
-
-    public boolean isFakePlayer() {
-        return fakePlayer;
+    public @Nullable TypeKey getItemInHandKey() {
+        return itemInHandKey;
     }
 }

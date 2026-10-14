@@ -51,7 +51,7 @@ public final class RegionMoveListener implements ECListener {
             return;   //a head turn is most of the traffic; the tracker is only asked on a block change
         }
         MoveVerdict verdict = RegionMovementTracker.get().onMove(FCBukkitUtil.adapt(event.getPlayer()),
-                RegionContexts.position(from), RegionContexts.position(to), MoveCause.MOVE);
+                RegionContexts.position(from), RegionContexts.position(to), MoveCause.MOVE, event);
         if (!verdict.isAllowed()) {
             event.setTo(RegionContexts.toLocation(verdict.getRevertTo(), to));   //not setCancelled: no teleport event, no re-entry
         }
@@ -64,7 +64,7 @@ public final class RegionMoveListener implements ECListener {
             return;
         }
         MoveVerdict verdict = RegionMovementTracker.get().onMove(FCBukkitUtil.adapt(event.getPlayer()),
-                RegionContexts.position(event.getFrom()), RegionContexts.position(to), MoveCause.TELEPORT);
+                RegionContexts.position(event.getFrom()), RegionContexts.position(to), MoveCause.TELEPORT, event);
         if (!verdict.isAllowed()) {
             event.setCancelled(true);   //a teleport "to where you already stand" would report success to whoever teleported
         }
@@ -83,7 +83,7 @@ public final class RegionMoveListener implements ECListener {
                 continue;
             }
             MoveVerdict verdict = RegionMovementTracker.get().onMove(FCBukkitUtil.adapt((Player) passenger),
-                    RegionContexts.position(event.getFrom()), RegionContexts.position(to), MoveCause.VEHICLE);
+                    RegionContexts.position(event.getFrom()), RegionContexts.position(to), MoveCause.VEHICLE, event);
             if (!verdict.isAllowed()) {
                 Location back = RegionContexts.toLocation(verdict.getRevertTo(), to);
                 vehicle.eject();   //the whole vehicle goes back, so every passenger leaves it
@@ -125,7 +125,7 @@ public final class RegionMoveListener implements ECListener {
         Location to = event.getRespawnLocation();
         if (!RegionContexts.isDisabled(to.getWorld())) {   //the player still stands where they died: that is the from
             RegionMovementTracker.get().onMove(FCBukkitUtil.adapt(event.getPlayer()),
-                    RegionContexts.position(event.getPlayer().getLocation()), RegionContexts.position(to), MoveCause.RESPAWN);
+                    RegionContexts.position(event.getPlayer().getLocation()), RegionContexts.position(to), MoveCause.RESPAWN, event);
         }
     }
 
@@ -134,7 +134,7 @@ public final class RegionMoveListener implements ECListener {
         Location now = event.getPlayer().getLocation();
         if (!RegionContexts.isDisabled(now.getWorld())) {
             WorldLocPos from = WorldLocPos.of(now.getX(), now.getY(), now.getZ(), event.getFrom().getName());
-            RegionMovementTracker.get().onMove(FCBukkitUtil.adapt(event.getPlayer()), from, RegionContexts.position(now), MoveCause.WORLD_CHANGE);
+            RegionMovementTracker.get().onMove(FCBukkitUtil.adapt(event.getPlayer()), from, RegionContexts.position(now), MoveCause.WORLD_CHANGE, event);
         }
     }
 

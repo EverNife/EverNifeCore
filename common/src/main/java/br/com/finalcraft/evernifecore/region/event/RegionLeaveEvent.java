@@ -15,7 +15,8 @@ public class RegionLeaveEvent extends RegionBoundaryEvent {
         return ECEvent.getHandlerListOf(RegionLeaveEvent.class);
     }
 
-    public RegionLeaveEvent(Region region, FPlayer player, @Nullable WorldLocPos from, @Nullable WorldLocPos to, MoveCause cause) {
-        super(region, player, from, to, cause);
+    public RegionLeaveEvent(Region region, FPlayer player, @Nullable WorldLocPos from, @Nullable WorldLocPos to, MoveCause cause,
+                            @Nullable Object nativeEvent) {
+        super(region, player, from, to, cause, nativeEvent);
     }
 }

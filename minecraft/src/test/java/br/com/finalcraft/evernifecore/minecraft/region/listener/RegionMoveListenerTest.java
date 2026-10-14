@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static br.com.finalcraft.evernifecore.minecraft.testkit.BukkitEventWorld.isRegistered;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Players crossing region borders on a Bukkit server: the seven ways a player changes place, and the listener's own coming and going. */
@@ -117,6 +118,22 @@ class RegionMoveListenerTest {
 
             server.server.getPluginManager().callEvent(step(server, player, 5.5, 6.5));
             assertEquals(1, enters.size(), "a step into the next block is asked, and enters the plaza it never saw");
+        }
+    }
+
+    @Test
+    void theMoveEventReachesTheEnterEvent() {
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            server.box("plaza", 0, 0, 0, 10, 10, 10);
+            server.listen(new RegionMoveListener());
+            List<RegionEnterEvent> enters = server.regions.recorded(RegionEnterEvent.class);
+            Player player = server.player("walker", 12.5, 5, 5.5);
+            server.server.getPluginManager().callEvent(new PlayerJoinEvent(player, "joined"));
+
+            PlayerMoveEvent step = server.call(step(server, player, 12.5, 9.5));
+
+            assertEquals(1, enters.size());
+            assertSame(step, enters.get(0).getNativeEvent(PlayerMoveEvent.class));
         }
     }
 

@@ -296,7 +296,7 @@ public final class ProtectionFlagGate {
     private static UUID paceKey(ActionContext context) {
         FPlayer player = context.getPlayer();
         if (player == null && context instanceof DamageContext) {
-            player = ((DamageContext) context).getVictimPlayer();
+            player = ((DamageContext) context).getVictim().getRootPlayer();
         }
         return player == null ? NO_PLAYER : player.getUniqueId();
     }

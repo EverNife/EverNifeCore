@@ -4,6 +4,8 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.TestRegions.ManualClock;
+import br.com.finalcraft.evernifecore.region.actor.ECEntityType;
+import br.com.finalcraft.evernifecore.region.actor.TypeKey;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
@@ -23,6 +25,7 @@ import br.com.finalcraft.evernifecore.region.flag.core.DenyInteractFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyMonsterSpawnFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyPvpFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.InteractSettings;
+import br.com.finalcraft.evernifecore.testing.Actors;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
@@ -108,7 +111,7 @@ class RegionLookupDecideTest {
     }
 
     private static BlockContext breakAt(double x, TestFPlayerSender player) {
-        return new BlockContext(EventSource.BREAK, WorldLocPos.of(x, 5, 5, WORLD), player, null, "minecraft:stone", null, false);
+        return new BlockContext(EventSource.BREAK, WorldLocPos.of(x, 5, 5, WORLD), Actors.player(player), null, TypeKey.parse("minecraft:stone"), null);
     }
 
     @Test
@@ -156,7 +159,8 @@ class RegionLookupDecideTest {
         CountingFlag flag = registered("machines");
         flag.getSettings().setTriggerInterval(Duration.ofSeconds(2));
         region.setFlag(flag, Tristate.TRUE);
-        BlockContext noPlayer = new BlockContext(EventSource.BREAK, WorldLocPos.of(5, 5, 5, WORLD), null, null, "minecraft:stone", null, false);
+        BlockContext noPlayer = new BlockContext(EventSource.BREAK, WorldLocPos.of(5, 5, 5, WORLD), Actors.environment("fire"), null,
+                TypeKey.parse("minecraft:stone"), null);
 
         assertEquals(Decision.DENY, lookup.decide(noPlayer));
         lookup.decide(noPlayer);
@@ -174,16 +178,16 @@ class RegionLookupDecideTest {
         TestFPlayerSender victimA = new TestFPlayerSender("victimA");
         TestFPlayerSender victimB = new TestFPlayerSender("victimB");
 
-        lookup.decide(new DamageContext(at, null, null, DamageContext.Kind.PLAYER, victimA, "minecraft:player"));
-        lookup.decide(new DamageContext(at, null, null, DamageContext.Kind.PLAYER, victimA, "minecraft:player"));
+        lookup.decide(new DamageContext(at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.player(victimA)));
+        lookup.decide(new DamageContext(at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.player(victimA)));
         assertEquals(1, flag.applied.get(), "one victim, one pace");
 
-        lookup.decide(new DamageContext(at, null, null, DamageContext.Kind.PLAYER, victimB, "minecraft:player"));
-        lookup.decide(new DamageContext(at, null, null, DamageContext.Kind.PLAYER, victimB, "minecraft:player"));
+        lookup.decide(new DamageContext(at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.player(victimB)));
+        lookup.decide(new DamageContext(at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.player(victimB)));
         assertEquals(2, flag.applied.get(), "another victim has a pace of its own");
 
-        lookup.decide(new DamageContext(at, null, null, DamageContext.Kind.ANIMAL, null, "minecraft:cow"));
-        lookup.decide(new DamageContext(at, null, null, DamageContext.Kind.ANIMAL, null, "minecraft:cow"));
+        lookup.decide(new DamageContext(at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.entity("minecraft:cow", ECEntityType.ANIMAL)));
+        lookup.decide(new DamageContext(at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.entity("minecraft:cow", ECEntityType.ANIMAL)));
         assertEquals(3, flag.applied.get(), "no player on either side shares one pace");
     }
 
@@ -205,11 +209,12 @@ class RegionLookupDecideTest {
         TestFPlayerSender attacker = new TestFPlayerSender("attacker");
         WorldLocPos victimAt = WorldLocPos.of(5, 5, 5, WORLD);
 
-        assertEquals(Decision.PASS, lookup.decide(new DamageContext(victimAt, attacker, null, DamageContext.Kind.ANIMAL, null, "minecraft:cow")));
-        assertEquals(Decision.DENY, lookup.decide(new DamageContext(victimAt, attacker, null, DamageContext.Kind.PLAYER,
-                new TestFPlayerSender("victim"), "minecraft:player")));
-        assertEquals(Decision.PASS, lookup.decide(new DamageContext(victimAt, null, null, DamageContext.Kind.PLAYER,
-                new TestFPlayerSender("victim"), "minecraft:player")), "a zombie hitting a player is no PvP");
+        assertEquals(Decision.PASS, lookup.decide(new DamageContext(victimAt, Actors.player(attacker), null,
+                Actors.entity("minecraft:cow", ECEntityType.ANIMAL))));
+        assertEquals(Decision.DENY, lookup.decide(new DamageContext(victimAt, Actors.player(attacker), null,
+                Actors.player(new TestFPlayerSender("victim")))));
+        assertEquals(Decision.PASS, lookup.decide(new DamageContext(victimAt, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null,
+                Actors.player(new TestFPlayerSender("victim")))), "a zombie hitting a player is no PvP");
     }
 
     @Test
@@ -219,8 +224,10 @@ class RegionLookupDecideTest {
         region.setFlag(denyMonsters, Tristate.TRUE);
         WorldLocPos at = WorldLocPos.of(5, 5, 5, WORLD);
 
-        assertEquals(Decision.PASS, lookup.decide(new SpawnContext(at, null, SpawnContext.Kind.ANIMAL, "minecraft:cow", "NATURAL")));
-        assertEquals(Decision.DENY, lookup.decide(new SpawnContext(at, null, SpawnContext.Kind.MONSTER, "minecraft:zombie", "NATURAL")));
+        assertEquals(Decision.PASS, lookup.decide(new SpawnContext(at, Actors.environment("spawn"), null,
+                Actors.entity("minecraft:cow", ECEntityType.ANIMAL), "NATURAL")));
+        assertEquals(Decision.DENY, lookup.decide(new SpawnContext(at, Actors.environment("spawn"), null,
+                Actors.entity("minecraft:zombie", ECEntityType.MONSTER), "NATURAL")));
     }
 
     @Test
@@ -318,7 +325,7 @@ class RegionLookupDecideTest {
     /** The hit of a duel: an action only the duel plugin raises. */
     private static final class DuelHitContext extends ActionContext {
         DuelHitContext(EventSource source, WorldLocPos at, FPlayer hitter) {
-            super(source, at, hitter, null);
+            super(source, at, Actors.player(hitter), null);
         }
     }
 
@@ -373,11 +380,11 @@ class RegionLookupDecideTest {
     }
 
     private static BlockContext use(String blockId, TestFPlayerSender player) {
-        return new BlockContext(EventSource.INTERACT, WorldLocPos.of(5, 5, 5, WORLD), player, null, blockId, null, false);
+        return new BlockContext(EventSource.INTERACT, WorldLocPos.of(5, 5, 5, WORLD), Actors.player(player), null, TypeKey.parse(blockId), null);
     }
 
     private static EntityContext useEntity(String typeId, TestFPlayerSender player) {
-        return new EntityContext(WorldLocPos.of(5, 5, 5, WORLD), player, null, typeId, null);
+        return new EntityContext(WorldLocPos.of(5, 5, 5, WORLD), Actors.player(player), null, Actors.entity(typeId, ECEntityType.OTHER));
     }
 
     @Test

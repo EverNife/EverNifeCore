@@ -1,10 +1,9 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.region.flag.Decision;
+import br.com.finalcraft.evernifecore.region.actor.TypeKey;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
-import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.context.BlockContext;
 import br.com.finalcraft.evernifecore.region.flag.context.EntityContext;
@@ -23,24 +22,20 @@ public abstract class InteractDenyFlag extends DenyFlag {
         return InteractSettings.class;
     }
 
-    /** TRUE denies, when the used block or entity is one the settings cover. */
+    /** Covers the used block or entity when the {@link InteractSettings} do. */
     @Override
-    public Decision decide(ActionContext context, Tristate value, FlagSettings settings) {
-        if (decide(context, value) != Decision.DENY) {
-            return Decision.PASS;
-        }
-        String id = usedId(context);
-        boolean covered = id == null || !(settings instanceof InteractSettings) || ((InteractSettings) settings).matches(id);
-        return covered ? Decision.DENY : Decision.PASS;
+    protected boolean covers(ActionContext context, FlagSettings settings) {
+        TypeKey used = usedKey(context);
+        return used == null || !(settings instanceof InteractSettings) || ((InteractSettings) settings).matches(used);
     }
 
     /** The block or entity type being used, or null for a context that names neither. */
-    protected static @Nullable String usedId(ActionContext context) {
+    protected static @Nullable TypeKey usedKey(ActionContext context) {
         if (context instanceof BlockContext) {
-            return ((BlockContext) context).getBlockId();
+            return ((BlockContext) context).getBlockKey();
         }
         if (context instanceof EntityContext) {
-            return ((EntityContext) context).getEntityTypeId();
+            return ((EntityContext) context).getEntity().getKey();
         }
         return null;
     }

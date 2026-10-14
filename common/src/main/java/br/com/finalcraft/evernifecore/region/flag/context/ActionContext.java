@@ -2,27 +2,29 @@ package br.com.finalcraft.evernifecore.region.flag.context;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.region.actor.Actor;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import jakarta.annotation.Nullable;
 
 import java.util.Objects;
 
 /**
- * The action a protection flag is asked about. Each {@link EventSource} has its own subclass with the details
- * (block, victim, spawn type, movement); {@link #as} reaches them.
+ * The action a protection flag is asked about: who does it ({@link #getActor()}), where, and the platform's event.
+ * Each {@link EventSource} has its own subclass with the details (block, victim, spawned entity, movement);
+ * {@link #as} reaches them.
  */
 public abstract class ActionContext {
 
     private final EventSource source;
     private final WorldLocPos position;
-    private final @Nullable FPlayer player;
+    private final Actor actor;
     private final @Nullable Object nativeEvent;
 
-    /** @param nativeEvent the platform's event; null when the action comes from no single event (a movement tick) */
-    protected ActionContext(EventSource source, WorldLocPos position, @Nullable FPlayer player, @Nullable Object nativeEvent) {
+    /** @param nativeEvent the platform's event; null when the action comes from no single event */
+    protected ActionContext(EventSource source, WorldLocPos position, Actor actor, @Nullable Object nativeEvent) {
         this.source = Objects.requireNonNull(source, "source");
         this.position = Objects.requireNonNull(position, "position");
-        this.player = player;
+        this.actor = Objects.requireNonNull(actor, "actor");
         this.nativeEvent = nativeEvent;
     }
 
@@ -38,9 +40,14 @@ public abstract class ActionContext {
         return position;
     }
 
-    /** The player behind the action, traced to its root (a projectile's shooter, a tamed mob's owner); null when none. */
+    /** Who does the action: an entity, a block or the environment. */
+    public Actor getActor() {
+        return actor;
+    }
+
+    /** The player behind the action - {@code getActor().getRootPlayer()}; null when none. */
     public @Nullable FPlayer getPlayer() {
-        return player;
+        return actor.getRootPlayer();
     }
 
     /**
@@ -59,5 +66,15 @@ public abstract class ActionContext {
     /** The platform's own event, for whoever needs more than this context carries; null when there was none. */
     public @Nullable Object getNativeEvent() {
         return nativeEvent;
+    }
+
+    /** The platform's own event as {@code type}; null when there was none or it is of another class. */
+    public <E> @Nullable E getNativeEvent(Class<E> type) {
+        return type.isInstance(nativeEvent) ? type.cast(nativeEvent) : null;
+    }
+
+    /** Internal: the dispatch of this action ended - the handles its actors made are closed. */
+    public void close() {
+        actor.close();
     }
 }
