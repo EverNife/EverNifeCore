@@ -9,7 +9,7 @@ shadow = "9.4.2"
 everydatabase = "1.5.0"
 everyconfig = "1.4.2"
 everylibs = "1.2.0"
-ecnmsutils = "2.0.0"
+ecnmsutils = "2.1.0"
 
 # FinalCraft fork (same one EveryDatabase/EveryConfig use): hooks a Java 25 javac and only lifts
 # javac's syntax check, so modules can write modern syntax and still emit options.release bytecode.
