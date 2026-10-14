@@ -10,7 +10,7 @@ public class HyECPluginExtractor implements IECPluginExtractor {
 
     @Override
     public String getPluginName(Object javaPlugin) {
-        return ((JavaPlugin) javaPlugin).getName();
+        return ((JavaPlugin) javaPlugin).getIdentifier().getName(); //the same name HyPluginMetaInfo reports
     }
 
     @Override

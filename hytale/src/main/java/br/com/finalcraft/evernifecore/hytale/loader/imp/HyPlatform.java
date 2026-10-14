@@ -124,8 +124,8 @@ public class HyPlatform implements IPlatform {
 
     private static PluginBase findPlugin(String pluginName) {
         return PluginManager.get().getPlugins().stream()
-                //a plugin is addressed by name in some APIs and by identifier in others
-                .filter(plugin -> pluginName.equalsIgnoreCase(plugin.getName())
+                //the core names a plugin by its bare Name, Hytale's own APIs by Group:Name
+                .filter(plugin -> pluginName.equalsIgnoreCase(plugin.getIdentifier().getName())
                         || pluginName.equalsIgnoreCase(plugin.getIdentifier().toString()))
                 .findFirst()
                 .orElse(null);

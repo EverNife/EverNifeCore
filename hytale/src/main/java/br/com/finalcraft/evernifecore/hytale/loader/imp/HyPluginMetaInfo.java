@@ -13,9 +13,13 @@ public class HyPluginMetaInfo implements IPluginMetaInfo {
         this.javaPlugin = javaPlugin;
     }
 
+    /**
+     * The manifest {@code Name} alone. Hytale's own {@code getName()} is {@code Group:Name}, and the core uses
+     * this name as a region/flag owner, a map key and a file name - none of which take a {@code :}.
+     */
     @Override
     public String getName() {
-        return javaPlugin.getName();
+        return javaPlugin.getIdentifier().getName();
     }
 
     @Override
