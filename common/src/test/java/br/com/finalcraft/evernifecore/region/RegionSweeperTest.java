@@ -33,6 +33,7 @@ class RegionSweeperTest extends ManagedRegionFixture {
 
     @BeforeEach
     void holdTheAgenda() {
+        manager();   //loaded before the agenda is held
         clock = TestRegions.manualClock();
         RegionScheduler.set((task, delayMillis) -> agenda.add(task));
     }

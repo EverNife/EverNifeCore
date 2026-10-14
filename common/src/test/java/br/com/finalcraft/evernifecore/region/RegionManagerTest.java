@@ -79,7 +79,7 @@ class RegionManagerTest extends ManagedRegionFixture {
 
     @Test
     void aParentOfAnotherOwnerOrWorldIsARefusal() {
-        Region foreign = created(RegionManager.of(other, otherStorage).create("theirs", WORLD, box(0, 0, 9, 9)));
+        Region foreign = created(loaded(RegionManager.of(other, otherStorage)).create("theirs", WORLD, box(0, 0, 9, 9)));
         Region nether = created(manager().create("nether_home", "nether", box(0, 0, 9, 9)));
 
         CreationResult ofAnotherOwner = manager().create("child", WORLD, box(1, 1, 2, 2), RegionOptions.defaults().withParent(foreign));
@@ -94,7 +94,7 @@ class RegionManagerTest extends ManagedRegionFixture {
     @Test
     void dryRunReportsOurRegionsOfBothOwnersAndEveryProvider() {
         created(manager().create("mine", WORLD, box(0, 0, 9, 9), RegionOptions.defaults().withPriority(3)));
-        created(RegionManager.of(other, otherStorage).create("theirs", WORLD, box(5, 5, 15, 15)));
+        created(loaded(RegionManager.of(other, otherStorage)).create("theirs", WORLD, box(5, 5, 15, 15)));
         OverlapProviders.register(owner, new OverlapProvider() {
             @Override
             public OverlapSource getSource() {
@@ -165,7 +165,7 @@ class RegionManagerTest extends ManagedRegionFixture {
     void queriesSeeOnlyTheOwnersRegions() {
         Region mine = created(manager().create("mine", WORLD, box(0, 0, 9, 9), RegionOptions.defaults().withTags("shop")));
         Region nether = created(manager().create("hell", "nether", box(0, 0, 9, 9)));
-        created(RegionManager.of(other, otherStorage).create("theirs", WORLD, box(0, 0, 9, 9), RegionOptions.defaults().withTags("shop")));
+        created(loaded(RegionManager.of(other, otherStorage)).create("theirs", WORLD, box(0, 0, 9, 9), RegionOptions.defaults().withTags("shop")));
 
         assertSame(mine, manager().get("MINE"));
         assertNull(manager().get("theirs"));

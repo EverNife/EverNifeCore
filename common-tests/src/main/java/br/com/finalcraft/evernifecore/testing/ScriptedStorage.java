@@ -47,6 +47,7 @@ public final class ScriptedStorage implements Storage {
     private final Map<String, AtomicInteger> calls = new ConcurrentHashMap<String, AtomicInteger>();
     private final AtomicReference<Throwable> nextSaveAllFailure = new AtomicReference<Throwable>();
     private final AtomicReference<Throwable> nextAllFailure = new AtomicReference<Throwable>();
+    private final AtomicReference<Throwable> everyAllFailure = new AtomicReference<Throwable>();
 
     private ScriptedStorage(Storage delegate) {
         this.delegate = delegate;
@@ -73,6 +74,21 @@ public final class ScriptedStorage implements Storage {
      */
     public ScriptedStorage failNextAll(Throwable cause) {
         nextAllFailure.set(cause);
+        return this;
+    }
+
+    /**
+     * Makes every full read ({@code Repository.all()}) fail with {@code cause} until {@link #stopFailingAll()} - a
+     * backend that stays down, for code that retries a load and must give up.
+     */
+    public ScriptedStorage failEveryAll(Throwable cause) {
+        everyAllFailure.set(cause);
+        return this;
+    }
+
+    /** Ends {@link #failEveryAll}: the reads after this reach the backend again. */
+    public ScriptedStorage stopFailingAll() {
+        everyAllFailure.set(null);
         return this;
     }
 
@@ -153,6 +169,10 @@ public final class ScriptedStorage implements Storage {
         return delegate.isMachineLocalIdentity();
     }
 
+    private static Throwable firstNonNull(Throwable first, Throwable second) {
+        return first != null ? first : second;
+    }
+
     /** Counts every repository call and answers the scripted failure before the delegate is reached. */
     private final class CountingCalls implements InvocationHandler {
 
@@ -174,7 +194,7 @@ public final class ScriptedStorage implements Storage {
             counter.incrementAndGet();
 
             Throwable scripted = "saveAll".equals(name) ? nextSaveAllFailure.getAndSet(null)
-                    : "all".equals(name) ? nextAllFailure.getAndSet(null) : null;
+                    : "all".equals(name) ? firstNonNull(nextAllFailure.getAndSet(null), everyAllFailure.get()) : null;
             if (scripted != null) {
                 CompletableFuture<Object> failed = new CompletableFuture<Object>();
                 failed.completeExceptionally(scripted);

@@ -60,7 +60,7 @@ public final class RegionWorld implements AutoCloseable {
     private final Map<Class<?>, List<?>> recorded = new HashMap<>();
     private boolean closed;
 
-    private RegionWorld(String ownerName, Path dataFolder) {
+    private RegionWorld(String ownerName, Path dataFolder, boolean load) {
         this.ownerName = ownerName;
         acquireShared();
         IECPluginExtractor previous = EverNifeCore.getProviders().getBaseProvider().provideOrNull(IECPluginExtractor.class);
@@ -73,11 +73,25 @@ public final class RegionWorld implements AutoCloseable {
         backend.init().join();
         this.storage = backend.asECStorage();
         this.manager = RegionManager.of(owner, storage);
+        if (!load) {
+            return;
+        }
+        //loaded before it is handed out: a manager creates nothing until its load succeeded
+        CompletableFuture<Void> loading = manager.load();
+        for (int round = 0; !loading.isDone() && round < 100; round++) {
+            runDue();
+        }
+        loading.join();
     }
 
-    /** Opens the regions of a fake plugin named {@code ownerName} whose data folder is {@code dataFolder}. */
+    /** Opens the regions of a fake plugin named {@code ownerName} whose data folder is {@code dataFolder}, already loaded. */
     public static RegionWorld open(String ownerName, Path dataFolder) {
-        return new RegionWorld(ownerName, dataFolder);
+        return new RegionWorld(ownerName, dataFolder, true);
+    }
+
+    /** As {@link #open}, with the manager never loaded - for what a plugin sees while its regions are still loading. */
+    public static RegionWorld openUnloaded(String ownerName, Path dataFolder) {
+        return new RegionWorld(ownerName, dataFolder, false);
     }
 
     public ECPluginData getOwner() {

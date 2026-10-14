@@ -16,12 +16,18 @@ import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
+import br.com.finalcraft.evernifecore.region.overlap.Overlap;
+import br.com.finalcraft.evernifecore.region.overlap.OverlapProvider;
+import br.com.finalcraft.evernifecore.region.overlap.OverlapProviders;
+import br.com.finalcraft.evernifecore.region.overlap.OverlapSource;
 import br.com.finalcraft.evernifecore.region.selection.SelectionClick;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSpec;
 import br.com.finalcraft.evernifecore.region.selection.SelectionTool;
 import br.com.finalcraft.evernifecore.region.session.RevertStrategy;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
+import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.testing.Plugins;
+import br.com.finalcraft.evernifecore.testing.RegionWorld;
 import br.com.finalcraft.evernifecore.testing.Senders;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +37,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -120,6 +127,35 @@ class RegionCommandNodeTest extends RegionCommandFixture {
         steve.assertAnyMessageContains("theduel:arena");
         steve.assertAnyMessageContains("-f");
         assertNotNull(SelectionTool.getSession(steve), "a refused define keeps the selection");
+    }
+
+    @Test
+    void defineBeforeTheRegionsLoadSaysSoAndChecksNothing() {
+        try (RegionWorld loading = RegionWorld.openUnloaded("LateProt", tempDir.resolve("late"))) {
+            AtomicInteger overlapChecks = new AtomicInteger();
+            OverlapProviders.register(loading.getOwner(), new OverlapProvider() {
+                @Override
+                public OverlapSource getSource() {
+                    return OverlapSource.TRIGGER_VOLUMES;
+                }
+
+                @Override
+                public List<Overlap> findOverlaps(String world, Shape shape) {
+                    overlapChecks.incrementAndGet();
+                    return Collections.emptyList();
+                }
+            });
+            FinalCMDPluginCommand fp = mount(new RegionCommandNode(loading.getManager(), SelectionSpec.cuboid()));
+            selectBox(fp, "region", 200, 0, 200, 210, 10, 210);
+            steve.clearMessages();
+
+            harness.dispatch(fp, steve, "region define early");
+
+            steve.assertAnyMessageContains("still loading");
+            assertNull(loading.getManager().get("early"));
+            assertEquals(0, overlapChecks.get(), "no overlap is decided against regions not loaded yet");
+            assertNotNull(SelectionTool.getSession(steve), "the selection waits for a define that can run");
+        }
     }
 
     @Test

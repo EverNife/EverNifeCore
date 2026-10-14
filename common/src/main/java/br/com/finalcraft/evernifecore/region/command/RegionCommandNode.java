@@ -84,6 +84,10 @@ public class RegionCommandNode implements RegionScope {
     @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §c${reason}")
     public static LocaleMessage REFUSED;
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §cThe regions are still loading - try again in a moment.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §cAs regiões ainda estão carregando - tente de novo daqui a pouco.")
+    public static LocaleMessage REGIONS_NOT_LOADED;
+
     @FCLocale(lang = LocaleType.EN_US, text = "§a§l ▶ §aRegion §e${region}§a ${action}.")
     @FCLocale(lang = LocaleType.PT_BR, text = "§a§l ▶ §aRegião §e${region}§a ${action}.")
     public static LocaleMessage REGION_DONE;
@@ -218,6 +222,10 @@ public class RegionCommandNode implements RegionScope {
     })
     public void define(FPlayer player, CommandPath path, @Arg("<name>") String name,
                        @Arg.Flag(value = "--force", aliases = {"-f"}) Boolean force) {
+        if (!manager.isLoaded()) {
+            REGIONS_NOT_LOADED.send(player);
+            return;
+        }
         Selected selected = getSelection(player, path);
         if (selected == null) {
             return;

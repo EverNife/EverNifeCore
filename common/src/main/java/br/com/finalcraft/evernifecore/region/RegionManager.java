@@ -28,8 +28,11 @@ import br.com.finalcraft.evernifecore.region.storage.RegionRecord;
 import br.com.finalcraft.evernifecore.region.storage.RegionStorage;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
+import br.com.finalcraft.evernifecore.util.retry.RetryPolicy;
 import jakarta.annotation.Nullable;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -54,9 +57,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <pre>{@code
  * RegionManager regions = RegionManager.of(pluginData, storage);
- * regions.load();
+ * regions.load(RetryPolicy.attempts(5).every(Duration.ofSeconds(2))).join();
  * CreationResult result = regions.create("arena", "world", shape, RegionOptions.defaults().withPriority(10));
  * }</pre>
+ *
+ * <p>Nothing is created before the regions load: {@link #create} refuses, so a stored region is never written over
+ * nor an overlap decided against an index still missing half of them.</p>
  *
  * <p><b>Threads:</b> every method may be called from any thread, on every platform. Writers are serialized by one
  * lock, lookups never wait for it, and every event goes out on the thread of whoever made the change. Storage I/O
@@ -86,7 +92,9 @@ public final class RegionManager {
     private CompletableFuture<Void> lastWrite = CompletableFuture.completedFuture(null);
     private volatile boolean closed;
     private volatile boolean loaded;
-    private volatile boolean loadFailed;
+    private final CompletableFuture<Void> loadedOnce = new CompletableFuture<>();
+    private final Object loadLock = new Object();
+    private @Nullable LoadRun run;
     private volatile boolean foreignAccess = true;
 
     /** @param storage null for a manager that writes nothing - tests that only need regions to exist */
@@ -94,6 +102,10 @@ public final class RegionManager {
         this.owner = Objects.requireNonNull(owner, "owner");
         this.storage = storage;
         this.regionStorage = storage == null ? null : new RegionStorage(storage);
+        if (storage == null) {
+            loaded = true;
+            loadedOnce.complete(null);
+        }
     }
 
     /**
@@ -151,22 +163,71 @@ public final class RegionManager {
     // ------------------------------------------------------------------
 
     /**
-     * Reads every region of the owner, of every world, and indexes them with one publish per world. Any thread;
-     * the read runs in the background. A failure leaves the owner with no regions - nothing they would deny is
-     * denied - posts a {@link RegionLoadFailedEvent}, completes the future exceptionally so the owner may refuse
-     * its enable, and retries on its own until it succeeds or the manager closes.
+     * {@link #load(RetryPolicy)} that never gives up, retrying every 30 s - for an owner whose regions are optional.
+     * The future answers only the first try: it fails as soon as that try fails, while the retries go on in the
+     * background; {@link #whenLoaded()} tells when one of them succeeds.
      */
     public CompletableFuture<Void> load() {
-        CompletableFuture<Void> done = new CompletableFuture<>();
-        if (regionStorage == null || closed) {
-            done.complete(null);
-            return done;
-        }
-        RegionScheduler.scheduleAsync(() -> loadNow(done), 0);
-        return done;
+        return startLoad(null);
     }
 
-    private void loadNow(CompletableFuture<Void> done) {
+    /**
+     * Reads every region of the owner, of every world, and indexes them with one publish per world, trying again as
+     * {@code policy} says. Any thread; the reads run in the background. Every failed try leaves the owner with no
+     * regions - nothing they would deny is denied - and posts a {@link RegionLoadFailedEvent}. The future completes
+     * on the first try that succeeds, or fails once the policy gives up: then its message names the tries, the time
+     * they took and the last cause (also its {@code getCause()}), and nothing retries until {@code load} is called
+     * again. A call while a load is in progress reads nothing new: it follows that load, under {@code policy} from
+     * then on.
+     */
+    public CompletableFuture<Void> load(RetryPolicy policy) {
+        return startLoad(Objects.requireNonNull(policy, "'policy' cannot be null - load() retries forever every 30 s."));
+    }
+
+    /** True once a load succeeded; a manager that stores nothing starts loaded. Lock-free. */
+    public boolean isLoaded() {
+        return loaded;
+    }
+
+    /**
+     * Completes when the first load succeeds - after however many failed tries - and fails only when the manager
+     * closes before that. What may only run with every region known, like {@link #create}, waits on it.
+     */
+    public CompletableFuture<Void> whenLoaded() {
+        return follow(loadedOnce);
+    }
+
+    private CompletableFuture<Void> startLoad(@Nullable RetryPolicy explicit) {
+        synchronized (loadLock) {
+            if (regionStorage == null || closed) {
+                return CompletableFuture.completedFuture(null);
+            }
+            LoadRun current = run;
+            if (current == null || current.done.isDone()) {
+                current = new LoadRun(explicit != null ? explicit : RetryPolicy.forever(Duration.ofMillis(retryDelayMillis)));
+                run = current;
+                scheduleAttempt(current, 0);
+            } else if (explicit != null) {
+                current.policy = explicit;
+            }
+            return follow(explicit != null ? current.done : current.nextAttempt);
+        }
+    }
+
+    /** Holds the load lock; a newer schedule voids this one, so a world load and the timed retry never both read. */
+    private void scheduleAttempt(LoadRun current, long delayMillis) {
+        long ticket = ++current.ticket;
+        RegionScheduler.scheduleAsync(() -> attempt(current, ticket), delayMillis);
+    }
+
+    private void attempt(LoadRun current, long ticket) {
+        synchronized (loadLock) {
+            if (closed || current.done.isDone() || current.ticket != ticket) {
+                return;
+            }
+            current.attempts++;
+            current.reading = true;
+        }
         CompletableFuture<List<RegionRecord>> read;
         try {
             read = regionStorage.loadAll();
@@ -178,15 +239,103 @@ public final class RegionManager {
             if (error == null) {
                 try {
                     publishLoaded(records);
-                    loadFailed = false;
-                    done.complete(null);
+                    onLoaded(current);
                     return;
                 } catch (RuntimeException failure) {
                     error = failure;
                 }
             }
-            onLoadFailed(error instanceof CompletionException && error.getCause() != null ? error.getCause() : error, done);
+            onLoadFailed(current, error instanceof CompletionException && error.getCause() != null ? error.getCause() : error);
         });
+    }
+
+    private void onLoaded(LoadRun current) {
+        CompletableFuture<Void> attemptDone;
+        synchronized (loadLock) {
+            current.reading = false;
+            attemptDone = current.nextAttempt;
+        }
+        loadedOnce.complete(null);
+        attemptDone.complete(null);
+        current.done.complete(null);
+    }
+
+    private void onLoadFailed(LoadRun current, Throwable error) {
+        ECEventBus.global().postIfListened(RegionLoadFailedEvent.class, () -> new RegionLoadFailedEvent(owner, null, error));
+        CompletableFuture<Void> attemptDone;
+        Duration elapsed;
+        Duration retryIn;
+        int attempts;
+        RetryPolicy policy;
+        synchronized (loadLock) {
+            current.reading = false;
+            attemptDone = current.nextAttempt;
+            current.nextAttempt = new CompletableFuture<>();
+            attempts = current.attempts;
+            policy = current.policy;
+            elapsed = Duration.between(current.startedAt, RegionClock.now());
+            //a re-read of an owner already loaded keeps what it has: nothing is missing to retry for
+            retryIn = closed || loaded ? null : policy.delayBefore(attempts + 1, elapsed);
+            if (retryIn != null) {
+                scheduleAttempt(current, retryIn.toMillis());
+            }
+        }
+        attemptDone.completeExceptionally(error);
+        if (retryIn != null) {
+            owner.getLog().warning("Regions of {} are not loaded ({}); nothing they would deny is denied until they are - try {} failed,"
+                    + " the next one runs in {} s.", nameOf(owner), error.toString(), attempts, retryIn.toMillis() / 1000.0);
+            return;
+        }
+        String gaveUp = "Regions of " + nameOf(owner) + " did not load after " + attempts + (attempts == 1 ? " try" : " tries") + " in "
+                + elapsed.toMillis() / 1000.0 + " s (" + policy + "); last cause: " + error + ". Nothing retries on its own - call"
+                + " load again once the storage is reachable.";
+        if (!closed) {
+            owner.getLog().warning(gaveUp);
+        }
+        current.done.completeExceptionally(new IllegalStateException(gaveUp, error));
+    }
+
+    /** Every future a load handed out fails instead of staying pending; runs once {@code closed} is set. */
+    private void failPendingLoads() {
+        LoadRun current;
+        synchronized (loadLock) {
+            current = run;
+        }
+        IllegalStateException closedEarly = new IllegalStateException("The RegionManager of " + nameOf(owner)
+                + " was closed before its regions loaded - RegionManager.of(owner, storage) opens a new one to load them.");
+        if (current != null) {
+            current.nextAttempt.completeExceptionally(closedEarly);
+            current.done.completeExceptionally(closedEarly);
+        }
+        loadedOnce.completeExceptionally(closedEarly);
+    }
+
+    /** A future of the caller's own: completing or cancelling it leaves {@code source} alone. */
+    private static CompletableFuture<Void> follow(CompletableFuture<Void> source) {
+        CompletableFuture<Void> copy = new CompletableFuture<>();
+        source.whenComplete((ignored, error) -> {
+            if (error == null) {
+                copy.complete(null);
+            } else {
+                copy.completeExceptionally(error);
+            }
+        });
+        return copy;
+    }
+
+    /** One load, from its first try until it loads or its policy gives up. The mutable fields are guarded by the load lock. */
+    private static final class LoadRun {
+        final Instant startedAt = RegionClock.now();
+        final CompletableFuture<Void> done = new CompletableFuture<>();
+        RetryPolicy policy;
+        CompletableFuture<Void> nextAttempt = new CompletableFuture<>();
+        int attempts;
+        long ticket;
+        boolean reading;
+
+        LoadRun(RetryPolicy policy) {
+            this.policy = policy;
+        }
     }
 
     private void publishLoaded(List<RegionRecord> records) {
@@ -239,21 +388,6 @@ public final class RegionManager {
         }
     }
 
-    private void onLoadFailed(Throwable error, CompletableFuture<Void> done) {
-        loadFailed = true;
-        ECEventBus.global().postIfListened(RegionLoadFailedEvent.class, () -> new RegionLoadFailedEvent(owner, null, error));
-        owner.getLog().warning("Regions of {} are not loaded ({}); nothing they would deny is denied until they are - the load is"
-                + " retried every {} s, or call load() again.", nameOf(owner), error.toString(), retryDelayMillis / 1000.0);
-        if (!closed) {
-            RegionScheduler.scheduleAsync(() -> {
-                if (!closed && !loaded) {
-                    loadNow(new CompletableFuture<>());
-                }
-            }, retryDelayMillis);
-        }
-        done.completeExceptionally(error);
-    }
-
     // ------------------------------------------------------------------
     //  Create, remove, redefine
     // ------------------------------------------------------------------
@@ -266,12 +400,20 @@ public final class RegionManager {
     /**
      * Creates and indexes a region, then posts {@code RegionCreatedEvent}. A name in use, an invalid name, a parent
      * of another owner or world, or a policy that refuses one of the overlaps is a refusal in the result, never an
-     * exception. Any thread; the event goes out on the caller's.
+     * exception. Any thread; the event goes out on the caller's. Only once {@link #isLoaded() loaded}: before that
+     * the index lacks the stored regions, so the name check and the overlap policy would run against half the truth.
      *
-     * @throws IllegalStateException when this manager is closed
+     * @throws IllegalStateException when this manager is closed, or its regions are not loaded yet - create from
+     *                               {@code whenLoaded().thenRun(...)}, or check {@link #isLoaded()} first
      */
     public CreationResult create(String name, String world, Shape shape, RegionOptions options) {
         requireOpen();
+        if (!loaded) {
+            throw new IllegalStateException("The regions of " + nameOf(owner) + " are not loaded yet, so '" + name + "' cannot be created:"
+                    + " a stored region of that name or one it overlaps may be missing from the index. Create once they load -"
+                    + " regions.whenLoaded().thenRun(...) - or check regions.isLoaded() first; a load that keeps failing shows up"
+                    + " as RegionLoadFailedEvent.");
+        }
         RegionId id;
         try {
             id = RegionId.of(nameOf(owner), name);
@@ -518,6 +660,7 @@ public final class RegionManager {
             closed = true;
             MANAGERS.remove(owner, this);
         }
+        failPendingLoads();
         List<Region> gone = takeAllOut();
         for (Region region : gone) {
             ECEventBus.global().postIfListened(RegionRemovedEvent.class, () -> new RegionRemovedEvent(region, RegionRemovedEvent.Cause.OWNER_DISABLED));
@@ -741,6 +884,7 @@ public final class RegionManager {
             }
         }
         if (manager != null) {
+            manager.failPendingLoads();
             List<Region> gone = manager.takeAllOut();
             for (Region region : gone) {
                 ECEventBus.global().postIfListened(RegionRemovedEvent.class, () -> new RegionRemovedEvent(region, RegionRemovedEvent.Cause.OWNER_DISABLED));
@@ -809,11 +953,15 @@ public final class RegionManager {
 
     /**
      * Every region is indexed by {@link #load()} whatever its world - the platform cannot tell which worlds are
-     * loaded, and a world nobody stands in costs nothing - so a world load only retries a load that failed.
+     * loaded, and a world nobody stands in costs nothing - so a world load only brings forward the retry of a load
+     * that failed, as one more try of its policy. A load whose policy gave up stays given up.
      */
     private void onWorldLoaded(String world) {
-        if (loadFailed && !loaded && !closed) {
-            load();
+        synchronized (loadLock) {
+            LoadRun current = run;
+            if (current != null && current.attempts > 0 && !current.reading && !current.done.isDone() && !loaded && !closed) {
+                scheduleAttempt(current, 0);
+            }
         }
     }
 

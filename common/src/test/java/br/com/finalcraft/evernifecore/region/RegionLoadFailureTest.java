@@ -36,7 +36,7 @@ class RegionLoadFailureTest extends ManagedRegionFixture {
         List<RegionLoadFailedEvent> failures = record(RegionLoadFailedEvent.class);
         RegionManager.setRetryDelayMillis(10);
         backend.failNextAll(new IllegalStateException("backend unreachable"));
-        RegionManager manager = manager();
+        RegionManager manager = unloadedManager();
 
         CompletableFuture<Void> load = manager.load();
         agenda.runQueued();
@@ -57,7 +57,7 @@ class RegionLoadFailureTest extends ManagedRegionFixture {
     void untilTheRetryNothingOfTheOwnerIsIndexed() {
         backend.failNextAll(new IllegalStateException("backend unreachable"));
 
-        CompletableFuture<Void> load = manager().load();
+        CompletableFuture<Void> load = unloadedManager().load();
         agenda.runQueued();
 
         assertThrows(CompletionException.class, load::join);
@@ -67,7 +67,7 @@ class RegionLoadFailureTest extends ManagedRegionFixture {
     @Test
     void aWorldLoadRetriesAFailedLoad(TestPlatform platform) {
         backend.failNextAll(new IllegalStateException("backend unreachable"));
-        RegionManager manager = manager();
+        RegionManager manager = unloadedManager();
         CompletableFuture<Void> load = manager.load();
         agenda.runQueued();
         assertThrows(CompletionException.class, load::join);

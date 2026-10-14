@@ -27,6 +27,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * The world every manager test starts from: two plugins, each with its own counting in-memory storage, the global
@@ -85,8 +88,29 @@ abstract class ManagedRegionFixture {
         return opened;
     }
 
+    /** The owner's manager, loaded - a manager creates nothing before its load succeeded. */
     RegionManager manager() {
+        return loaded(RegionManager.of(owner, storage));
+    }
+
+    /** The owner's manager as {@code of} returns it, for a test that drives the load itself. */
+    RegionManager unloadedManager() {
         return RegionManager.of(owner, storage);
+    }
+
+    /** Loads {@code manager} unless it already is; needs the real scheduler, so a test holding its own opens managers first. */
+    static RegionManager loaded(RegionManager manager) {
+        if (!manager.isLoaded()) {
+            try {
+                manager.load().get(10, TimeUnit.SECONDS);
+            } catch (TimeoutException held) {
+                throw new AssertionError("The load of " + manager + " never ran: a test that swaps RegionScheduler must call manager()"
+                        + " before it does.", held);
+            } catch (InterruptedException | ExecutionException failed) {
+                throw new AssertionError("The load of " + manager + " failed", failed);
+            }
+        }
+        return manager;
     }
 
     /** Every event of {@code type} posted from now on, in order. */
