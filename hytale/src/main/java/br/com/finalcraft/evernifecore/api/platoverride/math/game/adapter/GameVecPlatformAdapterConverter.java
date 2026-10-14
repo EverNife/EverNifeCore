@@ -6,11 +6,15 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec2i;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3d;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3i;
+import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
+import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Location;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
+import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
+import jakarta.annotation.Nullable;
 import org.joml.Vector3d;
 
 public class GameVecPlatformAdapterConverter {
@@ -112,8 +116,13 @@ public class GameVecPlatformAdapterConverter {
             return ChunkUtil.indexChunk(this.getDelegate().getX(), this.getDelegate().getZ());
         }
 
-        public WorldChunk getChunk(World world) {
-            return world.getChunk(getChunkIndex());
+        /** The chunk if it is already in memory, else {@code null} - this never loads one. */
+        public @Nullable WorldChunk getChunk(World world) {
+            ChunkStore chunkStore = world.getChunkStore();
+            return FCScheduler.getHytaleScheduler().getSynchronizedAction().runAndGet(world, () -> {
+                Ref<ChunkStore> ref = chunkStore.getChunkReference(getChunkIndex());
+                return ref == null ? null : chunkStore.getStore().getComponent(ref, WorldChunk.getComponentType());
+            });
         }
 
     }
@@ -131,7 +140,7 @@ public class GameVecPlatformAdapterConverter {
             return Universe.get().getWorld(worldName);
         }
 
-        public WorldChunk getChunk() {
+        public @Nullable WorldChunk getChunk() {
             return getChunk(getWorld());
         }
     }

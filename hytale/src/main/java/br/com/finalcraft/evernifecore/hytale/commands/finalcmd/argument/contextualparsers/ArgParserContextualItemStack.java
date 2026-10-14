@@ -8,7 +8,11 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgMo
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.server.core.inventory.InventoryComponent;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
+import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
@@ -61,7 +65,8 @@ public class ArgParserContextualItemStack extends ArgParserContextual<ItemStack>
         //hop and reads everything it needs while it is there
         if (slot == null){
             ItemStack itemStack = FCScheduler.getHytaleScheduler().getSynchronizedAction().runAndGet(player.getWorld(), () -> {
-                return player.getPlayer().getInventory().getItemInHand();
+                Ref<EntityStore> playerEntity = player.getPlayer().getReference();
+                return InventoryComponent.getItemInHand(playerEntity.getStore(), playerEntity);
             });
 
             return itemStack != null
@@ -70,7 +75,8 @@ public class ArgParserContextualItemStack extends ArgParserContextual<ItemStack>
         }
 
         ItemStack equipped = FCScheduler.getHytaleScheduler().getSynchronizedAction().runAndGet(player.getWorld(), () -> {
-            return player.getPlayer().getInventory().getArmor().getItemStack(slot.index);
+            ItemContainer armor = player.getInventorySection(InventoryComponent.ARMOR_SECTION_ID);
+            return armor == null ? null : armor.getItemStack(slot.index);
         });
 
         return equipped != null && equipped.isValid()

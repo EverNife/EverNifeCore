@@ -14,6 +14,8 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import com.hypixel.hytale.component.AddReason;
+import com.hypixel.hytale.component.Component;
+import com.hypixel.hytale.component.ComponentType;
 import com.hypixel.hytale.component.Holder;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
@@ -25,6 +27,7 @@ import com.hypixel.hytale.server.core.command.system.CommandManager;
 import com.hypixel.hytale.server.core.command.system.CommandSender;
 import com.hypixel.hytale.server.core.console.ConsoleSender;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.inventory.InventoryComponent;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.inventory.transaction.ItemStackTransaction;
 import com.hypixel.hytale.server.core.inventory.transaction.ListTransaction;
@@ -33,6 +36,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.core.util.TargetUtil;
+import jakarta.annotation.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
@@ -109,6 +113,14 @@ public class FCHytaleUtil {
         CommandManager.get().handleCommand(delegate, theCommand);
     }
 
+    /**
+     * A component of a live entity, read lock-free from any thread the way the server's own facades read it;
+     * {@code null} when the reference is {@code null}, no longer valid, or the entity lacks that component.
+     */
+    public static <T extends Component<EntityStore>> @Nullable T getComponent(@Nullable Ref<EntityStore> ref, ComponentType<EntityStore, T> type) {
+        return ref == null ? null : ref.getStore().getComponentConcurrent(ref, type);
+    }
+
     public static FPlayer adapt(Player player){
         return HytaleFPlayer.of(player);
     }
@@ -163,8 +175,9 @@ public class FCHytaleUtil {
 
             Location location = hytaleFPlayer.getLocation().getDelegate(Location.class);
 
-            ListTransaction<ItemStackTransaction> transactionList = hytalePlayer.getInventory()
-                .getCombinedHotbarFirst()
+            Ref<EntityStore> playerEntity = hytalePlayer.getReference();
+            ListTransaction<ItemStackTransaction> transactionList = InventoryComponent
+                .getCombined(playerEntity.getStore(), playerEntity, InventoryComponent.HOTBAR_FIRST)
                 .addItemStacks(itemStacks);
 
             List<ItemStack> exceededItems = transactionList.getList().stream()

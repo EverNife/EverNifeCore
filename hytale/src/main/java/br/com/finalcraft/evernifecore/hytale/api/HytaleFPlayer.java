@@ -15,6 +15,8 @@ import com.hypixel.hytale.math.vector.Location;
 import com.hypixel.hytale.math.vector.Rotation3f;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.inventory.InventoryComponent;
+import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
 import com.hypixel.hytale.server.core.modules.entity.component.HeadRotation;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.modules.entity.teleport.Teleport;
@@ -22,7 +24,7 @@ import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
-import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
+import com.hypixel.hytale.server.core.universe.world.storage.ChunkGrid;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -31,6 +33,7 @@ import org.joml.Vector3d;
 
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
@@ -205,12 +208,8 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
                 ? headRotationComponent.get().getRotation().clone()
                 : new Rotation3f(0, 0, 0);
 
-        //Load the chunk if already not loaded, this will prevent the player from be teleported OUTSIDE THE FRICKING WORLD
         Vector3d targetPos = safeTargetLocation.getPosition();
-        long chunkIndex = ChunkUtil.indexChunkFromBlock((int) targetPos.x(), (int) targetPos.z());
-        WorldChunk worldChunk = targetWorld.isInThread()
-                ? targetWorld.getChunk(chunkIndex)
-                : targetWorld.getChunkAsync(chunkIndex).join();
+        awaitChunkLoaded(targetWorld.getChunkStore(), targetWorld.isInThread(), ChunkUtil.indexChunkFromBlock((int) targetPos.x(), (int) targetPos.z()));
 
         float pitch = safeTargetLocation.getRotation().x();
         float yaw = safeTargetLocation.getRotation().y();
@@ -250,19 +249,42 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         return true;
     }
 
+    /** The ChunkGrid load flag that also makes the chunk ticking, the one the server's own {@code chunk load} command passes. */
+    private static final int LOAD_TICKING = 4;
+
+    /**
+     * Makes sure the chunk under a teleport target is in memory before the player lands in it, or the player
+     * falls out of the world. A chunk already in memory costs nothing; otherwise the load is started and
+     * waited for - except on the target world's own thread, which would be waiting on itself.
+     */
+    static void awaitChunkLoaded(ChunkGrid chunks, boolean onTheWorldThread, long chunkIndex) {
+        if (chunks.getChunkReference(chunkIndex) != null) {
+            return;
+        }
+        CompletableFuture<?> load = chunks.getChunkReferenceAsync(chunkIndex, LOAD_TICKING);
+        if (!onTheWorldThread) {
+            load.join();
+        }
+    }
+
     public Player getPlayer() {
         if (this instanceof PlayerFPlayer) {
             return ((PlayerFPlayer)this).getDelegate();
-        } else {
-            UUID worldUuid = getPlayerRef().getWorldUuid();
-            World world = Universe.get().getWorld(worldUuid);
-            for (Player player : world.getPlayers()) {
-                if (player.getPlayerRef().getUuid().equals(getPlayerRef().getUuid())) {
-                    return  player;
-                }
-            }
+        }
+        Player player = FCHytaleUtil.getComponent(getPlayerRef().getReference(), Player.getComponentType());
+        if (player == null) {
             throw new IllegalStateException("The PlayerRef for '" + getName() + "' is not inside any World to get its Player variable.");
         }
+        return player;
+    }
+
+    /**
+     * One section of this player's inventory - an {@code InventoryComponent.*_SECTION_ID}, such as
+     * {@link InventoryComponent#ARMOR_SECTION_ID} - or {@code null} when the player has no such section.
+     */
+    public @Nullable ItemContainer getInventorySection(int sectionId) {
+        InventoryComponent section = FCHytaleUtil.getComponent(getPlayer().getReference(), InventoryComponent.getComponentTypeById(sectionId));
+        return section == null ? null : section.getInventory();
     }
 
     public static class PlayerRefFPlayer extends FPlayerAdapter<PlayerRef> {
@@ -280,13 +302,19 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
 
     public static class PlayerFPlayer extends FPlayerAdapter<Player> {
 
+        private PlayerRef playerRef;
+
         public PlayerFPlayer(Player player) {
             super(player);
         }
 
+        /** Kept once read, so a player whose entity already left the world still answers its name. */
         @Override
         public PlayerRef getPlayerRef() {
-            return getDelegate().getPlayerRef();
+            if (playerRef == null) {
+                playerRef = FCHytaleUtil.getComponent(getDelegate().getReference(), PlayerRef.getComponentType());
+            }
+            return playerRef;
         }
 
     }

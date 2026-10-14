@@ -11,14 +11,16 @@ import br.com.finalcraft.everyconfig.binding.ConfigContext;
 import br.com.finalcraft.everyconfig.binding.ConfigLifecycle;
 import br.com.finalcraft.everyconfig.config.section.ConfigSection;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.hypixel.hytale.server.core.inventory.Inventory;
+import com.hypixel.hytale.server.core.inventory.InventoryComponent;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
+import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
 import jakarta.annotation.Nullable;
 import lombok.Data;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.IntFunction;
 
 /**
  * Persists as {@code {storage, armor, hotbar, utility, tools, backpack, extra.<id>}}. The six sub-inventories
@@ -61,9 +63,7 @@ public class FCPlayerInventory implements ConfigLifecycle {
     }
 
     public FCPlayerInventory(FPlayer player, @Nullable Collection<IExtraInvFactory<?>> inventoryFactories) {
-        Inventory playerInventory = ((HytaleFPlayer)player).getPlayer().getInventory();
-
-        snapshotSectionsFrom(playerInventory);
+        snapshotSectionsFrom(((HytaleFPlayer) player)::getInventorySection);
 
         if (inventoryFactories != null){
             for (IExtraInvFactory<?> factory : inventoryFactories) {
@@ -107,22 +107,22 @@ public class FCPlayerInventory implements ConfigLifecycle {
     // misplaced item, because restoring also blanks every slot the snapshot does not fill - so the last write
     // wins the whole container and every section before it is gone.
 
-    void snapshotSectionsFrom(Inventory playerInventory) {
-        this.storage = new GenericInventory(playerInventory.getStorage());
-        this.armor = new GenericInventory(playerInventory.getArmor());
-        this.hotbar = new GenericInventory(playerInventory.getHotbar());
-        this.utility = new GenericInventory(playerInventory.getUtility());
-        this.tools = new GenericInventory(playerInventory.getTools());
-        this.backpack = new GenericInventory(playerInventory.getBackpack());
+    void snapshotSectionsFrom(IntFunction<ItemContainer> playerSections) {
+        this.storage = new GenericInventory(playerSections.apply(InventoryComponent.STORAGE_SECTION_ID));
+        this.armor = new GenericInventory(playerSections.apply(InventoryComponent.ARMOR_SECTION_ID));
+        this.hotbar = new GenericInventory(playerSections.apply(InventoryComponent.HOTBAR_SECTION_ID));
+        this.utility = new GenericInventory(playerSections.apply(InventoryComponent.UTILITY_SECTION_ID));
+        this.tools = new GenericInventory(playerSections.apply(InventoryComponent.TOOLS_SECTION_ID));
+        this.backpack = new GenericInventory(playerSections.apply(InventoryComponent.BACKPACK_SECTION_ID));
     }
 
-    void restoreSectionsTo(Inventory playerInventory) {
-        storage.restoreTo(playerInventory.getStorage());
-        armor.restoreTo(playerInventory.getArmor());
-        hotbar.restoreTo(playerInventory.getHotbar());
-        utility.restoreTo(playerInventory.getUtility());
-        tools.restoreTo(playerInventory.getTools());
-        backpack.restoreTo(playerInventory.getBackpack());
+    void restoreSectionsTo(IntFunction<ItemContainer> playerSections) {
+        storage.restoreTo(playerSections.apply(InventoryComponent.STORAGE_SECTION_ID));
+        armor.restoreTo(playerSections.apply(InventoryComponent.ARMOR_SECTION_ID));
+        hotbar.restoreTo(playerSections.apply(InventoryComponent.HOTBAR_SECTION_ID));
+        utility.restoreTo(playerSections.apply(InventoryComponent.UTILITY_SECTION_ID));
+        tools.restoreTo(playerSections.apply(InventoryComponent.TOOLS_SECTION_ID));
+        backpack.restoreTo(playerSections.apply(InventoryComponent.BACKPACK_SECTION_ID));
     }
 
     public void restoreTo(FPlayer player){
@@ -130,9 +130,7 @@ public class FCPlayerInventory implements ConfigLifecycle {
     }
 
     public void restoreTo(FPlayer player, @Nullable Collection<IExtraInvFactory<?>> inventoryFactories) {
-        Inventory playerInventory = ((HytaleFPlayer)player).getPlayer().getInventory();
-
-        restoreSectionsTo(playerInventory);
+        restoreSectionsTo(((HytaleFPlayer) player)::getInventorySection);
 
         if (inventoryFactories != null) {
             for (IExtraInvFactory factory : inventoryFactories) {

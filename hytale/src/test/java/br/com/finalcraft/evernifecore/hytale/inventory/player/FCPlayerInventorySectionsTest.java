@@ -2,18 +2,16 @@ package br.com.finalcraft.evernifecore.hytale.inventory.player;
 
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.hytale.inventory.GenericInventory;
-import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.inventory.Inventory;
+import com.hypixel.hytale.server.core.inventory.InventoryComponent;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
 import com.hypixel.hytale.server.core.inventory.container.SimpleItemContainer;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import org.junit.jupiter.api.Test;
-import sun.reflect.ReflectionFactory;
 
-import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -30,18 +28,18 @@ class FCPlayerInventorySectionsTest {
 
     /** The pairing as it is meant to be, written once and read by every test below. */
     private enum Section {
-        STORAGE ("storage-item",  Inventory::getStorage,  FCPlayerInventory::getStorage),
-        ARMOR   ("armor-item",    Inventory::getArmor,    FCPlayerInventory::getArmor),
-        HOTBAR  ("hotbar-item",   Inventory::getHotbar,   FCPlayerInventory::getHotbar),
-        UTILITY ("utility-item",  Inventory::getUtility,  FCPlayerInventory::getUtility),
-        TOOLS   ("tools-item",    Inventory::getTools,    FCPlayerInventory::getTools),
-        BACKPACK("backpack-item", Inventory::getBackpack, FCPlayerInventory::getBackpack);
+        STORAGE ("storage-item",  FakeInventory::getStorage,  FCPlayerInventory::getStorage),
+        ARMOR   ("armor-item",    FakeInventory::getArmor,    FCPlayerInventory::getArmor),
+        HOTBAR  ("hotbar-item",   FakeInventory::getHotbar,   FCPlayerInventory::getHotbar),
+        UTILITY ("utility-item",  FakeInventory::getUtility,  FCPlayerInventory::getUtility),
+        TOOLS   ("tools-item",    FakeInventory::getTools,    FCPlayerInventory::getTools),
+        BACKPACK("backpack-item", FakeInventory::getBackpack, FCPlayerInventory::getBackpack);
 
         final String itemId;
-        final Function<Inventory, ItemContainer> container;
+        final Function<FakeInventory, ItemContainer> container;
         final Function<FCPlayerInventory, GenericInventory> section;
 
-        Section(String itemId, Function<Inventory, ItemContainer> container, Function<FCPlayerInventory, GenericInventory> section) {
+        Section(String itemId, Function<FakeInventory, ItemContainer> container, Function<FCPlayerInventory, GenericInventory> section) {
             this.itemId = itemId;
             this.container = container;
             this.section = section;
@@ -50,9 +48,10 @@ class FCPlayerInventorySectionsTest {
 
     /**
      * A live inventory whose six sections are six separate containers, sized apart so a section landing in a
-     * neighbour is visible. The real one hangs off entity components a test JVM has no way to build.
+     * neighbour is visible, answered by section id the way a player's inventory components are. The real
+     * ones hang off an entity store a test JVM has no way to build.
      */
-    private static class FakeInventory extends Inventory {
+    private static class FakeInventory implements IntFunction<ItemContainer> {
         private final ItemContainer storage = new SimpleItemContainer((short) 30);
         private final ItemContainer armor = new SimpleItemContainer((short) 4);
         private final ItemContainer hotbar = new SimpleItemContainer((short) 9);
@@ -60,49 +59,36 @@ class FCPlayerInventorySectionsTest {
         private final ItemContainer tools = new SimpleItemContainer((short) 5);
         private final ItemContainer backpack = new SimpleItemContainer((short) 12);
 
-        @Override public ItemContainer getStorage() { return storage; }
-        @Override public ItemContainer getArmor() { return armor; }
-        @Override public ItemContainer getHotbar() { return hotbar; }
-        @Override public ItemContainer getUtility() { return utility; }
-        @Override public ItemContainer getTools() { return tools; }
-        @Override public ItemContainer getBackpack() { return backpack; }
-    }
-
-    /**
-     * A live player whose only test-relevant answer is its inventory. Its constructor cannot run here - it
-     * builds a WorldMapTracker, which initializes the whole server config from command-line options no test
-     * JVM has - so the instance is allocated the way deserialization does, skipping every constructor.
-     */
-    private static class FakePlayer extends Player {
-        private Inventory inventory;
+        ItemContainer getStorage() { return storage; }
+        ItemContainer getArmor() { return armor; }
+        ItemContainer getHotbar() { return hotbar; }
+        ItemContainer getUtility() { return utility; }
+        ItemContainer getTools() { return tools; }
+        ItemContainer getBackpack() { return backpack; }
 
         @Override
-        public Inventory getInventory() {
-            return inventory;
-        }
-
-        static FakePlayer holding(Inventory inventory) {
-            try {
-                Constructor<?> allocate = ReflectionFactory.getReflectionFactory()
-                        .newConstructorForSerialization(FakePlayer.class, Object.class.getDeclaredConstructor());
-                FakePlayer player = (FakePlayer) allocate.newInstance();
-                player.inventory = inventory;
-                return player;
-            } catch (ReflectiveOperationException e) {
-                throw new IllegalStateException("could not allocate a Player without running its constructor", e);
+        public ItemContainer apply(int sectionId) {
+            switch (sectionId) {
+                case InventoryComponent.STORAGE_SECTION_ID: return storage;
+                case InventoryComponent.ARMOR_SECTION_ID: return armor;
+                case InventoryComponent.HOTBAR_SECTION_ID: return hotbar;
+                case InventoryComponent.UTILITY_SECTION_ID: return utility;
+                case InventoryComponent.TOOLS_SECTION_ID: return tools;
+                case InventoryComponent.BACKPACK_SECTION_ID: return backpack;
+                default: return null;
             }
         }
     }
 
-    /** A restore reaches the inventory through {@code getPlayer()}; the PlayerRef path needs a live Universe. */
-    private static class FakeFPlayer extends HytaleFPlayer<Player> {
-        FakeFPlayer(Inventory inventory) {
-            super(FakePlayer.holding(inventory));
+    /** A restore reaches the inventory through {@code getInventorySection}; the entity behind it needs a live Universe. */
+    private static class FakeFPlayer extends HytaleFPlayer<FakeInventory> {
+        FakeFPlayer(FakeInventory inventory) {
+            super(inventory);
         }
 
         @Override
-        public Player getPlayer() {
-            return getDelegate();
+        public ItemContainer getInventorySection(int sectionId) {
+            return getDelegate().apply(sectionId);
         }
 
         @Override
