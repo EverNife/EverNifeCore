@@ -80,6 +80,11 @@ public final class Actor {
         return new Actor(Type.ENVIRONMENT, key, null, null, null, null);
     }
 
+    /** The key a player acting as itself carries: {@code minecraft:player} on Minecraft, {@code hytale:player} on Hytale. */
+    public static TypeKey getPlayerKey() {
+        return PLAYER_KEY;
+    }
+
     public Type getType() {
         return type;
     }
