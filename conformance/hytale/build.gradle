@@ -1,0 +1,62 @@
+// ECoreConformance for Hytale: the plugin that runs the conformance suites inside a real Hytale server. Routed into
+// mods/ beside the core's Hytale jar when a server is booted for a check-up; never published, never part of the core.
+// Plain Java 25, like :hytale.
+
+plugins {
+    alias(libs.plugins.shadow)
+}
+
+// :common and :hytale carry these same project names; a group of their own keeps Gradle from treating the pairs as
+// one module during conflict resolution.
+group = 'br.com.finalcraft.conformance'
+
+repositories {
+    maven {
+        name = 'hytale'
+        url = uri('https://maven.hytale.com/release')
+        content { includeGroup 'com.hypixel.hytale' }
+    }
+}
+
+dependencies {
+    implementation project(':conformance:common')
+
+    // The server provides the core and the game: compiled against, never embedded.
+    compileOnly libs.hytale.server
+    compileOnly project(':hytale')
+    compileOnly project(':common')
+
+    testImplementation libs.hytale.server
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
+}
+
+tasks.named('jar') {
+    enabled = false
+}
+
+shadowJar {
+    archiveBaseName.set('ECoreConformance')
+    archiveClassifier.set('Hytale')
+    configurations = [project.configurations.runtimeClasspath]
+    dependencies {
+        include(project(':conformance:common'))
+    }
+}
+
+tasks.named('build') {
+    dependsOn tasks.named('shadowJar')
+}
+
+processResources {
+    def expandProps = ['version': project.version]
+    filesMatching('manifest.json') {
+        expand expandProps
+    }
+    inputs.properties(expandProps)
+}
+
+test {
+    useJUnitPlatform()
+}

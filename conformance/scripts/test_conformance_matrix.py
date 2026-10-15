@@ -90,6 +90,27 @@ class CliTest(unittest.TestCase):
         start_line = next(l for l in proc.stdout.splitlines() if l.startswith("[dry-run] mctf mc_start "))
         self.assertNotIn('"to": "mods"', start_line)  # paper has no mod loader: no companion route
 
+    def test_hytale_dry_run_routes_into_mods_with_no_client(self):
+        proc = run_script("--dry-run", "--flavors", "hytale-0.7.1")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        tools = re.findall(r"^\[dry-run\] mctf (\S+)", proc.stdout, re.M)
+        self.assertNotIn("mc_hmc_start", tools)
+        self.assertIn('"op": "player_join"', proc.stdout)
+        start_line = next(l for l in proc.stdout.splitlines() if l.startswith("[dry-run] mctf mc_start "))
+        self.assertNotIn('"to": "plugins"', start_line)
+
+    def test_hytale_case_lines_and_player_checks(self):
+        log = "\x1b[m[INFO] [ECoreConformance|P] [ECoreConformance] regions/gate PASS needed=true\x1b[m\n" \
+              "[INFO] [ECoreConformance] regions summary 8/8 (0 skipped)\n"
+        self.assertEqual(cm.case_lines(log), ["regions/gate PASS needed=true"])
+        r = cm.FlavorResult("hytale-0.7.1", booted=True)
+        after = {"snapshot": {"messages": ["ECC entry denied", "ECC break denied"],
+                              "packets": [{"type": "SpawnParticleSystem", "count": 3}, {"type": "Ping", "count": 9}]}}
+        cm.player_checks({"snapshot": {"packets": [{"type": "SpawnParticleSystem", "count": 1}]}}, after, r)
+        self.assertEqual(r.problems, [])
+        self.assertIn("deny-message per hit: 1 message(s) 'ECC break denied' for the hits of deny-message-per-hit", r.notes)
+        self.assertIn("outline particle packets sent: 2", r.notes)
+
     def test_refuses_without_the_mctf_variables_before_any_call(self):
         proc = run_script("--dry-run", mctf_env=False)
         self.assertEqual(proc.returncode, 2)

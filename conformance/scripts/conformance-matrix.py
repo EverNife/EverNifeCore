@@ -4,7 +4,8 @@ Every server/client interaction goes through the mctf CLI (`python mctf.py <tool
 one call per step. Per flavor: boot with the core + ECoreConformance + harness routed, join a
 headless bot, run/write the suites, open every GUI screen on both sides, restart (persistence
 proof), read the suites back, collect the ENCTEST markers via mc_read_events and the plugin's own
-NDJSON reports, tear down. A flavor that dies mid-way is recorded as failed and the next one runs.
+NDJSON reports, tear down. A Hytale flavor has no client: its player is the harness's synthetic one, joined
+and read through the channel ops. A flavor that dies mid-way is recorded as failed and the next one runs.
 
 Exit code 0 only when every flavor booted, nothing went wrong on the way, and every suite_end
 reports failed=0.
@@ -13,6 +14,7 @@ reports failed=0.
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -36,6 +38,13 @@ CLIENT_FOR = {
     "paper-1.21.1": "neoforge-1.21.1",
 }
 HYBRIDS = {"crucible-1.7.10", "mohist-1.12.2", "mohist-1.16.5", "arclight-1.21.1"}
+# No headless client there: the player is the harness's synthetic one, and every jar goes into mods/
+HYTALE = {"hytale-0.7.1"}
+HYTALE_PLUGIN_ID = "EverNife:ECoreConformance@3.0.1"
+HYTALE_SUITES = 3
+# Texts the Hytale regions suite sets as deny-message, read back from what the player received
+ENTRY_MESSAGE = "ECC entry denied"
+BREAK_MESSAGE = "ECC break denied"
 SCREENS = ["basic", "hopper", "dispenser", "workbench", "nav", "storage", "prompt", "pager",
            "title-long", "layout", "confirm"]
 SUITE_ORDER = ["items", "nbt", "platform", "version", "commands", "gui", "scheduler", "playerdata",
@@ -61,6 +70,8 @@ class FlavorResult:
     text: List[dict] = field(default_factory=list)
     shutdown_reason: Optional[str] = None
     problems: List[str] = field(default_factory=list)
+    notes: List[str] = field(default_factory=list)
+    details: List[str] = field(default_factory=list)
 
 
 # ------------------------------------------------------------------ pure parts (tested offline) --
@@ -137,6 +148,8 @@ def render_flavor_section(r: FlavorResult) -> str:
     out.append("- cases: " + " ".join("%s=%d" % (k, sum(int(ev.get(k) or 0) for ev in ends)) for k in ("passed", "failed", "skipped")))
     for p in r.problems:
         out.append("- problem: %s" % p)
+    for n in r.notes:
+        out.append("- measured: %s" % n)
     papi = [ev for ev in r.events if ev.get("e") == "test_result" and ev.get("test") == "papi-present"]
     if papi:
         out.append("- papi-present: %s" % ("passed" if all(ev.get("ok") for ev in papi) else "FAILED"))
@@ -151,6 +164,10 @@ def render_flavor_section(r: FlavorResult) -> str:
     if r.gui:
         out += ["", "### GUI screens", ""]
         out += ["- %s: %s" % (g["screen"], g["line"]) for g in r.gui]
+    if r.flavor in HYTALE:
+        if r.details:
+            out += ["", "### Case details", ""] + ["- %s" % d for d in r.details]
+        return "\n".join(out) + "\n"
     out += ["", "### Text render evidence", ""]
     if r.text:
         out += ["- x=%s y=%s text=%r" % (e.get("x"), e.get("y"), e.get("text")) for e in r.text]
@@ -420,11 +437,106 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
     return r
 
 
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def case_lines(log_text: str) -> List[str]:
+    """The human line of every case (`<suite>/<case> <VERDICT> <detail>`) out of a server log that colours its lines."""
+    out = []
+    for line in log_text.splitlines():
+        at = line.find("[ECoreConformance] ")
+        rest = ANSI.sub("", line[at + len("[ECoreConformance] "):]).strip() if at >= 0 else ""
+        if "/" in rest.split(" ", 1)[0]:
+            out.append(rest)
+    return out
+
+
+def particle_packets(snapshot: dict) -> int:
+    """The particle-system packets the server sent the player so far - what an outline draws with (a block's own
+    particles, as an explosion's, are another packet)."""
+    packets = (snapshot.get("snapshot") or {}).get("packets") or []
+    return sum(int(p.get("count") or 0) for p in packets if p.get("type") == "SpawnParticleSystem")
+
+
+def player_checks(before: dict, after: dict, r: FlavorResult):
+    """What only the player's side shows: the deny-entry message, how many deny messages the hits sent, the outline."""
+    messages = (after.get("snapshot") or {}).get("messages") or []
+    if not any(ENTRY_MESSAGE in m for m in messages):
+        r.problems.append("deny-entry: %r never reached the player; last messages=%s" % (ENTRY_MESSAGE, messages[-10:]))
+    per_hit = sum(1 for m in messages if BREAK_MESSAGE in m)
+    r.notes.append("deny-message per hit: %d message(s) %r for the hits of deny-message-per-hit" % (per_hit, BREAK_MESSAGE))
+    if per_hit != 1:
+        # the hits land a tick apart, inside deny-block-break's trigger interval: one message, however many hits
+        r.problems.append("deny-message-per-hit: %d messages for hits a tick apart, expected 1" % per_hit)
+    sent = particle_packets(after) - particle_packets(before)
+    r.notes.append("outline particle packets sent: %d" % sent)
+    if sent <= 0:
+        r.problems.append("outline-is-sent: no particle packet reached the player (packets=%s)"
+                          % (after.get("snapshot") or {}).get("packets"))
+
+
+def run_hytale_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
+    """Boot with the core, ECoreConformance and the harness in mods/, join the synthetic player, run every suite."""
+    r = FlavorResult(flavor)
+    fdir = out / flavor
+    server_id = None
+    cid = "ecc%s-run" % time.strftime("%H%M%S")
+    try:
+        routes = [{"from": [a.hytale_core_jar], "to": "mods"}, {"from": [a.hytale_ecc_jar], "to": "mods"},
+                  {"from": [str(fw / "final-artifacts/harness-hytale/ENCTestHarnessHytale-*.jar")], "to": "mods"}]
+        start = mctf("mc_start", flavor=flavor, routes=routes, project_root=str(REPO_ROOT), suite="conformance")
+        server_id = start.get("server_id")
+        if not start.get("ok"):
+            raise FlavorFailed("mc_start: " + _err(start))
+        enabled = (start.get("plugins") or {}).get("enabled") or []
+        if HYTALE_PLUGIN_ID not in enabled and not mctf.dry_run:
+            raise FlavorFailed("%s not enabled; plugins=%s" % (HYTALE_PLUGIN_ID, start.get("plugins")))
+        r.booted = True
+        run_dir = start.get("run_dir")
+
+        joined = mctf("mc_exec", server_id=server_id, ops=[{"op": "player_join", "name": BOT}])
+        if not joined.get("ok"):
+            raise FlavorFailed("player_join: " + _err(joined))
+        before = mctf("mc_player", server_id=server_id, player=BOT)
+        console(mctf, server_id, "ecc run all --player %s --cid %s" % (BOT, cid))
+        deadline = time.time() + WAIT_SECONDS["run"]
+        while True:
+            got = sum(1 for ev in read_all_events(mctf, server_id, "suite_end") if ev.get("cid") == cid)
+            if got >= HYTALE_SUITES or mctf.dry_run:
+                break
+            if time.time() > deadline:
+                r.problems.append("run: %d of %d suite_end within %ds" % (got, HYTALE_SUITES, WAIT_SECONDS["run"]))
+                break
+            mctf.sleep(5)
+        player_checks(before, mctf("mc_player", server_id=server_id, player=BOT), r)
+        r.events = read_all_events(mctf, server_id)
+        if not mctf.dry_run and run_dir:
+            for log in sorted(Path(run_dir).glob("logs/*.log")):
+                r.details += case_lines(log.read_text(encoding="utf-8", errors="replace"))
+            (fdir / "reports").mkdir(parents=True, exist_ok=True)
+            for report in Path(run_dir).rglob("ECoreConformance/reports/*.ndjson"):
+                shutil.copy2(report, fdir / "reports" / report.name)
+        mctf("mc_exec", server_id=server_id, ops=[{"op": "player_leave", "name": BOT}])
+    except FlavorFailed as e:
+        r.problems.append(str(e))
+    finally:
+        if server_id and not a.keep:
+            r.shutdown_reason = mctf("mc_stop", server_id=server_id).get("shutdown_reason")
+    if not mctf.dry_run:
+        fdir.mkdir(parents=True, exist_ok=True)
+        write_events(fdir / "events.ndjson", r.events)
+        with open(fdir / "summary.md", "w", encoding="utf-8") as f:
+            f.write(render_flavor_section(r))
+    return r
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="Run the ECoreConformance suites across the mctf matrix.")
     p.add_argument("--flavors", default=DEFAULT_FLAVORS, help="comma-separated mctf flavors")
     p.add_argument("--core-jar", default=str(REPO_ROOT / "minecraft/build/libs/EverNifeCore-3.0.1.jar"))
     p.add_argument("--ecc-jar", default=str(REPO_ROOT / "conformance/minecraft/build/libs/ECoreConformance-3.0.1.jar"))
+    p.add_argument("--hytale-core-jar", default=str(REPO_ROOT / "hytale/build/libs/EverNifeCore-3.0.1-Hytale.jar"))
+    p.add_argument("--hytale-ecc-jar", default=str(REPO_ROOT / "conformance/hytale/build/libs/ECoreConformance-3.0.1-Hytale.jar"))
     p.add_argument("--papi-jar", default=DEFAULT_PAPI, help="PlaceholderAPI jar routed into --papi-flavors")
     p.add_argument("--papi-flavors", default="paper-1.21.1", help="comma-separated flavors that get PlaceholderAPI")
     p.add_argument("--out", default="build/conformance", help="output dir, relative to the repo root")
@@ -433,9 +545,9 @@ def main(argv=None) -> int:
     a = p.parse_args(argv)
     a.papi_flavors = {f.strip() for f in a.papi_flavors.split(",") if f.strip()}
     flavors = [f.strip() for f in a.flavors.split(",") if f.strip()]
-    unknown = [f for f in flavors if f not in CLIENT_FOR]
+    unknown = [f for f in flavors if f not in CLIENT_FOR and f not in HYTALE]
     if unknown:
-        p.error("no client pair for %s - known: %s" % (unknown, ", ".join(CLIENT_FOR)))
+        p.error("no client pair for %s - known: %s" % (unknown, ", ".join(list(CLIENT_FOR) + sorted(HYTALE))))
 
     unset = [k for k in REQUIRED_ENV if not os.environ.get(k)]
     if unset:
@@ -446,16 +558,20 @@ def main(argv=None) -> int:
     cli = os.environ["MCTF_CLI"]
     fw = Path(os.environ["MCTF_HOME"])
     if not a.dry_run:
-        needed = [a.core_jar, a.ecc_jar, cli] + ([a.papi_jar] if a.papi_flavors & set(flavors) else [])
+        minecraft = [f for f in flavors if f not in HYTALE]
+        needed = [cli] + ([a.core_jar, a.ecc_jar] if minecraft else []) \
+            + ([a.hytale_core_jar, a.hytale_ecc_jar] if len(minecraft) < len(flavors) else []) \
+            + ([a.papi_jar] if a.papi_flavors & set(flavors) else [])
         missing = [n for n in needed if not Path(n).is_file()]
         if missing:
-            print("missing: %s (the jars come from ./gradlew :minecraft:shadowJar :conformance:minecraft:shadowJar)"
+            print("missing: %s (the jars come from ./gradlew :minecraft:shadowJar :conformance:minecraft:shadowJar,"
+                  " and for Hytale :hytale:shadowJar :conformance:hytale:shadowJar)"
                   % ", ".join(missing), file=sys.stderr)
             return 2
     out = Path(a.out) if Path(a.out).is_absolute() else REPO_ROOT / a.out
     mctf = Mctf(cli, a.dry_run)
 
-    results = [run_flavor(f, a, mctf, out, fw) for f in flavors]
+    results = [(run_hytale_flavor if f in HYTALE else run_flavor)(f, a, mctf, out, fw) for f in flavors]
     if not a.dry_run:
         with open(out / "summary.md", "w", encoding="utf-8") as f:
             f.write(render_summary(results))

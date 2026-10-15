@@ -1,0 +1,18 @@
+{
+  "Group": "EverNife",
+  "Name": "ECoreConformance",
+  "Version": "${version}",
+  "Description": "Runs the EverNifeCore conformance suites inside a live Hytale server",
+  "Authors": [
+    {
+      "Name": "EverNife"
+    }
+  ],
+  "ServerVersion": "*",
+  "Dependencies": {
+    "EverNife:EverNifeCore": "*"
+  },
+  "DisabledByDefault": false,
+  "Main": "br.com.finalcraft.evernifecore.conformance.hytale.ECoreConformanceHytalePlugin",
+  "IncludesAssetPack": false
+}
