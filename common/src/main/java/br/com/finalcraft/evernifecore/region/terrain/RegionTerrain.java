@@ -3,27 +3,37 @@ package br.com.finalcraft.evernifecore.region.terrain;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.RegionScheduler;
+import br.com.finalcraft.evernifecore.region.event.RegionTerrainEvent;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.TrackChangesSettings;
+import br.com.finalcraft.evernifecore.region.shape.BoundingBox;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * The terrain side of one owner's regions: the change journal a {@code track-changes} region keeps, and its budgeted
@@ -38,6 +48,7 @@ public final class RegionTerrain {
     private final RegionManager manager;
     private final Map<String, TerrainJournal> journals = new ConcurrentHashMap<>();
     private final AtomicBoolean writeScheduled = new AtomicBoolean();
+    private volatile int snapshotRetention = 3;
 
     /** Internal: one per {@link RegionManager}, reached through {@link RegionManager#getTerrain()}. */
     public RegionTerrain(RegionManager manager) {
@@ -120,43 +131,154 @@ public final class RegionTerrain {
      */
     public CompletableFuture<Integer> restoreJournal(Region region, int blocksPerTick) {
         requireOwn(region);
-        if (blocksPerTick < 1) {
-            throw new IllegalArgumentException("blocksPerTick is " + blocksPerTick + "; a restore puts back at least one block per tick.");
-        }
-        CompletableFuture<Integer> done = new CompletableFuture<>();
+        requireBudget(blocksPerTick);
         TerrainJournal journal = journals.get(region.getId().getName());
         if (journal == null || journal.isEmpty()) {
-            done.complete(0);
-            return done;
+            return CompletableFuture.completedFuture(0);
         }
-        step(region, journal, blocksPerTick, 0, done);
-        return done;
+        String world = region.getWorld();
+        return restore(region, true, blocksPerTick, () -> journal.size() + " position(s) stay in its journal", (access, budget) -> {
+            int restored = 0;
+            for (; restored < budget; restored++) {
+                TerrainJournal.Entry last = journal.peekLast();
+                if (last == null) break;
+                access.restoreBlock(world, last.x, last.y, last.z, last.state);
+                journal.removeLast();
+            }
+            if (journal.size() == 0) {
+                for (String entity : journal.takeEntities()) {
+                    access.restoreEntity(world, entity);
+                }
+            }
+            return restored;
+        }, () -> journal.size() == 0);
     }
 
-    private void step(Region region, TerrainJournal journal, int blocksPerTick, int restoredSoFar, CompletableFuture<Integer> done) {
+    // ------------------------------------------------------------------
+    //  Snapshots
+    // ------------------------------------------------------------------
+
+    /** How many snapshots of each region are kept; older ones are deleted as new ones are taken. 3 unless set. */
+    public int getSnapshotRetention() {
+        return snapshotRetention;
+    }
+
+    public void setSnapshotRetention(int snapshotRetention) {
+        if (snapshotRetention < 1) {
+            throw new IllegalArgumentException("snapshotRetention is " + snapshotRetention + "; keep at least the snapshot just taken.");
+        }
+        this.snapshotRetention = snapshotRetention;
+    }
+
+    /** {@link #snapshot(Region, TerrainContent)} with blocks, nbt and entities. */
+    public CompletableFuture<File> snapshot(Region region) {
+        return snapshot(region, TerrainContent.ALL);
+    }
+
+    /**
+     * Saves the bounding box of {@code region} as {@code <owner data>/regions/terrain/<region>/<stamp>.<ext>} on the
+     * world's thread, keeping the {@link #getSnapshotRetention()} newest and deleting the older ones.
+     *
+     * @return completes with the file written
+     */
+    public CompletableFuture<File> snapshot(Region region, TerrainContent content) {
+        requireOwn(region);
         IPlatform platform = EverNifeCore.getPlatform();
+        BoundingBox box = region.getShape().getBounds();
+        File[] written = new File[1];
+        return platform.runOnWorldThread(region.getWorld(), () -> {
+            ITerrainAccess access = platform.getTerrainAccess();
+            File folder = terrainFolder(region);
+            long stamp = Math.max(System.currentTimeMillis(), newestStamp(region) + 1);   //two snapshots in one millisecond stay apart
+            File file = new File(folder, stamp + "." + access.getSnapshotExtension());
+            try {
+                Files.createDirectories(folder.toPath());
+                access.writeSnapshot(region.getWorld(), new BlockPos(box.getMinX(), box.getMinY(), box.getMinZ()),
+                        new BlockPos(box.getMaxX(), box.getMaxY(), box.getMaxZ()), content, file);
+            } catch (IOException failed) {
+                throw new UncheckedIOException("The snapshot of region " + region.getId() + " could not be written to " + file, failed);
+            }
+            List<File> kept = getSnapshots(region);
+            for (File old : kept.subList(Math.min(snapshotRetention, kept.size()), kept.size())) {
+                deleteSnapshot(old);
+            }
+            written[0] = file;
+        }).thenApply(ignored -> {
+            ECEventBus.global().postIfListened(RegionTerrainEvent.class, () -> new RegionTerrainEvent(region, RegionTerrainEvent.Type.SNAPSHOT, false));
+            return written[0];
+        });
+    }
+
+    /** The snapshot files of {@code region}, newest first. */
+    public List<File> getSnapshots(Region region) {
+        String extension = "." + EverNifeCore.getPlatform().getTerrainAccess().getSnapshotExtension();
+        File[] files = terrainFolder(region).listFiles((dir, name) -> stampOf(name) > 0 && name.endsWith(extension));
+        List<File> snapshots = files == null ? new ArrayList<>() : new ArrayList<>(Arrays.asList(files));
+        snapshots.sort(Comparator.comparingLong((File file) -> stampOf(file.getName())).reversed());
+        return snapshots;
+    }
+
+    /**
+     * Puts back the {@code index}-th newest snapshot of {@code region} (0 = the newest), at most {@code blocksPerTick}
+     * blocks per tick on the world's thread.
+     *
+     * @return completes with how many blocks were placed, at most: the last tick counts its whole budget
+     */
+    public CompletableFuture<Integer> restoreSnapshot(Region region, int index, int blocksPerTick) {
+        requireOwn(region);
+        requireBudget(blocksPerTick);
+        List<File> snapshots = getSnapshots(region);
+        if (index < 0 || index >= snapshots.size()) {
+            throw new IllegalArgumentException("Region " + region.getId() + " has " + snapshots.size() + " snapshot(s), so there is no"
+                    + " snapshot #" + index + " - take one with snapshot(region) first, or pick an index below " + snapshots.size() + ".");
+        }
+        File file = snapshots.get(index);
         String world = region.getWorld();
+        TerrainPlacement[] placement = new TerrainPlacement[1];
+        boolean[] placed = new boolean[1];
+        return restore(region, false, blocksPerTick, () -> "the snapshot " + file.getName() + " was put back only in part", (access, budget) -> {
+            if (placement[0] == null) {
+                try {
+                    placement[0] = access.readSnapshot(world, file);
+                } catch (IOException failed) {
+                    throw new UncheckedIOException("The snapshot " + file + " does not read", failed);
+                }
+            }
+            placed[0] = placement[0].placeNext(budget);
+            return budget;
+        }, () -> placed[0]);
+    }
+
+    // ------------------------------------------------------------------
+    //  Budgeted restore
+    // ------------------------------------------------------------------
+
+    /** One tick of a restore: places at most {@code budget} blocks and answers how many. */
+    private interface RestoreTick {
+        int place(ITerrainAccess access, int budget);
+    }
+
+    private CompletableFuture<Integer> restore(Region region, boolean journal, int blocksPerTick, Supplier<String> leftOver,
+                                               RestoreTick tick, BooleanSupplier finished) {
+        CompletableFuture<Integer> done = new CompletableFuture<>();
+        ECEventBus.global().postIfListened(RegionTerrainEvent.class, () -> new RegionTerrainEvent(region, RegionTerrainEvent.Type.RESTORE_START, journal));
+        CompletableFuture<Integer> ended = done.whenComplete((count, error) -> ECEventBus.global().postIfListened(RegionTerrainEvent.class,
+                () -> new RegionTerrainEvent(region, RegionTerrainEvent.Type.RESTORE_END, journal)));
+        step(region, blocksPerTick, 0, leftOver, tick, finished, done);
+        return ended;
+    }
+
+    private void step(Region region, int blocksPerTick, int restoredSoFar, Supplier<String> leftOver, RestoreTick tick,
+                      BooleanSupplier finished, CompletableFuture<Integer> done) {
+        IPlatform platform = EverNifeCore.getPlatform();
         int[] restored = {restoredSoFar};
         CompletableFuture<Void> ran;
         try {
-            ran = platform.runOnWorldThread(world, () -> {
+            ran = platform.runOnWorldThread(region.getWorld(), () -> {
                 if (manager.isClosed()) {
-                    throw new IllegalStateException("The RegionManager of " + region.getId() + " closed during the restore; "
-                            + journal.size() + " position(s) stay in its journal.");
+                    throw new IllegalStateException("The RegionManager of " + region.getId() + " closed during the restore; " + leftOver.get() + ".");
                 }
-                ITerrainAccess access = platform.getTerrainAccess();
-                for (int i = 0; i < blocksPerTick; i++) {
-                    TerrainJournal.Entry last = journal.peekLast();
-                    if (last == null) break;
-                    access.restoreBlock(world, last.x, last.y, last.z, last.state);
-                    journal.removeLast();
-                    restored[0]++;
-                }
-                if (journal.size() == 0) {
-                    for (String entity : journal.takeEntities()) {
-                        access.restoreEntity(world, entity);
-                    }
-                }
+                restored[0] += tick.place(platform.getTerrainAccess(), blocksPerTick);
             });
         } catch (RuntimeException failed) {   //a platform already on the world thread runs the step inline and throws here
             ran = new CompletableFuture<>();
@@ -166,13 +288,45 @@ public final class RegionTerrain {
             if (error != null) {
                 scheduleDiskWrite();
                 done.completeExceptionally(error);
-            } else if (journal.size() == 0) {
+            } else if (finished.getAsBoolean()) {
                 scheduleDiskWrite();
                 done.complete(restored[0]);
             } else {
-                platform.runOnMainThreadNextTick(() -> step(region, journal, blocksPerTick, restored[0], done));
+                platform.runOnMainThreadNextTick(() -> step(region, blocksPerTick, restored[0], leftOver, tick, finished, done));
             }
         });
+    }
+
+    private static void requireBudget(int blocksPerTick) {
+        if (blocksPerTick < 1) {
+            throw new IllegalArgumentException("blocksPerTick is " + blocksPerTick + "; a restore puts back at least one block per tick.");
+        }
+    }
+
+    private long newestStamp(Region region) {
+        List<File> snapshots = getSnapshots(region);
+        return snapshots.isEmpty() ? 0 : stampOf(snapshots.get(0).getName());
+    }
+
+    /** Deletes a snapshot and every side file the platform wrote next to it - each name starts with its stamp. */
+    private static void deleteSnapshot(File snapshot) {
+        String stamp = stampOf(snapshot.getName()) + ".";
+        File[] siblings = snapshot.getParentFile().listFiles((dir, name) -> name.startsWith(stamp));
+        if (siblings != null) {
+            for (File file : siblings) {
+                file.delete();
+            }
+        }
+    }
+
+    /** The stamp a snapshot's name starts with; 0 for any other file (the journal). */
+    private static long stampOf(String name) {
+        int dot = name.indexOf('.');
+        try {
+            return Long.parseLong(dot < 0 ? name : name.substring(0, dot));
+        } catch (NumberFormatException notASnapshot) {
+            return 0;
+        }
     }
 
     // ------------------------------------------------------------------
@@ -243,8 +397,11 @@ public final class RegionTerrain {
     }
 
     private File journalFile(Region region) {
-        return new File(manager.getOwner().getMetaInfo().getDataFolder(),
-                "regions/terrain/" + region.getId().getName() + "/" + JOURNAL_FILE);
+        return new File(terrainFolder(region), JOURNAL_FILE);
+    }
+
+    private File terrainFolder(Region region) {
+        return new File(manager.getOwner().getMetaInfo().getDataFolder(), "regions/terrain/" + region.getId().getName());
     }
 
     private static TrackChangesSettings settingsOf(Region region) {

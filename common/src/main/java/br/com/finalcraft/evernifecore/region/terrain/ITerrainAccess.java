@@ -2,6 +2,8 @@ package br.com.finalcraft.evernifecore.region.terrain;
 
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -32,6 +34,21 @@ public interface ITerrainAccess {
             throw unsupported();
         }
 
+        @Override
+        public String getSnapshotExtension() {
+            throw unsupported();
+        }
+
+        @Override
+        public void writeSnapshot(String world, BlockPos min, BlockPos max, TerrainContent content, File file) {
+            throw unsupported();
+        }
+
+        @Override
+        public TerrainPlacement readSnapshot(String world, File file) {
+            throw unsupported();
+        }
+
         private UnsupportedOperationException unsupported() {
             return new UnsupportedOperationException("This platform cannot read or write blocks by position, so region terrain"
                     + " (track-changes, restore) does nothing here - run it on a platform whose IPlatform.getTerrainAccess() is not"
@@ -50,4 +67,13 @@ public interface ITerrainAccess {
 
     /** Spawns again an entity a capture produced, where it stood. */
     void restoreEntity(String world, String state);
+
+    /** The extension of this platform's snapshot files, without the dot. */
+    String getSnapshotExtension();
+
+    /** Saves the box (both corners inclusive) with {@code content} into {@code file}, in the platform's own format. */
+    void writeSnapshot(String world, BlockPos min, BlockPos max, TerrainContent content, File file) throws IOException;
+
+    /** Opens a file {@link #writeSnapshot} wrote, to be put back where it was taken, a budget at a time. */
+    TerrainPlacement readSnapshot(String world, File file) throws IOException;
 }

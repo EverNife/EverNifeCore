@@ -3,8 +3,17 @@ package br.com.finalcraft.evernifecore.minecraft.region.terrain;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.worldedit.WEPlatform;
+import br.com.finalcraft.evernifecore.minecraft.worldedit.clipboard.FCBlockArrayClipboard;
+import br.com.finalcraft.evernifecore.minecraft.worldedit.clipboard.format.IFCClipboardFormat;
+import br.com.finalcraft.evernifecore.minecraft.worldedit.clipboard.format.IFCClipboardManager;
+import br.com.finalcraft.evernifecore.minecraft.worldedit.region.IFCCuboidRegion;
 import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainContent;
+import br.com.finalcraft.evernifecore.region.terrain.TerrainPlacement;
+import com.sk89q.worldedit.WorldEditException;
+import com.sk89q.worldedit.bukkit.BukkitWorld;
+import com.sk89q.worldedit.util.io.Closer;
 import de.tr7zw.changeme.nbtapi.NBT;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import de.tr7zw.changeme.nbtapi.iface.ReadableNBT;
@@ -18,6 +27,14 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -33,6 +50,7 @@ import java.util.Set;
 public final class McTerrainAccess implements ITerrainAccess {
 
     private static final String NBT_SEPARATOR = "|nbt=";
+    private static final String ENTITIES_SUFFIX = ".entities";
     private static final boolean BLOCK_DATA = MCVersion.isHigherEquals(MCDetailedVersion.v1_13_R1);
     //what makes a respawned entity a copy instead of the same one, or a dead one
     private static final Set<String> ENTITY_KEYS_NOT_RESTORED = new HashSet<>(Arrays.asList("UUID", "UUIDMost", "UUIDLeast",
@@ -137,5 +155,92 @@ public final class McTerrainAccess implements ITerrainAccess {
             throw new IllegalArgumentException("No world named " + name + " is loaded; load it before touching its terrain.");
         }
         return world;
+    }
+
+    @Override
+    public String getSnapshotExtension() {
+        return WorldEditSnapshots.withWorldEdit().getClipboardManager().SCHEM != null ? "schem" : "schematic";
+    }
+
+    /** The box through WorldEdit's own copy and format; the entities go to a {@code .entities} file beside it, one per line. */
+    @Override
+    public void writeSnapshot(String world, BlockPos min, BlockPos max, TerrainContent content, File file) throws IOException {
+        WorldEditSnapshots.write(world(world), min, max, file);
+        if (content.isEntities()) {
+            Files.write(new File(file.getPath() + ENTITIES_SUFFIX).toPath(), captureEntities(world, min, max), StandardCharsets.UTF_8);
+        }
+    }
+
+    @Override
+    public TerrainPlacement readSnapshot(String world, File file) throws IOException {
+        File entities = new File(file.getPath() + ENTITIES_SUFFIX);
+        List<String> kept = entities.isFile() ? Files.readAllLines(entities.toPath(), StandardCharsets.UTF_8) : new ArrayList<>();
+        TerrainPlacement blocks = WorldEditSnapshots.read(world(world), file);
+        return budget -> {
+            if (!blocks.placeNext(budget)) {
+                return false;
+            }
+            for (String entity : kept) {
+                restoreEntity(world, entity);
+            }
+            kept.clear();
+            return true;
+        };
+    }
+
+    /** The WorldEdit side; loaded only once {@link WEPlatform#isPresent()} answered true. */
+    private static final class WorldEditSnapshots {
+
+        static WEPlatform withWorldEdit() {
+            if (!WEPlatform.isPresent()) {
+                throw new IllegalStateException("A region snapshot on Bukkit is written by WorldEdit, and WorldEdit is not on this"
+                        + " server - install WorldEdit, or keep the region's changes with the track-changes flag and put them back"
+                        + " with RegionTerrain.restoreJournal.");
+            }
+            return WEPlatform.getInstance();
+        }
+
+        static void write(World world, BlockPos min, BlockPos max, File file) throws IOException {
+            WEPlatform worldEdit = withWorldEdit();
+            IFCCuboidRegion region = worldEdit.createCuboidRegion(min, max);
+            FCBlockArrayClipboard clipboard = worldEdit.createBlockArrayClipboard(region);
+            worldEdit.getOperationManager().forwardExtentCopy(world, region, clipboard);
+            IFCClipboardManager formats = worldEdit.getClipboardManager();
+            try (Closer closer = Closer.create()) {
+                OutputStream out = closer.register(new FileOutputStream(file));
+                (formats.SCHEM != null ? formats.SCHEM : formats.SCHEMATIC).getWriterAndWrite(out, clipboard.getHandle(), closer);
+            }
+        }
+
+        static TerrainPlacement read(World world, File file) throws IOException {
+            WEPlatform worldEdit = withWorldEdit();
+            IFCClipboardFormat format = worldEdit.getClipboardManager().getFormat(file);
+            if (format == null) {
+                throw new IOException(file + " is no schematic this WorldEdit reads; a snapshot restores only on the server version"
+                        + " and WorldEdit that wrote it.");
+            }
+            FCBlockArrayClipboard clipboard;
+            try (InputStream in = new FileInputStream(file)) {
+                clipboard = format.getReaderAndRead(in);
+            }
+            BlockPos min = clipboard.getMinimumPoint();
+            BlockPos size = clipboard.getDimensions();
+            long volume = (long) size.getX() * size.getY() * size.getZ();
+            BukkitWorld target = new BukkitWorld(world);
+            long[] next = {0};
+            return budget -> {
+                for (int placed = 0; placed < budget && next[0] < volume; placed++, next[0]++) {
+                    long i = next[0];
+                    BlockPos at = new BlockPos(min.getX() + (int) (i / ((long) size.getY() * size.getZ())),
+                            min.getY() + (int) (i / size.getZ() % size.getY()), min.getZ() + (int) (i % size.getZ()));
+                    try {
+                        worldEdit.setBlock(target, at, clipboard.getBlock(at), false);
+                    } catch (WorldEditException refused) {
+                        throw new IllegalStateException("WorldEdit refused to set " + at + " of " + world.getName() + ": " + refused.getMessage(), refused);
+                    }
+                }
+                return next[0] >= volume;
+            };
+        }
     }
 }

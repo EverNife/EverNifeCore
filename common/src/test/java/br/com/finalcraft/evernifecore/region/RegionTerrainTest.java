@@ -1,6 +1,9 @@
 package br.com.finalcraft.evernifecore.region;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
+import br.com.finalcraft.evernifecore.region.event.RegionTerrainEvent;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.TrackChangesSettings;
@@ -18,6 +21,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletionException;
@@ -184,6 +188,69 @@ class RegionTerrainTest extends ManagedRegionFixture {
     }
 
     // ------------------------------------------------------------------
+
+    @Test
+    void nPlusOneSnapshotsLeaveTheNNewestFiles(TestPlatform platform) {
+        RegionManager manager = manager();
+        Region region = created(manager.create("small", WORLD, box(0, 0, 1, 1)));
+        RegionTerrain terrain = manager.getTerrain();
+        terrain.setSnapshotRetention(3);
+
+        List<File> taken = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            taken.add(terrain.snapshot(region).join());
+        }
+
+        List<File> kept = terrain.getSnapshots(region);
+        assertEquals(3, kept.size(), "retention 3 keeps three of four: " + kept);
+        assertEquals(taken.subList(1, 4), reversed(kept), "the newest three stay, the oldest is gone");
+        assertFalse(taken.get(0).exists());
+    }
+
+    @Test
+    void aSnapshotRestoreBringsTheBoxBackABudgetAtATime(TestPlatform platform) {
+        TestTerrain terrain = platform.getTestTerrain();
+        terrain.setBlock(WORLD, 0, 5, 0, "chest", "items=diamond");
+        terrain.spawn(WORLD, "armor_stand", 1, 5, 1);
+        RegionManager manager = manager();
+        Region region = created(manager.create("small", WORLD, box(0, 0, 1, 1)));
+        manager.getTerrain().snapshot(region).join();
+
+        terrain.setBlock(WORLD, 0, 5, 0, "air");
+        terrain.kill(WORLD, "armor_stand", 1, 5, 1);
+        terrain.setBlock(WORLD, 1, 5, 1, "dirt");
+        manager.getTerrain().restoreSnapshot(region, 0, 100).join();
+
+        assertEquals("chest", terrain.getBlock(WORLD, 0, 5, 0));
+        assertEquals("items=diamond", terrain.getNbt(WORLD, 0, 5, 0));
+        assertEquals("air", terrain.getBlock(WORLD, 1, 5, 1), "what was built after the snapshot is cleared");
+        assertTrue(terrain.getEntities(WORLD).contains("armor_stand@1,5,1"));
+    }
+
+    @Test
+    void theJournalAndTheSnapshotPostTheirTerrainEvents(TestPlatform platform) {
+        TestTerrain terrain = platform.getTestTerrain();
+        terrain.setBlock(WORLD, 1, 10, 1, "stone");
+        Region region = trackedRegion();
+        List<String> seen = new ArrayList<>();
+        ECEventSubscription<RegionTerrainEvent> subscription = ECEventBus.global().subscribe(RegionTerrainEvent.class,
+                event -> seen.add(event.getType() + (event.isJournal() ? " journal" : " snapshot")));
+        try {
+            breakThenPlace(terrain, 1, 10, 1, "dirt");
+            region.getManager().getTerrain().restoreJournal(region, 10).join();
+            region.getManager().getTerrain().snapshot(region).join();
+        } finally {
+            subscription.unsubscribe();
+        }
+
+        assertEquals(Arrays.asList("RESTORE_START journal", "RESTORE_END journal", "SNAPSHOT snapshot"), seen);
+    }
+
+    private static List<File> reversed(List<File> files) {
+        List<File> copy = new ArrayList<>(files);
+        Collections.reverse(copy);
+        return copy;
+    }
 
     private Region trackedRegion() {
         return trackedRegion(null);

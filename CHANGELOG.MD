@@ -63,6 +63,12 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   and the armor stands and hanging entities broken; Hytale keeps the block only. The journal hears a change only
   after every plugin decided - a `MONITOR` listener on Bukkit, a System ordered after the deciding one on Hytale -
   and never a cancelled one. The test engine answers the access with `TestTerrain`.
+- **Region snapshots**: `RegionTerrain.snapshot(region[, content])` saves the region's bounding box under
+  `<owner data>/regions/terrain/<region>/<stamp>.<ext>` - a WorldEdit `.schem` (`.schematic` on WorldEdit 6) plus the
+  entities beside it on Bukkit, a prefab through the server's `PrefabStore` on Hytale - keeping the
+  `getSnapshotRetention()` newest (3 unless set); `restoreSnapshot(region, index, blocksPerTick)` puts one back a
+  budget per tick. Without WorldEdit a Bukkit snapshot fails naming WorldEdit and the journal. `RegionTerrainEvent`
+  (`SNAPSHOT`, `RESTORE_START`, `RESTORE_END`) reports both.
 
 ### Changed
 

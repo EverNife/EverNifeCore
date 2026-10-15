@@ -3,7 +3,12 @@ package br.com.finalcraft.evernifecore.testing;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainContent;
+import br.com.finalcraft.evernifecore.region.terrain.TerrainPlacement;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -145,6 +150,48 @@ public final class TestTerrain implements ITerrainAccess {
     @Override
     public void restoreEntity(String world, String state) {
         entities.add(world + ":" + state);
+    }
+
+    @Override
+    public String getSnapshotExtension() {
+        return "txt";
+    }
+
+    /** One line per block of the box ({@code B x y z state}), then one per entity inside it ({@code E state}). */
+    @Override
+    public void writeSnapshot(String world, BlockPos min, BlockPos max, TerrainContent content, File file) throws IOException {
+        List<String> lines = new ArrayList<>();
+        for (int x = min.getX(); x <= max.getX(); x++) {
+            for (int y = min.getY(); y <= max.getY(); y++) {
+                for (int z = min.getZ(); z <= max.getZ(); z++) {
+                    lines.add("B " + x + " " + y + " " + z + " " + captureBlock(world, x, y, z, content));
+                }
+            }
+        }
+        if (content.isEntities()) {
+            for (String entity : captureEntities(world, min, max)) {
+                lines.add("E " + entity);
+            }
+        }
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public TerrainPlacement readSnapshot(String world, File file) throws IOException {
+        List<String> lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
+        int[] next = {0};
+        return blocks -> {
+            for (int placed = 0; placed < blocks && next[0] < lines.size() && lines.get(next[0]).startsWith("B "); placed++) {
+                String[] parts = lines.get(next[0]++).split(" ", 5);
+                restoreBlock(world, Integer.parseInt(parts[1]), Integer.parseInt(parts[2]), Integer.parseInt(parts[3]), parts[4]);
+            }
+            if (next[0] < lines.size() && !lines.get(next[0]).startsWith("B ")) {
+                while (next[0] < lines.size()) {
+                    restoreEntity(world, lines.get(next[0]++).substring(2));
+                }
+            }
+            return next[0] >= lines.size();
+        };
     }
 
     private static String key(String world, int x, int y, int z) {
