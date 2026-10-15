@@ -5,11 +5,13 @@ import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.BaseFPlayer;
 import br.com.finalcraft.evernifecore.api.platoverride.player.FPlayerAdapter;
 import br.com.finalcraft.evernifecore.integration.LuckPermsIntegration;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
@@ -103,7 +105,16 @@ public abstract class MinecraftFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
 
     @Override
     public boolean teleportTo(FLocation targetLocation){
-        return getPlayer().teleport(targetLocation.getDelegate(Location.class));
+        Player player = getPlayer();
+        Object delegate = targetLocation.getDelegate();
+        //coordinates alone (no Bukkit location) keep the player's facing
+        if (delegate instanceof Location) {
+            return player.teleport((Location) delegate);
+        }
+        WorldLocPos at = targetLocation.getWorldLocPos();
+        World world = Bukkit.getWorld(at.getWorldName());
+        Location facing = player.getLocation();
+        return world != null && player.teleport(new Location(world, at.getX(), at.getY(), at.getZ(), facing.getYaw(), facing.getPitch()));
     }
 
     public Player getPlayer() {
