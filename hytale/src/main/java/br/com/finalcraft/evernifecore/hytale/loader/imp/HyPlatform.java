@@ -1,4 +1,6 @@
 package br.com.finalcraft.evernifecore.hytale.loader.imp;
+import br.com.finalcraft.evernifecore.hytale.region.HyParticleOutlineRenderer;
+import br.com.finalcraft.evernifecore.hytale.region.HySelectionItems;
 import org.joml.Vector3d;
 import com.hypixel.hytale.math.vector.Transform;
 import com.hypixel.hytale.server.core.universe.world.spawn.ISpawnProvider;
@@ -343,17 +345,20 @@ public class HyPlatform implements IPlatform {
         return universe == null || worldName == null ? null : universe.getWorld(worldName);
     }
 
-    /** Each world ticks on its own thread; there is no thread that owns every world. */
+    private static final IOutlineRenderer OUTLINE_RENDERER = new HyParticleOutlineRenderer();
+    private static final ISelectionItems SELECTION_ITEMS = new HySelectionItems();
+
     @Override
     public IOutlineRenderer getOutlineRenderer() {
-        return IOutlineRenderer.NONE;
+        return OUTLINE_RENDERER;
     }
 
     @Override
     public ISelectionItems getSelectionItems() {
-        return ISelectionItems.NONE;
+        return SELECTION_ITEMS;
     }
 
+    /** Each world ticks on its own thread; there is no thread that owns every world. */
     @Override
     public boolean isWorldThread(String worldName) {
         World world = worldOrNull(worldName);

@@ -2,6 +2,8 @@ package br.com.finalcraft.evernifecore.hytale.region;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.actor.Actor;
 import br.com.finalcraft.evernifecore.region.actor.TypeKey;
@@ -11,19 +13,26 @@ import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.context.BlockContext;
 import br.com.finalcraft.evernifecore.region.flag.context.DamageContext;
 import br.com.finalcraft.evernifecore.region.flag.context.EntityContext;
+import br.com.finalcraft.evernifecore.region.flag.context.SpawnContext;
+import br.com.finalcraft.evernifecore.region.selection.SelectionClick;
+import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
+import br.com.finalcraft.evernifecore.region.selection.SelectionTool;
 import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
+import com.hypixel.hytale.component.AddReason;
 import com.hypixel.hytale.component.Archetype;
 import com.hypixel.hytale.component.ArchetypeChunk;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.ComponentRegistryProxy;
 import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.SystemGroup;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.EcsEvent;
 import com.hypixel.hytale.component.system.EntityEventSystem;
 import com.hypixel.hytale.component.system.ICancellableEcsEvent;
+import com.hypixel.hytale.component.system.RefSystem;
 import com.hypixel.hytale.component.system.WorldEventSystem;
 import com.hypixel.hytale.protocol.BlockPosition;
 import com.hypixel.hytale.protocol.InteractionState;
@@ -31,6 +40,7 @@ import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.entity.InteractionChain;
 import com.hypixel.hytale.server.core.entity.InteractionContext;
+import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.DamageBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.PlaceBlockEvent;
@@ -46,10 +56,12 @@ import com.hypixel.hytale.server.core.modules.entity.damage.DamageModule;
 import com.hypixel.hytale.server.core.modules.interaction.event.InteractionChainStartEvent;
 import com.hypixel.hytale.server.core.plugin.PluginBase;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import jakarta.annotation.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3i;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
@@ -92,6 +104,7 @@ public final class HyRegionSystems {
         registry.registerSystem(new UseEntitySystem());
         registry.registerSystem(new InteractionStartSystem());
         registry.registerSystem(new DamageSystem());
+        registry.registerSystem(new SpawnSystem());
         return true;
     }
 
@@ -117,6 +130,64 @@ public final class HyRegionSystems {
         return judge(EventSource.BREAK, world, event, () -> new BlockContext(EventSource.BREAK,
                 HyRegionContexts.position(world, event.getTargetBlock()), Actor.environment(HyRegionContexts.EXPLOSION), event,
                 HyRegionContexts.key(event.getBlockType()), null));
+    }
+
+    /** What spawns a creature nobody spawned on purpose: the world itself. */
+    static final TypeKey NATURAL_SPAWN = TypeKey.of("environment", "spawn");
+
+    /** Whether the regions deny the spawn {@code context} describes; nothing is built while no region needs SPAWN. */
+    static boolean spawnDenied(String world, Supplier<SpawnContext> context) {
+        if (!EventSourceUsage.get().isNeeded(EventSource.SPAWN) || HyRegionContexts.isDisabled(world)) {
+            return false;
+        }
+        return RegionLookup.get().decide(context.get()) == Decision.DENY;
+    }
+
+    /**
+     * A click with the selection tool belongs to the selection, never to the regions: true when it was one, and the
+     * event is then cancelled, so the tool never breaks, tills or uses. An open selection holds INTERACT, so with that
+     * gate closed there is none to click for. A held left click hits its block again and again: the last point
+     * clicked again adds nothing.
+     */
+    static boolean select(@Nullable ItemStack hand, ICancellableEcsEvent event, Supplier<FPlayer> player, String world, Vector3i target,
+                          Supplier<SelectionClick> click) {
+        if (!EventSourceUsage.get().isNeeded(EventSource.INTERACT) || event.isCancelled() || !HySelectionItems.isSelectionTool(hand)) {
+            return false;
+        }
+        FPlayer clicker = player.get();
+        if (clicker == null) {
+            return false;
+        }
+        SelectionClick kind = click.get();
+        if (kind == SelectionClick.LEFT && isLastPoint(SelectionTool.getSession(clicker), world, target)) {
+            event.setCancelled(true);
+            return true;
+        }
+        if (SelectionTool.handleClick(clicker, WorldBlockPos.of(target.x, target.y, target.z, world), kind)) {
+            event.setCancelled(true);
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean isLastPoint(@Nullable SelectionSession session, String world, Vector3i target) {
+        if (session == null || !session.getWorld().equals(world) || session.getPoints().isEmpty()) {
+            return false;
+        }
+        List<BlockPos> points = session.getPoints();
+        BlockPos last = points.get(points.size() - 1);
+        return last.getX() == target.x && last.getY() == target.y && last.getZ() == target.z;
+    }
+
+    private static boolean clicked(Ref<EntityStore> actor, Store<EntityStore> store, ICancellableEcsEvent event, Vector3i target,
+                                   @Nullable ItemStack hand, boolean left) {
+        return select(hand, event, () -> HyRegionContexts.player(actor, store), worldOf(store), target,
+                () -> left ? SelectionClick.LEFT : isCrouching(actor, store) ? SelectionClick.SNEAK_RIGHT : SelectionClick.RIGHT);
+    }
+
+    private static boolean isCrouching(Ref<EntityStore> ref, Store<EntityStore> store) {
+        MovementStatesComponent states = store.getComponent(ref, MovementStatesComponent.getComponentType());
+        return states != null && states.getMovementStates() != null && states.getMovementStates().crouching;
     }
 
     private static String worldOf(Store<EntityStore> store) {
@@ -156,6 +227,9 @@ public final class HyRegionSystems {
         @Override
         public void handle(int index, ArchetypeChunk<EntityStore> chunk, Store<EntityStore> store, CommandBuffer<EntityStore> buffer,
                            BreakBlockEvent event) {
+            if (clicked(chunk.getReferenceTo(index), store, event, event.getTargetBlock(), event.getItemInHand(), true)) {
+                return;
+            }
             onBlock(EventSource.BREAK, chunk.getReferenceTo(index), store, event, event.getTargetBlock(),
                     HyRegionContexts.key(event.getBlockType()), event.getItemInHand());
         }
@@ -170,6 +244,9 @@ public final class HyRegionSystems {
         @Override
         public void handle(int index, ArchetypeChunk<EntityStore> chunk, Store<EntityStore> store, CommandBuffer<EntityStore> buffer,
                            DamageBlockEvent event) {
+            if (clicked(chunk.getReferenceTo(index), store, event, event.getTargetBlock(), event.getItemInHand(), true)) {
+                return;
+            }
             onBlock(EventSource.BREAK, chunk.getReferenceTo(index), store, event, event.getTargetBlock(),
                     HyRegionContexts.key(event.getBlockType()), event.getItemInHand());
         }
@@ -213,6 +290,9 @@ public final class HyRegionSystems {
                            UseBlockEvent.Pre event) {
             InteractionContext context = event.getContext();
             ItemStack hand = context == null ? null : context.getHeldItem();
+            if (clicked(chunk.getReferenceTo(index), store, event, event.getTargetBlock(), hand, false)) {
+                return;
+            }
             if (onBlock(EventSource.INTERACT, chunk.getReferenceTo(index), store, event, event.getTargetBlock(),
                     HyRegionContexts.key(event.getBlockType()), hand)) {
                 InteractionChain chain = context == null ? null : context.getChain();
@@ -277,9 +357,44 @@ public final class HyRegionSystems {
             }
             BlockPosition block = context.getTargetBlock();
             if (block != null) {
-                onBlock(EventSource.INTERACT, user, store, event, new Vector3i(block.x, block.y, block.z),
-                        HyRegionContexts.key((BlockType) null), context.getHeldItem());
+                Vector3i at = new Vector3i(block.x, block.y, block.z);
+                if (type == InteractionType.Secondary && clicked(user, store, event, at, context.getHeldItem(), false)) {
+                    return;
+                }
+                onBlock(EventSource.INTERACT, user, store, event, at, HyRegionContexts.key((BlockType) null), context.getHeldItem());
             }
+        }
+    }
+
+    /**
+     * A creature the world spawns, asked where it appears; a denied one is removed before it ever ticks. One added on
+     * LOAD - out of a chunk or a prefab - already existed, and is never asked.
+     */
+    private static final class SpawnSystem extends RefSystem<EntityStore> {
+
+        @Override
+        public Query<EntityStore> getQuery() {
+            return NPCEntity.getComponentType();
+        }
+
+        @Override
+        public void onEntityAdded(Ref<EntityStore> ref, AddReason reason, Store<EntityStore> store, CommandBuffer<EntityStore> buffer) {
+            if (reason != AddReason.SPAWN) {
+                return;
+            }
+            Vector3d at = positionOf(ref, store);
+            if (at == null) {
+                return;
+            }
+            String world = worldOf(store);
+            if (spawnDenied(world, () -> new SpawnContext(HyRegionContexts.position(world, at), Actor.environment(NATURAL_SPAWN), null,
+                    HyRegionContexts.actor(ref, store), reason.name()))) {
+                buffer.removeEntity(ref, RemoveReason.REMOVE);
+            }
+        }
+
+        @Override
+        public void onEntityRemove(Ref<EntityStore> ref, RemoveReason reason, Store<EntityStore> store, CommandBuffer<EntityStore> buffer) {
         }
     }
 
