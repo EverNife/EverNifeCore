@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformCha
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 
 import java.util.ArrayList;
@@ -72,7 +73,8 @@ public final class Platforms {
                 .worldHeight(0, 255)
                 .noWorldSpawns()
                 .outlineRenderer(IOutlineRenderer.NONE)
-                .selectionItems(ISelectionItems.NONE);
+                .selectionItems(ISelectionItems.NONE)
+                .terrain();
     }
 
     /**
@@ -184,6 +186,18 @@ public final class Platforms {
         platform.selectionItemsConfigured = Boolean.TRUE;
         platform.selectionItems = selectionItems;
         return this;
+    }
+
+    /** What {@code getTerrainAccess} answers; {@code null} is kept, as the violation a conformance test needs. */
+    public Platforms terrainAccess(ITerrainAccess terrainAccess) {
+        platform.terrainAccessConfigured = Boolean.TRUE;
+        platform.terrainAccess = terrainAccess;
+        return this;
+    }
+
+    /** An in-memory world of blocks and entities behind {@code getTerrainAccess}, read back by {@link TestPlatform#getTestTerrain()}. */
+    public Platforms terrain() {
+        return terrainAccess(platform.testTerrain);
     }
 
     /** Keeps every tool handed out for {@link TestPlatform#getSelectionItemsGiven()} instead of giving it. */

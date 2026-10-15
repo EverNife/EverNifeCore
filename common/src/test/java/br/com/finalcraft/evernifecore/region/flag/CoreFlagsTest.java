@@ -51,7 +51,7 @@ class CoreFlagsTest {
         for (String name : Arrays.asList("deny-pvp", "invincible", "deny-damage-animals", "deny-block-break", "deny-block-break-mobs",
                 "deny-block-break-environment", "deny-block-break-fake-players", "deny-block-place", "deny-block-place-fake-players",
                 "deny-explosion", "deny-explosion-mobs", "deny-interact", "deny-interact-blocks", "deny-interact-entities", "deny-entry", "deny-exit", "deny-teleport-in", "deny-teleport-out",
-                "deny-monster-spawn", "deny-animal-spawn")) {
+                "deny-monster-spawn", "deny-animal-spawn", "track-changes")) {
             CATALOG.put(name, "tristate-true");
         }
         CATALOG.put("deny-entry-with-message", "denied-true");
@@ -73,7 +73,7 @@ class CoreFlagsTest {
     void tearDown() {
         try {
             assertTrue(iterated >= 18, "the tie test must have run over the whole catalog, ran " + iterated);
-            assertEquals(25, iterated, "the catalog holds 25 flags");
+            assertEquals(26, iterated, "the catalog holds 26 flags");
         } finally {
             FlagRegistry.get().reset();
             Plugins.forget(CORE);
@@ -165,7 +165,7 @@ class CoreFlagsTest {
     @Test
     void everyCoreFlagIsAStaticInstanceRegisteredUnderTheCore() {
         List<RegionFlag<?>> all = CoreFlags.all();
-        assertEquals(25, all.size());
+        assertEquals(26, all.size());
         for (RegionFlag<?> flag : all) {
             assertTrue(flag.isRegistered(), flag.getKey().toString());
             assertSame(core, flag.getOwner(), flag.getKey().toString());
@@ -203,7 +203,7 @@ class CoreFlagsTest {
     @Test
     void onlyTheMovementDenialsAndTheBlockBreakStartWithATriggerInterval() {
         List<RegionFlag<?>> all = CoreFlags.all();
-        assertEquals(25, all.size());
+        assertEquals(26, all.size());
         TreeSet<String> paced = new TreeSet<>();
         for (RegionFlag<?> flag : all) {
             Duration floor = flag.getDefaultTriggerInterval();

@@ -51,6 +51,7 @@ public final class CoreFlags {
     public static FarewellFlag FAREWELL = new FarewellFlag();
     public static DenyMessageFlag DENY_MESSAGE = new DenyMessageFlag();
     public static TeleportPointFlag TELEPORT_POINT = new TeleportPointFlag();
+    public static TrackChangesFlag TRACK_CHANGES = new TrackChangesFlag();
 
     private CoreFlags() {
     }
@@ -60,7 +61,8 @@ public final class CoreFlags {
         return Arrays.asList(DENY_PVP, INVINCIBLE, DENY_DAMAGE_ANIMALS, DENY_BLOCK_BREAK, DENY_BLOCK_BREAK_MOBS, DENY_BLOCK_BREAK_ENVIRONMENT,
                 DENY_BLOCK_BREAK_FAKE_PLAYERS, DENY_BLOCK_PLACE, DENY_BLOCK_PLACE_FAKE_PLAYERS, DENY_EXPLOSION, DENY_EXPLOSION_MOBS, DENY_INTERACT,
                 DENY_INTERACT_BLOCKS, DENY_INTERACT_ENTITIES, DENY_ENTRY, DENY_EXIT, DENY_TELEPORT_IN, DENY_TELEPORT_OUT,
-                DENY_MONSTER_SPAWN, DENY_ANIMAL_SPAWN, DENY_ENTRY_WITH_MESSAGE, GREETING, FAREWELL, DENY_MESSAGE, TELEPORT_POINT);
+                DENY_MONSTER_SPAWN, DENY_ANIMAL_SPAWN, DENY_ENTRY_WITH_MESSAGE, GREETING, FAREWELL, DENY_MESSAGE, TELEPORT_POINT,
+                TRACK_CHANGES);
     }
 
     /** Registers every core flag under {@code owner} - EverNifeCore's own plugin data. */

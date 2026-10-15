@@ -27,6 +27,7 @@ import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.storage.RegionRecord;
 import br.com.finalcraft.evernifecore.region.storage.RegionStorage;
+import br.com.finalcraft.evernifecore.region.terrain.RegionTerrain;
 import br.com.finalcraft.everydatabase.query.ScanRow;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
@@ -98,6 +99,7 @@ public final class RegionManager {
     private final Object loadLock = new Object();
     private @Nullable LoadRun run;
     private volatile boolean foreignAccess = true;
+    private final RegionTerrain terrain = new RegionTerrain(this);
 
     /** @param storage null for a manager that writes nothing - tests that only need regions to exist */
     RegionManager(ECPluginData owner, @Nullable ECStorage storage) {
@@ -154,6 +156,11 @@ public final class RegionManager {
     /** The owner's storage; null only for a manager that writes nothing. */
     public @Nullable ECStorage getStorage() {
         return storage;
+    }
+
+    /** The change journal and restore of this owner's regions. */
+    public RegionTerrain getTerrain() {
+        return terrain;
     }
 
     public boolean isClosed() {
@@ -390,6 +397,7 @@ public final class RegionManager {
             }
             loaded = true;
         }
+        terrain.loadJournals(fresh);
         ECDebugModule.REGIONS.debug("{} loaded {} region(s) ({} already loaded).", nameOf(owner), fresh.size(), byName.size() - fresh.size());
         if (!fresh.isEmpty()) {
             RegionSweeper.wake();   //a sweep that finds no deadline stops at once
@@ -646,13 +654,16 @@ public final class RegionManager {
     /** Writes every pending change and deletion; completes once the backend confirmed them all. Any thread. */
     public CompletableFuture<Void> flush() {
         CompletableFuture<Void> done = new CompletableFuture<>();
-        RegionScheduler.scheduleAsync(() -> write().whenComplete((ignored, error) -> {
-            if (error == null) {
-                done.complete(null);
-            } else {
-                done.completeExceptionally(error);
-            }
-        }), 0);
+        RegionScheduler.scheduleAsync(() -> {
+            terrain.writeDirty();
+            write().whenComplete((ignored, error) -> {
+                if (error == null) {
+                    done.complete(null);
+                } else {
+                    done.completeExceptionally(error);
+                }
+            });
+        }, 0);
         return done;
     }
 

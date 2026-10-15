@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginE
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformChatAdapter;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
@@ -227,6 +228,7 @@ public class FCLocaleScannerContractTest {
         @Override public void onWorldUnloaded(Consumer<String> listener) { delegate.onWorldUnloaded(listener); }
         @Override public IOutlineRenderer getOutlineRenderer() { return delegate.getOutlineRenderer(); }
         @Override public ISelectionItems getSelectionItems() { return delegate.getSelectionItems(); }
+        @Override public ITerrainAccess getTerrainAccess() { return delegate.getTerrainAccess(); }
         @Override public void shutdown(String reason) { delegate.shutdown(reason); }
     }
 

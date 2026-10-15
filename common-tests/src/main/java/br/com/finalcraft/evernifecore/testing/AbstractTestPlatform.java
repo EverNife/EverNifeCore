@@ -15,6 +15,7 @@ import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 
 import java.util.List;
@@ -180,6 +181,11 @@ public abstract class AbstractTestPlatform implements IPlatform {
     @Override
     public IOutlineRenderer getOutlineRenderer() {
         throw notConfigured("getOutlineRenderer", "Platforms.strict().outlineRenderer(...)");
+    }
+
+    @Override
+    public ITerrainAccess getTerrainAccess() {
+        throw notConfigured("getTerrainAccess", "Platforms.strict().terrain()");
     }
 
     @Override

@@ -32,6 +32,7 @@ import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import br.com.finalcraft.everylibs.reflection.MethodInvoker;
@@ -351,6 +352,11 @@ public class HyPlatform implements IPlatform {
     @Override
     public IOutlineRenderer getOutlineRenderer() {
         return OUTLINE_RENDERER;
+    }
+
+    @Override
+    public ITerrainAccess getTerrainAccess() {
+        return ITerrainAccess.UNSUPPORTED;
     }
 
     @Override

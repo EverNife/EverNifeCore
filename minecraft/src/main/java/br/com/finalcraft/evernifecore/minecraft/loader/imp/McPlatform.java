@@ -35,6 +35,7 @@ import br.com.finalcraft.evernifecore.minecraft.world.WorldHeights;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import jakarta.annotation.Nonnull;
@@ -357,6 +358,11 @@ public class McPlatform implements IPlatform {
     @Override
     public IOutlineRenderer getOutlineRenderer() {
         return outlineRenderer;
+    }
+
+    @Override
+    public ITerrainAccess getTerrainAccess() {
+        return ITerrainAccess.UNSUPPORTED;
     }
 
     private final McSelectionItems selectionItems = new McSelectionItems();

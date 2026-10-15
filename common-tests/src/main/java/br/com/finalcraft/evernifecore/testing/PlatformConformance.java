@@ -161,6 +161,16 @@ public final class PlatformConformance {
             }
         });
 
+        call(platform, "getTerrainAccess", failures, new Call<Object>() {
+            @Override
+            public Object run(IPlatform target) {
+                if (target.getTerrainAccess() == null) {
+                    throw new IllegalStateException("returned null; a platform that cannot touch blocks answers ITerrainAccess.UNSUPPORTED");
+                }
+                return null;
+            }
+        });
+
         call(platform, "runOnMainThread", failures, new Call<Object>() {
             @Override
             public Object run(IPlatform target) {

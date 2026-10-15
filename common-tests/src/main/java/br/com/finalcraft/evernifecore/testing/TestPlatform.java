@@ -15,6 +15,7 @@ import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.region.selection.ItemSpec;
 import br.com.finalcraft.evernifecore.region.visual.VisualStyle;
@@ -88,6 +89,9 @@ public class TestPlatform extends AbstractTestPlatform {
     Boolean outlineRendererConfigured;
     IOutlineRenderer outlineRenderer;
     Boolean selectionItemsConfigured;
+    ITerrainAccess terrainAccess;
+    Boolean terrainAccessConfigured;
+    final TestTerrain testTerrain = new TestTerrain();
     ISelectionItems selectionItems;
 
     private boolean forceRegisterFailure = false;
@@ -506,6 +510,16 @@ public class TestPlatform extends AbstractTestPlatform {
     @Override
     public ISelectionItems getSelectionItems() {
         return selectionItemsConfigured != null ? selectionItems : super.getSelectionItems();
+    }
+
+    @Override
+    public ITerrainAccess getTerrainAccess() {
+        return terrainAccessConfigured != null ? terrainAccess : super.getTerrainAccess();
+    }
+
+    /** The in-memory world {@link Platforms#terrain()} put behind {@code getTerrainAccess}. */
+    public TestTerrain getTestTerrain() {
+        return testTerrain;
     }
 
     @Override
