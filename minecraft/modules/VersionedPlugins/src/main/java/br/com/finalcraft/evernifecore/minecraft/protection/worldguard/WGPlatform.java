@@ -25,30 +25,49 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class WGPlatform {
 
-    private static final WGPlatform INSTANCE;
+    private static volatile WGPlatform instance;
+    private static volatile boolean adapterFailed;
 
-    static {
-        String wgVersion = Bukkit.getPluginManager().getPlugin("WorldGuard").getDescription().getVersion();
-        String apiClassname = wgVersion.startsWith("6.1")
-                ? "v1_7_R4" //WorldGuard 6.0
-                : wgVersion.startsWith("6.2")
-                ? "v1_12_R2" //WorldGuard 6.2
-                : "v1_16_R3"; //WorldGuard 7.*
-
-        WGPlatform wgPlatform = null;
-        try {
-            wgPlatform = (WGPlatform) Class.forName("br.com.finalcraft.evernifecore.minecraft.compat." + apiClassname + ".protection.worldguard.ImpWGPlatform").newInstance();
-        } catch (Throwable e) {
-            System.out.println("[EverNifeCore] You do not have WorldGuard present or you did not waited for EverNifeCore to be fully StartedUp!");
-            e.printStackTrace();
-        }
-        INSTANCE = wgPlatform;
+    /**
+     * Whether WorldGuard is installed and its adapter loads. Safe without WorldGuard; answers false until WorldGuard
+     * is on the plugin manager, so ask after it loaded (softdepend) rather than in a static initializer.
+     */
+    public static boolean isPresent() {
+        return resolve() != null;
     }
 
     public static WGPlatform getInstance(){
-        return INSTANCE;
+        WGPlatform platform = resolve();
+        if (platform == null) {
+            throw new IllegalStateException("WorldGuard is not installed, its adapter failed to load, or EverNifeCore touched WGPlatform"
+                    + " before WorldGuard loaded - check WGPlatform.isPresent() before calling getInstance().");
+        }
+        return platform;
     }
 
+    private static WGPlatform resolve() {
+        WGPlatform platform = instance;
+        if (platform != null || adapterFailed) return platform;
+        synchronized (WGPlatform.class) {
+            if (instance != null || adapterFailed) return instance;
+            Plugin worldGuard = Bukkit.getServer() == null ? null : Bukkit.getPluginManager().getPlugin("WorldGuard");
+            if (worldGuard == null) return null; //not cached: WorldGuard may still load after this call
+            String wgVersion = worldGuard.getDescription().getVersion();
+            String apiClassname = wgVersion.startsWith("6.1")
+                    ? "v1_7_R4" //WorldGuard 6.0
+                    : wgVersion.startsWith("6.2")
+                    ? "v1_12_R2" //WorldGuard 6.2
+                    : "v1_16_R3"; //WorldGuard 7.*
+            try {
+                instance = (WGPlatform) Class.forName("br.com.finalcraft.evernifecore.minecraft.compat." + apiClassname + ".protection.worldguard.ImpWGPlatform").newInstance();
+            } catch (Throwable e) {
+                adapterFailed = true;
+                System.out.println("[EverNifeCore] WorldGuard " + wgVersion + " is present but its adapter could not be loaded:");
+                e.printStackTrace();
+            }
+            return instance;
+        }
+    }
 
     public abstract IFCFlagRegistry getFlagRegistry();
 

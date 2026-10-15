@@ -95,6 +95,9 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 - `ComparableItemComplex.deserialize` keeps the metadata of the serialized line (`ItemStack` is immutable), and an
   item without metadata serializes and compares as an empty document instead of throwing.
 - The release workflow skips this `[Unreleased]` entry: only the newest versioned entry is published.
+- **WorldGuard wrappers are safe without WorldGuard**: `WGPlatform.isPresent()` (like `WEPlatform`), the adapter
+  resolves on first use and `getInstance()` without WorldGuard throws naming `isPresent()`; `WGFlags` stays null
+  instead of crashing its class load; `FCRegionManager.getRegions()` reflects regions added or removed later.
 
 ### Removed
 

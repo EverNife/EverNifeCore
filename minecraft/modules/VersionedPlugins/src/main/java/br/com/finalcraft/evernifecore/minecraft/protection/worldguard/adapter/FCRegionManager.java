@@ -17,8 +17,6 @@ public abstract class FCRegionManager {
     protected final World world;
     protected final RegionManager regionManager;
 
-    private transient Map<String, FCWorldGuardRegion> regionMap; //Populated on demmand
-
     public FCRegionManager(World world, RegionManager regionManager) {
         this.world = world;
         this.regionManager = regionManager;
@@ -32,18 +30,22 @@ public abstract class FCRegionManager {
         return regionManager;
     }
 
+    /** A snapshot of the world's regions at call time, wrapped; regions added or removed later show on the next call. */
     public Map<String, FCWorldGuardRegion> getRegions(){
-        if (regionMap != null) return regionMap;
-        regionMap = new HashMap<>();
+        Map<String, FCWorldGuardRegion> regionMap = new HashMap<>();
         for (Map.Entry<String, ProtectedRegion> entry : this.regionManager.getRegions().entrySet()) {
-            regionMap.put(entry.getKey(), WGPlatform.getInstance().wrapRegion(this.world, entry.getValue()));
+            regionMap.put(entry.getKey(), wrap(entry.getValue()));
         }
         return regionMap;
     }
 
     public @Nullable FCWorldGuardRegion getRegion(String regionID){
         ProtectedRegion protectedRegion = this.regionManager.getRegion(regionID);
-        return protectedRegion == null ? null : WGPlatform.getInstance().wrapRegion(world, protectedRegion);
+        return protectedRegion == null ? null : wrap(protectedRegion);
+    }
+
+    protected FCWorldGuardRegion wrap(ProtectedRegion protectedRegion){
+        return WGPlatform.getInstance().wrapRegion(world, protectedRegion);
     }
 
     public abstract FCRegionResultSet getApplicableRegions(Location location);

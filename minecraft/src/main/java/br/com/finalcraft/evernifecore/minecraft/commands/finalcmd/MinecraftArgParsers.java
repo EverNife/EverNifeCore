@@ -10,7 +10,7 @@ import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.parse
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.parsers.ArgParserPlayer;
 import br.com.finalcraft.evernifecore.minecraft.commands.finalcmd.argument.parsers.ArgParserWorld;
 import br.com.finalcraft.evernifecore.minecraft.protection.worldguard.FCWorldGuardRegion;
-import org.bukkit.Bukkit;
+import br.com.finalcraft.evernifecore.minecraft.protection.worldguard.WGPlatform;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -25,7 +25,7 @@ public class MinecraftArgParsers {
         ArgParserManager.addBuiltinParser(OreDictEntry.class, ArgParserOreDict.class);
 
         //External Plugins
-        if (Bukkit.getPluginManager().isPluginEnabled("WorldGuard")){
+        if (WGPlatform.isPresent()){
             ArgParserManager.addBuiltinParser(FCWorldGuardRegion.class, ArgParserFCWorldGuardRegion.class);
         }
 

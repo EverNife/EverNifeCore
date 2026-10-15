@@ -113,6 +113,7 @@ worldguard7-bukkit = { module = "com.sk89q.worldguard:worldguard-bukkit", versio
 worldguard7-core = { module = "com.sk89q.worldguard:worldguard-core", version.ref = "worldguard7" }
 worldedit7-bukkit = { module = "com.sk89q.worldedit:worldedit-bukkit", version.ref = "worldedit7" }
 worldedit7-core = { module = "com.sk89q.worldedit:worldedit-core", version.ref = "worldedit7" }
+worldedit7-libs-core = { module = "com.sk89q.worldedit.worldedit-libs:core", version.ref = "worldedit7" }
 
 adventure-api = { module = "net.kyori:adventure-api", version.ref = "adventure" }
 adventure-key = { module = "net.kyori:adventure-key", version.ref = "adventure" }

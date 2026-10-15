@@ -127,6 +127,10 @@ dependencies {
     // has the real Bukkit PlaceholderAPI to find.
     testRuntimeOnly(libs.placeholderapi) { transitive = false }
     testImplementation project(':common-tests')
+    // compileOnly in production - WorldGuard is a plugin - brought back so the region wrapper runs over a real RegionManager.
+    testImplementation(libs.worldguard7.core) { transitive = false }
+    testImplementation(libs.worldedit7.core) { transitive = false }
+    testRuntimeOnly(libs.worldedit7.libs.core) { transitive = false } // the text library WorldGuard's regions are built on
 
     testFixturesImplementation project(':common-tests')
     testFixturesImplementation libs.spigot.api

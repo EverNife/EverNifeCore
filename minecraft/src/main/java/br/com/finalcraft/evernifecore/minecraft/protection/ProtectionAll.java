@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.minecraft.protection.integration.Protectio
 import br.com.finalcraft.evernifecore.minecraft.protection.integration.imp.GriefDefenderHandler;
 import br.com.finalcraft.evernifecore.minecraft.protection.integration.imp.GriefPreventionPlusHandler;
 import br.com.finalcraft.evernifecore.minecraft.protection.integration.imp.WorldGuardHandler;
+import br.com.finalcraft.evernifecore.minecraft.protection.worldguard.WGPlatform;
 import jakarta.annotation.Nullable;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -83,7 +84,7 @@ public final class ProtectionAll implements ProtectionHandler {
     public static @Nullable ProtectionHandler builtInFor(String pluginName) {
         switch (pluginName) {
             case "WorldGuard":
-                return new WorldGuardHandler();
+                return WGPlatform.isPresent() ? new WorldGuardHandler() : null;
             case "GriefDefender":
                 return new GriefDefenderHandler();
             case "GriefPreventionPlus":
