@@ -24,7 +24,6 @@ import br.com.finalcraft.evernifecore.minecraft.eventbus.McForgeAudience;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiListener;
 import br.com.finalcraft.evernifecore.minecraft.gui.view.GuiViews;
 import br.com.finalcraft.evernifecore.minecraft.integration.VaultIntegration;
-import br.com.finalcraft.evernifecore.minecraft.integration.WorldEditIntegration;
 import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerCraftListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerDamageByEntityListener;
 import br.com.finalcraft.evernifecore.minecraft.listeners.PlayerInteractListener;
@@ -164,8 +163,6 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         ECListener.registerWhileListened(ecPluginData, new PlayerCraftListener(), ECPlayerCraftItemEvent.class);
         ECListener.registerWhileListened(ecPluginData, new PlayerDamageByEntityListener(),
                 ECPlayerDamagedByPlayer.class, ECPlayerDamagedByPet.class, ECPetDamagedByPet.class, ECPetDamagedByPlayer.class);
-
-        if (Bukkit.getPluginManager().isPluginEnabled("WorldEdit")) try{WorldEditIntegration.initialize();}catch (Throwable e){e.printStackTrace();}
 
         FCTickUtil.getTickCount();//This will start tickCounting
 

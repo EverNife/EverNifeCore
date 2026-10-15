@@ -7,18 +7,26 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.LocPos;
 import br.com.finalcraft.evernifecore.minecraft.worldedit.block.FCBaseBlock;
 import br.com.finalcraft.evernifecore.minecraft.worldedit.clipboard.FCBlockArrayClipboard;
 import br.com.finalcraft.evernifecore.minecraft.worldedit.region.IFCCuboidRegion;
-import com.sk89q.worldedit.BlockVector;
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.Vector;
-import com.sk89q.worldedit.WorldEditException;
-import com.sk89q.worldedit.blocks.BaseBlock;
+import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.entity.Entity;
-import com.sk89q.worldedit.extent.Extent;
+import com.sk89q.worldedit.extent.AbstractDelegateExtent;
 import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
+import com.sk89q.worldedit.extent.clipboard.Clipboard;
+import com.sk89q.worldedit.function.operation.Operations;
 import com.sk89q.worldedit.math.transform.Transform;
 import com.sk89q.worldedit.regions.CuboidRegion;
-import com.sk89q.worldedit.util.Location;
+import com.sk89q.worldedit.regions.Region;
+import com.sk89q.worldedit.session.ClipboardHolder;
+import com.sk89q.worldedit.world.registry.WorldData;
+import jakarta.annotation.Nullable;
 import org.bukkit.World;
+
+import java.util.Collections;
+import java.util.List;
 
 public class ImpFCBlockArrayClipboard extends FCBlockArrayClipboard {
 
@@ -59,53 +67,43 @@ public class ImpFCBlockArrayClipboard extends FCBlockArrayClipboard {
     }
 
     @Override
-    public void paste(World world, BlockPos to, boolean allowUndo, boolean pasteAir, boolean copyEntities, Transform transform) {
-        com.sk89q.worldedit.world.World bukkitWorld = new BukkitWorld(world);
-        Extent extent = bukkitWorld;
-
-        BlockVector toVector = new BlockVector(to.getX(), to.getY(), to.getZ());
-
-        final Vector origin = getHandle().getOrigin();
-
-        // To must be relative to the clipboard origin ( player location - clipboard origin ) (as the locations supplied are relative to the world origin)
-        final int relx = toVector.getBlockX() - origin.getBlockX();
-        final int rely = toVector.getBlockY() - origin.getBlockY();
-        final int relz = toVector.getBlockZ() - origin.getBlockZ();
-
-        for (BlockVector pos : getHandle().getRegion()) {
-            BaseBlock block = getHandle().getBlock(pos);
-            int xx = (int) pos.getX() + relx;
-            int yy = (int) pos.getY() + rely;
-            int zz = (int) pos.getZ() + relz;
-
-            if (!pasteAir && block.getId() <= 0) {
-                continue;
-            }
-            try {
-                extent.setBlock(new BlockVector(xx, yy, zz), block);
-            } catch (WorldEditException e) {
-                System.out.println("[EverNifeCore-SchematicPlacer] Error pasting block at " + xx + ", " + yy + ", " + zz);
-                e.printStackTrace();
-            }
+    public EditSession paste(World world, BlockPos to, boolean pasteAir, boolean copyEntities, @Nullable Transform transform) {
+        com.sk89q.worldedit.world.World weWorld = new BukkitWorld(world);
+        WorldData worldData = weWorld.getWorldData();
+        //WorldEdit 6 always copies the source's entities; a source without them is how a paste leaves them out
+        Clipboard source = copyEntities ? getHandle() : new EntitylessClipboard(getHandle());
+        ClipboardHolder holder = new ClipboardHolder(source, worldData);
+        if (transform != null) {
+            holder.setTransform(transform);
         }
-        // Entity offset is the paste location subtract the clipboard origin (entity's location is already relative to the world origin)
-        final int entityOffsetX = toVector.getBlockX() - origin.getBlockX();
-        final int entityOffsetY = toVector.getBlockY() - origin.getBlockY();
-        final int entityOffsetZ = toVector.getBlockZ() - origin.getBlockZ();
-        // entities
-        if (copyEntities) {
-            for (Entity entity : this.getHandle().getEntities()) {
-                // skip players on pasting schematic
-                if (entity.getState() != null && entity.getState().getTypeId().equals("minecraft:player")) {
-                    continue;
-                }
-                Location pos = entity.getLocation();
-                Location newPos = new Location(pos.getExtent(), pos.getX() + entityOffsetX,
-                        pos.getY() + entityOffsetY, pos.getZ() + entityOffsetZ, pos.getYaw(),
-                        pos.getPitch()
-                );
-                extent.createEntity(newPos, entity.getState());
-            }
+        EditSession editSession = WorldEdit.getInstance().getEditSessionFactory().getEditSession(weWorld, -1);
+        try {
+            Operations.completeLegacy(holder.createPaste(editSession, worldData)
+                    .to(new Vector(to.getX(), to.getY(), to.getZ()))
+                    .ignoreAirBlocks(!pasteAir)
+                    .build());
+        } catch (MaxChangedBlocksException e) {
+            throw new IllegalStateException("WorldEdit refused to paste at " + to + " in " + world.getName() + ": " + e.getMessage(), e);
+        } finally {
+            editSession.flushQueue();
         }
+        return editSession;
+    }
+
+    private static final class EntitylessClipboard extends AbstractDelegateExtent implements Clipboard {
+
+        private final Clipboard clipboard;
+
+        private EntitylessClipboard(Clipboard clipboard) {
+            super(clipboard);
+            this.clipboard = clipboard;
+        }
+
+        @Override public Region getRegion() { return clipboard.getRegion(); }
+        @Override public Vector getDimensions() { return clipboard.getDimensions(); }
+        @Override public Vector getOrigin() { return clipboard.getOrigin(); }
+        @Override public void setOrigin(Vector origin) { clipboard.setOrigin(origin); }
+        @Override public List<? extends Entity> getEntities(Region region) { return Collections.emptyList(); }
+        @Override public List<? extends Entity> getEntities() { return Collections.emptyList(); }
     }
 }

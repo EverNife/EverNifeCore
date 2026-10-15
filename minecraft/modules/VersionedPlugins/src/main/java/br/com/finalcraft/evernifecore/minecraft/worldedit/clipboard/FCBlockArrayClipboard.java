@@ -41,14 +41,16 @@ public abstract class FCBlockArrayClipboard {
 
     public abstract FCBaseBlock getBlock(BlockPos blockPos);
 
+    /** {@link #paste(World, BlockPos, boolean, boolean, Transform)} with air and entities, untransformed. */
     public EditSession paste(World world, BlockPos to){
-        return paste(world, to, false, true, null);
+        return paste(world, to, true, true, null);
     }
 
-    public EditSession paste(World world, BlockPos to, boolean allowUndo, boolean pasteAir, @Nullable Transform transform) {
-        paste(world, to, allowUndo, pasteAir, true, transform);
-        return null;
-    }
-
-    public abstract void paste(World world, BlockPos to, boolean allowUndo, boolean pasteAir, boolean copyEntities, @Nullable Transform transform);
+    /**
+     * Pastes this clipboard with its origin at {@code to}, through WorldEdit's own copy, in one go on the calling thread.
+     *
+     * @param transform applied around the clipboard origin (a rotation, a flip); null pastes it as it is
+     * @return the finished session - {@code session.undo(otherSession)} puts back what the paste replaced
+     */
+    public abstract EditSession paste(World world, BlockPos to, boolean pasteAir, boolean copyEntities, @Nullable Transform transform);
 }

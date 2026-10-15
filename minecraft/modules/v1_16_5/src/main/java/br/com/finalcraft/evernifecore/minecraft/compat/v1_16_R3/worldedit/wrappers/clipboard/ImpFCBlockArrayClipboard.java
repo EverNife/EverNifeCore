@@ -7,17 +7,16 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.LocPos;
 import br.com.finalcraft.evernifecore.minecraft.worldedit.block.FCBaseBlock;
 import br.com.finalcraft.evernifecore.minecraft.worldedit.clipboard.FCBlockArrayClipboard;
 import br.com.finalcraft.evernifecore.minecraft.worldedit.region.IFCCuboidRegion;
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
-import com.sk89q.worldedit.bukkit.BukkitWorld;
-import com.sk89q.worldedit.entity.Entity;
-import com.sk89q.worldedit.extent.Extent;
 import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
+import com.sk89q.worldedit.function.operation.Operations;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.math.transform.Transform;
 import com.sk89q.worldedit.regions.CuboidRegion;
-import com.sk89q.worldedit.util.Location;
-import com.sk89q.worldedit.world.block.BaseBlock;
+import com.sk89q.worldedit.session.ClipboardHolder;
 import jakarta.annotation.Nullable;
 import org.bukkit.World;
 
@@ -60,54 +59,23 @@ public class ImpFCBlockArrayClipboard extends FCBlockArrayClipboard {
     }
 
     @Override
-    public void paste(World world, BlockPos to, boolean allowUndo, boolean pasteAir, boolean copyEntities, @Nullable Transform transform) {
-        BukkitWorld bukkitWorld = (BukkitWorld) BukkitAdapter.adapt(world);
-        Extent extent = bukkitWorld;
-
-        BlockVector3 toVector = BlockVector3.at(to.getX(), to.getY(), to.getZ());
-
-        final BlockVector3 origin = getHandle().getOrigin();
-
-        // To must be relative to the clipboard origin ( player location - clipboard origin ) (as the locations supplied are relative to the world origin)
-        final int relx = toVector.getBlockX() - origin.getBlockX();
-        final int rely = toVector.getBlockY() - origin.getBlockY();
-        final int relz = toVector.getBlockZ() - origin.getBlockZ();
-
-        for (BlockVector3 pos : getHandle().getRegion()) {
-            BaseBlock block = getHandle().getFullBlock(pos);
-            int xx = pos.getX() + relx;
-            int yy = pos.getY() + rely;
-            int zz = pos.getZ() + relz;
-
-            if (!pasteAir && block.getBlockType().getMaterial().isAir()) {
-                continue;
-            }
-            try {
-                extent.setBlock(BlockVector3.at(xx, yy, zz), block);
-            } catch (WorldEditException e) {
-                System.out.println("[EverNifeCore-SchematicPlacer] Error pasting block at " + xx + ", " + yy + ", " + zz);
-                e.printStackTrace();
-            }
+    public EditSession paste(World world, BlockPos to, boolean pasteAir, boolean copyEntities, @Nullable Transform transform) {
+        ClipboardHolder holder = new ClipboardHolder(getHandle());
+        if (transform != null) {
+            holder.setTransform(transform);
         }
-        // Entity offset is the paste location subtract the clipboard origin (entity's location is already relative to the world origin)
-        final int entityOffsetX = toVector.getBlockX() - origin.getBlockX();
-        final int entityOffsetY = toVector.getBlockY() - origin.getBlockY();
-        final int entityOffsetZ = toVector.getBlockZ() - origin.getBlockZ();
-        // entities
-        if (copyEntities) {
-            for (Entity entity : this.getHandle().getEntities()) {
-                // skip players on pasting schematic
-                if (entity.getState() != null && entity.getState().getType().getId()
-                        .equals("minecraft:player")) {
-                    continue;
-                }
-                Location pos = entity.getLocation();
-                Location newPos = new Location(pos.getExtent(), pos.getX() + entityOffsetX,
-                        pos.getY() + entityOffsetY, pos.getZ() + entityOffsetZ, pos.getYaw(),
-                        pos.getPitch()
-                );
-                extent.createEntity(newPos, entity.getState());
-            }
+        EditSession editSession = WorldEdit.getInstance().getEditSessionFactory().getEditSession(BukkitAdapter.adapt(world), -1);
+        try {
+            Operations.complete(holder.createPaste(editSession)
+                    .to(BlockVector3.at(to.getX(), to.getY(), to.getZ()))
+                    .ignoreAirBlocks(!pasteAir)
+                    .copyEntities(copyEntities)
+                    .build());
+        } catch (WorldEditException e) {
+            throw new IllegalStateException("WorldEdit refused to paste at " + to + " in " + world.getName() + ": " + e.getMessage(), e);
+        } finally {
+            editSession.close();
         }
+        return editSession;
     }
 }

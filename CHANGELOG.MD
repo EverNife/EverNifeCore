@@ -98,10 +98,14 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 - **WorldGuard wrappers are safe without WorldGuard**: `WGPlatform.isPresent()` (like `WEPlatform`), the adapter
   resolves on first use and `getInstance()` without WorldGuard throws naming `isPresent()`; `WGFlags` stays null
   instead of crashing its class load; `FCRegionManager.getRegions()` reflects regions added or removed later.
+- **`FCBlockArrayClipboard.paste` applies its `Transform` and returns the `EditSession`** that undoes it, through
+  WorldEdit's own copy on WorldEdit 6 and 7; the never-honoured `allowUndo` parameter is gone.
 
 ### Removed
 
 - `deny-fake-player-break` (`DenyFakePlayerBreakFlag`): use `deny-block-break-fake-players`.
+- `WorldEditIntegration` and its `CustomMask` (`pasteSchematic` read WorldEdit 6 only): paste through
+  `WEPlatform` / `FCBlockArrayClipboard.paste`.
 
 ## [3.0.1-alpha.69] - 2026-10-12
 
