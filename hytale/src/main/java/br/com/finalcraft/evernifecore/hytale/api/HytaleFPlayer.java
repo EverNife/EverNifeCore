@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.api.platoverride.player.FPlayerAdapter;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleAdventureUtil;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
 import com.hypixel.hytale.builtin.teleport.components.TeleportHistory;
 import com.hypixel.hytale.component.Ref;
@@ -13,6 +14,7 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Location;
 import com.hypixel.hytale.math.vector.Rotation3f;
+import com.hypixel.hytale.math.vector.Rotation3fc;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.inventory.InventoryComponent;
@@ -34,7 +36,6 @@ import org.joml.Vector3d;
 import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
 
@@ -158,113 +159,76 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
         return FCHytaleUtil.adapt(hytaleLocation);
     }
 
+    /**
+     * Sends the player to {@code targetLocation} the way the server's own teleport command does. Never blocks: when the
+     * target chunk is not in memory it is loaded first, and the teleport is put on the player from his world's thread
+     * once it is.
+     *
+     * @return false when the player is in no world or the target world is not loaded; true once the teleport is on its
+     *         way - it may still not happen (the player left, or another teleport was already pending on him)
+     */
     @Override
     public boolean teleportTo(FLocation targetLocation){
-        Location hyLocation = targetLocation.getDelegate(Location.class);
-
-        //Safe copy the reference... hytale location is Mutable!
-        Location safeTargetLocation = new Location(
-                hyLocation.getWorld(),
-                hyLocation.getPosition(),
-                hyLocation.getRotation()
-        );
-
         Ref<EntityStore> ref = getPlayerRef().getReference();
-
         if (ref == null || !ref.isValid()) {
             return false;
         }
+        World sourceWorld = ref.getStore().getExternalData().getWorld();
 
-        Store<EntityStore> store = ref.getStore();
-        if (store == null) {
+        Location hyLocation = targetLocation.getDelegate() instanceof Location ? (Location) targetLocation.getDelegate() : null;
+        WorldLocPos at = targetLocation.getWorldLocPos();
+        String targetWorldName = hyLocation != null ? hyLocation.getWorld() : at.getWorldName();
+        World targetWorld = targetWorldName.equals(sourceWorld.getName()) ? sourceWorld : Universe.get().getWorld(targetWorldName);
+        if (targetWorld == null) {
             return false;
         }
 
-        World sourceWorld = store.getExternalData().getWorld();
+        //copies: a Hytale Location is mutable. Coordinates alone keep the player's facing - NaN is the server's "leave it as is"
+        Vector3d position = hyLocation != null ? new Vector3d(hyLocation.getPosition()) : new Vector3d(at.getX(), at.getY(), at.getZ());
+        Rotation3fc facing = hyLocation != null ? hyLocation.getRotation().clone() : Rotation3f.NaN;
 
-        World targetWorld = safeTargetLocation.getWorld().equals(sourceWorld.getName())
-                ? sourceWorld
-                : Universe.get().getWorld(safeTargetLocation.getWorld());
-
-        if (targetWorld == null){
-            return false;
-        }
-
-        AtomicReference<TransformComponent> transformComponent = new AtomicReference<>();
-        AtomicReference<HeadRotation> headRotationComponent = new AtomicReference<>();
-
-        FCScheduler.getHytaleScheduler().getSynchronizedAction().run(sourceWorld, () -> {
-            //Get these components only inside the sourceWorld
-            transformComponent.set(store.getComponent(ref, TransformComponent.getComponentType()));
-            headRotationComponent.set(store.getComponent(ref, HeadRotation.getComponentType()));
-        });
-
-        if (transformComponent.get() == null) {
-            return false;
-        }
-
-        Vector3d previousPos = new Vector3d(transformComponent.get().getPosition());
-        Rotation3f previousRotation = headRotationComponent.get() != null
-                ? headRotationComponent.get().getRotation().clone()
-                : new Rotation3f(0, 0, 0);
-
-        Vector3d targetPos = safeTargetLocation.getPosition();
-        awaitChunkLoaded(targetWorld.getChunkStore(), targetWorld.isInThread(), ChunkUtil.indexChunkFromBlock((int) targetPos.x(), (int) targetPos.z()));
-
-        float pitch = safeTargetLocation.getRotation().x();
-        float yaw = safeTargetLocation.getRotation().y();
-        float roll = safeTargetLocation.getRotation().z();
-
-        FCScheduler.getHytaleScheduler().getSynchronizedAction().run(sourceWorld, () -> {
-            Teleport teleport = new Teleport(
-                    targetWorld,
-                    safeTargetLocation.getPosition(),
-                    new Rotation3f(previousRotation.pitch(), yaw, previousRotation.roll())
-            ).setHeadRotation(new Rotation3f(pitch, yaw, roll));
-
-            //Teleport history must be called prior to the teleportation to prevent race conditions
-            TeleportHistory teleportHistoryComponent = store.ensureAndGetComponent(ref, TeleportHistory.getComponentType());
-            teleportHistoryComponent.append(sourceWorld, previousPos, previousRotation, "[EC] teleport " + getPlayerRef().getUsername() +   " to " + safeTargetLocation);
-
-            //do the actual teleport
-            store.addComponent(ref, Teleport.getComponentType(), teleport);
-        });
-
-        ECDebugModule.HYTALE_FPLAYER.debug(() -> {
-            FLocation location = getLocation();
-
-            float displayYaw    = Float.isNaN(yaw)   ? previousRotation.yaw()    * (180.0F / (float) Math.PI) : yaw   * (180.0F / (float) Math.PI);
-            float displayPitch  = Float.isNaN(pitch) ? previousRotation.pitch()  * (180.0F / (float) Math.PI) : pitch * (180.0F / (float) Math.PI);
-            float displayRoll   = Float.isNaN(roll)  ? previousRotation.roll()   * (180.0F / (float) Math.PI) : roll  * (180.0F / (float) Math.PI);
-
-            return String.format("[TP] Teleporting player %s from %s to %s { Yaw:%s, Pitch:%s, Roll:%s }",
-                    getName(),
-                    location.getLocPos(),
-                    displayYaw,
-                    displayPitch,
-                    displayRoll
-            );
-        });
-
+        chunkLoaded(targetWorld.getChunkStore(), ChunkUtil.indexChunkFromBlock(position.x(), position.z()))
+                .thenRunAsync(() -> putTeleport(ref, targetWorld, position, facing), sourceWorld)
+                .exceptionally(failed -> {
+                    ECDebugModule.HYTALE_FPLAYER.debug("[TP] {} was not teleported to {} in {}: {}", getName(), position, targetWorldName, failed.toString());
+                    return null;
+                });
         return true;
+    }
+
+    /** On the player's world thread, outside any System: the teleport, after the entry the server's {@code /back} reads. */
+    private void putTeleport(Ref<EntityStore> ref, World targetWorld, Vector3d position, Rotation3fc facing) {
+        if (!ref.isValid()) {
+            return;   //he left while the chunk loaded
+        }
+        Store<EntityStore> store = ref.getStore();
+        if (store.getComponent(ref, Teleport.getComponentType()) != null) {
+            ECDebugModule.HYTALE_FPLAYER.debug("[TP] {} already has a teleport pending; the one to {} is dropped.", getName(), position);
+            return;
+        }
+        TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+        HeadRotation head = store.getComponent(ref, HeadRotation.getComponentType());
+        if (transform != null) {
+            Rotation3f previousRotation = head != null ? head.getRotation().clone() : new Rotation3f();
+            store.ensureAndGetComponent(ref, TeleportHistory.getComponentType()).append(store.getExternalData().getWorld(),
+                    new Vector3d(transform.getPosition()), previousRotation, "[EC] teleport " + getName() + " to " + position);
+        }
+        store.addComponent(ref, Teleport.getComponentType(), Teleport.createForPlayer(targetWorld, position, facing));
+        ECDebugModule.HYTALE_FPLAYER.debug("[TP] Teleporting player {} to {} in {}", getName(), position, targetWorld.getName());
     }
 
     /** The ChunkGrid load flag that also makes the chunk ticking, the one the server's own {@code chunk load} command passes. */
     private static final int LOAD_TICKING = 4;
 
     /**
-     * Makes sure the chunk under a teleport target is in memory before the player lands in it, or the player
-     * falls out of the world. A chunk already in memory costs nothing; otherwise the load is started and
-     * waited for - except on the target world's own thread, which would be waiting on itself.
+     * Done once the chunk under a teleport target is in memory - a player who lands in an unloaded chunk falls out of
+     * the world. Already done for a chunk in memory; otherwise the load, which the target world's thread finishes.
      */
-    static void awaitChunkLoaded(ChunkGrid chunks, boolean onTheWorldThread, long chunkIndex) {
+    static CompletableFuture<?> chunkLoaded(ChunkGrid chunks, long chunkIndex) {
         if (chunks.getChunkReference(chunkIndex) != null) {
-            return;
+            return CompletableFuture.completedFuture(null);
         }
-        CompletableFuture<?> load = chunks.getChunkReferenceAsync(chunkIndex, LOAD_TICKING);
-        if (!onTheWorldThread) {
-            load.join();
-        }
+        return chunks.getChunkReferenceAsync(chunkIndex, LOAD_TICKING);
     }
 
     public Player getPlayer() {
