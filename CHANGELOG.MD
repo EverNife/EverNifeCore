@@ -88,8 +88,8 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   non-transitively.
 - The `ECoreConformance` check-up gains a regions suite and a Hytale plugin with its matrix flavor.
 - The Hytale jar no longer embeds a relocated `org.bson` and links against the server's: item metadata
-  (`ItemDataPartMetadata`, `ComparableItemComplex`) works on a real server. The server has no bson record codec, so a
-  Mongo backend on Hytale cannot encode Java records.
+  (`ItemDataPartMetadata`, `ComparableItemComplex`) works on a real server. The server has no bson record codec, so the
+  jar carries `bson-record-codec` alone, unrelocated, for the Mongo driver to find.
 - A player's command on Hytale reaches FinalCMD as that player: the server dispatches it with the `PlayerRef` as the
   sender (chat and `sudo`), which the core used to take for the console, refusing every player-only verb.
 - `ComparableItemComplex.deserialize` keeps the metadata of the serialized line (`ItemStack` is immutable), and an

@@ -77,10 +77,9 @@ shadowJar {
         // checker-qual (dragged in by guava/adventure) carries only compile-time annotations - no
         // reason to ship it; excluding keeps the jar free of org.checkerframework classes.
         exclude(dependency('org.checkerframework:checker-qual'))
-        // The server provides org.bson. The record codec is not in the server; the bson core only
-        // probes for it by name, so leaving it out just means no codec for Java records.
+        // The server provides org.bson but not its record codec (org.bson.codecs.record), which the
+        // driver probes for by name: bson-record-codec ships unrelocated, linking to the server's bson.
         exclude(dependency('org.mongodb:bson'))
-        exclude(dependency('org.mongodb:bson-record-codec'))
     }
 
     // Jackson pairs come from the single source in the root build (rootProject.jacksonRelocations),
