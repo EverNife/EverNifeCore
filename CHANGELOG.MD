@@ -87,6 +87,9 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 - **ECNmsUtils 2.1.0**, **PlaceholderAPI-Hytale 1.0.8** and **VaultUnlocked 2.20.1**; both Hytale plugin APIs resolve
   non-transitively.
 - The `ECoreConformance` check-up gains a regions suite and a Hytale plugin with its matrix flavor.
+- The Hytale jar no longer embeds a relocated `org.bson` and links against the server's: item metadata
+  (`ItemDataPartMetadata`, `ComparableItemComplex`) works on a real server. The server has no bson record codec, so a
+  Mongo backend on Hytale cannot encode Java records.
 - The release workflow skips this `[Unreleased]` entry: only the newest versioned entry is published.
 
 ### Removed

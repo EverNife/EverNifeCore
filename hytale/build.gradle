@@ -63,7 +63,9 @@ shadowJar {
     exclude 'module-info.class'
 
     // Hytale has no libby, so the whole EveryDatabase stack is embedded here and relocated with
-    // the SAME pairs as minecraft/build.gradle and EDBDependencies - keep the three in sync.
+    // the SAME pairs as minecraft/build.gradle and EDBDependencies - keep the three in sync. The
+    // one deliberate exception is org.bson: the server ships it and its API takes and returns
+    // org.bson types (ItemStack metadata, codecs), so this jar links against the server's copy.
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
     // Without this shadow drops the duplicate META-INF/services/java.sql.Driver entries before
     // merging and only the first driver stays discoverable (GradleUp/shadow#1348).
@@ -75,6 +77,10 @@ shadowJar {
         // checker-qual (dragged in by guava/adventure) carries only compile-time annotations - no
         // reason to ship it; excluding keeps the jar free of org.checkerframework classes.
         exclude(dependency('org.checkerframework:checker-qual'))
+        // The server provides org.bson. The record codec is not in the server; the bson core only
+        // probes for it by name, so leaving it out just means no codec for Java records.
+        exclude(dependency('org.mongodb:bson'))
+        exclude(dependency('org.mongodb:bson-record-codec'))
     }
 
     // Jackson pairs come from the single source in the root build (rootProject.jacksonRelocations),
@@ -83,7 +89,6 @@ shadowJar {
     relocate 'com.zaxxer.hikari',                'br.com.finalcraft.everydatabase.libs.hikari'
     relocate 'org.slf4j',                        'br.com.finalcraft.everydatabase.libs.slf4j'
     relocate 'com.mongodb',                      'br.com.finalcraft.everydatabase.libs.mongodb'
-    relocate 'org.bson',                         'br.com.finalcraft.everydatabase.libs.bson'
     relocate 'org.h2',                           'br.com.finalcraft.everydatabase.libs.h2'
     relocate 'org.postgresql',                   'br.com.finalcraft.everydatabase.libs.postgresql'
     relocate 'com.mysql',                        'br.com.finalcraft.everydatabase.libs.mysql'
