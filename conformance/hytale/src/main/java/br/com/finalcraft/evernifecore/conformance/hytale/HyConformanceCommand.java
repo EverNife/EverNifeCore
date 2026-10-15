@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.MarkerLine;
 import br.com.finalcraft.evernifecore.conformance.RunIds;
 import br.com.finalcraft.evernifecore.conformance.SuiteRunner;
+import br.com.finalcraft.evernifecore.conformance.hytale.suite.HyPlatformSuite;
 
 import java.io.File;
 import java.util.List;
@@ -21,7 +22,8 @@ import java.util.stream.Collectors;
 
 /**
  * {@code /ecc run <suite|all> [--player <name>] [--cid <id>]}: runs suites on this server and reports every case to
- * the sender and, as an {@code ENCTEST} marker, to the server's stdout. {@code /ecc list} names the suites.
+ * the sender and, as an {@code ENCTEST} marker, to the server's stdout. {@code /ecc list} names the suites;
+ * {@code /ecc whoami <token>} is the player-only verb the {@code platform} suite runs through {@code sudo}.
  */
 //"ecc" first: on Hytale the core registers only the first alias as a command
 @FinalCMD(aliases = {"ecc", "ecoreconformance"}, permission = "evernifecore.conformance")
@@ -55,6 +57,11 @@ public class HyConformanceCommand {
         for (ConformanceSuite suite : suites) {
             sender.sendMessage(SuiteRunner.HUMAN_PREFIX + suite.getId() + " cases=" + suite.getCases(ctx).size());
         }
+    }
+
+    @FinalCMD.SubCMD(subcmd = "whoami")
+    public void whoami(FPlayer player, @Arg("<token>") String token) {
+        HyPlatformSuite.answerWhoami(token, player);
     }
 
     @FinalCMD.SubCMD(subcmd = "run")
