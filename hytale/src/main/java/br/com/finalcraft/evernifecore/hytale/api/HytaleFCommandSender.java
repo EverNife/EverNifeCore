@@ -4,7 +4,6 @@ import br.com.finalcraft.evernifecore.api.common.commandsender.BaseFCommandSende
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleAdventureUtil;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandSender;
-import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 import com.hypixel.hytale.server.core.receiver.IMessageReceiver;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -68,7 +67,7 @@ public abstract class HytaleFCommandSender<DELEGATE extends IMessageReceiver> ex
 
         @Override
         public UUID getUniqueId() {
-            return this.getDelegate() instanceof Player ? getDelegate().getUuid() : null;
+            return this.getDelegate() instanceof PlayerRef ? getDelegate().getUuid() : null;
         }
 
         @Override

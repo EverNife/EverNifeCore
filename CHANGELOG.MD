@@ -90,6 +90,8 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 - The Hytale jar no longer embeds a relocated `org.bson` and links against the server's: item metadata
   (`ItemDataPartMetadata`, `ComparableItemComplex`) works on a real server. The server has no bson record codec, so a
   Mongo backend on Hytale cannot encode Java records.
+- A player's command on Hytale reaches FinalCMD as that player: the server dispatches it with the `PlayerRef` as the
+  sender (chat and `sudo`), which the core used to take for the console, refusing every player-only verb.
 - The release workflow skips this `[Unreleased]` entry: only the newest versioned entry is published.
 
 ### Removed

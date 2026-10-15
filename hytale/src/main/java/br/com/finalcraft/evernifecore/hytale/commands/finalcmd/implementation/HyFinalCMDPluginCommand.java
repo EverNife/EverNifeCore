@@ -1,12 +1,9 @@
 package br.com.finalcraft.evernifecore.hytale.commands.finalcmd.implementation;
 
-import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDPluginCommand;
 import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.IPlatformCMD;
-import br.com.finalcraft.evernifecore.hytale.api.HytaleFCommandSender;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import com.hypixel.hytale.server.core.command.system.*;
-import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import jakarta.annotation.Nonnull;
 
@@ -40,26 +37,22 @@ public class HyFinalCMDPluginCommand extends AbstractCommand implements IPlatfor
 
     @Override
     public @org.jspecify.annotations.Nullable CompletableFuture<Void> acceptCall(@Nonnull CommandSender sender, @Nonnull ParserContext parserContext, @Nonnull ParseResult parseResult) {
-        String[] inputStrings = parserContext.getInputString().split(" ");
+        if (!getJavaPlugin().isEnabled()) {
+            throw new RuntimeException("Cannot execute command '" + parserContext.getInputString().split(" ")[0] + "' in plugin " + getJavaPlugin().getName() + " - plugin is disabled.");
+        }
+        dispatch(sender, parserContext.getInputString());
+        return CompletableFuture.completedFuture(null);
+    }
+
+    void dispatch(@Nonnull CommandSender sender, String inputString) {
+        String[] inputStrings = inputString.split(" ");
         String commandLabel = inputStrings[0];
         String[] args = Arrays.copyOfRange(inputStrings, 1, inputStrings.length);
 
-        if (!getJavaPlugin().isEnabled()) {
-            throw new RuntimeException("Cannot execute command '" + commandLabel + "' in plugin " + getJavaPlugin().getName() + " - plugin is disabled.");
-        }
-
         try {
-            final FCommandSender fCommandSender;
-            if (sender instanceof Player player){
-                fCommandSender = FCHytaleUtil.adapt(player);
-            }else {
-                fCommandSender = HytaleFCommandSender.of(sender);
-            }
-
-            finalCMDPluginCommand.getExecutor().onCommand(fCommandSender, commandLabel, args);
-            return CompletableFuture.completedFuture(null);
+            finalCMDPluginCommand.getExecutor().onCommand(FCHytaleUtil.adapt(sender), commandLabel, args);
         } catch (Throwable ex) {
-            throw new RuntimeException("Unhandled exception executing command '" + commandLabel + "' in plugin " + getJavaPlugin().getName(), ex);
+            throw new RuntimeException("Unhandled exception executing command '" + commandLabel + "' in plugin " + finalCMDPluginCommand.getOwningPlugin().getMetaInfo().getName(), ex);
         }
     }
 

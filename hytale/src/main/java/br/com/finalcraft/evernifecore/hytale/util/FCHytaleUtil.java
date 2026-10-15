@@ -131,7 +131,8 @@ public class FCHytaleUtil {
     }
 
     public static FCommandSender adapt(CommandSender commandSender){
-        return HytaleFCommandSender.of(commandSender);
+        //a player's command (chat or sudo) arrives with the PlayerRef as its sender
+        return commandSender instanceof PlayerRef playerRef ? adapt(playerRef) : HytaleFCommandSender.of(commandSender);
     }
 
     public static FCommandSender getConsoleSender(){
