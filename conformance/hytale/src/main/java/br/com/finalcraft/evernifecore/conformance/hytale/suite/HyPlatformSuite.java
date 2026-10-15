@@ -114,8 +114,9 @@ public final class HyPlatformSuite implements ConformanceSuite {
     }
 
     /**
-     * Runs the player-only {@code /ecc whoami} as {@code player} through the server's {@code sudo}. The player gets the
-     * command's permissions (never op: op bypasses the regions the next suite measures) only while the case runs.
+     * Runs the player-only {@code /ecc whoami} as {@code player} through the server's {@code sudo}. The player gets only
+     * the {@code @FinalCMD} permission (never op: op bypasses the regions the next suite measures) while the case runs;
+     * the node the server would generate for the command is never granted, so it must not be asked.
      */
     private CompletableFuture<Verdict> playerVerbBySudo(FPlayer player) {
         String token = UUID.randomUUID().toString().substring(0, 8);
@@ -124,8 +125,9 @@ public final class HyPlatformSuite implements ConformanceSuite {
         Set<String> grant = new HashSet<>();
         grant.add("evernifecore.conformance");
         AbstractCommand ecc = CommandManager.get().getCommandRegistration().get("ecc");
-        if (ecc != null && ecc.getPermission() != null) {
-            grant.add(ecc.getPermission());
+        if (ecc == null || ecc.getPermission() != null) {
+            return CompletableFuture.completedFuture(Verdict.of(false, "the server asks its own node of /ecc too ("
+                    + (ecc == null ? "no /ecc registered" : ecc.getPermission()) + "), which nobody is ever granted"));
         }
         PermissionsModule.get().addUserPermission(player.getUniqueId(), grant);
         CommandManager.get().handleCommand(ConsoleSender.INSTANCE, "sudo " + player.getName() + " ecc whoami " + token);

@@ -55,6 +55,8 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   border tracking by a per-tick player system (`HyRegionMoveSystem`), the selection tool (`HySelectionItems`), outline
   particles and spawn denial. Hytale has no explosion event, so `deny-explosion` has no effect there.
 - Hytale registers every `@FinalCMD` label after the first as a command alias.
+- Hytale no longer asks the permission node the server generates for a `@FinalCMD` command
+  (`<group>.command.<label>`): a player needs only the command's own `@FinalCMD` permission.
 - **Region terrain** (`region.terrain`): the `track-changes` core flag keeps the original state of every position
   changed inside a region (the first change wins), in memory or on disk (`TrackChangesSettings`: `persistence`,
   `blocks`, `nbt`, `entities`), and `RegionManager.getTerrain().restoreJournal(region, blocksPerTick)` puts it back on

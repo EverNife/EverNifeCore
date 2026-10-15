@@ -18,6 +18,8 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HyFinalCMDPluginCommandTest {
 
@@ -69,5 +71,15 @@ class HyFinalCMDPluginCommandTest {
 
         assertNotNull(executor.caller, "a player-only command refused the PlayerRef sender as if it were the console");
         assertEquals(playerRef.getUuid(), executor.caller.getUniqueId());
+    }
+
+    @Test
+    void theServerAsksNoGeneratedPermissionNodeOnlyTheFinalCmdOne() {
+        harness = new FinalCmdTestHarness("HyNoNode", tempDir);
+        HyFinalCMDPluginCommand hytaleCommand = new HyFinalCMDPluginCommand(harness.register(new PlayerOnly()), new CommandManager());
+        PlayerRef playerRef = new PlayerRef(null, UUID.randomUUID(), "Alex", "en_us", null, null);
+
+        assertNull(hytaleCommand.getPermission(), "the server would also demand its own node: " + hytaleCommand.getPermission());
+        assertTrue(hytaleCommand.hasPermission(playerRef), "a player with no node at all passes the server's gate");
     }
 }

@@ -26,6 +26,8 @@ public class HyFinalCMDPluginCommand extends AbstractCommand implements IPlatfor
         super(finalCMDPluginCommand.getPrimaryLabel(), null);
         //the server only keeps the aliases it is told about before registration
         this.addAliases(finalCMDPluginCommand.getExtraLabels());
+        //the @FinalCMD permission is checked by the core; the node the server would generate is one more nobody grants
+        this.requireNoPermission();
         this.finalCMDPluginCommand = finalCMDPluginCommand;
         this.setOwner(owner);
     }
