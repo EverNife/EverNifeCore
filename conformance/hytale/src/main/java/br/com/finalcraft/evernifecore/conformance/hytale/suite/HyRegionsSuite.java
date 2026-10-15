@@ -102,7 +102,9 @@ public final class HyRegionsSuite implements ConformanceSuite {
                 withPlayer("deny-message-per-hit", ctx, this::denyMessagePerHit),
                 withPlayer("wand-closes-a-shape", ctx, this::wandClosesAShape),
                 withPlayer("denied-spawn-never-ticks", ctx, this::deniedSpawnNeverTicks),
-                withPlayer("outline-is-sent", ctx, this::outlineIsSent));
+                withPlayer("outline-is-sent", ctx, this::outlineIsSent),
+                withPlayer("terrain-journal-restores", ctx, this::terrainJournalRestores),
+                withPlayer("terrain-prefab-restores", ctx, this::terrainPrefabRestores));
     }
 
     /** A case that needs the run's player; skipped without one, failed past {@link #TIMEOUT_SECONDS}. */
@@ -242,6 +244,76 @@ public final class HyRegionsSuite implements ConformanceSuite {
                         return Verdict.of(west == 50 && east < 50, "insideKept=" + west + "/50 outsideKept=" + east + "/50");
                     }))));
         });
+    }
+
+    /**
+     * Three rock blocks in a {@code track-changes} region, each hit by a break the server's Systems hear and then
+     * cleared as the break would; the journal, restored two blocks a tick, puts all three back.
+     */
+    private CompletableFuture<Verdict> terrainJournalRestores(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
+            Vector3i c = block(at, 6, 4, 0);
+            return HyWorld.chunksLoaded(world, c.x - 1, c.z - 1, c.x + 3, c.z + 1).thenCompose(loaded -> HyWorld.on(world, () -> {
+                for (int x = 0; x < 3; x++) HyWorld.setBlock(world, c.x + x, c.y, c.z, SOLID);
+                return null;
+            })).thenCompose(built -> inRegion(regions, "ecc-journal", world.getName(), pos(c).add(-1, -1, -1), pos(c).add(3, 1, 1),
+                    region -> region.getManager().getTerrain().track(region),
+                    region -> HyWorld.on(world, () -> {
+                        for (int x = 0; x < 3; x++) {
+                            Vector3i at3 = new Vector3i(c.x + x, c.y, c.z);
+                            breakCancelled(player.getReference(), world, at3);
+                            HyWorld.setBlock(world, at3.x, at3.y, at3.z, BlockType.EMPTY_KEY);
+                        }
+                        return region.getManager().getTerrain().getJournalSize(region);
+                    }).thenCompose(recorded -> region.getManager().getTerrain().restoreJournal(region, 2)
+                            .thenCompose(restored -> HyWorld.on(world, () -> {
+                                int back = 0;
+                                for (int x = 0; x < 3; x++) {
+                                    back += SOLID.equals(BlockType.getAssetMap().getAsset(HyWorld.blockId(world, c.x + x, c.y, c.z)).getId()) ? 1 : 0;
+                                    HyWorld.setBlock(world, c.x + x, c.y, c.z, BlockType.EMPTY_KEY);
+                                }
+                                return Verdict.of(recorded == 3 && back == 3, "recorded=" + recorded + " restored=" + restored + " back=" + back + "/3");
+                            })))));
+        });
+    }
+
+    /** A hollow 3x3x3 rock cube saved as a prefab, cleared, and put back ten blocks a tick from the prefab file. */
+    private CompletableFuture<Verdict> terrainPrefabRestores(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
+            Vector3i c = block(at, 6, 8, 0);
+            return HyWorld.chunksLoaded(world, c.x - 1, c.z - 1, c.x + 1, c.z + 1).thenCompose(loaded -> HyWorld.on(world, () -> {
+                cube(world, c, SOLID);
+                return null;
+            })).thenCompose(built -> inRegion(regions, "ecc-prefab", world.getName(), pos(c).add(-1, -1, -1), pos(c).add(1, 1, 1),
+                    region -> { },
+                    region -> region.getManager().getTerrain().snapshot(region)
+                            .thenCompose(file -> HyWorld.on(world, () -> {
+                                cube(world, c, BlockType.EMPTY_KEY);
+                                return file;
+                            }))
+                            .thenCompose(file -> region.getManager().getTerrain().restoreSnapshot(region, 0, 10)
+                                    .thenCompose(placed -> HyWorld.on(world, () -> {
+                                        int back = 0;
+                                        for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++) for (int z = -1; z <= 1; z++) {
+                                            int id = HyWorld.blockId(world, c.x + x, c.y + y, c.z + z);
+                                            back += id > 0 && SOLID.equals(BlockType.getAssetMap().getAsset(id).getId()) ? 1 : 0;
+                                        }
+                                        cube(world, c, BlockType.EMPTY_KEY);
+                                        return Verdict.of(back == 26 && file.getName().endsWith(".prefab.json"),
+                                                "file=" + file.getName() + " back=" + back + "/26");
+                                    })))));
+        });
+    }
+
+    /** A 3x3x3 cube of {@code block} around {@code c}, its center left empty. */
+    private static void cube(World world, Vector3i c, String block) {
+        for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++) for (int z = -1; z <= 1; z++) {
+            HyWorld.setBlock(world, c.x + x, c.y + y, c.z + z, x == 0 && y == 0 && z == 0 ? BlockType.EMPTY_KEY : block);
+        }
     }
 
     /** The config of the game's generic explosion asset, which keeps it in a field with no getter. */
