@@ -114,9 +114,9 @@ public final class HyRegionSystems {
         registry.registerSystem(new InteractionStartSystem());
         registry.registerSystem(new DamageSystem());
         registry.registerSystem(new SpawnSystem());
-        registry.registerSystem(new TerrainSystem<>(BreakBlockEvent.class, BreakSystem.class, EventSource.BREAK, BreakBlockEvent::getTargetBlock));
-        registry.registerSystem(new TerrainSystem<>(DamageBlockEvent.class, DamageBlockSystem.class, EventSource.BREAK, DamageBlockEvent::getTargetBlock));
-        registry.registerSystem(new TerrainSystem<>(PlaceBlockEvent.class, PlaceSystem.class, EventSource.PLACE, PlaceBlockEvent::getTargetBlock));
+        registry.registerSystem(new TerrainBreakSystem());
+        registry.registerSystem(new TerrainDamageSystem());
+        registry.registerSystem(new TerrainPlaceSystem());
         registry.registerSystem(new TerrainExplosionSystem());
         return true;
     }
@@ -280,8 +280,9 @@ public final class HyRegionSystems {
     /**
      * Feeds the {@code track-changes} journals ({@link RegionTerrain}) after the System that decides {@code type} ran, and
      * only while nobody cancelled the event: the block is still the original here, the change comes after the event.
+     * One subclass per event: the server takes each System class once.
      */
-    private static final class TerrainSystem<E extends EcsEvent & ICancellableEcsEvent> extends ByActor<E> {
+    private abstract static class TerrainSystem<E extends EcsEvent & ICancellableEcsEvent> extends ByActor<E> {
         private final Class<? extends ISystem<EntityStore>> decider;
         private final EventSource source;
         private final Function<E, Vector3i> target;
@@ -301,6 +302,24 @@ public final class HyRegionSystems {
         @Override
         public void handle(int index, ArchetypeChunk<EntityStore> chunk, Store<EntityStore> store, CommandBuffer<EntityStore> buffer, E event) {
             record(source, worldOf(store), event, target.apply(event));
+        }
+    }
+
+    private static final class TerrainBreakSystem extends TerrainSystem<BreakBlockEvent> {
+        TerrainBreakSystem() {
+            super(BreakBlockEvent.class, BreakSystem.class, EventSource.BREAK, BreakBlockEvent::getTargetBlock);
+        }
+    }
+
+    private static final class TerrainDamageSystem extends TerrainSystem<DamageBlockEvent> {
+        TerrainDamageSystem() {
+            super(DamageBlockEvent.class, DamageBlockSystem.class, EventSource.BREAK, DamageBlockEvent::getTargetBlock);
+        }
+    }
+
+    private static final class TerrainPlaceSystem extends TerrainSystem<PlaceBlockEvent> {
+        TerrainPlaceSystem() {
+            super(PlaceBlockEvent.class, PlaceSystem.class, EventSource.PLACE, PlaceBlockEvent::getTargetBlock);
         }
     }
 
