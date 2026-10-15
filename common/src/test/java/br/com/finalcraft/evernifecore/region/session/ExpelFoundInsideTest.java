@@ -11,6 +11,8 @@ import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryMessage;
+import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryWithMessageFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyExitFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.EntryDenySettings;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
@@ -23,7 +25,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** A player found inside a {@code deny-entry} region without crossing its border: left there, or sent out. */
+/** A player found inside a {@code deny-entry} (or {@code deny-entry-with-message}) region without crossing its border: left there, or sent out. */
 class ExpelFoundInsideTest extends TrackerFixture {
 
     private static final WorldLocPos OUTSIDE = WorldLocPos.of(50.5, 5, 5.5, WORLD);
@@ -84,6 +86,19 @@ class ExpelFoundInsideTest extends TrackerFixture {
         try (ECoreTestWorld ignored = Platforms.lenient().worldSpawn(WORLD, WorldLocPos.of(7, 70, 7, WORLD)).install().withSpawn(() -> lobby)) {
             assertEquals(lobby, tracker.onJoin(player, at(5.5)).getRevertTo());
         }
+    }
+
+    @Test
+    void denyEntryWithMessageExpelsLikeDenyEntry() {
+        DenyEntryWithMessageFlag withMessage = registered(new DenyEntryWithMessageFlag());
+        Region arena = region("arena", 0, 10);
+        arena.setFlag(withMessage, new DenyEntryMessage(Tristate.TRUE, "Boss fight in progress"));
+        arena.editFlagSettings(withMessage, (EntryDenySettings settings) -> {
+            settings.setExpelFoundInside(true);
+            settings.setRevert(RevertStrategy.parse("fixed:50.5,5,5.5"));
+        });
+
+        assertEquals(OUTSIDE, tracker.onJoin(player, at(5.5)).getRevertTo());
     }
 
     @Test

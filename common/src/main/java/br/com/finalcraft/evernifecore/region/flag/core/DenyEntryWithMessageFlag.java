@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
+import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.flag.FlagTypes;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
@@ -41,6 +42,21 @@ public final class DenyEntryWithMessageFlag extends RegionFlag<DenyEntryMessage>
     public Decision decide(ActionContext context, DenyEntryMessage value) {
         return value.getDenied() == Tristate.TRUE && DenyFlag.crossing(context, MoveContext.Transition.ENTER, null)
                 ? Decision.DENY : Decision.PASS;
+    }
+
+    /** As {@code deny-entry}: the actor filter of the {@link DenySettings} runs before the value denies. */
+    @Override
+    public Decision decide(ActionContext context, DenyEntryMessage value, FlagSettings settings) {
+        if (decide(context, value) != Decision.DENY) {
+            return Decision.PASS;
+        }
+        return settings instanceof DenySettings && !((DenySettings) settings).covers(context.getActor()) ? Decision.PASS : Decision.DENY;
+    }
+
+    /** The settings of {@code deny-entry}: where a denied player goes back to, the stuck fallback, and expelling one found inside. */
+    @Override
+    public Class<? extends FlagSettings> getSettingsType() {
+        return EntryDenySettings.class;
     }
 
     @Override

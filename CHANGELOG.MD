@@ -42,7 +42,8 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   server only while its source is needed. A plugin's sources and usage watches leave on its shutdown.
 - **`deny-entry` setting `expelFoundInside`** (`EntryDenySettings`, default `false`): a denied player found inside
   without crossing the border - logged in there, or the region appeared or changed around them - is sent out.
-  `MoveCause.REGION_CHANGED` names that move.
+  `MoveCause.REGION_CHANGED` names that move. `deny-entry-with-message` takes the same `EntryDenySettings` - revert,
+  stuck fallback, actor filter and `expelFoundInside` - as `deny-entry`.
 - **`DenyFlag` tells the denied player the region's `deny-message`.**
 - `Region.editFlagSettings(flag, edit)` edits a region's own copy of a flag's settings, leaving the server's alone.
 - `RegionFlag.getDefaultTriggerInterval()` and the `onApplied(context, value, settings)` overload.
