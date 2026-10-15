@@ -104,19 +104,10 @@ public final class HyWorld {
         return store.getComponent(ref, Teleport.getComponentType()) != null;
     }
 
-    /**
-     * Answers for the client a teleport the server is waiting on, as a real client's acknowledgement does: the synthetic
-     * player has no client, so without this every teleport stays pending on him forever. On his world's thread.
-     *
-     * @return whether one was pending
-     */
-    public static boolean acknowledgeTeleport(PlayerRef player) {
+    /** Whether the server is still waiting on the client to acknowledge a teleport of {@code player}; on his world's thread. */
+    public static boolean isTeleportPending(PlayerRef player) {
         Ref<EntityStore> ref = player.getReference();
-        if (ref.getStore().getComponent(ref, PendingTeleport.getComponentType()) == null) {
-            return false;
-        }
-        ref.getStore().removeComponent(ref, PendingTeleport.getComponentType());
-        return true;
+        return ref.getStore().getComponent(ref, PendingTeleport.getComponentType()) != null;
     }
 
     /** The block id at a position, or -1 when its chunk section is not loaded; on the world's thread. */

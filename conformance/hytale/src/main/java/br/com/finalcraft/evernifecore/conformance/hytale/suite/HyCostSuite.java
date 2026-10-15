@@ -77,8 +77,7 @@ public final class HyCostSuite implements ConformanceSuite {
     private CompletableFuture<Verdict> moveSystemPerTick(FPlayer fplayer) {
         PlayerRef player = HyWorld.player(fplayer);
         World world = HyWorld.worldOf(player);
-        //a teleport left pending would keep the System off him: answered first, as his client would
-        return HyWorld.on(world, () -> HyWorld.acknowledgeTeleport(player)).thenCompose(acked -> sample(world)).thenCompose(idle -> {
+        return sample(world).thenCompose(idle -> {
             CreationResult created = regions.create("ecc-move-cost", world.getName(), CuboidShape.of(BlockPos.of(5000, 0, 5000), BlockPos.of(5010, 200, 5010)));
             Region region = created.getRegion();
             if (region == null) {

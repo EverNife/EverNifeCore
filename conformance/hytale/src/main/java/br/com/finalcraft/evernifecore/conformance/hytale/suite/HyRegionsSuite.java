@@ -255,21 +255,22 @@ public final class HyRegionsSuite implements ConformanceSuite {
                 region.setFlag(CoreFlags.DENY_ENTRY, Tristate.TRUE);
                 region.setFlag(CoreFlags.DENY_MESSAGE, ENTRY_MESSAGE);
             }, region -> {
+                //the client answers every teleport; one still pending would keep the move System off the player
                 boolean[] pendingAtStart = new boolean[1];
-                return HyWorld.on(world, () -> pendingAtStart[0] = HyWorld.acknowledgeTeleport(player))
-                        .thenCompose(acked -> HyWorld.ticks(world, 3))   //the move System seeds the player on the first tick MOVE is needed
+                return HyWorld.on(world, () -> pendingAtStart[0] = HyWorld.isTeleportPending(player))
+                        .thenCompose(read -> HyWorld.ticks(world, 3))   //the move System seeds the player on the first tick MOVE is needed
                         .thenCompose(seeded -> HyWorld.on(world, () -> {
                             HyWorld.teleport(player, world, new Vector3d(center.x + 0.5, start.y, center.z + 0.5));
                             return null;
                         }))
                         .thenCompose(sent -> HyWorld.ticks(world, 3))
-                        .thenCompose(landed -> HyWorld.on(world, () -> HyWorld.acknowledgeTeleport(player)))
-                        .thenCompose(acked -> HyWorld.ticks(world, 10).thenCompose(waited -> HyWorld.on(world, () -> {
+                        .thenCompose(landed -> HyWorld.on(world, () -> HyWorld.isTeleportPending(player)))
+                        .thenCompose(pendingAfterMove -> HyWorld.ticks(world, 10).thenCompose(waited -> HyWorld.on(world, () -> {
                             Vector3d now = HyWorld.position(player);
                             boolean inside = region.getShape().contains(now.x, now.y, now.z);
-                            HyWorld.acknowledgeTeleport(player);   //the revert's own
-                            return Verdict.of(acked && !inside, "sentTo=" + center + " standsAt=" + fmt(now) + " insideAfter=" + inside
-                                    + " start=" + fmt(start) + " pendingAtStart=" + pendingAtStart[0] + " teleportAcknowledged=" + acked
+                            return Verdict.of(!pendingAtStart[0] && !pendingAfterMove && !inside, "sentTo=" + center + " standsAt=" + fmt(now)
+                                    + " insideAfter=" + inside + " start=" + fmt(start) + " pendingAtStart=" + pendingAtStart[0]
+                                    + " pendingAfterMove=" + pendingAfterMove
                                     + " message='" + ENTRY_MESSAGE + "'");
                         })));
             });
