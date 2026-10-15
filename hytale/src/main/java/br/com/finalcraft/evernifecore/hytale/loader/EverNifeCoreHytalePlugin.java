@@ -91,7 +91,7 @@ public class EverNifeCoreHytalePlugin extends ECHytalePlugin {
         });
 
         //still inside setup(): the only moment the server takes a System
-        HyRegionSystems.register(getEntityStoreRegistry());
+        HyRegionSystems.register(this);
 
         if (PAPIIntegration.isPresent()){
 //            ECCorePAPIPlaceholders.initialize(ecPluginData);

@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.region;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.actor.Actor;
 import br.com.finalcraft.evernifecore.region.actor.TypeKey;
@@ -10,6 +11,7 @@ import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.context.BlockContext;
 import br.com.finalcraft.evernifecore.region.flag.context.DamageContext;
 import br.com.finalcraft.evernifecore.region.flag.context.EntityContext;
+import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import com.hypixel.hytale.component.Archetype;
 import com.hypixel.hytale.component.ArchetypeChunk;
@@ -34,6 +36,7 @@ import com.hypixel.hytale.server.core.event.events.ecs.DamageBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.PlaceBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.UseBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.UseEntityEvent;
+import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
@@ -41,6 +44,7 @@ import com.hypixel.hytale.server.core.modules.entity.damage.DamageCause;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageEventSystem;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageModule;
 import com.hypixel.hytale.server.core.modules.interaction.event.InteractionChainStartEvent;
+import com.hypixel.hytale.server.core.plugin.PluginBase;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import jakarta.annotation.Nullable;
 import org.joml.Vector3d;
@@ -50,8 +54,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
- * The region protection on Hytale: one ECS System per kind of game event, registered once while the core sets up -
- * the server takes Systems only then - and always on the server. What switches a System on and off is
+ * The region protection on Hytale: one ECS System per kind of game event, plus the tick that follows region borders
+ * ({@link HyRegionMoveSystem}), registered once while the core sets up - the server takes Systems only then - and
+ * always on the server. What switches a System on and off is
  * {@link EventSourceUsage}: every handle first asks whether some region needs its source, and while none does it
  * returns before building anything. A denial cancels the event; the deny message is the flag's to send.
  *
@@ -62,15 +67,23 @@ import java.util.function.Supplier;
 public final class HyRegionSystems {
 
     private static final AtomicBoolean REGISTERED = new AtomicBoolean();
+    static final HyRegionMoveSystem MOVE = new HyRegionMoveSystem(RegionMovementTracker::get);
 
     private HyRegionSystems() {
     }
 
-    /** Puts every region System on {@code registry}; true the first time, false after - the server refuses a System class twice. */
-    public static boolean register(ComponentRegistryProxy<EntityStore> registry) {
+    /**
+     * Puts every region System on {@code plugin}'s entity store, and the disconnect that ends a player's movement
+     * session on its events; true the first time, false after - the server refuses a System class twice.
+     */
+    public static boolean register(PluginBase plugin) {
         if (!REGISTERED.compareAndSet(false, true)) {
             return false;
         }
+        plugin.getEventRegistry().registerGlobal(PlayerDisconnectEvent.class,
+                event -> MOVE.quit(event.getPlayerRef().getUuid(), () -> FCHytaleUtil.adapt(event.getPlayerRef())));
+        ComponentRegistryProxy<EntityStore> registry = plugin.getEntityStoreRegistry();
+        registry.registerSystem(MOVE);
         registry.registerSystem(new BreakSystem());
         registry.registerSystem(new DamageBlockSystem());
         registry.registerSystem(new ExplosionBlockSystem());

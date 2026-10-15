@@ -113,7 +113,8 @@ public final class RegionMovementTracker {
     /**
      * The player moves from {@code from} to {@code to}. Thread: the player's world; never blocks.
      *
-     * @param nativeEvent the platform's move event, handed to each {@link MoveContext} and crossing event; null for none
+     * @param nativeEvent the platform's move event, handed to each {@link MoveContext} and crossing event; null for none -
+     *                    always on Hytale, whose moves are read on a tick, not fired as an event
      * @return {@link MoveVerdict#allowed()}, or where to put the player instead - then nothing changed
      */
     public MoveVerdict onMove(FPlayer player, WorldLocPos from, WorldLocPos to, MoveCause cause, @Nullable Object nativeEvent) {
