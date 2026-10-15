@@ -4,10 +4,9 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.selection.ItemSpec;
+import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import jakarta.annotation.Nullable;
-import org.bson.BsonBoolean;
-import org.bson.BsonDocument;
 
 import java.util.Collections;
 
@@ -30,7 +29,8 @@ public final class HySelectionItems implements ISelectionItems {
 
     static ItemStack tool(ItemSpec spec) {
         ItemStack item = spec.getNativeItem() != null ? spec.getNativeItem().getItemStack() : new ItemStack(itemIdOf(spec.getMaterialId()));
-        return item.withMetadata(MARK, BsonBoolean.TRUE);   //a new stack: the plugin's own item stays as it was
+        //through the server's own codec, never a BsonValue: the deployed jar relocates org.bson, the server does not
+        return item.withMetadata(MARK, Codec.BOOLEAN, Boolean.TRUE);   //a new stack: the plugin's own item stays as it was
     }
 
     static String itemIdOf(String materialId) {
@@ -43,7 +43,6 @@ public final class HySelectionItems implements ISelectionItems {
         if (ItemStack.isEmpty(item)) {
             return false;
         }
-        BsonDocument metadata = item.getMetadata();
-        return metadata != null && metadata.getBoolean(MARK, BsonBoolean.FALSE).getValue();
+        return Boolean.TRUE.equals(item.getFromMetadataOrNull(MARK, Codec.BOOLEAN));
     }
 }
