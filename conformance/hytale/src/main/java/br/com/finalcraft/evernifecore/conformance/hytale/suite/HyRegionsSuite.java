@@ -7,6 +7,8 @@ import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
 import br.com.finalcraft.evernifecore.conformance.hytale.HyWorld;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.hytale.region.HySelectionItems;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
@@ -14,10 +16,14 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.CreationResult;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionManager;
+import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
+import br.com.finalcraft.evernifecore.region.flag.core.EntryDenySettings;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSpec;
+import br.com.finalcraft.evernifecore.region.session.MoveCause;
+import br.com.finalcraft.evernifecore.region.session.RevertStrategy;
 import br.com.finalcraft.evernifecore.region.selection.SelectionTool;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
@@ -92,6 +98,7 @@ public final class HyRegionsSuite implements ConformanceSuite {
                 withPlayer("break-by-npc", ctx, this::breakByNpc),
                 withPlayer("explosion-keeps-inside", ctx, this::explosionKeepsInside),
                 withPlayer("deny-entry-reverts", ctx, this::denyEntryReverts),
+                withPlayer("expel-found-inside", ctx, this::expelFoundInside),
                 withPlayer("deny-message-per-hit", ctx, this::denyMessagePerHit),
                 withPlayer("wand-closes-a-shape", ctx, this::wandClosesAShape),
                 withPlayer("denied-spawn-never-ticks", ctx, this::deniedSpawnNeverTicks),
@@ -274,6 +281,44 @@ public final class HyRegionsSuite implements ConformanceSuite {
                                     + " message='" + ENTRY_MESSAGE + "'");
                         })));
             });
+        });
+    }
+
+    /**
+     * A region that starts denying entry around the standing player, with {@code expelFoundInside}, sends them to its
+     * fixed point; the player is put back where the case found them once the region is gone.
+     */
+    private CompletableFuture<Verdict> expelFoundInside(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(start -> {
+            Vector3i here = block(start, 0, 0, 0);
+            Vector3d target = new Vector3d(here.x + 8.5, start.y, here.z + 0.5);
+            Region[] expelling = new Region[1];
+            MoveCause[] cause = new MoveCause[1];
+            ECEventSubscription<RegionLeaveEvent> leaves = ECEventBus.global().subscribe(RegionLeaveEvent.class, leave -> {
+                if (leave.getRegion() == expelling[0]) {
+                    cause[0] = leave.getCause();
+                }
+            });
+            return inRegion(regions, "ecc-expel", world.getName(), pos(here).add(-2, -3, -2), pos(here).add(2, 4, 2), region -> {
+                expelling[0] = region;
+                EntryDenySettings settings = new EntryDenySettings();
+                settings.setExpelFoundInside(true);
+                settings.setRevert(RevertStrategy.fixed(WorldLocPos.of(target.x, target.y, target.z, world.getName())));
+                region.setFlagSettings(CoreFlags.DENY_ENTRY, settings);
+                region.setFlag(CoreFlags.DENY_ENTRY, Tristate.TRUE);
+            }, region -> HyWorld.ticks(world, 30).thenCompose(waited -> HyWorld.on(world, () -> {
+                Vector3d now = HyWorld.position(player);
+                boolean inside = region.getShape().contains(now.x, now.y, now.z);
+                boolean atTarget = Math.abs(now.x - target.x) < 1 && Math.abs(now.z - target.z) < 1;
+                boolean pending = HyWorld.isTeleportPending(player);
+                return Verdict.of(!inside && atTarget && !pending, "start=" + fmt(start) + " target=" + fmt(target) + " standsAt=" + fmt(now)
+                        + " insideAfter=" + inside + " pendingAfter=" + pending + " leaveCause=" + cause[0]);
+            }))).whenComplete((verdict, failed) -> leaves.unsubscribe()).thenCompose(verdict -> HyWorld.on(world, () -> {
+                HyWorld.teleport(player, world, start);
+                return verdict;
+            })).thenCompose(verdict -> HyWorld.ticks(world, 10).thenApply(back -> verdict));
         });
     }
 

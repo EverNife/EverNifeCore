@@ -5,6 +5,8 @@ import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
@@ -15,6 +17,7 @@ import br.com.finalcraft.evernifecore.region.CreationResult;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionManager;
+import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
@@ -25,6 +28,9 @@ import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.context.FluidContext;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.EntryDenySettings;
+import br.com.finalcraft.evernifecore.region.session.MoveCause;
+import br.com.finalcraft.evernifecore.region.session.RevertStrategy;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.region.usage.UsageWatch;
@@ -56,9 +62,10 @@ import java.util.concurrent.CompletableFuture;
 /**
  * The region system on a live server: the core's flags registered under the real EverNifeCore, a plugin's own event
  * source putting its listener on the server only while a region needs it, a break inside a denying region cancelled,
- * a real TNT held whole by {@code deny-explosion} and cut at a {@code deny-block-break} border, the registry's own block
- * and entity keys, outside water kept out by a FLUID flag, and a region's {@code deny-message} and own flag settings read back after a restart. Every region a case creates is
- * removed by it, except the one the write half leaves for the read half.
+ * a bot found inside a region that starts denying entry sent out, a real TNT held whole by {@code deny-explosion} and
+ * cut at a {@code deny-block-break} border, the registry's own block and entity keys, outside water kept out by a FLUID
+ * flag, and a region's {@code deny-message} and own flag settings read back after a restart. Every region a case
+ * creates is removed by it, except the one the write half leaves for the read half.
  */
 public final class RegionsSuite implements ConformanceSuite {
 
@@ -74,6 +81,10 @@ public final class RegionsSuite implements ConformanceSuite {
     /** The two nodes {@code RegionLookup} reads as a bypass; the bot is OP, and OP holds every undeclared node. */
     private static final List<String> BYPASS_NODES = Arrays.asList("evernifecore.region.bypass.*",
             "evernifecore.region.bypass.evernifecore.deny-block-break");
+
+    /** The two nodes {@code RegionLookup} reads as a bypass of {@code deny-entry}. */
+    private static final List<String> ENTRY_BYPASS_NODES = Arrays.asList("evernifecore.region.bypass.*",
+            "evernifecore.region.bypass.evernifecore.deny-entry");
 
     private final RegionManager regions;
     private final CompletableFuture<Void> loaded;
@@ -98,6 +109,7 @@ public final class RegionsSuite implements ConformanceSuite {
                 ConformanceCase.of("core-flags-registered", this::coreFlagsRegistered),
                 ConformanceCase.later("plugin-source-follows-need", this::pluginSourceFollowsNeed),
                 PlayerCases.later("deny-break-is-cancelled", ctx, this::denyBreakIsCancelled),
+                PlayerCases.later("expel-found-inside", ctx, this::expelFoundInside),
                 PlayerCases.later("deny-explosion-keeps-every-block", ctx, this::denyExplosionKeepsEveryBlock),
                 PlayerCases.later("explosion-on-a-border", ctx, this::explosionOnABorder),
                 ConformanceCase.of("block-key-is-the-registrys", this::blockKeyIsTheRegistrys),
@@ -211,6 +223,62 @@ public final class RegionsSuite implements ConformanceSuite {
                 regions.remove(region);
             }
         }, 2L);
+        return PlayerCases.within(answer, TIMEOUT_MILLIS);
+    }
+
+    /**
+     * A region that starts denying entry around the standing bot, with {@code expelFoundInside}, sends it to its fixed
+     * point; the bot goes back where the case found it once the region is gone.
+     */
+    private CompletableFuture<Verdict> expelFoundInside(Player player) {
+        Location start = player.getLocation();
+        World world = player.getWorld();
+        int x = start.getBlockX(), y = start.getBlockY(), z = start.getBlockZ();
+        int tx = x + 12;
+        Location target = new Location(world, tx + 0.5, world.getHighestBlockYAt(tx, z), z + 0.5);
+        PermissionAttachment noBypass = player.addAttachment(plugin());
+        ENTRY_BYPASS_NODES.forEach(node -> noBypass.setPermission(node, false));
+        Region[] expelling = new Region[1];
+        MoveCause[] cause = new MoveCause[1];
+        ECEventSubscription<RegionLeaveEvent> leaves = ECEventBus.global().subscribe(RegionLeaveEvent.class, leave -> {
+            if (leave.getRegion() == expelling[0]) {
+                cause[0] = leave.getCause();
+            }
+        });
+        CreationResult created = regions.create("ecc-expel", world.getName(), CuboidShape.of(BlockPos.of(x - 2, y - 2, z - 2), BlockPos.of(x + 2, y + 3, z + 2)));
+        Region region = created.getRegion();
+        if (region == null) {
+            leaves.unsubscribe();
+            player.removeAttachment(noBypass);
+            return CompletableFuture.completedFuture(Verdict.fail("ecc-expel refused: " + created.getRefusal()));
+        }
+        expelling[0] = region;
+        CompletableFuture<Verdict> answer = new CompletableFuture<>();
+        try {
+            EntryDenySettings settings = new EntryDenySettings();
+            settings.setExpelFoundInside(true);
+            settings.setRevert(RevertStrategy.fixed(WorldLocPos.of(target.getX(), target.getY(), target.getZ(), world.getName())));
+            region.setFlagSettings(CoreFlags.DENY_ENTRY, settings);
+            region.setFlag(CoreFlags.DENY_ENTRY, Tristate.TRUE);
+        } catch (Throwable thrown) {
+            answer.complete(Verdict.fail(Verdict.describe(thrown)));
+        }
+        Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+            try {
+                Location now = player.getLocation();
+                boolean inside = region.getShape().contains(now.getX(), now.getY(), now.getZ());
+                boolean atTarget = Math.abs(now.getX() - target.getX()) < 1 && Math.abs(now.getZ() - target.getZ()) < 1;
+                answer.complete(Verdict.of(!inside && atTarget, "start=" + x + "," + y + "," + z + " target=" + tx + "," + target.getBlockY() + "," + z
+                        + " standsAt=" + now.getBlockX() + "," + now.getBlockY() + "," + now.getBlockZ() + " insideAfter=" + inside + " leaveCause=" + cause[0]));
+            } catch (Throwable thrown) {
+                answer.complete(Verdict.fail(Verdict.describe(thrown)));
+            } finally {
+                leaves.unsubscribe();
+                regions.remove(region);
+                player.removeAttachment(noBypass);
+                player.teleport(start);
+            }
+        }, 10L);
         return PlayerCases.within(answer, TIMEOUT_MILLIS);
     }
 
