@@ -12,6 +12,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.server.core.inventory.InventoryComponent;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
+import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -61,20 +62,26 @@ public class ArgParserContextualItemStack extends ArgParserContextual<ItemStack>
 
         HytaleFPlayer player = (HytaleFPlayer) call.getSender();
 
+        //a player who left between sending the command and its parse has no world, and nothing to read
+        World world = player.getWorld();
+        if (world == null){
+            return denied(FCMessageUtil.PLAYER_NOT_ONLINE.addPlaceholder("searched_name", player.getName()));
+        }
+
         //An inventory is only readable from its own world's thread, so each branch pays for exactly one
         //hop and reads everything it needs while it is there
         if (slot == null){
-            ItemStack itemStack = FCScheduler.getHytaleScheduler().getSynchronizedAction().runAndGet(player.getWorld(), () -> {
-                Ref<EntityStore> playerEntity = player.getPlayer().getReference();
-                return InventoryComponent.getItemInHand(playerEntity.getStore(), playerEntity);
-            });
+            ItemStack itemStack = FCScheduler.getHytaleScheduler().getSynchronizedAction().runAndGet(world, () -> itemInHand(player));
 
             return itemStack != null
                     ? ParseResult.of(itemStack)
                     : denied(FCMessageUtil.NEEDS_TO_BE_HOLDING_ITEM);
         }
 
-        ItemStack equipped = FCScheduler.getHytaleScheduler().getSynchronizedAction().runAndGet(player.getWorld(), () -> {
+        ItemStack equipped = FCScheduler.getHytaleScheduler().getSynchronizedAction().runAndGet(world, () -> {
+            if (!player.isOnline()){
+                return null;
+            }
             ItemContainer armor = player.getInventorySection(InventoryComponent.ARMOR_SECTION_ID);
             return armor == null ? null : armor.getItemStack(slot.index);
         });
@@ -82,6 +89,12 @@ public class ArgParserContextualItemStack extends ArgParserContextual<ItemStack>
         return equipped != null && equipped.isValid()
                 ? ParseResult.of(equipped)
                 : ParseResult.empty();
+    }
+
+    /** What {@code player} holds; null for an empty hand or a player whose entity already left the world. */
+    static @Nullable ItemStack itemInHand(HytaleFPlayer player) {
+        Ref<EntityStore> playerEntity = player.getPlayerRef() == null ? null : player.getPlayerRef().getReference();
+        return playerEntity == null || !playerEntity.isValid() ? null : InventoryComponent.getItemInHand(playerEntity.getStore(), playerEntity);
     }
 
     @Override

@@ -4,9 +4,26 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.annotations.data.ArgData
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ArgInfo;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgMountException;
 import br.com.finalcraft.evernifecore.hytale.commands.finalcmd.argument.contextualparsers.ArgParserContextualItemStack.Slot;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ContextualParseCall;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
+import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ResolvedArguments;
+import br.com.finalcraft.evernifecore.argumento.MultiArgumentos;
+import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
+import br.com.finalcraft.evernifecore.locale.FCLocaleManager;
+import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
+import br.com.finalcraft.evernifecore.testing.Platforms;
+import br.com.finalcraft.evernifecore.testing.Plugins;
+import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
+import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
+import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Path;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -17,7 +34,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * context nobody can read costs the boot a refusal instead of costing a player a broken command. Reading
  * the inventory itself needs a running server and is not exercised here.
  */
+@ECoreTest
 class ArgParserContextualItemStackTest {
+
+    @TempDirNobodyCleans
+    Path tempDir;
+
+    /** A player whose entity already left every world: the PlayerRef is still there, its reference is not. */
+    static HytaleFPlayer departed(String name) {
+        return HytaleFPlayer.of(new PlayerRef(null, UUID.randomUUID(), name, "en_us", null, null));
+    }
 
     private static ArgParserContextualItemStack parserWith(String context) {
         ArgData argData = new ArgData().setName("item").setContext(context);
@@ -59,5 +85,27 @@ class ArgParserContextualItemStackTest {
         ArgMountException error = assertThrows(ArgMountException.class, () -> parserWith("HEAD|LEGS"));
 
         assertTrue(error.getMessage().contains("exactly one"), error.getMessage());
+    }
+
+    /** The player left between sending the command and its parse: refused as not online, never a NullPointerException. */
+    @Test
+    void aPlayerWhoLeftIsRefusedAsNotOnline() {
+        try (ECoreTestWorld ignored = Platforms.lenient().install()) {
+            FCLocaleManager.loadLocale(Plugins.fakePluginData("ItemStackParserOwner", tempDir.toFile()), FCMessageUtil.class);
+            try {
+                for (String context : new String[]{"", "HEAD"}) {
+                    ArgParserContextualItemStack parser = parserWith(context);
+                    ContextualParseCall call = new ContextualParseCall(departed("Gone"), parser.getArgInfo(), null, ResolvedArguments.none(),
+                            new MultiArgumentos(new String[0]), null, null);
+
+                    ParseResult<ItemStack> result = assertDoesNotThrow(() -> parser.parse(call));
+
+                    assertSame(ParseResult.Kind.DENIED, result.getKind(), "context '" + context + "'");
+                }
+                assertNull(ArgParserContextualItemStack.itemInHand(departed("Gone")), "a hand nobody is in holds nothing");
+            } finally {
+                Plugins.forget("ItemStackParserOwner");
+            }
+        }
     }
 }

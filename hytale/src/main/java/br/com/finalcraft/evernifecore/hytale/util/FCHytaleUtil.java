@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.hytale.util;
 
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
@@ -164,18 +165,22 @@ public class FCHytaleUtil {
         HytaleFPlayer hytaleFPlayer = (HytaleFPlayer) player;
 
         final World world = hytaleFPlayer.getWorld();
+        if (world == null) {
+            warnItemsNotGiven(player, itemStacks);
+            return;
+        }
 
         FCScheduler.getHytaleScheduler().getSynchronizedAction().run(world, () -> {
 
-            if (!hytaleFPlayer.isOnline()){
+            //read through the PlayerRef: the entity may have left the world since the hop was scheduled
+            Ref<EntityStore> playerEntity = hytaleFPlayer.getPlayerRef() == null ? null : hytaleFPlayer.getPlayerRef().getReference();
+            if (playerEntity == null || !playerEntity.isValid()){
+                warnItemsNotGiven(player, itemStacks);
                 return;
             }
 
-            Player hytalePlayer = hytaleFPlayer.getPlayer();
-
             Location location = hytaleFPlayer.getLocation().getDelegate(Location.class);
 
-            Ref<EntityStore> playerEntity = hytalePlayer.getReference();
             ListTransaction<ItemStackTransaction> transactionList = InventoryComponent
                 .getCombined(playerEntity.getStore(), playerEntity, InventoryComponent.HOTBAR_FIRST)
                 .addItemStacks(itemStacks);
@@ -220,6 +225,11 @@ public class FCHytaleUtil {
             }
         });
 
+    }
+
+    private static void warnItemsNotGiven(FPlayer player, List<ItemStack> itemStacks) {
+        EverNifeCore.getLog().warning("Did not give " + itemStacks.size() + " item stack(s) to " + player.getName()
+                + ": the player is no longer in any world. Give them again once the player is back online.");
     }
 
     public static void broadcastMessage(String message) {
