@@ -22,9 +22,15 @@ public class HyFinalCMDPluginCommand extends AbstractCommand implements IPlatfor
     }
 
     public HyFinalCMDPluginCommand(FinalCMDPluginCommand finalCMDPluginCommand) {
+        this(finalCMDPluginCommand, (JavaPlugin) finalCMDPluginCommand.getOwningPlugin().getPlugin());
+    }
+
+    HyFinalCMDPluginCommand(FinalCMDPluginCommand finalCMDPluginCommand, CommandOwner owner) {
         super(finalCMDPluginCommand.getPrimaryLabel(), null);
+        //the server only keeps the aliases it is told about before registration
+        this.addAliases(finalCMDPluginCommand.getExtraLabels());
         this.finalCMDPluginCommand = finalCMDPluginCommand;
-        this.setOwner(this.getJavaPlugin());
+        this.setOwner(owner);
     }
 
     @Override
