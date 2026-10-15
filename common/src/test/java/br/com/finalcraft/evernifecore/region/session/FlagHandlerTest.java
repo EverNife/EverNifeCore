@@ -18,6 +18,7 @@ import br.com.finalcraft.evernifecore.region.flag.core.DenyBlockBreakFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryMessage;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryWithMessageFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.EntryDenySettings;
 import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import org.junit.jupiter.api.Test;
@@ -47,7 +48,7 @@ class FlagHandlerTest extends TrackerFixture {
     }
 
     private static MoveDenySettings revertingTo(WorldLocPos point) {
-        MoveDenySettings settings = new MoveDenySettings();
+        MoveDenySettings settings = new EntryDenySettings();
         settings.setRevert(RevertStrategy.fixed(point));
         return settings;
     }

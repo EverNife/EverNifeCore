@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.flag.FlagParseException;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.EntryDenySettings;
 import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
@@ -75,7 +76,7 @@ class RevertStrategyTest extends TrackerFixture {
 
     @Test
     void trailRevertsStepsBackAlongTheWay() {
-        MoveDenySettings settings = new MoveDenySettings();
+        MoveDenySettings settings = new EntryDenySettings();
         settings.setRevert(RevertStrategy.trail(2));
         guarded(settings);
         walkUpTo15();
@@ -85,7 +86,7 @@ class RevertStrategyTest extends TrackerFixture {
 
     @Test
     void allowAfterLetsTheNthDenialInARowThrough() {
-        MoveDenySettings settings = new MoveDenySettings();
+        MoveDenySettings settings = new EntryDenySettings();
         settings.setRevert(RevertStrategy.allowAfter(3));
         Region arena = guarded(settings);
         walkUpTo15();
@@ -98,7 +99,7 @@ class RevertStrategyTest extends TrackerFixture {
 
     @Test
     void fixedRevertsToItsPoint() {
-        MoveDenySettings settings = new MoveDenySettings();
+        MoveDenySettings settings = new EntryDenySettings();
         WorldLocPos stands = WorldLocPos.of(50, 70, 50, WORLD);
         settings.setRevert(RevertStrategy.fixed(stands));
         guarded(settings);
@@ -167,7 +168,7 @@ class RevertStrategyTest extends TrackerFixture {
     }
 
     private static MoveDenySettings revertingWith(String strategy) {
-        MoveDenySettings settings = new MoveDenySettings();
+        MoveDenySettings settings = new EntryDenySettings();
         settings.setRevert(RevertStrategy.parse(strategy));
         return settings;
     }
@@ -214,7 +215,7 @@ class RevertStrategyTest extends TrackerFixture {
 
     @Test
     void aPlayerDeniedTwelveTimesInASecondIsMovedBackAlongTheTrailThenToTheFallback() {
-        MoveDenySettings settings = new MoveDenySettings();
+        MoveDenySettings settings = new EntryDenySettings();
         WorldLocPos fallback = WorldLocPos.of(0, 100, 0, WORLD);
         settings.setStuckFallback(fallback);
         guarded(settings);
@@ -233,7 +234,7 @@ class RevertStrategyTest extends TrackerFixture {
 
     @Test
     void denialsSpreadOverSecondsDoNotEscalateAndAnAcceptedMoveResetsTheCount() {
-        guarded(new MoveDenySettings());
+        guarded(new EntryDenySettings());
         walkUpTo15();
 
         for (int denial = 1; denial <= 12; denial++) {

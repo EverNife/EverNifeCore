@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.region.session;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.events.player.ECPlayerQuitEvent;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
@@ -60,7 +61,7 @@ public final class RegionMovementTracker {
         this.bus = bus;
         this.sessionFlags = new SessionFlags(lookup);
         subscriptions.add(bus.subscribe(ECPlayerQuitEvent.class, event -> onQuit(event.getPlayerData().getUniqueId())));
-        //what a region change means for the session flags of the players under it
+        //what a region change means for the players under it: their session flags, and whether it now expels them
         subscriptions.add(bus.subscribe(RegionFlagChangedEvent.class, event -> invalidateUnder(event.getRegion())));
         subscriptions.add(bus.subscribe(RegionGroupChangedEvent.class, event -> invalidateUnder(event.getRegion())));
         subscriptions.add(bus.subscribe(RegionChangedEvent.class, event -> {
@@ -168,8 +169,14 @@ public final class RegionMovementTracker {
         }
     }
 
-    /** The player appeared at {@code at}: they are inside wherever that is, unasked. Thread: the player's world. */
-    public void onJoin(FPlayer player, WorldLocPos at) {
+    /**
+     * The player appeared at {@code at}: they are inside wherever that is, unasked - unless a region there expels a
+     * player found inside ({@link ProtectionFlagGate#decideExpulsion}). Thread: the player's world.
+     *
+     * @return {@link MoveVerdict#allowed()}, or where the platform must put the player; the tracker already counts
+     *         them there, so the teleport that follows crosses nothing
+     */
+    public MoveVerdict onJoin(FPlayer player, WorldLocPos at) {
         warnIfOffThread("onJoin", at.getWorldName());
         lookup.forgetSession(player.getUniqueId());
         RegionPlayerSession session = lookup.getSession(player);
@@ -178,6 +185,33 @@ public final class RegionMovementTracker {
         postCrossings(player, null, at, MoveCause.JOIN, Collections.emptyList(), next, null);
         session.commit(next, at, lookup.getSnapshotVersion(at.getWorldName()));
         sessionFlags.apply(player, session, SessionFlags.Trigger.BOUNDARY);
+        return expelFoundInside(player, session, at, MoveCause.JOIN, next);
+    }
+
+    /**
+     * Asks each region the player was found inside whether it expels them; on the first that does, the player leaves
+     * for the destination at once - crossings posted, session moved - and the verdict names it.
+     */
+    private MoveVerdict expelFoundInside(FPlayer player, RegionPlayerSession session, WorldLocPos at, MoveCause cause, List<Region> foundIn) {
+        for (Region region : foundIn) {
+            MoveContext context = new MoveContext(player, at, at, cause, MoveContext.Transition.ENTER, region, null);
+            MoveVerdict verdict;
+            try {
+                verdict = ProtectionFlagGate.decideExpulsion(lookup, context);
+            } finally {
+                context.close();
+            }
+            if (!verdict.isAllowed()) {
+                WorldLocPos to = verdict.getRevertTo();
+                List<Region> there = lookup.at(to);
+                List<Region> here = session.getCurrent();
+                postCrossings(player, at, to, cause, minus(here, there), minus(there, here), null);   //nothing to cancel: the player is going
+                session.commit(there, to, lookup.getSnapshotVersion(to.getWorldName()));
+                sessionFlags.apply(player, session, SessionFlags.Trigger.BOUNDARY);
+                return verdict;
+            }
+        }
+        return MoveVerdict.allowed();
     }
 
     /** The player left: they leave every region they were in and the session goes. A second call does nothing. */
@@ -240,6 +274,58 @@ public final class RegionMovementTracker {
         }
         session.setCurrent(next, lookup.getSnapshotVersion(at.getWorldName()));
         sessionFlags.apply(player, session, SessionFlags.Trigger.BOUNDARY);
+        expelAndTeleport(player, session, at, MoveCause.REGION_CREATED, entered);
+    }
+
+    private void expelAndTeleport(FPlayer player, RegionPlayerSession session, WorldLocPos at, MoveCause cause, List<Region> foundIn) {
+        MoveVerdict expelled = expelFoundInside(player, session, at, cause, foundIn);
+        if (!expelled.isAllowed()) {
+            player.teleportTo(new FLocation(expelled.getRevertTo(), null));
+        }
+    }
+
+    /** {@code region}'s flags, their settings or its groups changed: whoever it now expels is sent out, on its world's thread. */
+    private void expelUnder(Region region) {
+        if (!anyoneUnder(region)) {
+            return;   //most changes happen with nobody inside: no hop to the world thread for them
+        }
+        try {
+            EverNifeCore.getPlatform().runOnWorldThread(region.getWorld(), () -> {
+                for (RegionPlayerSession session : lookup.getSessions()) {
+                    FPlayer player = session.getOnlinePlayer();
+                    WorldLocPos at = session.getPosition();
+                    List<Region> under = regionsUnder(session, region);
+                    if (player != null && at != null && !under.isEmpty()) {
+                        expelAndTeleport(player, session, at, MoveCause.REGION_CHANGED, under);
+                    }
+                }
+            });
+        } catch (RuntimeException refused) {
+            ECDebugModule.REGIONS.debug("Players inside region '{}' were not re-checked after it changed: {}", region.getId(), refused.toString());
+        }
+    }
+
+    private boolean anyoneUnder(Region region) {
+        for (RegionPlayerSession session : lookup.getSessions()) {
+            if (session.isAffectedBy(region)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** The regions the player stands in that are {@code region} or inherit from it. */
+    private static List<Region> regionsUnder(RegionPlayerSession session, Region region) {
+        List<Region> under = new ArrayList<>(1);
+        for (Region in : session.getCurrent()) {
+            for (Region chain = in; chain != null; chain = chain.getParent()) {
+                if (chain == region) {
+                    under.add(in);
+                    break;
+                }
+            }
+        }
+        return under;
     }
 
     /** Leaves, then enters; true when a listener cancelled a cancellable crossing - the ones already posted stay posted. */
@@ -262,6 +348,7 @@ public final class RegionMovementTracker {
 
     private void invalidateUnder(Region region) {
         lookup.invalidate(region);
+        expelUnder(region);
     }
 
     private void warnIfOffThread(String site, String world) {

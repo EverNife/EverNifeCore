@@ -35,7 +35,7 @@ import java.util.function.Supplier;
  * step puts a {@link Teleport} back to {@link MoveVerdict#getRevertTo()} on the player.
  *
  * <p>The first tick a player is seen - a login, or the first tick after some region came to need MOVE - is a
- * {@link MoveCause#JOIN}: he is inside wherever he stands, unasked. A position reached through a teleport is a
+ * {@link MoveCause#JOIN}: he is inside wherever he stands, unasked, unless a region there expels him. A position reached through a teleport is a
  * {@link MoveCause#TELEPORT}; one in another world a {@link MoveCause#WORLD_CHANGE}. While a teleport is still pending
  * the player is left alone - his position has not caught up yet. There is no event object: {@code nativeEvent} is null.</p>
  */
@@ -126,9 +126,9 @@ public final class HyRegionMoveSystem extends EntityTickingSystem<EntityStore> {
         }
         WorldLocPos to = HyRegionContexts.position(world, at);
         if (last == null) {
-            tracker.get().onJoin(player.get(), to);
+            MoveVerdict verdict = tracker.get().onJoin(player.get(), to);
             seen.put(uuid, new Seen(world, at));
-            return null;
+            return verdict.getRevertTo();
         }
         MoveCause cause = !last.world.equals(world) ? MoveCause.WORLD_CHANGE : last.teleported ? MoveCause.TELEPORT : MoveCause.MOVE;
         last.teleported = false;

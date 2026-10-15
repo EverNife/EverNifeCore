@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.implementation.FinalCMDP
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
+import br.com.finalcraft.evernifecore.region.flag.core.EntryDenySettings;
 import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.testing.Senders;
@@ -90,7 +91,7 @@ class CoreRegionCommandsTest extends RegionCommandFixture {
 
     @Test
     void infoShowsSettingsOverrideAndHandlerOwner() {
-        arena.setFlagSettings(flag("deny-entry"), new MoveDenySettings());
+        arena.setFlagSettings(flag("deny-entry"), new EntryDenySettings());
         arena.setFlagHandler(prot.getOwner(), flag("deny-pvp"), context -> { });
 
         harness.dispatch(ecore, steve, "region info fakeprot:arena");

@@ -110,7 +110,10 @@ public final class RegionMoveListener implements ECListener {
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         if (!RegionContexts.isDisabled(player.getWorld())) {
-            RegionMovementTracker.get().onJoin(FCBukkitUtil.adapt(player), RegionContexts.position(player.getLocation()));
+            MoveVerdict verdict = RegionMovementTracker.get().onJoin(FCBukkitUtil.adapt(player), RegionContexts.position(player.getLocation()));
+            if (!verdict.isAllowed()) {
+                player.teleport(RegionContexts.toLocation(verdict.getRevertTo(), player.getLocation()));
+            }
         }
     }
 
@@ -139,16 +142,19 @@ public final class RegionMoveListener implements ECListener {
     }
 
     /**
-     * Everyone online is inside wherever they stand, unasked: run when this listener arrives on a server that already has
-     * players, so the first step of someone standing in a {@code deny-entry} region is not an entry. Their greetings
-     * play again, with cause {@code JOIN}.
+     * Everyone online is inside wherever they stand, unasked, unless a region there expels them: run when this listener
+     * arrives on a server that already has players, so the first step of someone standing in a {@code deny-entry} region
+     * is not an entry. Their greetings play again, with cause {@code JOIN}.
      */
     static void seedOnlinePlayers() {
         RegionMovementTracker tracker = RegionMovementTracker.get();
         for (FPlayer player : EverNifeCore.getPlatform().getOnlinePlayers()) {
             FLocation at = player.getLocation();
             if (at != null && !ECSettings.REGIONS_DISABLED_WORLDS.contains(at.getWorldName())) {
-                tracker.onJoin(player, at.getWorldLocPos());
+                MoveVerdict verdict = tracker.onJoin(player, at.getWorldLocPos());
+                if (!verdict.isAllowed()) {
+                    player.teleportTo(new FLocation(verdict.getRevertTo(), null));
+                }
             }
         }
     }

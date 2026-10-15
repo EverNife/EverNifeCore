@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.region.Resolution;
 import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.context.DamageContext;
 import br.com.finalcraft.evernifecore.region.flag.context.MoveContext;
+import br.com.finalcraft.evernifecore.region.flag.core.EntryDenySettings;
 import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.region.session.MoveVerdict;
 import br.com.finalcraft.evernifecore.region.session.RegionPlayerSession;
@@ -138,6 +139,52 @@ public final class ProtectionFlagGate {
         }
         RevertStrategy strategy = moveSettings != null ? moveSettings.getRevert() : RevertStrategy.lastValid();
         return apply(strategy, session, context, denials, handler == null ? moveSettings : null);
+    }
+
+    /**
+     * Internal: whether a player found inside {@code context.getRegion()} without crossing its border is sent out - a
+     * flag that would deny the entry and whose {@link EntryDenySettings} ask for it. Only that region's values decide.
+     *
+     * @return {@link MoveVerdict#allowed()} to stay, or where to put the player
+     */
+    public static MoveVerdict decideExpulsion(RegionLookup lookup, MoveContext context) {
+        for (RegionFlag<?> flag : FlagRegistry.get().getBySource(EventSource.MOVE)) {
+            if (flag.getCategory() == FlagCategory.PROTECTION && isAsked(flag, context)) {
+                MoveVerdict verdict = expel(lookup, flag, context);
+                if (!verdict.isAllowed()) {
+                    return verdict;
+                }
+            }
+        }
+        return MoveVerdict.allowed();
+    }
+
+    private static <T> MoveVerdict expel(RegionLookup lookup, RegionFlag<T> flag, MoveContext context) {
+        Region crossed = context.getRegion();
+        Climb<T> climb = climb(flag, asked -> lookup.explain(asked, crossed, context.getPlayer()));
+        T value = climb.resolution.getValue();
+        FlagSettings settings = climb.getSettings(crossed);
+        if (!(settings instanceof EntryDenySettings) || !((EntryDenySettings) settings).isExpelFoundInside()
+                || value == null || flag.decide(context, value, settings) != Decision.DENY) {
+            return MoveVerdict.allowed();
+        }
+        EntryDenySettings entry = (EntryDenySettings) settings;
+        //last-valid, trail and allow-after look back along a way the player never walked into this region
+        WorldLocPos destination = destinationOf(entry.getRevert(), context);
+        if (destination == null) {
+            destination = entry.getStuckFallback();
+        }
+        if (destination == null) {
+            destination = SpawnPoints.getServerSpawn(context.getPlayer(), context.getTo().getWorldName());
+        }
+        if (destination == null) {
+            ECDebugModule.REGIONS.debug("{} was found inside {}, which expels them, but the platform knows no spawn in world {}; they stay.",
+                    context.getPlayer().getName(), crossed.getId(), context.getTo().getWorldName());
+            return MoveVerdict.allowed();
+        }
+        Region source = climb.resolution.getSource() != null ? climb.resolution.getSource() : crossed;
+        fireApplied(flag, context, value, source, settings);
+        return MoveVerdict.revert(destination);
     }
 
     /** Where a point strategy sends the player, read in the world the player is in; null when the platform does not know it. */

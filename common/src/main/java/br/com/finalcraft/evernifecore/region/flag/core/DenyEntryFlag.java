@@ -20,10 +20,10 @@ public final class DenyEntryFlag extends DenyFlag {
         return crossing(context, MoveContext.Transition.ENTER, null);
     }
 
-    /** Where a denied player is sent back to, and when a player who keeps trying is moved further out. */
+    /** Where a denied player is sent back to, when a player who keeps trying is moved further out, and whether one found inside is sent out. */
     @Override
     public Class<? extends FlagSettings> getSettingsType() {
-        return MoveDenySettings.class;
+        return EntryDenySettings.class;
     }
 
     /** A denied crossing repeats every tick while the player pushes the border. */
