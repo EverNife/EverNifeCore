@@ -22,6 +22,7 @@ import br.com.finalcraft.evernifecore.region.overlap.Overlap;
 import br.com.finalcraft.evernifecore.region.overlap.OverlapProvider;
 import br.com.finalcraft.evernifecore.region.overlap.OverlapProviders;
 import br.com.finalcraft.evernifecore.region.overlap.OverlapSource;
+import br.com.finalcraft.evernifecore.region.selection.SelectionTool;
 import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.storage.RegionRecord;
@@ -908,11 +909,12 @@ public final class RegionManager {
     }
 
     /**
-     * Internal: closes every open manager and stops everything the region system hangs on the global bus - the
-     * sweeper, the event-source count and the movement tracker - the core's own shutdown. Each starts again on its
-     * next use.
+     * Internal: ends every open selection, closes every open manager and stops everything the region system hangs on
+     * the global bus - the sweeper, the event-source count and the movement tracker - the core's own shutdown. Each
+     * starts again on its next use.
      */
     public static void closeAll() {
+        SelectionTool.cancelAll();   //first: a session holds INTERACT on the count about to stop
         for (ECPluginData owner : new ArrayList<>(MANAGERS.keySet())) {
             closeOwnedBy(owner);
         }
