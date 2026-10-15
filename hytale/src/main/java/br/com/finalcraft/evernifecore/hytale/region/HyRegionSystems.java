@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.hytale.region;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
@@ -18,6 +19,7 @@ import br.com.finalcraft.evernifecore.region.selection.SelectionClick;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
 import br.com.finalcraft.evernifecore.region.selection.SelectionTool;
 import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
+import br.com.finalcraft.evernifecore.region.terrain.RegionTerrain;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import com.hypixel.hytale.component.AddReason;
 import com.hypixel.hytale.component.Archetype;
@@ -28,10 +30,14 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.SystemGroup;
+import com.hypixel.hytale.component.dependency.Dependency;
+import com.hypixel.hytale.component.dependency.Order;
+import com.hypixel.hytale.component.dependency.SystemDependency;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.EcsEvent;
 import com.hypixel.hytale.component.system.EntityEventSystem;
 import com.hypixel.hytale.component.system.ICancellableEcsEvent;
+import com.hypixel.hytale.component.system.ISystem;
 import com.hypixel.hytale.component.system.RefSystem;
 import com.hypixel.hytale.component.system.WorldEventSystem;
 import com.hypixel.hytale.protocol.BlockPosition;
@@ -61,8 +67,11 @@ import jakarta.annotation.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3i;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -105,6 +114,10 @@ public final class HyRegionSystems {
         registry.registerSystem(new InteractionStartSystem());
         registry.registerSystem(new DamageSystem());
         registry.registerSystem(new SpawnSystem());
+        registry.registerSystem(new TerrainSystem<>(BreakBlockEvent.class, BreakSystem.class, EventSource.BREAK, BreakBlockEvent::getTargetBlock));
+        registry.registerSystem(new TerrainSystem<>(DamageBlockEvent.class, DamageBlockSystem.class, EventSource.BREAK, DamageBlockEvent::getTargetBlock));
+        registry.registerSystem(new TerrainSystem<>(PlaceBlockEvent.class, PlaceSystem.class, EventSource.PLACE, PlaceBlockEvent::getTargetBlock));
+        registry.registerSystem(new TerrainExplosionSystem());
         return true;
     }
 
@@ -262,6 +275,58 @@ public final class HyRegionSystems {
         public void handle(Store<EntityStore> store, CommandBuffer<EntityStore> buffer, DamageBlockEvent event) {
             explode(worldOf(store), event);
         }
+    }
+
+    /**
+     * Feeds the {@code track-changes} journals ({@link RegionTerrain}) after the System that decides {@code type} ran, and
+     * only while nobody cancelled the event: the block is still the original here, the change comes after the event.
+     */
+    private static final class TerrainSystem<E extends EcsEvent & ICancellableEcsEvent> extends ByActor<E> {
+        private final Class<? extends ISystem<EntityStore>> decider;
+        private final EventSource source;
+        private final Function<E, Vector3i> target;
+
+        TerrainSystem(Class<E> type, Class<? extends ISystem<EntityStore>> decider, EventSource source, Function<E, Vector3i> target) {
+            super(type);
+            this.decider = decider;
+            this.source = source;
+            this.target = target;
+        }
+
+        @Override
+        public Set<Dependency<EntityStore>> getDependencies() {
+            return Collections.singleton(new SystemDependency<>(Order.AFTER, decider));
+        }
+
+        @Override
+        public void handle(int index, ArchetypeChunk<EntityStore> chunk, Store<EntityStore> store, CommandBuffer<EntityStore> buffer, E event) {
+            record(source, worldOf(store), event, target.apply(event));
+        }
+    }
+
+    /** {@link TerrainSystem} for the blocks an explosion damages, after {@link ExplosionBlockSystem}. */
+    private static final class TerrainExplosionSystem extends WorldEventSystem<EntityStore, DamageBlockEvent> {
+        TerrainExplosionSystem() {
+            super(DamageBlockEvent.class);
+        }
+
+        @Override
+        public Set<Dependency<EntityStore>> getDependencies() {
+            return Collections.singleton(new SystemDependency<>(Order.AFTER, ExplosionBlockSystem.class));
+        }
+
+        @Override
+        public void handle(Store<EntityStore> store, CommandBuffer<EntityStore> buffer, DamageBlockEvent event) {
+            record(EventSource.BREAK, worldOf(store), event, event.getTargetBlock());
+        }
+    }
+
+    private static void record(EventSource source, String world, ICancellableEcsEvent event, Vector3i block) {
+        if (!EventSourceUsage.get().isNeeded(source) || event.isCancelled() || HyRegionContexts.isDisabled(world)) {
+            return;
+        }
+        RegionTerrain.recordChange(world, block.x, block.y, block.z,
+                content -> EverNifeCore.getPlatform().getTerrainAccess().captureBlock(world, block.x, block.y, block.z, content));
     }
 
     /** The block placed is what the hand holds: the event names no block type. */

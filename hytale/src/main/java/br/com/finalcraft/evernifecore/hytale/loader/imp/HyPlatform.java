@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.loader.imp;
 import br.com.finalcraft.evernifecore.hytale.region.HyParticleOutlineRenderer;
 import br.com.finalcraft.evernifecore.hytale.region.HySelectionItems;
+import br.com.finalcraft.evernifecore.hytale.region.HyTerrainAccess;
 import org.joml.Vector3d;
 import com.hypixel.hytale.math.vector.Transform;
 import com.hypixel.hytale.server.core.universe.world.spawn.ISpawnProvider;
@@ -356,8 +357,10 @@ public class HyPlatform implements IPlatform {
 
     @Override
     public ITerrainAccess getTerrainAccess() {
-        return ITerrainAccess.UNSUPPORTED;
+        return TERRAIN_ACCESS;
     }
+
+    private static final ITerrainAccess TERRAIN_ACCESS = new HyTerrainAccess();
 
     @Override
     public ISelectionItems getSelectionItems() {

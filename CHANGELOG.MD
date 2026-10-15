@@ -59,7 +59,10 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   changed inside a region (the first change wins), in memory or on disk (`TrackChangesSettings`: `persistence`,
   `blocks`, `nbt`, `entities`), and `RegionManager.getTerrain().restoreJournal(region, blocksPerTick)` puts it back on
   the world thread, a budget per tick. Platforms read and write blocks through `IPlatform.getTerrainAccess()`
-  (`ITerrainAccess`, `UNSUPPORTED` where a platform cannot); the test engine answers it with `TestTerrain`.
+  (`ITerrainAccess`): Bukkit keeps the block (`BlockData` from 1.13, material + data before), its tile entity's NBT
+  and the armor stands and hanging entities broken; Hytale keeps the block only. The journal hears a change only
+  after every plugin decided - a `MONITOR` listener on Bukkit, a System ordered after the deciding one on Hytale -
+  and never a cancelled one. The test engine answers the access with `TestTerrain`.
 
 ### Changed
 

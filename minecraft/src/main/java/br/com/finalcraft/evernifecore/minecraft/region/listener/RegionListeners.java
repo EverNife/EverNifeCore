@@ -49,6 +49,12 @@ public final class RegionListeners {
             bridge.watches.addAll(follow(owner, explosionStages, bridge.own(new RegionBlockExplodeListener()), null));
         }
         bridge.watches.add(follow(owner, EventSource.FLUID, bridge.own(new RegionFluidListener()), null));
+        //ponytail: the journal hears every BREAK/PLACE/EXPLOSION while any region needs one, not only track-changes regions
+        List<EventSource> terrainSources = Arrays.asList(EventSource.BREAK, EventSource.PLACE, EventSource.EXPLOSION);
+        bridge.watches.addAll(follow(owner, terrainSources, bridge.own(new RegionTerrainListener()), null));
+        if (MCVersion.isHigherEquals(MCDetailedVersion.v1_8_R1)) {
+            bridge.watches.addAll(follow(owner, terrainSources, bridge.own(new RegionTerrainBlockExplodeListener()), null));
+        }
         return bridge;
     }
 

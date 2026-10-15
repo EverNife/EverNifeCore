@@ -35,6 +35,7 @@ import br.com.finalcraft.evernifecore.minecraft.world.WorldHeights;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.minecraft.region.terrain.McTerrainAccess;
 import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
@@ -362,8 +363,13 @@ public class McPlatform implements IPlatform {
 
     @Override
     public ITerrainAccess getTerrainAccess() {
-        return ITerrainAccess.UNSUPPORTED;
+        if (terrainAccess == null) {
+            terrainAccess = new McTerrainAccess();   //lazy: its era checks need the server version, read after this platform exists
+        }
+        return terrainAccess;
     }
+
+    private ITerrainAccess terrainAccess;
 
     private final McSelectionItems selectionItems = new McSelectionItems();
 
