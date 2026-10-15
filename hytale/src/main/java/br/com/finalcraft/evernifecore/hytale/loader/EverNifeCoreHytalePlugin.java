@@ -13,10 +13,14 @@ import br.com.finalcraft.evernifecore.hytale.integration.HyVaultIntegration;
 import br.com.finalcraft.evernifecore.hytale.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyECPluginExtractor;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;
+import br.com.finalcraft.evernifecore.hytale.region.HyRegionSystems;
 import br.com.finalcraft.evernifecore.integration.placeholders.PAPIIntegration;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
+import com.hypixel.hytale.event.EventPriority;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
+import com.hypixel.hytale.server.core.universe.world.events.AddWorldEvent;
+import com.hypixel.hytale.server.core.universe.world.events.RemoveWorldEvent;
 import jakarta.annotation.Nonnull;
 
 
@@ -72,6 +76,22 @@ public class EverNifeCoreHytalePlugin extends ECHytalePlugin {
 
         EverNifeCore.getLog().info("§aRegistering Listeners");
         ECListener.register(ecPluginData, PlayerLoginListener.class);
+
+        //the region index follows the worlds; LAST, so a world another plugin vetoed is not announced
+        HyPlatform platform = (HyPlatform) EverNifeCore.getPlatform();
+        getEventRegistry().registerGlobal(EventPriority.LAST, AddWorldEvent.class, event -> {
+            if (!event.isCancelled()) {
+                platform.fireWorldLoaded(event.getWorld().getName());
+            }
+        });
+        getEventRegistry().registerGlobal(EventPriority.LAST, RemoveWorldEvent.class, event -> {
+            if (!event.isCancelled()) {
+                platform.fireWorldUnloaded(event.getWorld().getName());
+            }
+        });
+
+        //still inside setup(): the only moment the server takes a System
+        HyRegionSystems.register(getEntityStoreRegistry());
 
         if (PAPIIntegration.isPresent()){
 //            ECCorePAPIPlaceholders.initialize(ecPluginData);
