@@ -97,6 +97,7 @@ dependencies {
     compileOnly(libs.vaultunlocked) {
         // VaultUnlocked publishes for JVM 25 only; its API is plain enough for this Java 8 module to compile against
         attributes { attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 25) }
+        transitive = false   // a plugin API: its own graph (metrics, Hytale artifacts) is the server's business
     }
     compileOnly libs.commons.lang3.legacy
 
@@ -120,6 +121,7 @@ dependencies {
     testImplementation(libs.vaultunlocked) {
         // VaultUnlocked publishes for JVM 25 only; its API is plain enough for this Java 8 module to compile against
         attributes { attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 25) }
+        transitive = false   // a plugin API: its own graph (metrics, Hytale artifacts) is the server's business
     }
     // compileOnly in production - PlaceholderAPI is a plugin - brought back so the presence probe
     // has the real Bukkit PlaceholderAPI to find.

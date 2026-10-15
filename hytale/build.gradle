@@ -24,8 +24,9 @@ repositories {
 dependencies {
     compileOnly libs.hytale.server
 
-    compileOnly libs.vaultunlocked
-    compileOnly libs.placeholderapi.hytale
+    // Plugin APIs; their own dependency graphs are the server's business, never this build's.
+    compileOnly(libs.vaultunlocked) { transitive = false }
+    compileOnly(libs.placeholderapi.hytale) { transitive = false }
 
     implementation project(':common')
 
@@ -47,7 +48,7 @@ dependencies {
     testImplementation libs.hytale.server
     // compileOnly in production - PlaceholderAPI is a plugin - brought back so the presence probe
     // has the real Hytale PlaceholderAPI to find.
-    testRuntimeOnly libs.placeholderapi.hytale
+    testRuntimeOnly(libs.placeholderapi.hytale) { transitive = false }
 }
 
 test {

@@ -28,8 +28,8 @@ spigot-modern = "1.21.3-R0.1-SNAPSHOT"
 bukkit = "1.12.2-R0.1-SNAPSHOT"
 hytale-server = "0.7.1"
 luckperms = "5.4"
-vaultunlocked = "2.18.3"
-placeholderapi-hytale = "1.0.4"
+vaultunlocked = "2.20.1"
+placeholderapi-hytale = "1.0.8"
 # 2.11.2 is not in the public repo; this is also the one the conformance matrix
 # servers load - 2.11.2 dies in its static init on 1.21.1.
 placeholderapi = "2.11.6"
