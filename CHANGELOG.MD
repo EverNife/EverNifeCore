@@ -92,6 +92,8 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   Mongo backend on Hytale cannot encode Java records.
 - A player's command on Hytale reaches FinalCMD as that player: the server dispatches it with the `PlayerRef` as the
   sender (chat and `sudo`), which the core used to take for the console, refusing every player-only verb.
+- `ComparableItemComplex.deserialize` keeps the metadata of the serialized line (`ItemStack` is immutable), and an
+  item without metadata serializes and compares as an empty document instead of throwing.
 - The release workflow skips this `[Unreleased]` entry: only the newest versioned entry is published.
 
 ### Removed

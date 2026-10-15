@@ -14,7 +14,9 @@ public class ComparableItemComplex extends ComparableItem {
         try {
             ItemStack safeClone = FCItemFactory.from(itemStack).build();
             BsonDocument metadata = safeClone.getMetadata();
-            return metadata;
+            if (metadata != null) { //an item that never had metadata compares as an empty document
+                return metadata;
+            }
         }catch (Exception ignored){
 
         }
@@ -92,13 +94,12 @@ public class ComparableItemComplex extends ComparableItem {
 
     @Override
     public String serialize() {
-        String json = itemStack.getMetadata().toJson();
-
-        if (json.isEmpty() || json.equals("{}")) {
+        BsonDocument metadata = itemStack.getMetadata(); //null on an item that never had any
+        if (metadata == null || metadata.isEmpty()) {
             return super.serialize();
         }
 
-        return super.serialize() + SEPARATOR + itemStack.getMetadata().toJson();
+        return super.serialize() + SEPARATOR + metadata.toJson();
     }
 
     public static ComparableItemComplex deserialize(String serialized){
@@ -117,9 +118,7 @@ public class ComparableItemComplex extends ComparableItem {
         ItemStack itemStack = FCItemFactory.from(itemId).build();
 
         if (!metadata.isEmpty() && !metadata.equals("{}")) {
-            itemStack.withMetadata(
-                    BsonDocument.parse(metadata)
-            );
+            itemStack = itemStack.withMetadata(BsonDocument.parse(metadata)); //ItemStack is immutable
         }
 
         return new ComparableItemComplex(
