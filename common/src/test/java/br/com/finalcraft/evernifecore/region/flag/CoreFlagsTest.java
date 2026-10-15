@@ -201,17 +201,19 @@ class CoreFlagsTest {
     }
 
     @Test
-    void onlyTheMovementDenialsStartWithATriggerInterval() {
+    void onlyTheMovementDenialsAndTheBlockBreakStartWithATriggerInterval() {
         List<RegionFlag<?>> all = CoreFlags.all();
         assertEquals(25, all.size());
         TreeSet<String> paced = new TreeSet<>();
         for (RegionFlag<?> flag : all) {
             Duration floor = flag.getDefaultTriggerInterval();
             if (!floor.isZero()) {
-                assertEquals(Duration.ofMillis(250), floor, flag.getKey().getName());
+                Duration expected = flag == CoreFlags.DENY_BLOCK_BREAK ? Duration.ofSeconds(1) : Duration.ofMillis(250);
+                assertEquals(expected, floor, flag.getKey().getName());
                 paced.add(flag.getKey().getName());
             }
         }
-        assertEquals(new TreeSet<>(Arrays.asList("deny-entry", "deny-exit", "deny-teleport-in", "deny-teleport-out", "deny-entry-with-message")), paced);
+        assertEquals(new TreeSet<>(Arrays.asList("deny-entry", "deny-exit", "deny-teleport-in", "deny-teleport-out", "deny-entry-with-message",
+                "deny-block-break")), paced);
     }
 }
