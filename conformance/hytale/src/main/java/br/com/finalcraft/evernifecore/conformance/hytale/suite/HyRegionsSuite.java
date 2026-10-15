@@ -217,12 +217,13 @@ public final class HyRegionsSuite implements ConformanceSuite {
         World world = HyWorld.worldOf(player);
         return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
             Vector3i c = block(at, 12, 12, 0);
-            return HyWorld.on(world, () -> {
+            //the cube stands 12 blocks off: its chunk may still be unloaded, and an unloaded block neither sets nor reads
+            return HyWorld.chunksLoaded(world, c.x - 2, c.z - 2, c.x + 2, c.z + 2).thenCompose(loaded -> HyWorld.on(world, () -> {
                 for (int x = -2; x <= 2; x++) for (int y = -2; y <= 2; y++) for (int z = -2; z <= 2; z++) {
                     HyWorld.setBlock(world, c.x + x, c.y + y, c.z + z, x == 0 && y == 0 && z == 0 ? BlockType.EMPTY_KEY : SOLID);
                 }
                 return null;
-            }).thenCompose(built -> inRegion(regions, "ecc-blast", world.getName(), BlockPos.of(c.x - 2, c.y - 2, c.z - 2),
+            })).thenCompose(built -> inRegion(regions, "ecc-blast", world.getName(), BlockPos.of(c.x - 2, c.y - 2, c.z - 2),
                     BlockPos.of(c.x - 1, c.y + 2, c.z + 2), region -> region.setFlag(CoreFlags.DENY_BLOCK_BREAK, Tristate.TRUE),
                     region -> HyWorld.on(world, () -> {
                         ExplosionUtils.performExplosion(Damage.NULL_SOURCE, new Vector3d(c.x + 0.5, c.y + 0.5, c.z + 0.5),

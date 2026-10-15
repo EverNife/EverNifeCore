@@ -19,7 +19,11 @@ import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.joml.Vector3d;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -109,6 +113,29 @@ public final class HyWorld {
         Ref<EntityStore> ref = player.getReference();
         return ref.getStore().getComponent(ref, PendingTeleport.getComponentType()) != null;
     }
+
+    /**
+     * Done once every chunk touching the columns from {@code (minX, minZ)} to {@code (maxX, maxZ)} is in memory and
+     * ticking - a chunk away from the player may be unloaded, and a block there neither sets nor reads. Call it off the
+     * world's thread or on it; the load itself finishes on the world's thread.
+     */
+    public static CompletableFuture<Void> chunksLoaded(World world, int minX, int minZ, int maxX, int maxZ) {
+        Set<Long> indexes = new HashSet<>();
+        for (int x : new int[]{minX, maxX}) {
+            for (int z : new int[]{minZ, maxZ}) {
+                indexes.add(ChunkUtil.indexChunkFromBlock(x, z));
+            }
+        }
+        List<CompletableFuture<?>> loads = new ArrayList<>();
+        for (long index : indexes) {
+            loads.add(world.getChunkStore().getChunkReference(index) != null ? CompletableFuture.completedFuture(null)
+                    : world.getChunkStore().getChunkReferenceAsync(index, LOAD_TICKING));
+        }
+        return CompletableFuture.allOf(loads.toArray(new CompletableFuture<?>[0]));
+    }
+
+    /** The load flag that also makes the chunk ticking, the one the server's own {@code chunk load} command passes. */
+    private static final int LOAD_TICKING = 4;
 
     /** The block id at a position, or -1 when its chunk section is not loaded; on the world's thread. */
     public static int blockId(World world, int x, int y, int z) {
