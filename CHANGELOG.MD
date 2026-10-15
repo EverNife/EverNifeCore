@@ -100,6 +100,8 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   instead of crashing its class load; `FCRegionManager.getRegions()` reflects regions added or removed later.
 - **`FCBlockArrayClipboard.paste` applies its `Transform` and returns the `EditSession`** that undoes it, through
   WorldEdit's own copy on WorldEdit 6 and 7; the never-honoured `allowUndo` parameter is gone.
+- A stored region whose record does not decode is skipped and logged by name, and the owner's other regions load:
+  the load reads the collection by `scanAll` pages, where the backend reports a bad row instead of failing or hiding it.
 
 ### Removed
 

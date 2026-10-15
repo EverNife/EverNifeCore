@@ -59,7 +59,7 @@ class RegionLoadPolicyTest extends ManagedRegionFixture {
         runUntilIdle(Duration.ofSeconds(2));
 
         CompletionException failed = assertThrows(CompletionException.class, load::join);
-        assertEquals(3, backend.callsTo("all"), "exactly the three tries of the policy");
+        assertEquals(3, backend.callsTo("scanAll"), "exactly the three tries of the policy");
         assertEquals(3, failures.size(), "every failed try is evented");
         String message = failed.getCause().getMessage();
         assertTrue(message.contains("3 tries"), message);
@@ -79,7 +79,7 @@ class RegionLoadPolicyTest extends ManagedRegionFixture {
         agenda.runQueued();
 
         load.join();
-        assertEquals(2, backend.callsTo("all"));
+        assertEquals(2, backend.callsTo("scanAll"));
         assertTrue(manager.isLoaded());
         assertNotNull(manager.get("arena"));
     }
@@ -93,7 +93,7 @@ class RegionLoadPolicyTest extends ManagedRegionFixture {
         runUntilIdle(Duration.ofSeconds(10));
 
         assertThrows(CompletionException.class, load::join);
-        assertEquals(3, backend.callsTo("all"), "tries at 0, 10 and 20 s; the one at 30 s would pass 25 s");
+        assertEquals(3, backend.callsTo("scanAll"), "tries at 0, 10 and 20 s; the one at 30 s would pass 25 s");
         assertEquals(Long.valueOf(10_000), agenda.getDelays().get(agenda.getDelays().size() - 1));
     }
 
@@ -104,11 +104,11 @@ class RegionLoadPolicyTest extends ManagedRegionFixture {
         CompletableFuture<Void> load = manager.load(RetryPolicy.attempts(2));
         runUntilIdle(Duration.ZERO);
         assertThrows(CompletionException.class, load::join);
-        int reads = backend.callsTo("all");
+        int reads = backend.callsTo("scanAll");
 
         platform.loadWorld(WORLD);
         assertEquals(0, agenda.size(), "a world load does not revive a load that gave up");
-        assertEquals(reads, backend.callsTo("all"));
+        assertEquals(reads, backend.callsTo("scanAll"));
 
         backend.stopFailingAll();
         CompletableFuture<Void> again = manager.load(RetryPolicy.attempts(2));
@@ -127,7 +127,7 @@ class RegionLoadPolicyTest extends ManagedRegionFixture {
         platform.loadWorld(WORLD);
         agenda.runQueued();   //the timed retry and the world's: only the newer one reads
 
-        assertEquals(2, backend.callsTo("all"));
+        assertEquals(2, backend.callsTo("scanAll"));
         assertThrows(CompletionException.class, load::join, "the world's try was the second and last");
     }
 
@@ -141,7 +141,7 @@ class RegionLoadPolicyTest extends ManagedRegionFixture {
 
         first.join();
         second.join();
-        assertEquals(1, backend.callsTo("all"));
+        assertEquals(1, backend.callsTo("scanAll"));
     }
 
     @Test

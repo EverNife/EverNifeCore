@@ -69,7 +69,7 @@ public final class ScriptedStorage implements Storage {
     }
 
     /**
-     * Makes the next full read ({@code Repository.all()}) fail with {@code cause} and every one after it succeed - a
+     * Makes the next full read ({@code Repository.all()} or a {@code scanAll()} page) fail with {@code cause} and every one after it succeed - a
      * backend that was unreachable once, for the code that loads a whole collection at startup.
      */
     public ScriptedStorage failNextAll(Throwable cause) {
@@ -78,7 +78,7 @@ public final class ScriptedStorage implements Storage {
     }
 
     /**
-     * Makes every full read ({@code Repository.all()}) fail with {@code cause} until {@link #stopFailingAll()} - a
+     * Makes every full read ({@code Repository.all()} or a {@code scanAll()} page) fail with {@code cause} until {@link #stopFailingAll()} - a
      * backend that stays down, for code that retries a load and must give up.
      */
     public ScriptedStorage failEveryAll(Throwable cause) {
@@ -173,6 +173,11 @@ public final class ScriptedStorage implements Storage {
         return first != null ? first : second;
     }
 
+    /** {@code all()} or a page of {@code scanAll()}: the reads that load a whole collection. */
+    private static boolean isFullRead(String method) {
+        return "all".equals(method) || "scanAll".equals(method);
+    }
+
     /** Counts every repository call and answers the scripted failure before the delegate is reached. */
     private final class CountingCalls implements InvocationHandler {
 
@@ -194,7 +199,7 @@ public final class ScriptedStorage implements Storage {
             counter.incrementAndGet();
 
             Throwable scripted = "saveAll".equals(name) ? nextSaveAllFailure.getAndSet(null)
-                    : "all".equals(name) ? firstNonNull(nextAllFailure.getAndSet(null), everyAllFailure.get()) : null;
+                    : isFullRead(name) ? firstNonNull(nextAllFailure.getAndSet(null), everyAllFailure.get()) : null;
             if (scripted != null) {
                 CompletableFuture<Object> failed = new CompletableFuture<Object>();
                 failed.completeExceptionally(scripted);

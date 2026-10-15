@@ -27,6 +27,7 @@ import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.storage.RegionRecord;
 import br.com.finalcraft.evernifecore.region.storage.RegionStorage;
+import br.com.finalcraft.everydatabase.query.ScanRow;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
 import br.com.finalcraft.evernifecore.util.retry.RetryPolicy;
@@ -229,7 +230,7 @@ public final class RegionManager {
             current.attempts++;
             current.reading = true;
         }
-        CompletableFuture<List<RegionRecord>> read;
+        CompletableFuture<List<ScanRow<RegionRecord>>> read;
         try {
             read = regionStorage.loadAll();
         } catch (RuntimeException failure) {
@@ -339,10 +340,16 @@ public final class RegionManager {
         }
     }
 
-    private void publishLoaded(List<RegionRecord> records) {
+    private void publishLoaded(List<ScanRow<RegionRecord>> rows) {
         Map<String, Region> byName = new HashMap<>();
         Map<Region, String> parents = new HashMap<>();
-        for (RegionRecord record : records) {
+        for (ScanRow<RegionRecord> row : rows) {
+            if (row.isFailed()) {
+                owner.getLog().warning("Region '{}' of {} does not read ({}); it is skipped and stays in storage untouched.",
+                        row.key(), nameOf(owner), String.valueOf(row.error()));
+                continue;
+            }
+            RegionRecord record = row.value();
             try {
                 Region region = RegionRecords.toRegion(this, record);
                 byName.put(region.getId().getName(), region);
