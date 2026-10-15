@@ -2,7 +2,8 @@ name: build
 
 # Builds every push and pull request to master. A push whose newest CHANGELOG.MD entry names a version
 # that has no release yet also publishes that version as a GitHub release, with the two plugin jars
-# and the entry's own notes. The changelog heading is the only place the version is written.
+# and the entry's own notes. The changelog heading is the only place the version is written; the
+# [Unreleased] entry on top is skipped, so finished work accumulates there until it gets a version.
 
 on:
   push:
@@ -35,7 +36,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          version=$(sed -n 's/^## \[\([^]]*\)\].*/\1/p' CHANGELOG.MD | head -n 1)
+          # [Unreleased] collects work in progress and is never released; only the newest version heading is
+          version=$(sed -n 's/^## \[\([^]]*\)\].*/\1/p' CHANGELOG.MD | grep -v '^Unreleased$' | head -n 1)
           if [ -z "$version" ]; then
             echo "::error::CHANGELOG.MD has no '## [<version>] - <date>' heading - add one above the older entries"
             exit 1

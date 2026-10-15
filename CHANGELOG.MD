@@ -12,7 +12,85 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 > identifier because that is what they are - `3.0.1-alpha.1` through `3.0.1-alpha.X` all order below
 > `3.0.1`, the version the whole rework converges on. `3.0.1-alpha.68` and older have no tags and no
 > artifacts; from `3.0.1-alpha.69` on, each entry is a GitHub pre-release with its jars. The build still
-> reads `3.0.1` out of the version catalog.
+> reads `3.0.1` out of the version catalog. Finished work collects under `[Unreleased]` until it is given a version.
+
+## [Unreleased]
+
+Regions decide by who acts - a player, a fake player, a mob, a block or the environment - and now cover explosions,
+fire, pistons and fluids; plugins can register event sources of their own. The Hytale port protects regions too.
+
+### Added
+
+- **Actors** (`region.actor`): `Actor` (`ENTITY` / `BLOCK` / `ENVIRONMENT`, with `getRootPlayer()` and native handles
+  made on demand and closed once the event is dispatched), `TypeKey` (`namespace:path`, matched case-insensitively with
+  `*` globs) and `ECEntityType` (`PLAYER`, `FAKE_PLAYER`, `ANIMAL`, `MONSTER`, `NPC`, `OTHER`). Every `ActionContext`
+  carries its `getActor()`; `NativeEntity` / `NativeBlock` are the platform handles.
+- **`DenySettings`**: every deny flag's settings take `actors` (empty = every actor) and `exceptActors`, written as
+  an `ECEntityType` word (`fake-player`), an actor type word (`environment`) or a key glob (`minecraft:*`).
+- **New core flags**: `deny-explosion`, `deny-explosion-mobs`, `deny-block-break-mobs`,
+  `deny-block-break-environment`, `deny-block-break-fake-players` and `deny-block-place-fake-players`. `ActorDenyFlag`
+  builds such a per-actor refinement of any `DenyFlag`; where it is not set, its parent decides.
+- **Event sources `EXPLOSION` and `FLUID`**, with `ExplosionContext` and `FluidContext`. An explosion is one
+  `RegionDispatch` (`RegionLookup.dispatch()`): the whole, then each block it breaks, with the same actor - so
+  `deny-block-break` alone holds a creeper. No core flag needs `FLUID`; its listener exists only for a flag that asks.
+- **Bukkit**: the region listeners ask about explosions, mob and fire block changes (burn, ignite, spread,
+  `EntityChangeBlockEvent`) and pistons pushing across a border. Blocks, items and entities are keyed by the server's
+  registry, so a hybrid's mod block or mob carries the mod's namespace; below 1.13 without the NMS bridge the key says
+  `bukkit:`. A Citizens NPC is an `NPC` actor.
+- **Plugin event sources**: `EventSource.register(owner, name)` keys a source by `owner:name` and gives it the same
+  `FlagHandler`, throttle and usage count as the core's. `RegionListeners.follow(...)` puts a Bukkit listener on the
+  server only while its source is needed. A plugin's sources and usage watches leave on its shutdown.
+- **`deny-entry` setting `expelFoundInside`** (`EntryDenySettings`, default `false`): a denied player found inside
+  without crossing the border - logged in there, or the region appeared or changed around them - is sent out.
+  `MoveCause.REGION_CHANGED` names that move.
+- **`DenyFlag` tells the denied player the region's `deny-message`.**
+- `Region.editFlagSettings(flag, edit)` edits a region's own copy of a flag's settings, leaving the server's alone.
+- `RegionFlag.getDefaultTriggerInterval()` and the `onApplied(context, value, settings)` overload.
+- `FlagRegistry.unregister(flag)` and `FlagKey.of(ownerName, name)`.
+- **`RetryPolicy`** (`util.retry`): attempt, time and backoff ceilings for anything retried.
+- **`RegionManager.load(RetryPolicy)`**, `isLoaded()` and `whenLoaded()`; `load()` retries every 30 s forever.
+- `RegionScheduler.set(Backend)` swaps where the region system schedules its work.
+- **Hytale regions**: protection through ECS systems (`HyRegionSystems`) registered once and gated by source usage,
+  border tracking by a per-tick player system (`HyRegionMoveSystem`), the selection tool (`HySelectionItems`), outline
+  particles and spawn denial. Hytale has no explosion event, so `deny-explosion` has no effect there.
+- Hytale registers every `@FinalCMD` label after the first as a command alias.
+
+### Changed
+
+- **Packages and names in the region API**: `region.flag.stock` -> `region.flag.core` (`StockFlags` -> `CoreFlags`,
+  whose flags are public static instances; `StockDenyFlag` -> `DenyFlag`, now open to plugins; `StockInteractFlag` ->
+  `InteractDenyFlag`); the action contexts -> `region.flag.context`; `FlagTriggers` -> `flag.ProtectionFlagGate`; the
+  overlap SPI (`Overlap`, `OverlapProvider`, `OverlapProviders`, `OverlapSource`) -> `region.overlap`; the Bukkit region
+  listeners -> `minecraft.region.listener`, with `RegionEvents` -> `RegionContexts` and `McRegionListeners` ->
+  `RegionListeners`.
+- **Renamed types**: `RegionAgenda` -> `RegionScheduler`, `RegionTime` -> `RegionClock`, the resolution reason ->
+  `Resolution.Reason`, and the `Kind` enums of `Revalidation`, `MembershipCheck` and `RevertStrategy` -> `Type`
+  (`getKind()` -> `getType()`). `RegionGroupChangedEvent.getType()` -> `getChange()`.
+- **`EventSource` is a class**, not an enum: the core's sources are its constants, keyed `evernifecore:<name>`.
+- **Contexts take actors**: `BlockContext.getBlockId()` -> `getBlockKey()`, `getItemInHandId()` ->
+  `getItemInHandKey()` (both `TypeKey`); `DamageContext`, `EntityContext` and `SpawnContext` expose the `Actor` they
+  hurt or spawn (`getVictim()`, `getEntity()`) in place of their `Kind` enums, type ids and players.
+  `InteractSettings` extends `DenySettings` and matches by `TypeKey`.
+- **`FlagRegistry.register(owner, flag)`** binds the flag to the plugin its key names and refuses any other.
+- **A flag's effect runs on every denial by default** (`triggerInterval` `0s`, was `2s`), paced by the victim when no
+  player acts. The five movement denials keep a 250 ms floor and `deny-block-break` a 1 s one.
+- **`RegionManager` refuses `create` until its regions are loaded** (`REGIONS_NOT_LOADED` on the command): a create
+  before the load could overwrite a stored region of the same name.
+- `RegionManager.closeAll()` closes the whole region runtime - open selections first; `RegionRuntime` is gone.
+- **Hytale Server 0.7.1** (was 0.6.8): reads go through `ChunkStore` and the entity components. A plugin is named by
+  its manifest `Name`, not `Group:Name` - the `:` killed the core in setup. `HytaleFPlayer` teleports without blocking,
+  as the server's own command does: two crossing teleports deadlocked both worlds.
+- Hytale's held-item argument refuses a player who already left, and items given to a departed player are skipped
+  with a warning in the log.
+- Bukkit `MinecraftFPlayer` teleports to a location given as coordinates alone, keeping the player's facing.
+- **ECNmsUtils 2.1.0**, **PlaceholderAPI-Hytale 1.0.8** and **VaultUnlocked 2.20.1**; both Hytale plugin APIs resolve
+  non-transitively.
+- The `ECoreConformance` check-up gains a regions suite and a Hytale plugin with its matrix flavor.
+- The release workflow skips this `[Unreleased]` entry: only the newest versioned entry is published.
+
+### Removed
+
+- `deny-fake-player-break` (`DenyFakePlayerBreakFlag`): use `deny-block-break-fake-players`.
 
 ## [3.0.1-alpha.69] - 2026-10-12
 
