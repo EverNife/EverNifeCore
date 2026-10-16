@@ -25,6 +25,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Hanging;
 import org.bukkit.entity.Player;
 
 import java.io.File;
@@ -52,6 +53,7 @@ public final class McTerrainAccess implements ITerrainAccess {
     private static final String NBT_SEPARATOR = "|nbt=";
     private static final String ENTITIES_SUFFIX = ".entities";
     private static final boolean BLOCK_DATA = MCVersion.isHigherEquals(MCDetailedVersion.v1_13_R1);
+    private static final boolean HANGING_SPAWNS_ON_ITS_WALL = MCVersion.isLower(MCDetailedVersion.v1_8_R1);
     //what makes a respawned entity a copy instead of the same one, or a dead one
     private static final Set<String> ENTITY_KEYS_NOT_RESTORED = new HashSet<>(Arrays.asList("UUID", "UUIDMost", "UUIDLeast",
             "Pos", "Motion", "Health", "DeathTime", "HurtTime", "Dimension", "WorldUUIDMost", "WorldUUIDLeast"));
@@ -125,12 +127,26 @@ public final class McTerrainAccess implements ITerrainAccess {
         String[] xyz = parts[1].split(",");
         Location at = new Location(world(world), Double.parseDouble(xyz[0]), Double.parseDouble(xyz[1]), Double.parseDouble(xyz[2]),
                 Float.parseFloat(xyz[3]), Float.parseFloat(xyz[4]));
-        Entity spawned = at.getWorld().spawnEntity(at, EntityType.valueOf(parts[0]));
+        EntityType type = EntityType.valueOf(parts[0]);
         ReadWriteNBT saved = NBT.parseNBT(parts[2]);
+        Entity spawned = at.getWorld().spawnEntity(spawnPoint(type, at, saved.getInteger("TileX"), saved.getInteger("TileY"),
+                saved.getInteger("TileZ"), HANGING_SPAWNS_ON_ITS_WALL), type);
         ENTITY_KEYS_NOT_RESTORED.forEach(saved::removeKey);
         NBT.modify(spawned, (ReadWriteNBT nbt) -> {
             nbt.mergeCompound(saved);
         });
+    }
+
+    /**
+     * Where Bukkit spawns {@code type} so it lands at {@code at}. Before 1.8 a frame or painting is spawned at the block it
+     * hangs on - its {@code TileX/Y/Z} then - and the spawn refuses the free block the entity itself stands in.
+     */
+    static Location spawnPoint(EntityType type, Location at, Integer tileX, Integer tileY, Integer tileZ, boolean hangingSpawnsOnItsWall) {
+        if (hangingSpawnsOnItsWall && tileX != null && tileY != null && tileZ != null && type.getEntityClass() != null
+                && Hanging.class.isAssignableFrom(type.getEntityClass())) {
+            return new Location(at.getWorld(), tileX, tileY, tileZ, at.getYaw(), at.getPitch());
+        }
+        return at;
     }
 
     /** Whether the state carries a tile entity: every era wraps one in a subclass of the plain {@code CraftBlockState}. */

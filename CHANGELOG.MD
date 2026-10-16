@@ -62,7 +62,8 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   `blocks`, `nbt`, `entities`), and `RegionManager.getTerrain().restoreJournal(region, blocksPerTick)` puts it back on
   the world thread, a budget per tick. Platforms read and write blocks through `IPlatform.getTerrainAccess()`
   (`ITerrainAccess`): Bukkit keeps the block (`BlockData` from 1.13, material + data before), its tile entity's NBT
-  and the armor stands and hanging entities broken; Hytale keeps the block only (its server fires no event when an
+  and the armor stands and hanging entities broken (a frame or painting respawns hung on its wall, 1.7.10 included);
+  Hytale keeps the block only (its server fires no event when an
   entity is removed). The journal hears a change only
   after every plugin decided - a `MONITOR` listener on Bukkit, a System ordered after the deciding one on Hytale -
   and never a cancelled one. The test engine answers the access with `TestTerrain`.
@@ -73,7 +74,8 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   `getSnapshotRetention()` newest (3 unless set); `restoreSnapshot(region, index, blocksPerTick)` puts one back a
   budget per tick. A snapshot carries the game version it was taken on (`ITerrainAccess.getGameVersion()`, a
   `.version` file beside it) and `restoreSnapshot` refuses another one. With `nbt` off the Bukkit snapshot leaves the
-  tile entities' data out of the schematic (`FCBlockArrayClipboard.clearNbtData()`). Without WorldEdit a Bukkit
+  tile entities' data out of the schematic (`FCBlockArrayClipboard.clearNbtData()`); on Crucible, where WorldEdit 6 has
+  no working Bukkit adapter, it never holds that data. Without WorldEdit a Bukkit
   snapshot fails naming WorldEdit and the journal, and `getSnapshots` answers an empty list. `RegionTerrainEvent`
   (`SNAPSHOT`, `RESTORE_START`, `RESTORE_END`) reports both.
 
