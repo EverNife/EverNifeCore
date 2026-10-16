@@ -19,6 +19,12 @@ repositories {
         url = 'https://repo.extendedclip.com/releases/'
         content { includeGroup 'me.clip' }
     }
+    ivy {
+        url = 'https://cdn.modrinth.com/data/1u6JkXh5/versions/'
+        patternLayout { artifact '[module]/[organisation]-[revision](-[classifier]).[ext]' }
+        metadataSources { artifact() }
+        content { includeGroup 'worldedit-bukkit' }
+    }
 }
 
 configurations {
@@ -27,6 +33,25 @@ configurations {
     conformanceChecks { transitive = false }
     // The PlaceholderAPI plugin the matrix driver routes into its servers; the published jar is the shaded plugin.
     matrixPlaceholderApi { transitive = false }
+}
+
+// The WorldEdit plugin the matrix driver routes into each Bukkit flavor, by its game version.
+def matrixWorldEdit = [
+        '1.7.10' : libs.matrix.worldedit6,
+        '1.12.2' : libs.matrix.worldedit6,
+        '1.16.5' : libs.matrix.worldedit72,
+        '1.21.1' : libs.matrix.worldedit73,
+]
+def matrixWorldEditJars = matrixWorldEdit.collect { mc, lib ->
+    def configuration = configurations.create("matrixWorldEdit_${mc.replace('.', '_')}") { transitive = false }
+    //Modrinth names the 7.2.5 file worldedit-bukkit-7.2.5-dist.jar
+    def coordinate = lib.get()
+    dependencies.add(configuration.name, "${coordinate.module}:${coordinate.versionConstraint.requiredVersion}${mc == '1.16.5' ? ':dist' : ''}")
+    tasks.register("matrixWorldEditJar_${mc.replace('.', '_')}", Copy) {
+        from configuration
+        into layout.buildDirectory.dir('matrix')
+        rename { "WorldEdit-${mc}.jar" }
+    }
 }
 
 dependencies {
@@ -88,6 +113,7 @@ def matrixPlaceholderApiJar = tasks.register('matrixPlaceholderApiJar', Copy) {
 
 tasks.named('shadowJar') {
     dependsOn matrixPlaceholderApiJar
+    dependsOn matrixWorldEditJars
 }
 
 tasks.named('build') {

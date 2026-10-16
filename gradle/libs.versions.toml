@@ -33,6 +33,10 @@ placeholderapi-hytale = "1.0.8"
 # 2.11.2 is not in the public repo; this is also the one the conformance matrix
 # servers load - 2.11.2 dies in its static init on 1.21.1.
 placeholderapi = "2.11.6"
+# The WorldEdit plugin each Bukkit flavor of the conformance matrix runs (the newest release for its game version)
+matrix-worldedit6 = "6.1.9"
+matrix-worldedit72 = "7.2.5"
+matrix-worldedit73 = "7.3.8"
 authme = "5.4.0"
 griefdefender = "2.2.1"
 griefpreventionplus = "13.3"
@@ -102,6 +106,10 @@ luckperms-api = { module = "net.luckperms:api", version.ref = "luckperms" }
 vaultunlocked = { module = "net.cfh.vault:VaultUnlocked", version.ref = "vaultunlocked" }
 placeholderapi-hytale = { module = "at.helpch:placeholderapi-hytale", version.ref = "placeholderapi-hytale" }
 placeholderapi = { module = "me.clip:placeholderapi", version.ref = "placeholderapi" }
+# Modrinth's shaded plugin jars (enginehub publishes only thin ones): group = file prefix, module = Modrinth version id
+matrix-worldedit6 = { module = "worldedit-bukkit:JezAXbj7", version.ref = "matrix-worldedit6" }
+matrix-worldedit72 = { module = "worldedit-bukkit:t7YT4aha", version.ref = "matrix-worldedit72" }
+matrix-worldedit73 = { module = "worldedit-bukkit:ecqqLKUO", version.ref = "matrix-worldedit73" }
 authme = { module = "fr.xephi:authme", version.ref = "authme" }
 griefdefender = { module = "com.griefdefender:griefdefender-bukkit", version.ref = "griefdefender" }
 griefpreventionplus = { module = "net.kaikk.mc:GriefPreventionPlus", version.ref = "griefpreventionplus" }

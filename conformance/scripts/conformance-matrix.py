@@ -26,6 +26,8 @@ from typing import Dict, List, Optional
 REPO_ROOT = Path(__file__).resolve().parents[2]
 # Copied there by :conformance:minecraft:shadowJar from a public repository (version in libs.versions.toml)
 DEFAULT_PAPI = str(REPO_ROOT / "conformance/minecraft/build/matrix/PlaceholderAPI.jar")
+# The same task copies the WorldEdit plugin for each game version there as WorldEdit-<version>.jar
+DEFAULT_WORLDEDIT_DIR = str(REPO_ROOT / "conformance/minecraft/build/matrix")
 # The mctf CLI and the framework root (its final-artifacts/ carries the companion mods); machine-local paths
 REQUIRED_ENV = ("MCTF_HOME", "MCTF_CLI")
 DEFAULT_FLAVORS = "crucible-1.7.10,mohist-1.12.2,mohist-1.16.5,arclight-1.21.1,paper-1.21.1"
@@ -329,6 +331,10 @@ def click_a_block(mctf: Mctf, client_id: str, r: FlavorResult):
         r.problems.append("attack did not hit a block: %s" % hit)
 
 
+def worldedit_jar(a, mc: str) -> str:
+    return str(Path(a.worldedit_dir) / ("WorldEdit-%s.jar" % mc))
+
+
 def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
     r = FlavorResult(flavor)
     mc = flavor.split("-", 1)[1]
@@ -341,6 +347,7 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         routes = [{"from": [a.core_jar], "to": "plugins"}, {"from": [a.ecc_jar], "to": "plugins"}]
         if flavor in a.papi_flavors:
             routes.append({"from": [a.papi_jar], "to": "plugins"})
+        routes.append({"from": [worldedit_jar(a, mc)], "to": "plugins"})
         if flavor in HYBRIDS:
             routes.append({"from": [str(fw / "final-artifacts/companion" / ("MCTFCompanion-%s-*.jar" % mc))], "to": "mods"})
         routes.append({"from": [str(fw / "final-artifacts/harness/ENCTestHarness-*.jar")], "to": "plugins"})
@@ -354,7 +361,7 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         enabled = (start.get("plugins") or {}).get("enabled") or []
         if PLUGIN_ID not in enabled:
             raise FlavorFailed("%s not enabled; plugins=%s" % (PLUGIN_ID, start.get("plugins")))
-        dead = routed_but_not_enabled(enabled, ["PlaceholderAPI"] if flavor in a.papi_flavors else [])
+        dead = routed_but_not_enabled(enabled, ["WorldEdit"] + (["PlaceholderAPI"] if flavor in a.papi_flavors else []))
         if dead:
             r.problems.append("routed but not enabled: %s; not_enabled=%s" % (dead, (start.get("plugins") or {}).get("not_enabled")))
         if start.get("linkage_errors"):
@@ -538,6 +545,7 @@ def main(argv=None) -> int:
     p.add_argument("--hytale-core-jar", default=str(REPO_ROOT / "hytale/build/libs/EverNifeCore-3.0.1-Hytale.jar"))
     p.add_argument("--hytale-ecc-jar", default=str(REPO_ROOT / "conformance/hytale/build/libs/ECoreConformance-3.0.1-Hytale.jar"))
     p.add_argument("--papi-jar", default=DEFAULT_PAPI, help="PlaceholderAPI jar routed into --papi-flavors")
+    p.add_argument("--worldedit-dir", default=DEFAULT_WORLDEDIT_DIR, help="where WorldEdit-<game version>.jar is, per Bukkit flavor")
     p.add_argument("--papi-flavors", default="paper-1.21.1", help="comma-separated flavors that get PlaceholderAPI")
     p.add_argument("--out", default="build/conformance", help="output dir, relative to the repo root")
     p.add_argument("--keep", action="store_true", help="leave the servers and clients running")
@@ -561,7 +569,7 @@ def main(argv=None) -> int:
         minecraft = [f for f in flavors if f not in HYTALE]
         needed = [cli] + ([a.core_jar, a.ecc_jar] if minecraft else []) \
             + ([a.hytale_core_jar, a.hytale_ecc_jar] if len(minecraft) < len(flavors) else []) \
-            + ([a.papi_jar] if a.papi_flavors & set(flavors) else [])
+            + ([a.papi_jar] if a.papi_flavors & set(flavors) else [])             + [worldedit_jar(a, f.split("-", 1)[1]) for f in minecraft]
         missing = [n for n in needed if not Path(n).is_file()]
         if missing:
             print("missing: %s (the jars come from ./gradlew :minecraft:shadowJar :conformance:minecraft:shadowJar,"
