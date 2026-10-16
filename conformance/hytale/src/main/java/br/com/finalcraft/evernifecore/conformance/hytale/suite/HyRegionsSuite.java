@@ -1,5 +1,9 @@
 package br.com.finalcraft.evernifecore.conformance.hytale.suite;
 
+import java.util.ArrayList;
+
+import com.hypixel.hytale.builtin.buildertools.BuilderToolsPlugin;
+
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
@@ -285,14 +289,19 @@ public final class HyRegionsSuite implements ConformanceSuite {
         World world = HyWorld.worldOf(player);
         return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
             Vector3i c = block(at, 6, 8, 0);
+            int[] entitiesTaken = new int[1];
             return HyWorld.chunksLoaded(world, c.x - 1, c.z - 1, c.x + 1, c.z + 1).thenCompose(loaded -> HyWorld.on(world, () -> {
                 cube(world, c, SOLID);
+                NPCPlugin.get().spawnNPC(world.getEntityStore().getStore(), "Sheep", null, new Vector3d(c.x + 0.5, c.y, c.z + 0.5),
+                        new Rotation3f(0F, 0F, 0F));
+                entitiesTaken[0] = copyableIn(world, c).size();
                 return null;
             })).thenCompose(built -> inRegion(regions, "ecc-prefab", world.getName(), pos(c).add(-1, -1, -1), pos(c).add(1, 1, 1),
                     region -> { },
                     region -> region.getManager().getTerrain().snapshot(region)
                             .thenCompose(file -> HyWorld.on(world, () -> {
                                 cube(world, c, BlockType.EMPTY_KEY);
+                                copyableIn(world, c).forEach(entity -> entity.getStore().removeEntity(entity, RemoveReason.REMOVE));
                                 return file;
                             }))
                             .thenCompose(file -> region.getManager().getTerrain().restoreSnapshot(region, 0, 10)
@@ -302,11 +311,21 @@ public final class HyRegionsSuite implements ConformanceSuite {
                                             int id = HyWorld.blockId(world, c.x + x, c.y + y, c.z + z);
                                             back += id > 0 && SOLID.equals(BlockType.getAssetMap().getAsset(id).getId()) ? 1 : 0;
                                         }
+                                        List<Ref<EntityStore>> entitiesBack = copyableIn(world, c);
+                                        entitiesBack.forEach(entity -> entity.getStore().removeEntity(entity, RemoveReason.REMOVE));
                                         cube(world, c, BlockType.EMPTY_KEY);
-                                        return Verdict.of(back == 26 && file.getName().endsWith(".prefab.json"),
-                                                "file=" + file.getName() + " back=" + back + "/26");
+                                        return Verdict.of(back == 26 && file.getName().endsWith(".prefab.json") && entitiesTaken[0] == 1
+                                                        && entitiesBack.size() == 1, "file=" + file.getName() + " back=" + back + "/26 entities="
+                                                + entitiesBack.size() + "/" + entitiesTaken[0] + " (a Sheep)");
                                     })))));
         });
+    }
+
+    /** The entities a prefab of the 3x3x3 box around {@code c} would copy, as the server collects them. */
+    private static List<Ref<EntityStore>> copyableIn(World world, Vector3i c) {
+        List<Ref<EntityStore>> found = new ArrayList<>();
+        BuilderToolsPlugin.forEachCopyableInSelection(world, c.x - 1, c.y - 1, c.z - 1, 3, 3, 3, found::add);
+        return found;
     }
 
     /** A 3x3x3 cube of {@code block} around {@code c}, its center left empty. */

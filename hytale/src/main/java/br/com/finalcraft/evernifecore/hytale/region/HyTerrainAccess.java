@@ -5,9 +5,14 @@ import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainContent;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainPlacement;
 import com.hypixel.hytale.common.util.java.ManifestUtil;
+import com.hypixel.hytale.builtin.buildertools.BuilderToolsPlugin;
+import com.hypixel.hytale.component.AddReason;
+import com.hypixel.hytale.component.Holder;
 import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
+import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.prefab.PrefabStore;
 import com.hypixel.hytale.server.core.prefab.selection.standard.BlockSelection;
 import com.hypixel.hytale.server.core.universe.Universe;
@@ -15,6 +20,7 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.chunk.BlockOperations;
 import com.hypixel.hytale.server.core.universe.world.chunk.section.BlockSection;
 import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.joml.Vector3i;
 
 import java.io.File;
@@ -29,8 +35,8 @@ import java.util.List;
 /**
  * Block access by position on Hytale: a block is {@code <asset id>|<rotation>|<filler>}, what
  * {@link BlockOperations#setBlock} takes back. The journal keeps no block component data (a chest's items), so
- * {@link TerrainContent#isNbt()} changes nothing here, and entities are not captured - the journal of a Hytale region
- * keeps blocks only; a snapshot (prefab) keeps the rest.
+ * {@link TerrainContent#isNbt()} changes nothing here, and no entities: the server fires no event when an entity is
+ * removed, so nothing would record one. A snapshot (prefab) keeps the box's prefab-copyable entities.
  */
 public final class HyTerrainAccess implements ITerrainAccess {
 
@@ -126,6 +132,12 @@ public final class HyTerrainAccess implements ITerrainAccess {
                 }
             }
         }
+        if (content.isEntities()) {
+            Store<EntityStore> store = at.getEntityStore().getStore();
+            //the server's own prefab copy: every entity it marks prefab-copyable, positioned relative to the selection
+            BuilderToolsPlugin.forEachCopyableInSelection(at, min.getX(), min.getY(), min.getZ(), max.getX() - min.getX() + 1,
+                    max.getY() - min.getY() + 1, max.getZ() - min.getZ() + 1, ref -> selection.addEntityFromWorld(store.copyEntity(ref)));
+        }
         Path saved = PrefabStore.get().savePrefab(file.toPath(), selection, true);
         if (saved != null && !saved.toAbsolutePath().equals(file.toPath().toAbsolutePath())) {
             Files.move(saved, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
@@ -134,7 +146,10 @@ public final class HyTerrainAccess implements ITerrainAccess {
                 + min.getZ() + " " + max.getX() + " " + max.getY() + " " + max.getZ()), StandardCharsets.UTF_8);
     }
 
-    /** Puts the prefab back position by position: {@link BlockSelection#place} has no budget of its own. */
+    /**
+     * Puts the prefab back position by position - {@link BlockSelection#place} has no budget of its own - then spawns its
+     * entities as the server places a prefab's, with {@link AddReason#LOAD}.
+     */
     @Override
     public TerrainPlacement readSnapshot(String world, File file) throws IOException {
         String[] box = Files.readAllLines(new File(file.getPath() + BOX_SUFFIX).toPath(), StandardCharsets.UTF_8).get(0).split(" ");
@@ -162,7 +177,16 @@ public final class HyTerrainAccess implements ITerrainAccess {
                             BlockType.getAssetMap().getAsset(holder.blockId()), holder.rotation(), holder.filler(), 0);
                 }
             }
-            return next[0] >= volume;
+            if (next[0] < volume) {
+                return false;
+            }
+            Store<EntityStore> store = at.getEntityStore().getStore();
+            selection.forEachEntity(saved -> {
+                Holder<EntityStore> entity = saved.clone();
+                entity.getComponent(TransformComponent.getComponentType()).getPosition().add(minX, minY, minZ);
+                store.addEntity(entity, AddReason.LOAD);
+            });
+            return true;
         };
     }
 

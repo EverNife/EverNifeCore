@@ -62,12 +62,14 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   `blocks`, `nbt`, `entities`), and `RegionManager.getTerrain().restoreJournal(region, blocksPerTick)` puts it back on
   the world thread, a budget per tick. Platforms read and write blocks through `IPlatform.getTerrainAccess()`
   (`ITerrainAccess`): Bukkit keeps the block (`BlockData` from 1.13, material + data before), its tile entity's NBT
-  and the armor stands and hanging entities broken; Hytale keeps the block only. The journal hears a change only
+  and the armor stands and hanging entities broken; Hytale keeps the block only (its server fires no event when an
+  entity is removed). The journal hears a change only
   after every plugin decided - a `MONITOR` listener on Bukkit, a System ordered after the deciding one on Hytale -
   and never a cancelled one. The test engine answers the access with `TestTerrain`.
 - **Region snapshots**: `RegionTerrain.snapshot(region[, content])` saves the region's bounding box under
   `<owner data>/regions/terrain/<region>/<stamp>.<ext>` - a WorldEdit `.schem` (`.schematic` on WorldEdit 6) plus the
-  entities beside it on Bukkit, a prefab through the server's `PrefabStore` on Hytale - keeping the
+  entities beside it on Bukkit, a prefab with the box's prefab-copyable entities through the server's `PrefabStore`
+  on Hytale - keeping the
   `getSnapshotRetention()` newest (3 unless set); `restoreSnapshot(region, index, blocksPerTick)` puts one back a
   budget per tick. A snapshot carries the game version it was taken on (`ITerrainAccess.getGameVersion()`, a
   `.version` file beside it) and `restoreSnapshot` refuses another one. With `nbt` off the Bukkit snapshot leaves the
