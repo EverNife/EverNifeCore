@@ -64,8 +64,8 @@ import java.util.concurrent.CompletableFuture;
  * source putting its listener on the server only while a region needs it, a break inside a denying region cancelled,
  * a bot found inside a region that starts denying entry sent out, a real TNT held whole by {@code deny-explosion} and
  * cut at a {@code deny-block-break} border, the registry's own block and entity keys, outside water kept out by a FLUID
- * flag, and a region's {@code deny-message} and own flag settings read back after a restart. Every region a case
- * creates is removed by it, except the one the write half leaves for the read half.
+ * flag, a region's {@code deny-message} and own flag settings read back after a restart, and the terrain cases of
+ * {@link TerrainCases}. Every region a case creates is removed by it, except the one the write half leaves for the read half.
  */
 public final class RegionsSuite implements ConformanceSuite {
 
@@ -105,7 +105,7 @@ public final class RegionsSuite implements ConformanceSuite {
 
     @Override
     public List<ConformanceCase> getCases(ConformanceContext ctx) {
-        return Arrays.asList(
+        List<ConformanceCase> cases = new ArrayList<>(Arrays.asList(
                 ConformanceCase.of("core-flags-registered", this::coreFlagsRegistered),
                 ConformanceCase.later("plugin-source-follows-need", this::pluginSourceFollowsNeed),
                 PlayerCases.later("deny-break-is-cancelled", ctx, this::denyBreakIsCancelled),
@@ -114,7 +114,9 @@ public final class RegionsSuite implements ConformanceSuite {
                 PlayerCases.later("explosion-on-a-border", ctx, this::explosionOnABorder),
                 ConformanceCase.of("block-key-is-the-registrys", this::blockKeyIsTheRegistrys),
                 PlayerCases.later("tnt-entity-key", ctx, this::tntEntityKey),
-                PlayerCases.later("fluid-stays-out", ctx, this::fluidStaysOut));
+                PlayerCases.later("fluid-stays-out", ctx, this::fluidStaysOut)));
+        cases.addAll(new TerrainCases(regions).cases(ctx));
+        return cases;
     }
 
     @Override

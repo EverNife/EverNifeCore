@@ -69,6 +69,23 @@ class ParsingTest(unittest.TestCase):
         self.assertIn("papi-present: FAILED", text)
 
 
+    def test_case_lines_come_out_of_every_rolled_log_shape(self):
+        import gzip
+        import zipfile
+        line = "[04:01:17] [Server thread/INFO]: [ECoreConformance] regions/%s PASS ok\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            logs = Path(tmp)
+            with gzip.open(logs / "2026-10-16-1.log.gz", "wt", encoding="utf-8") as f:
+                f.write(line % "gz")
+            with zipfile.ZipFile(logs / "2026-10-16-2.log.zip", "w") as z:
+                z.writestr("2026-10-16-2.log", line % "zip")
+            with zipfile.ZipFile(logs / "debug-1.log.zip", "w") as z:
+                z.writestr("debug-1.log", line % "debug")
+            (logs / "previous.log").write_text(line % "previous", encoding="utf-8")
+            read = [d for log in cm.rolled_logs(logs) if log.is_file() for d in cm.case_lines(cm.read_log(log))]
+        self.assertEqual(["regions/gz PASS ok", "regions/zip PASS ok", "regions/previous PASS ok"], read)
+
+
 class CliTest(unittest.TestCase):
 
     def test_help_exits_zero(self):

@@ -12,6 +12,7 @@ reports failed=0.
 """
 
 import argparse
+import gzip
 import json
 import os
 import re
@@ -19,6 +20,7 @@ import shutil
 import subprocess
 import sys
 import time
+import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -166,9 +168,9 @@ def render_flavor_section(r: FlavorResult) -> str:
     if r.gui:
         out += ["", "### GUI screens", ""]
         out += ["- %s: %s" % (g["screen"], g["line"]) for g in r.gui]
+    if r.details:
+        out += ["", "### Case details", ""] + ["- %s" % d for d in r.details]
     if r.flavor in HYTALE:
-        if r.details:
-            out += ["", "### Case details", ""] + ["- %s" % d for d in r.details]
         return "\n".join(out) + "\n"
     out += ["", "### Text render evidence", ""]
     if r.text:
@@ -424,6 +426,11 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
             (fdir / "reports").mkdir(parents=True, exist_ok=True)
             for report in reports.glob("*.ndjson"):
                 shutil.copy2(report, fdir / "reports" / report.name)
+            # the run half logged before the restart, into the log the server rolled
+            logs = Path(run_dir) / "logs"
+            for log in rolled_logs(logs) + [logs / "latest.log"]:
+                if log.is_file():
+                    r.details += case_lines(read_log(log))
     except FlavorFailed as e:
         r.problems.append(str(e))
         r.events = r.events or pre_restart
@@ -445,6 +452,23 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
 
 
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def rolled_logs(logs: Path) -> List[Path]:
+    """The server logs a restart rolled, oldest first: dated and gzipped (Paper, Arclight) or zipped (Mohist, beside a
+    debug log it rolls too), or previous.log (1.7.10)."""
+    dated = "????-??-??-*.log"
+    return sorted(logs.glob(dated + ".gz")) + sorted(logs.glob(dated + ".zip")) + [logs / "previous.log"]
+
+
+def read_log(log: Path) -> str:
+    if log.suffix == ".gz":
+        with gzip.open(log, "rt", encoding="utf-8", errors="replace") as f:
+            return f.read()
+    if log.suffix == ".zip":
+        with zipfile.ZipFile(log) as z:
+            return "".join(z.read(name).decode("utf-8", errors="replace") for name in z.namelist())
+    return log.read_text(encoding="utf-8", errors="replace")
 
 
 def case_lines(log_text: str) -> List[str]:

@@ -64,6 +64,10 @@ dependencies {
     compileOnly libs.nbtapi
     compileOnly libs.ecnmsutils
     compileOnly libs.spigot.api
+    // The core's WorldEdit wrappers and the server's WorldEdit; only API that WorldEdit 6 and 7 share is called.
+    compileOnly project(':minecraft:modules:VersionedPlugins')
+    compileOnly(libs.worldedit7.core) { transitive = false }
+    compileOnly(libs.worldedit7.bukkit) { transitive = false }
     compileOnly project(':common-tests')
     conformanceChecks project(':common-tests')
     matrixPlaceholderApi libs.placeholderapi
