@@ -69,7 +69,10 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   `<owner data>/regions/terrain/<region>/<stamp>.<ext>` - a WorldEdit `.schem` (`.schematic` on WorldEdit 6) plus the
   entities beside it on Bukkit, a prefab through the server's `PrefabStore` on Hytale - keeping the
   `getSnapshotRetention()` newest (3 unless set); `restoreSnapshot(region, index, blocksPerTick)` puts one back a
-  budget per tick. Without WorldEdit a Bukkit snapshot fails naming WorldEdit and the journal. `RegionTerrainEvent`
+  budget per tick. A snapshot carries the game version it was taken on (`ITerrainAccess.getGameVersion()`, a
+  `.version` file beside it) and `restoreSnapshot` refuses another one. With `nbt` off the Bukkit snapshot leaves the
+  tile entities' data out of the schematic (`FCBlockArrayClipboard.clearNbtData()`). Without WorldEdit a Bukkit
+  snapshot fails naming WorldEdit and the journal, and `getSnapshots` answers an empty list. `RegionTerrainEvent`
   (`SNAPSHOT`, `RESTORE_START`, `RESTORE_END`) reports both.
 
 ### Changed

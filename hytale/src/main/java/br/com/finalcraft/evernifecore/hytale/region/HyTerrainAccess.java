@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainContent;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainPlacement;
+import com.hypixel.hytale.common.util.java.ManifestUtil;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
@@ -87,6 +88,11 @@ public final class HyTerrainAccess implements ITerrainAccess {
             throw new IllegalArgumentException("No world named " + name + " is loaded; load it before touching its terrain.");
         }
         return world;
+    }
+
+    @Override
+    public String getGameVersion() {
+        return "hytale-" + ManifestUtil.getImplementationVersion();
     }
 
     @Override

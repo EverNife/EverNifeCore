@@ -178,6 +178,40 @@ class RegionTerrainTest extends ManagedRegionFixture {
     }
 
     @Test
+    void withBlocksOffNothingIsRecordedInTheJournal(TestPlatform platform) {
+        TestTerrain terrain = platform.getTestTerrain();
+        terrain.setBlock(WORLD, 2, 10, 2, "stone");
+        Region region = trackedRegion(new TrackChangesSettings().setContent(TerrainContent.of(false, true, true)));
+
+        breakThenPlace(terrain, 2, 10, 2, "air");
+
+        assertEquals(0, region.getManager().getTerrain().getJournalSize(region));
+        assertEquals(0, region.getManager().getTerrain().restoreJournal(region, 10).join());
+        assertEquals("air", terrain.getBlock(WORLD, 2, 10, 2), "a journal that keeps no blocks puts none back");
+    }
+
+    @Test
+    void aSnapshotFromAnotherGameVersionIsRefusedNamingTheWayOut(TestPlatform platform) {
+        TestTerrain terrain = platform.getTestTerrain();
+        terrain.setBlock(WORLD, 0, 5, 0, "stone");
+        RegionManager manager = manager();
+        Region region = created(manager.create("small", WORLD, box(0, 0, 1, 1)));
+        manager.getTerrain().snapshot(region).join();
+        terrain.setBlock(WORLD, 0, 5, 0, "air");
+
+        terrain.setGameVersion("test-2");
+        IllegalStateException refused = assertThrows(IllegalStateException.class, () -> manager.getTerrain().restoreSnapshot(region, 0, 100));
+
+        assertTrue(refused.getMessage().contains(TestTerrain.DEFAULT_GAME_VERSION) && refused.getMessage().contains("test-2"), refused.getMessage());
+        assertTrue(refused.getMessage().contains("take a new snapshot"), refused.getMessage());
+        assertEquals("air", terrain.getBlock(WORLD, 0, 5, 0), "nothing was put back");
+
+        terrain.setGameVersion(TestTerrain.DEFAULT_GAME_VERSION);
+        manager.getTerrain().restoreSnapshot(region, 0, 100).join();
+        assertEquals("stone", terrain.getBlock(WORLD, 0, 5, 0), "the version that took it restores it");
+    }
+
+    @Test
     void withEntitiesOffTheEntityDoesNotComeBack(TestPlatform platform) {
         TestTerrain terrain = platform.getTestTerrain();
         Region region = trackedRegion(new TrackChangesSettings().setContent(TerrainContent.of(true, true, false)));

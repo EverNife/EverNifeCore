@@ -35,6 +35,11 @@ public interface ITerrainAccess {
         }
 
         @Override
+        public String getGameVersion() {
+            throw unsupported();
+        }
+
+        @Override
         public String getSnapshotExtension() {
             throw unsupported();
         }
@@ -67,6 +72,9 @@ public interface ITerrainAccess {
 
     /** Spawns again an entity a capture produced, where it stood. */
     void restoreEntity(String world, String state);
+
+    /** The game version this server runs; a snapshot carries it and restores only on the same one. */
+    String getGameVersion();
 
     /** The extension of this platform's snapshot files, without the dot. */
     String getSnapshotExtension();

@@ -17,6 +17,7 @@ import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.math.transform.Transform;
 import com.sk89q.worldedit.regions.CuboidRegion;
 import com.sk89q.worldedit.session.ClipboardHolder;
+import com.sk89q.worldedit.world.block.BaseBlock;
 import jakarta.annotation.Nullable;
 import org.bukkit.World;
 
@@ -56,6 +57,20 @@ public class ImpFCBlockArrayClipboard extends FCBlockArrayClipboard {
         return new ImpFCBaseBlock(
                 blockArrayClipboard.getFullBlock(BlockVector3.at(blockPos.getX(), blockPos.getY(), blockPos.getZ()))
         );
+    }
+
+    @Override
+    public void clearNbtData() {
+        for (BlockVector3 at : blockArrayClipboard.getRegion()) {
+            BaseBlock block = blockArrayClipboard.getFullBlock(at);
+            if (block.hasNbtData()) {
+                try {
+                    blockArrayClipboard.setBlock(at, block.toImmutableState());
+                } catch (WorldEditException e) {
+                    throw new IllegalStateException("WorldEdit refused to rewrite " + at + " of its own clipboard: " + e.getMessage(), e);
+                }
+            }
+        }
     }
 
     @Override

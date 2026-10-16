@@ -41,6 +41,9 @@ public abstract class FCBlockArrayClipboard {
 
     public abstract FCBaseBlock getBlock(BlockPos blockPos);
 
+    /** Drops the tile entity data (a chest's items, a sign's text) of every block, keeping the blocks themselves. */
+    public abstract void clearNbtData();
+
     /** {@link #paste(World, BlockPos, boolean, boolean, Transform)} with air and entities, untransformed. */
     public EditSession paste(World world, BlockPos to){
         return paste(world, to, true, true, null);

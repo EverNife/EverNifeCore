@@ -7,10 +7,13 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.LocPos;
 import br.com.finalcraft.evernifecore.minecraft.worldedit.block.FCBaseBlock;
 import br.com.finalcraft.evernifecore.minecraft.worldedit.clipboard.FCBlockArrayClipboard;
 import br.com.finalcraft.evernifecore.minecraft.worldedit.region.IFCCuboidRegion;
+import com.sk89q.worldedit.BlockVector;
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.Vector;
 import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.WorldEditException;
+import com.sk89q.worldedit.blocks.BaseBlock;
 import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.entity.Entity;
 import com.sk89q.worldedit.extent.AbstractDelegateExtent;
@@ -64,6 +67,20 @@ public class ImpFCBlockArrayClipboard extends FCBlockArrayClipboard {
         return new ImpFCBaseBlock(
                 blockArrayClipboard.getBlock(new Vector(blockPos.getX(), blockPos.getY(), blockPos.getZ()))
         );
+    }
+
+    @Override
+    public void clearNbtData() {
+        for (BlockVector at : blockArrayClipboard.getRegion()) {
+            BaseBlock block = blockArrayClipboard.getBlock(at);
+            if (block.hasNbtData()) {
+                try {
+                    blockArrayClipboard.setBlock(at, new BaseBlock(block.getId(), block.getData()));
+                } catch (WorldEditException e) {
+                    throw new IllegalStateException("WorldEdit refused to rewrite " + at + " of its own clipboard: " + e.getMessage(), e);
+                }
+            }
+        }
     }
 
     @Override

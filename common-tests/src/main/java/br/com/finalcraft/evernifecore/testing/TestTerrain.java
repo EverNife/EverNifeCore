@@ -34,6 +34,10 @@ public final class TestTerrain implements ITerrainAccess {
     private final List<String> restoredPositions = new ArrayList<>();
     private int restores;
     private int failAfterRestores = -1;
+    private String gameVersion = DEFAULT_GAME_VERSION;
+
+    /** The game version a fresh terrain reports. */
+    public static final String DEFAULT_GAME_VERSION = "test-1";
 
     public void setBlock(String world, int x, int y, int z, String block) {
         setBlock(world, x, y, z, block, null);
@@ -97,6 +101,7 @@ public final class TestTerrain implements ITerrainAccess {
         restoredPositions.clear();
         restores = 0;
         failAfterRestores = -1;
+        gameVersion = DEFAULT_GAME_VERSION;
         return this;
     }
 
@@ -150,6 +155,17 @@ public final class TestTerrain implements ITerrainAccess {
     @Override
     public void restoreEntity(String world, String state) {
         entities.add(world + ":" + state);
+    }
+
+    /** The server "upgraded": snapshots taken before carry the old version. */
+    public TestTerrain setGameVersion(String gameVersion) {
+        this.gameVersion = gameVersion;
+        return this;
+    }
+
+    @Override
+    public String getGameVersion() {
+        return gameVersion;
     }
 
     @Override

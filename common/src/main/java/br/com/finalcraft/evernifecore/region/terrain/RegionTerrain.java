@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -177,7 +178,8 @@ public final class RegionTerrain {
 
     /**
      * Saves the bounding box of {@code region} as {@code <owner data>/regions/terrain/<region>/<stamp>.<ext>} on the
-     * world's thread, keeping the {@link #getSnapshotRetention()} newest and deleting the older ones.
+     * world's thread, with the game version beside it, keeping the {@link #getSnapshotRetention()} newest and deleting
+     * the older ones.
      *
      * @return completes with the file written
      */
@@ -195,6 +197,7 @@ public final class RegionTerrain {
                 Files.createDirectories(folder.toPath());
                 access.writeSnapshot(region.getWorld(), new BlockPos(box.getMinX(), box.getMinY(), box.getMinZ()),
                         new BlockPos(box.getMaxX(), box.getMaxY(), box.getMaxZ()), content, file);
+                Files.write(versionFile(file).toPath(), access.getGameVersion().getBytes(StandardCharsets.UTF_8));
             } catch (IOException failed) {
                 throw new UncheckedIOException("The snapshot of region " + region.getId() + " could not be written to " + file, failed);
             }
@@ -220,7 +223,7 @@ public final class RegionTerrain {
 
     /**
      * Puts back the {@code index}-th newest snapshot of {@code region} (0 = the newest), at most {@code blocksPerTick}
-     * blocks per tick on the world's thread.
+     * blocks per tick on the world's thread. A snapshot taken on another game version is refused.
      *
      * @return completes with how many blocks were placed, at most: the last tick counts its whole budget
      */
@@ -233,6 +236,7 @@ public final class RegionTerrain {
                     + " snapshot #" + index + " - take one with snapshot(region) first, or pick an index below " + snapshots.size() + ".");
         }
         File file = snapshots.get(index);
+        requireSameGameVersion(file);
         String world = region.getWorld();
         TerrainPlacement[] placement = new TerrainPlacement[1];
         boolean[] placed = new boolean[1];
@@ -301,6 +305,27 @@ public final class RegionTerrain {
         if (blocksPerTick < 1) {
             throw new IllegalArgumentException("blocksPerTick is " + blocksPerTick + "; a restore puts back at least one block per tick.");
         }
+    }
+
+    /** Block and tile entity formats change between game versions, so a snapshot only goes back on the one that took it. */
+    private static void requireSameGameVersion(File snapshot) {
+        String running = EverNifeCore.getPlatform().getTerrainAccess().getGameVersion();
+        File version = versionFile(snapshot);
+        String taken;
+        try {
+            taken = version.isFile() ? new String(Files.readAllBytes(version.toPath()), StandardCharsets.UTF_8).trim() : null;
+        } catch (IOException unreadable) {
+            throw new UncheckedIOException("The game version of the snapshot " + snapshot + " does not read from " + version, unreadable);
+        }
+        if (!running.equals(taken)) {
+            throw new IllegalStateException("The snapshot " + snapshot.getName() + " was taken on game version " + (taken == null
+                    ? "unknown (no " + version.getName() + " beside it)" : taken) + " and this server runs " + running + "; a snapshot"
+                    + " only restores on the version that took it - restore it on that version, or take a new snapshot here.");
+        }
+    }
+
+    private static File versionFile(File snapshot) {
+        return new File(snapshot.getPath() + ".version");
     }
 
     private long newestStamp(Region region) {

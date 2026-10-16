@@ -158,14 +158,23 @@ public final class McTerrainAccess implements ITerrainAccess {
     }
 
     @Override
-    public String getSnapshotExtension() {
-        return WorldEditSnapshots.withWorldEdit().getClipboardManager().SCHEM != null ? "schem" : "schematic";
+    public String getGameVersion() {
+        return "minecraft-" + Bukkit.getBukkitVersion();
     }
 
-    /** The box through WorldEdit's own copy and format; the entities go to a {@code .entities} file beside it, one per line. */
+    /** WorldEdit 7 (1.13+) writes the Sponge {@code .schem}, WorldEdit 6 the MCEdit {@code .schematic}. */
+    @Override
+    public String getSnapshotExtension() {
+        return BLOCK_DATA ? "schem" : "schematic";
+    }
+
+    /**
+     * The box through WorldEdit's own copy and format, without the tile entities' data when nbt is off; the entities go
+     * to a {@code .entities} file beside it, one per line.
+     */
     @Override
     public void writeSnapshot(String world, BlockPos min, BlockPos max, TerrainContent content, File file) throws IOException {
-        WorldEditSnapshots.write(world(world), min, max, file);
+        WorldEditSnapshots.write(world(world), min, max, content.isNbt(), file);
         if (content.isEntities()) {
             Files.write(new File(file.getPath() + ENTITIES_SUFFIX).toPath(), captureEntities(world, min, max), StandardCharsets.UTF_8);
         }
@@ -200,15 +209,18 @@ public final class McTerrainAccess implements ITerrainAccess {
             return WEPlatform.getInstance();
         }
 
-        static void write(World world, BlockPos min, BlockPos max, File file) throws IOException {
+        static void write(World world, BlockPos min, BlockPos max, boolean nbt, File file) throws IOException {
             WEPlatform worldEdit = withWorldEdit();
             IFCCuboidRegion region = worldEdit.createCuboidRegion(min, max);
             FCBlockArrayClipboard clipboard = worldEdit.createBlockArrayClipboard(region);
             worldEdit.getOperationManager().forwardExtentCopy(world, region, clipboard);
+            if (!nbt) {
+                clipboard.clearNbtData();
+            }
             IFCClipboardManager formats = worldEdit.getClipboardManager();
             try (Closer closer = Closer.create()) {
                 OutputStream out = closer.register(new FileOutputStream(file));
-                (formats.SCHEM != null ? formats.SCHEM : formats.SCHEMATIC).getWriterAndWrite(out, clipboard.getHandle(), closer);
+                (BLOCK_DATA ? formats.SCHEM : formats.SCHEMATIC).getWriterAndWrite(out, clipboard.getHandle(), closer);
             }
         }
 

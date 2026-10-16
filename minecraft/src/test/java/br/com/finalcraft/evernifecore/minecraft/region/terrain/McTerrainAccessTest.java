@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,6 +30,16 @@ class McTerrainAccessTest {
             assertTrue(refused.getMessage().contains("install WorldEdit"), refused.getMessage());
             assertTrue(refused.getMessage().contains("track-changes") && refused.getMessage().contains("restoreJournal"), refused.getMessage());
             assertFalse(file.exists());
+        }
+    }
+
+    @Test
+    void withoutWorldEditTheSnapshotExtensionStillAnswersSoListingFindsNothingInsteadOfThrowing() {
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            McTerrainAccess access = new McTerrainAccess();
+
+            assertEquals("schem", access.getSnapshotExtension(), "a 1.13+ server lists WorldEdit 7's .schem files");
+            assertTrue(access.getGameVersion().startsWith("minecraft-"), access.getGameVersion());
         }
     }
 }
