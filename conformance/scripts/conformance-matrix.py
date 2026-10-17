@@ -61,6 +61,8 @@ EXPECTED_ENDS = {"run": 14, "write": 3, "read": 3}
 WAIT_SECONDS = {"run": 900, "write": 180, "read": 180}
 TEXT_LINES = ("iiiiiiiiii", "WWWWWWWWWW")
 BOT = "EccBot"
+WARM_UP_PLAYER = "EccWarmUp"
+WARM_UP_SETTLE = 5
 PLUGIN_ID = "ECoreConformance@3.0.1"
 # The daemon refuses a boot past its container or memory budget; with every flavor at once that is a wait, not a failure
 START_TOOLS = ("mc_start", "mc_hmc_start")
@@ -621,7 +623,16 @@ def particle_packets(snapshot: dict) -> int:
     return sum(int(p.get("count") or 0) for p in packets if p.get("type") == "SpawnParticleSystem")
 
 
-def join_synthetic(mctf: Mctf, server_id: str):
+def join_synthetic(mctf: Mctf, server_id: str, r: FlavorResult):
+    """A throwaway player joins first: the harness gives a join a fixed 10 s, and on a fresh universe beside five other
+    servers generating the spawn area alone can take longer. Once he is in (or the world caught up after him), the
+    bot's own join finds those chunks ready."""
+    warm = mctf("mc_exec", server_id=server_id, ops=[{"op": "player_join", "name": WARM_UP_PLAYER}])
+    if warm.get("ok"):
+        mctf("mc_exec", server_id=server_id, ops=[{"op": "player_leave", "name": WARM_UP_PLAYER}])
+    else:
+        r.notes.append("warm-up join missed: %s" % _err(warm)[:200])
+        mctf.sleep(WARM_UP_SETTLE)
     joined = mctf("mc_exec", server_id=server_id, ops=[{"op": "player_join", "name": BOT}])
     if not joined.get("ok"):
         raise FlavorFailed("player_join: " + _err(joined))
@@ -677,7 +688,7 @@ def run_hytale_once(flavor: str, a, mctf: Mctf, out: Path, fw: Path, fresh_log: 
         run_dir = start.get("run_dir")
         log.lap("start")
 
-        join_synthetic(mctf, server_id)
+        join_synthetic(mctf, server_id, r)
         before = mctf("mc_player", server_id=server_id, player=BOT)
         log.lap("join")
         console(mctf, server_id, "ecc run all --player %s --cid %s" % (BOT, cid))
