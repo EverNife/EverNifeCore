@@ -74,8 +74,6 @@ AWAIT_CHUNK = 60
 # A screen opens a tick or two after the command; the driver looks again this often until both sides show it
 GUI_POLL = 0.5
 GUI_WAIT = 5
-JOIN_TRIES = 3
-JOIN_RETRY_EVERY = 5
 
 
 class FlavorFailed(Exception):
@@ -380,6 +378,21 @@ def client_joined(client: dict) -> bool:
     return bool(client.get("ok") and ((client.get("milestones") or {}).get("joined") or (client.get("screen_check") or {}).get("in_world")))
 
 
+def join_client(mctf: Mctf, flavor: str, server_id: str, fw: Path, r: FlavorResult, stage: str) -> str:
+    """A headless client in the world, the id to stop it by. A client can die in its own join (a NeoForge network
+    filter race, the 1.7.10 GuiConnecting NPE), more often beside five other servers, so a second one is tried."""
+    for attempt in (1, 2):
+        client = start_client(mctf, flavor, server_id, fw)
+        if client_joined(client):
+            if attempt > 1:
+                r.notes.append("%s: the first client never got in (%s), a second one did" % (stage, first))
+            return client.get("client_id")
+        first = "%s %s" % (_err(client), client.get("reject_reason"))
+        if client.get("client_id"):
+            mctf("mc_hmc_stop", client_id=client["client_id"])
+    raise FlavorFailed("%s: no client got into the world: %s" % (stage, first))
+
+
 def click_a_block(mctf: Mctf, client_id: str, r: FlavorResult):
     """Wand in hand (slot 0), look straight down at the block under the feet, left-click it."""
     bot(mctf, client_id, "/mctf slot 0")
@@ -415,13 +428,14 @@ def open_screen(mctf: Mctf, server_id: str, client_id: str):
 class FlavorLog:
     """<out>/<flavor>/driver.log: what the flavor's worker did and how long each stage took, echoed to stdout."""
 
-    def __init__(self, flavor: str, path: Optional[Path]):
+    def __init__(self, flavor: str, path: Optional[Path], fresh: bool = True):
         self.flavor = flavor
         self.path = path
         self.begun = self.lapped = time.monotonic()
         if path:
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text("", encoding="utf-8")
+            with open(path, "w" if fresh else "a", encoding="utf-8") as f:
+                f.write("" if fresh else "-- booted again\n")
 
     def say(self, message: str):
         line = "%s +%6.1fs %s" % (time.strftime("%H:%M:%S"), time.monotonic() - self.begun, message)
@@ -483,10 +497,7 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         run_dir = start.get("run_dir")
         log.lap("start")
 
-        client = start_client(mctf, flavor, server_id, fw)
-        client_id = client.get("client_id")
-        if not client_joined(client):
-            raise FlavorFailed("mc_hmc_start did not join: %s %s" % (_err(client), client.get("reject_reason")))
+        client_id = join_client(mctf, flavor, server_id, fw, r, "join")
         console(mctf, server_id, "op " + BOT)
         console(mctf, server_id, "gamemode creative " + BOT)
         log.lap("join")
@@ -528,10 +539,9 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
             r.notes.append("the bot did not come back after the restart (%s); a fresh client joined instead"
                            % (_err(reconnect) if not reconnect.get("ok") else "connected, never online"))
             mctf("mc_hmc_stop", client_id=client_id)
-            client = start_client(mctf, flavor, server_id, fw)
-            client_id = client.get("client_id")
-            if not client_joined(client) or not wait_online(mctf, server_id):
-                raise FlavorFailed("no client got back in after the restart: %s %s" % (_err(client), client.get("reject_reason")))
+            client_id = join_client(mctf, flavor, server_id, fw, r, "rejoin after the restart")
+            if not wait_online(mctf, server_id):
+                raise FlavorFailed("%s joined a fresh client after the restart but the server never saw him online" % BOT)
         log.lap("restart")
         console(mctf, server_id, "op " + BOT)
         console(mctf, server_id, "gamemode creative " + BOT)
@@ -611,18 +621,10 @@ def particle_packets(snapshot: dict) -> int:
     return sum(int(p.get("count") or 0) for p in packets if p.get("type") == "SpawnParticleSystem")
 
 
-def join_synthetic(mctf: Mctf, server_id: str, r: FlavorResult):
-    """The harness gives the synthetic join a fixed 10 s; a server busy beside five others can miss it, and a failed
-    join leaves no player behind, so it is asked again."""
-    for attempt in range(1, JOIN_TRIES + 1):
-        joined = mctf("mc_exec", server_id=server_id, ops=[{"op": "player_join", "name": BOT}])
-        if joined.get("ok"):
-            if attempt > 1:
-                r.notes.append("player_join went through on try %d of %d" % (attempt, JOIN_TRIES))
-            return
-        if "JOIN_FAILED" not in _err(joined) or attempt == JOIN_TRIES:
-            raise FlavorFailed("player_join (try %d of %d): %s" % (attempt, JOIN_TRIES, _err(joined)))
-        mctf.sleep(JOIN_RETRY_EVERY)
+def join_synthetic(mctf: Mctf, server_id: str):
+    joined = mctf("mc_exec", server_id=server_id, ops=[{"op": "player_join", "name": BOT}])
+    if not joined.get("ok"):
+        raise FlavorFailed("player_join: " + _err(joined))
 
 
 def player_checks(before: dict, after: dict, r: FlavorResult):
@@ -643,10 +645,22 @@ def player_checks(before: dict, after: dict, r: FlavorResult):
 
 
 def run_hytale_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
+    """run_hytale_once, booted a second time when the synthetic join missed: the harness cuts that join at a fixed
+    10 s, which a world still generating beside five other servers can miss, and the late join then leaves a ghost
+    of the player that refuses every later join on the same server."""
+    r = run_hytale_once(flavor, a, mctf, out, fw)
+    missed = [p for p in r.problems if "JOIN_FAILED" in p]
+    if missed:
+        r = run_hytale_once(flavor, a, mctf, out, fw, fresh_log=False)
+        r.notes.append("the first boot missed the synthetic join and was booted again: %s" % missed[0][:300])
+    return r
+
+
+def run_hytale_once(flavor: str, a, mctf: Mctf, out: Path, fw: Path, fresh_log: bool = True) -> FlavorResult:
     """Boot with the core, ECoreConformance and the harness in mods/, join the synthetic player, run every suite."""
     r = FlavorResult(flavor)
     fdir = out / flavor
-    log = FlavorLog(flavor, None if mctf.dry_run else fdir / "driver.log")
+    log = FlavorLog(flavor, None if mctf.dry_run else fdir / "driver.log", fresh_log)
     server_id = None
     cid = "ecc%s-run" % time.strftime("%H%M%S")
     try:
@@ -663,7 +677,7 @@ def run_hytale_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> Flavor
         run_dir = start.get("run_dir")
         log.lap("start")
 
-        join_synthetic(mctf, server_id, r)
+        join_synthetic(mctf, server_id)
         before = mctf("mc_player", server_id=server_id, player=BOT)
         log.lap("join")
         console(mctf, server_id, "ecc run all --player %s --cid %s" % (BOT, cid))
