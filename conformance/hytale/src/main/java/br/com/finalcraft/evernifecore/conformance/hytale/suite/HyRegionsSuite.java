@@ -33,6 +33,7 @@ import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.region.visual.VisualStyle;
+import com.hypixel.hytale.component.Holder;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Store;
@@ -51,15 +52,20 @@ import com.hypixel.hytale.server.core.event.events.ecs.UseBlockEvent;
 import com.hypixel.hytale.server.core.inventory.InventoryComponent;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
+import com.hypixel.hytale.math.util.ChunkUtil;
+import com.hypixel.hytale.server.core.modules.block.components.ItemContainerBlock;
 import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Interaction;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
+import com.hypixel.hytale.server.core.universe.world.chunk.section.BlockComponentSection;
+import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.NPCPlugin;
 import org.joml.Vector3d;
 import org.joml.Vector3i;
 
+import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
@@ -108,7 +114,10 @@ public final class HyRegionsSuite implements ConformanceSuite {
                 withPlayer("denied-spawn-never-ticks", ctx, this::deniedSpawnNeverTicks),
                 withPlayer("outline-is-sent", ctx, this::outlineIsSent),
                 withPlayer("terrain-journal-restores", ctx, this::terrainJournalRestores),
-                withPlayer("terrain-prefab-restores", ctx, this::terrainPrefabRestores));
+                withPlayer("terrain-prefab-restores", ctx, this::terrainPrefabRestores),
+                withPlayer("terrain-journal-keeps-chest-items", ctx, this::terrainJournalKeepsChestItems),
+                withPlayer("terrain-prefab-keeps-chest-items", ctx, this::terrainPrefabKeepsChestItems),
+                withPlayer("terrain-prefab-retention", ctx, this::terrainPrefabRetention));
     }
 
     /** A case that needs the run's player; skipped without one, failed past {@link #TIMEOUT_SECONDS}. */
@@ -319,6 +328,150 @@ public final class HyRegionsSuite implements ConformanceSuite {
                                                 + entitiesBack.size() + "/" + entitiesTaken[0] + " (a Sheep)");
                                     })))));
         });
+    }
+
+    /** How many items the chest cases put in their chest. */
+    private static final int CHEST_ITEMS = 7;
+
+    /**
+     * A chest with {@link #CHEST_ITEMS} items in a {@code track-changes} region, broken by the player as the server's
+     * Systems hear it and then cleared; the journal puts the chest back with its items.
+     */
+    private CompletableFuture<Verdict> terrainJournalKeepsChestItems(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
+            Vector3i c = block(at, 6, 4, 3);
+            String[] chest = new String[1];
+            return placeChest(world, c, chest).thenCompose(put -> inRegion(regions, "ecc-journal-chest", world.getName(),
+                    pos(c).add(-1, -1, -1), pos(c).add(1, 1, 1), region -> region.getManager().getTerrain().track(region),
+                    region -> HyWorld.on(world, () -> {
+                        breakCancelled(player.getReference(), world, c);
+                        HyWorld.setBlock(world, c.x, c.y, c.z, BlockType.EMPTY_KEY);
+                        return chestItems(world, c);
+                    }).thenCompose(cleared -> region.getManager().getTerrain().restoreJournal(region, 1)
+                            .thenCompose(restored -> HyWorld.ticks(world, 2))
+                            .thenCompose(waited -> HyWorld.on(world, () -> chestVerdict(world, c, chest[0], put, cleared))))));
+        });
+    }
+
+    /** The same chest saved as a prefab, cleared, and put back from the prefab file with its items. */
+    private CompletableFuture<Verdict> terrainPrefabKeepsChestItems(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
+            Vector3i c = block(at, 6, 8, 3);
+            String[] chest = new String[1];
+            return placeChest(world, c, chest).thenCompose(put -> inRegion(regions, "ecc-prefab-chest", world.getName(),
+                    pos(c).add(-1, -1, -1), pos(c).add(1, 1, 1), region -> { },
+                    region -> region.getManager().getTerrain().snapshot(region)
+                            .thenCompose(file -> HyWorld.on(world, () -> {
+                                HyWorld.setBlock(world, c.x, c.y, c.z, BlockType.EMPTY_KEY);
+                                return chestItems(world, c);
+                            }))
+                            .thenCompose(cleared -> region.getManager().getTerrain().restoreSnapshot(region, 0, 10)
+                                    .thenCompose(placed -> HyWorld.ticks(world, 2))
+                                    .thenCompose(waited -> HyWorld.on(world, () -> chestVerdict(world, c, chest[0], put, cleared))))));
+        });
+    }
+
+    /** Reads the chest back at {@code c}, clears it, and passes when it holds every item it was given. */
+    private static Verdict chestVerdict(World world, Vector3i c, String chest, int put, int afterClear) {
+        int back = chestItems(world, c);
+        boolean chestBack = chest.equals(BlockType.getAssetMap().getAsset(HyWorld.blockId(world, c.x, c.y, c.z)).getId());
+        HyWorld.setBlock(world, c.x, c.y, c.z, BlockType.EMPTY_KEY);
+        return Verdict.of(put == CHEST_ITEMS && afterClear == -1 && chestBack && back == put, "chest=" + chest + " itemsPut=" + put
+                + " afterClear=" + afterClear + " chestBack=" + chestBack + " itemsBack=" + back + "/" + put);
+    }
+
+    /** Three snapshots of one region with a retention of 2: the two newest stay, the oldest and its side files go. */
+    private CompletableFuture<Verdict> terrainPrefabRetention(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
+            Vector3i c = block(at, 6, 12, 3);
+            List<File> taken = new ArrayList<>();
+            return HyWorld.chunksLoaded(world, c.x - 1, c.z - 1, c.x + 1, c.z + 1).thenCompose(loaded ->
+                    inRegion(regions, "ecc-prefab-retention", world.getName(), pos(c), pos(c).add(1, 1, 1), region -> { }, region -> {
+                        int retention = region.getManager().getTerrain().getSnapshotRetention();
+                        region.getManager().getTerrain().setSnapshotRetention(2);
+                        return region.getManager().getTerrain().snapshot(region).thenCompose(first -> {
+                            taken.add(first);
+                            return region.getManager().getTerrain().snapshot(region);
+                        }).thenCompose(second -> {
+                            taken.add(second);
+                            return region.getManager().getTerrain().snapshot(region);
+                        }).thenApply(third -> {
+                            taken.add(third);
+                            List<File> kept = region.getManager().getTerrain().getSnapshots(region);
+                            File oldest = taken.get(0);
+                            boolean oldestGone = !oldest.exists() && !new File(oldest.getPath() + ".box").exists()
+                                    && !new File(oldest.getPath() + ".version").exists();
+                            boolean newestKept = kept.size() == 2 && kept.get(0).equals(taken.get(2)) && kept.get(1).equals(taken.get(1));
+                            return Verdict.of(oldestGone && newestKept, "taken=3 kept=" + kept.size() + " newestTwoKept=" + newestKept
+                                    + " oldestAndSideFilesGone=" + oldestGone);
+                        }).whenComplete((verdict, failed) -> region.getManager().getTerrain().setSnapshotRetention(retention));
+                    }));
+        });
+    }
+
+    /**
+     * Puts the first chest the server knows at {@code c} and {@link #CHEST_ITEMS} rock in it; completes with how many
+     * the chest holds afterwards, {@code chest[0]} naming the block used.
+     */
+    private static CompletableFuture<Integer> placeChest(World world, Vector3i c, String[] chest) {
+        return HyWorld.chunksLoaded(world, c.x - 1, c.z - 1, c.x + 1, c.z + 1).thenCompose(loaded -> HyWorld.on(world, () -> {
+            chest[0] = chestType();
+            HyWorld.setBlock(world, c.x, c.y, c.z, chest[0]);
+            return null;
+        })).thenCompose(placed -> HyWorld.ticks(world, 2)).thenCompose(waited -> HyWorld.on(world, () -> {
+            ItemContainerBlock container = chestAt(world, c);
+            if (container == null || container.getItemContainer() == null) {
+                throw new IllegalStateException(chest[0] + " at " + c + " has no item container after placing it");
+            }
+            container.getItemContainer().addItemStack(new ItemStack(SOLID, CHEST_ITEMS));
+            return chestItems(world, c);
+        }));
+    }
+
+    /** The block whose default block entity holds items, a chest by name when there is one. */
+    private static String chestType() {
+        String found = null;
+        for (BlockType type : BlockType.getAssetMap().getAssetMap().values()) {
+            Holder<ChunkStore> entity = type.getBlockEntity();
+            if (entity == null || entity.getComponent(ItemContainerBlock.getComponentType()) == null) continue;
+            if (type.getId().contains("Chest")) return type.getId();
+            if (found == null) found = type.getId();
+        }
+        if (found == null) {
+            throw new IllegalStateException("no block type on this server has an item container");
+        }
+        return found;
+    }
+
+    /** The item container of the block at {@code c}, live or still pending in its section; null when there is none. */
+    private static ItemContainerBlock chestAt(World world, Vector3i c) {
+        Ref<ChunkStore> section = world.getChunkStore().getChunkSectionReferenceAtBlock(c.x, c.y, c.z);
+        BlockComponentSection components = section == null ? null : section.getStore().getComponent(section, BlockComponentSection.getComponentType());
+        if (components == null) return null;
+        int index = ChunkUtil.indexBlock(c.x, c.y, c.z);
+        Ref<ChunkStore> live = components.getBlockReference(index);
+        if (live != null) return live.getStore().getComponent(live, ItemContainerBlock.getComponentType());
+        Holder<ChunkStore> pending = components.getBlockHolder(index);
+        return pending == null ? null : pending.getComponent(ItemContainerBlock.getComponentType());
+    }
+
+    /** How many items the chest at {@code c} holds; -1 when no chest stands there. */
+    private static int chestItems(World world, Vector3i c) {
+        ItemContainerBlock container = chestAt(world, c);
+        if (container == null || container.getItemContainer() == null) return -1;
+        ItemContainer items = container.getItemContainer();
+        int count = 0;
+        for (short slot = 0; slot < items.getCapacity(); slot++) {
+            ItemStack stack = items.getItemStack(slot);
+            count += stack == null ? 0 : stack.getQuantity();
+        }
+        return count;
     }
 
     /** The entities a prefab of the 3x3x3 box around {@code c} would copy, as the server collects them. */
