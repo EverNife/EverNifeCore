@@ -356,17 +356,28 @@ def bot(mctf: Mctf, client_id: str, command: str, **extra) -> dict:
     return mctf("mc_hmc_exec", client_id=client_id, command=command, **extra)
 
 
-def wait_online(mctf: Mctf, server_id: str, seconds: int = 120):
+def wait_online(mctf: Mctf, server_id: str, seconds: int = 120) -> bool:
     """A reconnect answers once the client starts joining; the server logs the player in seconds later, and a
     command naming him before that finds nobody."""
     deadline = time.time() + seconds
     while True:
         snap = mctf("mc_player", server_id=server_id, player=BOT).get("snapshot") or {}
         if snap.get("online") or mctf.dry_run:
-            return
+            return True
         if time.time() > deadline:
-            raise FlavorFailed("%s not online %ds after the reconnect" % (BOT, seconds))
+            return False
         mctf.sleep(3)
+
+
+def start_client(mctf: Mctf, flavor: str, server_id: str, fw: Path) -> dict:
+    mc = flavor.split("-", 1)[1]
+    return mctf("mc_hmc_start", target_id=CLIENT_FOR[flavor], server_id=server_id, username=BOT,
+                project_root=str(REPO_ROOT), suite="conformance",
+                routes=[{"from": [str(fw / "final-artifacts/companion" / ("MCTFCompanion-%s-*.jar" % mc))], "to": "mods"}])
+
+
+def client_joined(client: dict) -> bool:
+    return bool(client.get("ok") and ((client.get("milestones") or {}).get("joined") or (client.get("screen_check") or {}).get("in_world")))
 
 
 def click_a_block(mctf: Mctf, client_id: str, r: FlavorResult):
@@ -472,12 +483,9 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         run_dir = start.get("run_dir")
         log.lap("start")
 
-        client = mctf("mc_hmc_start", target_id=CLIENT_FOR[flavor], server_id=server_id, username=BOT,
-                      project_root=str(REPO_ROOT), suite="conformance",
-                      routes=[{"from": [str(fw / "final-artifacts/companion" / ("MCTFCompanion-%s-*.jar" % mc))], "to": "mods"}])
+        client = start_client(mctf, flavor, server_id, fw)
         client_id = client.get("client_id")
-        joined = (client.get("milestones") or {}).get("joined") or (client.get("screen_check") or {}).get("in_world")
-        if not client.get("ok") or not joined:
+        if not client_joined(client):
             raise FlavorFailed("mc_hmc_start did not join: %s %s" % (_err(client), client.get("reject_reason")))
         console(mctf, server_id, "op " + BOT)
         console(mctf, server_id, "gamemode creative " + BOT)
@@ -515,9 +523,15 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
             raise FlavorFailed("mc_restart: " + _err(restart))
         # the bot sits on the run's own network: the container name and internal port survive the restart
         reconnect = bot(mctf, client_id, "connect %s %s" % (start.get("container_name"), start.get("game_port")), timeout_seconds=120)
-        if not reconnect.get("ok"):
-            raise FlavorFailed("bot reconnect after restart: " + _err(reconnect))
-        wait_online(mctf, server_id)
+        if not reconnect.get("ok") or not wait_online(mctf, server_id):
+            # the 1.7.10 client can die on its own reconnect (an NPE ticking GuiConnecting); a fresh client joins instead
+            r.notes.append("the bot did not come back after the restart (%s); a fresh client joined instead"
+                           % (_err(reconnect) if not reconnect.get("ok") else "connected, never online"))
+            mctf("mc_hmc_stop", client_id=client_id)
+            client = start_client(mctf, flavor, server_id, fw)
+            client_id = client.get("client_id")
+            if not client_joined(client) or not wait_online(mctf, server_id):
+                raise FlavorFailed("no client got back in after the restart: %s %s" % (_err(client), client.get("reject_reason")))
         log.lap("restart")
         console(mctf, server_id, "op " + BOT)
         console(mctf, server_id, "gamemode creative " + BOT)
