@@ -83,8 +83,9 @@ class RegionCommandNodeTest extends RegionCommandFixture {
     void treeHasEveryVerb() {
         FinalCMDPluginCommand fp = mount();
         harness.tree(fp).at("region").hasChildren("define", "flag", "group", "here", "info", "list", "parent", "priority",
-                "redefine", "remove", "select", "settings", "tag", "tp", "view");
+                "redefine", "remove", "select", "settings", "tag", "terrain", "tp", "view");
         harness.tree(fp).at("region.group").hasChildren("add", "flag", "list", "permission", "priority", "remove");
+        harness.tree(fp).at("region.terrain").hasChildren("restore", "snapshot", "snapshots", "undo");
     }
 
     @Test

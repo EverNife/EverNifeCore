@@ -16,6 +16,7 @@ import br.com.finalcraft.evernifecore.region.flag.core.TrackChangesSettings;
 import br.com.finalcraft.evernifecore.region.shape.BoundingBox;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,6 +51,7 @@ public final class RegionTerrain {
     private final RegionManager manager;
     private final Map<String, TerrainJournal> journals = new ConcurrentHashMap<>();
     private final AtomicBoolean writeScheduled = new AtomicBoolean();
+    private final Map<String, String> restoring = new ConcurrentHashMap<>();
     private volatile int snapshotRetention = 3;
 
     /** Internal: one per {@link RegionManager}, reached through {@link RegionManager#getTerrain()}. */
@@ -134,12 +136,16 @@ public final class RegionTerrain {
     public CompletableFuture<Integer> restoreJournal(Region region, int blocksPerTick) {
         requireOwn(region);
         requireBudget(blocksPerTick);
+        CompletableFuture<Integer> busy = refuseWhileRestoring(region, "restoreJournal");
+        if (busy != null) {
+            return busy;
+        }
         TerrainJournal journal = journals.get(region.getId().getName());
         if (journal == null || journal.isEmpty()) {
             return CompletableFuture.completedFuture(0);
         }
         String world = region.getWorld();
-        return restore(region, true, blocksPerTick, () -> journal.size() + " position(s) stay in its journal", (access, budget) -> {
+        return restore(region, "restoreJournal", true, blocksPerTick,() -> journal.size() + " position(s) stay in its journal", (access, budget) -> {
             int restored = 0;
             for (; restored < budget; restored++) {
                 TerrainJournal.Entry last = journal.peekLast();
@@ -186,6 +192,10 @@ public final class RegionTerrain {
      */
     public CompletableFuture<File> snapshot(Region region, TerrainContent content) {
         requireOwn(region);
+        CompletableFuture<File> busy = refuseWhileRestoring(region, "snapshot");
+        if (busy != null) {
+            return busy;
+        }
         IPlatform platform = EverNifeCore.getPlatform();
         BoundingBox box = region.getShape().getBounds();
         File[] written = new File[1];
@@ -227,30 +237,50 @@ public final class RegionTerrain {
     }
 
     /**
+     * The {@code index}-th newest snapshot of {@code region} (0 = the newest).
+     *
+     * @throws IllegalArgumentException naming how many snapshots there are, when there is no such index
+     */
+    public File getSnapshot(Region region, int index) {
+        List<File> snapshots = getSnapshots(region);
+        if (index < 0 || index >= snapshots.size()) {
+            throw new IllegalArgumentException("Region " + region.getId() + " has " + snapshots.size() + " snapshot(s), so there is no"
+                    + " snapshot #" + index + " - take one with snapshot(region) first, or pick an index below " + snapshots.size() + ".");
+        }
+        return snapshots.get(index);
+    }
+
+    /** The game version {@code snapshot} was taken on; null when the file beside it is missing or does not read. */
+    public static @Nullable String getSnapshotGameVersion(File snapshot) {
+        File version = versionFile(snapshot);
+        try {
+            return version.isFile() ? new String(Files.readAllBytes(version.toPath()), StandardCharsets.UTF_8).trim() : null;
+        } catch (IOException unreadable) {
+            return null;
+        }
+    }
+
+    /**
      * Puts back the {@code index}-th newest snapshot of {@code region} (0 = the newest) on the world's thread, walking
      * at most {@code blocksPerTick} positions of its bounding box per tick. Only the blocks and entities the region's
      * shape holds go back, so a polygon never rewrites the corners of its box, but a position the shape skips still
      * spends the tick's budget: the budget bounds the whole walk, not just the writes. A snapshot taken on another
-     * game version is refused.
+     * game version is refused. A region takes one terrain operation at a time: while its restore (of a snapshot or of
+     * the journal) runs, another restore or a snapshot of it completes with an {@link IllegalStateException}.
      *
      * @return completes with how many blocks were written - the positions outside the shape are not counted
      */
     public CompletableFuture<Integer> restoreSnapshot(Region region, int index, int blocksPerTick) {
         requireOwn(region);
         requireBudget(blocksPerTick);
-        List<File> snapshots = getSnapshots(region);
-        if (index < 0 || index >= snapshots.size()) {
-            throw new IllegalArgumentException("Region " + region.getId() + " has " + snapshots.size() + " snapshot(s), so there is no"
-                    + " snapshot #" + index + " - take one with snapshot(region) first, or pick an index below " + snapshots.size() + ".");
-        }
-        File file = snapshots.get(index);
+        File file = getSnapshot(region, index);
         requireSameGameVersion(file);
         String world = region.getWorld();
         Shape shape = region.getShape();
         TerrainPlacement[] placement = new TerrainPlacement[1];
         long[] next = {0};
         boolean[] placed = new boolean[1];
-        return restore(region, false, blocksPerTick, () -> "the snapshot " + file.getName() + " was put back only in part", (access, budget) -> {
+        return restore(region, "restoreSnapshot of " + file.getName(), false, blocksPerTick, () -> "the snapshot " + file.getName() + " was put back only in part", (access, budget) -> {
             if (placement[0] == null) {
                 try {
                     placement[0] = access.readSnapshot(world, file);
@@ -297,12 +327,19 @@ public final class RegionTerrain {
         int place(ITerrainAccess access, int budget);
     }
 
-    private CompletableFuture<Integer> restore(Region region, boolean journal, int blocksPerTick, Supplier<String> leftOver,
-                                               RestoreTick tick, BooleanSupplier finished) {
+    private CompletableFuture<Integer> restore(Region region, String operation, boolean journal, int blocksPerTick,
+                                               Supplier<String> leftOver, RestoreTick tick, BooleanSupplier finished) {
+        String name = region.getId().getName();
+        String running = restoring.putIfAbsent(name, operation);
+        if (running != null) {
+            return failed(restoringRefusal(region, running, operation));
+        }
         CompletableFuture<Integer> done = new CompletableFuture<>();
         ECEventBus.global().postIfListened(RegionTerrainEvent.class, () -> new RegionTerrainEvent(region, RegionTerrainEvent.Type.RESTORE_START, journal));
-        CompletableFuture<Integer> ended = done.whenComplete((count, error) -> ECEventBus.global().postIfListened(RegionTerrainEvent.class,
-                () -> new RegionTerrainEvent(region, RegionTerrainEvent.Type.RESTORE_END, journal)));
+        CompletableFuture<Integer> ended = done.whenComplete((count, error) -> {
+            restoring.remove(name);   //success or failure, the region takes its next terrain operation
+            ECEventBus.global().postIfListened(RegionTerrainEvent.class, () -> new RegionTerrainEvent(region, RegionTerrainEvent.Type.RESTORE_END, journal));
+        });
         step(region, journal, blocksPerTick, 0, leftOver, tick, finished, done, false);
         return ended;
     }
@@ -341,6 +378,23 @@ public final class RegionTerrain {
                 step(region, journal, blocksPerTick, restored[0], leftOver, tick, finished, done, true);
             }
         });
+    }
+
+    /** A failed future while a restore of {@code region} runs: two writers over one box would undo each other. */
+    private <T> @Nullable CompletableFuture<T> refuseWhileRestoring(Region region, String asked) {
+        String running = restoring.get(region.getId().getName());
+        return running == null ? null : failed(restoringRefusal(region, running, asked));
+    }
+
+    private static IllegalStateException restoringRefusal(Region region, String running, String asked) {
+        return new IllegalStateException("Region " + region.getId() + " is still running a " + running + "; a region takes one terrain"
+                + " operation at a time - wait for it to finish, then run the " + asked + " again.");
+    }
+
+    private static <T> CompletableFuture<T> failed(Throwable error) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        future.completeExceptionally(error);
+        return future;
     }
 
     private static void requireBudget(int blocksPerTick) {

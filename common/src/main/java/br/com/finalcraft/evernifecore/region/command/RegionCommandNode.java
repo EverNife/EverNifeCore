@@ -14,6 +14,7 @@ import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
+import br.com.finalcraft.evernifecore.locale.ILocaleMessageBase;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.CreationResult;
 import br.com.finalcraft.evernifecore.region.Region;
@@ -36,6 +37,7 @@ import br.com.finalcraft.evernifecore.region.selection.SelectionTool;
 import br.com.finalcraft.evernifecore.region.shape.BoundingBox;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.shape.WorldShape;
+import br.com.finalcraft.evernifecore.region.terrain.RegionTerrain;
 import br.com.finalcraft.evernifecore.region.visual.RegionVisualizer;
 import br.com.finalcraft.evernifecore.region.visual.VisualStyle;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
@@ -46,12 +48,19 @@ import br.com.finalcraft.evernifecore.util.FCStringUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 
+import java.io.File;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -144,11 +153,47 @@ public class RegionCommandNode implements RegionScope {
     @FCLocale(lang = LocaleType.PT_BR, text = "§6Regiões de §e${owner}§6 aqui: §e${count}")
     public static LocaleMessage HERE_HEADER;
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§a§l ▶ §aSnapshot of §e${region}§a saved as §e${file}§a in §e${time}§a.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§a§l ▶ §aSnapshot de §e${region}§a salvo como §e${file}§a em §e${time}§a.")
+    public static LocaleMessage TERRAIN_SNAPSHOT_TAKEN;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§6Terrain of §e${region}§6: track-changes §e${tracking}§6, journal §e${journal}§6 position(s), §e${count}§6 snapshot(s)")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§6Terreno de §e${region}§6: track-changes §e${tracking}§6, journal §e${journal}§6 posição(ões), §e${count}§6 snapshot(s)")
+    public static LocaleMessage TERRAIN_HEADER;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§7 #${index} §f${date}§7, ${size}, game version §f${version}")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§7 #${index} §f${date}§7, ${size}, versão do jogo §f${version}")
+    public static LocaleMessage TERRAIN_SNAPSHOT_LINE;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§e§l ▶ §eThis would restore snapshot §6#${index}§e of §6${region}§e (${date}, ${size}, game version ${version}) - add §6--confirm§e to write it.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §eIsto restauraria o snapshot §6#${index}§e de §6${region}§e (${date}, ${size}, versão do jogo ${version}) - use §6--confirm§e para escrevê-lo.")
+    public static LocaleMessage TERRAIN_RESTORE_PREVIEW;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§a§l ▶ §aRestoring snapshot §e#${index}§a of §e${region}§a, §e${budget}§a positions per tick...")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§a§l ▶ §aRestaurando o snapshot §e#${index}§a de §e${region}§a, §e${budget}§a posições por tick...")
+    public static LocaleMessage TERRAIN_RESTORE_STARTED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§a§l ▶ §aSnapshot §e#${index}§a of §e${region}§a restored: §e${blocks}§a block(s) written in §e${time}§a.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§a§l ▶ §aSnapshot §e#${index}§a de §e${region}§a restaurado: §e${blocks}§a bloco(s) escritos em §e${time}§a.")
+    public static LocaleMessage TERRAIN_RESTORE_DONE;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§a§l ▶ §aUndoing §e${journal}§a journal position(s) of §e${region}§a, §e${budget}§a per tick...")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§a§l ▶ §aDesfazendo §e${journal}§a posição(ões) do journal de §e${region}§a, §e${budget}§a por tick...")
+    public static LocaleMessage TERRAIN_UNDO_STARTED;
+
+    @FCLocale(lang = LocaleType.EN_US, text = "§a§l ▶ §aJournal of §e${region}§a undone: §e${blocks}§a position(s) put back in §e${time}§a.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§a§l ▶ §aJournal de §e${region}§a desfeito: §e${blocks}§a posição(ões) devolvidas em §e${time}§a.")
+    public static LocaleMessage TERRAIN_UNDO_DONE;
+
+    /** Positions a terrain restore walks per tick unless {@link #setTerrainBudget} says otherwise. */
+    public static final int DEFAULT_TERRAIN_BUDGET = 1000;
+
     private final RegionManager manager;
     private final SelectionSpec selectionSpec;
     private final @Nullable String permissionBase;
     private final Map<UUID, Selected> confirmedSelections = new ConcurrentHashMap<>();
     private volatile ForeignAccess foreignAccess = ForeignAccess.none();
+    private volatile int terrainBudget = DEFAULT_TERRAIN_BUDGET;
 
     public RegionCommandNode(RegionManager manager, SelectionSpec selectionSpec) {
         this(manager, selectionSpec, null);
@@ -161,13 +206,16 @@ public class RegionCommandNode implements RegionScope {
         this.permissionBase = permissionBase;
     }
 
-    /** The node behind {@code executor}: the node itself, or the one a {@code group} branch belongs to; null otherwise. */
+    /** The node behind {@code executor}: the node itself, or the one a {@code group} or {@code terrain} branch belongs to; null otherwise. */
     public static @Nullable RegionCommandNode of(@Nullable Object executor) {
         if (executor instanceof RegionCommandNode) {
             return (RegionCommandNode) executor;
         }
         if (executor instanceof GroupBranch) {
             return ((GroupBranch) executor).getNode();
+        }
+        if (executor instanceof TerrainBranch) {
+            return ((TerrainBranch) executor).getNode();
         }
         return null;
     }
@@ -194,6 +242,20 @@ public class RegionCommandNode implements RegionScope {
 
     public ForeignAccess getForeignAccess() {
         return foreignAccess;
+    }
+
+    /** How many positions {@code terrain restore} and {@code terrain undo} walk per tick; {@link #DEFAULT_TERRAIN_BUDGET} unless set. */
+    public int getTerrainBudget() {
+        return terrainBudget;
+    }
+
+    public RegionCommandNode setTerrainBudget(int positionsPerTick) {
+        if (positionsPerTick < 1) {
+            throw new IllegalArgumentException("The terrain budget is " + positionsPerTick + " positions per tick, but a restore has to"
+                    + " walk at least one per tick - give it 1 or more (" + DEFAULT_TERRAIN_BUDGET + " is the default).");
+        }
+        this.terrainBudget = positionsPerTick;
+        return this;
     }
 
     // ------------------------------------------------------------------
@@ -679,6 +741,154 @@ public class RegionCommandNode implements RegionScope {
     }
 
     // ------------------------------------------------------------------
+    //  terrain <region> ...
+    // ------------------------------------------------------------------
+
+    /**
+     * The terrain of a region: snapshots, their restore, and the undo of its {@code track-changes} journal. It always
+     * works on the terrain of the region's own manager. A restore or undo answers when it starts and again when it ends,
+     * walking {@link #getTerrainBudget()} positions per tick.
+     */
+    @FinalCMD.Node(subcmd = "terrain", locales = {
+            @FCLocale(lang = LocaleType.EN_US, text = "The terrain of a region: snapshots, their restore and the undo of its journal"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "O terreno de uma região: snapshots, a restauração deles e o desfazer do journal")
+    })
+    public class TerrainBranch implements RegionScope {
+
+        public RegionCommandNode getNode() {
+            return RegionCommandNode.this;
+        }
+
+        @Override
+        public RegionManager getManager() {
+            return manager;
+        }
+
+        @FinalCMD.Capture
+        public Region capture(@Arg("<region>") Region region) {
+            return region;
+        }
+
+        @FinalCMD.SubCMD(subcmd = "snapshot", validation = RegionVerbAccess.class, locales = {
+                @FCLocale(lang = LocaleType.EN_US, text = "Save the region's blocks, nbt and entities as a new snapshot"),
+                @FCLocale(lang = LocaleType.PT_BR, text = "Salva os blocos, nbt e entidades da região num snapshot novo")
+        })
+        public void snapshot(FCommandSender sender, @Arg.NodeCaptured Region region) {
+            if (!requireWritable(sender, region)) {
+                return;
+            }
+            long start = System.nanoTime();
+            CompletableFuture<File> taking;
+            try {
+                taking = region.getManager().getTerrain().snapshot(region);
+            } catch (RuntimeException refused) {
+                refuse(sender, refused);
+                return;
+            }
+            taking.whenComplete((file, error) -> {
+                if (error != null) {
+                    refuse(sender, error);
+                    return;
+                }
+                TERRAIN_SNAPSHOT_TAKEN.addPlaceholder("region", region.getId()).addPlaceholder("file", file.getName())
+                        .addPlaceholder("time", elapsed(start)).send(sender);
+            });
+        }
+
+        @FinalCMD.SubCMD(subcmd = "snapshots", validation = RegionVerbAccess.class, locales = {
+                @FCLocale(lang = LocaleType.EN_US, text = "The region's snapshots, newest first, and the state of its journal"),
+                @FCLocale(lang = LocaleType.PT_BR, text = "Os snapshots da região, do mais novo ao mais velho, e o estado do journal")
+        })
+        public void snapshots(FCommandSender sender, @Arg.NodeCaptured Region region) {
+            RegionTerrain terrain = region.getManager().getTerrain();
+            List<File> snapshots;
+            try {
+                snapshots = terrain.getSnapshots(region);
+            } catch (RuntimeException refused) {
+                refuse(sender, refused);
+                return;
+            }
+            TERRAIN_HEADER.addPlaceholder("region", region.getId()).addPlaceholder("tracking", terrain.isTracking(region) ? "on" : "off")
+                    .addPlaceholder("journal", terrain.getJournalSize(region)).addPlaceholder("count", snapshots.size()).send(sender);
+            for (int index = 0; index < snapshots.size(); index++) {
+                describeSnapshot(TERRAIN_SNAPSHOT_LINE, region, index, snapshots.get(index)).send(sender);
+            }
+        }
+
+        @FinalCMD.SubCMD(subcmd = "restore", validation = RegionVerbAccess.class, locales = {
+                @FCLocale(lang = LocaleType.EN_US, text = "Put a snapshot back (0 = the newest); without --confirm it only says which"),
+                @FCLocale(lang = LocaleType.PT_BR, text = "Restaura um snapshot (0 = o mais novo); sem --confirm só diz qual seria")
+        })
+        public void restore(FCommandSender sender, @Arg.NodeCaptured Region region, @Arg("[index]") Integer index,
+                            @Arg.Flag("--confirm") Boolean confirm) {
+            if (!requireWritable(sender, region)) {
+                return;
+            }
+            int which = index == null ? 0 : index;
+            RegionTerrain terrain = region.getManager().getTerrain();
+            File snapshot;
+            try {
+                snapshot = terrain.getSnapshot(region, which);
+            } catch (RuntimeException refused) {
+                refuse(sender, refused);
+                return;
+            }
+            if (!Boolean.TRUE.equals(confirm)) {
+                describeSnapshot(TERRAIN_RESTORE_PREVIEW, region, which, snapshot).send(sender);
+                return;
+            }
+            int budget = terrainBudget;
+            long start = System.nanoTime();
+            TERRAIN_RESTORE_STARTED.addPlaceholder("index", which).addPlaceholder("region", region.getId()).addPlaceholder("budget", budget).send(sender);
+            CompletableFuture<Integer> restoring;
+            try {
+                restoring = terrain.restoreSnapshot(region, which, budget);
+            } catch (RuntimeException refused) {
+                refuse(sender, refused);
+                return;
+            }
+            restoring.whenComplete((blocks, error) -> {
+                if (error != null) {
+                    refuse(sender, error);
+                    return;
+                }
+                TERRAIN_RESTORE_DONE.addPlaceholder("index", which).addPlaceholder("region", region.getId()).addPlaceholder("blocks", blocks)
+                        .addPlaceholder("time", elapsed(start)).send(sender);
+            });
+        }
+
+        @FinalCMD.SubCMD(subcmd = "undo", validation = RegionVerbAccess.class, locales = {
+                @FCLocale(lang = LocaleType.EN_US, text = "Put back everything the region's track-changes journal recorded"),
+                @FCLocale(lang = LocaleType.PT_BR, text = "Devolve tudo o que o journal de track-changes da região guardou")
+        })
+        public void undo(FCommandSender sender, @Arg.NodeCaptured Region region) {
+            if (!requireWritable(sender, region)) {
+                return;
+            }
+            RegionTerrain terrain = region.getManager().getTerrain();
+            int budget = terrainBudget;
+            long start = System.nanoTime();
+            TERRAIN_UNDO_STARTED.addPlaceholder("journal", terrain.getJournalSize(region)).addPlaceholder("region", region.getId())
+                    .addPlaceholder("budget", budget).send(sender);
+            CompletableFuture<Integer> undoing;
+            try {
+                undoing = terrain.restoreJournal(region, budget);
+            } catch (RuntimeException refused) {
+                refuse(sender, refused);
+                return;
+            }
+            undoing.whenComplete((positions, error) -> {
+                if (error != null) {
+                    refuse(sender, error);
+                    return;
+                }
+                TERRAIN_UNDO_DONE.addPlaceholder("region", region.getId()).addPlaceholder("blocks", positions)
+                        .addPlaceholder("time", elapsed(start)).send(sender);
+            });
+        }
+    }
+
+    // ------------------------------------------------------------------
     //  Internals
     // ------------------------------------------------------------------
 
@@ -771,6 +981,25 @@ public class RegionCommandNode implements RegionScope {
             sender.sendMessage(" §f" + field.getKey() + " §7= §e" + field.getValue().asText(field.getValue().toString())
                     + (overridden ? " §e(override)" : " §7(server)"));
         }
+    }
+
+    /** {@code message} with the index, region, date, size and game version of {@code snapshot} filled in. */
+    private static ILocaleMessageBase describeSnapshot(LocaleMessage message, Region region, int index, File snapshot) {
+        String version = RegionTerrain.getSnapshotGameVersion(snapshot);
+        return message.addPlaceholder("index", index).addPlaceholder("region", region.getId())
+                .addPlaceholder("date", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(snapshot.lastModified())))
+                .addPlaceholder("size", String.format(Locale.ROOT, "%.1f KB", snapshot.length() / 1024.0))
+                .addPlaceholder("version", version == null ? "unknown" : version);
+    }
+
+    /** Tells the sender why a terrain operation did not run, with the core's own message. */
+    private static void refuse(FCommandSender sender, Throwable error) {
+        Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
+        REFUSED.addPlaceholder("reason", cause.getMessage() == null ? cause.toString() : cause.getMessage()).send(sender);
+    }
+
+    private static String elapsed(long startNanos) {
+        return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos) + " ms";
     }
 
     private void groupDone(FCommandSender sender, GroupTarget target, String change) {

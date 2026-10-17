@@ -84,6 +84,16 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   tick at once and each next one a tick later, so `blocksPerTick` is a real per-tick budget on both platforms. For a
   snapshot that budget counts every position of the box the tick walks, written or skipped by the shape, so a sparse
   polygon in a large box costs a tick what its whole walk costs, and `getNanos()` times that whole walk.
+- **`terrain <region>` verbs on `RegionCommandNode`**: `terrain <region> snapshot`, `snapshots` (index, date, size and
+  game version of each, plus the `track-changes` state and journal size), `restore [n] --confirm` (without `--confirm`
+  it only describes the snapshot it would put back) and `undo` (the journal). They work on the terrain of the region's
+  own manager, need `<permissionBase>.<verb>` like every verb, and `restore`/`undo` answer when they start and again when
+  they end, walking `getTerrainBudget()` positions per tick (`setTerrainBudget`, 1000 by default). Turning the journal on
+  stays with `flag <region> track-changes true` and `settings <region> track-changes ...`.
+- **One terrain operation per region at a time**: while a restore of a region runs, `restoreSnapshot`, `restoreJournal`
+  and `snapshot` of the same region complete with an `IllegalStateException` naming the running one; its end, success
+  or failure, frees the region. `RegionTerrain.getSnapshot(region, index)` and `getSnapshotGameVersion(file)` read a
+  snapshot without restoring it.
 - **WorldEdit Forge on 1.7.10**: `WEPlatform.adaptWorld(org.bukkit.World)` is the one WorldEdit world the core's copy,
   paste and snapshot restore work on. On 1.7.10 with WorldEdit Forge (https://github.com/GTNewHorizons/worldedit-gtnh) in
   `mods/` it is the mod's world, reached by reflection (`WorldEditForge`), because the WorldEdit 6 plugin has no working

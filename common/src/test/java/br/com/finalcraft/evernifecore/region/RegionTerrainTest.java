@@ -27,12 +27,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -306,6 +308,36 @@ class RegionTerrainTest extends ManagedRegionFixture {
         assertEquals(inside, terrain.getRestores());
         assertTrue(terrain.getEntities(WORLD).contains("armor_stand@0,5,0"), "the entity inside the shape comes back");
         assertFalse(terrain.getEntities(WORLD).contains("pig@4,5,4"), "the entity in the box but outside the shape does not");
+    }
+
+    @Test
+    void aRegionTakesNoOtherTerrainOperationUntilItsRestoreEnds(TestPlatform platform) {
+        RegionManager manager = manager();
+        Region region = created(manager.create("small", WORLD, box(0, 0, 1, 1)));
+        RegionTerrain terrain = manager.getTerrain();
+        terrain.snapshot(region).join();
+        List<CompletableFuture<?>> duringTheRestore = new ArrayList<>();
+        ECEventSubscription<RegionTerrainEvent> subscription = ECEventBus.global().subscribe(RegionTerrainEvent.class, event -> {
+            if (event.getType() == RegionTerrainEvent.Type.RESTORE_TICK && duringTheRestore.isEmpty()) {
+                duringTheRestore.add(terrain.restoreSnapshot(region, 0, 1));
+                duringTheRestore.add(terrain.snapshot(region));
+                duringTheRestore.add(terrain.restoreJournal(region, 1));
+            }
+        });
+        try {
+            terrain.restoreSnapshot(region, 0, 1).join();
+        } finally {
+            subscription.unsubscribe();
+        }
+
+        assertEquals(3, duringTheRestore.size());
+        for (CompletableFuture<?> refused : duringTheRestore) {
+            CompletionException failure = assertThrows(CompletionException.class, refused::join);
+            assertInstanceOf(IllegalStateException.class, failure.getCause());
+            assertTrue(failure.getCause().getMessage().contains("restoreSnapshot of "), failure.getCause().getMessage());
+        }
+        assertEquals(1, terrain.getSnapshots(region).size(), "the refused snapshot wrote nothing");
+        assertTrue(terrain.restoreSnapshot(region, 0, 1000).join() > 0, "once the restore ended, the region takes the next one");
     }
 
     @Test

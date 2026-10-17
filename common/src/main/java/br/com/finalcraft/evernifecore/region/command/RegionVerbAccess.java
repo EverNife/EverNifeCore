@@ -8,7 +8,8 @@ import jakarta.annotation.Nullable;
 /**
  * Gates one verb of a mounted {@link RegionCommandNode} on {@code <permissionBase>.<verb>} when the node was given a
  * base. It runs before any argument is parsed, and on tab and help too, so a verb the sender may not run is neither
- * offered nor described. A verb of the {@code group} branch is gated by its own label ({@code <base>.add}).
+ * offered nor described. A verb of the {@code group} or {@code terrain} branch is gated by its own label
+ * ({@code <base>.add}, {@code <base>.restore}).
  */
 public final class RegionVerbAccess extends CMDAccessValidation {
 
