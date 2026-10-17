@@ -12,7 +12,6 @@ import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainContent;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainPlacement;
 import com.sk89q.worldedit.WorldEditException;
-import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.util.io.Closer;
 import de.tr7zw.changeme.nbtapi.NBT;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
@@ -254,7 +253,7 @@ public final class McTerrainAccess implements ITerrainAccess {
             BlockPos min = clipboard.getMinimumPoint();
             BlockPos size = clipboard.getDimensions();
             long volume = (long) size.getX() * size.getY() * size.getZ();
-            BukkitWorld target = new BukkitWorld(world);
+            com.sk89q.worldedit.world.World target = worldEdit.adaptWorld(world);
             long[] next = {0};
             return budget -> {
                 for (int placed = 0; placed < budget && next[0] < volume; placed++, next[0]++) {

@@ -14,7 +14,7 @@ import com.sk89q.worldedit.Vector;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.blocks.BaseBlock;
-import com.sk89q.worldedit.bukkit.BukkitWorld;
+import br.com.finalcraft.evernifecore.minecraft.worldedit.WEPlatform;
 import com.sk89q.worldedit.entity.Entity;
 import com.sk89q.worldedit.extent.AbstractDelegateExtent;
 import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
@@ -85,7 +85,7 @@ public class ImpFCBlockArrayClipboard extends FCBlockArrayClipboard {
 
     @Override
     public EditSession paste(World world, BlockPos to, boolean pasteAir, boolean copyEntities, @Nullable Transform transform) {
-        com.sk89q.worldedit.world.World weWorld = new BukkitWorld(world);
+        com.sk89q.worldedit.world.World weWorld = WEPlatform.getInstance().adaptWorld(world);
         WorldData worldData = weWorld.getWorldData();
         //WorldEdit 6 always copies the source's entities; a source without them is how a paste leaves them out
         Clipboard source = copyEntities ? getHandle() : new EntitylessClipboard(getHandle());

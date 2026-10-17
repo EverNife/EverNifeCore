@@ -74,12 +74,17 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   `getSnapshotRetention()` newest (3 unless set); `restoreSnapshot(region, index, blocksPerTick)` puts one back a
   budget per tick. A snapshot carries the game version it was taken on (`ITerrainAccess.getGameVersion()`, a
   `.version` file beside it) and `restoreSnapshot` refuses another one. With `nbt` off the Bukkit snapshot leaves the
-  tile entities' data out of the schematic (`FCBlockArrayClipboard.clearNbtData()`); on Crucible, where WorldEdit 6 has
-  no working Bukkit adapter, it never holds that data. Without WorldEdit a Bukkit
+  tile entities' data out of the schematic (`FCBlockArrayClipboard.clearNbtData()`); on 1.7.10 the snapshot holds that
+  data only with WorldEdit Forge in `mods/` beside the plugin (see `WEPlatform.adaptWorld`). Without WorldEdit a Bukkit
   snapshot fails naming WorldEdit and the journal, and `getSnapshots` answers an empty list. `RegionTerrainEvent`
   (`SNAPSHOT`, `RESTORE_START`, `RESTORE_TICK`, `RESTORE_END`) reports both: `getNanos()` is the time the snapshot's
   write or a restore tick took on the world thread, `getBlocks()` what that tick put back. A restore runs its first
   tick at once and each next one a tick later, so `blocksPerTick` is a real per-tick budget on both platforms.
+- **WorldEdit Forge on 1.7.10**: `WEPlatform.adaptWorld(org.bukkit.World)` is the one WorldEdit world the core's copy,
+  paste and snapshot restore work on. On 1.7.10 with WorldEdit Forge (https://github.com/GTNewHorizons/worldedit-gtnh) in
+  `mods/` it is the mod's world, reached by reflection (`WorldEditForge`), because the WorldEdit 6 plugin has no working
+  adapter there and loses chest items and sign text; elsewhere it is the plugin's world, 1.12.2 included. A 1.7.10
+  server with the WorldEdit plugin and without the mod gets one console warning at boot naming the mod.
 - **`IPlatform.runOnWorldThreadNextTick(world, task)`**: runs on the world's thread on its next tick, never the current
   one (Bukkit: one tick of delay on the main thread - a zero-delay task scheduled from a running one may run in the
   same tick; Hytale: on the world's executor once its tick counter moved). The test engine runs it inline and lists

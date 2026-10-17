@@ -69,6 +69,11 @@ public class ImpWEPlatform extends WEPlatform {
     }
 
     @Override
+    public World adaptWorld(org.bukkit.World world) {
+        return BukkitAdapter.adapt(world);
+    }
+
+    @Override
     public @Nullable Shape getSelection(Player player) {
         WorldEditPlugin worldEdit = (WorldEditPlugin) Bukkit.getPluginManager().getPlugin("WorldEdit");
         Region selection;

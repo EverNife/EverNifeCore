@@ -18,6 +18,8 @@ import com.sk89q.worldedit.regions.CuboidRegion;
 import com.sk89q.worldedit.world.World;
 import com.sk89q.worldedit.BlockVector2D;
 import com.sk89q.worldedit.bukkit.BukkitUtil;
+import com.sk89q.worldedit.bukkit.BukkitWorld;
+import br.com.finalcraft.evernifecore.minecraft.worldedit.WorldEditForge;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.region.shape.PolygonShape;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
@@ -33,6 +35,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ImpWEPlatform extends WEPlatform {
+
+    //WorldEdit 6 runs on 1.7.10 and 1.12.2; only 1.7.10 lacks the plugin's adapter
+    private final boolean forgeWorld = WorldEditForge.replacesBukkitWorld(Bukkit.getBukkitVersion().startsWith("1.7.10"),
+            WorldEditForge.isModPresent());
 
     public ImpWEPlatform() {
         super(new IFCClipboardManager(
@@ -65,6 +71,11 @@ public class ImpWEPlatform extends WEPlatform {
                 (BaseBlock) blockBase.getHandle(),
                 placeFast
         );
+    }
+
+    @Override
+    public World adaptWorld(org.bukkit.World world) {
+        return forgeWorld ? WorldEditForge.getWorld(world) : new BukkitWorld(world);
     }
 
     @Override

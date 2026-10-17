@@ -43,6 +43,7 @@ import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCTickUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
+import br.com.finalcraft.evernifecore.minecraft.worldedit.WorldEditForge;
 import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
 import org.bukkit.Bukkit;
 
@@ -127,6 +128,11 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
 
         MinecraftVersion.replaceLogger(this.getLogger());//Replace [NBT-API] logger
         EverNifeCore.getLog().info("§aServer Minecraft Version " + MCVersion.getCurrent().name() + " !");
+        String worldEditForgeWarning = WorldEditForge.bootWarning(MCVersion.isEqual(MCVersion.v1_7_10),
+                Bukkit.getPluginManager().getPlugin("WorldEdit") != null, WorldEditForge.isModPresent());
+        if (worldEditForgeWarning != null) {
+            EverNifeCore.getLog().warning("§e" + worldEditForgeWarning);
+        }
 
         logNBTSelfTest(NBTSelfTest.run());
 

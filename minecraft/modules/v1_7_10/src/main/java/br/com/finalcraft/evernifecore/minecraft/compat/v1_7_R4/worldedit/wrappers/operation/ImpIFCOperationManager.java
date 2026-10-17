@@ -6,7 +6,7 @@ import br.com.finalcraft.evernifecore.minecraft.worldedit.region.IFCCuboidRegion
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.WorldEdit;
-import com.sk89q.worldedit.bukkit.BukkitWorld;
+import br.com.finalcraft.evernifecore.minecraft.worldedit.WEPlatform;
 import com.sk89q.worldedit.function.operation.ForwardExtentCopy;
 import com.sk89q.worldedit.function.operation.Operations;
 import org.bukkit.World;
@@ -15,8 +15,7 @@ public class ImpIFCOperationManager extends IFCOperationManager {
 
     @Override
     public void forwardExtentCopy(World world, IFCCuboidRegion region, FCBlockArrayClipboard clipboard) {
-        com.sk89q.worldedit.world.World bukkitWorld = new BukkitWorld(world);
-        EditSession editSession = WorldEdit.getInstance().getEditSessionFactory().getEditSession(bukkitWorld, -1);
+        EditSession editSession = WorldEdit.getInstance().getEditSessionFactory().getEditSession(WEPlatform.getInstance().adaptWorld(world), -1);
         ForwardExtentCopy copy = new ForwardExtentCopy(editSession, region.getHandle(), clipboard.getHandle(), region.getHandle().getMinimumPoint());
         try {
             Operations.completeLegacy(copy);
