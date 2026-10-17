@@ -50,16 +50,16 @@ public class RegionTerrainEvent extends RegionEvent {
     }
 
     /**
-     * {@link Type#RESTORE_TICK}: the positions that tick put back - for a snapshot its whole budget, the last tick
-     * included; 0 for the other types.
+     * {@link Type#RESTORE_TICK}: the blocks that tick wrote - for a snapshot only the positions its shape holds among
+     * the ones the tick walked; 0 for the other types.
      */
     public int getBlocks() {
         return blocks;
     }
 
     /**
-     * The time the work took on the world's thread: writing the file for {@link Type#SNAPSHOT}, the tick's placing for
-     * {@link Type#RESTORE_TICK}; 0 for the other types.
+     * The time the work took on the world's thread: writing the file for {@link Type#SNAPSHOT}, the tick's whole
+     * walk for {@link Type#RESTORE_TICK} (for a snapshot, the positions its shape skips included); 0 for the other types.
      */
     public long getNanos() {
         return nanos;

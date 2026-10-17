@@ -227,9 +227,10 @@ public final class RegionTerrain {
     }
 
     /**
-     * Puts back the {@code index}-th newest snapshot of {@code region} (0 = the newest), at most {@code blocksPerTick}
-     * blocks per tick on the world's thread. The file keeps the whole bounding box, but only the blocks and entities
-     * the region's shape holds go back, so a polygon never rewrites the corners of its box. A snapshot taken on another
+     * Puts back the {@code index}-th newest snapshot of {@code region} (0 = the newest) on the world's thread, walking
+     * at most {@code blocksPerTick} positions of its bounding box per tick. Only the blocks and entities the region's
+     * shape holds go back, so a polygon never rewrites the corners of its box, but a position the shape skips still
+     * spends the tick's budget: the budget bounds the whole walk, not just the writes. A snapshot taken on another
      * game version is refused.
      *
      * @return completes with how many blocks were written - the positions outside the shape are not counted
@@ -264,7 +265,7 @@ public final class RegionTerrain {
             int sizeZ = max.getZ() - min.getZ() + 1;
             long volume = (long) (max.getX() - min.getX() + 1) * sizeY * sizeZ;
             int written = 0;
-            for (; written < budget && next[0] < volume; next[0]++) {
+            for (int visited = 0; visited < budget && next[0] < volume; visited++, next[0]++) {
                 long i = next[0];
                 int x = min.getX() + (int) (i / ((long) sizeY * sizeZ));
                 int y = min.getY() + (int) (i / sizeZ % sizeY);
@@ -291,7 +292,7 @@ public final class RegionTerrain {
     //  Budgeted restore
     // ------------------------------------------------------------------
 
-    /** One tick of a restore: places at most {@code budget} blocks and answers how many. */
+    /** One tick of a restore: spends at most {@code budget} positions and answers how many blocks it placed. */
     private interface RestoreTick {
         int place(ITerrainAccess access, int budget);
     }

@@ -81,7 +81,9 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   snapshot fails naming WorldEdit and the journal, and `getSnapshots` answers an empty list. `RegionTerrainEvent`
   (`SNAPSHOT`, `RESTORE_START`, `RESTORE_TICK`, `RESTORE_END`) reports both: `getNanos()` is the time the snapshot's
   write or a restore tick took on the world thread, `getBlocks()` what that tick put back. A restore runs its first
-  tick at once and each next one a tick later, so `blocksPerTick` is a real per-tick budget on both platforms.
+  tick at once and each next one a tick later, so `blocksPerTick` is a real per-tick budget on both platforms. For a
+  snapshot that budget counts every position of the box the tick walks, written or skipped by the shape, so a sparse
+  polygon in a large box costs a tick what its whole walk costs, and `getNanos()` times that whole walk.
 - **WorldEdit Forge on 1.7.10**: `WEPlatform.adaptWorld(org.bukkit.World)` is the one WorldEdit world the core's copy,
   paste and snapshot restore work on. On 1.7.10 with WorldEdit Forge (https://github.com/GTNewHorizons/worldedit-gtnh) in
   `mods/` it is the mod's world, reached by reflection (`WorldEditForge`), because the WorldEdit 6 plugin has no working

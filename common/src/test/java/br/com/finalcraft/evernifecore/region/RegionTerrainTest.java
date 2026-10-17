@@ -309,6 +309,36 @@ class RegionTerrainTest extends ManagedRegionFixture {
     }
 
     @Test
+    void aSnapshotRestoreTickWalksAtMostItsBudgetOfPositionsEvenWhereTheShapeSkipsThem(TestPlatform platform) {
+        RegionManager manager = manager();
+        //a sliver along the diagonal of a 20x20 box: most positions of the box are outside it
+        Region region = created(manager.create("sliver", WORLD, PolygonShape.of(Arrays.asList(BlockPos.of(0, 0, 0), BlockPos.of(19, 0, 19),
+                BlockPos.of(19, 0, 17)), 5, 6)));
+        manager.getTerrain().snapshot(region).join();
+        int volume = 20 * 20 * 2;
+        int inside = 0;
+        for (int x = 0; x < 20; x++) {
+            for (int z = 0; z < 20; z++) {
+                inside += region.getShape().contains(x, 5, z) ? 2 : 0;
+            }
+        }
+        int budget = 50;
+        List<Integer> ticks = new ArrayList<>();
+        ECEventSubscription<RegionTerrainEvent> subscription = ECEventBus.global().subscribe(RegionTerrainEvent.class, event -> {
+            if (event.getType() == RegionTerrainEvent.Type.RESTORE_TICK) ticks.add(event.getBlocks());
+        });
+        try {
+            assertEquals(inside, manager.getTerrain().restoreSnapshot(region, 0, budget).join());
+        } finally {
+            subscription.unsubscribe();
+        }
+
+        assertTrue(inside > 0 && inside * 4 < volume, "the sliver is sparse in its box: " + inside + " of " + volume);
+        assertEquals((volume + budget - 1) / budget, ticks.size(), "one tick per " + budget + " positions of the box, written or not: " + ticks);
+        assertEquals(inside, ticks.stream().mapToInt(Integer::intValue).sum());
+    }
+
+    @Test
     void theJournalAndTheSnapshotPostTheirTerrainEvents(TestPlatform platform) {
         TestTerrain terrain = platform.getTestTerrain();
         terrain.setBlock(WORLD, 1, 10, 1, "stone");
