@@ -74,6 +74,8 @@ AWAIT_CHUNK = 60
 # A screen opens a tick or two after the command; the driver looks again this often until both sides show it
 GUI_POLL = 0.5
 GUI_WAIT = 5
+JOIN_TRIES = 3
+JOIN_RETRY_EVERY = 5
 
 
 class FlavorFailed(Exception):
@@ -595,6 +597,20 @@ def particle_packets(snapshot: dict) -> int:
     return sum(int(p.get("count") or 0) for p in packets if p.get("type") == "SpawnParticleSystem")
 
 
+def join_synthetic(mctf: Mctf, server_id: str, r: FlavorResult):
+    """The harness gives the synthetic join a fixed 10 s; a server busy beside five others can miss it, and a failed
+    join leaves no player behind, so it is asked again."""
+    for attempt in range(1, JOIN_TRIES + 1):
+        joined = mctf("mc_exec", server_id=server_id, ops=[{"op": "player_join", "name": BOT}])
+        if joined.get("ok"):
+            if attempt > 1:
+                r.notes.append("player_join went through on try %d of %d" % (attempt, JOIN_TRIES))
+            return
+        if "JOIN_FAILED" not in _err(joined) or attempt == JOIN_TRIES:
+            raise FlavorFailed("player_join (try %d of %d): %s" % (attempt, JOIN_TRIES, _err(joined)))
+        mctf.sleep(JOIN_RETRY_EVERY)
+
+
 def player_checks(before: dict, after: dict, r: FlavorResult):
     """What only the player's side shows: the deny-entry message, how many deny messages the hits sent, the outline."""
     messages = (after.get("snapshot") or {}).get("messages") or []
@@ -633,9 +649,7 @@ def run_hytale_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> Flavor
         run_dir = start.get("run_dir")
         log.lap("start")
 
-        joined = mctf("mc_exec", server_id=server_id, ops=[{"op": "player_join", "name": BOT}])
-        if not joined.get("ok"):
-            raise FlavorFailed("player_join: " + _err(joined))
+        join_synthetic(mctf, server_id, r)
         before = mctf("mc_player", server_id=server_id, player=BOT)
         log.lap("join")
         console(mctf, server_id, "ecc run all --player %s --cid %s" % (BOT, cid))

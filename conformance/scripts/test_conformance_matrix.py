@@ -150,6 +150,16 @@ class ParallelTest(unittest.TestCase):
         self.assertEqual([cm.flavor_ok(r) for r in results], [True, False, True])
         self.assertIn("driver crashed: KeyError", results[1].problems[0])
 
+    def test_a_synthetic_join_that_missed_the_harness_deadline_is_asked_again(self):
+        missed = {"ok": False, "error": {"code": "OP_FAILED", "message": "JOIN_FAILED - 'EccBot' did not get into the world"}}
+        r = cm.FlavorResult("hytale-0.7.1")
+        mctf = ScriptedMctf([missed, {"ok": True}])
+        cm.join_synthetic(mctf, "s1", r)
+        self.assertEqual(mctf.calls, ["mc_exec", "mc_exec"])
+        self.assertIn("player_join went through on try 2 of 3", r.notes)
+        with self.assertRaises(cm.FlavorFailed):
+            cm.join_synthetic(ScriptedMctf([{"ok": False, "error": {"code": "PLAYER_EXISTS"}}]), "s1", r)
+
     def test_the_suite_end_wait_skips_the_suites_already_counted(self):
         line = 'ENCTEST {"v":1,"e":"suite_end","t":1,"cid":"ecc1-run","runId":"r","suite":"ecore-%s","passed":1}'
         pattern = cm.suite_end_pattern("ecc1-run", ["ecore-items", "ecore-nbt"])
