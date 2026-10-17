@@ -5,7 +5,8 @@ one call per step. Per flavor: boot with the core + ECoreConformance + harness r
 headless bot, run/write the suites, open every GUI screen on both sides, restart (persistence
 proof), read the suites back, collect the ENCTEST markers via mc_read_events and the plugin's own
 NDJSON reports, tear down. A Hytale flavor has no client: its player is the harness's synthetic one, joined
-and read through the channel ops. A flavor that dies mid-way is recorded as failed and the next one runs.
+and read through the channel ops. The flavors run side by side (--parallel), each in its own worker with its own
+<out>/<flavor>/driver.log; a flavor that dies mid-way is recorded as failed and the others carry on.
 
 Exit code 0 only when every flavor booted, nothing went wrong on the way, and every suite_end
 reports failed=0.
@@ -19,11 +20,13 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 # Copied there by :conformance:minecraft:shadowJar from a public repository (version in libs.versions.toml)
@@ -59,6 +62,18 @@ WAIT_SECONDS = {"run": 900, "write": 180, "read": 180}
 TEXT_LINES = ("iiiiiiiiii", "WWWWWWWWWW")
 BOT = "EccBot"
 PLUGIN_ID = "ECoreConformance@3.0.1"
+# The daemon refuses a boot past its container or memory budget; with every flavor at once that is a wait, not a failure
+START_TOOLS = ("mc_start", "mc_hmc_start")
+LIMIT_CODES = ("START_LIMIT_REACHED", "CLIENT_LIMIT_REACHED")
+LIMIT_RETRY_EVERY = 10
+LIMIT_RETRY_FOR = 1800
+# Boots that begin together stretch each other's startup and join; the daemon gets them this far apart
+START_SPACING = 12
+# A suite_end wakes the driver; this only bounds a wait whose wake-up pattern never matches
+AWAIT_CHUNK = 60
+# A screen opens a tick or two after the command; the driver looks again this often until both sides show it
+GUI_POLL = 0.5
+GUI_WAIT = 5
 
 
 class FlavorFailed(Exception):
@@ -226,11 +241,34 @@ DRY_RESULT = {
 
 
 class Mctf:
-    def __init__(self, cli: str, dry_run: bool):
+    def __init__(self, cli: str, dry_run: bool, spacing: float = START_SPACING, clock: Callable[[], float] = time.monotonic):
         self.cli = cli
         self.dry_run = dry_run
+        self.spacing = spacing
+        self.clock = clock
+        self._start_lock = threading.Lock()
+        self._last_start: Optional[float] = None
 
     def __call__(self, tool: str, **args) -> dict:
+        """One tool call; a boot is spaced from the previous one and, refused for a full budget, asked again until
+        LIMIT_RETRY_FOR runs out."""
+        if tool not in START_TOOLS:
+            return self.call(tool, **args)
+        give_up = self.clock() + LIMIT_RETRY_FOR
+        while True:
+            self._space_start()
+            res = self.call(tool, **args)
+            if (res.get("error") or {}).get("code") not in LIMIT_CODES or self.clock() >= give_up:
+                return res
+            self.sleep(LIMIT_RETRY_EVERY)
+
+    def _space_start(self):
+        with self._start_lock:
+            if self._last_start is not None:
+                self.sleep(max(0.0, self._last_start + self.spacing - self.clock()))
+            self._last_start = self.clock()
+
+    def call(self, tool: str, **args) -> dict:
         if self.dry_run:
             print("[dry-run] mctf %s %s" % (tool, json.dumps(args, sort_keys=True)), flush=True)
             return dict(DRY_RESULT)
@@ -269,17 +307,27 @@ def read_all_events(mctf: Mctf, server_id: str, event_filter: Optional[str] = No
             return events
 
 
-def wait_suite_ends(mctf: Mctf, server_id: str, cid: str, r: FlavorResult):
+def suite_end_pattern(cid: str, ended: List[str]) -> str:
+    """A log line carrying the suite_end of `cid` for a suite not in `ended` - mc_await answers the first match it
+    holds, so the suites already counted are left out of the next wait."""
+    skip = '(?!(?:%s)")' % "|".join(re.escape(s) for s in ended) if ended else ""
+    return '"e":"suite_end",.*"cid":"%s",.*"suite":"%s' % (re.escape(cid), skip)
+
+
+def wait_suite_ends(mctf: Mctf, server_id: str, cid: str, r: FlavorResult, want: Optional[int] = None):
+    """Sleeps on mc_await until the next suite_end of `cid` lands; the events read after each wake-up are the count."""
     half = half_of(cid)
-    want, deadline = EXPECTED_ENDS[half], time.time() + WAIT_SECONDS[half]
+    want = want or EXPECTED_ENDS[half]
+    deadline = time.time() + WAIT_SECONDS[half]
     while True:
-        got = sum(1 for ev in read_all_events(mctf, server_id, "suite_end") if ev.get("cid") == cid)
-        if got >= want or mctf.dry_run:
+        ended = [str(ev.get("suite")) for ev in read_all_events(mctf, server_id, "suite_end") if ev.get("cid") == cid]
+        if len(ended) >= want or mctf.dry_run:
             return
-        if time.time() > deadline:
-            r.problems.append("%s: %d of %d suite_end within %ds" % (half, got, want, WAIT_SECONDS[half]))
+        left = int(deadline - time.time())
+        if left <= 0:
+            r.problems.append("%s: %d of %d suite_end within %ds" % (half, len(ended), want, WAIT_SECONDS[half]))
             return
-        mctf.sleep(5)
+        mctf("mc_await", server_id=server_id, pattern=suite_end_pattern(cid, ended), timeout_seconds=min(AWAIT_CHUNK, left))
 
 
 def merge_events(*batches: List[dict]) -> List[dict]:
@@ -333,6 +381,48 @@ def click_a_block(mctf: Mctf, client_id: str, r: FlavorResult):
         r.problems.append("attack did not hit a block: %s" % hit)
 
 
+def screen_shown(snapshot: dict, render: dict) -> bool:
+    """The server has the container open and the client either drew it or answered why it cannot."""
+    opened = (snapshot.get("snapshot") or {}).get("container_type")
+    drawn = render.get("captured") or render.get("capability_warning") or not render.get("ok", True)
+    return bool(opened and drawn)
+
+
+def open_screen(mctf: Mctf, server_id: str, client_id: str):
+    """Both sides of the screen `ecc gui` just asked for, once they show it - it opens on a later tick."""
+    give_up = time.time() + GUI_WAIT
+    while True:
+        snap = mctf("mc_player", server_id=server_id, player=BOT)
+        render = mctf("mc_hmc_render", client_id=client_id, mode="gui")
+        if mctf.dry_run or screen_shown(snap, render) or time.time() >= give_up:
+            return snap, render
+        mctf.sleep(GUI_POLL)
+
+
+class FlavorLog:
+    """<out>/<flavor>/driver.log: what the flavor's worker did and how long each stage took, echoed to stdout."""
+
+    def __init__(self, flavor: str, path: Optional[Path]):
+        self.flavor = flavor
+        self.path = path
+        self.begun = self.lapped = time.monotonic()
+        if path:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("", encoding="utf-8")
+
+    def say(self, message: str):
+        line = "%s +%6.1fs %s" % (time.strftime("%H:%M:%S"), time.monotonic() - self.begun, message)
+        print("[%s] %s" % (self.flavor, line), flush=True)
+        if self.path:
+            with open(self.path, "a", encoding="utf-8") as f:
+                f.write(line + "\n")
+
+    def lap(self, stage: str):
+        now = time.monotonic()
+        self.say("%s: %.1fs" % (stage, now - self.lapped))
+        self.lapped = now
+
+
 def worldedit_jar(a, mc: str) -> str:
     return str(Path(a.worldedit_dir) / ("WorldEdit-%s.jar" % mc))
 
@@ -346,6 +436,7 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
     r = FlavorResult(flavor)
     mc = flavor.split("-", 1)[1]
     fdir = out / flavor
+    log = FlavorLog(flavor, None if mctf.dry_run else fdir / "driver.log")
     server_id = client_id = None
     stamp = time.strftime("%H%M%S")
     cid = {h: "ecc%s-%s" % (stamp, h) for h in HALVES}
@@ -377,6 +468,7 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
             r.problems.append("linkage_errors=%s at boot" % start["linkage_errors"])
         r.booted = True
         run_dir = start.get("run_dir")
+        log.lap("start")
 
         client = mctf("mc_hmc_start", target_id=CLIENT_FOR[flavor], server_id=server_id, username=BOT,
                       project_root=str(REPO_ROOT), suite="conformance",
@@ -387,19 +479,20 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
             raise FlavorFailed("mc_hmc_start did not join: %s %s" % (_err(client), client.get("reject_reason")))
         console(mctf, server_id, "op " + BOT)
         console(mctf, server_id, "gamemode creative " + BOT)
+        log.lap("join")
 
         console(mctf, server_id, "ecc click " + BOT)
         click_a_block(mctf, client_id, r)
         console(mctf, server_id, "ecc run all --player %s --cid %s" % (BOT, cid["run"]))
         wait_suite_ends(mctf, server_id, cid["run"], r)
+        log.lap("run")
         console(mctf, server_id, "ecc write all --player %s --cid %s" % (BOT, cid["write"]))
         wait_suite_ends(mctf, server_id, cid["write"], r)
+        log.lap("write")
 
         for screen in SCREENS:
             console(mctf, server_id, "ecc gui %s %s" % (screen, BOT))
-            mctf.sleep(2)  # screens open on a later tick
-            snap = mctf("mc_player", server_id=server_id, player=BOT)
-            render = mctf("mc_hmc_render", client_id=client_id, mode="gui")
+            snap, render = open_screen(mctf, server_id, client_id)
             bot(mctf, client_id, "close")
             r.gui.append({"screen": screen, "line": gui_line(snap, render)})
             if not mctf.dry_run:
@@ -411,6 +504,7 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         console(mctf, server_id, "ecc text " + BOT)
         drawn = mctf("mc_hmc_render", client_id=client_id, mode="render", duration_ms=2000)
         r.text = [e for e in drawn.get("entries") or [] if any(t in str(e.get("text")) for t in TEXT_LINES)]
+        log.lap("gui+text")
 
         pre_restart = read_all_events(mctf, server_id)
         restart = mctf("mc_restart", server_id=server_id)
@@ -422,10 +516,12 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         if not reconnect.get("ok"):
             raise FlavorFailed("bot reconnect after restart: " + _err(reconnect))
         wait_online(mctf, server_id)
+        log.lap("restart")
         console(mctf, server_id, "op " + BOT)
         console(mctf, server_id, "gamemode creative " + BOT)
         console(mctf, server_id, "ecc read all --player %s --cid %s" % (BOT, cid["read"]))
         wait_suite_ends(mctf, server_id, cid["read"], r)
+        log.lap("read")
 
         r.events = merge_events(pre_restart, read_all_events(mctf, server_id))
         if not mctf.dry_run and run_dir:
@@ -442,11 +538,14 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         r.problems.append(str(e))
         r.events = r.events or pre_restart
     finally:
+        log.lap("collect")
         if not a.keep:
             if client_id:
                 mctf("mc_hmc_stop", client_id=client_id)
             if server_id:
                 mctf("mc_stop", server_id=server_id)
+        log.lap("stop")
+        log.say("done in %.1fs; problems: %s" % (time.monotonic() - log.begun, r.problems or "none"))
     sel = suite_table(r.events).get("selection-click", {}).get("run")
     if r.booted and sel and sel["skipped"]:
         r.problems.append("selection-click was skipped - the bot's block click never armed/arrived")
@@ -517,6 +616,7 @@ def run_hytale_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> Flavor
     """Boot with the core, ECoreConformance and the harness in mods/, join the synthetic player, run every suite."""
     r = FlavorResult(flavor)
     fdir = out / flavor
+    log = FlavorLog(flavor, None if mctf.dry_run else fdir / "driver.log")
     server_id = None
     cid = "ecc%s-run" % time.strftime("%H%M%S")
     try:
@@ -531,21 +631,16 @@ def run_hytale_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> Flavor
             raise FlavorFailed("%s not enabled; plugins=%s" % (HYTALE_PLUGIN_ID, start.get("plugins")))
         r.booted = True
         run_dir = start.get("run_dir")
+        log.lap("start")
 
         joined = mctf("mc_exec", server_id=server_id, ops=[{"op": "player_join", "name": BOT}])
         if not joined.get("ok"):
             raise FlavorFailed("player_join: " + _err(joined))
         before = mctf("mc_player", server_id=server_id, player=BOT)
+        log.lap("join")
         console(mctf, server_id, "ecc run all --player %s --cid %s" % (BOT, cid))
-        deadline = time.time() + WAIT_SECONDS["run"]
-        while True:
-            got = sum(1 for ev in read_all_events(mctf, server_id, "suite_end") if ev.get("cid") == cid)
-            if got >= HYTALE_SUITES or mctf.dry_run:
-                break
-            if time.time() > deadline:
-                r.problems.append("run: %d of %d suite_end within %ds" % (got, HYTALE_SUITES, WAIT_SECONDS["run"]))
-                break
-            mctf.sleep(5)
+        wait_suite_ends(mctf, server_id, cid, r, want=HYTALE_SUITES)
+        log.lap("run")
         player_checks(before, mctf("mc_player", server_id=server_id, player=BOT), r)
         r.events = read_all_events(mctf, server_id)
         if not mctf.dry_run and run_dir:
@@ -558,14 +653,30 @@ def run_hytale_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> Flavor
     except FlavorFailed as e:
         r.problems.append(str(e))
     finally:
+        log.lap("collect")
         if server_id and not a.keep:
             r.shutdown_reason = mctf("mc_stop", server_id=server_id).get("shutdown_reason")
+        log.lap("stop")
+        log.say("done in %.1fs; problems: %s" % (time.monotonic() - log.begun, r.problems or "none"))
     if not mctf.dry_run:
         fdir.mkdir(parents=True, exist_ok=True)
         write_events(fdir / "events.ndjson", r.events)
         with open(fdir / "summary.md", "w", encoding="utf-8") as f:
             f.write(render_flavor_section(r))
     return r
+
+
+def run_matrix(flavors: List[str], run: Callable[[str], FlavorResult], parallel: int) -> List[FlavorResult]:
+    """Every flavor in its own worker, at most `parallel` at once; the results come back in the order asked. A
+    flavor whose worker throws is a failed result naming the exception, never the end of the others."""
+    def guarded(flavor: str) -> FlavorResult:
+        try:
+            return run(flavor)
+        except Exception as e:
+            return FlavorResult(flavor, problems=["driver crashed: %s: %s" % (type(e).__name__, e)])
+
+    with ThreadPoolExecutor(max_workers=max(1, parallel)) as pool:
+        return list(pool.map(guarded, flavors))
 
 
 def main(argv=None) -> int:
@@ -579,6 +690,8 @@ def main(argv=None) -> int:
     p.add_argument("--worldedit-dir", default=DEFAULT_WORLDEDIT_DIR, help="where WorldEdit-<game version>.jar is, per Bukkit flavor")
     p.add_argument("--papi-flavors", default="paper-1.21.1", help="comma-separated flavors that get PlaceholderAPI")
     p.add_argument("--out", default="build/conformance", help="output dir, relative to the repo root")
+    p.add_argument("--parallel", type=int, default=0,
+                   help="how many flavors run at once (default: all of them; 1 = one after the other)")
     p.add_argument("--keep", action="store_true", help="leave the servers and clients running")
     p.add_argument("--dry-run", action="store_true", help="print the planned mctf calls, call nothing, write nothing")
     a = p.parse_args(argv)
@@ -610,11 +723,17 @@ def main(argv=None) -> int:
     out = Path(a.out) if Path(a.out).is_absolute() else REPO_ROOT / a.out
     mctf = Mctf(cli, a.dry_run)
 
-    results = [(run_hytale_flavor if f in HYTALE else run_flavor)(f, a, mctf, out, fw) for f in flavors]
+    workers = min(a.parallel or len(flavors), len(flavors))
+    begun = time.monotonic()
+    results = run_matrix(flavors, lambda f: (run_hytale_flavor if f in HYTALE else run_flavor)(f, a, mctf, out, fw), workers)
+    took = int(time.monotonic() - begun)
+    wall = "Matrix wall time: %dm%02ds for %d flavor(s), %d at once" % (took // 60, took % 60, len(flavors), workers)
     if not a.dry_run:
+        out.mkdir(parents=True, exist_ok=True)
         with open(out / "summary.md", "w", encoding="utf-8") as f:
-            f.write(render_summary(results))
+            f.write(render_summary(results) + "\n" + wall + "\n")
         print(render_summary(results))
+    print(wall, flush=True)
     return exit_code(results) if not a.dry_run else 0
 
 

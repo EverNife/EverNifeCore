@@ -6,6 +6,7 @@ import subprocess
 import sys
 from types import SimpleNamespace
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -86,6 +87,75 @@ class ParsingTest(unittest.TestCase):
             (logs / "previous.log").write_text(line % "previous", encoding="utf-8")
             read = [d for log in cm.rolled_logs(logs) if log.is_file() for d in cm.case_lines(cm.read_log(log))]
         self.assertEqual(["regions/gz PASS ok", "regions/zip PASS ok", "regions/previous PASS ok"], read)
+
+
+class ScriptedMctf(cm.Mctf):
+    """Answers each call from a script and keeps a fake clock that only sleeping moves."""
+
+    def __init__(self, answers, spacing=0):
+        self.now = 0.0
+        super().__init__("mctf.py", dry_run=False, spacing=spacing, clock=lambda: self.now)
+        self.answers = list(answers)
+        self.calls, self.sleeps = [], []
+
+    def call(self, tool, **args):
+        self.calls.append(tool)
+        return self.answers.pop(0)
+
+    def sleep(self, seconds):
+        self.sleeps.append(seconds)
+        self.now += seconds
+
+
+class ParallelTest(unittest.TestCase):
+
+    def test_a_boot_refused_for_the_budget_is_asked_again_until_it_goes_through(self):
+        full = {"ok": False, "error": {"code": "START_LIMIT_REACHED", "message": "budget"}}
+        mctf = ScriptedMctf([full, full, {"ok": True, "server_id": "s1"}])
+        self.assertEqual(mctf("mc_start", flavor="paper-1.21.1")["server_id"], "s1")
+        self.assertEqual(mctf.calls, ["mc_start"] * 3)
+        self.assertEqual([s for s in mctf.sleeps if s], [cm.LIMIT_RETRY_EVERY] * 2)
+
+    def test_a_refusal_past_the_retry_window_is_the_answer(self):
+        full = {"ok": False, "error": {"code": "CLIENT_LIMIT_REACHED", "message": "budget"}}
+        tries = cm.LIMIT_RETRY_FOR // cm.LIMIT_RETRY_EVERY + 1
+        mctf = ScriptedMctf([full] * tries)
+        self.assertEqual(mctf("mc_hmc_start")["error"]["code"], "CLIENT_LIMIT_REACHED")
+        self.assertEqual(len(mctf.calls), tries)
+
+    def test_other_failures_and_other_tools_are_not_retried(self):
+        mctf = ScriptedMctf([{"ok": False, "error": {"code": "BOOT_FAILED"}}, {"ok": False, "error": {"code": "START_LIMIT_REACHED"}}])
+        self.assertEqual(mctf("mc_start")["error"]["code"], "BOOT_FAILED")
+        self.assertEqual(mctf("mc_exec")["error"]["code"], "START_LIMIT_REACHED")
+        self.assertEqual(mctf.calls, ["mc_start", "mc_exec"])
+
+    def test_boots_are_spaced_apart(self):
+        mctf = ScriptedMctf([{"ok": True}] * 3, spacing=12)
+        mctf("mc_start")
+        mctf.now += 5
+        mctf("mc_hmc_start")
+        mctf("mc_exec")
+        self.assertEqual(mctf.sleeps, [7])
+
+    def test_a_crashing_flavor_fails_alone_and_results_keep_the_order_asked(self):
+        def run(flavor):
+            if flavor == "mohist-1.12.2":
+                raise KeyError("boom")
+            time.sleep(0.2 if flavor == "crucible-1.7.10" else 0)  # the first flavor finishes last
+            return cm.FlavorResult(flavor, booted=True)
+
+        flavors = ["crucible-1.7.10", "mohist-1.12.2", "paper-1.21.1"]
+        results = cm.run_matrix(flavors, run, parallel=3)
+        self.assertEqual([r.flavor for r in results], flavors)
+        self.assertEqual([cm.flavor_ok(r) for r in results], [True, False, True])
+        self.assertIn("driver crashed: KeyError", results[1].problems[0])
+
+    def test_the_suite_end_wait_skips_the_suites_already_counted(self):
+        line = 'ENCTEST {"v":1,"e":"suite_end","t":1,"cid":"ecc1-run","runId":"r","suite":"ecore-%s","passed":1}'
+        pattern = cm.suite_end_pattern("ecc1-run", ["ecore-items", "ecore-nbt"])
+        self.assertEqual([bool(re.search(pattern, line % s)) for s in ("items", "nbt", "nbt-extra", "regions")],
+                         [False, False, True, True])
+        self.assertFalse(re.search(pattern, (line % "regions").replace("ecc1-run", "ecc1-write")))
 
 
 class CliTest(unittest.TestCase):
