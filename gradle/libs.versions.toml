@@ -37,6 +37,9 @@ placeholderapi = "2.11.6"
 matrix-worldedit6 = "6.1.9"
 matrix-worldedit72 = "7.2.5"
 matrix-worldedit73 = "7.3.8"
+# The WorldEdit Forge mod crucible-1.7.10 runs beside the plugin, the only WorldEdit there that keeps tile entities.
+# Pinned: the GTNH Nexus metadata names an older <release>.
+matrix-worldedit-gtnh = "v0.0.10"
 authme = "5.4.0"
 griefdefender = "2.2.1"
 griefpreventionplus = "13.3"
@@ -110,6 +113,7 @@ placeholderapi = { module = "me.clip:placeholderapi", version.ref = "placeholder
 matrix-worldedit6 = { module = "worldedit-bukkit:JezAXbj7", version.ref = "matrix-worldedit6" }
 matrix-worldedit72 = { module = "worldedit-bukkit:t7YT4aha", version.ref = "matrix-worldedit72" }
 matrix-worldedit73 = { module = "worldedit-bukkit:ecqqLKUO", version.ref = "matrix-worldedit73" }
+matrix-worldedit-gtnh = { module = "com.github.GTNewHorizons:worldedit-gtnh", version.ref = "matrix-worldedit-gtnh" }
 authme = { module = "fr.xephi:authme", version.ref = "authme" }
 griefdefender = { module = "com.griefdefender:griefdefender-bukkit", version.ref = "griefdefender" }
 griefpreventionplus = { module = "net.kaikk.mc:GriefPreventionPlus", version.ref = "griefpreventionplus" }

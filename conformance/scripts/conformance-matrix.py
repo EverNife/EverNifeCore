@@ -337,6 +337,11 @@ def worldedit_jar(a, mc: str) -> str:
     return str(Path(a.worldedit_dir) / ("WorldEdit-%s.jar" % mc))
 
 
+def worldedit_forge_jar(a, mc: str) -> Optional[str]:
+    """The WorldEdit Forge mod a flavor runs beside the plugin: only 1.7.10, where the plugin cannot keep tile entities."""
+    return str(Path(a.worldedit_dir) / "WorldEdit-Forge-1.7.10.jar") if mc == "1.7.10" else None
+
+
 def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
     r = FlavorResult(flavor)
     mc = flavor.split("-", 1)[1]
@@ -350,6 +355,8 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         if flavor in a.papi_flavors:
             routes.append({"from": [a.papi_jar], "to": "plugins"})
         routes.append({"from": [worldedit_jar(a, mc)], "to": "plugins"})
+        if worldedit_forge_jar(a, mc):
+            routes.append({"from": [worldedit_forge_jar(a, mc)], "to": "mods"})
         if flavor in HYBRIDS:
             routes.append({"from": [str(fw / "final-artifacts/companion" / ("MCTFCompanion-%s-*.jar" % mc))], "to": "mods"})
         routes.append({"from": [str(fw / "final-artifacts/harness/ENCTestHarness-*.jar")], "to": "plugins"})
@@ -593,7 +600,7 @@ def main(argv=None) -> int:
         minecraft = [f for f in flavors if f not in HYTALE]
         needed = [cli] + ([a.core_jar, a.ecc_jar] if minecraft else []) \
             + ([a.hytale_core_jar, a.hytale_ecc_jar] if len(minecraft) < len(flavors) else []) \
-            + ([a.papi_jar] if a.papi_flavors & set(flavors) else [])             + [worldedit_jar(a, f.split("-", 1)[1]) for f in minecraft]
+            + ([a.papi_jar] if a.papi_flavors & set(flavors) else [])             + [worldedit_jar(a, f.split("-", 1)[1]) for f in minecraft]             + [j for j in (worldedit_forge_jar(a, f.split("-", 1)[1]) for f in minecraft) if j]
         missing = [n for n in needed if not Path(n).is_file()]
         if missing:
             print("missing: %s (the jars come from ./gradlew :minecraft:shadowJar :conformance:minecraft:shadowJar,"

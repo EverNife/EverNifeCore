@@ -1,8 +1,10 @@
 import importlib.util
+import json
 import os
 import re
 import subprocess
 import sys
+from types import SimpleNamespace
 import tempfile
 import unittest
 from pathlib import Path
@@ -106,6 +108,16 @@ class CliTest(unittest.TestCase):
         self.assertIn("PlaceholderAPI.jar", proc.stdout)
         start_line = next(l for l in proc.stdout.splitlines() if l.startswith("[dry-run] mctf mc_start "))
         self.assertNotIn('"to": "mods"', start_line)  # paper has no mod loader: no companion route
+
+    def test_crucible_dry_run_routes_worldedit_forge_into_mods_beside_the_plugin(self):
+        proc = run_script("--dry-run", "--flavors", "crucible-1.7.10")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        start_line = next(l for l in proc.stdout.splitlines() if l.startswith("[dry-run] mctf mc_start "))
+        routes = json.loads(start_line[start_line.index("{"):])["routes"]
+        plugin = [r["to"] for r in routes if any(f.endswith("WorldEdit-1.7.10.jar") for f in r["from"])]
+        forge = [r["to"] for r in routes if any(f.endswith("WorldEdit-Forge-1.7.10.jar") for f in r["from"])]
+        self.assertEqual((plugin, forge), (["plugins"], ["mods"]))
+        self.assertIsNone(cm.worldedit_forge_jar(SimpleNamespace(worldedit_dir="m"), "1.12.2"))
 
     def test_hytale_dry_run_routes_into_mods_with_no_client(self):
         proc = run_script("--dry-run", "--flavors", "hytale-0.7.1")

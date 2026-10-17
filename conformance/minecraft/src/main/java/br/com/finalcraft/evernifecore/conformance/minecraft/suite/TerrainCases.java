@@ -26,7 +26,6 @@ import br.com.finalcraft.evernifecore.region.terrain.RegionTerrain;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainContent;
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.WorldEdit;
-import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.math.transform.AffineTransform;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -34,6 +33,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.Sign;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemFrame;
@@ -95,6 +95,7 @@ final class TerrainCases {
                 PlayerCases.later("terrain-snapshot-restores", ctx, player -> snapshotRestores(player, "ecc-snapshot", 48, TerrainContent.ALL)),
                 PlayerCases.later("terrain-snapshot-without-nbt", ctx, player -> snapshotRestores(player, "ecc-snapshot-bare", 54,
                         TerrainContent.of(true, false, true))),
+                PlayerCases.later("terrain-snapshot-keeps-sign-text", ctx, this::snapshotKeepsSignText),
                 PlayerCases.later("terrain-snapshot-entities-back", ctx, this::snapshotEntitiesBack),
                 PlayerCases.later("terrain-snapshot-polygon-box", ctx, this::snapshotPolygonBox),
                 PlayerCases.later("terrain-snapshot-retention", ctx, this::snapshotRetention),
@@ -187,8 +188,8 @@ final class TerrainCases {
 
     /**
      * A stone 3x3x3 box with a chest of diamonds at its heart, saved with {@code content}, wrecked, and put back ten blocks
-     * a tick from the snapshot: every block comes back, and the diamonds come back only when the snapshot kept nbt and the
-     * server's WorldEdit carries tile entities ({@link #worldEditCarriesTileEntities()}).
+     * a tick from the snapshot: every block comes back, and the diamonds come back only when the snapshot kept nbt. On
+     * 1.7.10 that takes WorldEdit Forge in mods/ beside the plugin, which the matrix routes there.
      */
     private CompletableFuture<Verdict> snapshotRestores(Player player, String name, int dx, TerrainContent content) {
         World world = player.getWorld();
@@ -197,7 +198,7 @@ final class TerrainCases {
         List<Block> box = blocks(world, min, max);
         box.forEach(block -> block.setType(block.equals(c) ? Material.CHEST : Material.STONE));
         inventory(c).addItem(new ItemStack(Material.DIAMOND, CHEST_DIAMONDS));
-        int expectedDiamonds = content.isNbt() && worldEditCarriesTileEntities() ? CHEST_DIAMONDS : 0;
+        int expectedDiamonds = content.isNbt() ? CHEST_DIAMONDS : 0;
         return inRegion(name, world, min, max, TIMEOUT_MILLIS, region -> {}, region -> terrain(region).snapshot(region, content).thenCompose(file -> {
             clearChest(c);
             box.forEach(block -> block.setType(Material.AIR));
@@ -218,13 +219,31 @@ final class TerrainCases {
     }
 
     /**
-     * Whether the server's WorldEdit reads and writes tile entity data, which it does only through a Bukkit adapter. On
-     * crucible-1.7.10 WorldEdit 6.1.9 ships a CraftBukkit_v1_7_R4 adapter, but Crucible's NMS is not CraftBukkit's, and
-     * WorldEdit says so at boot: "This WorldEdit version does not fully support your version of Bukkit." A snapshot
-     * there keeps the chest and loses its items. Every other flavor names its adapter ("Using ... as the Bukkit adapter").
+     * A sign with two lines of text on a stone floor, saved with nbt, wrecked and put back: the sign returns with its text,
+     * the second tile entity a snapshot has to carry besides the chest.
      */
-    private static boolean worldEditCarriesTileEntities() {
-        return !MCVersion.isEqual(MCVersion.v1_7_10);
+    private CompletableFuture<Verdict> snapshotKeepsSignText(Player player) {
+        World world = player.getWorld();
+        Block c = anchor(player, 84);
+        BlockPos min = pos(c).add(-1, -1, -1), max = pos(c).add(1, 1, 1);
+        List<Block> box = blocks(world, min, max);
+        Material signType = Material.getMaterial("OAK_SIGN") != null ? Material.getMaterial("OAK_SIGN") : Material.getMaterial("SIGN_POST");
+        box.forEach(block -> block.setType(block.getY() < c.getY() ? Material.STONE : Material.AIR));
+        c.setType(signType);
+        Sign sign = (Sign) c.getState();
+        sign.setLine(0, "ecc");
+        sign.setLine(1, "snapshot");
+        sign.update(true, false);
+        return inRegion("ecc-snapshot-sign", world, min, max, TIMEOUT_MILLIS, region -> {}, region -> terrain(region).snapshot(region, TerrainContent.ALL)
+                .thenCompose(file -> {
+                    box.forEach(block -> block.setType(Material.AIR));
+                    return terrain(region).restoreSnapshot(region, 0, 10).thenCompose(placed -> ticks(1)).thenApply(read -> {
+                        BlockState back = c.getState();
+                        String lines = back instanceof Sign ? ((Sign) back).getLine(0) + "|" + ((Sign) back).getLine(1) : null;
+                        return Verdict.of("ecc|snapshot".equals(lines), "file=" + file.getName() + " block=" + c.getType() + " lines=" + lines
+                                + " (expected ecc|snapshot)");
+                    });
+                }), () -> box.forEach(block -> block.setType(Material.AIR)));
     }
 
     /**
@@ -381,7 +400,7 @@ final class TerrainCases {
             boolean airThere = dst.getRelative(1, 0, 0).getType() == Material.AIR && dst.getRelative(1, 0, -1).getType() == Material.AIR;
             Block unrotated = dst.getRelative(2, 0, 1);
             String unrotatedHolds = unrotated.getType().name();
-            EditSession undo = WorldEdit.getInstance().getEditSessionFactory().getEditSession(new BukkitWorld(world), -1);
+            EditSession undo = WorldEdit.getInstance().getEditSessionFactory().getEditSession(worldEdit.adaptWorld(world), -1);
             paste.undo(undo);
             int floorBack = unchanged(floorBefore);
             return Verdict.of(markerThere && stonesThere && airThere && unrotatedHolds.equals("DIRT") && floorBack == floorBefore.size(),

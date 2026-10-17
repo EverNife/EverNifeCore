@@ -25,6 +25,17 @@ repositories {
         metadataSources { artifact() }
         content { includeGroup 'worldedit-bukkit' }
     }
+    // exclusive: the root's unfiltered JitPack would otherwise be asked first for this com.github group. POM only:
+    // the Gradle metadata gives runtime the -dev jar (MCP names); a server loads the reobfuscated main artifact.
+    exclusiveContent {
+        forRepository {
+            maven {
+                url = 'https://nexus.gtnewhorizons.com/repository/public/'
+                metadataSources { mavenPom(); ignoreGradleMetadataRedirection() }
+            }
+        }
+        filter { includeGroup 'com.github.GTNewHorizons' }
+    }
 }
 
 configurations {
@@ -33,6 +44,8 @@ configurations {
     conformanceChecks { transitive = false }
     // The PlaceholderAPI plugin the matrix driver routes into its servers; the published jar is the shaded plugin.
     matrixPlaceholderApi { transitive = false }
+    // The WorldEdit Forge mod the matrix driver routes into crucible-1.7.10's mods/, beside the plugin.
+    matrixWorldEditForge { transitive = false }
 }
 
 // The WorldEdit plugin the matrix driver routes into each Bukkit flavor, by its game version.
@@ -71,6 +84,7 @@ dependencies {
     compileOnly project(':common-tests')
     conformanceChecks project(':common-tests')
     matrixPlaceholderApi libs.placeholderapi
+    matrixWorldEditForge libs.matrix.worldedit.gtnh
 
     testImplementation project(':common-tests')
     testImplementation libs.spigot.api
@@ -115,8 +129,15 @@ def matrixPlaceholderApiJar = tasks.register('matrixPlaceholderApiJar', Copy) {
     rename { 'PlaceholderAPI.jar' }
 }
 
+def matrixWorldEditForgeJar = tasks.register('matrixWorldEditForgeJar', Copy) {
+    from configurations.matrixWorldEditForge
+    into layout.buildDirectory.dir('matrix')
+    rename { 'WorldEdit-Forge-1.7.10.jar' }
+}
+
 tasks.named('shadowJar') {
     dependsOn matrixPlaceholderApiJar
+    dependsOn matrixWorldEditForgeJar
     dependsOn matrixWorldEditJars
 }
 
