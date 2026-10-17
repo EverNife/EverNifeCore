@@ -322,7 +322,8 @@ class RegionTerrainTest extends ManagedRegionFixture {
                 inside += region.getShape().contains(x, 5, z) ? 2 : 0;
             }
         }
-        int budget = 50;
+        //small enough that one position more per tick changes the tick count (80 against 73)
+        int budget = 10;
         List<Integer> ticks = new ArrayList<>();
         ECEventSubscription<RegionTerrainEvent> subscription = ECEventBus.global().subscribe(RegionTerrainEvent.class, event -> {
             if (event.getType() == RegionTerrainEvent.Type.RESTORE_TICK) ticks.add(event.getBlocks());
