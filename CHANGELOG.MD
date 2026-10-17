@@ -66,7 +66,10 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   Hytale keeps the block and, with `nbt`, its block entity (a chest's items) as the server serializes it, but no
   entities (its server fires no event when an entity is removed). The journal hears a change only
   after every plugin decided - a `MONITOR` listener on Bukkit, a System ordered after the deciding one on Hytale -
-  and never a cancelled one. The test engine answers the access with `TestTerrain`.
+  and never a cancelled one. A place on Bukkit records what the player's right click found at that position
+  before the server placed the block, falling back to the event's replaced state: Crucible and Arclight build
+  `BlockPlaceEvent.getBlockReplacedState()` after the place, so it reports the new block. The test engine answers
+  the access with `TestTerrain`.
 - **Region snapshots**: `RegionTerrain.snapshot(region[, content])` saves the region's bounding box under
   `<owner data>/regions/terrain/<region>/<stamp>.<ext>` - a WorldEdit `.schem` (`.schematic` on WorldEdit 6) plus the
   entities beside it on Bukkit, a prefab through the server's `PrefabStore` on Hytale, with each block's entity only

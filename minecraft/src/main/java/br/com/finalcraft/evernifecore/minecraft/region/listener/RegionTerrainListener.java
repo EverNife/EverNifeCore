@@ -11,24 +11,32 @@ import org.bukkit.block.BlockState;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.function.BiFunction;
 
 /**
  * Feeds the {@code track-changes} journals ({@link RegionTerrain}) with what really happened: at {@code MONITOR}, after
  * every plugin had its say, and only for events nobody cancelled. A break or an explosion still has the old block in
- * the world here; a place has already set the new one, so its original comes from the replaced state. An armor stand
+ * the world here; a place has already set the new one, so its original is what the player's right click found there
+ * before the place, or else the event's replaced state. An armor stand
  * or a hanging entity (frame, painting) broken is the entity removal kept; a mob dying is not.
  */
 public final class RegionTerrainListener implements ECListener {
 
     private final BiFunction<BlockState, TerrainContent, String> replacedState;
+    /** Per player, the blocks his last right click on a block could place over, read before the server placed it. */
+    private final Map<UUID, BlockState[]> placeCandidates = new HashMap<>();   //main thread only
 
     public RegionTerrainListener() {
         this(McTerrainAccess::capture);
@@ -48,13 +56,40 @@ public final class RegionTerrainListener implements ECListener {
         recordInWorld(event.getBlock());
     }
 
+    //ponytail: two getState() per right click on a block while any region needs PLACE, not only over tracked positions
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onInteract(PlayerInteractEvent event) {
+        Block clicked = event.getClickedBlock();
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK || clicked == null || event.getItem() == null) {
+            placeCandidates.remove(event.getPlayer().getUniqueId());
+            return;
+        }
+        //a replaceable block (grass, snow) is placed over itself, anything else gets the block on the clicked face
+        placeCandidates.put(event.getPlayer().getUniqueId(),
+                new BlockState[]{clicked.getState(), clicked.getRelative(event.getBlockFace()).getState()});
+    }
+
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
         Block block = event.getBlock();
+        BlockState[] candidates = placeCandidates.remove(event.getPlayer().getUniqueId());
         if (RegionContexts.isDisabled(block.getWorld())) return;
-        BlockState replaced = event.getBlockReplacedState();
+        //Crucible and Arclight build getBlockReplacedState() from the world after the place: it reports the new block
+        BlockState clickedBefore = candidateAt(candidates, block);
+        BlockState original = clickedBefore != null ? clickedBefore : event.getBlockReplacedState();
         RegionTerrain.recordChange(block.getWorld().getName(), block.getX(), block.getY(), block.getZ(),
-                content -> replacedState.apply(replaced, content));
+                content -> replacedState.apply(original, content));
+    }
+
+    private static BlockState candidateAt(BlockState[] candidates, Block block) {
+        if (candidates == null) return null;
+        for (BlockState state : candidates) {
+            if (state.getX() == block.getX() && state.getY() == block.getY() && state.getZ() == block.getZ()
+                    && state.getWorld().getName().equals(block.getWorld().getName())) {
+                return state;
+            }
+        }
+        return null;
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

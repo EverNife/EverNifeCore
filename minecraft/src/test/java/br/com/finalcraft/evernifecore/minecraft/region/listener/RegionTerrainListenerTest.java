@@ -9,13 +9,19 @@ import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import br.com.finalcraft.evernifecore.testing.TestTerrain;
 import br.com.finalcraft.evernifecore.testing.minecraft.Doubles;
 import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
@@ -117,6 +123,33 @@ class RegionTerrainListenerTest {
             Player player = server.player("builder", 5, 5, 5);
 
             server.call(new BlockPlaceEvent(server.world.getBlockAt(6, 5, 6), replaced(Material.WATER), server.world.getBlockAt(6, 4, 6),
+                    null, player, true, EquipmentSlot.HAND));
+            region.getManager().getTerrain().restoreJournal(region, 10).join();
+
+            assertEquals("water", terrain.getBlock(RegionServer.WORLD, 6, 5, 6));
+        }
+    }
+
+    private static BlockState stateAt(World world, Material type, int x, int y, int z) {
+        return Doubles.of(BlockState.class).returning("getType", type).returning("getWorld", world)
+                .returning("getX", x).returning("getY", y).returning("getZ", z).build();
+    }
+
+    @Test
+    void aPlaceRecordsWhatTheRightClickFoundThereWhenTheEventReportsThePlacedBlockAsReplaced() {
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            TestTerrain terrain = terrain(server);
+            Region region = trackedBox(server);
+            server.listen(listener());
+            Player player = server.player("builder", 5, 5, 5);
+            World world = server.world;
+            Block above = Doubles.of(Block.class).returning("getState", stateAt(world, Material.WATER, 6, 5, 6)).build();
+            Block clicked = Doubles.of(Block.class).returning("getState", stateAt(world, Material.STONE, 6, 4, 6))
+                    .on("getRelative", args -> args[0] == BlockFace.UP ? above : null).build();
+
+            server.call(new PlayerInteractEvent(player, Action.RIGHT_CLICK_BLOCK, new ItemStack(Material.STONE), clicked, BlockFace.UP));
+            //what Crucible and Arclight hand over: the replaced state read after the place, the stone just put there
+            server.call(new BlockPlaceEvent(world.getBlockAt(6, 5, 6), replaced(Material.STONE), world.getBlockAt(6, 4, 6),
                     null, player, true, EquipmentSlot.HAND));
             region.getManager().getTerrain().restoreJournal(region, 10).join();
 
