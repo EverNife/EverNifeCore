@@ -12,15 +12,18 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
+import com.hypixel.hytale.server.core.modules.block.BlockEntity;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.prefab.PrefabStore;
 import com.hypixel.hytale.server.core.prefab.selection.standard.BlockSelection;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.chunk.BlockOperations;
+import com.hypixel.hytale.server.core.universe.world.chunk.section.BlockComponentSection;
 import com.hypixel.hytale.server.core.universe.world.chunk.section.BlockSection;
 import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import org.bson.BsonDocument;
 import org.joml.Vector3i;
 
 import java.io.File;
@@ -34,9 +37,10 @@ import java.util.List;
 
 /**
  * Block access by position on Hytale: a block is {@code <asset id>|<rotation>|<filler>}, what
- * {@link BlockOperations#setBlock} takes back. The journal keeps no block component data (a chest's items), so
- * {@link TerrainContent#isNbt()} changes nothing here, and no entities: the server fires no event when an entity is
- * removed, so nothing would record one. A snapshot (prefab) keeps the box's prefab-copyable entities.
+ * {@link BlockOperations#setBlock} takes back, and with {@link TerrainContent#isNbt()} a fourth field, its block
+ * entity (a chest's items) as the server serializes it - the same copy a prefab keeps. No entities: the server fires no
+ * event when an entity is removed, so nothing would record one. A snapshot (prefab) keeps the box's prefab-copyable
+ * entities.
  */
 public final class HyTerrainAccess implements ITerrainAccess {
 
@@ -48,20 +52,81 @@ public final class HyTerrainAccess implements ITerrainAccess {
         BlockSection blocks = section.getStore().getComponent(section, BlockSection.getComponentType());
         int index = ChunkUtil.indexBlock(x, y, z);
         BlockType type = BlockType.getAssetMap().getAsset(blocks.get(index));
-        return (type == null ? BlockType.EMPTY_KEY : type.getId()) + "|" + blocks.getRotationIndex(index) + "|" + blocks.getFiller(index);
+        Holder<ChunkStore> entity = content.isNbt() ? blockEntity(section, index) : null;
+        return new BlockState(type == null ? BlockType.EMPTY_KEY : type.getId(), blocks.getRotationIndex(index), blocks.getFiller(index),
+                entity == null ? null : ChunkStore.REGISTRY.serialize(entity)).encode();
     }
 
     @Override
     public void restoreBlock(String world, int x, int y, int z, String state) {
-        String[] parts = state.split("\\|");
         World at = world(world);
-        BlockType type = BlockType.getAssetMap().getAsset(parts[0]);
+        BlockState.parse(state).putWith(new BlockWriter() {
+            @Override
+            public void block(String id, int rotation, int filler) {
+                BlockOperations.setBlock(at.getChunkStore(), section(at, x, y, z), x, y, z, BlockType.getAssetMap().getIndex(id), type(id),
+                        rotation, filler, 0);
+            }
+
+            @Override
+            public void entity(String id, int rotation, BsonDocument components) {
+                setBlockEntity(section(at, x, y, z), x, y, z, type(id), rotation, ChunkStore.REGISTRY.deserialize(components));
+            }
+        });
+    }
+
+    /**
+     * A block as the journal keeps it; {@code components} is its block entity, null when there is none or nbt is off.
+     * The JSON goes last, so a {@code |} inside it never splits the state.
+     */
+    record BlockState(String blockId, int rotation, int filler, BsonDocument components) {
+
+        static BlockState parse(String state) {
+            String[] parts = state.split("\\|", 4);
+            return new BlockState(parts[0], Integer.parseInt(parts[1]), Integer.parseInt(parts[2]),
+                    parts.length == 4 ? BsonDocument.parse(parts[3]) : null);
+        }
+
+        String encode() {
+            return blockId + "|" + rotation + "|" + filler + (components == null ? "" : "|" + components.toJson());
+        }
+
+        /** The block first - placing it seeds the type's empty block entity - then the kept one over it. */
+        void putWith(BlockWriter writer) {
+            writer.block(blockId, rotation, filler);
+            if (components != null) {
+                writer.entity(blockId, rotation, components);
+            }
+        }
+    }
+
+    /** Writes a block, then a block entity, at one position. */
+    interface BlockWriter {
+        void block(String blockId, int rotation, int filler);
+
+        void entity(String blockId, int rotation, BsonDocument components);
+    }
+
+    private static BlockType type(String id) {
+        BlockType type = BlockType.getAssetMap().getAsset(id);
         if (type == null) {
-            throw new IllegalArgumentException("The journal holds the block " + parts[0] + ", which this server has no asset for;"
+            throw new IllegalArgumentException("The journal holds the block " + id + ", which this server has no asset for;"
                     + " install the pack that adds it, or drop the journal of that region.");
         }
-        BlockOperations.setBlock(at.getChunkStore(), section(at, x, y, z), x, y, z, BlockType.getAssetMap().getIndex(parts[0]), type,
-                Integer.parseInt(parts[1]), Integer.parseInt(parts[2]), 0);
+        return type;
+    }
+
+    /** The block entity at the index as a detached copy (a live one or one of an unloaded chunk), or null. */
+    private static Holder<ChunkStore> blockEntity(Ref<ChunkStore> section, int index) {
+        BlockComponentSection components = section.getStore().getComponent(section, BlockComponentSection.getComponentType());
+        return components == null ? null : components.copyBlockHolder(index);
+    }
+
+    /** Replaces the block entity {@link BlockOperations#setBlock} seeded for the type with {@code entity}. */
+    private static void setBlockEntity(Ref<ChunkStore> section, int x, int y, int z, BlockType type, int rotation, Holder<ChunkStore> entity) {
+        BlockComponentSection components = section.getStore().getComponent(section, BlockComponentSection.getComponentType());
+        if (components != null) {
+            BlockEntity.setBlockEntity(section.getStore(), section, components, x, y, z, type, rotation, entity);
+        }
     }
 
     @Override
@@ -108,7 +173,7 @@ public final class HyTerrainAccess implements ITerrainAccess {
 
     /**
      * The box as a prefab through the server's {@link PrefabStore}, every position of it - air included, so a restore
-     * also clears what was built after. Its corners go to a {@code .box} file beside it: a prefab keeps no world position.
+     * also clears what was built after - with each block's entity when nbt is on. Its corners go to a {@code .box} file beside it: a prefab keeps no world position.
      */
     @Override
     public void writeSnapshot(String world, BlockPos min, BlockPos max, TerrainContent content, File file) throws IOException {
@@ -127,7 +192,8 @@ public final class HyTerrainAccess implements ITerrainAccess {
                     if (id == emptyId()) {
                         selection.addEmptyAtWorldPos(x, y, z);
                     } else {
-                        selection.addBlockAtWorldPos(x, y, z, id, blocks.getRotationIndex(index), blocks.getFiller(index), 0);
+                        selection.addBlockAtWorldPos(x, y, z, id, blocks.getRotationIndex(index), blocks.getFiller(index), 0,
+                                content.isNbt() ? blockEntity(section, index) : null);
                     }
                 }
             }
@@ -173,8 +239,12 @@ public final class HyTerrainAccess implements ITerrainAccess {
                 if (holder == null || holder.blockId() == emptyId()) {
                     BlockOperations.setBlock(at.getChunkStore(), section(at, x, y, z), x, y, z, emptyId(), BlockType.getAssetMap().getAsset(BlockType.EMPTY_KEY), 0, 0, 0);
                 } else {
-                    BlockOperations.setBlock(at.getChunkStore(), section(at, x, y, z), x, y, z, holder.blockId(),
-                            BlockType.getAssetMap().getAsset(holder.blockId()), holder.rotation(), holder.filler(), 0);
+                    Ref<ChunkStore> section = section(at, x, y, z);
+                    BlockType type = BlockType.getAssetMap().getAsset(holder.blockId());
+                    BlockOperations.setBlock(at.getChunkStore(), section, x, y, z, holder.blockId(), type, holder.rotation(), holder.filler(), 0);
+                    if (holder.holder() != null) {
+                        setBlockEntity(section, x, y, z, type, holder.rotation(), holder.holder().clone());
+                    }
                 }
             }
             if (next[0] < volume) {
