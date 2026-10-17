@@ -106,6 +106,8 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 
 ### Changed
 
+- With the core's debug mode on, the Bukkit move listener logs every denied step: who, from, to and the point
+  it was sent back to.
 - **Packages and names in the region API**: `region.flag.stock` -> `region.flag.core` (`StockFlags` -> `CoreFlags`,
   whose flags are public static instances; `StockDenyFlag` -> `DenyFlag`, now open to plugins; `StockInteractFlag` ->
   `InteractDenyFlag`); the action contexts -> `region.flag.context`; `FlagTriggers` -> `flag.ProtectionFlagGate`; the

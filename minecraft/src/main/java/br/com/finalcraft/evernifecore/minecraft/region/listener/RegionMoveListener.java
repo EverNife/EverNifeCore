@@ -30,6 +30,7 @@ import org.bukkit.util.Vector;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Hands every player's move across a block to the {@link RegionMovementTracker} and applies its verdict: a denied step
@@ -53,8 +54,15 @@ public final class RegionMoveListener implements ECListener {
         MoveVerdict verdict = RegionMovementTracker.get().onMove(FCBukkitUtil.adapt(event.getPlayer()),
                 RegionContexts.position(from), RegionContexts.position(to), MoveCause.MOVE, event);
         if (!verdict.isAllowed()) {
-            event.setTo(RegionContexts.toLocation(verdict.getRevertTo(), to));   //not setCancelled: no teleport event, no re-entry
+            Location back = RegionContexts.toLocation(verdict.getRevertTo(), to);
+            EverNifeCore.getLog().debug(() -> "Move of " + event.getPlayer().getName() + " denied: from " + xyz(from) + " to " + xyz(to)
+                    + ", sent back to " + xyz(back));
+            event.setTo(back);   //not setCancelled: no teleport event, no re-entry
         }
+    }
+
+    private static String xyz(Location at) {
+        return String.format(Locale.ROOT, "%.2f,%.2f,%.2f", at.getX(), at.getY(), at.getZ());
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
