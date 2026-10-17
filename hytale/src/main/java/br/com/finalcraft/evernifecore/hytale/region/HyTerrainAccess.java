@@ -24,6 +24,7 @@ import com.hypixel.hytale.server.core.universe.world.chunk.section.BlockSection;
 import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.bson.BsonDocument;
+import org.joml.Vector3d;
 import org.joml.Vector3i;
 
 import java.io.File;
@@ -32,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -214,28 +216,41 @@ public final class HyTerrainAccess implements ITerrainAccess {
     }
 
     /**
-     * Puts the prefab back position by position - {@link BlockSelection#place} has no budget of its own - then spawns its
-     * entities as the server places a prefab's, with {@link AddReason#LOAD}.
+     * The prefab, put back position by position - {@link BlockSelection#place} has no budget of its own - and its
+     * entities spawned as the server places a prefab's, with {@link AddReason#LOAD}.
      */
     @Override
     public TerrainPlacement readSnapshot(String world, File file) throws IOException {
         String[] box = Files.readAllLines(new File(file.getPath() + BOX_SUFFIX).toPath(), StandardCharsets.UTF_8).get(0).split(" ");
-        int minX = Integer.parseInt(box[0]), minY = Integer.parseInt(box[1]), minZ = Integer.parseInt(box[2]);
-        int sizeX = Integer.parseInt(box[3]) - minX + 1, sizeY = Integer.parseInt(box[4]) - minY + 1, sizeZ = Integer.parseInt(box[5]) - minZ + 1;
+        BlockPos min = BlockPos.of(Integer.parseInt(box[0]), Integer.parseInt(box[1]), Integer.parseInt(box[2]));
+        BlockPos max = BlockPos.of(Integer.parseInt(box[3]), Integer.parseInt(box[4]), Integer.parseInt(box[5]));
         BlockSelection selection = PrefabStore.get().getPrefab(file.toPath());
         if (selection == null) {
             throw new IOException(file + " does not read as a prefab on this server.");
         }
-        selection.setPosition(minX, minY, minZ);
+        selection.setPosition(min.getX(), min.getY(), min.getZ());
         World at = world(world);
-        long volume = (long) sizeX * sizeY * sizeZ;
-        long[] next = {0};
-        return budget -> {
-            for (int placed = 0; placed < budget && next[0] < volume; placed++, next[0]++) {
-                long i = next[0];
-                int x = minX + (int) (i / ((long) sizeY * sizeZ));
-                int y = minY + (int) (i / sizeZ % sizeY);
-                int z = minZ + (int) (i % sizeZ);
+        List<Holder<EntityStore>> entities = new ArrayList<>();
+        List<BlockPos> positions = new ArrayList<>();
+        selection.forEachEntity(saved -> {
+            Holder<EntityStore> entity = saved.clone();
+            Vector3d position = entity.getComponent(TransformComponent.getComponentType()).getPosition().add(min.getX(), min.getY(), min.getZ());
+            entities.add(entity);
+            positions.add(BlockPos.of(position.x(), position.y(), position.z()));
+        });
+        return new TerrainPlacement() {
+            @Override
+            public BlockPos getMin() {
+                return min;
+            }
+
+            @Override
+            public BlockPos getMax() {
+                return max;
+            }
+
+            @Override
+            public void placeBlock(int x, int y, int z) {
                 BlockSelection.BlockHolder holder = selection.hasBlockAtWorldPos(x, y, z) ? selection.getBlockHolderAtWorldPos(x, y, z) : null;
                 if (holder == null || holder.blockId() == emptyId()) {
                     BlockOperations.setBlock(at.getChunkStore(), section(at, x, y, z), x, y, z, emptyId(), BlockType.getAssetMap().getAsset(BlockType.EMPTY_KEY), 0, 0, 0);
@@ -248,16 +263,16 @@ public final class HyTerrainAccess implements ITerrainAccess {
                     }
                 }
             }
-            if (next[0] < volume) {
-                return false;
+
+            @Override
+            public List<BlockPos> getEntityPositions() {
+                return positions;
             }
-            Store<EntityStore> store = at.getEntityStore().getStore();
-            selection.forEachEntity(saved -> {
-                Holder<EntityStore> entity = saved.clone();
-                entity.getComponent(TransformComponent.getComponentType()).getPosition().add(minX, minY, minZ);
-                store.addEntity(entity, AddReason.LOAD);
-            });
-            return true;
+
+            @Override
+            public void placeEntity(int index) {
+                at.getEntityStore().getStore().addEntity(entities.get(index), AddReason.LOAD);
+            }
         };
     }
 

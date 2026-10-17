@@ -72,7 +72,9 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   entities beside it on Bukkit, a prefab through the server's `PrefabStore` on Hytale, with each block's entity (`nbt`
   does not apply there) and the box's prefab-copyable entities - keeping the
   `getSnapshotRetention()` newest (3 unless set); `restoreSnapshot(region, index, blocksPerTick)` puts one back a
-  budget per tick. A snapshot carries the game version it was taken on (`ITerrainAccess.getGameVersion()`, a
+  budget per tick, and only the blocks and entities the region's shape holds - a polygon leaves the corners of its box
+  alone - completing with the blocks it wrote. The platform's `TerrainPlacement` hands over its box and one position at
+  a time; `RegionTerrain` walks it. A snapshot carries the game version it was taken on (`ITerrainAccess.getGameVersion()`, a
   `.version` file beside it) and `restoreSnapshot` refuses another one. With `nbt` off the Bukkit snapshot leaves the
   tile entities' data out of the schematic (`FCBlockArrayClipboard.clearNbtData()`); on 1.7.10 the snapshot holds that
   data only with WorldEdit Forge in `mods/` beside the plugin (see `WEPlatform.adaptWorld`). Without WorldEdit a Bukkit

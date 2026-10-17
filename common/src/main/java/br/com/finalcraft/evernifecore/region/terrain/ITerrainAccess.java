@@ -82,6 +82,6 @@ public interface ITerrainAccess {
     /** Saves the box (both corners inclusive) with {@code content} into {@code file}, in the platform's own format. */
     void writeSnapshot(String world, BlockPos min, BlockPos max, TerrainContent content, File file) throws IOException;
 
-    /** Opens a file {@link #writeSnapshot} wrote, to be put back where it was taken, a budget at a time. */
+    /** Opens a file {@link #writeSnapshot} wrote, for {@link RegionTerrain#restoreSnapshot} to put back where it was taken. */
     TerrainPlacement readSnapshot(String world, File file) throws IOException;
 }

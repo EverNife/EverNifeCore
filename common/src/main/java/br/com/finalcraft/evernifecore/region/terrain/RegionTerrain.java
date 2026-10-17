@@ -14,6 +14,7 @@ import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.TrackChangesSettings;
 import br.com.finalcraft.evernifecore.region.shape.BoundingBox;
+import br.com.finalcraft.evernifecore.region.shape.Shape;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
@@ -227,9 +228,11 @@ public final class RegionTerrain {
 
     /**
      * Puts back the {@code index}-th newest snapshot of {@code region} (0 = the newest), at most {@code blocksPerTick}
-     * blocks per tick on the world's thread. A snapshot taken on another game version is refused.
+     * blocks per tick on the world's thread. The file keeps the whole bounding box, but only the blocks and entities
+     * the region's shape holds go back, so a polygon never rewrites the corners of its box. A snapshot taken on another
+     * game version is refused.
      *
-     * @return completes with how many blocks were placed, at most: the last tick counts its whole budget
+     * @return completes with how many blocks were written - the positions outside the shape are not counted
      */
     public CompletableFuture<Integer> restoreSnapshot(Region region, int index, int blocksPerTick) {
         requireOwn(region);
@@ -242,7 +245,9 @@ public final class RegionTerrain {
         File file = snapshots.get(index);
         requireSameGameVersion(file);
         String world = region.getWorld();
+        Shape shape = region.getShape();
         TerrainPlacement[] placement = new TerrainPlacement[1];
+        long[] next = {0};
         boolean[] placed = new boolean[1];
         return restore(region, false, blocksPerTick, () -> "the snapshot " + file.getName() + " was put back only in part", (access, budget) -> {
             if (placement[0] == null) {
@@ -252,8 +257,33 @@ public final class RegionTerrain {
                     throw new UncheckedIOException("The snapshot " + file + " does not read", failed);
                 }
             }
-            placed[0] = placement[0].placeNext(budget);
-            return budget;
+            TerrainPlacement snapshot = placement[0];
+            BlockPos min = snapshot.getMin();
+            BlockPos max = snapshot.getMax();
+            int sizeY = max.getY() - min.getY() + 1;
+            int sizeZ = max.getZ() - min.getZ() + 1;
+            long volume = (long) (max.getX() - min.getX() + 1) * sizeY * sizeZ;
+            int written = 0;
+            for (; written < budget && next[0] < volume; next[0]++) {
+                long i = next[0];
+                int x = min.getX() + (int) (i / ((long) sizeY * sizeZ));
+                int y = min.getY() + (int) (i / sizeZ % sizeY);
+                int z = min.getZ() + (int) (i % sizeZ);
+                if (!shape.contains(x, y, z)) continue;
+                snapshot.placeBlock(x, y, z);
+                written++;
+            }
+            if (next[0] >= volume) {
+                List<BlockPos> entities = snapshot.getEntityPositions();
+                for (int e = 0; e < entities.size(); e++) {
+                    BlockPos at = entities.get(e);
+                    if (shape.contains(at.getX(), at.getY(), at.getZ())) {
+                        snapshot.placeEntity(e);
+                    }
+                }
+                placed[0] = true;
+            }
+            return written;
         }, () -> placed[0]);
     }
 

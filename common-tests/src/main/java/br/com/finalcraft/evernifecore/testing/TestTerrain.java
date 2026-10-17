@@ -194,19 +194,52 @@ public final class TestTerrain implements ITerrainAccess {
 
     @Override
     public TerrainPlacement readSnapshot(String world, File file) throws IOException {
-        List<String> lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
-        int[] next = {0};
-        return blocks -> {
-            for (int placed = 0; placed < blocks && next[0] < lines.size() && lines.get(next[0]).startsWith("B "); placed++) {
-                String[] parts = lines.get(next[0]++).split(" ", 5);
-                restoreBlock(world, Integer.parseInt(parts[1]), Integer.parseInt(parts[2]), Integer.parseInt(parts[3]), parts[4]);
-            }
-            if (next[0] < lines.size() && !lines.get(next[0]).startsWith("B ")) {
-                while (next[0] < lines.size()) {
-                    restoreEntity(world, lines.get(next[0]++).substring(2));
+        Map<String, String> states = new HashMap<>();
+        List<String> kept = new ArrayList<>();
+        List<BlockPos> positions = new ArrayList<>();
+        int[] min = {Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE};
+        int[] max = {Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE};
+        for (String line : Files.readAllLines(file.toPath(), StandardCharsets.UTF_8)) {
+            if (line.startsWith("B ")) {
+                String[] parts = line.split(" ", 5);
+                for (int axis = 0; axis < 3; axis++) {
+                    int value = Integer.parseInt(parts[axis + 1]);
+                    min[axis] = Math.min(min[axis], value);
+                    max[axis] = Math.max(max[axis], value);
                 }
+                states.put(parts[1] + " " + parts[2] + " " + parts[3], parts[4]);
+            } else {
+                String entity = line.substring(2);
+                String[] xyz = entity.substring(entity.indexOf('@') + 1).split(",");
+                kept.add(entity);
+                positions.add(BlockPos.of(Integer.parseInt(xyz[0]), Integer.parseInt(xyz[1]), Integer.parseInt(xyz[2])));
             }
-            return next[0] >= lines.size();
+        }
+        return new TerrainPlacement() {
+            @Override
+            public BlockPos getMin() {
+                return BlockPos.of(min[0], min[1], min[2]);
+            }
+
+            @Override
+            public BlockPos getMax() {
+                return BlockPos.of(max[0], max[1], max[2]);
+            }
+
+            @Override
+            public void placeBlock(int x, int y, int z) {
+                restoreBlock(world, x, y, z, states.getOrDefault(x + " " + y + " " + z, "air"));
+            }
+
+            @Override
+            public List<BlockPos> getEntityPositions() {
+                return positions;
+            }
+
+            @Override
+            public void placeEntity(int index) {
+                restoreEntity(world, kept.get(index));
+            }
         };
     }
 

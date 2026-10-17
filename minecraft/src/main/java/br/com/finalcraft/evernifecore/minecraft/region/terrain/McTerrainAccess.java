@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.IntConsumer;
 
 /**
  * Block and entity access by position on Bukkit. A block is its {@code BlockData} text from 1.13 on and
@@ -199,17 +200,12 @@ public final class McTerrainAccess implements ITerrainAccess {
     public TerrainPlacement readSnapshot(String world, File file) throws IOException {
         File entities = new File(file.getPath() + ENTITIES_SUFFIX);
         List<String> kept = entities.isFile() ? Files.readAllLines(entities.toPath(), StandardCharsets.UTF_8) : new ArrayList<>();
-        TerrainPlacement blocks = WorldEditSnapshots.read(world(world), file);
-        return budget -> {
-            if (!blocks.placeNext(budget)) {
-                return false;
-            }
-            for (String entity : kept) {
-                restoreEntity(world, entity);
-            }
-            kept.clear();
-            return true;
-        };
+        List<BlockPos> positions = new ArrayList<>();
+        for (String entity : kept) {
+            String[] xyz = entity.split("\\|", 3)[1].split(",");
+            positions.add(BlockPos.of(Double.parseDouble(xyz[0]), Double.parseDouble(xyz[1]), Double.parseDouble(xyz[2])));
+        }
+        return WorldEditSnapshots.read(world(world), file, positions, index -> restoreEntity(world, kept.get(index)));
     }
 
     /** The WorldEdit side; loaded only once {@link WEPlatform#isPresent()} answered true. */
@@ -239,7 +235,7 @@ public final class McTerrainAccess implements ITerrainAccess {
             }
         }
 
-        static TerrainPlacement read(World world, File file) throws IOException {
+        static TerrainPlacement read(World world, File file, List<BlockPos> entityPositions, IntConsumer placeEntity) throws IOException {
             WEPlatform worldEdit = withWorldEdit();
             IFCClipboardFormat format = worldEdit.getClipboardManager().getFormat(file);
             if (format == null) {
@@ -252,21 +248,38 @@ public final class McTerrainAccess implements ITerrainAccess {
             }
             BlockPos min = clipboard.getMinimumPoint();
             BlockPos size = clipboard.getDimensions();
-            long volume = (long) size.getX() * size.getY() * size.getZ();
+            BlockPos max = new BlockPos(min.getX() + size.getX() - 1, min.getY() + size.getY() - 1, min.getZ() + size.getZ() - 1);
             com.sk89q.worldedit.world.World target = worldEdit.adaptWorld(world);
-            long[] next = {0};
-            return budget -> {
-                for (int placed = 0; placed < budget && next[0] < volume; placed++, next[0]++) {
-                    long i = next[0];
-                    BlockPos at = new BlockPos(min.getX() + (int) (i / ((long) size.getY() * size.getZ())),
-                            min.getY() + (int) (i / size.getZ() % size.getY()), min.getZ() + (int) (i % size.getZ()));
+            return new TerrainPlacement() {
+                @Override
+                public BlockPos getMin() {
+                    return min;
+                }
+
+                @Override
+                public BlockPos getMax() {
+                    return max;
+                }
+
+                @Override
+                public void placeBlock(int x, int y, int z) {
+                    BlockPos at = new BlockPos(x, y, z);
                     try {
                         worldEdit.setBlock(target, at, clipboard.getBlock(at), false);
                     } catch (WorldEditException refused) {
                         throw new IllegalStateException("WorldEdit refused to set " + at + " of " + world.getName() + ": " + refused.getMessage(), refused);
                     }
                 }
-                return next[0] >= volume;
+
+                @Override
+                public List<BlockPos> getEntityPositions() {
+                    return entityPositions;
+                }
+
+                @Override
+                public void placeEntity(int index) {
+                    placeEntity.accept(index);
+                }
             };
         }
     }

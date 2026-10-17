@@ -7,6 +7,9 @@ import br.com.finalcraft.evernifecore.region.event.RegionTerrainEvent;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.TrackChangesSettings;
+import br.com.finalcraft.evernifecore.region.shape.PolygonShape;
+import br.com.finalcraft.evernifecore.region.shape.Shape;
+import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.region.terrain.JournalPersistence;
 import br.com.finalcraft.evernifecore.region.terrain.RegionTerrain;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainContent;
@@ -259,6 +262,50 @@ class RegionTerrainTest extends ManagedRegionFixture {
         assertEquals("items=diamond", terrain.getNbt(WORLD, 0, 5, 0));
         assertEquals("air", terrain.getBlock(WORLD, 1, 5, 1), "what was built after the snapshot is cleared");
         assertTrue(terrain.getEntities(WORLD).contains("armor_stand@1,5,1"));
+    }
+
+    @Test
+    void aPolygonSnapshotPutsBackOnlyItsShapeNotTheCornersOfItsBox(TestPlatform platform) {
+        TestTerrain terrain = platform.getTestTerrain();
+        RegionManager manager = manager();
+        //a right triangle: its 5x5 box holds 15 of 25 columns
+        Region region = created(manager.create("wedge", WORLD, PolygonShape.of(Arrays.asList(BlockPos.of(0, 0, 0), BlockPos.of(4, 0, 0),
+                BlockPos.of(0, 0, 4)), 5, 6)));
+        Shape shape = region.getShape();
+        for (int x = 0; x <= 4; x++) {
+            for (int z = 0; z <= 4; z++) {
+                terrain.setBlock(WORLD, x, 5, z, "stone");
+                terrain.setBlock(WORLD, x, 6, z, "stone");
+            }
+        }
+        terrain.spawn(WORLD, "armor_stand", 0, 5, 0);
+        terrain.spawn(WORLD, "pig", 4, 5, 4);
+        manager.getTerrain().snapshot(region).join();
+        int inside = 0;
+        for (int x = 0; x <= 4; x++) {
+            for (int z = 0; z <= 4; z++) {
+                terrain.setBlock(WORLD, x, 5, z, "dirt");
+                terrain.setBlock(WORLD, x, 6, z, "dirt");
+                inside += shape.contains(x, 5, z) ? 2 : 0;
+            }
+        }
+        terrain.kill(WORLD, "armor_stand", 0, 5, 0);
+        terrain.kill(WORLD, "pig", 4, 5, 4);
+
+        int written = manager.getTerrain().restoreSnapshot(region, 0, 7).join();
+
+        assertTrue(inside > 0 && inside < 50, "the triangle holds part of its box: " + inside);
+        for (int x = 0; x <= 4; x++) {
+            for (int z = 0; z <= 4; z++) {
+                String expected = shape.contains(x, 5, z) ? "stone" : "dirt";
+                assertEquals(expected, terrain.getBlock(WORLD, x, 5, z), "at " + x + ",5," + z);
+                assertEquals(expected, terrain.getBlock(WORLD, x, 6, z), "at " + x + ",6," + z);
+            }
+        }
+        assertEquals(inside, written, "the count is the blocks written, not the box");
+        assertEquals(inside, terrain.getRestores());
+        assertTrue(terrain.getEntities(WORLD).contains("armor_stand@0,5,0"), "the entity inside the shape comes back");
+        assertFalse(terrain.getEntities(WORLD).contains("pig@4,5,4"), "the entity in the box but outside the shape does not");
     }
 
     @Test
