@@ -9,22 +9,26 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
+import br.com.finalcraft.evernifecore.conformance.TickTimes;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
 import br.com.finalcraft.evernifecore.conformance.hytale.HyWorld;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
 import br.com.finalcraft.evernifecore.hytale.region.HySelectionItems;
+import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.CreationResult;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionManager;
+import br.com.finalcraft.evernifecore.region.event.RegionTerrainEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.EntryDenySettings;
+import br.com.finalcraft.evernifecore.region.flag.core.TrackChangesSettings;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSpec;
 import br.com.finalcraft.evernifecore.region.session.MoveCause;
 import br.com.finalcraft.evernifecore.region.session.RevertStrategy;
@@ -32,6 +36,8 @@ import br.com.finalcraft.evernifecore.region.selection.SelectionTool;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.region.shape.PolygonShape;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
+import br.com.finalcraft.evernifecore.region.terrain.JournalPersistence;
+import br.com.finalcraft.evernifecore.region.terrain.RegionTerrain;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.region.visual.VisualStyle;
 import com.hypixel.hytale.component.Holder;
@@ -70,10 +76,12 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * The region system on a live Hytale server, with the synthetic player of the run as the one who acts: the BREAK
@@ -119,17 +127,23 @@ public final class HyRegionsSuite implements ConformanceSuite {
                 withPlayer("terrain-journal-keeps-chest-items", ctx, this::terrainJournalKeepsChestItems),
                 withPlayer("terrain-prefab-keeps-chest-items", ctx, this::terrainPrefabKeepsChestItems),
                 withPlayer("terrain-prefab-retention", ctx, this::terrainPrefabRetention),
-                withPlayer("terrain-snapshot-polygon-box", ctx, this::terrainSnapshotPolygonBox));
+                withPlayer("terrain-snapshot-polygon-box", ctx, this::terrainSnapshotPolygonBox),
+                withPlayer("terrain-cost-grid", ctx, GRID_TIMEOUT_SECONDS, this::terrainCostGrid));
     }
 
     /** A case that needs the run's player; skipped without one, failed past {@link #TIMEOUT_SECONDS}. */
     static ConformanceCase withPlayer(String id, ConformanceContext ctx, Function<FPlayer, CompletableFuture<Verdict>> body) {
+        return withPlayer(id, ctx, TIMEOUT_SECONDS, body);
+    }
+
+    /** {@link #withPlayer(String, ConformanceContext, Function)} failed past {@code timeoutSeconds} instead. */
+    static ConformanceCase withPlayer(String id, ConformanceContext ctx, long timeoutSeconds, Function<FPlayer, CompletableFuture<Verdict>> body) {
         return ConformanceCase.later(id, () -> {
             FPlayer player = ctx.getPlayerOrNull();
             if (player == null) {
                 return CompletableFuture.completedFuture(Verdict.skipped(ConformanceContext.NEEDS_A_PLAYER));
             }
-            return body.apply(player).orTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            return body.apply(player).orTimeout(timeoutSeconds, TimeUnit.SECONDS)
                     .exceptionally(failed -> Verdict.fail(Verdict.describe(failed instanceof java.util.concurrent.CompletionException
                             && failed.getCause() != null ? failed.getCause() : failed)));
         });
@@ -469,6 +483,163 @@ public final class HyRegionsSuite implements ConformanceSuite {
         for (int x = 0; x <= 4; x++) for (int y = 0; y <= 1; y++) for (int z = 0; z <= 4; z++) {
             HyWorld.setBlock(world, c.x + x, c.y + y, c.z + z, block);
         }
+    }
+
+    /** The boxes of the cost grid: {side, blocks restored per tick}, the same budget for the journal and the prefab. */
+    private static final int[][] GRID = {{16, 100}, {64, 1000}};
+    private static final long GRID_TIMEOUT_SECONDS = 600;
+    /** Long enough for the core's delayed disk write of a journal (one second after its first change) to finish. */
+    private static final int JOURNAL_WRITE_TICKS = 90;
+
+    /**
+     * The cost grid: a 16^3 box restored 100 blocks a tick and a 64^3 box restored 1 000 a tick, each through the journal
+     * with 10% and with 100% of it changed, then through a prefab. The changes are journaled through
+     * {@link RegionTerrain#recordChange}, the path every terrain System takes; each restore tick is timed by the core
+     * itself ({@link RegionTerrainEvent.Type#RESTORE_TICK}), the same on every platform, and the world's own tick
+     * metric is read beside it. Passes when every block comes back; the milliseconds are the report.
+     */
+    private CompletableFuture<Verdict> terrainCostGrid(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
+            List<String> lines = new ArrayList<>();
+            boolean[] allBack = {true};
+            CompletableFuture<Void> chain = CompletableFuture.completedFuture(null);
+            for (int[] box : GRID) {
+                chain = chain.thenCompose(previous -> gridBox(world, at, box[0], box[1]).thenAccept(verdict -> {
+                    allBack[0] &= verdict.isOk();
+                    lines.add(verdict.getDetail());
+                }));
+            }
+            return chain.thenApply(done -> Verdict.of(allBack[0], String.join(" || ", lines)));
+        });
+    }
+
+    /** One box of the grid, its region tracked on disk so the journal's bytes can be read; emptied whatever happens. */
+    private CompletableFuture<Verdict> gridBox(World world, Vector3d at, int side, int budget) {
+        int y = Math.min((int) Math.floor(at.y) + 30, RegionGridOptions.HYTALE.getMaxHeight() - side - 5);
+        //the small box stands east of the big one, so each box's area is its own
+        int x = side == GRID[1][0] ? (int) Math.floor(at.x) - side / 2 : (int) Math.floor(at.x) + GRID[1][0];
+        Vector3i min = new Vector3i(x, y, (int) Math.floor(at.z) - side / 2);
+        int volume = side * side * side;
+        return everyChunkLoaded(world, min.x, min.z, min.x + side - 1, min.z + side - 1).thenCompose(loaded -> HyWorld.on(world, () -> {
+            fill(world, min, side, volume, SOLID);
+            return null;
+        })).thenCompose(built -> inRegion(regions, "ecc-grid-" + side, world.getName(), pos(min), pos(min).add(side - 1, side - 1, side - 1),
+                region -> region.getManager().getTerrain().track(region, new TrackChangesSettings().setPersistence(JournalPersistence.DISK)),
+                region -> gridJournal(world, region, min, side, volume / 10, budget)
+                        .thenCompose(tenth -> gridJournal(world, region, min, side, volume, budget)
+                                .thenCompose(all -> gridPrefab(world, region, min, side, budget)
+                                        .thenApply(prefab -> Verdict.of(tenth.isOk() && all.isOk() && prefab.isOk(), "box=" + side + "^3(" + volume
+                                                + ") B=" + budget + "/tick journal10%{" + tenth.getDetail() + "} journal100%{" + all.getDetail()
+                                                + "} prefab{" + prefab.getDetail() + "}"))))))
+                .whenComplete((verdict, failed) -> HyWorld.on(world, () -> {
+                    fill(world, min, side, volume, BlockType.EMPTY_KEY);
+                    return null;
+                }));
+    }
+
+    /** Journals the first {@code changes} positions, empties them, writes the journal to disk, and restores it. */
+    private CompletableFuture<Verdict> gridJournal(World world, Region region, Vector3i min, int side, int changes, int budget) {
+        String name = world.getName();
+        File journal = new File(regions.getOwner().getMetaInfo().getDataFolder(), "regions/terrain/" + region.getId().getName() + "/journal.json");
+        return HyWorld.on(world, () -> {
+            long start = System.nanoTime();
+            forEach(min, side, changes, (x, y, z) -> RegionTerrain.recordChange(name, x, y, z,
+                    content -> EverNifeCore.getPlatform().getTerrainAccess().captureBlock(name, x, y, z, content)));
+            double recordMillis = (System.nanoTime() - start) / 1_000_000.0;
+            fill(world, min, side, changes, BlockType.EMPTY_KEY);
+            return recordMillis;
+        }).thenCompose(recordMillis -> HyWorld.ticks(world, JOURNAL_WRITE_TICKS).thenApply(written -> {
+            //the core writes a disk journal a second after its first change, off the world's thread: that write is over now
+            region.getManager().getTerrain().writeDirty();
+            return String.format(Locale.ROOT, "changes=%d record=%.1fms (%.4fms/change) disk=%dB", changes, recordMillis, recordMillis / changes,
+                    journal.length());
+        })).thenCompose(recorded -> timedRestore(world, region, true, () -> region.getManager().getTerrain().restoreJournal(region, budget))
+                .thenCompose(restore -> HyWorld.on(world, () -> {
+                    int back = solid(world, min, side, changes);
+                    return Verdict.of(back == changes, recorded + " restore{" + restore + "} back=" + back + "/" + changes);
+                })));
+    }
+
+    /** Saves the box as a prefab, empties it, and puts the prefab back. */
+    private CompletableFuture<Verdict> gridPrefab(World world, Region region, Vector3i min, int side, int budget) {
+        int volume = side * side * side;
+        TickTimes write = new TickTimes();
+        ECEventSubscription<RegionTerrainEvent> written = ECEventBus.global().subscribe(RegionTerrainEvent.class, event -> {
+            if (event.getRegion() == region && event.getType() == RegionTerrainEvent.Type.SNAPSHOT) write.add(event.getNanos());
+        });
+        return region.getManager().getTerrain().snapshot(region).whenComplete((file, failed) -> written.unsubscribe())
+                .thenCompose(file -> HyWorld.on(world, () -> {
+                    long sideBytes = 0;
+                    String stamp = file.getName().substring(0, file.getName().indexOf('.') + 1);
+                    File[] siblings = file.getParentFile().listFiles((dir, sibling) -> sibling.startsWith(stamp) && !sibling.equals(file.getName()));
+                    for (File sibling : siblings == null ? new File[0] : siblings) sideBytes += sibling.length();
+                    fill(world, min, side, volume, BlockType.EMPTY_KEY);
+                    return String.format(Locale.ROOT, "write=%.1fms file=%dB side=%dB", write.getWorkMillis(), file.length(), sideBytes);
+                }))
+                .thenCompose(saved -> timedRestore(world, region, false, () -> region.getManager().getTerrain().restoreSnapshot(region, 0, budget))
+                        .thenCompose(restore -> HyWorld.on(world, () -> {
+                            int back = solid(world, min, side, volume);
+                            return Verdict.of(back == volume, saved + " restore{" + restore + "} back=" + back + "/" + volume);
+                        })));
+    }
+
+    /**
+     * Runs a restore, timing each of its ticks through the core's {@link RegionTerrainEvent.Type#RESTORE_TICK}, and
+     * the world's ticks it spanned with the median tick the world measured itself, idle before and while restoring.
+     */
+    private static CompletableFuture<String> timedRestore(World world, Region region, boolean journal, Supplier<CompletableFuture<Integer>> restore) {
+        TickTimes times = new TickTimes();
+        ECEventSubscription<RegionTerrainEvent> ticks = ECEventBus.global().subscribe(RegionTerrainEvent.class, event -> {
+            if (event.getRegion() == region && event.getType() == RegionTerrainEvent.Type.RESTORE_TICK && event.isJournal() == journal) {
+                times.add(event.getNanos());
+            }
+        });
+        double idle = HyWorld.medianTickMillis(world, 30);
+        long firstTick = world.getTick();
+        long start = System.nanoTime();
+        return restore.get().whenComplete((count, failed) -> ticks.unsubscribe()).thenApply(count -> {
+            long serverTicks = world.getTick() - firstTick;
+            double restoring = HyWorld.medianTickMillis(world, (int) Math.max(1, Math.min(serverTicks, Integer.MAX_VALUE)));
+            return times.describe((System.nanoTime() - start) / 1_000_000.0) + " serverTicks=" + serverTicks
+                    + String.format(Locale.ROOT, " world{tickMedian idle=%.3fms restoring=%.3fms}", idle, restoring);
+        });
+    }
+
+    private interface BlockVisitor {
+        void visit(int x, int y, int z);
+    }
+
+    /** The first {@code count} positions of the box from {@code min}, x slab by x slab. */
+    private static void forEach(Vector3i min, int side, int count, BlockVisitor visitor) {
+        for (int i = 0; i < count; i++) {
+            visitor.visit(min.x + i / (side * side), min.y + i / side % side, min.z + i % side);
+        }
+    }
+
+    private static void fill(World world, Vector3i min, int side, int count, String block) {
+        forEach(min, side, count, (x, y, z) -> HyWorld.setBlock(world, x, y, z, block));
+    }
+
+    /** How many of the first {@code count} positions hold {@link #SOLID}. */
+    private static int solid(World world, Vector3i min, int side, int count) {
+        int[] solid = {0};
+        int id = BlockType.getAssetMap().getIndex(SOLID);
+        forEach(min, side, count, (x, y, z) -> solid[0] += HyWorld.blockId(world, x, y, z) == id ? 1 : 0);
+        return solid[0];
+    }
+
+    /** {@link HyWorld#chunksLoaded} for every chunk the area touches, not just its corners. */
+    private static CompletableFuture<Void> everyChunkLoaded(World world, int minX, int minZ, int maxX, int maxZ) {
+        List<CompletableFuture<Void>> loads = new ArrayList<>();
+        for (int x = minX; x <= maxX + 31; x += 32) {
+            for (int z = minZ; z <= maxZ + 31; z += 32) {
+                int cx = Math.min(x, maxX), cz = Math.min(z, maxZ);
+                loads.add(HyWorld.chunksLoaded(world, cx, cz, cx, cz));
+            }
+        }
+        return CompletableFuture.allOf(loads.toArray(new CompletableFuture<?>[0]));
     }
 
     /**

@@ -3,7 +3,10 @@ package br.com.finalcraft.evernifecore.conformance.minecraft.suite;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
+import br.com.finalcraft.evernifecore.conformance.TickTimes;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
+import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
+import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.minecraft.region.terrain.McTerrainAccess;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
@@ -13,9 +16,12 @@ import br.com.finalcraft.evernifecore.minecraft.worldedit.region.IFCCuboidRegion
 import br.com.finalcraft.evernifecore.region.CreationResult;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionManager;
+import br.com.finalcraft.evernifecore.region.event.RegionTerrainEvent;
+import br.com.finalcraft.evernifecore.region.flag.core.TrackChangesSettings;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.region.shape.PolygonShape;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
+import br.com.finalcraft.evernifecore.region.terrain.JournalPersistence;
 import br.com.finalcraft.evernifecore.region.terrain.RegionTerrain;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainContent;
 import com.sk89q.worldedit.EditSession;
@@ -41,6 +47,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -48,30 +55,31 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * The terrain side of the region system on a live server: a {@code track-changes} journal fed by the real Bukkit events
  * and put back, a snapshot written and restored through the server's WorldEdit, snapshot retention, WorldEdit's own
- * rotated paste and undo through the core's wrappers, and what a journal restore costs a tick. The events are fired
+ * rotated paste and undo through the core's wrappers, and what each mode costs a tick on a small and a big box. The events are fired
  * through the plugin manager the way the game fires them, and the case then applies the change itself, as the game
  * would after nobody cancelled it. Every case puts its blocks and entities back and removes its region.
  */
 final class TerrainCases {
 
     private static final long TIMEOUT_MILLIS = 20_000L;
-    private static final long COST_TIMEOUT_MILLIS = 90_000L;
     private static final int CHEST_DIAMONDS = 3;
-    /** Positions the cost case journals: a 100x1x100 slab. */
-    private static final int COST_SIDE = 100;
-    /** The restore budget of the cost case: the 10 000 positions go back over 100 ticks, the window the tick average spans. */
-    private static final int COST_BLOCKS_PER_TICK = 100;
+    /** The boxes of the cost grid: {side, blocks restored per tick}, the same budget for the journal and the snapshot. */
+    private static final int[][] GRID = {{16, 100}, {64, 1000}};
+    private static final long GRID_TIMEOUT_MILLIS = 600_000L;
+    /** Long enough for the core's delayed disk write of a journal (one second after its first change) to finish. */
+    private static final int JOURNAL_WRITE_TICKS = 60;
     /** Paper's average tick time covers the last 100 ticks. */
     private static final int COST_WINDOW_TICKS = 100;
-    private static final double COST_LIMIT_MILLIS = 5.0;
 
     private final RegionManager regions;
 
@@ -91,7 +99,7 @@ final class TerrainCases {
                 PlayerCases.later("terrain-snapshot-polygon-box", ctx, this::snapshotPolygonBox),
                 PlayerCases.later("terrain-snapshot-retention", ctx, this::snapshotRetention),
                 PlayerCases.later("worldedit-rotated-paste-undo", ctx, this::rotatedPasteUndo),
-                PlayerCases.later("terrain-journal-restore-cost", ctx, this::journalRestoreCost));
+                PlayerCases.later("terrain-cost-grid", ctx, this::costGrid));
     }
 
     // ---------------------------------------------------------------------------------------------- journal --
@@ -385,51 +393,150 @@ final class TerrainCases {
     // ------------------------------------------------------------------------------------------------- cost --
 
     /**
-     * 10 000 positions of a slab journaled through {@link RegionTerrain#recordChange}, the path every listener takes, then
-     * Paper's average tick time over the 100 idle ticks before the restore against the 100 ticks the restore spans at
-     * {@link #COST_BLOCKS_PER_TICK} a tick. Paper only: no other flavor answers a tick time.
+     * The cost grid: a 16^3 box restored 100 blocks a tick and a 64^3 box restored 1 000 a tick, each through the journal
+     * with 10% and with 100% of it changed, then through a snapshot. The changes are journaled through
+     * {@link RegionTerrain#recordChange}, the path every listener takes; each restore tick is timed by the core itself
+     * ({@link RegionTerrainEvent.Type#RESTORE_TICK}), the same on every platform. Passes when every block comes back; the
+     * milliseconds are the report. On Paper the big box also reads {@code getAverageTickTime()} as a check of the method.
      */
-    private CompletableFuture<Verdict> journalRestoreCost(Player player) {
-        if (!"Paper".equals(Bukkit.getName()) || !Bukkit.getBukkitVersion().startsWith("1.21.1-")) {
-            return CompletableFuture.completedFuture(Verdict.skipped("the tick cost is measured on paper-1.21.1 only, the flavor whose"
-                    + " server answers getAverageTickTime(); this is " + Bukkit.getName() + " " + Bukkit.getBukkitVersion()));
-        }
+    private CompletableFuture<Verdict> costGrid(Player player) {
         World world = player.getWorld();
         Location at = player.getLocation();
-        int y = Math.min(at.getBlockY() + 25, world.getMaxHeight() - 10);
-        BlockPos min = BlockPos.of(at.getBlockX() - COST_SIDE / 2, y, at.getBlockZ() - COST_SIDE / 2);
-        BlockPos max = min.add(COST_SIDE - 1, 0, COST_SIDE - 1);
-        List<Block> slab = blocks(world, min, max);
-        return tracked("ecc-cost", world, min, max, COST_TIMEOUT_MILLIS, region -> {
-            String worldName = world.getName();
-            for (Block block : slab) {
-                int x = block.getX(), z = block.getZ();
-                RegionTerrain.recordChange(worldName, x, y, z,
-                        content -> EverNifeCore.getPlatform().getTerrainAccess().captureBlock(worldName, x, y, z, content));
-                block.setType(Material.STONE);
-            }
-            int recorded = terrain(region).getJournalSize(region);
-            double[] idle = new double[1];
-            return ticks(COST_WINDOW_TICKS + 1).thenCompose(waited -> {
-                idle[0] = averageTickMillis();
-                return terrain(region).restoreJournal(region, COST_BLOCKS_PER_TICK);
-            }).thenCompose(restored -> ticks(1).thenApply(read -> {
-                double restoring = averageTickMillis();
-                int back = 0;
-                for (Block block : slab) {
-                    back += block.getType() == Material.STONE ? 0 : 1;
-                }
-                double cost = restoring - idle[0];
-                return Verdict.of(recorded == slab.size() && restored == slab.size() && back == slab.size() && cost <= COST_LIMIT_MILLIS,
-                        String.format("recorded=%d restored=%d back=%d B=%d/tick avgTick idle=%.3fms restoring=%.3fms diff=%.3fms (limit %.1fms,"
-                                        + " Paper getAverageTickTime over %d ticks)", recorded, restored, back, COST_BLOCKS_PER_TICK, idle[0],
-                                restoring, cost, COST_LIMIT_MILLIS, COST_WINDOW_TICKS));
+        List<String> lines = new ArrayList<>();
+        boolean[] allBack = {true};
+        CompletableFuture<Void> chain = CompletableFuture.completedFuture(null);
+        for (int[] box : GRID) {
+            chain = chain.thenCompose(previous -> gridBox(world, at, box[0], box[1]).thenAccept(verdict -> {
+                allBack[0] &= verdict.isOk();
+                lines.add(verdict.getDetail());
             }));
-        }, () -> slab.forEach(block -> {
-            if (block.getType() == Material.STONE) {
-                block.setType(Material.AIR);
+        }
+        CompletableFuture<Verdict> answer = new CompletableFuture<>();
+        chain.whenComplete((done, failed) -> answer.complete(failed != null ? Verdict.fail(Verdict.describe(failed)) : Verdict.of(allBack[0],
+                String.join(" || ", lines))));
+        return PlayerCases.within(answer, GRID_TIMEOUT_MILLIS);
+    }
+
+    /** One box of the grid, its region tracked on disk so the journal's bytes can be read. */
+    private CompletableFuture<Verdict> gridBox(World world, Location at, int side, int budget) {
+        int y = Math.min(at.getBlockY() + 30, world.getMaxHeight() - side - 5);
+        //the small box stands east of the big one: a box's cleanup may run after the next box is built
+        int x = side == GRID[1][0] ? at.getBlockX() - side / 2 : at.getBlockX() + GRID[1][0];
+        BlockPos min = BlockPos.of(x, y, at.getBlockZ() - side / 2), max = min.add(side - 1, side - 1, side - 1);
+        List<Block> box = blocks(world, min, max);
+        box.forEach(block -> block.setType(Material.STONE));
+        boolean paper = isPaper();
+        return inRegion("ecc-grid-" + side, world, CuboidShape.of(min, max), GRID_TIMEOUT_MILLIS,
+                region -> terrain(region).track(region, new TrackChangesSettings().setPersistence(JournalPersistence.DISK)),
+                region -> gridJournal(region, box.subList(0, box.size() / 10), budget, false)
+                        .thenCompose(tenth -> gridJournal(region, box, budget, paper && side == GRID[1][0])
+                                .thenCompose(all -> gridSnapshot(region, box, budget, paper && side == GRID[1][0])
+                                        .thenApply(snapshot -> Verdict.of(tenth.isOk() && all.isOk() && snapshot.isOk(), "box=" + side + "^3("
+                                                + box.size() + ") B=" + budget + "/tick journal10%{" + tenth.getDetail() + "} journal100%{"
+                                                + all.getDetail() + "} snapshot{" + snapshot.getDetail() + "}")))),
+                () -> box.forEach(block -> block.setType(Material.AIR)));
+    }
+
+    /** Journals {@code changed}, empties it, writes the journal to disk, and restores it; passes when every block is stone again. */
+    private CompletableFuture<Verdict> gridJournal(Region region, List<Block> changed, int budget, boolean paperCheck) {
+        String world = region.getWorld();
+        long start = System.nanoTime();
+        for (Block block : changed) {
+            int x = block.getX(), y = block.getY(), z = block.getZ();
+            RegionTerrain.recordChange(world, x, y, z, content -> EverNifeCore.getPlatform().getTerrainAccess().captureBlock(world, x, y, z, content));
+        }
+        double recordMillis = (System.nanoTime() - start) / 1_000_000.0;
+        changed.forEach(block -> block.setType(Material.AIR));
+        File journal = new File(regions.getOwner().getMetaInfo().getDataFolder(), "regions/terrain/" + region.getId().getName() + "/journal.json");
+        String[] recorded = new String[1];
+        //the core writes a disk journal a second after its first change, off the main thread: wait that write out
+        return ticks(JOURNAL_WRITE_TICKS).thenCompose(written -> {
+            terrain(region).writeDirty();
+            recorded[0] = String.format(Locale.ROOT, "changes=%d record=%.1fms (%.4fms/change) disk=%dB", changed.size(), recordMillis,
+                    recordMillis / changed.size(), journal.length());
+            return timedRestore(region, true, paperCheck, () -> terrain(region).restoreJournal(region, budget));
+        }).thenApply(restore -> {
+            int back = stone(changed);
+            return Verdict.of(back == changed.size(), recorded[0] + " restore{" + restore + "} back=" + back + "/" + changed.size() + missing(changed));
+        });
+    }
+
+    /** Snapshots the box, empties it, and restores the snapshot; passes when every block is stone again. */
+    private CompletableFuture<Verdict> gridSnapshot(Region region, List<Block> box, int budget, boolean paperCheck) {
+        TickTimes write = new TickTimes();
+        ECEventSubscription<RegionTerrainEvent> written = ECEventBus.global().subscribe(RegionTerrainEvent.class, event -> {
+            if (event.getRegion() == region && event.getType() == RegionTerrainEvent.Type.SNAPSHOT) write.add(event.getNanos());
+        });
+        return terrain(region).snapshot(region).whenComplete((file, failed) -> written.unsubscribe()).thenCompose(file -> {
+            long fileBytes = file.length(), sideBytes = 0;
+            String stamp = file.getName().substring(0, file.getName().indexOf('.') + 1);
+            File[] siblings = file.getParentFile().listFiles((dir, name) -> name.startsWith(stamp) && !name.equals(file.getName()));
+            for (File side : siblings == null ? new File[0] : siblings) sideBytes += side.length();
+            String saved = String.format(Locale.ROOT, "write=%.1fms file=%dB side=%dB", write.getWorkMillis(), fileBytes, sideBytes);
+            box.forEach(block -> block.setType(Material.AIR));
+            return timedRestore(region, false, paperCheck, () -> terrain(region).restoreSnapshot(region, 0, budget)).thenApply(restore -> {
+                int back = stone(box);
+                return Verdict.of(back == box.size(), saved + " restore{" + restore + "} back=" + back + "/" + box.size() + missing(box));
+            });
+        });
+    }
+
+    /**
+     * Runs a restore, timing each of its ticks through the core's {@link RegionTerrainEvent.Type#RESTORE_TICK}. With
+     * {@code paperCheck}, Paper's average tick over the 100 idle ticks before is set against the 100 restoring ticks at
+     * its end: their difference is the restore's share of a tick, which the core's own mean of those ticks should match.
+     */
+    private CompletableFuture<String> timedRestore(Region region, boolean journal, boolean paperCheck, Supplier<CompletableFuture<Integer>> restore) {
+        double[] idle = {Double.NaN};
+        CompletableFuture<Void> ready = paperCheck ? ticks(COST_WINDOW_TICKS + 1).thenRun(() -> idle[0] = averageTickMillis())
+                : CompletableFuture.completedFuture(null);
+        return ready.thenCompose(waited -> {
+            TickTimes times = new TickTimes();
+            ECEventSubscription<RegionTerrainEvent> ticks = ECEventBus.global().subscribe(RegionTerrainEvent.class, event -> {
+                if (event.getRegion() == region && event.getType() == RegionTerrainEvent.Type.RESTORE_TICK && event.isJournal() == journal) {
+                    times.add(event.getNanos());
+                }
+            });
+            int[] serverTicks = {0};
+            BukkitTask ticker = Bukkit.getScheduler().runTaskTimer(plugin(), () -> serverTicks[0]++, 1, 1);
+            long start = System.nanoTime();
+            return restore.get().whenComplete((count, failed) -> {
+                ticks.unsubscribe();
+                ticker.cancel();
+            }).thenApply(count -> {
+                String line = times.describe((System.nanoTime() - start) / 1_000_000.0) + " serverTicks=" + serverTicks[0];
+                if (!paperCheck) return line;
+                double restoring = averageTickMillis(), share = restoring - idle[0], core = times.getMeanOfLastMillis(COST_WINDOW_TICKS);
+                return line + String.format(Locale.ROOT, " paper{avgTick idle=%.3fms restoring=%.3fms share=%.3fms coreMeanLast%d=%.3fms"
+                        + " ratio=%.2f}", idle[0], restoring, share, COST_WINDOW_TICKS, core, core / share);
+            });
+        });
+    }
+
+    private static boolean isPaper() {
+        return "Paper".equals(Bukkit.getName());
+    }
+
+    /** Where the blocks that are not stone lie, and what the first one is; empty when all are stone. */
+    private static String missing(List<Block> blocks) {
+        int[] lo = {Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE}, hi = {Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE};
+        String first = null;
+        for (Block block : blocks) {
+            if (block.getType() == Material.STONE) continue;
+            if (first == null) first = block.getType().name();
+            int[] at = {block.getX(), block.getY(), block.getZ()};
+            for (int i = 0; i < 3; i++) {
+                lo[i] = Math.min(lo[i], at[i]);
+                hi[i] = Math.max(hi[i], at[i]);
             }
-        }));
+        }
+        return first == null ? "" : " missing{first=" + first + " from=" + lo[0] + "," + lo[1] + "," + lo[2] + " to=" + hi[0] + "," + hi[1] + "," + hi[2] + "}";
+    }
+
+    private static int stone(List<Block> blocks) {
+        int stone = 0;
+        for (Block block : blocks) stone += block.getType() == Material.STONE ? 1 : 0;
+        return stone;
     }
 
     /** Paper's average tick time in milliseconds; reached by reflection, the Spigot API carries no tick time. */

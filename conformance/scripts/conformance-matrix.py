@@ -55,7 +55,7 @@ SUITE_ORDER = ["items", "nbt", "platform", "version", "commands", "gui", "schedu
                "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions"]
 HALVES = ("run", "write", "read")
 EXPECTED_ENDS = {"run": 14, "write": 3, "read": 3}
-WAIT_SECONDS = {"run": 420, "write": 180, "read": 180}
+WAIT_SECONDS = {"run": 900, "write": 180, "read": 180}
 TEXT_LINES = ("iiiiiiiiii", "WWWWWWWWWW")
 BOT = "EccBot"
 PLUGIN_ID = "ECoreConformance@3.0.1"
