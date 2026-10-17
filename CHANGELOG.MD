@@ -69,8 +69,8 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   and never a cancelled one. The test engine answers the access with `TestTerrain`.
 - **Region snapshots**: `RegionTerrain.snapshot(region[, content])` saves the region's bounding box under
   `<owner data>/regions/terrain/<region>/<stamp>.<ext>` - a WorldEdit `.schem` (`.schematic` on WorldEdit 6) plus the
-  entities beside it on Bukkit, a prefab through the server's `PrefabStore` on Hytale, with each block's entity when
-  `nbt` is on and the box's prefab-copyable entities - keeping the
+  entities beside it on Bukkit, a prefab through the server's `PrefabStore` on Hytale, with each block's entity (`nbt`
+  does not apply there) and the box's prefab-copyable entities - keeping the
   `getSnapshotRetention()` newest (3 unless set); `restoreSnapshot(region, index, blocksPerTick)` puts one back a
   budget per tick. A snapshot carries the game version it was taken on (`ITerrainAccess.getGameVersion()`, a
   `.version` file beside it) and `restoreSnapshot` refuses another one. With `nbt` off the Bukkit snapshot leaves the

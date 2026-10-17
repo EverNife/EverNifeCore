@@ -173,7 +173,8 @@ public final class HyTerrainAccess implements ITerrainAccess {
 
     /**
      * The box as a prefab through the server's {@link PrefabStore}, every position of it - air included, so a restore
-     * also clears what was built after - with each block's entity when nbt is on. Its corners go to a {@code .box} file beside it: a prefab keeps no world position.
+     * also clears what was built after - with each block's entity whatever {@code content} says: nbt does not apply to a
+     * prefab. Its corners go to a {@code .box} file beside it: a prefab keeps no world position.
      */
     @Override
     public void writeSnapshot(String world, BlockPos min, BlockPos max, TerrainContent content, File file) throws IOException {
@@ -193,7 +194,7 @@ public final class HyTerrainAccess implements ITerrainAccess {
                         selection.addEmptyAtWorldPos(x, y, z);
                     } else {
                         selection.addBlockAtWorldPos(x, y, z, id, blocks.getRotationIndex(index), blocks.getFiller(index), 0,
-                                content.isNbt() ? blockEntity(section, index) : null);
+                                blockEntity(section, index));
                     }
                 }
             }
