@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.hytale.region;
 
 import br.com.finalcraft.evernifecore.hytale.region.HyTerrainAccess.BlockState;
 import br.com.finalcraft.evernifecore.hytale.region.HyTerrainAccess.BlockWriter;
+import br.com.finalcraft.evernifecore.region.terrain.TerrainContent;
 import org.bson.BsonDocument;
 import org.junit.jupiter.api.Test;
 
@@ -54,6 +55,14 @@ class HyTerrainAccessTest {
         BlockState.parse(new BlockState("Furniture_Chest", 2, 0, CHEST).encode()).putWith(writer);
 
         assertEquals(List.of("block Furniture_Chest 2 0", "entity Furniture_Chest 2 " + CHEST.toJson()), writer.writes);
+    }
+
+    @Test
+    void withNbtOffTheJournalAndThePrefabKeepNoBlockEntity() {
+        assertNull(HyTerrainAccess.keptBlockEntity(TerrainContent.of(true, false, true), () -> {
+            throw new AssertionError("nbt off never copies the block entity");
+        }));
+        assertEquals(CHEST, HyTerrainAccess.keptBlockEntity(TerrainContent.ALL, () -> CHEST));
     }
 
     @Test

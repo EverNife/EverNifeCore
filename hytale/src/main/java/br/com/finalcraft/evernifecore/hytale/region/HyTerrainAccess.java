@@ -36,13 +36,14 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * Block access by position on Hytale: a block is {@code <asset id>|<rotation>|<filler>}, what
  * {@link BlockOperations#setBlock} takes back, and with {@link TerrainContent#isNbt()} a fourth field, its block
- * entity (a chest's items) as the server serializes it - the same copy a prefab keeps. No entities: the server fires no
- * event when an entity is removed, so nothing would record one. A snapshot (prefab) keeps the box's prefab-copyable
- * entities.
+ * entity (a chest's items) as the server serializes it. The journal keeps no entities: the server fires no event when
+ * an entity is removed, so nothing would record one. A snapshot (prefab) keeps the box's prefab-copyable entities, and
+ * the block entities under the same {@link TerrainContent#isNbt()} as the journal.
  */
 public final class HyTerrainAccess implements ITerrainAccess {
 
@@ -54,7 +55,7 @@ public final class HyTerrainAccess implements ITerrainAccess {
         BlockSection blocks = section.getStore().getComponent(section, BlockSection.getComponentType());
         int index = ChunkUtil.indexBlock(x, y, z);
         BlockType type = BlockType.getAssetMap().getAsset(blocks.get(index));
-        Holder<ChunkStore> entity = content.isNbt() ? blockEntity(section, index) : null;
+        Holder<ChunkStore> entity = keptBlockEntity(content, () -> blockEntity(section, index));
         return new BlockState(type == null ? BlockType.EMPTY_KEY : type.getId(), blocks.getRotationIndex(index), blocks.getFiller(index),
                 entity == null ? null : ChunkStore.REGISTRY.serialize(entity)).encode();
     }
@@ -117,6 +118,11 @@ public final class HyTerrainAccess implements ITerrainAccess {
         return type;
     }
 
+    /** The block entity a capture keeps: {@code copy} with nbt on, none with nbt off - a chest then comes back empty. */
+    static <T> T keptBlockEntity(TerrainContent content, Supplier<T> copy) {
+        return content.isNbt() ? copy.get() : null;
+    }
+
     /** The block entity at the index as a detached copy (a live one or one of an unloaded chunk), or null. */
     private static Holder<ChunkStore> blockEntity(Ref<ChunkStore> section, int index) {
         BlockComponentSection components = section.getStore().getComponent(section, BlockComponentSection.getComponentType());
@@ -175,8 +181,8 @@ public final class HyTerrainAccess implements ITerrainAccess {
 
     /**
      * The box as a prefab through the server's {@link PrefabStore}, every position of it - air included, so a restore
-     * also clears what was built after - with each block's entity whatever {@code content} says: nbt does not apply to a
-     * prefab. Its corners go to a {@code .box} file beside it: a prefab keeps no world position.
+     * also clears what was built after - with each block's entity only when {@code content} keeps nbt. Its corners go to
+     * a {@code .box} file beside it: a prefab keeps no world position.
      */
     @Override
     public void writeSnapshot(String world, BlockPos min, BlockPos max, TerrainContent content, File file) throws IOException {
@@ -196,7 +202,7 @@ public final class HyTerrainAccess implements ITerrainAccess {
                         selection.addEmptyAtWorldPos(x, y, z);
                     } else {
                         selection.addBlockAtWorldPos(x, y, z, id, blocks.getRotationIndex(index), blocks.getFiller(index), 0,
-                                blockEntity(section, index));
+                                keptBlockEntity(content, () -> blockEntity(section, index)));
                     }
                 }
             }
