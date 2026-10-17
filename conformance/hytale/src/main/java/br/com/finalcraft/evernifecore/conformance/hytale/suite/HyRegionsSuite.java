@@ -30,6 +30,7 @@ import br.com.finalcraft.evernifecore.region.session.MoveCause;
 import br.com.finalcraft.evernifecore.region.session.RevertStrategy;
 import br.com.finalcraft.evernifecore.region.selection.SelectionTool;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
+import br.com.finalcraft.evernifecore.region.shape.PolygonShape;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.region.visual.VisualStyle;
@@ -117,7 +118,8 @@ public final class HyRegionsSuite implements ConformanceSuite {
                 withPlayer("terrain-prefab-restores", ctx, this::terrainPrefabRestores),
                 withPlayer("terrain-journal-keeps-chest-items", ctx, this::terrainJournalKeepsChestItems),
                 withPlayer("terrain-prefab-keeps-chest-items", ctx, this::terrainPrefabKeepsChestItems),
-                withPlayer("terrain-prefab-retention", ctx, this::terrainPrefabRetention));
+                withPlayer("terrain-prefab-retention", ctx, this::terrainPrefabRetention),
+                withPlayer("terrain-snapshot-polygon-box", ctx, this::terrainSnapshotPolygonBox));
     }
 
     /** A case that needs the run's player; skipped without one, failed past {@link #TIMEOUT_SECONDS}. */
@@ -136,7 +138,13 @@ public final class HyRegionsSuite implements ConformanceSuite {
     /** Creates a cuboid region with {@code flags}, runs {@code body}, and removes the region whatever happened. */
     static CompletableFuture<Verdict> inRegion(RegionManager regions, String name, String world, BlockPos a, BlockPos b, Consumer<Region> flags,
                                                Function<Region, CompletableFuture<Verdict>> body) {
-        CreationResult created = regions.create(name, world, CuboidShape.of(a, b));
+        return inRegion(regions, name, world, CuboidShape.of(a, b), flags, body);
+    }
+
+    /** {@link #inRegion(RegionManager, String, String, BlockPos, BlockPos, Consumer, Function)} for any shape. */
+    static CompletableFuture<Verdict> inRegion(RegionManager regions, String name, String world, Shape shape, Consumer<Region> flags,
+                                               Function<Region, CompletableFuture<Verdict>> body) {
+        CreationResult created = regions.create(name, world, shape);
         Region region = created.getRegion();
         if (region == null) {
             return CompletableFuture.completedFuture(Verdict.fail(name + " refused: " + created.getRefusal()));
@@ -413,6 +421,54 @@ public final class HyRegionsSuite implements ConformanceSuite {
                         }).whenComplete((verdict, failed) -> region.getManager().getTerrain().setSnapshotRetention(retention));
                     }));
         });
+    }
+
+    /**
+     * A right-triangle region (legs of 5, two layers) whose bounding box is all rock; the prefab is taken, the box emptied,
+     * and the prefab put back. Only measures how many blocks outside the region but inside the box the restore changed: a
+     * prefab holds the box, not the shape.
+     */
+    private CompletableFuture<Verdict> terrainSnapshotPolygonBox(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
+            Vector3i c = block(at, 10, 4, -6);
+            PolygonShape triangle = PolygonShape.of(Arrays.asList(pos(c), pos(c).add(4, 0, 0), pos(c).add(0, 0, 4)), c.y, c.y + 1);
+            return HyWorld.chunksLoaded(world, c.x, c.z, c.x + 4, c.z + 4).thenCompose(loaded -> HyWorld.on(world, () -> {
+                box(world, c, SOLID);
+                return null;
+            })).thenCompose(built -> inRegion(regions, "ecc-prefab-polygon", world.getName(), triangle, region -> { },
+                    region -> region.getManager().getTerrain().snapshot(region)
+                            .thenCompose(file -> HyWorld.on(world, () -> {
+                                box(world, c, BlockType.EMPTY_KEY);
+                                return file;
+                            }))
+                            .thenCompose(file -> region.getManager().getTerrain().restoreSnapshot(region, 0, 10))
+                            .thenCompose(placed -> HyWorld.on(world, () -> {
+                                int inside = 0, insideBack = 0, outside = 0, outsideAltered = 0;
+                                for (int x = 0; x <= 4; x++) for (int y = 0; y <= 1; y++) for (int z = 0; z <= 4; z++) {
+                                    int id = HyWorld.blockId(world, c.x + x, c.y + y, c.z + z);
+                                    boolean back = id > 0 && SOLID.equals(BlockType.getAssetMap().getAsset(id).getId());
+                                    if (triangle.contains(c.x + x, c.y + y, c.z + z)) {
+                                        inside++;
+                                        insideBack += back ? 1 : 0;
+                                    } else {
+                                        outside++;
+                                        outsideAltered += back ? 1 : 0;
+                                    }
+                                }
+                                box(world, c, BlockType.EMPTY_KEY);
+                                return Verdict.of(insideBack == inside, "box=50 insideBack=" + insideBack + "/" + inside + " outsideAltered="
+                                        + outsideAltered + "/" + outside + " (blocks outside the region the restore changed)");
+                            }))));
+        });
+    }
+
+    /** The 5x2x5 box from {@code c} filled with {@code block}. */
+    private static void box(World world, Vector3i c, String block) {
+        for (int x = 0; x <= 4; x++) for (int y = 0; y <= 1; y++) for (int z = 0; z <= 4; z++) {
+            HyWorld.setBlock(world, c.x + x, c.y + y, c.z + z, block);
+        }
     }
 
     /**

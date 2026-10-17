@@ -14,6 +14,8 @@ import br.com.finalcraft.evernifecore.region.CreationResult;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
+import br.com.finalcraft.evernifecore.region.shape.PolygonShape;
+import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.terrain.RegionTerrain;
 import br.com.finalcraft.evernifecore.region.terrain.TerrainContent;
 import com.sk89q.worldedit.EditSession;
@@ -85,6 +87,8 @@ final class TerrainCases {
                 PlayerCases.later("terrain-snapshot-restores", ctx, player -> snapshotRestores(player, "ecc-snapshot", 48, TerrainContent.ALL)),
                 PlayerCases.later("terrain-snapshot-without-nbt", ctx, player -> snapshotRestores(player, "ecc-snapshot-bare", 54,
                         TerrainContent.of(true, false, true))),
+                PlayerCases.later("terrain-snapshot-entities-back", ctx, this::snapshotEntitiesBack),
+                PlayerCases.later("terrain-snapshot-polygon-box", ctx, this::snapshotPolygonBox),
                 PlayerCases.later("terrain-snapshot-retention", ctx, this::snapshotRetention),
                 PlayerCases.later("worldedit-rotated-paste-undo", ctx, this::rotatedPasteUndo),
                 PlayerCases.later("terrain-journal-restore-cost", ctx, this::journalRestoreCost));
@@ -213,6 +217,77 @@ final class TerrainCases {
      */
     private static boolean worldEditCarriesTileEntities() {
         return !MCVersion.isEqual(MCVersion.v1_7_10);
+    }
+
+    /**
+     * A stone floor with a stone at its center and one entity on it, saved, the entity removed and the box wrecked; the
+     * snapshot puts the blocks back and spawns the entity again: an armor stand from 1.8 on, an item frame hung on the
+     * stone on 1.7.10, which has no armor stand.
+     */
+    private CompletableFuture<Verdict> snapshotEntitiesBack(Player player) {
+        World world = player.getWorld();
+        Block c = anchor(player, 72);
+        BlockPos min = pos(c).add(-1, -1, -1), max = pos(c).add(1, 1, 1);
+        List<Block> box = blocks(world, min, max);
+        box.forEach(block -> block.setType(block.getY() < c.getY() || block.equals(c) ? Material.STONE : Material.AIR));
+        boolean frame = MCVersion.isEqual(MCVersion.v1_7_10);
+        Entity entity = frame ? world.spawn(c.getLocation(), ItemFrame.class)
+                : world.spawnEntity(c.getRelative(0, 1, 0).getLocation().add(0.5, 0, 0.5), EntityType.valueOf("ARMOR_STAND"));
+        EntityType type = entity.getType();
+        Map<Block, String> before = states(world, min, max);
+        return inRegion("ecc-snapshot-entities", world, CuboidShape.of(min, max), TIMEOUT_MILLIS, region -> {}, region -> {
+            int put = inBox(world, type, min, max).size();
+            return terrain(region).snapshot(region).thenCompose(file -> {
+                inBox(world, type, min, max).forEach(Entity::remove);
+                box.forEach(block -> block.setType(Material.AIR));
+                return ticks(1);
+            }).thenCompose(wrecked -> {
+                int afterRemove = inBox(world, type, min, max).size();
+                return terrain(region).restoreSnapshot(region, 0, 10).thenCompose(placed -> ticks(2)).thenApply(read -> {
+                    int back = inBox(world, type, min, max).size();
+                    int blocksBack = unchanged(before);
+                    return Verdict.of(put == 1 && afterRemove == 0 && back == put && blocksBack == before.size(), "entity=" + type
+                            + " entitiesPut=" + put + " afterRemove=" + afterRemove + " entitiesBack=" + back + "/" + put
+                            + " blocksBack=" + blocksBack + "/" + before.size());
+                });
+            });
+        }, () -> {
+            entity.remove();
+            inBox(world, type, min, max).forEach(Entity::remove);
+            box.forEach(block -> block.setType(Material.AIR));
+        });
+    }
+
+    /**
+     * A right-triangle region (legs of 5, two layers) whose bounding box is all stone; the snapshot is taken, every block of
+     * the box turned to dirt, and the snapshot restored. Only measures how many blocks outside the region but inside the box
+     * the restore changed: a snapshot holds the box, not the shape.
+     */
+    private CompletableFuture<Verdict> snapshotPolygonBox(Player player) {
+        World world = player.getWorld();
+        Block c = anchor(player, 78);
+        PolygonShape triangle = PolygonShape.of(Arrays.asList(pos(c), pos(c).add(4, 0, 0), pos(c).add(0, 0, 4)), c.getY(), c.getY() + 1);
+        BlockPos min = pos(c), max = pos(c).add(4, 1, 4);
+        List<Block> box = blocks(world, min, max);
+        box.forEach(block -> block.setType(Material.STONE));
+        return inRegion("ecc-snapshot-polygon", world, triangle, TIMEOUT_MILLIS, region -> {}, region -> terrain(region).snapshot(region).thenCompose(file -> {
+            box.forEach(block -> block.setType(Material.DIRT));
+            return terrain(region).restoreSnapshot(region, 0, 10);
+        }).thenCompose(placed -> ticks(1)).thenApply(read -> {
+            int inside = 0, insideBack = 0, outside = 0, outsideAltered = 0;
+            for (Block block : box) {
+                boolean back = block.getType() == Material.STONE;
+                if (triangle.contains(block.getX(), block.getY(), block.getZ())) {
+                    inside++;
+                    insideBack += back ? 1 : 0;
+                } else {
+                    outside++;
+                    outsideAltered += back ? 1 : 0;
+                }
+            }
+            return Verdict.of(insideBack == inside, "box=" + box.size() + " insideBack=" + insideBack + "/" + inside
+                    + " outsideAltered=" + outsideAltered + "/" + outside + " (blocks outside the region the restore changed)");
+        }), () -> box.forEach(block -> block.setType(Material.AIR)));
     }
 
     /** With a retention of 2, three snapshots leave the two newest on disk, the oldest gone with its side files. */
@@ -394,7 +469,12 @@ final class TerrainCases {
      */
     private CompletableFuture<Verdict> inRegion(String name, World world, BlockPos min, BlockPos max, long timeoutMillis, Consumer<Region> setup,
                                                 Function<Region, CompletableFuture<Verdict>> body, Runnable cleanup) {
-        CreationResult created = regions.create(name, world.getName(), CuboidShape.of(min, max));
+        return inRegion(name, world, CuboidShape.of(min, max), timeoutMillis, setup, body, cleanup);
+    }
+
+    private CompletableFuture<Verdict> inRegion(String name, World world, Shape shape, long timeoutMillis, Consumer<Region> setup,
+                                                Function<Region, CompletableFuture<Verdict>> body, Runnable cleanup) {
+        CreationResult created = regions.create(name, world.getName(), shape);
         Region region = created.getRegion();
         if (region == null) {
             cleanup.run();
@@ -489,6 +569,19 @@ final class TerrainCases {
         List<Entity> found = new ArrayList<>();
         for (Entity entity : world.getEntities()) {
             if (entity.getType() == type && !entity.isDead() && entity.getLocation().distance(at) < 1.5) {
+                found.add(entity);
+            }
+        }
+        return found;
+    }
+
+    /** The live entities of {@code type} standing in the box, both corners inclusive. */
+    private static List<Entity> inBox(World world, EntityType type, BlockPos min, BlockPos max) {
+        List<Entity> found = new ArrayList<>();
+        for (Entity entity : world.getEntities()) {
+            Location at = entity.getLocation();
+            if (entity.getType() == type && !entity.isDead() && at.getBlockX() >= min.getX() && at.getBlockX() <= max.getX()
+                    && at.getBlockY() >= min.getY() && at.getBlockY() <= max.getY() && at.getBlockZ() >= min.getZ() && at.getBlockZ() <= max.getZ()) {
                 found.add(entity);
             }
         }
