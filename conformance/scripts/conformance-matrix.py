@@ -531,9 +531,9 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
                 shutil.copy2(report, fdir / "reports" / report.name)
             # the run half logged before the restart, into the log the server rolled
             logs = Path(run_dir) / "logs"
-            for log in rolled_logs(logs) + [logs / "latest.log"]:
-                if log.is_file():
-                    r.details += case_lines(read_log(log))
+            for server_log in rolled_logs(logs) + [logs / "latest.log"]:
+                if server_log.is_file():
+                    r.details += case_lines(read_log(server_log))
     except FlavorFailed as e:
         r.problems.append(str(e))
         r.events = r.events or pre_restart
@@ -644,8 +644,8 @@ def run_hytale_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> Flavor
         player_checks(before, mctf("mc_player", server_id=server_id, player=BOT), r)
         r.events = read_all_events(mctf, server_id)
         if not mctf.dry_run and run_dir:
-            for log in sorted(Path(run_dir).glob("logs/*.log")):
-                r.details += case_lines(log.read_text(encoding="utf-8", errors="replace"))
+            for server_log in sorted(Path(run_dir).glob("logs/*.log")):
+                r.details += case_lines(server_log.read_text(encoding="utf-8", errors="replace"))
             (fdir / "reports").mkdir(parents=True, exist_ok=True)
             for report in Path(run_dir).rglob("ECoreConformance/reports/*.ndjson"):
                 shutil.copy2(report, fdir / "reports" / report.name)
