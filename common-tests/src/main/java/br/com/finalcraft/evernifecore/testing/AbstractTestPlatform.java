@@ -169,6 +169,11 @@ public abstract class AbstractTestPlatform implements IPlatform {
     }
 
     @Override
+    public CompletableFuture<Void> runOnWorldThreadNextTick(String worldName, Runnable task) {
+        throw notConfigured("runOnWorldThreadNextTick", "Platforms.strict().mainThreadInline()");
+    }
+
+    @Override
     public void onWorldLoaded(Consumer<String> listener) {
         throw notConfigured("onWorldLoaded", "Platforms.strict().worldEvents()");
     }

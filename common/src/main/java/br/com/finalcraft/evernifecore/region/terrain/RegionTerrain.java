@@ -188,7 +188,9 @@ public final class RegionTerrain {
         IPlatform platform = EverNifeCore.getPlatform();
         BoundingBox box = region.getShape().getBounds();
         File[] written = new File[1];
+        long[] took = new long[1];
         return platform.runOnWorldThread(region.getWorld(), () -> {
+            long start = System.nanoTime();
             ITerrainAccess access = platform.getTerrainAccess();
             File folder = terrainFolder(region);
             long stamp = Math.max(System.currentTimeMillis(), newestStamp(region) + 1);   //two snapshots in one millisecond stay apart
@@ -206,8 +208,10 @@ public final class RegionTerrain {
                 deleteSnapshot(old);
             }
             written[0] = file;
+            took[0] = System.nanoTime() - start;
         }).thenApply(ignored -> {
-            ECEventBus.global().postIfListened(RegionTerrainEvent.class, () -> new RegionTerrainEvent(region, RegionTerrainEvent.Type.SNAPSHOT, false));
+            ECEventBus.global().postIfListened(RegionTerrainEvent.class, () -> new RegionTerrainEvent(region, RegionTerrainEvent.Type.SNAPSHOT,
+                    false, 0, took[0]));
             return written[0];
         });
     }
@@ -268,22 +272,29 @@ public final class RegionTerrain {
         ECEventBus.global().postIfListened(RegionTerrainEvent.class, () -> new RegionTerrainEvent(region, RegionTerrainEvent.Type.RESTORE_START, journal));
         CompletableFuture<Integer> ended = done.whenComplete((count, error) -> ECEventBus.global().postIfListened(RegionTerrainEvent.class,
                 () -> new RegionTerrainEvent(region, RegionTerrainEvent.Type.RESTORE_END, journal)));
-        step(region, blocksPerTick, 0, leftOver, tick, finished, done);
+        step(region, journal, blocksPerTick, 0, leftOver, tick, finished, done, false);
         return ended;
     }
 
-    private void step(Region region, int blocksPerTick, int restoredSoFar, Supplier<String> leftOver, RestoreTick tick,
-                      BooleanSupplier finished, CompletableFuture<Integer> done) {
+    /** One tick of a restore: the first runs now (inline when already on the world's thread), each next one a tick later. */
+    private void step(Region region, boolean journal, int blocksPerTick, int restoredSoFar, Supplier<String> leftOver, RestoreTick tick,
+                      BooleanSupplier finished, CompletableFuture<Integer> done, boolean nextTick) {
         IPlatform platform = EverNifeCore.getPlatform();
         int[] restored = {restoredSoFar};
         CompletableFuture<Void> ran;
         try {
-            ran = platform.runOnWorldThread(region.getWorld(), () -> {
+            Runnable work = () -> {
                 if (manager.isClosed()) {
                     throw new IllegalStateException("The RegionManager of " + region.getId() + " closed during the restore; " + leftOver.get() + ".");
                 }
-                restored[0] += tick.place(platform.getTerrainAccess(), blocksPerTick);
-            });
+                long start = System.nanoTime();
+                int placed = tick.place(platform.getTerrainAccess(), blocksPerTick);
+                long took = System.nanoTime() - start;
+                restored[0] += placed;
+                ECEventBus.global().postIfListened(RegionTerrainEvent.class, () -> new RegionTerrainEvent(region,
+                        RegionTerrainEvent.Type.RESTORE_TICK, journal, placed, took));
+            };
+            ran = nextTick ? platform.runOnWorldThreadNextTick(region.getWorld(), work) : platform.runOnWorldThread(region.getWorld(), work);
         } catch (RuntimeException failed) {   //a platform already on the world thread runs the step inline and throws here
             ran = new CompletableFuture<>();
             ran.completeExceptionally(failed);
@@ -296,7 +307,7 @@ public final class RegionTerrain {
                 scheduleDiskWrite();
                 done.complete(restored[0]);
             } else {
-                platform.runOnMainThreadNextTick(() -> step(region, blocksPerTick, restored[0], leftOver, tick, finished, done));
+                step(region, journal, blocksPerTick, restored[0], leftOver, tick, finished, done, true);
             }
         });
     }

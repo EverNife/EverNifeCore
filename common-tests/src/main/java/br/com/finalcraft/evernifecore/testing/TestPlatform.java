@@ -56,6 +56,7 @@ public class TestPlatform extends AbstractTestPlatform {
     private final List<String> shutdownReasons = new ArrayList<>();
     //region writers run world work from scheduler threads, so never a plain ArrayList
     private final List<String> worldThreadRuns = new CopyOnWriteArrayList<>();
+    private final List<String> worldThreadNextTickRuns = new CopyOnWriteArrayList<>();
     private final AtomicInteger mainThreadRuns = new AtomicInteger();
     private final List<Consumer<String>> worldLoadedListeners = new CopyOnWriteArrayList<>();
     private final List<Consumer<String>> worldUnloadedListeners = new CopyOnWriteArrayList<>();
@@ -160,6 +161,11 @@ public class TestPlatform extends AbstractTestPlatform {
         return worldThreadRuns;
     }
 
+    /** The world name of every {@code runOnWorldThreadNextTick} call, in order; each is also in {@link #getWorldThreadRuns()}. */
+    public List<String> getWorldThreadNextTickRuns() {
+        return worldThreadNextTickRuns;
+    }
+
     /** Every frame a {@link Platforms#recordingOutlines()} renderer was asked to draw, in order. */
     public List<RenderedOutline> getRenderedOutlines() {
         return renderedOutlines;
@@ -222,6 +228,7 @@ public class TestPlatform extends AbstractTestPlatform {
         loggedMessages.clear();
         shutdownReasons.clear();
         worldThreadRuns.clear();
+        worldThreadNextTickRuns.clear();
         renderedOutlines.clear();
         selectionItemsGiven.clear();
         mainThreadRuns.set(0);
@@ -481,6 +488,16 @@ public class TestPlatform extends AbstractTestPlatform {
         worldThreadRuns.add(worldName);
         task.run();
         return CompletableFuture.completedFuture(null);
+    }
+
+    /** Inline too, recorded as a world-thread run: tests have no tick. */
+    @Override
+    public CompletableFuture<Void> runOnWorldThreadNextTick(String worldName, Runnable task) {
+        if (mainThreadInline == null) {
+            return super.runOnWorldThreadNextTick(worldName, task);
+        }
+        worldThreadNextTickRuns.add(worldName);
+        return runOnWorldThread(worldName, task);
     }
 
     @Override

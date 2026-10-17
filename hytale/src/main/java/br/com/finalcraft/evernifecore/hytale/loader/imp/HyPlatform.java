@@ -60,6 +60,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -388,6 +389,38 @@ public class HyPlatform implements IPlatform {
             return CompletableFuture.completedFuture(null);
         }
         return CompletableFuture.runAsync(task, world);   //World is an Executor: this IS world.execute
+    }
+
+    @Override
+    public CompletableFuture<Void> runOnWorldThreadNextTick(String worldName, Runnable task) {
+        World world = worldOrNull(worldName);
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        if (world == null) {
+            future.completeExceptionally(new IllegalStateException("World '" + worldName + "' is not loaded, so it has no"
+                    + " thread to run on - load the world first, or drop work for a world that is gone."));
+            return future;
+        }
+        //scheduleAfter queues the task on the world's executor once the delay is over; half a tick step lands it in the
+        //sleep before the next tick, and a task that still finds the tick it was scheduled from waits again
+        long scheduledOn = world.getTick();
+        long halfStep = world.getTickStepNanos() / 2;
+        Runnable attempt = new Runnable() {
+            @Override
+            public void run() {
+                if (world.getTick() == scheduledOn) {
+                    world.scheduleAfter(this, halfStep, TimeUnit.NANOSECONDS);
+                    return;
+                }
+                try {
+                    task.run();
+                    future.complete(null);
+                } catch (Throwable throwable) {
+                    future.completeExceptionally(throwable);
+                }
+            }
+        };
+        world.scheduleAfter(attempt, halfStep, TimeUnit.NANOSECONDS);
+        return future;
     }
 
     @Override

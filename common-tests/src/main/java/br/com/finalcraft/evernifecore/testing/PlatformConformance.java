@@ -117,6 +117,20 @@ public final class PlatformConformance {
             }
         });
 
+        call(platform, "runOnWorldThreadNextTick", failures, new Call<Object>() {
+            @Override
+            public Object run(IPlatform target) {
+                if (target.runOnWorldThreadNextTick("world", new Runnable() {
+                    @Override
+                    public void run() {
+                    }
+                }) == null) {
+                    throw new IllegalStateException("returned null instead of a future");
+                }
+                return null;
+            }
+        });
+
         call(platform, "onWorldLoaded", failures, new Call<Object>() {
             @Override
             public Object run(IPlatform target) {

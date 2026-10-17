@@ -77,7 +77,13 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   tile entities' data out of the schematic (`FCBlockArrayClipboard.clearNbtData()`); on Crucible, where WorldEdit 6 has
   no working Bukkit adapter, it never holds that data. Without WorldEdit a Bukkit
   snapshot fails naming WorldEdit and the journal, and `getSnapshots` answers an empty list. `RegionTerrainEvent`
-  (`SNAPSHOT`, `RESTORE_START`, `RESTORE_END`) reports both.
+  (`SNAPSHOT`, `RESTORE_START`, `RESTORE_TICK`, `RESTORE_END`) reports both: `getNanos()` is the time the snapshot's
+  write or a restore tick took on the world thread, `getBlocks()` what that tick put back. A restore runs its first
+  tick at once and each next one a tick later, so `blocksPerTick` is a real per-tick budget on both platforms.
+- **`IPlatform.runOnWorldThreadNextTick(world, task)`**: runs on the world's thread on its next tick, never the current
+  one (Bukkit: one tick of delay on the main thread - a zero-delay task scheduled from a running one may run in the
+  same tick; Hytale: on the world's executor once its tick counter moved). The test engine runs it inline and lists
+  it in `TestPlatform.getWorldThreadNextTickRuns()`.
 
 ### Changed
 

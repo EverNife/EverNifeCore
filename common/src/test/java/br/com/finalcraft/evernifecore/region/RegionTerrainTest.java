@@ -277,7 +277,51 @@ class RegionTerrainTest extends ManagedRegionFixture {
             subscription.unsubscribe();
         }
 
-        assertEquals(Arrays.asList("RESTORE_START journal", "RESTORE_END journal", "SNAPSHOT snapshot"), seen);
+        assertEquals(Arrays.asList("RESTORE_START journal", "RESTORE_TICK journal", "RESTORE_END journal", "SNAPSHOT snapshot"), seen);
+    }
+
+    @Test
+    void aRestoreRunsItsFirstTickNowAndEachNextOneATickLater(TestPlatform platform) {
+        TestTerrain terrain = platform.getTestTerrain();
+        Region region = trackedRegion();
+        for (int x = 0; x < 3; x++) {
+            terrain.setBlock(WORLD, x, 10, 1, "stone");
+            breakThenPlace(terrain, x, 10, 1, "air");
+        }
+        platform.getWorldThreadRuns().clear();
+        platform.getWorldThreadNextTickRuns().clear();
+
+        region.getManager().getTerrain().restoreJournal(region, 1).join();
+
+        assertEquals(Arrays.asList(WORLD, WORLD, WORLD), platform.getWorldThreadRuns(), "one world-thread run per tick");
+        assertEquals(Arrays.asList(WORLD, WORLD), platform.getWorldThreadNextTickRuns(), "every tick after the first waits for the next one");
+    }
+
+    @Test
+    void eachRestoreTickReportsWhatItPutBackAndHowLongItTook(TestPlatform platform) {
+        TestTerrain terrain = platform.getTestTerrain();
+        Region region = trackedRegion();
+        for (int x = 0; x < 3; x++) {
+            terrain.setBlock(WORLD, x, 10, 1, "stone");
+            breakThenPlace(terrain, x, 10, 1, "air");
+        }
+        List<RegionTerrainEvent> ticks = new ArrayList<>();
+        List<RegionTerrainEvent> snapshots = new ArrayList<>();
+        ECEventSubscription<RegionTerrainEvent> subscription = ECEventBus.global().subscribe(RegionTerrainEvent.class, event -> {
+            if (event.getType() == RegionTerrainEvent.Type.RESTORE_TICK) ticks.add(event);
+            if (event.getType() == RegionTerrainEvent.Type.SNAPSHOT) snapshots.add(event);
+        });
+        try {
+            region.getManager().getTerrain().restoreJournal(region, 2).join();
+            region.getManager().getTerrain().snapshot(region).join();
+        } finally {
+            subscription.unsubscribe();
+        }
+
+        assertEquals(Arrays.asList(2, 1), ticks.stream().map(RegionTerrainEvent::getBlocks).collect(Collectors.toList()));
+        assertTrue(ticks.stream().allMatch(tick -> tick.isJournal() && tick.getNanos() > 0), "every tick timed its placing");
+        assertEquals(1, snapshots.size());
+        assertTrue(snapshots.get(0).getNanos() > 0, "the snapshot timed its write");
     }
 
     private static List<File> reversed(List<File> files) {

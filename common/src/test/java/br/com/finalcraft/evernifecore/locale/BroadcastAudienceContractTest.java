@@ -178,6 +178,7 @@ public class BroadcastAudienceContractTest {
         @Override public WorldLocPos getWorldSpawn(String worldName) { return delegate.getWorldSpawn(worldName); }
         @Override public boolean isWorldThread(String worldName) { return delegate.isWorldThread(worldName); }
         @Override public CompletableFuture<Void> runOnWorldThread(String worldName, Runnable task) { return delegate.runOnWorldThread(worldName, task); }
+        @Override public CompletableFuture<Void> runOnWorldThreadNextTick(String worldName, Runnable task) { return delegate.runOnWorldThreadNextTick(worldName, task); }
         @Override public void onWorldLoaded(Consumer<String> listener) { delegate.onWorldLoaded(listener); }
         @Override public void onWorldUnloaded(Consumer<String> listener) { delegate.onWorldUnloaded(listener); }
         @Override public IOutlineRenderer getOutlineRenderer() { return delegate.getOutlineRenderer(); }

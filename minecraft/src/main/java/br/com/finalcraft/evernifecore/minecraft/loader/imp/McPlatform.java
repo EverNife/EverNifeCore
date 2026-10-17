@@ -389,6 +389,21 @@ public class McPlatform implements IPlatform {
     }
 
     @Override
+    public CompletableFuture<Void> runOnWorldThreadNextTick(String worldName, Runnable task) {
+        //one tick of delay, not runSync's zero: a zero-delay task scheduled from a running task may run in the same tick
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        FCScheduler.getMinecraftScheduler().scheduleSyncInTicks(() -> {
+            try {
+                task.run();
+                future.complete(null);
+            } catch (Throwable throwable) {
+                future.completeExceptionally(throwable);
+            }
+        }, 1);
+        return future;
+    }
+
+    @Override
     public void onWorldLoaded(Consumer<String> listener) {
         worldLoadedListeners.add(Objects.requireNonNull(listener, "'listener' cannot be null when following world loads!"));
     }
@@ -445,7 +460,8 @@ public class McPlatform implements IPlatform {
 
     @Override
     public <T> CompletableFuture<T> runOnMainThreadNextTick(Supplier<T> task) {
-        //Always the next tick, even when already on the main thread: a task scheduled during enable
+        //Never inline, even when already on the main thread; a zero-delay task, so one scheduled from a running
+        //scheduler task may still run in that tick (runOnWorldThreadNextTick paces). A task scheduled during enable
         //fires on the first tick (after every plugin has enabled). It runs ON that thread and holds
         //the tick until it finishes - the first-boot legacy import relies on that to freeze the
         //server while it migrates.

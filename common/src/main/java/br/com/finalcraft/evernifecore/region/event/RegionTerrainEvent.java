@@ -12,6 +12,8 @@ public class RegionTerrainEvent extends RegionEvent {
         SNAPSHOT,
         /** A restore - of the journal or of a snapshot - starts. */
         RESTORE_START,
+        /** One tick of that restore ran: {@link #getBlocks()} put back in {@link #getNanos()}. */
+        RESTORE_TICK,
         /** That restore ended, done or cut short. */
         RESTORE_END
     }
@@ -23,11 +25,19 @@ public class RegionTerrainEvent extends RegionEvent {
 
     private final Type type;
     private final boolean journal;
+    private final int blocks;
+    private final long nanos;
 
     public RegionTerrainEvent(Region region, Type type, boolean journal) {
+        this(region, type, journal, 0, 0);
+    }
+
+    public RegionTerrainEvent(Region region, Type type, boolean journal, int blocks, long nanos) {
         super(region);
         this.type = type;
         this.journal = journal;
+        this.blocks = blocks;
+        this.nanos = nanos;
     }
 
     public Type getType() {
@@ -37,5 +47,21 @@ public class RegionTerrainEvent extends RegionEvent {
     /** True for the change journal, false for a snapshot. */
     public boolean isJournal() {
         return journal;
+    }
+
+    /**
+     * {@link Type#RESTORE_TICK}: the positions that tick put back - for a snapshot its whole budget, the last tick
+     * included; 0 for the other types.
+     */
+    public int getBlocks() {
+        return blocks;
+    }
+
+    /**
+     * The time the work took on the world's thread: writing the file for {@link Type#SNAPSHOT}, the tick's placing for
+     * {@link Type#RESTORE_TICK}; 0 for the other types.
+     */
+    public long getNanos() {
+        return nanos;
     }
 }

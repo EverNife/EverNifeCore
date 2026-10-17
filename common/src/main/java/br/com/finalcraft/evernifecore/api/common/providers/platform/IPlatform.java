@@ -107,6 +107,14 @@ public interface IPlatform {
     public CompletableFuture<Void> runOnWorldThread(String worldName, Runnable task);
 
     /**
+     * Runs the task on the thread that owns the world named {@code worldName}, on that world's next tick - never in
+     * the current one, even when the caller is that thread, so work split across calls is paced one piece a tick
+     * (Bukkit: one tick later on the main thread; Hytale: one tick step later on the world's executor). The future
+     * completes exceptionally as {@link #runOnWorldThread} does when the platform has no thread for that world.
+     */
+    public CompletableFuture<Void> runOnWorldThreadNextTick(String worldName, Runnable task);
+
+    /**
      * Keeps {@code listener} for the life of the process and calls it with the world's name each time a world
      * loads. The core registers once; there is no way to remove a listener.
      */
@@ -153,7 +161,9 @@ public interface IPlatform {
      * Runs the task on the platform's main/server thread, always deferred - never in place, even when
      * already called from it. Timing is platform-specific:
      * <ul>
-     *   <li><b>Bukkit:</b> the server main thread, on the next tick. A task scheduled during enable
+     *   <li><b>Bukkit:</b> the server main thread, as a zero-delay scheduler task: off the main thread or during
+     *       enable that is a later tick, but one scheduled by a task the scheduler is running may run later in that
+     *       same tick - pace work a piece per tick with {@link #runOnWorldThreadNextTick}. A task scheduled during enable
      *       fires on the first tick, after every plugin has enabled; one scheduled by a plugin that
      *       enables before EverNifeCore runs after the first-tick tasks of the core's own enable.
      *       Running there holds the tick until the task finishes - the first-boot legacy import
