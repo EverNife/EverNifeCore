@@ -287,8 +287,8 @@ final class TerrainCases {
 
     /**
      * A right-triangle region (legs of 5, two layers) whose bounding box is all stone; the snapshot is taken, every block of
-     * the box turned to dirt, and the snapshot restored. Only measures how many blocks outside the region but inside the box
-     * the restore changed: a snapshot holds the box, not the shape.
+     * the box turned to dirt, and the snapshot restored: every block of the triangle is stone again and none outside it -
+     * the snapshot holds the box, the restore only the shape.
      */
     private CompletableFuture<Verdict> snapshotPolygonBox(Player player) {
         World world = player.getWorld();
@@ -312,7 +312,7 @@ final class TerrainCases {
                     outsideAltered += back ? 1 : 0;
                 }
             }
-            return Verdict.of(insideBack == inside, "box=" + box.size() + " insideBack=" + insideBack + "/" + inside
+            return Verdict.of(insideBack == inside && outsideAltered == 0, "box=" + box.size() + " insideBack=" + insideBack + "/" + inside
                     + " outsideAltered=" + outsideAltered + "/" + outside + " (blocks outside the region the restore changed)");
         }), () -> box.forEach(block -> block.setType(Material.AIR)));
     }

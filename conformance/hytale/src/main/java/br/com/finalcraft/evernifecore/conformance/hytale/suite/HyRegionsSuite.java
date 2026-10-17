@@ -38,6 +38,7 @@ import br.com.finalcraft.evernifecore.region.shape.PolygonShape;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.terrain.JournalPersistence;
 import br.com.finalcraft.evernifecore.region.terrain.RegionTerrain;
+import br.com.finalcraft.evernifecore.region.terrain.TerrainContent;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.region.visual.VisualStyle;
 import com.hypixel.hytale.component.Holder;
@@ -126,6 +127,7 @@ public final class HyRegionsSuite implements ConformanceSuite {
                 withPlayer("terrain-prefab-restores", ctx, this::terrainPrefabRestores),
                 withPlayer("terrain-journal-keeps-chest-items", ctx, this::terrainJournalKeepsChestItems),
                 withPlayer("terrain-prefab-keeps-chest-items", ctx, this::terrainPrefabKeepsChestItems),
+                withPlayer("terrain-prefab-without-nbt", ctx, this::terrainPrefabWithoutNbt),
                 withPlayer("terrain-prefab-retention", ctx, this::terrainPrefabRetention),
                 withPlayer("terrain-snapshot-polygon-box", ctx, this::terrainSnapshotPolygonBox),
                 withPlayer("terrain-cost-grid", ctx, GRID_TIMEOUT_SECONDS, this::terrainCostGrid));
@@ -397,6 +399,33 @@ public final class HyRegionsSuite implements ConformanceSuite {
         });
     }
 
+    /** A chest saved as a prefab with nbt off, cleared, and put back: the chest returns without its items. */
+    private CompletableFuture<Verdict> terrainPrefabWithoutNbt(FPlayer fplayer) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
+            Vector3i c = block(at, 6, 16, 3);
+            String[] chest = new String[1];
+            return placeChest(world, c, chest).thenCompose(put -> inRegion(regions, "ecc-prefab-chest-no-nbt", world.getName(),
+                    pos(c).add(-1, -1, -1), pos(c).add(1, 1, 1), region -> { },
+                    region -> region.getManager().getTerrain().snapshot(region, TerrainContent.of(true, false, true))
+                            .thenCompose(file -> HyWorld.on(world, () -> {
+                                HyWorld.setBlock(world, c.x, c.y, c.z, BlockType.EMPTY_KEY);
+                                return chestItems(world, c);
+                            }))
+                            .thenCompose(cleared -> region.getManager().getTerrain().restoreSnapshot(region, 0, 10)
+                                    .thenCompose(placed -> HyWorld.ticks(world, 2))
+                                    .thenCompose(waited -> HyWorld.on(world, () -> {
+                                        int back = chestItems(world, c);
+                                        boolean chestBack = chest[0].equals(BlockType.getAssetMap().getAsset(HyWorld.blockId(world, c.x, c.y, c.z)).getId());
+                                        HyWorld.setBlock(world, c.x, c.y, c.z, BlockType.EMPTY_KEY);
+                                        return Verdict.of(put == CHEST_ITEMS && cleared == -1 && chestBack && back == 0, "chest=" + chest[0]
+                                                + " itemsPut=" + put + " afterClear=" + cleared + " chestBack=" + chestBack + " itemsBack=" + back
+                                                + " (nbt off: the chest comes back empty)");
+                                    })))));
+        });
+    }
+
     /** Reads the chest back at {@code c}, clears it, and passes when it holds every item it was given. */
     private static Verdict chestVerdict(World world, Vector3i c, String chest, int put, int afterClear) {
         int back = chestItems(world, c);
@@ -439,8 +468,8 @@ public final class HyRegionsSuite implements ConformanceSuite {
 
     /**
      * A right-triangle region (legs of 5, two layers) whose bounding box is all rock; the prefab is taken, the box emptied,
-     * and the prefab put back. Only measures how many blocks outside the region but inside the box the restore changed: a
-     * prefab holds the box, not the shape.
+     * and the prefab put back: every block of the triangle is rock again and none outside it - the prefab holds the box,
+     * the restore only the shape.
      */
     private CompletableFuture<Verdict> terrainSnapshotPolygonBox(FPlayer fplayer) {
         PlayerRef player = HyWorld.player(fplayer);
@@ -472,7 +501,7 @@ public final class HyRegionsSuite implements ConformanceSuite {
                                     }
                                 }
                                 box(world, c, BlockType.EMPTY_KEY);
-                                return Verdict.of(insideBack == inside, "box=50 insideBack=" + insideBack + "/" + inside + " outsideAltered="
+                                return Verdict.of(insideBack == inside && outsideAltered == 0, "box=50 insideBack=" + insideBack + "/" + inside + " outsideAltered="
                                         + outsideAltered + "/" + outside + " (blocks outside the region the restore changed)");
                             }))));
         });
