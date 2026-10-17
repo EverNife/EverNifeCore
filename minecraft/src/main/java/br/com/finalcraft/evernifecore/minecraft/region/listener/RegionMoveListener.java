@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
@@ -13,6 +14,7 @@ import br.com.finalcraft.evernifecore.minecraft.world.PassengerAccess;
 import br.com.finalcraft.evernifecore.region.session.MoveCause;
 import br.com.finalcraft.evernifecore.region.session.MoveVerdict;
 import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -29,8 +31,11 @@ import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.util.Vector;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Hands every player's move across a block to the {@link RegionMovementTracker} and applies its verdict: a denied step
@@ -38,6 +43,17 @@ import java.util.Locale;
  * Join, quit, respawn and world change only reconcile the session, reading the state the other plugins left.
  */
 public final class RegionMoveListener implements ECListener {
+
+    /** How many ticks after a player's last denied step the tracker keeps reading where they really stand. */
+    static final int SETTLE_TICKS = 40;
+
+    /** Players recently sent back from a border: where they were sent and the ticks left to watch them. Main thread. */
+    private final Map<UUID, Settling> settling = new HashMap<>();
+
+    private static final class Settling {
+        WorldLocPos sentTo;
+        int ticksLeft;
+    }
 
     @Override
     public boolean silentRegistration() {
@@ -58,6 +74,52 @@ public final class RegionMoveListener implements ECListener {
             EverNifeCore.getLog().debug(() -> "Move of " + event.getPlayer().getName() + " denied: from " + xyz(from) + " to " + xyz(to)
                     + ", sent back to " + xyz(back));
             event.setTo(back);   //not setCancelled: no teleport event, no re-entry
+            watchSettling(event.getPlayer(), verdict.getRevertTo());
+        }
+    }
+
+    /**
+     * Crucible fires no move event for a step under about 1/16 of a block, so the drift a player keeps after a denied
+     * step can carry them a few hundredths into the region unasked; every tick of {@link #SETTLE_TICKS} after the last
+     * denial, the tracker is asked where they really stand.
+     */
+    private void watchSettling(Player player, WorldLocPos sentTo) {
+        Settling watch = settling.get(player.getUniqueId());
+        boolean scheduled = watch != null;
+        if (watch == null) {
+            watch = new Settling();
+            settling.put(player.getUniqueId(), watch);
+        }
+        watch.sentTo = sentTo;
+        watch.ticksLeft = SETTLE_TICKS;
+        if (!scheduled) {
+            settleNextTick(player);
+        }
+    }
+
+    private void settleNextTick(Player player) {
+        Bukkit.getScheduler().runTaskLater(EverNifeCoreBukkitPlugin.instance, () -> settle(player), 1L);
+    }
+
+    private void settle(Player player) {
+        Settling watch = settling.get(player.getUniqueId());
+        if (watch == null) return;
+        if (!player.isOnline() || --watch.ticksLeft <= 0) {
+            settling.remove(player.getUniqueId());
+        } else {
+            settleNextTick(player);
+        }
+        Location now = player.getLocation();
+        if (!player.isOnline() || player.isInsideVehicle() || RegionContexts.isDisabled(now.getWorld())) {
+            return;   //a rider goes back with the vehicle, in onVehicleMove
+        }
+        MoveVerdict verdict = RegionMovementTracker.get().onMove(FCBukkitUtil.adapt(player), watch.sentTo, RegionContexts.position(now), MoveCause.MOVE, null);
+        if (!verdict.isAllowed()) {
+            Location back = RegionContexts.toLocation(verdict.getRevertTo(), now);
+            EverNifeCore.getLog().debug(() -> "Drift of " + player.getName() + " into " + xyz(now) + " denied, sent back to " + xyz(back));
+            watch.sentTo = verdict.getRevertTo();
+            watch.ticksLeft = SETTLE_TICKS;
+            player.teleport(back);
         }
     }
 

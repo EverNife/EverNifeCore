@@ -296,6 +296,7 @@ public final class BukkitEventWorld implements AutoCloseable {
                 .returning("getName", name)
                 .returning("getUniqueId", id)
                 .returning("isOnline", true)
+                .returning("isInsideVehicle", false)
                 .returning("getType", EntityType.PLAYER)
                 .on("getPlayer", args -> self.get())
                 .on("getLocation", args -> where.get().clone())

@@ -102,6 +102,23 @@ class RegionMoveListenerTest {
     }
 
     @Test
+    void aDriftIntoTheRegionWithNoMoveEventAfterADenialIsSentBack() {
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            arena(server);
+            server.listen(new RegionMoveListener());
+            Player player = server.player("walker", 12.7, 5, 5.5);
+            server.server.getPluginManager().callEvent(new PlayerJoinEvent(player, "joined"));
+            assertTrue(denied(server.call(step(server, player, 12.7, 10.5)), 10.5));
+
+            //what Crucible lets through: the client's last few hundredths across the border, under its move-event threshold
+            player.teleport(server.at(10.98, 5, 5.5));
+            server.server.runScheduledTasks();
+
+            assertEquals(12.5, player.getLocation().getX(), "the drift is caught on the next tick and put back");
+        }
+    }
+
+    @Test
     void aHeadTurnNeverReachesTheTracker() {
         try (RegionServer server = RegionServer.open(tempDir)) {
             server.box("plaza", 0, 0, 0, 10, 10, 10);

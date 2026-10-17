@@ -44,6 +44,9 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   without crossing the border - logged in there, or the region appeared or changed around them - is sent out.
   `MoveCause.REGION_CHANGED` names that move. `deny-entry-with-message` takes the same `EntryDenySettings` - revert,
   stuck fallback, actor filter and `expelFoundInside` - as `deny-entry`.
+- **A denied step on Bukkit is watched for 40 ticks**: Crucible fires no `PlayerMoveEvent` for a step under about
+  1/16 of a block, so the drift a player kept after being sent back carried them a few hundredths into the region
+  unasked. While watched, the tracker reads where the player really stands every tick and teleports a drift back.
 - **`DenyFlag` tells the denied player the region's `deny-message`.**
 - `Region.editFlagSettings(flag, edit)` edits a region's own copy of a flag's settings, leaving the server's alone.
 - `RegionFlag.getDefaultTriggerInterval()` and the `onApplied(context, value, settings)` overload.
