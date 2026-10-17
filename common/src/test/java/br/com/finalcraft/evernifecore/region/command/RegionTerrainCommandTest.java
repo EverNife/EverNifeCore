@@ -13,11 +13,16 @@ import br.com.finalcraft.evernifecore.testing.TestTerrain;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** {@code terrain <region> snapshot|snapshots|restore|undo}: the terrain verbs of a mounted region node. */
 class RegionTerrainCommandTest extends RegionCommandFixture {
@@ -74,7 +79,7 @@ class RegionTerrainCommandTest extends RegionCommandFixture {
     }
 
     @Test
-    void restoreOfAMissingIndexAnswersTheCoresRefusalAndChangesNothing() {
+    void restoreOfAMissingIndexSaysHowManyThereAreAndChangesNothing() {
         FinalCMDPluginCommand fp = mount(protNode());
         harness.dispatch(fp, steve, "region terrain arena snapshot");
         terrain.setBlock(WORLD, 1, 1, 1, "dirt");
@@ -83,7 +88,7 @@ class RegionTerrainCommandTest extends RegionCommandFixture {
 
         assertEquals("dirt", terrain.getBlock(WORLD, 1, 1, 1));
         assertEquals(0, terrain.getRestores());
-        steve.assertAnyMessageContains("has 1 snapshot(s)");
+        steve.assertAnyMessageContains("has §e1§c snapshot(s), so there is no §e#1§c");
     }
 
     @Test
@@ -140,6 +145,21 @@ class RegionTerrainCommandTest extends RegionCommandFixture {
         steve.assertAnyMessageContains("#0");
         steve.assertAnyMessageContains("#1");
         steve.assertAnyMessageContains("game version §f" + TestTerrain.DEFAULT_GAME_VERSION);
+    }
+
+    @Test
+    void snapshotsDatesEachSnapshotByTheStampInItsNameNotByTheFilesMtime() {
+        FinalCMDPluginCommand fp = mount(protNode());
+        harness.dispatch(fp, steve, "region terrain arena snapshot");
+        File snapshot = protTerrain().getSnapshot(arena, 0);
+        assertTrue(snapshot.setLastModified(978307200000L), "a copy that lost its dates, set to 2001-01-01");
+        steve.clearMessages();
+
+        harness.dispatch(fp, steve, "region terrain arena snapshots");
+
+        String taken = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(RegionTerrain.getSnapshotTakenAt(snapshot)));
+        steve.assertAnyMessageContains("#0 §f" + taken);
+        assertFalse(steve.getMessages().toString().contains("2001-"), steve.getMessages().toString());
     }
 
     @Test

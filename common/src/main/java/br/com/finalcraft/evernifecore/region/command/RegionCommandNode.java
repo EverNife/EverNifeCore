@@ -169,6 +169,10 @@ public class RegionCommandNode implements RegionScope {
     @FCLocale(lang = LocaleType.PT_BR, text = "§e§l ▶ §eIsto restauraria o snapshot §6#${index}§e de §6${region}§e (${date}, ${size}, versão do jogo ${version}) - use §6--confirm§e para escrevê-lo.")
     public static LocaleMessage TERRAIN_RESTORE_PREVIEW;
 
+    @FCLocale(lang = LocaleType.EN_US, text = "§4§l ▶ §e${region}§c has §e${count}§c snapshot(s), so there is no §e#${index}§c - see them with §esnapshots§c, or take one with §esnapshot§c.")
+    @FCLocale(lang = LocaleType.PT_BR, text = "§4§l ▶ §e${region}§c tem §e${count}§c snapshot(s), então não existe o §e#${index}§c - veja-os com §esnapshots§c, ou tire um com §esnapshot§c.")
+    public static LocaleMessage TERRAIN_NO_SUCH_SNAPSHOT;
+
     @FCLocale(lang = LocaleType.EN_US, text = "§a§l ▶ §aRestoring snapshot §e#${index}§a of §e${region}§a, §e${budget}§a positions per tick...")
     @FCLocale(lang = LocaleType.PT_BR, text = "§a§l ▶ §aRestaurando o snapshot §e#${index}§a de §e${region}§a, §e${budget}§a posições por tick...")
     public static LocaleMessage TERRAIN_RESTORE_STARTED;
@@ -828,6 +832,12 @@ public class RegionCommandNode implements RegionScope {
             RegionTerrain terrain = region.getManager().getTerrain();
             File snapshot;
             try {
+                int count = terrain.getSnapshots(region).size();
+                if (which < 0 || which >= count) {
+                    TERRAIN_NO_SUCH_SNAPSHOT.addPlaceholder("region", region.getId()).addPlaceholder("count", count)
+                            .addPlaceholder("index", which).send(sender);
+                    return;
+                }
                 snapshot = terrain.getSnapshot(region, which);
             } catch (RuntimeException refused) {
                 refuse(sender, refused);
@@ -985,9 +995,9 @@ public class RegionCommandNode implements RegionScope {
 
     /** {@code message} with the index, region, date, size and game version of {@code snapshot} filled in. */
     private static ILocaleMessageBase describeSnapshot(LocaleMessage message, Region region, int index, File snapshot) {
-        String version = RegionTerrain.getSnapshotGameVersion(snapshot);
+        String version = RegionTerrain.readSnapshotGameVersion(snapshot);
         return message.addPlaceholder("index", index).addPlaceholder("region", region.getId())
-                .addPlaceholder("date", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(snapshot.lastModified())))
+                .addPlaceholder("date", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(RegionTerrain.getSnapshotTakenAt(snapshot))))
                 .addPlaceholder("size", String.format(Locale.ROOT, "%.1f KB", snapshot.length() / 1024.0))
                 .addPlaceholder("version", version == null ? "unknown" : version);
     }

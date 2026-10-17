@@ -250,8 +250,13 @@ public final class RegionTerrain {
         return snapshots.get(index);
     }
 
-    /** The game version {@code snapshot} was taken on; null when the file beside it is missing or does not read. */
-    public static @Nullable String getSnapshotGameVersion(File snapshot) {
+    /** When {@code snapshot} was taken, in epoch milliseconds, read from the stamp its name starts with. */
+    public static long getSnapshotTakenAt(File snapshot) {
+        return stampOf(snapshot.getName());
+    }
+
+    /** The game version {@code snapshot} was taken on, read from the file beside it; null when that file is missing or does not read. */
+    public static @Nullable String readSnapshotGameVersion(File snapshot) {
         File version = versionFile(snapshot);
         try {
             return version.isFile() ? new String(Files.readAllBytes(version.toPath()), StandardCharsets.UTF_8).trim() : null;
