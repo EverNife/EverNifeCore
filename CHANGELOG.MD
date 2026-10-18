@@ -132,6 +132,9 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   value are read at most once a second per region (and flag). The core serves `%evernifecore_region_...%` over every
   region on both platforms whenever PlaceholderAPI is present. Test engine: `Platforms.recordingPlaceholderIntegrations()`,
   `TestPlatform.getPlaceholderIntegration(prefix)`, `getOnlinePlayersCalls()` and `setOnlinePlayers(...)`.
+- **Event sources `RESPAWN`, `ITEM_PICKUP`, `ITEM_DROP`, `VEHICLE` and `FIRE_SPREAD`** (`evernifecore:respawn`,
+  `item-pickup`, `item-drop`, `vehicle`, `fire-spread`). Pickup and drop are apart because a pickup fires every tick for
+  each item next to a player; fire spreading is apart from `PLACE` so a flag about placing never hears it.
 
 ### Changed
 

@@ -11,7 +11,7 @@ import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The kind of game event a flag needs to hear. EverNifeCore ships the ten every server has; a plugin registers the
+ * The kind of game event a flag needs to hear. EverNifeCore ships the ones every server has; a plugin registers the
  * ones only it raises with {@link #register}, and the region system treats them alike: a flag needs them, the count
  * says when they matter, a listener follows them. {@link #NONE} is for a flag that only stores a value.
  */
@@ -32,6 +32,19 @@ public final class EventSource {
      * holds a flag that declares this source, and such a flag is a deliberate choice of whoever defines it.
      */
     public static final EventSource FLUID = core("fluid");
+    /** A player about to respawn after dying. */
+    public static final EventSource RESPAWN = core("respawn");
+    /**
+     * An item picked up from the ground. Raised every tick for each item lying next to a player, so it is a source of
+     * its own, apart from {@link #ITEM_DROP}: a flag about drops never puts the pickup listener on the server.
+     */
+    public static final EventSource ITEM_PICKUP = core("item-pickup");
+    /** An item a player throws on the ground. */
+    public static final EventSource ITEM_DROP = core("item-drop");
+    /** A vehicle - minecart, boat - placed, broken or entered. */
+    public static final EventSource VEHICLE = core("vehicle");
+    /** Fire spreading to a block on its own, apart from {@link #PLACE}: fire lit by someone or by lava is a PLACE. */
+    public static final EventSource FIRE_SPREAD = core("fire-spread");
     public static final EventSource TICK = core("tick");
     public static final EventSource NONE = core("none");
 

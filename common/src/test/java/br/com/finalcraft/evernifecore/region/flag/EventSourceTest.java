@@ -46,7 +46,8 @@ class EventSourceTest {
     }
 
     private static final List<EventSource> CORE = Arrays.asList(EventSource.MOVE, EventSource.BREAK, EventSource.PLACE,
-            EventSource.INTERACT, EventSource.DAMAGE, EventSource.SPAWN, EventSource.TICK, EventSource.NONE);
+            EventSource.INTERACT, EventSource.DAMAGE, EventSource.SPAWN, EventSource.EXPLOSION, EventSource.FLUID, EventSource.RESPAWN,
+            EventSource.ITEM_PICKUP, EventSource.ITEM_DROP, EventSource.VEHICLE, EventSource.FIRE_SPREAD, EventSource.TICK, EventSource.NONE);
 
     @Test
     void theCoreSourcesBelongToTheCore() {
@@ -56,6 +57,11 @@ class EventSourceTest {
             assertEquals("evernifecore:" + source.getName(), source.toString());
         }
         assertEquals("evernifecore:move", EventSource.MOVE.toString());
+        assertEquals("evernifecore:respawn", EventSource.RESPAWN.toString());
+        assertEquals("evernifecore:item-pickup", EventSource.ITEM_PICKUP.toString());
+        assertEquals("evernifecore:item-drop", EventSource.ITEM_DROP.toString());
+        assertEquals("evernifecore:vehicle", EventSource.VEHICLE.toString());
+        assertEquals("evernifecore:fire-spread", EventSource.FIRE_SPREAD.toString());
     }
 
     @Test
