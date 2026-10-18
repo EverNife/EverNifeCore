@@ -42,6 +42,8 @@ public final class TestPlayerState implements IPlayerStateAccess {
         public volatile double health = 20;
         public volatile double maxHealth = 20;
         public volatile int food = 20;
+        /** The share of a damage that armor absorbs, 0 to 1; a damage that ignores armor skips it. */
+        public volatile double armor;
     }
 
     private static final List<String> WEATHERS = Arrays.asList(CLEAR, RAIN, "thunder");
@@ -197,9 +199,9 @@ public final class TestPlayerState implements IPlayerStateAccess {
     }
 
     @Override
-    public void damage(FPlayer player, double amount) {
+    public void damage(FPlayer player, double amount, boolean ignoreArmor) {
         State state = require(Capability.HEALTH, player);
-        state.health = Math.max(0, state.health - amount);
+        state.health = Math.max(0, state.health - (ignoreArmor ? amount : amount * (1 - state.armor)));
     }
 
     @Override

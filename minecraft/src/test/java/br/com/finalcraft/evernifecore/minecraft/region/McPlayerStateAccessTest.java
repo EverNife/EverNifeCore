@@ -120,11 +120,13 @@ class McPlayerStateAccessTest {
     }
 
     @Test
-    void healthIsClampedAndDamageLowersIt() {
+    void healthIsClampedAndDamageGoesThroughArmorUnlessItIgnoresIt() {
         access.setHealth(player, 50);
         assertEquals(20.0, access.getHealth(player));
-        access.damage(player, 4);
-        assertEquals(16.0, access.getHealth(player));
+        access.damage(player, 4, false);
+        assertEquals(18.0, access.getHealth(player), "Player.damage: the double's armor took half");
+        access.damage(player, 4, true);
+        assertEquals(14.0, access.getHealth(player), "ignoring armor lowers the health by the whole amount");
         assertEquals(20.0, access.getMaxHealth(player));
     }
 

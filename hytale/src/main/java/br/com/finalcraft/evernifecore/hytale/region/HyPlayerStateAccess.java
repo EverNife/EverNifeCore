@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.hytale.region;
 
+import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
+import com.hypixel.hytale.server.core.modules.entity.damage.DamageCause;
+import com.hypixel.hytale.server.core.modules.entity.damage.DamageSystems;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
@@ -97,6 +100,9 @@ public final class HyPlayerStateAccess implements IPlayerStateAccess {
         float maxHealth(FPlayer player);
 
         void setHealth(FPlayer player, float health);
+
+        /** Damage as the environment deals it, through {@code DamageSystems.executeDamage}. */
+        void damage(FPlayer player, float amount);
 
         boolean command(@Nullable FPlayer asPlayer, String command);
     }
@@ -294,11 +300,14 @@ public final class HyPlayerStateAccess implements IPlayerStateAccess {
         ops.setHealth(player, (float) Math.max(0, Math.min(ops.maxHealth(player), health)));
     }
 
-    // ponytail: lowers the health stat, skipping armor and the damage event; route through the damage systems if a
-    // region ever needs armor to count
+    /** Through the server's damage systems (armor, the damage event, death), or the health stat straight with {@code ignoreArmor}. */
     @Override
-    public void damage(FPlayer player, double amount) {
-        setHealth(player, ops.health(player) - amount);
+    public void damage(FPlayer player, double amount, boolean ignoreArmor) {
+        if (ignoreArmor) {
+            setHealth(player, ops.health(player) - amount);
+        } else {
+            ops.damage(player, (float) amount);
+        }
     }
 
     // ---- COMMAND ----
@@ -425,6 +434,12 @@ public final class HyPlayerStateAccess implements IPlayerStateAccess {
         @Override
         public float maxHealth(FPlayer player) {
             return healthOf(player).getMax();
+        }
+
+        @Override
+        public void damage(FPlayer player, float amount) {
+            Ref<EntityStore> ref = ref(player);
+            DamageSystems.executeDamage(ref, ref.getStore(), new Damage(new Damage.EnvironmentSource("region"), DamageCause.ENVIRONMENT, amount));
         }
 
         @Override

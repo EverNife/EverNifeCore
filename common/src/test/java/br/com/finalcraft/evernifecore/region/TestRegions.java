@@ -1,5 +1,15 @@
 package br.com.finalcraft.evernifecore.region;
 
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.region.flag.AmountEvery;
+import br.com.finalcraft.evernifecore.region.flag.EffectLevel;
+import br.com.finalcraft.evernifecore.region.flag.FlagTypes;
+import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
+import br.com.finalcraft.evernifecore.region.flag.core.TimeLock;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
@@ -28,6 +38,36 @@ public final class TestRegions {
     }
 
     /** A 0..10 box in {@code world}, not indexed. */
+    /**
+     * Two distinct values of {@code flag}'s type, for a flag that keeps the first of a tie: a test over the whole catalog
+     * sets them on two tied regions.
+     */
+    public static List<Object> twoValues(RegionFlag<?> flag) {
+        Class<?> type = flag.getType().getValueType();
+        if (type == WorldLocPos.class) {
+            return Arrays.asList(WorldLocPos.of(1, 2, 3, "world"), WorldLocPos.of(4, 5, 6, "world"));
+        }
+        if (type == AmountEvery.class) {
+            return Arrays.asList(AmountEvery.of(1, Duration.ofSeconds(5)), AmountEvery.of(2, Duration.ofSeconds(5)));
+        }
+        if (type == TimeLock.class) {
+            return Arrays.asList(new TimeLock(TimeLock.TimeOfDay.DAY, false), new TimeLock(TimeLock.TimeOfDay.NIGHT, false));
+        }
+        if (type.isEnum()) {
+            return Arrays.asList(type.getEnumConstants()[0], type.getEnumConstants()[1]);
+        }
+        if (flag.getType() == FlagTypes.EFFECT_LIST) {
+            return Arrays.asList(Collections.singletonList(EffectLevel.of("speed", 1)), Collections.singletonList(EffectLevel.of("haste", 2)));
+        }
+        if (List.class.isAssignableFrom(type)) {
+            return Arrays.asList(Collections.singletonList("say one"), Collections.singletonList("say two"));
+        }
+        if (flag.getType() == FlagTypes.WEATHER) {
+            return Arrays.asList("clear", "rain");
+        }
+        return Arrays.asList("first", "second");
+    }
+
     public static Region create(ECPluginData owner, String name, String world) {
         return create(owner, name, world, CuboidShape.of(BlockPos.of(0, 0, 0), BlockPos.of(10, 10, 10)));
     }

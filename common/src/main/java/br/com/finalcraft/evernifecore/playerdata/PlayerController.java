@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.playerdata;
 
+import br.com.finalcraft.evernifecore.region.playerstate.PlayerStateBackup;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
@@ -722,6 +723,15 @@ public class PlayerController {
         if (!REGISTERED_ACCOUNT_SECTIONS.containsKey(PlayerCooldownsNetwork.class)){
             PlayerController.registerAccountSectionCfg(AccountSectionConfiguration
                 .builder(EverNifeCore.getEcPluginData(), PlayerCooldownsNetwork.class, "cooldowns")
+                .build());
+        }
+
+        //ONLINE: a session flag reads it synchronously on the player's join, to give back what a server stop left applied
+        if (!REGISTERED_SECTIONS.containsKey(PlayerStateBackup.class)){
+            PlayerController.registerPDSectionCfg(PDSectionConfiguration
+                .builder(EverNifeCore.getEcPluginData(), PlayerStateBackup.class, PlayerStateBackup.SECTION_ID)
+                .lifecycle(SectionLifecycle.ONLINE)
+                .description("What the region session flags changed on a player, to give it back")
                 .build());
         }
 

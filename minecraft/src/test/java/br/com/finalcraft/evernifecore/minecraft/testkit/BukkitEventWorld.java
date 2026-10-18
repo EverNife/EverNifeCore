@@ -368,7 +368,8 @@ public final class BukkitEventWorld implements AutoCloseable {
                 .on("getHealth", args -> state.getOrDefault("health", 20.0))
                 .on("getMaxHealth", args -> 20.0)
                 .on("setHealth", args -> state.put("health", args[0]))
-                .on("damage", args -> state.put("health", Math.max(0, (Double) state.getOrDefault("health", 20.0) - (Double) args[0])))
+                //every player wears armor that absorbs half of a damage dealt the game's way
+                .on("damage", args -> state.put("health", Math.max(0, (Double) state.getOrDefault("health", 20.0) - (Double) args[0] / 2)))
                 .on("getFoodLevel", args -> state.getOrDefault("food", 20))
                 .on("setFoodLevel", args -> state.put("food", args[0]))
                 .build();

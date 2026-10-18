@@ -244,8 +244,12 @@ public final class McPlayerStateAccess implements IPlayerStateAccess {
     }
 
     @Override
-    public void damage(FPlayer player, double amount) {
-        bukkit(player).damage(amount);
+    public void damage(FPlayer player, double amount, boolean ignoreArmor) {
+        if (ignoreArmor) {
+            setHealth(player, getHealth(player) - amount);
+        } else {
+            bukkit(player).damage(amount);
+        }
     }
 
     // ---- FOOD ----

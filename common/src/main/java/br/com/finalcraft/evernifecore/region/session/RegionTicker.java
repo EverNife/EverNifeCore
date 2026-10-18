@@ -137,7 +137,7 @@ public final class RegionTicker {
     private <T> void tickFlag(FPlayer player, RegionPlayerSession session, RegionFlag<T> flag) {
         Resolution<T> resolution = lookup.resolution(flag, session.getCurrent(), player);
         if (resolution.getSource() != null && resolution.getValue() != null) {
-            ((TickingFlag<T>) flag).onTick(new SessionContext(player, resolution.getSource()), resolution.getValue());
+            ((TickingFlag<T>) flag).onTick(new SessionContext(player, resolution.getSource(), session), resolution.getValue());
         }
     }
 }

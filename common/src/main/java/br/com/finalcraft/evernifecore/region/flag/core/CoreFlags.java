@@ -76,6 +76,23 @@ public final class CoreFlags {
     public static DenyFireSpreadFlag DENY_FIRE_SPREAD = new DenyFireSpreadFlag();
     public static DenyFluidFlowFlag DENY_FLUID_FLOW = new DenyFluidFlowFlag();
     public static DenyDamageFromMobsFlag DENY_DAMAGE_FROM_MOBS = new DenyDamageFromMobsFlag();
+    public static TimeLockFlag TIME_LOCK = new TimeLockFlag();
+    public static WeatherLockFlag WEATHER_LOCK = new WeatherLockFlag();
+    public static GameModeFlag GAME_MODE = new GameModeFlag();
+    public static FlightFlag ALLOW_FLY = FlightFlag.allowFly();
+    public static FlightFlag FORCE_FLY = FlightFlag.forceFly();
+    public static PotionEffectsFlag POTION_EFFECTS = new PotionEffectsFlag();
+    public static CommandFlag COMMAND_ON_ENTER = CommandFlag.onEnter();
+    public static CommandFlag COMMAND_ON_EXIT = CommandFlag.onExit();
+    public static AmountEveryFlag HEAL = new AmountEveryFlag("heal", AmountEveryFlag.Effect.HEAL,
+            "Heals whoever stands in the region by the amount once per interval (2 every 5s), up to full health.");
+    public static AmountEveryFlag FEED = new AmountEveryFlag("feed", AmountEveryFlag.Effect.FEED,
+            "Feeds whoever stands in the region by the amount once per interval (2 every 5s), up to a full bar.");
+    public static AmountEveryFlag DAMAGE_OVER_TIME = new AmountEveryFlag("damage-over-time", AmountEveryFlag.Effect.DAMAGE,
+            "Damages whoever stands in the region by the amount once per interval (2 every 5s); armor counts unless ignore-armor"
+                    + " is set in the settings.");
+    public static AmountEveryFlag HUNGER_OVER_TIME = new AmountEveryFlag("hunger-over-time", AmountEveryFlag.Effect.HUNGER,
+            "Takes the amount of food from whoever stands in the region once per interval (2 every 5s).");
 
     private CoreFlags() {
     }
@@ -88,7 +105,8 @@ public final class CoreFlags {
                 DENY_INTERACT_BLOCKS, DENY_INTERACT_ENTITIES, DENY_ENTRY, DENY_EXIT, DENY_TELEPORT_IN, DENY_TELEPORT_OUT,
                 DENY_SPAWN, DENY_SPAWN_MONSTER, DENY_SPAWN_ANIMAL, DENY_ITEM_PICKUP, DENY_ITEM_DROP, DENY_VEHICLE, DENY_VEHICLE_PLACE,
                 DENY_VEHICLE_BREAK, DENY_VEHICLE_ENTER, DENY_ENTRY_WITH_MESSAGE, GREETING, FAREWELL, DENY_MESSAGE, TELEPORT_POINT,
-                SPAWN_POINT, TRACK_CHANGES);
+                SPAWN_POINT, TRACK_CHANGES, TIME_LOCK, WEATHER_LOCK, GAME_MODE, ALLOW_FLY, FORCE_FLY, POTION_EFFECTS, COMMAND_ON_ENTER,
+                COMMAND_ON_EXIT, HEAL, FEED, DAMAGE_OVER_TIME, HUNGER_OVER_TIME);
     }
 
     /** Registers every core flag under {@code owner} - EverNifeCore's own plugin data. */

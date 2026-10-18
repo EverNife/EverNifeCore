@@ -185,6 +185,7 @@ public final class RegionMovementTracker {
         postCrossings(player, null, at, MoveCause.JOIN, Collections.emptyList(), next, null);
         session.commit(next, at, lookup.getSnapshotVersion(at.getWorldName()));
         sessionFlags.apply(player, session, SessionFlags.Trigger.BOUNDARY);
+        session.getHeldState().restoreLeftovers(player); //what a server stop left applied, and no region here holds
         return expelFoundInside(player, session, at, MoveCause.JOIN, next);
     }
 

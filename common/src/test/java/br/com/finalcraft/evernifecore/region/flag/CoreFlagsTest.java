@@ -58,7 +58,10 @@ class CoreFlagsTest {
             CATALOG.put(name, "tristate-true");
         }
         CATALOG.put("deny-entry-with-message", "denied-true");
-        for (String name : Arrays.asList("greeting", "farewell", "deny-message", "teleport-point", "spawn-point")) {
+        CATALOG.put("allow-fly", "tristate-false-open");
+        CATALOG.put("force-fly", "tristate-true-open");
+        for (String name : Arrays.asList("greeting", "farewell", "deny-message", "teleport-point", "spawn-point", "time-lock", "weather-lock",
+                "game-mode", "potion-effects", "command-on-enter", "command-on-exit", "heal", "feed", "damage-over-time", "hunger-over-time")) {
             CATALOG.put(name, "first");
         }
     }
@@ -76,7 +79,7 @@ class CoreFlagsTest {
     void tearDown() {
         try {
             assertTrue(iterated >= 18, "the tie test must have run over the whole catalog, ran " + iterated);
-            assertEquals(38, iterated, "the catalog holds 38 flags");
+            assertEquals(50, iterated, "the catalog holds 50 flags");
         } finally {
             FlagRegistry.get().reset();
             Plugins.forget(CORE);
@@ -117,6 +120,12 @@ class CoreFlagsTest {
             assertEquals(Tristate.TRUE, tristate.resolveTie(Arrays.asList(Tristate.FALSE, Tristate.TRUE)));
             assertEquals(Tristate.TRUE, tristate.resolveTie(Arrays.asList(Tristate.TRUE, Tristate.FALSE)));
             assertEquals(Tristate.FALSE, tristate.getDefault());
+        } else if ("tristate-false-open".equals(expectation) || "tristate-true-open".equals(expectation)) {
+            Tristate winner = expectation.startsWith("tristate-true") ? Tristate.TRUE : Tristate.FALSE;
+            RegionFlag<Tristate> tristate = (RegionFlag<Tristate>) flag;
+            assertEquals(winner, tristate.resolveTie(Arrays.asList(Tristate.FALSE, Tristate.TRUE)));
+            assertEquals(winner, tristate.resolveTie(Arrays.asList(Tristate.TRUE, Tristate.FALSE)));
+            assertEquals(Tristate.UNDEFINED, tristate.getDefault(), "where no region defines it, it holds nothing");
         } else if ("denied-true".equals(expectation)) {
             RegionFlag<DenyEntryMessage> hybrid = (RegionFlag<DenyEntryMessage>) flag;
             DenyEntryMessage open = new DenyEntryMessage(Tristate.FALSE, "welcome");
@@ -124,9 +133,7 @@ class CoreFlagsTest {
             assertEquals(closed, hybrid.resolveTie(Arrays.asList(open, closed)));
             assertEquals(open, hybrid.resolveTie(Arrays.asList(open, new DenyEntryMessage(Tristate.UNDEFINED, null))));
         } else if ("first".equals(expectation)) {
-            List<Object> values = flag.getType().getValueType() == WorldLocPos.class
-                    ? Arrays.asList(WorldLocPos.of(1, 2, 3, "a"), WorldLocPos.of(4, 5, 6, "b"))
-                    : Arrays.asList("one", "two");
+            List<Object> values = TestRegions.twoValues(flag);
             assertEquals(values.get(0), ((RegionFlag<Object>) flag).resolveTie(values));
         } else {
             throw new AssertionError("Flag " + flag.getKey() + " is not in the catalog");
@@ -168,7 +175,7 @@ class CoreFlagsTest {
     @Test
     void everyCoreFlagIsAStaticInstanceRegisteredUnderTheCore() {
         List<RegionFlag<?>> all = CoreFlags.all();
-        assertTrue(all.size() >= 38, "the catalog holds at least 38 flags, has " + all.size());
+        assertTrue(all.size() >= 50, "the catalog holds at least 50 flags, has " + all.size());
         for (RegionFlag<?> flag : all) {
             assertTrue(flag.isRegistered(), flag.getKey().toString());
             assertSame(core, flag.getOwner(), flag.getKey().toString());
@@ -225,9 +232,27 @@ class CoreFlagsTest {
     }
 
     @Test
+    void theSessionAndTimeFlagsAreInTheCore() {
+        for (String key : Arrays.asList("time-lock", "weather-lock", "allow-fly", "force-fly", "game-mode", "potion-effects", "command-on-enter",
+                "command-on-exit", "heal", "feed", "damage-over-time", "hunger-over-time")) {
+            RegionFlag<?> flag = FlagRegistry.get().find("evernifecore:" + key).orElseThrow(() -> new AssertionError(key + " is not registered"));
+            assertSame(core, flag.getOwner(), key);
+            assertEquals(FlagCategory.SESSION, flag.getCategory(), key);
+            assertFalse(flag.getNeededCapabilities().isEmpty(), key + " names what it changes on a player");
+        }
+        assertSame(CoreFlags.TIME_LOCK, FlagRegistry.get().find("evernifecore:time-lock").get());
+        assertTrue(CoreFlags.FORCE_FLY.getNeeds().contains(EventSource.FLIGHT_TOGGLE));
+        assertFalse(CoreFlags.ALLOW_FLY.getNeeds().contains(EventSource.FLIGHT_TOGGLE), "only force-fly hears the flight toggle");
+        for (RegionFlag<?> timed : Arrays.asList(CoreFlags.HEAL, CoreFlags.FEED, CoreFlags.DAMAGE_OVER_TIME, CoreFlags.HUNGER_OVER_TIME,
+                CoreFlags.POTION_EFFECTS)) {
+            assertTrue(timed.getNeeds().contains(EventSource.TICK), timed.getKey().toString());
+        }
+    }
+
+    @Test
     void onlyTheMovementDenialsAndTheBlockBreakStartWithATriggerInterval() {
         List<RegionFlag<?>> all = CoreFlags.all();
-        assertTrue(all.size() >= 38, "the catalog holds at least 38 flags, has " + all.size());
+        assertTrue(all.size() >= 50, "the catalog holds at least 50 flags, has " + all.size());
         TreeSet<String> paced = new TreeSet<>();
         for (RegionFlag<?> flag : all) {
             Duration floor = flag.getDefaultTriggerInterval();

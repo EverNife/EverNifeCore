@@ -39,6 +39,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
@@ -275,6 +276,47 @@ class RegionListenersTest {
             }
         } finally {
             EventSourceUsage.get().setIdleTime(idleTime);
+        }
+    }
+
+    @Test
+    void theFlightToggleListenerFollowsForceFlyAndAllowFlyAloneLeavesItOff() {
+        Duration idleTime = EventSourceUsage.get().getIdleTime();
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            RegionListeners bridge = RegionListeners.start(server.server.getPluginData());
+            try {
+                EventSourceUsage.get().setIdleTime(Duration.ZERO);
+                server.flag(CoreFlags.ALLOW_FLY);
+                server.flag(CoreFlags.FORCE_FLY);
+                assertFollows(server, PlayerToggleFlightEvent.getHandlerList(), RegionFlightToggleListener.class, CoreFlags.FORCE_FLY,
+                        region -> region.setFlag(CoreFlags.FORCE_FLY, Tristate.TRUE));
+
+                server.box("sky", 0, 0, 0, 10, 10, 10).setFlag(CoreFlags.ALLOW_FLY, Tristate.TRUE);
+                assertFalse(isRegistered(PlayerToggleFlightEvent.getHandlerList(), RegionFlightToggleListener.class),
+                        "a region with allow-fly alone never hears the flight toggle");
+            } finally {
+                bridge.stop();
+            }
+        } finally {
+            EventSourceUsage.get().setIdleTime(idleTime);
+        }
+    }
+
+    @Test
+    void forceFlyCancelsLandingInsideOnly() {
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            RegionListeners bridge = RegionListeners.start(server.server.getPluginData());
+            try {
+                server.flag(CoreFlags.FORCE_FLY);
+                server.box("sky", 0, 0, 0, 10, 10, 10).setFlag(CoreFlags.FORCE_FLY, Tristate.TRUE);
+                Player inside = server.player("inside", 5, 5, 5);
+                Player outside = server.player("outside", 50, 5, 5);
+                assertTrue(server.call(new PlayerToggleFlightEvent(inside, false)).isCancelled(), "landing inside force-fly is cancelled");
+                assertFalse(server.call(new PlayerToggleFlightEvent(inside, true)).isCancelled(), "taking off is never cancelled");
+                assertFalse(server.call(new PlayerToggleFlightEvent(outside, false)).isCancelled(), "outside the region one lands");
+            } finally {
+                bridge.stop();
+            }
         }
     }
 

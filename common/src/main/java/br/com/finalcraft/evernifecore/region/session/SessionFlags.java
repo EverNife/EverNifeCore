@@ -95,30 +95,30 @@ final class SessionFlags {
         }
         if (applied == null) {
             session.setApplied(key, value, source);
-            flag.onEnter(new SessionContext(player, source), value);
+            flag.onEnter(new SessionContext(player, source, session), value);
             notifyHandler(player, source, flag, value, FlagOutcome.APPLIED, resolution.getReason());
         } else if (value == null) {
             session.setApplied(key, null, null);
-            flag.onLeave(new SessionContext(player, appliedSource), applied);
+            flag.onLeave(new SessionContext(player, appliedSource, session), applied);
             notifyHandler(player, appliedSource, flag, applied, FlagOutcome.REMOVED, resolution.getReason());
         } else if (revalidateSame || !applied.equals(value)) {
             session.setApplied(key, value, source);
-            flag.onRevalidate(new SessionContext(player, source), applied, value);
+            flag.onRevalidate(new SessionContext(player, source, session), applied, value);
             if (!applied.equals(value)) {
                 notifyHandler(player, source, flag, value, FlagOutcome.APPLIED, resolution.getReason());
             }
         }
-        session.setNextRevalidation(key, value == null ? null : nextCheck(player, flag, source, now));
+        session.setNextRevalidation(key, value == null ? null : nextCheck(player, session, flag, source, now));
     }
 
-    private static @Nullable Instant nextCheck(FPlayer player, RegionFlag<?> flag, Region source, Instant now) {
+    private static @Nullable Instant nextCheck(FPlayer player, RegionPlayerSession session, RegionFlag<?> flag, Region source, Instant now) {
         Revalidation revalidation = flag.getRevalidation();
         switch (revalidation.getType()) {
             case INTERVAL:
                 Duration override = source.getEffectiveFlagSettings(flag).getRevalidationInterval();
                 return now.plus(override != null ? override : revalidation.getInterval());
             case CUSTOM:
-                return revalidation.nextCheckAt(new SessionContext(player, source));
+                return revalidation.nextCheckAt(new SessionContext(player, source, session));
             default:
                 return null;
         }
@@ -132,14 +132,14 @@ final class SessionFlags {
             session.setApplied(entry.getKey(), null, null);
             session.setNextRevalidation(entry.getKey(), null);
             if (flag != null && source != null) {
-                leave(player, flag, source, entry.getValue());
+                leave(player, session, flag, source, entry.getValue());
             }
         }
     }
 
     @SuppressWarnings("unchecked")
-    private <T> void leave(FPlayer player, RegionFlag<T> flag, Region source, Object lastValue) {
-        flag.onLeave(new SessionContext(player, source), (T) lastValue);
+    private <T> void leave(FPlayer player, RegionPlayerSession session, RegionFlag<T> flag, Region source, Object lastValue) {
+        flag.onLeave(new SessionContext(player, source, session), (T) lastValue);
         notifyHandler(player, source, flag, lastValue, FlagOutcome.REMOVED, Resolution.Reason.DEFAULT);
     }
 

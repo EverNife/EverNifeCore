@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.hytale.region;
 
+import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;
+import java.util.TreeSet;
+import java.util.Set;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.Region;
@@ -303,15 +306,22 @@ class HyRegionSystemsTest {
         }
         try {
             FlagRegistry.get().setServedSources(HyRegionSystems.SERVED_SOURCES);
+            FlagRegistry.get().setMissingCapabilities(HyPlatform.PLAYER_STATE.getUnsupported());
             List<String> lines = new ArrayList<>();
+            Set<String> lackingCapability = new TreeSet<>();
             for (RegionFlag<?> flag : CoreFlags.all()) {
                 String line = FlagRegistry.get().describeWithoutEffect(flag);
                 boolean served = HyRegionSystems.SERVED_SOURCES.containsAll(flag.getNeeds()) || flag.getNeeds().equals(Collections.singleton(EventSource.NONE));
+                boolean capable = FlagRegistry.get().getMissingCapabilities(flag).isEmpty();
                 if (line == null) {
-                    assertTrue(served, flag.getKey() + " has no System here and must say so");
+                    assertTrue(served && capable, flag.getKey() + " has no effect here and must say so");
                     continue;
                 }
-                assertFalse(served, flag.getKey() + " has a System here and must stay silent: " + line);
+                assertFalse(served && capable, flag.getKey() + " has its effect here and must stay silent: " + line);
+                if (served) {
+                    lackingCapability.add(flag.getKey().getName());
+                    assertTrue(line.contains("which this server cannot"), line);
+                }
                 assertTrue(line.startsWith("Flag " + flag.getKey() + " has no effect"), line);
                 lines.add(line);
             }
@@ -320,8 +330,13 @@ class HyRegionSystemsTest {
                     "deny-explosion")) {
                 assertTrue(lines.stream().anyMatch(line -> line.startsWith("Flag evernifecore:" + key + " ")), key + " in " + lines);
             }
+            assertEquals(new TreeSet<>(Arrays.asList("weather-lock", "feed", "hunger-over-time")), lackingCapability,
+                    "Hytale has no player weather it can give back and no food");
+            assertTrue(lines.stream().anyMatch(line -> line.startsWith("Flag evernifecore:force-fly ") && line.contains("flight-toggle")),
+                    "force-fly cannot keep a player from landing here: " + lines);
         } finally {
             FlagRegistry.get().setServedSources(null);
+            FlagRegistry.get().setMissingCapabilities(Collections.emptyList());
         }
     }
 }

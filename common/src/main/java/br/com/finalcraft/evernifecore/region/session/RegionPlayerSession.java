@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.region.session;
 
+import br.com.finalcraft.evernifecore.region.playerstate.HeldPlayerState;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
@@ -46,10 +47,17 @@ public final class RegionPlayerSession {
     private final ConcurrentHashMap<AccessGroup, Cached> memberships = new ConcurrentHashMap<>();
     //bumped whenever the set of regions the player is in changes; a cached answer from an older epoch is stale
     private volatile long boundaryEpoch;
+    private final HeldPlayerState heldState;
 
     /** Internal: sessions are made by {@code RegionLookup.getSession(player)}. */
     public RegionPlayerSession(UUID player) {
         this.player = Objects.requireNonNull(player, "player");
+        this.heldState = new HeldPlayerState(player);
+    }
+
+    /** What the session flags changed on the player and what to give back, slot by slot. */
+    public HeldPlayerState getHeldState() {
+        return heldState;
     }
 
     public UUID getPlayer() {

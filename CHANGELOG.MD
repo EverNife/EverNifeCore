@@ -21,6 +21,23 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 
 ### Added
 
+- **Session and time flags in the core** (12): `time-lock` (from FinalProtection, `TimeLock` + `TimeLockSettings`),
+  `weather-lock` (`clear`, `rain` or a weather id of the server - `FlagTypes.WEATHER`; an unknown id stays raw),
+  `allow-fly` and `force-fly` (`FlightFlag`, default `UNDEFINED`; `force-fly = TRUE` wins and cancels landing through the
+  new `EventSource.FLIGHT_TOGGLE` and the Bukkit `RegionFlightToggleListener`; `allow-fly = FALSE` grounds all but a
+  spectator), `game-mode`, `potion-effects` (renewed by the region tick; on the way out only what it gave is taken),
+  `command-on-enter` / `command-on-exit` (`player:` / `console:` per line, placeholders resolved), and the timed `heal`,
+  `feed`, `damage-over-time` and `hunger-over-time` (`2 every 5s`; healing and feeding stop at full). `CoreFlags.all()`
+  holds 50. On Hytale `weather-lock`, `feed`, `hunger-over-time` (no capability) and `force-fly` (no flight toggle) warn
+  at boot.
+- **Player state given back** (`region.playerstate.HeldPlayerState`, per movement session): the first flag to change a
+  slot (clock, weather, flight, game mode, one effect) keeps what the player had, the last to let it go writes it back -
+  on leaving, on quitting, and, with the flag setting `restore: PERSISTENT` (default; `MEMORY` keeps it only in memory),
+  on the next join after a server stop, through the core's `PlayerStateBackup` PDSection (`region_state`).
+  `PlayerStateSettings` carries `restore`; `SessionContext` carries the session it runs in.
+- **`damage-over-time` respects armor** by default - Bukkit `Player.damage`, Hytale `DamageSystems.executeDamage` - and
+  its setting `ignore-armor: true` lowers the health straight. `IPlayerStateAccess.damage(player, amount, ignoreArmor)`
+  replaces `damage(player, amount)`; `TestPlayerState.State.armor` models the armor in tests.
 - **Region tick** (`region.session.RegionTicker`): `EventSource.TICK` is live - one task a second, scheduled only while
   some region holds a `TickingFlag`, that ticks only the players standing in such a region, on their world thread; both
   platforms start it. `RegionFlag.getNeededCapabilities()` and `FlagRegistry.setMissingCapabilities` put a flag that

@@ -133,8 +133,11 @@ public interface IPlayerStateAccess {
         throw unsupported(Capability.HEALTH);
     }
 
-    /** Harms {@code player} as the game would - armor, death and all. */
-    default void damage(FPlayer player, double amount) {
+    /**
+     * Harms {@code player}: as the game would - armor, the damage event, death and all - or, with {@code ignoreArmor}, by
+     * lowering the health straight, down to death.
+     */
+    default void damage(FPlayer player, double amount, boolean ignoreArmor) {
         throw unsupported(Capability.HEALTH);
     }
 

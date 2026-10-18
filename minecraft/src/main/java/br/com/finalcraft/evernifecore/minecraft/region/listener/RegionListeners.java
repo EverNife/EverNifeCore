@@ -51,6 +51,7 @@ public final class RegionListeners {
         bridge.watches.add(follow(owner, EventSource.FLUID, bridge.own(new RegionFluidListener()), null));
         bridge.watches.add(follow(owner, EventSource.FIRE_SPREAD, bridge.own(new RegionFireSpreadListener()), null));
         bridge.watches.add(follow(owner, EventSource.RESPAWN, bridge.own(new RegionRespawnListener()), null));
+        bridge.watches.add(follow(owner, EventSource.FLIGHT_TOGGLE, bridge.own(new RegionFlightToggleListener()), null));
         bridge.watches.add(follow(owner, EventSource.ITEM_DROP, bridge.own(new RegionItemListeners.Drop()), null));
         bridge.watches.add(follow(owner, EventSource.ITEM_PICKUP, bridge.own(MCVersion.isHigherEquals(MCDetailedVersion.v1_12_R1)
                 ? new RegionItemListeners.Pickup() : new RegionItemListeners.LegacyPickup()), null));

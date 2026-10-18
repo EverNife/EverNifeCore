@@ -380,18 +380,15 @@ class RegionResolveTest {
         if (valueType == Tristate.class) {
             first = Tristate.FALSE;
             second = Tristate.TRUE;
-            expected = Tristate.TRUE;
+            expected = stock == CoreFlags.ALLOW_FLY ? Tristate.FALSE : Tristate.TRUE; //allow-fly: the grounding wins
         } else if (valueType == DenyEntryMessage.class) {
             first = new DenyEntryMessage(Tristate.FALSE, "welcome");
             second = new DenyEntryMessage(Tristate.TRUE, "stay out");
             expected = second;
-        } else if (valueType == WorldLocPos.class) {
-            first = WorldLocPos.of(1, 2, 3, WORLD);
-            second = WorldLocPos.of(4, 5, 6, WORLD);
-            expected = first;
         } else {
-            first = "first";
-            second = "second";
+            List<Object> values = TestRegions.twoValues(stock);
+            first = values.get(0);
+            second = values.get(1);
             expected = first;
         }
         RegionFlag<Object> typed = (RegionFlag<Object>) stock;

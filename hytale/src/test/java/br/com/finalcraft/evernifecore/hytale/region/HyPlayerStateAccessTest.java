@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -121,6 +122,13 @@ class HyPlayerStateAccessTest {
             this.health = health;
         }
 
+        final List<Float> damages = new ArrayList<>();
+
+        @Override
+        public void damage(FPlayer player, float amount) {
+            damages.add(amount);
+        }
+
         @Override
         public boolean command(@Nullable FPlayer asPlayer, String command) {
             commands.add((asPlayer == null ? "console" : asPlayer.getName()) + ": " + command);
@@ -187,11 +195,14 @@ class HyPlayerStateAccessTest {
     }
 
     @Test
-    void healthIsTheStatClampedToItsMax() {
+    void healthIsTheStatClampedAndDamageGoesThroughTheDamageSystemsUnlessItIgnoresArmor() {
         access.setHealth(player, 500);
         assertEquals(100.0, access.getHealth(player));
-        access.damage(player, 30);
-        assertEquals(70.0, access.getHealth(player));
+        access.damage(player, 30, true);
+        assertEquals(70.0, access.getHealth(player), "ignoring armor lowers the stat straight");
+        access.damage(player, 10, false);
+        assertEquals(70.0, access.getHealth(player), "the game's way never touches the stat itself");
+        assertEquals(Collections.singletonList(10f), ops.damages, "it goes to the server's damage systems");
     }
 
     @Test

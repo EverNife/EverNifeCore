@@ -45,6 +45,11 @@ public final class EventSource {
     public static final EventSource VEHICLE = core("vehicle");
     /** Fire spreading to a block on its own, apart from {@link #PLACE}: fire lit by someone or by lava is a PLACE. */
     public static final EventSource FIRE_SPREAD = core("fire-spread");
+    /**
+     * A player starting or stopping flight. Only {@code force-fly} needs it, to keep the player from landing; a flag that
+     * merely allows or denies flight changes it on entering and never hears the toggle.
+     */
+    public static final EventSource FLIGHT_TOGGLE = core("flight-toggle");
     public static final EventSource TICK = core("tick");
     public static final EventSource NONE = core("none");
 

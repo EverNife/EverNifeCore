@@ -1,7 +1,9 @@
 package br.com.finalcraft.evernifecore.region.flag;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.region.playerstate.IPlayerStateAccess;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -55,6 +57,14 @@ public final class FlagTypes {
     public static final FlagType<EffectLevel> EFFECT = new ScalarType<>("effect", EffectLevel.class,
             "effect:level with the platform's effect id, the level 1 when left out, e.g. speed:2", EffectLevel::parse,
             EffectLevel::toString, Collections.emptyList());
+
+    /**
+     * A weather the platform knows ({@link IPlayerStateAccess#toWeatherId}): {@code clear}, {@code rain} or one of its own
+     * ids. One it does not know is not a value - stored, it stays raw like any value that does not parse.
+     */
+    public static final FlagType<String> WEATHER = new ScalarType<>("weather", String.class, "clear, rain or a weather id of this server",
+            text -> EverNifeCore.getPlatform().getPlayerState().toWeatherId(text), value -> value,
+            Arrays.asList(IPlayerStateAccess.CLEAR, IPlayerStateAccess.RAIN));
 
     /** Lines of text, typed separated by {@code ;} - {@code console:say hi; player:spawn}. */
     public static final FlagType<List<String>> TEXT_LIST = listOf(TEXT, ";");
