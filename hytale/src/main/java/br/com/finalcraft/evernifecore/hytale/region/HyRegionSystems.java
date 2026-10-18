@@ -10,10 +10,12 @@ import br.com.finalcraft.evernifecore.region.actor.Actor;
 import br.com.finalcraft.evernifecore.region.actor.TypeKey;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.context.BlockContext;
 import br.com.finalcraft.evernifecore.region.flag.context.DamageContext;
 import br.com.finalcraft.evernifecore.region.flag.context.EntityContext;
+import br.com.finalcraft.evernifecore.region.flag.context.ItemContext;
 import br.com.finalcraft.evernifecore.region.flag.context.SpawnContext;
 import br.com.finalcraft.evernifecore.region.selection.SelectionClick;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
@@ -49,6 +51,8 @@ import com.hypixel.hytale.server.core.entity.InteractionContext;
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.DamageBlockEvent;
+import com.hypixel.hytale.server.core.event.events.ecs.DropItemEvent;
+import com.hypixel.hytale.server.core.event.events.ecs.InteractivelyPickupItemEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.PlaceBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.UseBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.UseEntityEvent;
@@ -67,7 +71,9 @@ import jakarta.annotation.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3i;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -83,11 +89,17 @@ import java.util.function.Supplier;
  *
  * <p>0.7.1 fires no explosion event: an explosion reaches the regions only block by block, as a
  * {@link DamageBlockEvent} with no actor, decided as a BREAK by the environment. {@code deny-explosion} has no effect
- * here.</p>
+ * here. {@link #SERVED_SOURCES} are the core sources a System here raises; every flag that needs another one says in
+ * the boot log that it has no effect on Hytale.</p>
  */
 public final class HyRegionSystems {
 
     private static final AtomicBoolean REGISTERED = new AtomicBoolean();
+
+    /** The core sources some System here raises: the ones a flag needs to have an effect on Hytale. */
+    public static final Set<EventSource> SERVED_SOURCES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(EventSource.MOVE,
+            EventSource.BREAK, EventSource.PLACE, EventSource.INTERACT, EventSource.DAMAGE, EventSource.SPAWN, EventSource.ITEM_DROP,
+            EventSource.ITEM_PICKUP)));
     static final HyRegionMoveSystem MOVE = new HyRegionMoveSystem(RegionMovementTracker::get);
 
     private HyRegionSystems() {
@@ -114,10 +126,13 @@ public final class HyRegionSystems {
         registry.registerSystem(new InteractionStartSystem());
         registry.registerSystem(new DamageSystem());
         registry.registerSystem(new SpawnSystem());
+        registry.registerSystem(new ItemDropSystem());
+        registry.registerSystem(new ItemPickupSystem());
         registry.registerSystem(new TerrainBreakSystem());
         registry.registerSystem(new TerrainDamageSystem());
         registry.registerSystem(new TerrainPlaceSystem());
         registry.registerSystem(new TerrainExplosionSystem());
+        FlagRegistry.get().setServedSources(SERVED_SOURCES);
         return true;
     }
 
@@ -143,6 +158,25 @@ public final class HyRegionSystems {
         return judge(EventSource.BREAK, world, event, () -> new BlockContext(EventSource.BREAK,
                 HyRegionContexts.position(world, event.getTargetBlock()), Actor.environment(HyRegionContexts.EXPLOSION), event,
                 HyRegionContexts.key(event.getBlockType()), null));
+    }
+
+    /**
+     * An item the entity at {@code actor} drops or picks up, asked where that entity stands. An event naming no item, or
+     * an entity with no position, is left alone.
+     */
+    static boolean onItem(EventSource source, Ref<EntityStore> actor, Store<EntityStore> store, ICancellableEcsEvent event,
+                          @Nullable ItemStack item) {
+        if (!EventSourceUsage.get().isNeeded(source)) {
+            return false;
+        }
+        TypeKey key = HyRegionContexts.itemKey(item);
+        Vector3d at = key == null ? null : positionOf(actor, store);
+        if (at == null) {
+            return false;
+        }
+        String world = worldOf(store);
+        return judge(source, world, event, () -> new ItemContext(source, HyRegionContexts.position(world, at),
+                HyRegionContexts.actor(actor, store), event, key));
     }
 
     /** What spawns a creature nobody spawned on purpose: the world itself. */
@@ -447,6 +481,31 @@ public final class HyRegionSystems {
                 }
                 onBlock(EventSource.INTERACT, user, store, event, at, HyRegionContexts.key((BlockType) null), context.getHeldItem());
             }
+        }
+    }
+
+    private static final class ItemDropSystem extends ByActor<DropItemEvent.Drop> {
+        ItemDropSystem() {
+            super(DropItemEvent.Drop.class);
+        }
+
+        @Override
+        public void handle(int index, ArchetypeChunk<EntityStore> chunk, Store<EntityStore> store, CommandBuffer<EntityStore> buffer,
+                           DropItemEvent.Drop event) {
+            onItem(EventSource.ITEM_DROP, chunk.getReferenceTo(index), store, event, event.getItemStack());
+        }
+    }
+
+    /** The pickup the player asks for; 0.7.1 raises no event for an item picked up by walking over it. */
+    private static final class ItemPickupSystem extends ByActor<InteractivelyPickupItemEvent> {
+        ItemPickupSystem() {
+            super(InteractivelyPickupItemEvent.class);
+        }
+
+        @Override
+        public void handle(int index, ArchetypeChunk<EntityStore> chunk, Store<EntityStore> store, CommandBuffer<EntityStore> buffer,
+                           InteractivelyPickupItemEvent event) {
+            onItem(EventSource.ITEM_PICKUP, chunk.getReferenceTo(index), store, event, event.getItemStack());
         }
     }
 

@@ -153,6 +153,11 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   `RegionItemListeners` (`Drop`; `Pickup` from 1.12 on `EntityPickupItemEvent`, `LegacyPickup` before on
   `PlayerPickupItemEvent`), `RegionVehicleListeners` (`BreakAndEnter`; `Place` from 1.13 on `EntityPlaceEvent`,
   `LegacyPlace` before on the click of a minecart or boat item) and `RegionFireSpreadListener`.
+- **Hytale item protection**: `deny-item-drop` on `DropItemEvent.Drop` and `deny-item-pickup` on
+  `InteractivelyPickupItemEvent` (0.7.1 raises nothing for an item picked up by walking over it).
+  `HyRegionSystems.SERVED_SOURCES` declares what Hytale raises, and every flag needing anything else - `spawn-point`,
+  the vehicle flags, `deny-fire-spread`, `deny-fluid-flow`, `deny-explosion` - logs at boot, one line each, that it has
+  no effect there.
 
 ### Changed
 

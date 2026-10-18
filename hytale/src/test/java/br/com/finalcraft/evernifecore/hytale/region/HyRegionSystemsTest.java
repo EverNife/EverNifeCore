@@ -10,10 +10,12 @@ import br.com.finalcraft.evernifecore.region.flag.Decision;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
+import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
 import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.context.BlockContext;
+import br.com.finalcraft.evernifecore.region.flag.context.ItemContext;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
@@ -27,6 +29,8 @@ import com.hypixel.hytale.server.core.asset.type.attitude.Attitude;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.DamageBlockEvent;
+import com.hypixel.hytale.server.core.event.events.ecs.DropItemEvent;
+import com.hypixel.hytale.server.core.event.events.ecs.InteractivelyPickupItemEvent;
 import org.joml.Vector3i;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +38,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -227,5 +232,96 @@ class HyRegionSystemsTest {
         assertEquals(TypeKey.of("mymod", "Crystal"), HyRegionContexts.key("mymod:Crystal"), "a namespace the server gives is kept");
         assertEquals(TypeKey.of("hytale", "Unknown"), HyRegionContexts.key((BlockType) null));
         assertNull(HyRegionContexts.itemKey(null), "an empty hand holds nothing");
+    }
+
+    @Test
+    void anItemEventWithItsSourceUnneededReturnsBeforeReadingTheEntity() {
+        regions.cuboid("plain", WORLD, 0, 0, 0, 10, 10, 10);
+        DropItemEvent.Drop drop = new DropItemEvent.Drop(null, 0f);
+        InteractivelyPickupItemEvent pickup = new InteractivelyPickupItemEvent(null);
+
+        //a null entity and store: anything past the gate would throw
+        assertFalse(HyRegionSystems.onItem(EventSource.ITEM_DROP, null, null, drop, null));
+        assertFalse(HyRegionSystems.onItem(EventSource.ITEM_PICKUP, null, null, pickup, null));
+        assertFalse(drop.isCancelled());
+        assertFalse(pickup.isCancelled());
+    }
+
+    @Test
+    void anItemDroppedOrPickedUpInsideItsDenyFlagIsCancelled() {
+        FlagRegistry.get().register(core, CoreFlags.DENY_ITEM_DROP);
+        FlagRegistry.get().register(core, CoreFlags.DENY_ITEM_PICKUP);
+        Region vault = vault(CoreFlags.DENY_ITEM_DROP);
+        vault.setFlag(CoreFlags.DENY_ITEM_PICKUP, Tristate.TRUE);
+        Actor player = HyRegionContexts.actor(miner, null, null, null);
+        TypeKey stick = HyRegionContexts.key("Ingredient_Stick");
+        DropItemEvent.Drop drop = new DropItemEvent.Drop(null, 0f);
+        InteractivelyPickupItemEvent pickup = new InteractivelyPickupItemEvent(null);
+
+        assertTrue(HyRegionSystems.judge(EventSource.ITEM_DROP, WORLD, drop, () -> new ItemContext(EventSource.ITEM_DROP,
+                HyRegionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, drop, stick)));
+        assertTrue(HyRegionSystems.judge(EventSource.ITEM_PICKUP, WORLD, pickup, () -> new ItemContext(EventSource.ITEM_PICKUP,
+                HyRegionContexts.position(WORLD, new Vector3i(5, 5, 5)), player, pickup, stick)));
+        assertTrue(drop.isCancelled());
+        assertTrue(pickup.isCancelled());
+    }
+
+    @Test
+    void theNewFlagsOnTheSpawnDamageAndPlaceSystemsLeaveBeforeBuildingWhileUnneeded() {
+        regions.cuboid("plain", WORLD, 0, 0, 0, 10, 10, 10);
+        for (TristateFlag flag : Arrays.asList(CoreFlags.DENY_SPAWN, CoreFlags.DENY_SPAWN_MONSTER, CoreFlags.DENY_SPAWN_ANIMAL,
+                CoreFlags.DENY_DAMAGE_FROM_MOBS, CoreFlags.DENY_BLOCK_PLACE, CoreFlags.DENY_BLOCK_PLACE_ENVIRONMENT)) {
+            FlagRegistry.get().register(core, flag);
+        }
+        AtomicInteger built = new AtomicInteger();
+
+        assertFalse(HyRegionSystems.spawnDenied(WORLD, () -> {
+            built.incrementAndGet();
+            return null;
+        }));
+        for (EventSource source : Arrays.asList(EventSource.DAMAGE, EventSource.PLACE)) {
+            BreakBlockEvent event = breakEvent(5, 5, 5);
+            assertFalse(HyRegionSystems.judge(source, WORLD, event, () -> {
+                built.incrementAndGet();
+                return null;
+            }));
+        }
+        assertEquals(0, built.get(), "a context was built for a source no region needs");
+
+        Region den = vault(CoreFlags.DENY_SPAWN_MONSTER);
+        assertTrue(EventSourceUsage.get().isNeeded(EventSource.SPAWN), "deny-spawn-monster asks for SPAWN");
+        den.setFlag(CoreFlags.DENY_DAMAGE_FROM_MOBS, Tristate.TRUE);
+        assertTrue(EventSourceUsage.get().isNeeded(EventSource.DAMAGE));
+    }
+
+    @Test
+    void theBootWarnsOncePerFlagWithoutEffectOnHytaleAndNeverForOneWithASystem() {
+        for (RegionFlag<?> flag : CoreFlags.all()) {
+            if (!flag.isRegistered()) {
+                FlagRegistry.get().register(core, flag);
+            }
+        }
+        try {
+            FlagRegistry.get().setServedSources(HyRegionSystems.SERVED_SOURCES);
+            List<String> lines = new ArrayList<>();
+            for (RegionFlag<?> flag : CoreFlags.all()) {
+                String line = FlagRegistry.get().describeWithoutEffect(flag);
+                boolean served = HyRegionSystems.SERVED_SOURCES.containsAll(flag.getNeeds()) || flag.getNeeds().equals(Collections.singleton(EventSource.NONE));
+                if (line == null) {
+                    assertTrue(served, flag.getKey() + " has no System here and must say so");
+                    continue;
+                }
+                assertFalse(served, flag.getKey() + " has a System here and must stay silent: " + line);
+                assertTrue(line.startsWith("Flag " + flag.getKey() + " has no effect"), line);
+                lines.add(line);
+            }
+            assertFalse(lines.isEmpty());
+            for (String key : Arrays.asList("spawn-point", "deny-vehicle", "deny-vehicle-enter", "deny-fire-spread", "deny-fluid-flow",
+                    "deny-explosion")) {
+                assertTrue(lines.stream().anyMatch(line -> line.startsWith("Flag evernifecore:" + key + " ")), key + " in " + lines);
+            }
+        } finally {
+            FlagRegistry.get().setServedSources(null);
+        }
     }
 }
