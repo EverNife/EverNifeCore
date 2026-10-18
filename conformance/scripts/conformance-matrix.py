@@ -171,9 +171,10 @@ def render_flavor_section(r: FlavorResult) -> str:
         out.append("- problem: %s" % p)
     for n in r.notes:
         out.append("- measured: %s" % n)
-    papi = [ev for ev in r.events if ev.get("e") == "test_result" and ev.get("test") == "papi-present"]
-    if papi:
-        out.append("- papi-present: %s" % ("passed" if all(ev.get("ok") for ev in papi) else "FAILED"))
+    for papi_case in ("papi-present", "papi-region-placeholder-by-name"):
+        papi = [ev for ev in r.events if ev.get("e") == "test_result" and ev.get("test") == papi_case]
+        if papi:
+            out.append("- %s: %s" % (papi_case, "passed" if all(ev.get("ok") for ev in papi) else "FAILED"))
     out += ["", "### Suites (passed/failed/skipped)", ""]
     table = suite_table(r.events)
     for suite in _ordered_suites([table]):

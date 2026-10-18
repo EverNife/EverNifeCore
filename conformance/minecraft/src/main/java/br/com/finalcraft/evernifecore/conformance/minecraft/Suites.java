@@ -46,7 +46,7 @@ public final class Suites {
                 new SelectionClickSuite(),
                 new ParticlesSuite(),
                 new TextMetricsSuite(),
-                new HooksSuite(),
+                new HooksSuite(regions, loaded),
                 new NmsSuite(),
                 new RegionsSuite(regions, loaded));
     }
