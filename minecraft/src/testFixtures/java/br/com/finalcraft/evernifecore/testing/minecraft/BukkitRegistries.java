@@ -1,7 +1,11 @@
 package br.com.finalcraft.evernifecore.testing.minecraft;
 
 import org.bukkit.Keyed;
+import org.bukkit.Color;
 import org.bukkit.NamespacedKey;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.potion.PotionEffectTypeCategory;
 import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.enchantments.Enchantment;
@@ -15,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -36,12 +41,16 @@ public final class BukkitRegistries {
 
     private static final Map<NamespacedKey, Enchantment> ENCHANTMENTS = new LinkedHashMap<>();
     private static final Map<NamespacedKey, Sound> SOUNDS = new LinkedHashMap<>();
+    private static final Map<NamespacedKey, PotionEffectType> EFFECTS = new LinkedHashMap<>();
 
     private static final Registry<?> ENCHANTMENT_REGISTRY =
             describedRegistry(BukkitRegistries::mintEnchantment, ENCHANTMENTS.values());
 
     private static final Registry<?> SOUND_REGISTRY =
             describedRegistry(BukkitRegistries::mintSound, SOUNDS.values());
+
+    private static final Registry<?> EFFECT_REGISTRY =
+            describedRegistry(BukkitRegistries::mintEffect, EFFECTS.values());
 
     private static final Registry<?> EMPTY_REGISTRY =
             describedRegistry(key -> null, Collections.<Keyed>emptyList());
@@ -54,6 +63,9 @@ public final class BukkitRegistries {
     public static Registry<?> forType(Class<?> type) {
         if (Enchantment.class.equals(type)) {
             return ENCHANTMENT_REGISTRY;
+        }
+        if (PotionEffectType.class.equals(type)) {
+            return EFFECT_REGISTRY;
         }
         return Sound.class.equals(type) ? SOUND_REGISTRY : EMPTY_REGISTRY;
     }
@@ -95,6 +107,11 @@ public final class BukkitRegistries {
         return minted;
     }
 
+    /** An effect type for any key, so {@code PotionEffectType.getByName} answers whatever a test names. */
+    private static synchronized PotionEffectType mintEffect(NamespacedKey key) {
+        return EFFECTS.computeIfAbsent(key, NamedPotionEffectType::new);
+    }
+
     private static Enchantment mintEnchantment(NamespacedKey key) {
         Enchantment existing = ENCHANTMENTS.get(key);
         if (existing != null) {
@@ -130,6 +147,76 @@ public final class BukkitRegistries {
                         }
                     }
                 });
+    }
+
+    /** An effect type reduced to its key; two of the same key are the same instance. */
+    private static final class NamedPotionEffectType extends PotionEffectType {
+
+        private final NamespacedKey key;
+
+        private NamedPotionEffectType(NamespacedKey key) {
+            this.key = key;
+        }
+
+        @Override
+        public PotionEffect createEffect(int duration, int amplifier) {
+            return new PotionEffect(this, duration, amplifier);
+        }
+
+        @Override
+        public boolean isInstant() {
+            return false;
+        }
+
+        @Override
+        public PotionEffectTypeCategory getCategory() {
+            return PotionEffectTypeCategory.NEUTRAL;
+        }
+
+        @Override
+        public Color getColor() {
+            return Color.WHITE;
+        }
+
+        @Override
+        public NamespacedKey getKey() {
+            return key;
+        }
+
+        @Override
+        public NamespacedKey getKeyOrThrow() {
+            return key;
+        }
+
+        @Override
+        public NamespacedKey getKeyOrNull() {
+            return key;
+        }
+
+        @Override
+        public boolean isRegistered() {
+            return true;
+        }
+
+        @Override
+        public double getDurationModifier() {
+            return 1;
+        }
+
+        @Override
+        public int getId() {
+            return 0;
+        }
+
+        @Override
+        public String getName() {
+            return key.getKey().toUpperCase(Locale.ROOT);
+        }
+
+        @Override
+        public String getTranslationKey() {
+            return "effect." + key.getNamespace() + "." + key.getKey();
+        }
     }
 
     /** The enchantment reduced to what an item-data line needs of it: a key and a level ceiling. */

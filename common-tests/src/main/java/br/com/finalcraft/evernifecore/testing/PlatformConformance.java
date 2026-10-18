@@ -185,6 +185,17 @@ public final class PlatformConformance {
             }
         });
 
+        call(platform, "getPlayerState", failures, new Call<Object>() {
+            @Override
+            public Object run(IPlatform target) {
+                if (target.getPlayerState() == null) {
+                    throw new IllegalStateException("returned null; a platform that can change nothing on a player answers"
+                            + " IPlayerStateAccess.UNSUPPORTED");
+                }
+                return null;
+            }
+        });
+
         call(platform, "runOnMainThread", failures, new Call<Object>() {
             @Override
             public Object run(IPlatform target) {

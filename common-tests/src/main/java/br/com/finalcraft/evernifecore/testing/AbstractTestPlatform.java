@@ -15,6 +15,7 @@ import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.region.playerstate.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 
@@ -191,6 +192,11 @@ public abstract class AbstractTestPlatform implements IPlatform {
     @Override
     public ITerrainAccess getTerrainAccess() {
         throw notConfigured("getTerrainAccess", "Platforms.strict().terrain()");
+    }
+
+    @Override
+    public IPlayerStateAccess getPlayerState() {
+        throw notConfigured("getPlayerState", "Platforms.strict().playerState()");
     }
 
     @Override

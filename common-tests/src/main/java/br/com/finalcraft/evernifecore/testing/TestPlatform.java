@@ -15,6 +15,7 @@ import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.region.playerstate.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.region.selection.ItemSpec;
@@ -96,6 +97,9 @@ public class TestPlatform extends AbstractTestPlatform {
     ITerrainAccess terrainAccess;
     Boolean terrainAccessConfigured;
     final TestTerrain testTerrain = new TestTerrain();
+    IPlayerStateAccess playerState;
+    Boolean playerStateConfigured;
+    final TestPlayerState testPlayerState = new TestPlayerState();
     ISelectionItems selectionItems;
 
     private boolean forceRegisterFailure = false;
@@ -565,6 +569,16 @@ public class TestPlatform extends AbstractTestPlatform {
     @Override
     public ITerrainAccess getTerrainAccess() {
         return terrainAccessConfigured != null ? terrainAccess : super.getTerrainAccess();
+    }
+
+    @Override
+    public IPlayerStateAccess getPlayerState() {
+        return playerStateConfigured != null ? playerState : super.getPlayerState();
+    }
+
+    /** The in-memory players {@link Platforms#playerState()} put behind {@code getPlayerState}. */
+    public TestPlayerState getTestPlayerState() {
+        return testPlayerState;
     }
 
     /** The in-memory world {@link Platforms#terrain()} put behind {@code getTerrainAccess}. */

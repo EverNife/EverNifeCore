@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.region.playerstate.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import jakarta.annotation.Nonnull;
@@ -140,6 +141,12 @@ public interface IPlatform {
      * {@link ITerrainAccess#UNSUPPORTED} is the honest answer of a platform that cannot; {@code null} is a violation.
      */
     public ITerrainAccess getTerrainAccess();
+
+    /**
+     * What this platform can read and change on a player, for the session flags. {@link IPlayerStateAccess#UNSUPPORTED}
+     * is the honest answer of a platform that can change nothing; {@code null} is a violation.
+     */
+    public IPlayerStateAccess getPlayerState();
 
     /**
      * Runs the task on the platform's main/server thread: inline, right now, when the calling thread

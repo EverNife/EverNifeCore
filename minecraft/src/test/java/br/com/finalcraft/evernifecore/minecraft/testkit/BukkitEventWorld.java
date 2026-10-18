@@ -1,5 +1,10 @@
 package br.com.finalcraft.evernifecore.minecraft.testkit;
 
+import br.com.finalcraft.evernifecore.testing.minecraft.BukkitRegistries;
+import org.bukkit.GameMode;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import java.util.concurrent.ConcurrentHashMap;
 import br.com.finalcraft.evernifecore.testing.minecraft.Doubles;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
@@ -284,7 +289,8 @@ public final class BukkitEventWorld implements AutoCloseable {
     /**
      * An online player standing at {@code at}: {@code teleport} moves them and answers true, {@code setSneaking} is
      * what {@code isSneaking} reads, {@code hasPermission} answers true for exactly {@code permissions}, and the server
-     * lists them as online.
+     * lists them as online. Clock, weather, flight, game mode, potion effects, health (20 of 20) and food (20) keep what
+     * was set, as a server would: taking flight away lands them, a game mode change resets flight.
      */
     public Player player(String name, Location at, String... permissions) {
         UUID id = UUID.nameUUIDFromBytes(("player:" + name).getBytes(StandardCharsets.UTF_8));
@@ -292,6 +298,8 @@ public final class BukkitEventWorld implements AutoCloseable {
         AtomicReference<Player> self = new AtomicReference<>();
         Set<String> granted = new HashSet<>(Arrays.asList(permissions));
         AtomicBoolean sneaking = new AtomicBoolean();
+        Map<String, Object> state = new ConcurrentHashMap<>();
+        Map<PotionEffectType, PotionEffect> effects = new ConcurrentHashMap<>();
         Player player = Doubles.of(Player.class)
                 .returning("getName", name)
                 .returning("getUniqueId", id)
@@ -311,6 +319,58 @@ public final class BukkitEventWorld implements AutoCloseable {
                     return null;
                 })
                 .on("isSneaking", args -> sneaking.get())
+                .on("setPlayerTime", args -> {
+                    state.put("timeOffset", args[0]);
+                    state.put("timeRelative", args[1]);
+                    return null;
+                })
+                .on("resetPlayerTime", args -> {
+                    state.put("timeOffset", 0L);
+                    state.put("timeRelative", true);
+                    return null;
+                })
+                .on("getPlayerTimeOffset", args -> state.getOrDefault("timeOffset", 0L))
+                .on("isPlayerTimeRelative", args -> state.getOrDefault("timeRelative", true))
+                .on("getPlayerTime", args -> state.getOrDefault("timeOffset", 0L))
+                .on("setPlayerWeather", args -> state.put("weather", args[0]))
+                .on("resetPlayerWeather", args -> state.remove("weather"))
+                .on("getPlayerWeather", args -> state.get("weather"))
+                .on("setAllowFlight", args -> {
+                    state.put("allowFlight", args[0]);
+                    if (!(Boolean) args[0]) {
+                        state.put("flying", false);
+                    }
+                    return null;
+                })
+                .on("getAllowFlight", args -> state.getOrDefault("allowFlight", false))
+                .on("setFlying", args -> {
+                    if ((Boolean) args[0] && !(Boolean) state.getOrDefault("allowFlight", false)) {
+                        throw new IllegalArgumentException("Cannot make player fly if getAllowFlight() is false");
+                    }
+                    return state.put("flying", args[0]);
+                })
+                .on("isFlying", args -> state.getOrDefault("flying", false))
+                .on("setGameMode", args -> {
+                    GameMode mode = (GameMode) args[0];
+                    state.put("gameMode", mode);
+                    state.put("allowFlight", mode == GameMode.CREATIVE || mode == GameMode.SPECTATOR);
+                    state.put("flying", mode == GameMode.SPECTATOR);
+                    return null;
+                })
+                .on("getGameMode", args -> state.getOrDefault("gameMode", GameMode.SURVIVAL))
+                .on("addPotionEffect", args -> {
+                    PotionEffect effect = (PotionEffect) args[0];
+                    effects.put(effect.getType(), effect);
+                    return true;
+                })
+                .on("removePotionEffect", args -> effects.remove(args[0]))
+                .on("getActivePotionEffects", args -> new ArrayList<>(effects.values()))
+                .on("getHealth", args -> state.getOrDefault("health", 20.0))
+                .on("getMaxHealth", args -> 20.0)
+                .on("setHealth", args -> state.put("health", args[0]))
+                .on("damage", args -> state.put("health", Math.max(0, (Double) state.getOrDefault("health", 20.0) - (Double) args[0])))
+                .on("getFoodLevel", args -> state.getOrDefault("food", 20))
+                .on("setFoodLevel", args -> state.put("food", args[0]))
                 .build();
         self.set(player);
         players.add(player);
@@ -413,6 +473,7 @@ public final class BukkitEventWorld implements AutoCloseable {
                 .on("getWorlds", args -> new ArrayList<>(worlds.values()))
                 .on("getOnlinePlayers", args -> new ArrayList<>(players))
                 .on("getPlayer", args -> args[0] instanceof UUID ? playerById((UUID) args[0]) : null)
+                .on("getRegistry", args -> BukkitRegistries.forType((Class<?>) args[0]))
                 .build();
     }
 

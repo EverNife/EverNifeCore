@@ -21,6 +21,11 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 
 ### Added
 
+- **Player state** (`region.playerstate`): `IPlatform.getPlayerState()` -> `IPlayerStateAccess` - clock, weather,
+  flight, game mode (`ECGameMode`), effects, health, food and commands, each a `Capability` the platform declares through
+  `supports`. Bukkit has every one (game modes as the server version has them); Hytale lacks weather and food, and an
+  effect there has no level. Test engine: `Platforms.playerState()` / `TestPlayerState`, Bukkit test players keep that
+  state, and the Bukkit test registries mint potion effect types.
 - **Flag value types**: `FlagTypes.AMOUNT_EVERY` (`2 every 5s` - `AmountEvery`, amount above zero, interval 1s or more),
   `FlagTypes.EFFECT` (`speed:2` - `EffectLevel`, level 1 when left out), `TEXT_LIST` (`;`-separated), `EFFECT_LIST`
   (`,`-separated) and `FlagTypes.listOf(element, separator)`, stored as a JSON array.

@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.hytale.loader.imp;
 import br.com.finalcraft.evernifecore.hytale.region.HyParticleOutlineRenderer;
 import br.com.finalcraft.evernifecore.hytale.region.HySelectionItems;
+import br.com.finalcraft.evernifecore.hytale.region.HyPlayerStateAccess;
 import br.com.finalcraft.evernifecore.hytale.region.HyTerrainAccess;
 import org.joml.Vector3d;
 import com.hypixel.hytale.math.vector.Transform;
@@ -33,6 +34,7 @@ import br.com.finalcraft.evernifecore.logger.ILogAdapter;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.region.playerstate.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
@@ -362,6 +364,12 @@ public class HyPlatform implements IPlatform {
     }
 
     private static final ITerrainAccess TERRAIN_ACCESS = new HyTerrainAccess();
+    public static final HyPlayerStateAccess PLAYER_STATE = new HyPlayerStateAccess();
+
+    @Override
+    public IPlayerStateAccess getPlayerState() {
+        return PLAYER_STATE;
+    }
 
     @Override
     public ISelectionItems getSelectionItems() {

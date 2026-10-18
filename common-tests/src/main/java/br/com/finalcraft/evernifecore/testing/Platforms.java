@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformCha
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatformVecAdapter;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
+import br.com.finalcraft.evernifecore.region.playerstate.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
 
@@ -75,7 +76,8 @@ public final class Platforms {
                 .noWorldSpawns()
                 .outlineRenderer(IOutlineRenderer.NONE)
                 .selectionItems(ISelectionItems.NONE)
-                .terrain();
+                .terrain()
+                .playerState();
     }
 
     /**
@@ -199,6 +201,21 @@ public final class Platforms {
     /** An in-memory world of blocks and entities behind {@code getTerrainAccess}, read back by {@link TestPlatform#getTestTerrain()}. */
     public Platforms terrain() {
         return terrainAccess(platform.testTerrain);
+    }
+
+    /** What {@code getPlayerState} answers; {@code null} is kept, as the violation a conformance test needs. */
+    public Platforms playerStateAccess(IPlayerStateAccess playerState) {
+        platform.playerStateConfigured = Boolean.TRUE;
+        platform.playerState = playerState;
+        return this;
+    }
+
+    /**
+     * In-memory players behind {@code getPlayerState}, with every capability, read back and steered by
+     * {@link TestPlatform#getTestPlayerState()}.
+     */
+    public Platforms playerState() {
+        return playerStateAccess(platform.testPlayerState);
     }
 
     /** Keeps every tool handed out for {@link TestPlatform#getSelectionItemsGiven()} instead of giving it. */
