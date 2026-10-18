@@ -5,8 +5,10 @@ import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryMessage;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -103,5 +105,39 @@ class FlagTypesTest {
         assertTrue(unclosed.getMessage().contains("never closes"), unclosed.getMessage());
         FlagParseException badValue = assertThrows(FlagParseException.class, () -> type.parse("denied=maybe"));
         assertTrue(badValue.getMessage().contains("denied=... message=..."), badValue.getMessage());
+    }
+
+    @Test
+    void amountEveryParsesFormatsAndRefusesANonPositiveAmount() throws Exception {
+        AmountEvery value = FlagTypes.AMOUNT_EVERY.parse("2 every 5s");
+        assertEquals(2, value.getAmount());
+        assertEquals(Duration.ofSeconds(5), value.getInterval());
+        assertEquals("2 every 5s", FlagTypes.AMOUNT_EVERY.format(value));
+        assertEquals(value, FlagTypes.AMOUNT_EVERY.fromJson(FlagTypes.AMOUNT_EVERY.toJson(value)));
+        assertEquals(value, FlagTypes.AMOUNT_EVERY.parse(FlagTypes.AMOUNT_EVERY.format(value)));
+        for (String refused : Arrays.asList("0 every 5s", "-1 every 5s", "2 every 500ms", "2 each 5s", "two every 5s")) {
+            FlagParseException error = assertThrows(FlagParseException.class, () -> FlagTypes.AMOUNT_EVERY.parse(refused), refused);
+            assertTrue(error.getMessage().contains("every <duration>"), error.getMessage());
+        }
+    }
+
+    @Test
+    void textListSplitsOnSemicolonsAndKeepsOrder() throws Exception {
+        List<String> commands = FlagTypes.TEXT_LIST.parse("console:say hi, all ; player:spawn;;");
+        assertEquals(Arrays.asList("console:say hi, all", "player:spawn"), commands);
+        assertEquals("console:say hi, all; player:spawn", FlagTypes.TEXT_LIST.format(commands));
+        assertTrue(FlagTypes.TEXT_LIST.toJson(commands).isArray());
+        assertEquals(commands, FlagTypes.TEXT_LIST.fromJson(FlagTypes.TEXT_LIST.toJson(commands)));
+        assertThrows(FlagParseException.class, () -> FlagTypes.TEXT_LIST.parse(" ; "));
+    }
+
+    @Test
+    void effectListReadsTheLevelAfterTheLastColonAndDefaultsItToOne() throws Exception {
+        List<EffectLevel> effects = FlagTypes.EFFECT_LIST.parse("speed:2, Night_Vision, minecraft:jump_boost:3, minecraft:regeneration");
+        assertEquals(Arrays.asList(EffectLevel.of("speed", 2), EffectLevel.of("night_vision", 1), EffectLevel.of("minecraft:jump_boost", 3),
+                EffectLevel.of("minecraft:regeneration", 1)), effects);
+        assertEquals("speed:2, night_vision:1, minecraft:jump_boost:3, minecraft:regeneration:1", FlagTypes.EFFECT_LIST.format(effects));
+        assertEquals(effects, FlagTypes.EFFECT_LIST.fromJson(FlagTypes.EFFECT_LIST.toJson(effects)));
+        assertThrows(FlagParseException.class, () -> FlagTypes.EFFECT_LIST.parse("speed:0"));
     }
 }

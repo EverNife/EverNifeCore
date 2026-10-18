@@ -4,6 +4,7 @@ import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.DoubleNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 /** The stock {@link FlagType}s. */
 public final class FlagTypes {
@@ -46,7 +48,29 @@ public final class FlagTypes {
     public static final FlagType<WorldLocPos> LOCATION = new ScalarType<>("location", WorldLocPos.class,
             "world|x|y|z, e.g. world|10.5|64|-3", FlagTypes::parseLocation, WorldLocPos::serialize, Collections.emptyList());
 
+    public static final FlagType<AmountEvery> AMOUNT_EVERY = new ScalarType<>("amount-every", AmountEvery.class,
+            "<amount> every <duration>, the amount above 0 and the duration 1s or more, e.g. 2 every 5s", AmountEvery::parse,
+            AmountEvery::toString, Arrays.asList("1 every 1s", "1 every 5s", "2 every 5s"));
+
+    public static final FlagType<EffectLevel> EFFECT = new ScalarType<>("effect", EffectLevel.class,
+            "effect:level with the platform's effect id, the level 1 when left out, e.g. speed:2", EffectLevel::parse,
+            EffectLevel::toString, Collections.emptyList());
+
+    /** Lines of text, typed separated by {@code ;} - {@code console:say hi; player:spawn}. */
+    public static final FlagType<List<String>> TEXT_LIST = listOf(TEXT, ";");
+
+    /** Effects with their level, typed separated by {@code ,} - {@code speed:2, night_vision}. */
+    public static final FlagType<List<EffectLevel>> EFFECT_LIST = listOf(EFFECT, ",");
+
     private FlagTypes() {
+    }
+
+    /**
+     * A list of {@code element} values, typed separated by {@code separator} and stored as a JSON array. Blank entries are
+     * skipped; an empty list is not a value.
+     */
+    public static <E> FlagType<List<E>> listOf(FlagType<E> element, String separator) {
+        return new ListType<>(element, separator);
     }
 
     /** One of {@code type}'s constants, by name, case-insensitively. */
@@ -255,6 +279,90 @@ public final class FlagTypes {
                 throw new IllegalStateException("The " + id + " flag value " + pojo.getName() + " needs a public no-arg constructor"
                         + " for FlagTypes.jackson to build it.", noDefault);
             }
+        }
+    }
+
+    private static final class ListType<E> implements FlagType<List<E>> {
+
+        private final FlagType<E> element;
+        private final String separator;
+
+        ListType(FlagType<E> element, String separator) {
+            this.element = element;
+            this.separator = separator;
+        }
+
+        @Override
+        public String getId() {
+            return element.getId() + "-list";
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public Class<List<E>> getValueType() {
+            return (Class<List<E>>) (Class<?>) List.class;
+        }
+
+        @Override
+        public List<E> parse(String text) throws FlagParseException {
+            List<E> values = new ArrayList<>();
+            for (String part : (text == null ? "" : text).split(Pattern.quote(separator))) {
+                if (!part.trim().isEmpty()) {
+                    values.add(element.parse(part.trim()));
+                }
+            }
+            if (values.isEmpty()) {
+                throw new FlagParseException("'" + text + "' has no " + element.getId() + " in it: write one or more, separated by '"
+                        + separator + "'.");
+            }
+            return Collections.unmodifiableList(values);
+        }
+
+        @Override
+        public String format(List<E> value) {
+            List<String> parts = new ArrayList<>(value.size());
+            for (E entry : value) {
+                parts.add(element.format(entry));
+            }
+            return String.join(separator + " ", parts);
+        }
+
+        @Override
+        public JsonNode toJson(List<E> value) {
+            ArrayNode array = mapper().createArrayNode();
+            for (E entry : value) {
+                array.add(element.toJson(entry));
+            }
+            return array;
+        }
+
+        @Override
+        public List<E> fromJson(JsonNode node) throws FlagParseException {
+            if (node == null || !node.isArray()) {
+                if (node != null && node.isTextual()) {
+                    return parse(node.asText()); //a hand-edited file may hold the typed form
+                }
+                throw new FlagParseException("Stored " + getId() + " value " + node + " is not a list: it must be a JSON array of "
+                        + element.getId() + " values.");
+            }
+            List<E> values = new ArrayList<>(node.size());
+            for (JsonNode entry : node) {
+                values.add(element.fromJson(entry));
+            }
+            return Collections.unmodifiableList(values);
+        }
+
+        /** Completes the entry being typed, after the last separator. */
+        @Override
+        public List<String> tabComplete(String partial) {
+            String text = partial == null ? "" : partial;
+            int cut = text.lastIndexOf(separator);
+            String head = cut < 0 ? "" : text.substring(0, cut + separator.length());
+            List<String> matches = new ArrayList<>();
+            for (String completion : element.tabComplete(text.substring(head.length()).trim())) {
+                matches.add(head + (head.isEmpty() ? "" : " ") + completion);
+            }
+            return matches;
         }
     }
 

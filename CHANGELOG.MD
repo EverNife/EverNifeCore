@@ -21,6 +21,9 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 
 ### Added
 
+- **Flag value types**: `FlagTypes.AMOUNT_EVERY` (`2 every 5s` - `AmountEvery`, amount above zero, interval 1s or more),
+  `FlagTypes.EFFECT` (`speed:2` - `EffectLevel`, level 1 when left out), `TEXT_LIST` (`;`-separated), `EFFECT_LIST`
+  (`,`-separated) and `FlagTypes.listOf(element, separator)`, stored as a JSON array.
 - **Actors** (`region.actor`): `Actor` (`ENTITY` / `BLOCK` / `ENVIRONMENT`, with `getRootPlayer()` and native handles
   made on demand and closed once the event is dispatched), `TypeKey` (`namespace:path`, matched case-insensitively with
   `*` globs) and `ECEntityType` (`PLAYER`, `FAKE_PLAYER`, `ANIMAL`, `MONSTER`, `NPC`, `OTHER`). Every `ActionContext`
