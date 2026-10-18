@@ -36,6 +36,18 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.event.HandlerList;
+import org.bukkit.event.block.BlockSpreadEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.vehicle.VehicleEnterEvent;
+import org.bukkit.event.entity.EntityPlaceEvent;
+import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
+import br.com.finalcraft.evernifecore.region.flag.Tristate;
+import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
+import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
@@ -214,6 +226,75 @@ class RegionListenersTest {
             }
         } finally {
             EventSourceUsage.get().setIdleTime(idleTime);
+        }
+    }
+
+    /** Each new source: off with no region asking, on with one, off again once that region left and the idle time ran out. */
+    private static void assertFollows(RegionServer server, HandlerList handlers, Class<? extends ECListener> listener, RegionFlag<?> flag,
+                                      Consumer<Region> define) {
+        assertFalse(isRegistered(handlers, listener), listener.getSimpleName() + ": no region needs " + flag.getNeeds() + " yet");
+        Region region = server.box("asks-" + flag.getKey().getName(), 0, 0, 0, 10, 10, 10);
+        define.accept(region);
+        assertTrue(isRegistered(handlers, listener), listener.getSimpleName() + " follows " + flag.getNeeds());
+        server.regions.getManager().remove(region);
+        server.regions.runDue();
+        assertFalse(isRegistered(handlers, listener), listener.getSimpleName() + ": the last region that needed it left");
+    }
+
+    private static Consumer<Region> denying(TristateFlag flag) {
+        return region -> region.setFlag(flag, Tristate.TRUE);
+    }
+
+    @Test
+    void eachNewSourceHasItsListenerOnTheServerOnlyWhileSomeRegionNeedsIt() {
+        Duration idleTime = EventSourceUsage.get().getIdleTime();
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            RegionListeners bridge = RegionListeners.start(server.server.getPluginData());
+            try {
+                EventSourceUsage.get().setIdleTime(Duration.ZERO);
+                server.flag(CoreFlags.DENY_FIRE_SPREAD);
+                server.flag(CoreFlags.SPAWN_POINT);
+                server.flag(CoreFlags.DENY_ITEM_DROP);
+                server.flag(CoreFlags.DENY_ITEM_PICKUP);
+                server.flag(CoreFlags.DENY_VEHICLE);
+
+                assertFollows(server, BlockSpreadEvent.getHandlerList(), RegionFireSpreadListener.class, CoreFlags.DENY_FIRE_SPREAD,
+                        denying(CoreFlags.DENY_FIRE_SPREAD));
+                assertFollows(server, PlayerRespawnEvent.getHandlerList(), RegionRespawnListener.class, CoreFlags.SPAWN_POINT,
+                        region -> region.setFlag(CoreFlags.SPAWN_POINT, WorldLocPos.of(1, 64, 1, RegionServer.WORLD)));
+                assertFollows(server, PlayerDropItemEvent.getHandlerList(), RegionItemListeners.Drop.class, CoreFlags.DENY_ITEM_DROP,
+                        denying(CoreFlags.DENY_ITEM_DROP));
+                assertFollows(server, EntityPickupItemEvent.getHandlerList(), RegionItemListeners.Pickup.class, CoreFlags.DENY_ITEM_PICKUP,
+                        denying(CoreFlags.DENY_ITEM_PICKUP));
+                assertFollows(server, VehicleEnterEvent.getHandlerList(), RegionVehicleListeners.BreakAndEnter.class, CoreFlags.DENY_VEHICLE,
+                        denying(CoreFlags.DENY_VEHICLE));
+                assertFollows(server, EntityPlaceEvent.getHandlerList(), RegionVehicleListeners.Place.class, CoreFlags.DENY_VEHICLE,
+                        denying(CoreFlags.DENY_VEHICLE));
+            } finally {
+                bridge.stop();
+            }
+        } finally {
+            EventSourceUsage.get().setIdleTime(idleTime);
+        }
+    }
+
+    @Test
+    void aCheapFlagNeverPutsACostlyListenerOnTheServer() {
+        try (RegionServer server = RegionServer.open(tempDir)) {
+            RegionListeners bridge = RegionListeners.start(server.server.getPluginData());
+            try {
+                server.box("market", 0, 0, 0, 10, 10, 10, server.flag(CoreFlags.DENY_ITEM_DROP));
+                assertTrue(isRegistered(PlayerDropItemEvent.getHandlerList(), RegionItemListeners.Drop.class));
+                assertFalse(isRegistered(EntityPickupItemEvent.getHandlerList(), RegionItemListeners.Pickup.class),
+                        "deny-item-drop alone leaves the pickup listener off");
+
+                server.box("plots", 20, 0, 0, 30, 10, 10, server.flag(CoreFlags.DENY_BLOCK_PLACE));
+                assertTrue(isRegistered(BlockPlaceEvent.getHandlerList(), RegionBlockListener.class));
+                assertFalse(isRegistered(BlockSpreadEvent.getHandlerList(), RegionFireSpreadListener.class),
+                        "deny-block-place alone leaves the fire-spread listener off");
+            } finally {
+                bridge.stop();
+            }
         }
     }
 }

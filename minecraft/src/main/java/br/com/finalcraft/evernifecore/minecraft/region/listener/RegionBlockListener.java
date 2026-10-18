@@ -28,7 +28,6 @@ import org.bukkit.event.block.BlockPistonEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 
 import java.util.Collections;
@@ -37,8 +36,9 @@ import java.util.function.Predicate;
 
 /**
  * Asks the regions about every block broken ({@link EventSource#BREAK}) or placed ({@link EventSource#PLACE}) - by a
- * player, a mob changing a block, fire, or a piston moving it - one instance per source, so each comes and goes with
- * its own need; a denial cancels the event.
+ * player, a mob changing a block, fire lit by someone or by lava, or a piston moving it - one instance per source, so each
+ * comes and goes with its own need; a denial cancels the event. Fire spreading on its own is
+ * {@link RegionFireSpreadListener}'s.
  */
 public final class RegionBlockListener implements ECListener {
 
@@ -95,20 +95,12 @@ public final class RegionBlockListener implements ECListener {
         }
     }
 
-    /** Fire set on a block: by the player who lit it, else by the environment (lava, lightning, spreading fire). */
+    /** Fire set on a block: by the player who lit it, else by the environment (lava, lightning). Fire spreading is {@link EventSource#FIRE_SPREAD}'s. */
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onIgnite(BlockIgniteEvent event) {
-        if (source == EventSource.PLACE) {
+        if (source == EventSource.PLACE && event.getCause() != BlockIgniteEvent.IgniteCause.SPREAD) {
             Player player = event.getPlayer();
             decide(event.getBlock(), Material.FIRE, player != null ? playerActor(player) : Actor.environment(RegionContexts.FIRE), event, null);
-        }
-    }
-
-    /** Only fire spreading: grass, vines and mushrooms spread through this event too, and nobody placed those. */
-    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
-    public void onSpread(BlockSpreadEvent event) {
-        if (source == EventSource.PLACE && event.getNewState().getType() == Material.FIRE) {
-            decide(event.getBlock(), Material.FIRE, Actor.environment(RegionContexts.FIRE), event, null);
         }
     }
 

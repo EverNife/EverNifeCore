@@ -216,7 +216,7 @@ class RegionBlockListenerTest {
     }
 
     @Test
-    void fireSetByAPlayerIsTheirsAndSpreadingFireTheEnvironments() {
+    void fireSetByAPlayerIsTheirsAndFireSpreadingIsNoPlace() {
         try (RegionServer server = RegionServer.open(tempDir)) {
             Region vault = server.box("vault", 0, 0, 0, 10, 10, 10, server.flag(CoreFlags.DENY_BLOCK_PLACE));
             vault.setFlagSettings(CoreFlags.DENY_BLOCK_PLACE, settings("environment", ""));
@@ -228,7 +228,8 @@ class RegionBlockListenerTest {
             assertTrue(server.call(new BlockIgniteEvent(server.world.getBlockAt(5, 5, 5), BlockIgniteEvent.IgniteCause.LAVA, (Entity) null)).isCancelled());
             BlockState fire = Doubles.of(BlockState.class).returning("getType", Material.FIRE).build();
             BlockState grass = Doubles.of(BlockState.class).returning("getType", Material.GRASS_BLOCK).build();
-            assertTrue(server.call(new BlockSpreadEvent(server.world.getBlockAt(5, 5, 5), server.world.getBlockAt(4, 5, 5), fire)).isCancelled());
+            assertFalse(server.call(new BlockSpreadEvent(server.world.getBlockAt(5, 5, 5), server.world.getBlockAt(4, 5, 5), fire)).isCancelled(),
+                    "spreading fire is deny-fire-spread's, never a place");
             assertFalse(server.call(new BlockSpreadEvent(server.world.getBlockAt(5, 5, 5), server.world.getBlockAt(4, 5, 5), grass)).isCancelled(),
                     "grass spreading is nobody placing a block");
         }

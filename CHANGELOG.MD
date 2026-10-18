@@ -148,6 +148,11 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 - **`FlagRegistry.setServedSources(sources)`**: a platform declares the core sources it raises, and each flag that
   needs one it never raises - a plugin's included, registered before or after - logs one line saying it has no effect
   there (`describeWithoutEffect`, `getUnservedSources`).
+- **Bukkit listeners for the new sources**, each on the server only while a region needs its source:
+  `RegionRespawnListener` (`spawn-point`, set at `HIGH` over the bed or anchor, read where the player died),
+  `RegionItemListeners` (`Drop`; `Pickup` from 1.12 on `EntityPickupItemEvent`, `LegacyPickup` before on
+  `PlayerPickupItemEvent`), `RegionVehicleListeners` (`BreakAndEnter`; `Place` from 1.13 on `EntityPlaceEvent`,
+  `LegacyPlace` before on the click of a minecart or boat item) and `RegionFireSpreadListener`.
 
 ### Changed
 
@@ -204,6 +209,9 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   alias: a stored value under the old key stays raw until it is set again under the new one.
 - **`InteractSettings` -> `TypeFilterSettings`**: the same `only`/`except` key filter, now shared by the interact, item
   and spawn flags.
+- **Fire spreading on its own is `FIRE_SPREAD`, no longer `PLACE`**: `deny-block-place` stops denying it, and
+  `deny-fire-spread` does. Fire lit by a player or by lava stays a `PLACE`; `deny-block-place-environment` decides the
+  latter.
 
 ### Removed
 
