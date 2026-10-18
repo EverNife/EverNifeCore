@@ -15,20 +15,29 @@ import jakarta.annotation.Nullable;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.clip.placeholderapi.PlaceholderAPIPlugin;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 public class McPAPIIntegration {
 
-    private static Boolean isPresent = null;
+    private static Boolean isApiOnClasspath = null;
 
+    /**
+     * Whether PlaceholderAPI is installed AND enabled. Its classes alone are not enough: a plugin that failed to enable
+     * leaves them loadable, and calling into it then dies with a {@code NoClassDefFoundError}. Asked anew every time,
+     * so an answer given before PlaceholderAPI enabled does not stick.
+     */
     public static boolean isPresent(){
-        if (isPresent == null){
-            // Probe the API class 'parse' actually calls. isClassLoaded initializes the class,
-            // and the plugin's main class only initializes against a live server.
-            isPresent = FCReflectionUtil.getClasses().isClassLoaded("me.clip.placeholderapi.PlaceholderAPI");
+        return isApiOnClasspath() && Bukkit.getServer() != null && Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
+    }
+
+    /** Whether the API class {@code parse} calls is on the classpath; initializing it needs no live server. */
+    static boolean isApiOnClasspath(){
+        if (isApiOnClasspath == null){
+            isApiOnClasspath = FCReflectionUtil.getClasses().isClassLoaded("me.clip.placeholderapi.PlaceholderAPI");
         }
-        return isPresent;
+        return isApiOnClasspath;
     }
 
     public static <P extends IPlayerData> RegexReplacer<P> createPlaceholderIntegration(@Nonnull ECPluginData plugin, @Nonnull String pluginBaseID, @Nonnull Class<P> playerDataType){

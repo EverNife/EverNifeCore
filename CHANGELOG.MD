@@ -135,6 +135,8 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 
 ### Changed
 
+- **Bukkit**: `PAPIIntegration.isPresent()` asks for PlaceholderAPI ENABLED, not just its classes, and asks anew each
+  time: a PlaceholderAPI that failed to enable made `parse` die with a `NoClassDefFoundError`.
 - With the core's debug mode on, the Bukkit move listener logs every denied step: who, from, to and the point
   it was sent back to.
 - **Packages and names in the region API**: `region.flag.stock` -> `region.flag.core` (`StockFlags` -> `CoreFlags`,
