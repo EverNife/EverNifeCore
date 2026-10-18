@@ -21,6 +21,8 @@ import br.com.finalcraft.evernifecore.region.selection.ItemSpec;
 import br.com.finalcraft.evernifecore.region.visual.VisualStyle;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 
+import jakarta.annotation.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -80,6 +82,7 @@ public class TestPlatform extends AbstractTestPlatform {
     Boolean recordingShutdowns;
     Boolean stdoutLogging;
     Boolean placeholderIntegrationNull;
+    Map<String, RegexReplacer<?>> placeholderIntegrations;   //null = not recording
     Boolean chatAdapterConfigured;
     IPlatformChatAdapter chatAdapter;
     Boolean vecAdapterConfigured;
@@ -96,6 +99,7 @@ public class TestPlatform extends AbstractTestPlatform {
     ISelectionItems selectionItems;
 
     private boolean forceRegisterFailure = false;
+    private final AtomicInteger onlinePlayersCalls = new AtomicInteger();
 
     TestPlatform() {
     }
@@ -245,7 +249,31 @@ public class TestPlatform extends AbstractTestPlatform {
 
     @Override
     public List<FPlayer> getOnlinePlayers() {
+        onlinePlayersCalls.incrementAndGet();
         return onlinePlayers != null ? onlinePlayers : super.getOnlinePlayers();
+    }
+
+    /** How many times anything asked for {@link #getOnlinePlayers()} - what a cache in front of it is measured by. */
+    public int getOnlinePlayersCalls() {
+        return onlinePlayersCalls.get();
+    }
+
+    /** Replaces who is online, for a test that changes it after the platform is installed. */
+    public void setOnlinePlayers(List<FPlayer> players) {
+        onlinePlayers = new ArrayList<>(players);
+    }
+
+    /**
+     * The replacer {@code createPlaceholderIntegration} handed out under {@code prefix}, as the plugin registered
+     * on it; null when nothing registered that prefix. Needs {@link Platforms#recordingPlaceholderIntegrations()}.
+     */
+    @SuppressWarnings("unchecked")
+    public <P> @Nullable RegexReplacer<P> getPlaceholderIntegration(String prefix) {
+        if (placeholderIntegrations == null) {
+            throw new IllegalStateException("This platform does not record placeholder integrations - build it with"
+                    + " Platforms...recordingPlaceholderIntegrations().");
+        }
+        return (RegexReplacer<P>) placeholderIntegrations.get(prefix);
     }
 
     @Override
@@ -356,6 +384,11 @@ public class TestPlatform extends AbstractTestPlatform {
 
     @Override
     public <P extends IPlayerData> RegexReplacer<P> createPlaceholderIntegration(ECPluginData plugin, String pluginBaseID, Class<P> playerDataType) {
+        if (placeholderIntegrations != null) {
+            RegexReplacer<P> replacer = new RegexReplacer<>();
+            placeholderIntegrations.put(pluginBaseID, replacer);
+            return replacer;
+        }
         return placeholderIntegrationNull != null ? null : super.createPlaceholderIntegration(plugin, pluginBaseID, playerDataType);
     }
 

@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.config.ConfigManager;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
+import br.com.finalcraft.evernifecore.region.placeholder.RegionPlaceholders;
 import br.com.finalcraft.evernifecore.cooldown.Cooldown;
 import br.com.finalcraft.evernifecore.economy.IEconomyProvider;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
@@ -66,6 +67,7 @@ public class EverNifeCore {
         Cooldown.initialize();
 
         CoreFlags.registerAll(getEcPluginData());
+        RegionPlaceholders.registerCore(getEcPluginData());
 
         getLog().info("§aRegistering Commands!");
         CommandRegisterer.registerCommands(this.getEcPluginData());

@@ -121,6 +121,17 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   `description <region> [text...]` (no text clears), and `info` prints both.
 - **`RegionPlayerSession.getEnteredAt(region)`**: when the player entered each region they are in, by `RegionClock`;
   kept while they stay, dropped when they leave.
+- **Region placeholders** (`region.placeholder`): `RegionPlaceholders.register(replacer, scope)` serves on any plugin's
+  `RegexReplacer` the 35 region placeholders - `in_region`, `in_region_[name]`, `region_count`, and every operation on
+  the player's region (`region_<op>`) or a named one (`region_[name]_<op>`): `name`, `name_[fallback='...']`,
+  `has_display_name`, `description`, `id`, `full_id`, `plugin_owner`, `world`, `priority`, `parent`, `expires_in`,
+  `min_x`..`max_z`, `center_x`..`center_z`, `volume`, `players_count`, `players_<n>`, `players_[index=n|sort=entry]`,
+  `players_list`, `time_inside`, `has_player_[name]`, `flag_[flag]`, `has_flag_[flag]`, `flags_count`, `groups_count`,
+  `group_[group]_members_count`. `RegionPlaceholderScope.everyRegion()` sees every region by full id;
+  `ownedBy(plugin)` only that plugin's, by bare name. What does not exist answers `""`. The players inside and a flag's
+  value are read at most once a second per region (and flag). The core serves `%evernifecore_region_...%` over every
+  region on both platforms whenever PlaceholderAPI is present. Test engine: `Platforms.recordingPlaceholderIntegrations()`,
+  `TestPlatform.getPlaceholderIntegration(prefix)`, `getOnlinePlayersCalls()` and `setOnlinePlayers(...)`.
 
 ### Changed
 

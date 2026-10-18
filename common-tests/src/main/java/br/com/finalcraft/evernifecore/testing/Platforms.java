@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 
 /**
@@ -228,6 +229,18 @@ public final class Platforms {
 
     public Platforms withoutPlaceholderIntegration() {
         platform.placeholderIntegrationNull = Boolean.TRUE;
+        platform.placeholderIntegrations = null;
+        return this;
+    }
+
+    /**
+     * Hands every {@code createPlaceholderIntegration} a fresh {@code RegexReplacer} and keeps it by prefix for
+     * {@link TestPlatform#getPlaceholderIntegration(String)} - what PlaceholderAPI would call into. Pair it with
+     * {@link #papiPresent(boolean) papiPresent(true)} for code that asks first.
+     */
+    public Platforms recordingPlaceholderIntegrations() {
+        platform.placeholderIntegrationNull = null;
+        platform.placeholderIntegrations = new ConcurrentHashMap<>();
         return this;
     }
 
