@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.region;
 
+import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import jakarta.annotation.Nullable;
 
@@ -9,16 +10,26 @@ import java.util.List;
 /** How {@link RegionLookup#explain} reached a flag's value: the value, the region it came from, and every step on the way. */
 public final class Resolution<T> {
 
+    private final RegionFlag<T> flag;
     private final @Nullable T value;
     private final @Nullable Region source;
     private final Reason reason;
     private final List<Step> steps;
 
-    Resolution(@Nullable T value, @Nullable Region source, Reason reason, List<Step> steps) {
+    Resolution(RegionFlag<T> flag, @Nullable T value, @Nullable Region source, Reason reason, List<Step> steps) {
+        this.flag = flag;
         this.value = value;
         this.source = source;
         this.reason = reason;
         this.steps = Collections.unmodifiableList(steps);
+    }
+
+    /**
+     * The flag of the asked flag's chain whose value this is: the asked flag itself, or the ancestor an undefined
+     * refinement read its value from (see {@link RegionFlag#getParent()}).
+     */
+    public RegionFlag<T> getFlag() {
+        return flag;
     }
 
     /** What {@code resolve} answers for the same question. */
@@ -47,7 +58,7 @@ public final class Resolution<T> {
 
     @Override
     public String toString() {
-        return value + " from " + source + " " + steps;
+        return value + " of " + flag.getKey() + " from " + source + " " + steps;
     }
 
     public enum Reason {
@@ -72,18 +83,25 @@ public final class Resolution<T> {
     /** One thing the resolution looked at. */
     public static final class Step {
 
+        private final RegionFlag<?> flag;
         private final @Nullable Region region;
         private final int priority;
         private final @Nullable AccessGroup group;
         private final @Nullable Object value;
         private final Reason reason;
 
-        Step(@Nullable Region region, int priority, @Nullable AccessGroup group, @Nullable Object value, Reason reason) {
+        Step(RegionFlag<?> flag, @Nullable Region region, int priority, @Nullable AccessGroup group, @Nullable Object value, Reason reason) {
+            this.flag = flag;
             this.region = region;
             this.priority = priority;
             this.group = group;
             this.value = value;
             this.reason = reason;
+        }
+
+        /** The flag asked at this step: the asked flag, or an ancestor of it once a refinement climbs. */
+        public RegionFlag<?> getFlag() {
+            return flag;
         }
 
         /** The region looked at; for {@link Reason#INHERITED} the ancestor that gave the value; null for bypass and default. */
@@ -110,7 +128,7 @@ public final class Resolution<T> {
 
         @Override
         public String toString() {
-            return reason + "(" + (region == null ? "-" : region.getId()) + (group == null ? "" : "/" + group.getName())
+            return reason + "(" + flag.getKey() + " " + (region == null ? "-" : region.getId()) + (group == null ? "" : "/" + group.getName())
                     + ", p" + priority + ", " + value + ")";
         }
     }

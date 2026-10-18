@@ -22,7 +22,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Function;
 
 /**
  * Internal: the one place a protection flag is asked about an action and its consequences run - the flag's
@@ -60,14 +59,13 @@ public final class ProtectionFlagGate {
 
     private static <T> boolean denies(RegionLookup lookup, RegionFlag<T> flag, ActionContext context, List<Region> here, List<Runnable> passed) {
         FPlayer player = context.getPlayer();
-        Climb<T> climb = climb(flag, asked -> lookup.resolution(asked, here, player));
-        Resolution<T> resolution = climb.resolution;
+        Resolution<T> resolution = lookup.resolution(flag, here, player);
         T value = resolution.getValue();
         if (value == null) {
             return false;
         }
         Region source = resolution.getSource();
-        FlagSettings settings = climb.getSettings(null);
+        FlagSettings settings = settingsOf(flag, resolution, null);
         if (flag.decide(context, value, settings) == Decision.DENY) {
             fireApplied(flag, context, value, source, settings);
             FlagHandler handler = source == null ? null : source.getFlagHandler(flag);
@@ -107,10 +105,9 @@ public final class ProtectionFlagGate {
     private static <T> MoveVerdict cross(RegionLookup lookup, RegionFlag<T> flag, MoveContext context, RegionPlayerSession session) {
         Region crossed = context.getRegion();
         FPlayer player = context.getPlayer();
-        Climb<T> climb = climb(flag, asked -> lookup.explain(asked, crossed, player));
-        Resolution<T> resolution = climb.resolution;
+        Resolution<T> resolution = lookup.explain(flag, crossed, player);
         T value = resolution.getValue();
-        FlagSettings settings = climb.getSettings(crossed);
+        FlagSettings settings = settingsOf(flag, resolution, crossed);
         if (value == null || flag.decide(context, value, settings) != Decision.DENY) {
             if (crossed.hasFlagHandlers()) {
                 notifyAllowed(lookup, flag, context, crossed, value, resolution);
@@ -161,9 +158,9 @@ public final class ProtectionFlagGate {
 
     private static <T> MoveVerdict expel(RegionLookup lookup, RegionFlag<T> flag, MoveContext context) {
         Region crossed = context.getRegion();
-        Climb<T> climb = climb(flag, asked -> lookup.explain(asked, crossed, context.getPlayer()));
-        T value = climb.resolution.getValue();
-        FlagSettings settings = climb.getSettings(crossed);
+        Resolution<T> resolution = lookup.explain(flag, crossed, context.getPlayer());
+        T value = resolution.getValue();
+        FlagSettings settings = settingsOf(flag, resolution, crossed);
         if (!(settings instanceof EntryDenySettings) || !((EntryDenySettings) settings).isExpelFoundInside()
                 || value == null || flag.decide(context, value, settings) != Decision.DENY) {
             return MoveVerdict.allowed();
@@ -182,7 +179,7 @@ public final class ProtectionFlagGate {
                     context.getPlayer().getName(), crossed.getId(), context.getTo().getWorldName());
             return MoveVerdict.allowed();
         }
-        Region source = climb.resolution.getSource() != null ? climb.resolution.getSource() : crossed;
+        Region source = resolution.getSource() != null ? resolution.getSource() : crossed;
         fireApplied(flag, context, value, source, settings);
         return MoveVerdict.revert(destination);
     }
@@ -260,7 +257,7 @@ public final class ProtectionFlagGate {
             return;
         }
         Resolution<T> own = lookup.explain(flag, region, null);
-        if (own.getSource() == null || own.getValue() == null || flag.decide(context, own.getValue(), region.getEffectiveFlagSettings(flag)) != Decision.DENY) {
+        if (own.getFlag() != flag || own.getSource() == null || own.getValue() == null || flag.decide(context, own.getValue(), region.getEffectiveFlagSettings(flag)) != Decision.DENY) {
             return;
         }
         handler.handle(new FlagOutcomeContext(FlagOutcome.ALLOWED, context.getPlayer(), region, flag, effective, context.getSource(), context,
@@ -285,50 +282,15 @@ public final class ProtectionFlagGate {
     }
 
     /**
-     * The resolution {@code flag} reads: its own when a region or group defines it (or a bypass lifts it), else that
-     * of its nearest registered ancestor that is defined, else its own default. A bypass met on the way up stops the
-     * climb at {@code flag}'s default.
+     * The settings in effect where the value came from: those the region gave the flag of the chain that defined the
+     * value (an inherited {@code only=[...]} narrows the refinement too) when they fit the asked flag, else the asked
+     * flag's own; {@code whereUndefined}'s (or the server's, when null) when no region gave the value.
      */
-    private static <T> Climb<T> climb(RegionFlag<T> flag, Function<RegionFlag<T>, Resolution<T>> resolve) {
-        Resolution<T> own = resolve.apply(flag);
-        if (own.getReason() != Resolution.Reason.DEFAULT) {
-            return new Climb<>(flag, flag, own);
-        }
-        for (RegionFlag<T> ancestor = flag.getParent(); ancestor != null && ancestor.isRegistered();
-             ancestor = ancestor.getParent()) {
-            Resolution<T> theirs = resolve.apply(ancestor);
-            if (theirs.getReason() == Resolution.Reason.BYPASS) {
-                break;
-            }
-            if (theirs.getReason() != Resolution.Reason.DEFAULT) {
-                return new Climb<>(flag, ancestor, theirs);
-            }
-        }
-        return new Climb<>(flag, flag, own);
-    }
-
-    /** A flag's resolution, and which flag of its chain the value came from. */
-    private static final class Climb<T> {
-        private final RegionFlag<T> asked;
-        private final RegionFlag<T> definer;
-        private final Resolution<T> resolution;
-
-        private Climb(RegionFlag<T> asked, RegionFlag<T> definer, Resolution<T> resolution) {
-            this.asked = asked;
-            this.definer = definer;
-            this.resolution = resolution;
-        }
-
-        /**
-         * The settings in effect where the value came from: those the region gave the flag that defined the value
-         * (an inherited {@code only=[...]} narrows the refinement too) when they fit the asked flag, else the asked
-         * flag's own; {@code whereUndefined}'s (or the server's, when null) when no region gave the value.
-         */
-        FlagSettings getSettings(@Nullable Region whereUndefined) {
-            RegionFlag<T> owner = asked.getSettingsType().isAssignableFrom(definer.getSettingsType()) ? definer : asked;
-            Region source = resolution.getSource() != null ? resolution.getSource() : whereUndefined;
-            return source != null ? source.getEffectiveFlagSettings(owner) : owner.getSettings();
-        }
+    private static <T> FlagSettings settingsOf(RegionFlag<T> asked, Resolution<T> resolution, @Nullable Region whereUndefined) {
+        RegionFlag<T> definer = resolution.getFlag();
+        RegionFlag<T> owner = asked.getSettingsType().isAssignableFrom(definer.getSettingsType()) ? definer : asked;
+        Region source = resolution.getSource() != null ? resolution.getSource() : whereUndefined;
+        return source != null ? source.getEffectiveFlagSettings(owner) : owner.getSettings();
     }
 
     /** @param settings those {@code decide} saw; the pace is read from the asked flag's own settings where the value came from */

@@ -488,7 +488,7 @@ public final class RegionManager {
             try {
                 overlaps.addAll(provider.findOverlaps(world, shape));
             } catch (RuntimeException broken) {
-                owner.getLog().warning("The {} overlap provider failed and is left out of this check: {}", provider.getSource(), broken.toString());
+                owner.getLog().warning("Region overlaps: the {} provider failed and is left out of this check: {}", provider.getSource(), broken.toString());
             }
         }
         return overlaps;

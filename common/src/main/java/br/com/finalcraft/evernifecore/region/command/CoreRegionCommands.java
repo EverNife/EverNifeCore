@@ -205,14 +205,16 @@ public class CoreRegionCommands {
         Region source = resolution.getSource();
         StringBuilder hover = new StringBuilder("§6" + flag.getKey());
         for (Resolution.Step step : resolution.getSteps()) {
-            hover.append("\n§7- §f").append(step.getRegion() == null ? "-" : step.getRegion().getId().toString())
+            hover.append("\n§7- ").append(step.getFlag() == flag ? "" : "§6" + step.getFlag().getKey() + " ")
+                    .append("§f").append(step.getRegion() == null ? "-" : step.getRegion().getId().toString())
                     .append(" §7prio §f").append(step.getPriority())
                     .append(Optional.of(step).map(Resolution.Step::getGroup).map(group -> " §7group §f" + group.getName()).orElse(""))
                     .append(" §7value §f").append(step.getValue() == null ? "-" : FlagValues.format(flag, step.getValue()))
                     .append(" §7(").append(step.getReason()).append(")");
         }
         sender.sendMessage(FancyText.of("§f" + flag.getKey() + ": §e" + flag.getType().format(value) + " §7<- "
-                + (source == null ? "default" : source.getId().toString()) + " (" + resolution.getReason() + ")").setHover(hover.toString()));
+                + (source == null ? "default" : source.getId().toString()) + " (" + resolution.getReason() + ")"
+                + (resolution.getFlag() == flag ? "" : " §7via §f" + resolution.getFlag().getKey())).setHover(hover.toString()));
     }
 
     private static String summary(Region region) {

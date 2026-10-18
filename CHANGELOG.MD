@@ -191,6 +191,11 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 
 ### Changed
 
+- **`RegionLookup.resolve` and `explain` climb an undefined refinement to its parent**, as `decide` always did: where no
+  region defines `deny-block-break-mobs`, both answer the value of `deny-block-break`. `Resolution.getFlag()` and
+  `Resolution.Step.getFlag()` name the flag of the chain each value came from, and the `here` explanation shows it
+  (`via deny-block-break`); the `flag_[...]` region placeholder reads the same effective value.
+- The warning of a failing overlap provider names regions: `Region overlaps: the <source> provider failed ...`.
 - **Bukkit**: `PAPIIntegration.isPresent()` asks for PlaceholderAPI ENABLED, not just its classes, and asks anew each
   time: a PlaceholderAPI that failed to enable made `parse` die with a `NoClassDefFoundError`.
 - With the core's debug mode on, the Bukkit move listener logs every denied step: who, from, to and the point

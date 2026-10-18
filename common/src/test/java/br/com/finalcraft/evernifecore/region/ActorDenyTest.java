@@ -211,6 +211,33 @@ class ActorDenyTest {
     }
 
     @Test
+    void explainClimbsAnUndefinedRefinementToItsParentAsDecideDoes() {
+        register(CoreFlags.DENY_BLOCK_BREAK, CoreFlags.DENY_BLOCK_BREAK_MOBS);
+        region.setFlag(CoreFlags.DENY_BLOCK_BREAK, Tristate.TRUE);
+        assertEquals(Decision.DENY, breakBy(creeper(), INSIDE), "decide reads the parent where the refinement is undefined");
+
+        Resolution<Tristate> inRegion = lookup.explain(CoreFlags.DENY_BLOCK_BREAK_MOBS, region, null);
+        Resolution<Tristate> atPoint = lookup.explain(CoreFlags.DENY_BLOCK_BREAK_MOBS, WORLD, 5, 5, 5, null);
+        for (Resolution<Tristate> resolution : Arrays.asList(inRegion, atPoint)) {
+            assertEquals(Tristate.TRUE, resolution.getValue(), "explain must show the value decide used: " + resolution);
+            assertEquals(Resolution.Reason.LOCAL_VALUE, resolution.getReason());
+            assertEquals(region, resolution.getSource());
+            assertEquals(CoreFlags.DENY_BLOCK_BREAK, resolution.getFlag(), "the value is the parent's");
+            assertTrue(resolution.getSteps().stream().anyMatch(step -> step.getFlag() == CoreFlags.DENY_BLOCK_BREAK_MOBS),
+                    "the refinement's own look comes first");
+            assertTrue(resolution.getSteps().stream().anyMatch(step -> step.getFlag() == CoreFlags.DENY_BLOCK_BREAK
+                    && step.getReason() == Resolution.Reason.LOCAL_VALUE), "then the climb to the parent: " + resolution);
+        }
+        assertEquals(Tristate.TRUE, lookup.resolve(CoreFlags.DENY_BLOCK_BREAK_MOBS, region, null), "resolve agrees with explain");
+        assertEquals(Tristate.TRUE, lookup.resolve(CoreFlags.DENY_BLOCK_BREAK_MOBS, WORLD, 5, 5, 5, null));
+
+        region.setFlag(CoreFlags.DENY_BLOCK_BREAK_MOBS, Tristate.FALSE);
+        Resolution<Tristate> defined = lookup.explain(CoreFlags.DENY_BLOCK_BREAK_MOBS, region, null);
+        assertEquals(Tristate.FALSE, defined.getValue(), "a defined refinement never climbs");
+        assertEquals(CoreFlags.DENY_BLOCK_BREAK_MOBS, defined.getFlag());
+    }
+
+    @Test
     void aRefinementsOwnActorsOnlyNarrowItsSet() {
         register(CoreFlags.DENY_BLOCK_BREAK, CoreFlags.DENY_BLOCK_BREAK_MOBS);
         region.setFlag(CoreFlags.DENY_BLOCK_BREAK_MOBS, Tristate.TRUE);
