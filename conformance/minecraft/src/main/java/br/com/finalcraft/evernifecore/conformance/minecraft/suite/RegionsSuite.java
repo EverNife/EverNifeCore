@@ -61,6 +61,12 @@ import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import java.util.function.Consumer;
 import org.bukkit.event.HandlerList;
 import java.util.concurrent.CompletableFuture;
+import java.util.Objects;
+import java.util.function.Function;
+import br.com.finalcraft.evernifecore.region.playerstate.ECGameMode;
+import org.bukkit.GameMode;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 /**
  * The region system on a live server: the core's flags registered under the real EverNifeCore, a plugin's own event
@@ -118,6 +124,9 @@ public final class RegionsSuite implements ConformanceSuite {
                 ConformanceCase.of("block-key-is-the-registrys", this::blockKeyIsTheRegistrys),
                 PlayerCases.later("tnt-entity-key", ctx, this::tntEntityKey),
                 PlayerCases.later("fluid-stays-out", ctx, this::fluidStaysOut),
+                PlayerCases.later("allow-fly-applies-and-restores", ctx, this::allowFlyAppliesAndRestores),
+                PlayerCases.later("game-mode-applies-and-restores", ctx, this::gameModeAppliesAndRestores),
+                PlayerCases.later("potion-effects-apply-and-restore", ctx, this::potionEffectsApplyAndRestore),
                 ConformanceCase.of("fire-spread-listener-follows-need", () -> listenerFollowsNeed(CoreFlags.DENY_FIRE_SPREAD,
                         region -> region.setFlag(CoreFlags.DENY_FIRE_SPREAD, Tristate.TRUE), "RegionFireSpreadListener")),
                 ConformanceCase.of("respawn-listener-follows-need", () -> listenerFollowsNeed(CoreFlags.SPAWN_POINT,
@@ -603,6 +612,91 @@ public final class RegionsSuite implements ConformanceSuite {
             }
         }
         return false;
+    }
+
+    private CompletableFuture<Verdict> allowFlyAppliesAndRestores(Player player) {
+        boolean before = player.getAllowFlight();   //creative already flies: then the case takes it away
+        Tristate value = before ? Tristate.FALSE : Tristate.TRUE;
+        return sessionFlag(player, "ecc-allow-fly", "allow-fly", region -> region.setFlag(CoreFlags.ALLOW_FLY, value),
+                Player::getAllowFlight, !before);
+    }
+
+    private CompletableFuture<Verdict> gameModeAppliesAndRestores(Player player) {
+        //ADVENTURE and CREATIVE exist on every version, 1.7.10 included (SPECTATOR does not)
+        ECGameMode mode = player.getGameMode() == GameMode.ADVENTURE ? ECGameMode.CREATIVE : ECGameMode.ADVENTURE;
+        return sessionFlag(player, "ecc-game-mode", "game-mode", region -> region.setFlag(CoreFlags.GAME_MODE, mode),
+                bot -> bot.getGameMode().name(), mode.name());
+    }
+
+    private CompletableFuture<Verdict> potionEffectsApplyAndRestore(Player player) {
+        return sessionFlag(player, "ecc-potion-effects", "potion-effects", region -> {
+            try {
+                region.setFlag(CoreFlags.POTION_EFFECTS, CoreFlags.POTION_EFFECTS.getType().parse("speed:2"));
+            } catch (Exception thrown) {
+                throw new IllegalStateException(thrown);
+            }
+        }, RegionsSuite::speedAmplifier, 1);
+    }
+
+    /** The amplifier of the speed the player has, -1 for none. */
+    private static int speedAmplifier(Player player) {
+        for (PotionEffect effect : player.getActivePotionEffects()) {
+            if (effect.getType().equals(PotionEffectType.SPEED)) {
+                return effect.getAmplifier();
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * A region 12 blocks east of the bot holding a session flag ({@code define}); the bot, its bypass taken, is teleported
+     * in and back out. {@code read} must give {@code expectedInside} inside and, after leaving, what it gave before.
+     */
+    private CompletableFuture<Verdict> sessionFlag(Player player, String name, String flagName, Consumer<Region> define,
+                                                   Function<Player, Object> read, Object expectedInside) {
+        Location start = player.getLocation();
+        World world = player.getWorld();
+        int tx = start.getBlockX() + 12, z = start.getBlockZ();
+        int ty = world.getHighestBlockYAt(tx, z);
+        Location inside = new Location(world, tx + 0.5, ty, z + 0.5);
+        Object before = read.apply(player);
+        CreationResult created = regions.create(name, world.getName(), CuboidShape.of(BlockPos.of(tx - 2, ty - 2, z - 2), BlockPos.of(tx + 2, ty + 3, z + 2)));
+        Region region = created.getRegion();
+        if (region == null) {
+            return CompletableFuture.completedFuture(Verdict.fail(name + " refused: " + created.getRefusal()));
+        }
+        PermissionAttachment noBypass = player.addAttachment(plugin());
+        noBypass.setPermission("evernifecore.region.bypass.*", false);
+        noBypass.setPermission("evernifecore.region.bypass.evernifecore." + flagName, false);
+        CompletableFuture<Verdict> answer = new CompletableFuture<>();
+        Object[] within = new Object[1];
+        try {
+            define.accept(region);
+        } catch (Throwable thrown) {
+            regions.remove(region);
+            player.removeAttachment(noBypass);
+            return CompletableFuture.completedFuture(Verdict.fail(Verdict.describe(thrown)));
+        }
+        //a tick or two for the MOVE listener to come up, then in; half a second later read and out; then read again
+        Bukkit.getScheduler().runTaskLater(plugin(), () -> player.teleport(inside), 2L);
+        Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+            within[0] = read.apply(player);
+            player.teleport(start);
+        }, 12L);
+        Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+            try {
+                Object after = read.apply(player);
+                answer.complete(Verdict.of(Objects.equals(within[0], expectedInside) && Objects.equals(after, before),
+                        "before=" + before + " inside=" + within[0] + " (want " + expectedInside + ") after=" + after));
+            } catch (Throwable thrown) {
+                answer.complete(Verdict.fail(Verdict.describe(thrown)));
+            } finally {
+                regions.remove(region);
+                player.removeAttachment(noBypass);
+                player.teleport(start);
+            }
+        }, 22L);
+        return PlayerCases.within(answer, TIMEOUT_MILLIS);
     }
 
     private static Plugin plugin() {

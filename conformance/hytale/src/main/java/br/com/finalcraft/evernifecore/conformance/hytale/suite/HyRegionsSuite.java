@@ -25,6 +25,7 @@ import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.event.RegionTerrainEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.EntryDenySettings;
@@ -56,6 +57,8 @@ import com.hypixel.hytale.server.core.entity.InteractionContext;
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.DamageBlockEvent;
+import com.hypixel.hytale.server.core.event.events.ecs.DropItemEvent;
+import com.hypixel.hytale.server.core.event.events.ecs.InteractivelyPickupItemEvent;
 import com.hypixel.hytale.server.core.event.events.ecs.UseBlockEvent;
 import com.hypixel.hytale.server.core.inventory.InventoryComponent;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
@@ -123,6 +126,10 @@ public final class HyRegionsSuite implements ConformanceSuite {
                 withPlayer("wand-closes-a-shape", ctx, this::wandClosesAShape),
                 withPlayer("denied-spawn-never-ticks", ctx, this::deniedSpawnNeverTicks),
                 withPlayer("outline-is-sent", ctx, this::outlineIsSent),
+                withPlayer("deny-item-drop-inside-only", ctx, player -> itemDeniedInsideOnly(player, "ecc-item-drop", CoreFlags.DENY_ITEM_DROP,
+                        () -> new DropItemEvent.Drop(new ItemStack(SOLID), 1F))),
+                withPlayer("deny-item-pickup-inside-only", ctx, player -> itemDeniedInsideOnly(player, "ecc-item-pickup", CoreFlags.DENY_ITEM_PICKUP,
+                        () -> new InteractivelyPickupItemEvent(new ItemStack(SOLID)))),
                 withPlayer("terrain-journal-restores", ctx, this::terrainJournalRestores),
                 withPlayer("terrain-prefab-restores", ctx, this::terrainPrefabRestores),
                 withPlayer("terrain-journal-keeps-chest-items", ctx, this::terrainJournalKeepsChestItems),
@@ -219,6 +226,31 @@ public final class HyRegionsSuite implements ConformanceSuite {
                                         "withoutRegion{needed=" + before[0] + " cancelled=" + before[1] + "} withRegion{needed=" + needed
                                                 + " insideCancelled=" + in + " outsideCancelled=" + out + "}");
                             })));
+        });
+    }
+
+    /**
+     * The player drops or picks up an item (the game's own event, fired at the player): with {@code flag} on a region
+     * 20 blocks off it goes through, with it on a region around the player it is cancelled.
+     */
+    private CompletableFuture<Verdict> itemDeniedInsideOnly(FPlayer fplayer, String name, RegionFlag<Tristate> flag, Supplier<EcsEvent> event) {
+        PlayerRef player = HyWorld.player(fplayer);
+        World world = HyWorld.worldOf(player);
+        return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
+            Vector3i feet = block(at, 0, 0, 0);
+            Vector3i away = block(at, 20, 0, 0);
+            boolean[] outside = new boolean[1];
+            return inRegion(regions, name + "-away", world.getName(), pos(away).add(-2, -2, -2), pos(away).add(2, 3, 2),
+                    region -> region.setFlag(flag, Tristate.TRUE),
+                    region -> HyWorld.on(world, () -> {
+                        outside[0] = firedCancelled(player.getReference(), event.get());
+                        return Verdict.pass("");
+                    })).thenCompose(ignored -> inRegion(regions, name, world.getName(), pos(feet).add(-2, -2, -2), pos(feet).add(2, 3, 2),
+                    region -> region.setFlag(flag, Tristate.TRUE),
+                    region -> HyWorld.on(world, () -> {
+                        boolean inside = firedCancelled(player.getReference(), event.get());
+                        return Verdict.of(inside && !outside[0], "insideCancelled=" + inside + " outsideCancelled=" + outside[0]);
+                    })));
         });
     }
 
