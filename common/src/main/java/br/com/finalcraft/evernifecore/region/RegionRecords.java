@@ -50,6 +50,8 @@ final class RegionRecords {
         record.flagSettings.putAll(region.getFlagSettingsForStorage());
         record.tags = new ArrayList<>(region.getTags());
         record.metadata = region.getMetadata();
+        record.displayName = region.getDisplayName();
+        record.description = region.getDescription();
         return record;
     }
 
@@ -77,6 +79,8 @@ final class RegionRecords {
             options = options.withMetadata(record.metadata);
         }
         Region region = new Region(manager, record.name, record.world, shape, options);
+        region.setDisplayName(record.displayName);
+        region.setDescription(record.description);
         record.flags.forEach(region.getFlagStore()::putRaw);
         for (Map.Entry<String, GroupRecord> entry : record.groups.entrySet()) {
             GroupRecord stored = entry.getValue();

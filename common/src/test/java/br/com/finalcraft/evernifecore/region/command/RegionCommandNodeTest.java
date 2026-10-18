@@ -82,7 +82,7 @@ class RegionCommandNodeTest extends RegionCommandFixture {
     @Test
     void treeHasEveryVerb() {
         FinalCMDPluginCommand fp = mount();
-        harness.tree(fp).at("region").hasChildren("define", "flag", "group", "here", "info", "list", "parent", "priority",
+        harness.tree(fp).at("region").hasChildren("define", "description", "displayname", "flag", "group", "here", "info", "list", "parent", "priority",
                 "redefine", "remove", "select", "settings", "tag", "terrain", "tp", "view");
         harness.tree(fp).at("region.group").hasChildren("add", "flag", "list", "permission", "priority", "remove");
         harness.tree(fp).at("region.terrain").hasChildren("restore", "snapshot", "snapshots", "undo");
@@ -330,6 +330,26 @@ class RegionCommandNodeTest extends RegionCommandFixture {
 
         harness.dispatch(fp, steve, "region parent inner -");
         assertNull(inner.getParent());
+    }
+
+    @Test
+    void displayNameAndDescriptionKeepColorAndSpacesAndNoTextClears() {
+        FinalCMDPluginCommand fp = mount();
+
+        harness.dispatch(fp, steve, "region displayname arena &6Arena Vermelha");
+        harness.dispatch(fp, steve, "region description arena &7Two teams, one flag");
+        assertEquals("&6Arena Vermelha", arena.getDisplayName(), steve.getMessages().toString());
+        assertEquals("&7Two teams, one flag", arena.getDescription());
+
+        steve.clearMessages();
+        harness.dispatch(fp, steve, "region info arena");
+        steve.assertAnyMessageContains("Arena Vermelha");
+        steve.assertAnyMessageContains("Two teams, one flag");
+
+        harness.dispatch(fp, steve, "region displayname arena");
+        harness.dispatch(fp, steve, "region description arena");
+        assertNull(arena.getDisplayName());
+        assertNull(arena.getDescription());
     }
 
     @Test

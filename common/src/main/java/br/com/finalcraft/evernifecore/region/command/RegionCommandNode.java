@@ -481,6 +481,32 @@ public class RegionCommandNode implements RegionScope {
         REGION_DONE.addPlaceholder("region", region.getId()).addPlaceholder("action", "now has priority " + priority).send(sender);
     }
 
+    @FinalCMD.SubCMD(subcmd = "displayname", validation = RegionVerbAccess.class, locales = {
+            @FCLocale(lang = LocaleType.EN_US, text = "Set the name players read for a region, colors and spaces kept; no text clears it"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Define o nome que os jogadores leem para a região, com cor e espaço; sem texto limpa")
+    })
+    public void displayName(FCommandSender sender, @Arg("<region>") Region region, @Arg("[name...]") String name) {
+        if (!requireWritable(sender, region)) {
+            return;
+        }
+        region.setDisplayName(name);
+        String now = region.getDisplayName();
+        REGION_DONE.addPlaceholder("region", region.getId()).addPlaceholder("action", now == null ? "has no display name" : "is shown as " + now).send(sender);
+    }
+
+    @FinalCMD.SubCMD(subcmd = "description", validation = RegionVerbAccess.class, locales = {
+            @FCLocale(lang = LocaleType.EN_US, text = "Set the description of a region, colors and spaces kept; no text clears it"),
+            @FCLocale(lang = LocaleType.PT_BR, text = "Define a descrição da região, com cor e espaço; sem texto limpa")
+    })
+    public void description(FCommandSender sender, @Arg("<region>") Region region, @Arg("[text...]") String text) {
+        if (!requireWritable(sender, region)) {
+            return;
+        }
+        region.setDescription(text);
+        String now = region.getDescription();
+        REGION_DONE.addPlaceholder("region", region.getId()).addPlaceholder("action", now == null ? "has no description" : "is described as " + now).send(sender);
+    }
+
     @FinalCMD.SubCMD(subcmd = "parent", validation = RegionVerbAccess.class, locales = {
             @FCLocale(lang = LocaleType.EN_US, text = "Show, set or clear (-) the parent of a region"),
             @FCLocale(lang = LocaleType.PT_BR, text = "Mostra, define ou limpa (-) o pai de uma região")

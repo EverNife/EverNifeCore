@@ -60,6 +60,8 @@ public final class Region {
     private volatile Region parent;
     private volatile @Nullable Instant expiresAt;
     private volatile JsonNode metadata;
+    private volatile @Nullable String displayName;
+    private volatile @Nullable String description;
     private volatile boolean attached;
     private final Set<String> tags = new CopyOnWriteArraySet<>();
     private final FlagStore flags = new FlagStore(this::onFlagChanged);
@@ -222,6 +224,32 @@ public final class Region {
     public void setExpiresAt(@Nullable Instant expiresAt) {
         this.expiresAt = expiresAt;
         manager.changed(this, RegionChangedEvent.Type.EXPIRES_AT);
+    }
+
+    /** The name players read, color codes and spaces kept as set; null when the region has none and goes by its id. */
+    public @Nullable String getDisplayName() {
+        return displayName;
+    }
+
+    /** @param displayName the name to show; null or blank clears it */
+    public void setDisplayName(@Nullable String displayName) {
+        this.displayName = blankToNull(displayName);
+        manager.changed(this, RegionChangedEvent.Type.DISPLAY_NAME);
+    }
+
+    /** Free text about the region, color codes and spaces kept as set; null for none. */
+    public @Nullable String getDescription() {
+        return description;
+    }
+
+    /** @param description the text; null or blank clears it */
+    public void setDescription(@Nullable String description) {
+        this.description = blankToNull(description);
+        manager.changed(this, RegionChangedEvent.Type.DESCRIPTION);
+    }
+
+    private static @Nullable String blankToNull(@Nullable String text) {
+        return text == null || text.trim().isEmpty() ? null : text;
     }
 
     /** The online players standing inside, by the location the platform reports for each. */

@@ -72,6 +72,25 @@ class RegionStorageTest extends ManagedRegionFixture {
     }
 
     @Test
+    void theDisplayNameAndTheDescriptionComeBackAndSoDoesTheirAbsence() {
+        RegionManager first = manager();
+        Region named = created(first.create("named", WORLD, box(0, 0, 9, 9)));
+        created(first.create("plain", WORLD, box(20, 20, 29, 29)));
+        named.setDisplayName("&6Arena Vermelha");
+        named.setDescription("&7Two teams, one flag");
+        first.flush().join();
+        first.close().join();
+
+        RegionManager second = manager();
+        second.load().join();
+
+        assertEquals("&6Arena Vermelha", second.get("named").getDisplayName());
+        assertEquals("&7Two teams, one flag", second.get("named").getDescription());
+        assertNull(second.get("plain").getDisplayName());
+        assertNull(second.get("plain").getDescription());
+    }
+
+    @Test
     void valuesAndSettingsOfAFlagWhoseOwnerIsGoneAreWrittenBackAsTheyWere() {
         ECPluginData flagOwner = Plugins.fakePluginData(FLAG_OWNER, tempDir.resolve("flags").toFile());
         try {

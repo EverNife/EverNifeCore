@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -50,6 +51,21 @@ class RegionEventsTest extends ManagedRegionFixture {
         }
         assertEquals(Arrays.asList(RegionChangedEvent.Type.PRIORITY, RegionChangedEvent.Type.PARENT, RegionChangedEvent.Type.TAGS,
                 RegionChangedEvent.Type.TAGS, RegionChangedEvent.Type.METADATA, RegionChangedEvent.Type.EXPIRES_AT), types);
+    }
+
+    @Test
+    void theDisplayNameAndTheDescriptionHaveATypeEachAndBlankClears() {
+        Region region = created(manager().create("region", WORLD, box(0, 0, 9, 9)));
+        List<RegionChangedEvent> changes = record(RegionChangedEvent.class);
+
+        region.setDisplayName("&6Arena");
+        region.setDescription("a room");
+        region.setDisplayName("  ");
+
+        assertEquals(Arrays.asList(RegionChangedEvent.Type.DISPLAY_NAME, RegionChangedEvent.Type.DESCRIPTION, RegionChangedEvent.Type.DISPLAY_NAME),
+                changes.stream().map(RegionChangedEvent::getType).collect(Collectors.toList()));
+        assertNull(region.getDisplayName());
+        assertEquals("a room", region.getDescription());
     }
 
     @Test

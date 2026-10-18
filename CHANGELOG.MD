@@ -115,6 +115,10 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   for several values, quotes or `\` to keep `] [ | = , {` as text, and `{placeholder}` resolved by the same replacer.
   A block that breaks the grammar leaves the placeholder as written; a value the parser refuses
   (`getInt`, `getEnum`, `getBoolean`, `allowOnly`) answers `[<block>: <what failed>]` where the value would be.
+- **Region display name and description**: `Region.get/setDisplayName` and `get/setDescription` (free text, color
+  codes and spaces kept; null or blank clears), stored with the region and announced as `RegionChangedEvent.Type`
+  `DISPLAY_NAME` / `DESCRIPTION`. Every `RegionCommandNode` gains `displayname <region> [name...]` and
+  `description <region> [text...]` (no text clears), and `info` prints both.
 
 ### Changed
 

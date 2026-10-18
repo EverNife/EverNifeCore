@@ -138,6 +138,8 @@ public class CoreRegionCommands {
     public static void sendInfo(FCommandSender sender, Region region) {
         sender.sendMessage("§6Region §e" + region.getId());
         sender.sendMessage("§7owner: §f" + region.getOwner().getMetaInfo().getName() + " §7world: §f" + region.getWorld());
+        sender.sendMessage("§7display name: §f" + (region.getDisplayName() == null ? "-" : region.getDisplayName()));
+        sender.sendMessage("§7description: §f" + (region.getDescription() == null ? "-" : region.getDescription()));
         sender.sendMessage("§7shape: §f" + describe(region.getWorld(), region.getShape()));
         Region parent = region.getParent();
         sender.sendMessage("§7priority: §f" + region.getPriority() + " §7parent: §f" + (parent == null ? "-" : parent.getId().toString()));

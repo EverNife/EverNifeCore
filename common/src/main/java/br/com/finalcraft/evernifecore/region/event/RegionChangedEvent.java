@@ -7,7 +7,7 @@ import br.com.finalcraft.evernifecore.region.Region;
 public class RegionChangedEvent extends RegionEvent {
 
     public enum Type {
-        PRIORITY, PARENT, TAGS, METADATA, EXPIRES_AT,
+        PRIORITY, PARENT, TAGS, METADATA, EXPIRES_AT, DISPLAY_NAME, DESCRIPTION,
         /** The region's own settings override of one flag was set or removed. */
         FLAG_SETTINGS
     }

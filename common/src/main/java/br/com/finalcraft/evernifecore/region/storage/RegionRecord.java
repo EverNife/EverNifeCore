@@ -39,6 +39,8 @@ public final class RegionRecord {
     public Map<String, JsonNode> flagSettings = new LinkedHashMap<>();
     public List<String> tags = new ArrayList<>();
     public @Nullable JsonNode metadata;
+    public @Nullable String displayName;
+    public @Nullable String description;
 
     @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
     @JsonIgnoreProperties(ignoreUnknown = true)
