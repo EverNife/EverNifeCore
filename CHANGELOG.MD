@@ -185,7 +185,7 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 - **`RegionManager` refuses `create` until its regions are loaded** (`REGIONS_NOT_LOADED` on the command): a create
   before the load could overwrite a stored region of the same name.
 - `RegionManager.closeAll()` closes the whole region runtime - open selections first; `RegionRuntime` is gone.
-- **Hytale Server 0.7.1** (was 0.6.8): reads go through `ChunkStore` and the entity components. A plugin is named by
+- **Hytale Server 0.7.2** (was 0.6.8; 0.7.2 needed no source change): reads go through `ChunkStore` and the entity components. A plugin is named by
   its manifest `Name`, not `Group:Name` - the `:` killed the core in setup. `HytaleFPlayer` teleports without blocking,
   as the server's own command does: two crossing teleports deadlocked both worlds.
 - Hytale's held-item argument refuses a player who already left, and items given to a departed player are skipped
