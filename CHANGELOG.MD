@@ -109,6 +109,12 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   one (Bukkit: one tick of delay on the main thread - a zero-delay task scheduled from a running one may run in the
   same tick; Hytale: on the world's executor once its tick counter moved). The test engine runs it inline and lists
   it in `TestPlatform.getWorldThreadNextTickRuns()`.
+- **The `[...]` block in placeholder templates**: next to the `{x}` gap, `RegexReplacer.addManipulator` takes `[x]` (a
+  block that ends at the `]` balancing it, so an `_` inside never cuts it) and `[x?]` (one that may be left out with the
+  `_` before it). `ManipulationContext.getArgs("[x]")` reads it as `PlaceholderArgs`: positional values, `k=v|k=v`, `,`
+  for several values, quotes or `\` to keep `] [ | = , {` as text, and `{placeholder}` resolved by the same replacer.
+  A block that breaks the grammar leaves the placeholder as written; a value the parser refuses
+  (`getInt`, `getEnum`, `getBoolean`, `allowOnly`) answers `[<block>: <what failed>]` where the value would be.
 
 ### Changed
 

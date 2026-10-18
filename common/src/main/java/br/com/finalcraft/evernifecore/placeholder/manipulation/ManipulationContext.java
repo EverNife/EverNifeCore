@@ -9,6 +9,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -17,10 +19,19 @@ public abstract class ManipulationContext {
     private final Manipulator manipulator;
     private final String inputText;
     private final HashMap<String, String> manipulationResult = new LinkedHashMap<>();
+    private @Nullable Function<String, String> nestedResolver;
 
     public ManipulationContext(Manipulator manipulator, String inputText) {
         this.manipulator = manipulator;
         this.inputText = inputText;
+
+        if (manipulator.hasBlocks()) {
+            Map<String, String> extracted = manipulator.extract(inputText);
+            if (extracted != null) {
+                manipulationResult.putAll(extracted);
+            }
+            return;
+        }
 
         for (String delimiter : manipulator.getDelimiters()) {
             //delimiters are raw tokens, not regexes; quote so metacharacters match literally
@@ -66,6 +77,27 @@ public abstract class ManipulationContext {
         }
 
         return new Argumento(manipulationResult.get(closure));
+    }
+
+    /**
+     * The block {@code closure} ({@code "[options]"}, also for an optional {@code [options?]}) read by
+     * {@link PlaceholderArgs}, with its {@code {key}}s resolved by the replacer that owns this placeholder; empty when
+     * an optional block was left out.
+     *
+     * @throws IllegalArgumentException when the template has no such block, or the block breaks the grammar
+     */
+    public @Nonnull PlaceholderArgs getArgs(String closure){
+        if (!manipulator.getClosures().contains(closure) || !closure.startsWith("[")) {
+            throw new IllegalArgumentException(String.format("Tried to read the block '%s', but the template '%s' has the closures [%s].", closure, manipulator.getOriginalText(), String.join(", ", manipulator.getClosures())));
+        }
+        String block = closure.substring(1, closure.length() - 1);
+        String content = manipulationResult.get(closure);
+        return content == null ? PlaceholderArgs.empty(block) : PlaceholderArgs.parse(block, content, nestedResolver);
+    }
+
+    /** Internal: how a {@code {key}} inside a block is answered - set by whoever parses with this context. */
+    public void setNestedResolver(@Nullable Function<String, String> nestedResolver) {
+        this.nestedResolver = nestedResolver;
     }
 
     public static class SimpleContext extends ManipulationContext{

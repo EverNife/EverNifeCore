@@ -155,7 +155,7 @@ public class RegexReplacer<O> implements Replacer<O>, IProvider<O>  {
             if (requested == null && this.manipulators.size() > 0){
                 for (ManipulatedParser<O> manipulatedParser : this.manipulators) {
                     if (manipulatedParser.getManipulator().match(full_placeholder)){
-                        requested = manipulatedParser.parse(object, full_placeholder);
+                        requested = manipulatedParser.parse(object, full_placeholder, this);
                         if (requested != null){
                             break;//can breka here as manipulators already return proper result
                         }
