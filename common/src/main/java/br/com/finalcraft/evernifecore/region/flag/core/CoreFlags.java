@@ -89,7 +89,7 @@ public final class CoreFlags {
     public static AmountEveryFlag FEED = new AmountEveryFlag("feed", AmountEveryFlag.Effect.FEED,
             "Feeds whoever stands in the region by the amount once per interval (2 every 5s), up to a full bar.");
     public static AmountEveryFlag DAMAGE_OVER_TIME = new AmountEveryFlag("damage-over-time", AmountEveryFlag.Effect.DAMAGE,
-            "Damages whoever stands in the region by the amount once per interval (2 every 5s); armor counts unless ignore-armor"
+            "Damages whoever stands in the region by the amount once per interval (2 every 5s); armor counts unless ignoreArmor"
                     + " is set in the settings.");
     public static AmountEveryFlag HUNGER_OVER_TIME = new AmountEveryFlag("hunger-over-time", AmountEveryFlag.Effect.HUNGER,
             "Takes the amount of food from whoever stands in the region once per interval (2 every 5s).");

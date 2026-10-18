@@ -10,7 +10,7 @@ public class DamageOverTimeSettings extends FlagSettings {
 
     @Comment({"false deals the damage the game's way - armor reduces it, other plugins see the damage event.",
             "true lowers the health by the whole amount, armor or not."})
-    @JsonProperty("ignore-armor")
+    @JsonProperty
     private boolean ignoreArmor = false;
 
     @JsonIgnore

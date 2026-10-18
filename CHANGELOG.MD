@@ -36,7 +36,7 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   on the next join after a server stop, through the core's `PlayerStateBackup` PDSection (`region_state`).
   `PlayerStateSettings` carries `restore`; `SessionContext` carries the session it runs in.
 - **`damage-over-time` respects armor** by default - Bukkit `Player.damage`, Hytale `DamageSystems.executeDamage` - and
-  its setting `ignore-armor: true` lowers the health straight. `IPlayerStateAccess.damage(player, amount, ignoreArmor)`
+  its setting `ignoreArmor: true` lowers the health straight. `IPlayerStateAccess.damage(player, amount, ignoreArmor)`
   replaces `damage(player, amount)`; `TestPlayerState.State.armor` models the armor in tests.
 - **Region tick** (`region.session.RegionTicker`): `EventSource.TICK` is live - one task a second, scheduled only while
   some region holds a `TickingFlag`, that ticks only the players standing in such a region, on their world thread; both

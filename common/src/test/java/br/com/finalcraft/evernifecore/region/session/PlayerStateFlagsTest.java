@@ -277,7 +277,7 @@ class PlayerStateFlagsTest extends TrackerFixture {
             swamp.<DamageOverTimeSettings>editFlagSettings(CoreFlags.DAMAGE_OVER_TIME, settings -> settings.setIgnoreArmor(true));
             clock.advance(Duration.ofSeconds(1));
             agenda.runQueued();
-            assertEquals(14.0, state.health, "ignore-armor deals the whole 4");
+            assertEquals(14.0, state.health, "ignoreArmor deals the whole 4");
         } finally {
             ticker.end();
         }
