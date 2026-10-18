@@ -8,7 +8,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.region.TestRegions;
 import br.com.finalcraft.evernifecore.region.TestRegions.ManualClock;
-import br.com.finalcraft.evernifecore.region.flag.core.InteractSettings;
+import br.com.finalcraft.evernifecore.region.flag.core.TypeFilterSettings;
 import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
@@ -283,7 +283,7 @@ class FlagSettingsTest {
 
     @Test
     void everySettingsFieldOfTheCoreIsCommented() throws Exception {
-        for (Class<?> type : new Class<?>[]{FlagSettings.class, InteractSettings.class, MoveDenySettings.class}) {
+        for (Class<?> type : new Class<?>[]{FlagSettings.class, TypeFilterSettings.class, MoveDenySettings.class}) {
             List<Field> fields = new ArrayList<>();
             for (Field field : type.getDeclaredFields()) {
                 if (!Modifier.isStatic(field.getModifiers())) {

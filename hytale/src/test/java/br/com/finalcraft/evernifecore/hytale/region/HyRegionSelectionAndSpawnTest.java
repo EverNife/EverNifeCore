@@ -66,7 +66,8 @@ class HyRegionSelectionAndSpawnTest {
         server = Platforms.lenient().recordingSelectionItems().install();
         regions = RegionWorld.open("HySelectOwner", tempDir.resolve("regions"));
         core = Plugins.fakeCore(tempDir.resolve("core").toFile());
-        FlagRegistry.get().register(core, CoreFlags.DENY_MONSTER_SPAWN);
+        FlagRegistry.get().register(core, CoreFlags.DENY_SPAWN);
+        FlagRegistry.get().register(core, CoreFlags.DENY_SPAWN_MONSTER);
         FCLocaleManager.loadLocale(regions.getOwner(), SelectionTool.class, SelectionSession.class);
     }
 
@@ -143,8 +144,8 @@ class HyRegionSelectionAndSpawnTest {
     }
 
     @Test
-    void aMonsterSpawningInDenyMonsterSpawnIsDeniedAndAnAnimalIsNot() {
-        regions.cuboid("den", WORLD, 0, 0, 0, 10, 10, 10).setFlag(CoreFlags.DENY_MONSTER_SPAWN, Tristate.TRUE);
+    void aMonsterSpawningInDenySpawnMonsterIsDeniedAndAnAnimalIsNot() {
+        regions.cuboid("den", WORLD, 0, 0, 0, 10, 10, 10).setFlag(CoreFlags.DENY_SPAWN_MONSTER, Tristate.TRUE);
 
         assertTrue(spawn("Trork_Brute", Attitude.HOSTILE, 5));
         assertFalse(spawn("Sheep", Attitude.NEUTRAL, 5));

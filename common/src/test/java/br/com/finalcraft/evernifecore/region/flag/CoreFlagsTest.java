@@ -24,6 +24,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,11 +52,13 @@ class CoreFlagsTest {
         for (String name : Arrays.asList("deny-pvp", "invincible", "deny-damage-animals", "deny-block-break", "deny-block-break-mobs",
                 "deny-block-break-environment", "deny-block-break-fake-players", "deny-block-place", "deny-block-place-fake-players",
                 "deny-explosion", "deny-explosion-mobs", "deny-interact", "deny-interact-blocks", "deny-interact-entities", "deny-entry", "deny-exit", "deny-teleport-in", "deny-teleport-out",
-                "deny-monster-spawn", "deny-animal-spawn", "track-changes")) {
+                "deny-spawn", "deny-spawn-monster", "deny-spawn-animal", "track-changes", "deny-damage-from-mobs", "deny-block-place-environment",
+                "deny-fire-spread", "deny-fluid-flow", "deny-item-pickup", "deny-item-drop", "deny-vehicle", "deny-vehicle-place",
+                "deny-vehicle-break", "deny-vehicle-enter")) {
             CATALOG.put(name, "tristate-true");
         }
         CATALOG.put("deny-entry-with-message", "denied-true");
-        for (String name : Arrays.asList("greeting", "farewell", "deny-message", "teleport-point")) {
+        for (String name : Arrays.asList("greeting", "farewell", "deny-message", "teleport-point", "spawn-point")) {
             CATALOG.put(name, "first");
         }
     }
@@ -73,7 +76,7 @@ class CoreFlagsTest {
     void tearDown() {
         try {
             assertTrue(iterated >= 18, "the tie test must have run over the whole catalog, ran " + iterated);
-            assertEquals(26, iterated, "the catalog holds 26 flags");
+            assertEquals(38, iterated, "the catalog holds 38 flags");
         } finally {
             FlagRegistry.get().reset();
             Plugins.forget(CORE);
@@ -165,7 +168,7 @@ class CoreFlagsTest {
     @Test
     void everyCoreFlagIsAStaticInstanceRegisteredUnderTheCore() {
         List<RegionFlag<?>> all = CoreFlags.all();
-        assertEquals(26, all.size());
+        assertTrue(all.size() >= 38, "the catalog holds at least 38 flags, has " + all.size());
         for (RegionFlag<?> flag : all) {
             assertTrue(flag.isRegistered(), flag.getKey().toString());
             assertSame(core, flag.getOwner(), flag.getKey().toString());
@@ -175,6 +178,27 @@ class CoreFlagsTest {
         assertSame(CoreFlags.DENY_BLOCK_BREAK, CoreFlags.DENY_BLOCK_BREAK_MOBS.getParent());
         assertSame(CoreFlags.DENY_BLOCK_PLACE, CoreFlags.DENY_BLOCK_PLACE_FAKE_PLAYERS.getParent());
         assertSame(CoreFlags.DENY_EXPLOSION, CoreFlags.DENY_EXPLOSION_MOBS.getParent());
+    }
+
+    @Test
+    void theProtectionCatalogIsInTheCoreWithItsParents() {
+        for (String key : Arrays.asList("spawn-point", "deny-item-pickup", "deny-item-drop", "deny-vehicle", "deny-vehicle-place",
+                "deny-vehicle-break", "deny-vehicle-enter", "deny-block-place-environment", "deny-fire-spread", "deny-spawn",
+                "deny-spawn-monster", "deny-spawn-animal", "deny-fluid-flow", "deny-damage-from-mobs")) {
+            assertTrue(FlagRegistry.get().find("evernifecore:" + key).isPresent(), key);
+        }
+        assertSame(CoreFlags.DENY_FLUID_FLOW, FlagRegistry.get().find("evernifecore:deny-fluid-flow").get());
+        assertSame(CoreFlags.DENY_VEHICLE, CoreFlags.DENY_VEHICLE_PLACE.getParent());
+        assertSame(CoreFlags.DENY_VEHICLE, CoreFlags.DENY_VEHICLE_BREAK.getParent());
+        assertSame(CoreFlags.DENY_VEHICLE, CoreFlags.DENY_VEHICLE_ENTER.getParent());
+        assertSame(CoreFlags.DENY_SPAWN, CoreFlags.DENY_SPAWN_MONSTER.getParent());
+        assertSame(CoreFlags.DENY_SPAWN, CoreFlags.DENY_SPAWN_ANIMAL.getParent());
+        assertSame(CoreFlags.DENY_BLOCK_PLACE, CoreFlags.DENY_BLOCK_PLACE_ENVIRONMENT.getParent());
+        assertEquals(Collections.singleton(EventSource.RESPAWN), CoreFlags.SPAWN_POINT.getNeeds());
+        assertEquals(Collections.singleton(EventSource.ITEM_PICKUP), CoreFlags.DENY_ITEM_PICKUP.getNeeds());
+        assertEquals(Collections.singleton(EventSource.ITEM_DROP), CoreFlags.DENY_ITEM_DROP.getNeeds());
+        assertEquals(Collections.singleton(EventSource.FIRE_SPREAD), CoreFlags.DENY_FIRE_SPREAD.getNeeds());
+        assertEquals(Collections.singleton(EventSource.FLUID), CoreFlags.DENY_FLUID_FLOW.getNeeds());
     }
 
     @Test
@@ -203,7 +227,7 @@ class CoreFlagsTest {
     @Test
     void onlyTheMovementDenialsAndTheBlockBreakStartWithATriggerInterval() {
         List<RegionFlag<?>> all = CoreFlags.all();
-        assertEquals(26, all.size());
+        assertTrue(all.size() >= 38, "the catalog holds at least 38 flags, has " + all.size());
         TreeSet<String> paced = new TreeSet<>();
         for (RegionFlag<?> flag : all) {
             Duration floor = flag.getDefaultTriggerInterval();

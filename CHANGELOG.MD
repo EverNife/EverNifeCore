@@ -138,6 +138,16 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 - **`bypassPermission` in every flag's settings** (`FlagSettings`): a node chosen by the server that lifts a bypassable
   flag like `evernifecore.region.bypass.<owner>.<flag>` does, read from the settings in effect in each region where the
   flag is read. `deny-pvp`, which is not bypassable, ignores it.
+- **Protection flags in the core catalog**: `spawn-point` (a location: who dies inside respawns there, ahead of a bed
+  or an anchor), `deny-item-pickup` / `deny-item-drop` (narrowed by `only`/`except` item keys), `deny-vehicle` with
+  `deny-vehicle-place` / `-break` / `-enter`, `deny-block-place-environment`, `deny-fire-spread`, `deny-spawn` (every
+  creature, narrowed by `only`/`except` creature keys) with `deny-spawn-monster` / `deny-spawn-animal`,
+  `deny-fluid-flow` (moved here from FinalProtection, same behaviour) and `deny-damage-from-mobs` (a mob with no
+  player behind it cannot hurt a player; falls and lava still do). `ItemContext` and `VehicleContext` carry the new
+  actions. `CoreFlags.all()` holds 38 flags.
+- **`FlagRegistry.setServedSources(sources)`**: a platform declares the core sources it raises, and each flag that
+  needs one it never raises - a plugin's included, registered before or after - logs one line saying it has no effect
+  there (`describeWithoutEffect`, `getUnservedSources`).
 
 ### Changed
 
@@ -189,6 +199,11 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   WorldEdit's own copy on WorldEdit 6 and 7; the never-honoured `allowUndo` parameter is gone.
 - A stored region whose record does not decode is skipped and logged by name, and the owner's other regions load:
   the load reads the collection by `scanAll` pages, where the backend reports a bad row instead of failing or hiding it.
+- **`deny-monster-spawn` / `deny-animal-spawn` -> `deny-spawn-monster` / `deny-spawn-animal`**
+  (`CoreFlags.DENY_SPAWN_MONSTER` / `DENY_SPAWN_ANIMAL`, class `DenySpawnFlag`), now refinements of `deny-spawn`. No
+  alias: a stored value under the old key stays raw until it is set again under the new one.
+- **`InteractSettings` -> `TypeFilterSettings`**: the same `only`/`except` key filter, now shared by the interact, item
+  and spawn flags.
 
 ### Removed
 

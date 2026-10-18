@@ -908,7 +908,7 @@ public final class HyRegionsSuite implements ConformanceSuite {
     }
 
     /**
-     * A sheep spawned inside {@code deny-animal-spawn} is gone before the next tick, one outside stays: the creature a
+     * A sheep spawned inside {@code deny-spawn-animal} is gone before the next tick, one outside stays: the creature a
      * region denies is removed when it is added, so no tick ever shows it. The detail carries the ticks it was seen.
      */
     private CompletableFuture<Verdict> deniedSpawnNeverTicks(FPlayer fplayer) {
@@ -917,7 +917,7 @@ public final class HyRegionsSuite implements ConformanceSuite {
         return HyWorld.on(world, () -> HyWorld.position(player)).thenCompose(at -> {
             Vector3i inside = block(at, -6, 0, 6);
             return inRegion(regions, "ecc-spawn", world.getName(), pos(inside).add(-2, -3, -2), pos(inside).add(2, 4, 2),
-                    region -> region.setFlag(CoreFlags.DENY_ANIMAL_SPAWN, Tristate.TRUE),
+                    region -> region.setFlag(CoreFlags.DENY_SPAWN_ANIMAL, Tristate.TRUE),
                     region -> HyWorld.on(world, () -> {
                         Store<EntityStore> store = world.getEntityStore().getStore();
                         //null: the spawn call itself already found the creature gone

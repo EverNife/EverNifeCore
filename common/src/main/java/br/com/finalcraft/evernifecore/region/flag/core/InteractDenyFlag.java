@@ -9,7 +9,7 @@ import br.com.finalcraft.evernifecore.region.flag.context.BlockContext;
 import br.com.finalcraft.evernifecore.region.flag.context.EntityContext;
 import jakarta.annotation.Nullable;
 
-/** The shape of an interact deny flag: TRUE denies using a block or an entity, narrowed by {@link InteractSettings}. */
+/** The shape of an interact deny flag: TRUE denies using a block or an entity, narrowed by {@link TypeFilterSettings}. */
 public abstract class InteractDenyFlag extends DenyFlag {
 
     /** @param parent the interact flag this one refines; null for none */
@@ -19,14 +19,14 @@ public abstract class InteractDenyFlag extends DenyFlag {
 
     @Override
     public Class<? extends FlagSettings> getSettingsType() {
-        return InteractSettings.class;
+        return TypeFilterSettings.class;
     }
 
-    /** Covers the used block or entity when the {@link InteractSettings} do. */
+    /** Covers the used block or entity when the {@link TypeFilterSettings} do. */
     @Override
     protected boolean covers(ActionContext context, FlagSettings settings) {
         TypeKey used = usedKey(context);
-        return used == null || !(settings instanceof InteractSettings) || ((InteractSettings) settings).matches(used);
+        return used == null || !(settings instanceof TypeFilterSettings) || ((TypeFilterSettings) settings).matches(used);
     }
 
     /** The block or entity type being used, or null for a context that names neither. */

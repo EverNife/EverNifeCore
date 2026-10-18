@@ -13,7 +13,6 @@ import br.com.finalcraft.evernifecore.region.flag.core.DenyBlockBreakFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyBlockPlaceFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyInteractFlag;
-import br.com.finalcraft.evernifecore.region.flag.core.DenyMonsterSpawnFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyPvpFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenySettings;
 import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
@@ -125,7 +124,7 @@ class RegionListenersTest {
         try (RegionServer server = RegionServer.open(tempDir)) {
             server.box("plots", 0, 0, 0, 10, 10, 10,
                     server.flag(new DenyBlockBreakFlag()), server.flag(new DenyBlockPlaceFlag()),
-                    server.flag(new DenyInteractFlag()), server.flag(new DenyPvpFlag()), server.flag(new DenyMonsterSpawnFlag()));
+                    server.flag(new DenyInteractFlag()), server.flag(new DenyPvpFlag()), server.flag(CoreFlags.DENY_SPAWN));
             RegionListeners bridge = RegionListeners.start(server.server.getPluginData());
             try {
                 Player player = server.player("plotter", 5, 5, 5);

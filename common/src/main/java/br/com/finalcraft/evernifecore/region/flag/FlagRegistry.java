@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionId;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
+import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import jakarta.annotation.Nullable;
@@ -20,10 +21,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -45,6 +48,7 @@ public final class FlagRegistry {
     private final ConcurrentHashMap<FlagKey, RegionFlag<?>> flags = new ConcurrentHashMap<>();
     private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
     private volatile Map<FlagKey, List<RegionFlag<?>>> childrenByParent = Collections.emptyMap();
+    private volatile @Nullable Set<EventSource> servedSources; //null: the platform raises every core source
 
     private FlagRegistry() {
         ECEventBus.global().subscribe(ECPluginReloadEvent.Post.class, event -> reloadSettings(event.getECPlugin()));
@@ -113,6 +117,7 @@ public final class FlagRegistry {
                 }
             }
         }
+        warnIfWithoutEffect(flag);
         if (!unreadable.isEmpty()) {
             owner.getLog().warning("Flag " + flag.getKey() + ": the stored value in " + unreadable.size() + " region(s) or group(s) " + unreadable
                     + " does not read as a " + flag.getType().getId() + " value. It is kept raw, nothing was deleted - fix it in storage"
@@ -149,6 +154,48 @@ public final class FlagRegistry {
     public synchronized void unregisterAll(ECPluginData owner) {
         for (RegionFlag<?> flag : getByOwner(owner)) {
             unregister(flag);
+        }
+    }
+
+    /**
+     * Platform: the core event sources this platform raises. From now on each flag that needs a core source outside them -
+     * registered already or registering later, a plugin's included - has no effect here, and its owner's log says so,
+     * one line per flag. Null takes it back: every source is raised. A plugin's own sources are its to raise, never
+     * judged here.
+     */
+    public synchronized void setServedSources(@Nullable Collection<EventSource> served) {
+        servedSources = served == null ? null : Collections.unmodifiableSet(new HashSet<>(served));
+        for (RegionFlag<?> flag : flags.values()) {
+            warnIfWithoutEffect(flag);
+        }
+    }
+
+    /** The core sources {@code flag} needs that the platform does not raise; empty when it raises them all. */
+    public List<EventSource> getUnservedSources(RegionFlag<?> flag) {
+        Set<EventSource> served = servedSources;
+        if (served == null) {
+            return Collections.emptyList();
+        }
+        List<EventSource> unserved = new ArrayList<>();
+        for (EventSource source : flag.getNeeds()) {
+            if (source.getOwner().equals(CoreFlags.OWNER) && !source.equals(EventSource.NONE) && !served.contains(source)) {
+                unserved.add(source);
+            }
+        }
+        return unserved;
+    }
+
+    /** The line a flag without effect on this platform logs; null for a flag that has its effect. */
+    public @Nullable String describeWithoutEffect(RegionFlag<?> flag) {
+        List<EventSource> unserved = getUnservedSources(flag);
+        return unserved.isEmpty() ? null : "Flag " + flag.getKey() + " has no effect on this platform: it needs " + unserved
+                + ", which this server never raises. A region may hold it; nothing will enforce it here.";
+    }
+
+    private void warnIfWithoutEffect(RegionFlag<?> flag) {
+        String line = describeWithoutEffect(flag);
+        if (line != null) {
+            flag.getOwner().getLog().warning(line);
         }
     }
 

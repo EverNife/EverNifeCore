@@ -16,7 +16,7 @@ import br.com.finalcraft.evernifecore.region.flag.context.BlockContext;
 import br.com.finalcraft.evernifecore.region.flag.context.ExplosionContext;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.DenySettings;
-import br.com.finalcraft.evernifecore.region.flag.core.InteractSettings;
+import br.com.finalcraft.evernifecore.region.flag.core.TypeFilterSettings;
 import br.com.finalcraft.evernifecore.testing.Actors;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
@@ -140,7 +140,7 @@ class ActorDenyTest {
     void theActorFilterLivesInTheBaseSoAnInteractFlagHasItToo() {
         register(CoreFlags.DENY_INTERACT, CoreFlags.DENY_INTERACT_BLOCKS, CoreFlags.DENY_INTERACT_ENTITIES);
         region.setFlag(CoreFlags.DENY_INTERACT, Tristate.TRUE);
-        InteractSettings settings = new InteractSettings();
+        TypeFilterSettings settings = new TypeFilterSettings();
         settings.setActors(Arrays.asList("fake-player"));
         settings.setOnly(Arrays.asList("minecraft:chest"));
         region.setFlagSettings(CoreFlags.DENY_INTERACT, settings);

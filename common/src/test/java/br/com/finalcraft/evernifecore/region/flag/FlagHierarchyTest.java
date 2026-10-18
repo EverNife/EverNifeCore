@@ -155,17 +155,19 @@ class FlagHierarchyTest {
     }
 
     @Test
-    void theCoreRegistersTwentySixWithItsRefinementsUnderTheirParents() {
+    void theCoreRegistersItsCatalogWithItsRefinementsUnderTheirParents() {
         ECPluginData core = Plugins.fakeCore(tempDir.resolve("core").toFile());
         try {
             CoreFlags.registerAll(core);
             RegionFlag<?> interact = FlagRegistry.get().getByOwner(core).stream()
                     .filter(flag -> flag.getKey().getName().equals("deny-interact")).findFirst().orElseThrow(AssertionError::new);
 
-            assertEquals(26, FlagRegistry.get().getByOwner(core).size());
+            assertEquals(CoreFlags.all().size(), FlagRegistry.get().getByOwner(core).size());
             assertEquals(2, FlagRegistry.get().getChildren(interact).size());
             assertEquals(3, FlagRegistry.get().getChildren(CoreFlags.DENY_BLOCK_BREAK).size(), "mobs, environment, fake players");
-            assertEquals(1, FlagRegistry.get().getChildren(CoreFlags.DENY_BLOCK_PLACE).size());
+            assertEquals(2, FlagRegistry.get().getChildren(CoreFlags.DENY_BLOCK_PLACE).size(), "environment, fake players");
+            assertEquals(3, FlagRegistry.get().getChildren(CoreFlags.DENY_VEHICLE).size(), "place, break, enter");
+            assertEquals(2, FlagRegistry.get().getChildren(CoreFlags.DENY_SPAWN).size(), "monster, animal");
             assertEquals(1, FlagRegistry.get().getChildren(CoreFlags.DENY_EXPLOSION).size());
             for (RegionFlag<?> child : FlagRegistry.get().getChildren(interact)) {
                 assertSame(interact, child.getParent(), child.getKey().toString());

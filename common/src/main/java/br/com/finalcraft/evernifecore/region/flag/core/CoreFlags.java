@@ -1,9 +1,12 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.region.actor.ECEntityType;
+import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
+import br.com.finalcraft.evernifecore.region.flag.context.VehicleContext;
 
 import java.util.Arrays;
 import java.util.List;
@@ -31,6 +34,9 @@ public final class CoreFlags {
             "TRUE: fake players - machines acting as a player - cannot break blocks in the region. Where it is not set, deny-block-break decides.",
             "fake-player");
     public static DenyBlockPlaceFlag DENY_BLOCK_PLACE = new DenyBlockPlaceFlag();
+    public static ActorDenyFlag DENY_BLOCK_PLACE_ENVIRONMENT = new ActorDenyFlag(FlagKey.of(OWNER, "deny-block-place-environment"), DENY_BLOCK_PLACE,
+            "TRUE: the environment - lava lighting fire, snow, ice - cannot place blocks in the region. Where it is not set, deny-block-place"
+                    + " decides.", "environment");
     public static ActorDenyFlag DENY_BLOCK_PLACE_FAKE_PLAYERS = new ActorDenyFlag(FlagKey.of(OWNER, "deny-block-place-fake-players"), DENY_BLOCK_PLACE,
             "TRUE: fake players - machines acting as a player - cannot place blocks in the region. Where it is not set, deny-block-place decides.",
             "fake-player");
@@ -44,25 +50,45 @@ public final class CoreFlags {
     public static DenyExitFlag DENY_EXIT = new DenyExitFlag();
     public static DenyTeleportInFlag DENY_TELEPORT_IN = new DenyTeleportInFlag();
     public static DenyTeleportOutFlag DENY_TELEPORT_OUT = new DenyTeleportOutFlag();
-    public static DenyMonsterSpawnFlag DENY_MONSTER_SPAWN = new DenyMonsterSpawnFlag();
-    public static DenyAnimalSpawnFlag DENY_ANIMAL_SPAWN = new DenyAnimalSpawnFlag();
+    public static DenySpawnFlag DENY_SPAWN = new DenySpawnFlag();
+    public static DenySpawnFlag DENY_SPAWN_MONSTER = new DenySpawnFlag("deny-spawn-monster", DENY_SPAWN, ECEntityType.MONSTER,
+            "TRUE: monsters do not spawn in the region. Where it is not set, deny-spawn decides.");
+    public static DenySpawnFlag DENY_SPAWN_ANIMAL = new DenySpawnFlag("deny-spawn-animal", DENY_SPAWN, ECEntityType.ANIMAL,
+            "TRUE: animals do not spawn in the region. Where it is not set, deny-spawn decides.");
     public static DenyEntryWithMessageFlag DENY_ENTRY_WITH_MESSAGE = new DenyEntryWithMessageFlag();
     public static GreetingFlag GREETING = new GreetingFlag();
     public static FarewellFlag FAREWELL = new FarewellFlag();
     public static DenyMessageFlag DENY_MESSAGE = new DenyMessageFlag();
     public static TeleportPointFlag TELEPORT_POINT = new TeleportPointFlag();
     public static TrackChangesFlag TRACK_CHANGES = new TrackChangesFlag();
+    public static SpawnPointFlag SPAWN_POINT = new SpawnPointFlag();
+    public static DenyItemFlag DENY_ITEM_PICKUP = new DenyItemFlag("deny-item-pickup", EventSource.ITEM_PICKUP,
+            "TRUE: items cannot be picked up in the region; only/except in the settings narrow it to some items.");
+    public static DenyItemFlag DENY_ITEM_DROP = new DenyItemFlag("deny-item-drop", EventSource.ITEM_DROP,
+            "TRUE: items cannot be dropped in the region; only/except in the settings narrow it to some items.");
+    public static DenyVehicleFlag DENY_VEHICLE = new DenyVehicleFlag();
+    public static DenyVehicleFlag DENY_VEHICLE_PLACE = new DenyVehicleFlag("deny-vehicle-place", DENY_VEHICLE, VehicleContext.Action.PLACE,
+            "TRUE: vehicles cannot be placed in the region. Where it is not set, deny-vehicle decides.");
+    public static DenyVehicleFlag DENY_VEHICLE_BREAK = new DenyVehicleFlag("deny-vehicle-break", DENY_VEHICLE, VehicleContext.Action.BREAK,
+            "TRUE: vehicles cannot be broken in the region. Where it is not set, deny-vehicle decides.");
+    public static DenyVehicleFlag DENY_VEHICLE_ENTER = new DenyVehicleFlag("deny-vehicle-enter", DENY_VEHICLE, VehicleContext.Action.ENTER,
+            "TRUE: vehicles cannot be entered in the region. Where it is not set, deny-vehicle decides.");
+    public static DenyFireSpreadFlag DENY_FIRE_SPREAD = new DenyFireSpreadFlag();
+    public static DenyFluidFlowFlag DENY_FLUID_FLOW = new DenyFluidFlowFlag();
+    public static DenyDamageFromMobsFlag DENY_DAMAGE_FROM_MOBS = new DenyDamageFromMobsFlag();
 
     private CoreFlags() {
     }
 
     /** Every core flag as the fields hold it now, each parent before the flags that refine it. */
     public static List<RegionFlag<?>> all() {
-        return Arrays.asList(DENY_PVP, INVINCIBLE, DENY_DAMAGE_ANIMALS, DENY_BLOCK_BREAK, DENY_BLOCK_BREAK_MOBS, DENY_BLOCK_BREAK_ENVIRONMENT,
-                DENY_BLOCK_BREAK_FAKE_PLAYERS, DENY_BLOCK_PLACE, DENY_BLOCK_PLACE_FAKE_PLAYERS, DENY_EXPLOSION, DENY_EXPLOSION_MOBS, DENY_INTERACT,
+        return Arrays.asList(DENY_PVP, INVINCIBLE, DENY_DAMAGE_ANIMALS, DENY_DAMAGE_FROM_MOBS, DENY_BLOCK_BREAK, DENY_BLOCK_BREAK_MOBS,
+                DENY_BLOCK_BREAK_ENVIRONMENT, DENY_BLOCK_BREAK_FAKE_PLAYERS, DENY_BLOCK_PLACE, DENY_BLOCK_PLACE_ENVIRONMENT,
+                DENY_BLOCK_PLACE_FAKE_PLAYERS, DENY_FIRE_SPREAD, DENY_FLUID_FLOW, DENY_EXPLOSION, DENY_EXPLOSION_MOBS, DENY_INTERACT,
                 DENY_INTERACT_BLOCKS, DENY_INTERACT_ENTITIES, DENY_ENTRY, DENY_EXIT, DENY_TELEPORT_IN, DENY_TELEPORT_OUT,
-                DENY_MONSTER_SPAWN, DENY_ANIMAL_SPAWN, DENY_ENTRY_WITH_MESSAGE, GREETING, FAREWELL, DENY_MESSAGE, TELEPORT_POINT,
-                TRACK_CHANGES);
+                DENY_SPAWN, DENY_SPAWN_MONSTER, DENY_SPAWN_ANIMAL, DENY_ITEM_PICKUP, DENY_ITEM_DROP, DENY_VEHICLE, DENY_VEHICLE_PLACE,
+                DENY_VEHICLE_BREAK, DENY_VEHICLE_ENTER, DENY_ENTRY_WITH_MESSAGE, GREETING, FAREWELL, DENY_MESSAGE, TELEPORT_POINT,
+                SPAWN_POINT, TRACK_CHANGES);
     }
 
     /** Registers every core flag under {@code owner} - EverNifeCore's own plugin data. */

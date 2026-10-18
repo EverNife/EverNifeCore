@@ -7,13 +7,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Which blocks or entities an interact flag covers, by type key: {@link #getOnly()} (empty = every key) minus
+ * Which blocks, items or creatures a deny flag covers, by type key: {@link #getOnly()} (empty = every key) minus
  * {@link #getExcept()}. An entry matches as {@link TypeKey#matches} reads it - {@code minecraft:*chest*}, {@code modid:*}.
- * Who uses them is narrowed by the {@link DenySettings} it extends.
+ * Who acts is narrowed by the {@link DenySettings} it extends.
  */
-public class InteractSettings extends DenySettings {
+public class TypeFilterSettings extends DenySettings {
 
-    @Comment({"The block or entity ids this flag covers, like minecraft:chest; * stands for any run of characters",
+    @Comment({"The block, item or entity ids this flag covers, like minecraft:chest; * stands for any run of characters",
             "(minecraft:*chest*, modid:*). Empty covers every id."})
     private List<String> only = new ArrayList<>();
 
@@ -36,7 +36,7 @@ public class InteractSettings extends DenySettings {
         this.except = except == null ? new ArrayList<>() : except;
     }
 
-    /** Whether the flag covers the block or entity {@code key}. */
+    /** Whether the flag covers the block, item or entity {@code key}. */
     public boolean matches(TypeKey key) {
         return (only.isEmpty() || anyMatches(only, key)) && !anyMatches(except, key);
     }

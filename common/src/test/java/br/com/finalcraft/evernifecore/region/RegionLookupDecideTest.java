@@ -22,9 +22,8 @@ import br.com.finalcraft.evernifecore.region.flag.core.DenyFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyInteractBlocksFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyInteractEntitiesFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyInteractFlag;
-import br.com.finalcraft.evernifecore.region.flag.core.DenyMonsterSpawnFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyPvpFlag;
-import br.com.finalcraft.evernifecore.region.flag.core.InteractSettings;
+import br.com.finalcraft.evernifecore.region.flag.core.TypeFilterSettings;
 import br.com.finalcraft.evernifecore.testing.Actors;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
@@ -218,10 +217,10 @@ class RegionLookupDecideTest {
     }
 
     @Test
-    void denyMonsterSpawnLetsAnimalsSpawn() {
-        DenyMonsterSpawnFlag denyMonsters = new DenyMonsterSpawnFlag();
-        FlagRegistry.get().register(core, denyMonsters);
-        region.setFlag(denyMonsters, Tristate.TRUE);
+    void denySpawnMonsterLetsAnimalsSpawn() {
+        FlagRegistry.get().register(core, CoreFlags.DENY_SPAWN);
+        FlagRegistry.get().register(core, CoreFlags.DENY_SPAWN_MONSTER);
+        region.setFlag(CoreFlags.DENY_SPAWN_MONSTER, Tristate.TRUE);
         WorldLocPos at = WorldLocPos.of(5, 5, 5, WORLD);
 
         assertEquals(Decision.PASS, lookup.decide(new SpawnContext(at, Actors.environment("spawn"), null,
@@ -290,7 +289,7 @@ class RegionLookupDecideTest {
     void anInteractLetThroughByItsSettingsSendsNoDenyMessage() {
         Interact interact = new Interact(core);
         region.setFlag(interact.any, Tristate.TRUE);
-        InteractSettings settings = new InteractSettings();
+        TypeFilterSettings settings = new TypeFilterSettings();
         settings.setExcept(Arrays.asList("minecraft:chest"));
         region.setFlagSettings(interact.any, settings);
         sayingDenyMessage("hands off");
@@ -426,7 +425,7 @@ class RegionLookupDecideTest {
     void onlyNarrowsTheDenialToTheListedIds() {
         Interact interact = new Interact(core);
         region.setFlag(interact.blocks, Tristate.TRUE);
-        InteractSettings settings = new InteractSettings();
+        TypeFilterSettings settings = new TypeFilterSettings();
         settings.setOnly(Arrays.asList("minecraft:*chest*"));
         region.setFlagSettings(interact.blocks, settings);
         TestFPlayerSender player = new TestFPlayerSender("user");
@@ -440,7 +439,7 @@ class RegionLookupDecideTest {
     void exceptLeavesTheListedIdsFree() {
         Interact interact = new Interact(core);
         region.setFlag(interact.any, Tristate.TRUE);
-        InteractSettings settings = new InteractSettings();
+        TypeFilterSettings settings = new TypeFilterSettings();
         settings.setExcept(Arrays.asList("minecraft:chest"));
         region.setFlagSettings(interact.any, settings);
         TestFPlayerSender player = new TestFPlayerSender("user");
