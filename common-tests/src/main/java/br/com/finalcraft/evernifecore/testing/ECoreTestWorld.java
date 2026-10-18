@@ -1,7 +1,5 @@
 package br.com.finalcraft.evernifecore.testing;
 
-import br.com.finalcraft.evernifecore.spawn.ISpawnProvider;
-import br.com.finalcraft.evernifecore.spawn.SpawnPoints;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.providers.ECBaseProvider;
 import br.com.finalcraft.evernifecore.api.common.providers.extractors.IECPluginExtractor;
@@ -11,6 +9,8 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECListenerWatch;
 import br.com.finalcraft.evernifecore.eventbus.ECNativeAudience;
 import br.com.finalcraft.evernifecore.region.RegionManager;
+import br.com.finalcraft.evernifecore.spawn.ISpawnProvider;
+import br.com.finalcraft.evernifecore.spawn.SpawnPoints;
 
 import java.util.ArrayList;
 import java.util.Collections;
