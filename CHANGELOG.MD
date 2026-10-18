@@ -62,7 +62,7 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   builds such a per-actor refinement of any `DenyFlag`; where it is not set, its parent decides.
 - **Event sources `EXPLOSION` and `FLUID`**, with `ExplosionContext` and `FluidContext`. An explosion is one
   `RegionDispatch` (`RegionLookup.dispatch()`): the whole, then each block it breaks, with the same actor - so
-  `deny-block-break` alone holds a creeper. No core flag needs `FLUID`; its listener exists only for a flag that asks.
+  `deny-block-break` alone holds a creeper. The `FLUID` listener exists only while a flag asks for it.
 - **Bukkit**: the region listeners ask about explosions, mob and fire block changes (burn, ignite, spread,
   `EntityChangeBlockEvent`) and pistons pushing across a border. Blocks, items and entities are keyed by the server's
   registry, so a hybrid's mod block or mob carries the mod's namespace; below 1.13 without the NMS bridge the key says
@@ -174,7 +174,7 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   creature, narrowed by `only`/`except` creature keys) with `deny-spawn-monster` / `deny-spawn-animal`,
   `deny-fluid-flow` (moved here from FinalProtection, same behaviour) and `deny-damage-from-mobs` (a mob with no
   player behind it cannot hurt a player; falls and lava still do). `ItemContext` and `VehicleContext` carry the new
-  actions. `CoreFlags.all()` holds 38 flags.
+  actions.
 - **`FlagRegistry.setServedSources(sources)`**: a platform declares the core sources it raises, and each flag that
   needs one it never raises - a plugin's included, registered before or after - logs one line saying it has no effect
   there (`describeWithoutEffect`, `getUnservedSources`).
@@ -184,7 +184,7 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   `PlayerPickupItemEvent`), `RegionVehicleListeners` (`BreakAndEnter`; `Place` from 1.13 on `EntityPlaceEvent`,
   `LegacyPlace` before on the click of a minecart or boat item) and `RegionFireSpreadListener`.
 - **Hytale item protection**: `deny-item-drop` on `DropItemEvent.Drop` and `deny-item-pickup` on
-  `InteractivelyPickupItemEvent` (0.7.1 raises nothing for an item picked up by walking over it).
+  `InteractivelyPickupItemEvent` (the server raises nothing for an item picked up by walking over it).
   `HyRegionSystems.SERVED_SOURCES` declares what Hytale raises, and every flag needing anything else - `spawn-point`,
   the vehicle flags, `deny-fire-spread`, `deny-fluid-flow`, `deny-explosion` - logs at boot, one line each, that it has
   no effect there.
@@ -213,7 +213,6 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 - **Contexts take actors**: `BlockContext.getBlockId()` -> `getBlockKey()`, `getItemInHandId()` ->
   `getItemInHandKey()` (both `TypeKey`); `DamageContext`, `EntityContext` and `SpawnContext` expose the `Actor` they
   hurt or spawn (`getVictim()`, `getEntity()`) in place of their `Kind` enums, type ids and players.
-  `InteractSettings` extends `DenySettings` and matches by `TypeKey`.
 - **`FlagRegistry.register(owner, flag)`** binds the flag to the plugin its key names and refuses any other.
 - **A flag's effect runs on every denial by default** (`triggerInterval` `0s`, was `2s`), paced by the victim when no
   player acts. The five movement denials keep a 250 ms floor and `deny-block-break` a 1 s one.
@@ -236,7 +235,7 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   sender (chat and `sudo`), which the core used to take for the console, refusing every player-only verb.
 - `ComparableItemComplex.deserialize` keeps the metadata of the serialized line (`ItemStack` is immutable), and an
   item without metadata serializes and compares as an empty document instead of throwing.
-- The release workflow skips this `[Unreleased]` entry: only the newest versioned entry is published.
+- The release workflow skips the `[Unreleased]` entry: only the newest versioned entry is published.
 - **WorldGuard wrappers are safe without WorldGuard**: `WGPlatform.isPresent()` (like `WEPlatform`), the adapter
   resolves on first use and `getInstance()` without WorldGuard throws naming `isPresent()`; `WGFlags` stays null
   instead of crashing its class load; `FCRegionManager.getRegions()` reflects regions added or removed later.
