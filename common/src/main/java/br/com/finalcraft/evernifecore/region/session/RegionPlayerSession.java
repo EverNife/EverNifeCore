@@ -103,6 +103,7 @@ public final class RegionPlayerSession {
 
     private volatile @Nullable FPlayer online;
     private volatile List<Region> current = Collections.emptyList();
+    private final Map<Region, Instant> enteredAt = new ConcurrentHashMap<>();
     private volatile @Nullable WorldLocPos position;
     private volatile long snapshotVersion;
     private final Deque<WorldBlockPos> trail = new ArrayDeque<>(TRAIL_SIZE);
@@ -125,6 +126,14 @@ public final class RegionPlayerSession {
     /** The regions the player is in, as of {@link #getSnapshotVersion()}. Read-only. */
     public List<Region> getCurrent() {
         return current;
+    }
+
+    /**
+     * When the player entered {@code region}, by {@link RegionClock}; null when they are not in it. Kept while they stay,
+     * through moves inside it, and dropped once they leave.
+     */
+    public @Nullable Instant getEnteredAt(Region region) {
+        return enteredAt.get(region);
     }
 
     /** Where the player last stood with the move accepted; null before the first join or move. */
@@ -161,6 +170,7 @@ public final class RegionPlayerSession {
 
     /** A move into another set of regions was accepted. */
     void commit(List<Region> regions, WorldLocPos to, long version) {
+        trackEntries(regions);
         current = Collections.unmodifiableList(regions);
         snapshotVersion = version;
         moveTo(to);
@@ -169,9 +179,18 @@ public final class RegionPlayerSession {
 
     /** The regions under a player who did not move changed. */
     void setCurrent(List<Region> regions, long version) {
+        trackEntries(regions);
         current = Collections.unmodifiableList(regions);
         snapshotVersion = version;
         markBoundaryCrossed();
+    }
+
+    private void trackEntries(List<Region> regions) {
+        enteredAt.keySet().retainAll(regions);
+        Instant now = RegionClock.now();
+        for (Region region : regions) {
+            enteredAt.putIfAbsent(region, now);
+        }
     }
 
     /** Whether a change of {@code region} can change what this player is under: they are in it, or in a descendant of it. */

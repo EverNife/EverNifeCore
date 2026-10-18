@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.region.Region;
+import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.TestRegions;
 import br.com.finalcraft.evernifecore.region.event.RegionBoundaryEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionEnterEvent;
@@ -27,6 +28,8 @@ import br.com.finalcraft.evernifecore.testing.RecordingAudience;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,6 +42,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Crossing region borders: the flags decide, leaves go before enters, and only an allowed move changes the session. */
 class RegionMovementTrackerTest extends TrackerFixture {
+
+    @Test
+    void theEntryInstantIsKeptWhileThePlayerStaysAndDroppedWhenTheyLeave() {
+        Region arena = region("arena", 0, 10);
+        Region inner = region("inner", 6, 8);
+        tracker.onJoin(player, at(20.5));
+        clock.advance(Duration.ofSeconds(5));
+        Instant entered = RegionClock.now();
+
+        tracker.onMove(player, at(20.5), at(5.5), MoveCause.MOVE, null);
+        clock.advance(Duration.ofSeconds(7));
+        tracker.onMove(player, at(5.5), at(6.5), MoveCause.MOVE, null);   //into inner, still in arena
+
+        assertEquals(entered, session().getEnteredAt(arena), "moving inside keeps the first instant");
+        assertEquals(entered.plusSeconds(7), session().getEnteredAt(inner));
+
+        tracker.onMove(player, at(6.5), at(20.5), MoveCause.MOVE, null);
+
+        assertNull(session().getEnteredAt(arena));
+        assertNull(session().getEnteredAt(inner));
+    }
 
     @Test
     void aMoveInsideTheSameBlockIsAllowedAtOnce() {

@@ -119,6 +119,8 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   codes and spaces kept; null or blank clears), stored with the region and announced as `RegionChangedEvent.Type`
   `DISPLAY_NAME` / `DESCRIPTION`. Every `RegionCommandNode` gains `displayname <region> [name...]` and
   `description <region> [text...]` (no text clears), and `info` prints both.
+- **`RegionPlayerSession.getEnteredAt(region)`**: when the player entered each region they are in, by `RegionClock`;
+  kept while they stay, dropped when they leave.
 
 ### Changed
 
