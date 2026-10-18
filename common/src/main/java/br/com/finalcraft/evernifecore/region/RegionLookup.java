@@ -10,6 +10,7 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.RegionIndex.WorldSnapshot;
 import br.com.finalcraft.evernifecore.region.Resolution.Step;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
+import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
@@ -46,7 +47,8 @@ import java.util.function.Consumer;
  * overrides the region's own value; distinct values tied in one band go to {@link RegionFlag#resolveTie}; nothing
  * defined gives {@link RegionFlag#getDefault()}. A subject holding {@code evernifecore.region.bypass.*} or
  * {@code evernifecore.region.bypass.<owner>.<name>} reads the default of every {@link RegionFlag#isBypassable()
- * bypassable} flag - both nodes are checked literally, since plain SuperPerms does not expand the wildcard.</p>
+ * bypassable} flag - both nodes are checked literally, since plain SuperPerms does not expand the wildcard - and so
+ * does one holding the {@link FlagSettings#getBypassPermission() extra node} the flag's settings name where it is read.</p>
  */
 public final class RegionLookup {
 
@@ -231,7 +233,7 @@ public final class RegionLookup {
 
     /** The value {@code region} alone gives - its groups, its own value, its ancestors - ignoring the regions around it. */
     public <T> @Nullable T resolve(RegionFlag<T> flag, Region region, @Nullable FPlayer subject) {
-        if (bypasses(subject, flag)) {
+        if (bypasses(subject, flag, Collections.singletonList(region))) {
             return flag.getDefault();
         }
         Hit<T> hit = effective(region, region.getPriority(), flag, subject, null);
@@ -244,7 +246,7 @@ public final class RegionLookup {
      */
     public <T> Resolution<T> explain(RegionFlag<T> flag, Region region, @Nullable FPlayer subject) {
         List<Step> steps = new ArrayList<>();
-        if (bypasses(subject, flag)) {
+        if (bypasses(subject, flag, Collections.singletonList(region))) {
             step(steps, null, 0, null, flag.getDefault(), Resolution.Reason.BYPASS);
             return new Resolution<>(flag.getDefault(), null, Resolution.Reason.BYPASS, steps);
         }
@@ -311,7 +313,7 @@ public final class RegionLookup {
     /** @param steps where to record each step, or null to record nothing */
     private <T> Resolution<T> walk(RegionFlag<T> flag, List<Region> at, @Nullable FPlayer subject, @Nullable List<Step> steps) {
         List<Step> recorded = steps == null ? Collections.emptyList() : steps;
-        if (bypasses(subject, flag)) {
+        if (bypasses(subject, flag, at)) {
             step(steps, null, 0, null, flag.getDefault(), Resolution.Reason.BYPASS);
             return new Resolution<>(flag.getDefault(), null, Resolution.Reason.BYPASS, recorded);
         }
@@ -422,9 +424,22 @@ public final class RegionLookup {
         return false;
     }
 
-    private static boolean bypasses(@Nullable FPlayer subject, RegionFlag<?> flag) {
-        return subject != null && flag.isBypassable() && (subject.hasPermission(BYPASS_ALL)
-                || subject.hasPermission("evernifecore.region.bypass." + flag.getKey().getOwner() + "." + flag.getKey().getName()));
+    /** The standard nodes, or the extra node the settings of {@code flag} name in any region of {@code at}. */
+    private static boolean bypasses(@Nullable FPlayer subject, RegionFlag<?> flag, List<Region> at) {
+        if (subject == null || !flag.isBypassable()) {
+            return false;
+        }
+        if (subject.hasPermission(BYPASS_ALL)
+                || subject.hasPermission("evernifecore.region.bypass." + flag.getKey().getOwner() + "." + flag.getKey().getName())) {
+            return true;
+        }
+        for (Region region : at) {
+            String extra = region.getEffectiveFlagSettings(flag).getBypassPermission();
+            if (extra != null && subject.hasPermission(extra)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void step(@Nullable List<Step> steps, @Nullable Region region, int priority, @Nullable AccessGroup group,

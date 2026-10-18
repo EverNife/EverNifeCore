@@ -135,6 +135,9 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 - **Event sources `RESPAWN`, `ITEM_PICKUP`, `ITEM_DROP`, `VEHICLE` and `FIRE_SPREAD`** (`evernifecore:respawn`,
   `item-pickup`, `item-drop`, `vehicle`, `fire-spread`). Pickup and drop are apart because a pickup fires every tick for
   each item next to a player; fire spreading is apart from `PLACE` so a flag about placing never hears it.
+- **`bypassPermission` in every flag's settings** (`FlagSettings`): a node chosen by the server that lifts a bypassable
+  flag like `evernifecore.region.bypass.<owner>.<flag>` does, read from the settings in effect in each region where the
+  flag is read. `deny-pvp`, which is not bypassable, ignores it.
 
 ### Changed
 

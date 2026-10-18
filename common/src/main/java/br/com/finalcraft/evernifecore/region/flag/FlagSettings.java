@@ -29,6 +29,25 @@ public class FlagSettings {
     @JsonProperty
     private @Nullable FCTimeFrame revalidationInterval;
 
+    @Comment({"A permission node of your choice that lifts this flag for whoever holds it, as the standard",
+            "evernifecore.region.bypass.<owner>.<flag> does. null adds none. A flag that holds for everyone (deny-pvp) ignores it."})
+    @JsonProperty
+    private @Nullable String bypassPermission;
+
+    /**
+     * A node that lifts the flag like the standard bypass nodes, read from the settings in effect where the flag is
+     * read; null for none. Ignored by a flag that is not {@link RegionFlag#isBypassable() bypassable}.
+     */
+    @JsonIgnore
+    public @Nullable String getBypassPermission() {
+        return bypassPermission == null || bypassPermission.trim().isEmpty() ? null : bypassPermission.trim();
+    }
+
+    @JsonIgnore
+    public void setBypassPermission(@Nullable String bypassPermission) {
+        this.bypassPermission = bypassPermission;
+    }
+
     /** At most one {@link RegionFlag#onApplied} per player in this window; zero runs it every time. */
     @JsonIgnore
     public Duration getTriggerInterval() {

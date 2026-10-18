@@ -14,7 +14,9 @@ import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryMessage;
+import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
+import br.com.finalcraft.evernifecore.region.flag.core.DenySettings;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
@@ -273,6 +275,29 @@ class RegionResolveTest {
         assertTrue(lookup.isTrue(flag, WORLD, 5, 5, 5, null), "no subject, no bypass");
         assertEquals(Resolution.Reason.BYPASS, lookup.explain(flag, WORLD, 5, 5, 5, all).getSteps().get(0).getReason());
         assertEquals(Tristate.FALSE, lookup.resolve(flag, lookup.byId(RegionId.of(OWNER, "arena")), all));
+    }
+
+    @Test
+    void theExtraBypassNodeOfTheSettingsLiftsABypassableFlagOnly() {
+        Region arena = region("arena", 0, box(20), null);
+        arena.setFlag(flag, Tristate.TRUE);
+        arena.setFlag(CoreFlags.DENY_PVP, Tristate.TRUE);
+        FlagSettings extra = new FlagSettings();
+        extra.setBypassPermission("server.staff");
+        arena.setFlagSettings(flag, extra);
+        DenySettings pvpExtra = new DenySettings();
+        pvpExtra.setBypassPermission("server.staff");
+        arena.setFlagSettings(CoreFlags.DENY_PVP, pvpExtra);
+        TestFPlayerSender staff = player("staff").grant("server.staff");
+        TestFPlayerSender standard = player("standard").grant("evernifecore.region.bypass.regionresolveowner.deny-thing");
+        TestFPlayerSender none = player("none");
+
+        assertResolves(Tristate.FALSE, flag, staff);
+        assertEquals(Resolution.Reason.BYPASS, lookup.explain(flag, arena, staff).getReason());
+        assertResolves(Tristate.TRUE, flag, none);
+        assertResolves(Tristate.FALSE, flag, standard);
+        assertResolves(Tristate.TRUE, CoreFlags.DENY_PVP, staff);
+        assertEquals(Tristate.TRUE, lookup.resolve(CoreFlags.DENY_PVP, arena, staff), "deny-pvp holds for everyone");
     }
 
     @Test
