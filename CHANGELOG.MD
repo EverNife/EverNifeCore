@@ -247,6 +247,10 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 - **Fire spreading on its own is `FIRE_SPREAD`, no longer `PLACE`**: `deny-block-place` stops denying it, and
   `deny-fire-spread` does. Fire lit by a player or by lava stays a `PLACE`; `deny-block-place-environment` decides the
   latter.
+- **A rejoin loads the `ONLINE` sections again**: a player who left, had his sections released by the idle grace and
+  came back in the same server run (or was looked up before joining) logged in without them, because a login found his
+  `PlayerData` already in memory and skipped the section load. Every login now loads them; a lookup
+  (`getPlayerData`, `getOrCreate`) no longer loads any section, also for a player not in memory.
 
 ### Removed
 

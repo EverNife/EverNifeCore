@@ -122,10 +122,8 @@ public final class HeldPlayerState {
         if (!PlayerController.getConfiguredPDSections().containsKey(PlayerStateBackup.class)) {
             return null;
         }
-        PlayerStateBackup loaded = PlayerController.getLoadedSection(player, PlayerStateBackup.class);
-        // ponytail: the login is meant to have loaded it (ONLINE); when it did not, one blocking read on the world thread
-        // beats losing what a server stop left applied - make it async if that read ever shows up in a timing
-        return loaded != null ? loaded : PlayerController.getPDSection(player, PlayerStateBackup.class).join();
+        //ONLINE: every login loads it, so a player in the world has it in memory
+        return PlayerController.getLoadedSection(player, PlayerStateBackup.class);
     }
 
     private static IPlayerStateAccess access() {

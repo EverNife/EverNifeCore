@@ -1357,7 +1357,9 @@ public class PlayerController {
         if (controller == null) return failedFuture(notBootstrapped());
         return controller.ready.thenCompose(v -> {
             controller.baseManager().evict(uuid);
-            return controller.doGetOrCreate(uuid);
+            //the cached section cells still point at the evicted instance: re-attach the login set
+            return controller.doGetOrCreate(uuid).thenCompose(playerData ->
+                    controller.hotLoadSectionsFor(playerData, LoginTimings.DISABLED).thenApply(x -> playerData));
         });
     }
 
@@ -1674,6 +1676,10 @@ public class PlayerController {
                 .thenCompose(account -> {
                     timings.phase("account", accountStart);
                     return doHandleLoginResolved(currentUUID, currentName, timings)
+                            //every login, also one whose PlayerData was still in memory (a rejoin
+                            //after the idle grace released its sections, a lookup before the join)
+                            .thenCompose(playerData -> hotLoadSectionsFor(playerData, timings)
+                                    .thenApply(x -> playerData))
                             .thenCompose(playerData -> {
                                 //login is the ONE reconciliation point of the stamped accountId: a
                                 //link/unlink decided elsewhere (other instance, offline) lands here,
@@ -1773,18 +1779,18 @@ public class PlayerController {
         PlayerData loaded = baseManager.peek(uuid).orElse(null);
         if (loaded != null) return CompletableFuture.completedFuture(loaded);
 
-        //resolve caches the instance (always() policy); wake it and hot-load its sections.
-        //Repeated resolves return the same cached instance, so the wake/name update is idempotent.
+        //resolve caches the instance (always() policy). Repeated resolves return the same cached
+        //instance, so the name update is idempotent. Sections are not loaded here: a lookup is not a login.
         long baseStart = System.nanoTime();
-        return baseManager.resolve(uuid).thenCompose(stored -> {
+        return baseManager.resolve(uuid).thenApply(stored -> {
             timings.phase("player row", baseStart);
-            if (!stored.isPresent()) return CompletableFuture.completedFuture(null);
+            if (!stored.isPresent()) return null;
             PlayerData playerData = stored.get();
             playerData.warnIfStaleSchema();
             if (playerData.getName() != null){
                 UUIDsController.addOrUpdateUUIDName(playerData.getUniqueId(), playerData.getName());
             }
-            return hotLoadSectionsFor(playerData, timings).thenApply(x -> playerData);
+            return playerData;
         });
     }
 
@@ -1805,16 +1811,14 @@ public class PlayerController {
 
             playerData.markDirty();
             //persist immediately and keep the cell cached (like the old addNewPlayerData + forceSave)
-            return baseManager().saveAndCache(playerData)
-                    .thenCompose(x -> hotLoadSectionsFor(playerData, timings))
-                    .thenApply(x -> playerData);
+            return baseManager().saveAndCache(playerData).thenApply(x -> playerData);
         });
     }
 
     /**
-     * Loads the sections a freshly resolved player must have in memory - every binding whose
-     * {@link SectionLifecycle} loads on login. A {@code LAZY} section is skipped: it enters memory
-     * only when someone actually resolves it.
+     * Loads the sections a logging-in player must have in memory - every binding whose
+     * {@link SectionLifecycle} loads on login; a cell still cached completes from memory. A {@code LAZY}
+     * section is skipped: it enters memory only when someone actually resolves it.
      */
     private CompletableFuture<Void> hotLoadSectionsFor(PlayerData playerData, LoginTimings timings){
         List<CompletableFuture<?>> futures = new ArrayList<>();

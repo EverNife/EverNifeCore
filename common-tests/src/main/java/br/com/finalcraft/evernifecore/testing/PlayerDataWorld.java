@@ -9,7 +9,9 @@ import br.com.finalcraft.evernifecore.playerdata.PDSectionConfiguration;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -32,6 +34,7 @@ public final class PlayerDataWorld implements AutoCloseable {
     private final Map<Class<? extends PDSection>, String> sections =
             new LinkedHashMap<Class<? extends PDSection>, String>();
     private final Map<Class<?>, String> accountSections = new LinkedHashMap<Class<?>, String>();
+    private final List<PDSectionConfiguration<?>> sectionConfigurations = new ArrayList<PDSectionConfiguration<?>>();
     private File storageYml;
     private boolean closed = false;
 
@@ -62,6 +65,12 @@ public final class PlayerDataWorld implements AutoCloseable {
         return this;
     }
 
+    /** A section registered with its full configuration - for a test that needs a lifecycle or idle grace of its own. */
+    public PlayerDataWorld section(PDSectionConfiguration<?> configuration) {
+        sectionConfigurations.add(configuration);
+        return this;
+    }
+
     /** {@link #sections}, for the account-wide family - one row per account instead of per player. */
     @SafeVarargs
     public final PlayerDataWorld accountSections(Class<? extends AccountSection<?>>... sectionClasses) {
@@ -89,6 +98,9 @@ public final class PlayerDataWorld implements AutoCloseable {
         for (Map.Entry<Class<? extends PDSection>, String> section : sections.entrySet()) {
             PlayerController.registerPDSectionCfg(
                     PDSectionConfiguration.builder(null, section.getKey(), section.getValue()).build());
+        }
+        for (PDSectionConfiguration<?> configuration : sectionConfigurations) {
+            PlayerController.registerPDSectionCfg(configuration);
         }
 
         for (Map.Entry<Class<?>, String> section : accountSections.entrySet()) {
