@@ -8,12 +8,15 @@ import br.com.finalcraft.evernifecore.region.actor.TypeKey;
 import br.com.finalcraft.evernifecore.region.command.FlagValues;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
 import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.region.flag.FlagKey;
+import br.com.finalcraft.evernifecore.region.flag.FlagOutcome;
 import br.com.finalcraft.evernifecore.region.flag.FlagParseException;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.context.BlockContext;
 import br.com.finalcraft.evernifecore.region.flag.context.ExplosionContext;
+import br.com.finalcraft.evernifecore.region.flag.core.ActorDenyFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.DenySettings;
 import br.com.finalcraft.evernifecore.region.flag.core.TypeFilterSettings;
@@ -29,8 +32,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -235,6 +240,24 @@ class ActorDenyTest {
         Resolution<Tristate> defined = lookup.explain(CoreFlags.DENY_BLOCK_BREAK_MOBS, region, null);
         assertEquals(Tristate.FALSE, defined.getValue(), "a defined refinement never climbs");
         assertEquals(CoreFlags.DENY_BLOCK_BREAK_MOBS, defined.getFlag());
+    }
+
+    @Test
+    void theHandlerOfAnUndefinedRefinementNeverHearsAllowedForItsParentsValue() {
+        ActorDenyFlag denyPlayers = new ActorDenyFlag(FlagKey.of(CoreFlags.OWNER, "deny-block-break-players"), CoreFlags.DENY_BLOCK_BREAK,
+                "TRUE: players cannot break blocks.", "player");
+        register(CoreFlags.DENY_BLOCK_BREAK, denyPlayers);
+        List<FlagOutcome> heard = new ArrayList<>();
+        region.setFlagHandler(owner, denyPlayers, outcome -> heard.add(outcome.getOutcome()));
+        Actor admin = Actors.player(new TestFPlayerSender("admin").grant("evernifecore.region.bypass.*"));
+
+        region.setFlag(CoreFlags.DENY_BLOCK_BREAK, Tristate.TRUE);
+        assertEquals(Decision.PASS, breakBy(admin, INSIDE), "the bypass lifts it");
+        assertEquals(Collections.emptyList(), heard, "the region does not have the refinement, only its parent");
+
+        region.setFlag(denyPlayers, Tristate.TRUE);
+        assertEquals(Decision.PASS, breakBy(admin, INSIDE));
+        assertEquals(Collections.singletonList(FlagOutcome.ALLOWED), heard, "the region has it now: the bypass is heard");
     }
 
     @Test
