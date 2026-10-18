@@ -57,6 +57,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
+import java.util.function.Consumer;
+import org.bukkit.event.HandlerList;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -114,7 +117,18 @@ public final class RegionsSuite implements ConformanceSuite {
                 PlayerCases.later("explosion-on-a-border", ctx, this::explosionOnABorder),
                 ConformanceCase.of("block-key-is-the-registrys", this::blockKeyIsTheRegistrys),
                 PlayerCases.later("tnt-entity-key", ctx, this::tntEntityKey),
-                PlayerCases.later("fluid-stays-out", ctx, this::fluidStaysOut)));
+                PlayerCases.later("fluid-stays-out", ctx, this::fluidStaysOut),
+                ConformanceCase.of("fire-spread-listener-follows-need", () -> listenerFollowsNeed(CoreFlags.DENY_FIRE_SPREAD,
+                        region -> region.setFlag(CoreFlags.DENY_FIRE_SPREAD, Tristate.TRUE), "RegionFireSpreadListener")),
+                ConformanceCase.of("respawn-listener-follows-need", () -> listenerFollowsNeed(CoreFlags.SPAWN_POINT,
+                        region -> region.setFlag(CoreFlags.SPAWN_POINT, WorldLocPos.of(0, 64, 0, region.getWorld())), "RegionRespawnListener")),
+                ConformanceCase.of("item-drop-listener-follows-need", () -> listenerFollowsNeed(CoreFlags.DENY_ITEM_DROP,
+                        region -> region.setFlag(CoreFlags.DENY_ITEM_DROP, Tristate.TRUE), "RegionItemListeners$Drop")),
+                ConformanceCase.of("item-pickup-listener-follows-need", () -> listenerFollowsNeed(CoreFlags.DENY_ITEM_PICKUP,
+                        region -> region.setFlag(CoreFlags.DENY_ITEM_PICKUP, Tristate.TRUE),
+                        MCVersion.isHigherEquals(MCDetailedVersion.v1_12_R1) ? "RegionItemListeners$Pickup" : "RegionItemListeners$LegacyPickup")),
+                ConformanceCase.of("vehicle-listener-follows-need", () -> listenerFollowsNeed(CoreFlags.DENY_VEHICLE,
+                        region -> region.setFlag(CoreFlags.DENY_VEHICLE, Tristate.TRUE), "RegionVehicleListeners$BreakAndEnter"))));
         cases.addAll(new TerrainCases(regions).cases(ctx));
         return cases;
     }
@@ -544,6 +558,42 @@ public final class RegionsSuite implements ConformanceSuite {
                     + "ms (expected " + expected + ", '" + PERSISTED_MESSAGE + "', " + PERSISTED_INTERVAL.toMillis() + "ms)");
         }).exceptionally(thrown -> Verdict.fail(Verdict.describe(thrown)));
         return PlayerCases.within(answer, TIMEOUT_MILLIS);
+    }
+
+    /**
+     * The core's own listener for the source {@code flag} needs is off while no region needs it, and on the server once a
+     * region of this plugin holds the flag - found by its class name on any handler list, since the event it hears
+     * differs by era.
+     */
+    private Verdict listenerFollowsNeed(RegionFlag<?> flag, Consumer<Region> define, String listenerName) {
+        EventSource source = flag.getNeeds().iterator().next();
+        boolean offBefore = !EventSourceUsage.get().isNeeded(source) && !isOn(listenerName);
+        World world = Bukkit.getWorlds().get(0);
+        CreationResult created = regions.create("ecc-" + source.getName(), world.getName(),
+                CuboidShape.of(BlockPos.of(0, 0, 0), BlockPos.of(1, 1, 1)));
+        Region region = created.getRegion();
+        if (region == null) {
+            return Verdict.fail("ecc-" + source.getName() + " refused: " + created.getRefusal());
+        }
+        try {
+            define.accept(region);
+            boolean onWhileNeeded = isOn(listenerName);
+            return Verdict.of(offBefore && onWhileNeeded, "source=" + source + " listener=" + listenerName + " offBefore=" + offBefore
+                    + " onWhileNeeded=" + onWhileNeeded);
+        } finally {
+            regions.remove(region);
+        }
+    }
+
+    private static boolean isOn(String listenerName) {
+        for (HandlerList list : HandlerList.getHandlerLists()) {
+            for (RegisteredListener registered : list.getRegisteredListeners()) {
+                if (registered.getListener().getClass().getName().endsWith("." + listenerName)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static boolean isOn(ECListener listener) {
