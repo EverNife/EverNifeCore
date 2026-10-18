@@ -21,6 +21,11 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 
 ### Added
 
+- **Region tick** (`region.session.RegionTicker`): `EventSource.TICK` is live - one task a second, scheduled only while
+  some region holds a `TickingFlag`, that ticks only the players standing in such a region, on their world thread; both
+  platforms start it. `RegionFlag.getNeededCapabilities()` and `FlagRegistry.setMissingCapabilities` put a flag that
+  changes what the platform cannot on a player in the boot warning, as unserved sources already were; Hytale reports its
+  missing weather and food.
 - **Player state** (`region.playerstate`): `IPlatform.getPlayerState()` -> `IPlayerStateAccess` - clock, weather,
   flight, game mode (`ECGameMode`), effects, health, food and commands, each a `Capability` the platform declares through
   `supports`. Bukkit has every one (game modes as the server version has them); Hytale lacks weather and food, and an

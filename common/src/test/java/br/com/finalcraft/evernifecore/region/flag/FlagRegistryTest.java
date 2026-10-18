@@ -1,5 +1,8 @@
 package br.com.finalcraft.evernifecore.region.flag;
 
+import java.util.Set;
+import java.util.EnumSet;
+import br.com.finalcraft.evernifecore.region.playerstate.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.TestRegions;
@@ -196,5 +199,33 @@ class FlagRegistryTest {
 
         assertTrue(refused.getMessage().contains("is registered by FlagRegistryFlagOwner: unregister it there"), refused.getMessage());
         assertSame(flagOwner, flag.getOwner());
+    }
+
+    @Test
+    void aFlagNeedingACapabilityThePlatformLacksIsReportedOnceAndOnlyThat() {
+        TristateFlag feeds = new TristateFlag(FlagKey.of(flagOwner, "feeds"), Collections.singleton(EventSource.MOVE), Tristate.FALSE, Tristate.TRUE) {
+            @Override
+            public Set<IPlayerStateAccess.Capability> getNeededCapabilities() {
+                return EnumSet.of(IPlayerStateAccess.Capability.FOOD, IPlayerStateAccess.Capability.HEALTH);
+            }
+        };
+        TristateFlag plain = newFlag("plain");
+        FlagRegistry.get().register(flagOwner, feeds);
+        FlagRegistry.get().register(flagOwner, plain);
+        assertNull(FlagRegistry.get().describeWithoutEffect(feeds), "every capability is there until a platform says otherwise");
+        try {
+            List<String> logged = Logs.capture(() -> FlagRegistry.get().setMissingCapabilities(EnumSet.of(IPlayerStateAccess.Capability.FOOD,
+                    IPlayerStateAccess.Capability.WEATHER)));
+
+            String line = FlagRegistry.get().describeWithoutEffect(feeds);
+            assertEquals("Flag flagregistryflagowner:feeds has no effect on this platform: it changes [FOOD] on a player, which this"
+                    + " server cannot. A region may hold it; nothing will apply it here.", line);
+            assertNull(FlagRegistry.get().describeWithoutEffect(plain));
+            assertTrue(logged.stream().anyMatch(logLine -> logLine.contains("flagregistryflagowner:feeds has no effect")), logged.toString());
+            assertTrue(logged.stream().noneMatch(logLine -> logLine.contains("flagregistryflagowner:plain")), logged.toString());
+        } finally {
+            FlagRegistry.get().setMissingCapabilities(Collections.emptySet());
+        }
+        assertNull(FlagRegistry.get().describeWithoutEffect(feeds));
     }
 }

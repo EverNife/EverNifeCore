@@ -37,10 +37,8 @@ import jakarta.annotation.Nullable;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -49,6 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 /**
  * Clock, flight, game mode ({@code ADVENTURE}, {@code CREATIVE}), entity effects, health and commands. Hytale has no
@@ -103,16 +102,16 @@ public final class HyPlayerStateAccess implements IPlayerStateAccess {
     }
 
     private final Ops ops;
-    private final ScheduledExecutorService scheduler;
+    private final Supplier<ScheduledExecutorService> scheduler; //late: the server's executor does not exist in a unit test
     private final Map<UUID, PlayerTime> times = new ConcurrentHashMap<>();
     private final Map<UUID, Instant> shown = new ConcurrentHashMap<>();
     private final Map<UUID, ScheduledFuture<?>> ramps = new ConcurrentHashMap<>();
 
     public HyPlayerStateAccess() {
-        this(new EcsOps(), HytaleServer.SCHEDULED_EXECUTOR);
+        this(new EcsOps(), () -> HytaleServer.SCHEDULED_EXECUTOR);
     }
 
-    HyPlayerStateAccess(Ops ops, ScheduledExecutorService scheduler) {
+    HyPlayerStateAccess(Ops ops, Supplier<ScheduledExecutorService> scheduler) {
         this.ops = ops;
         this.scheduler = scheduler;
     }
@@ -174,7 +173,7 @@ public final class HyPlayerStateAccess implements IPlayerStateAccess {
         Instant from = shown.getOrDefault(uuid, worldTime);
         long span = from.until(target, ChronoUnit.NANOS);
         int[] step = {0};
-        ramps.put(uuid, scheduler.scheduleAtFixedRate(() -> {
+        ramps.put(uuid, scheduler.get().scheduleAtFixedRate(() -> {
             step[0]++;
             show(uuid, from.plusNanos(span / steps * step[0] + (step[0] == steps ? span % steps : 0)), paused);
             if (step[0] >= steps) {

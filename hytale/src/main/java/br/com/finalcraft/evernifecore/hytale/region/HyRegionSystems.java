@@ -97,10 +97,10 @@ public final class HyRegionSystems {
 
     private static final AtomicBoolean REGISTERED = new AtomicBoolean();
 
-    /** The core sources some System here raises: the ones a flag needs to have an effect on Hytale. */
+    /** The core sources raised here - by a System, or TICK by the core's own region tick: the ones a flag needs to have an effect on Hytale. */
     public static final Set<EventSource> SERVED_SOURCES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(EventSource.MOVE,
             EventSource.BREAK, EventSource.PLACE, EventSource.INTERACT, EventSource.DAMAGE, EventSource.SPAWN, EventSource.ITEM_DROP,
-            EventSource.ITEM_PICKUP)));
+            EventSource.ITEM_PICKUP, EventSource.TICK)));
     static final HyRegionMoveSystem MOVE = new HyRegionMoveSystem(RegionMovementTracker::get);
 
     private HyRegionSystems() {
@@ -137,6 +137,7 @@ public final class HyRegionSystems {
         registry.registerSystem(new TerrainPlaceSystem());
         registry.registerSystem(new TerrainExplosionSystem());
         FlagRegistry.get().setServedSources(SERVED_SOURCES);
+        FlagRegistry.get().setMissingCapabilities(HyPlatform.PLAYER_STATE.getUnsupported());
         return true;
     }
 

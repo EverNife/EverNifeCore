@@ -14,6 +14,7 @@ import br.com.finalcraft.evernifecore.hytale.listeners.PlayerLoginListener;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyECPluginExtractor;
 import br.com.finalcraft.evernifecore.hytale.loader.imp.HyPlatform;
 import br.com.finalcraft.evernifecore.hytale.region.HyRegionSystems;
+import br.com.finalcraft.evernifecore.region.session.RegionTicker;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.math.game.options.RegionGridOptions;
 import com.hypixel.hytale.event.EventPriority;
@@ -91,6 +92,7 @@ public class EverNifeCoreHytalePlugin extends ECHytalePlugin {
 
         //still inside setup(): the only moment the server takes a System
         HyRegionSystems.register(this);
+        RegionTicker.start(getPluginData()); //the region tick is the core's own task, on Hytale as on Bukkit
     }
 
     @Override

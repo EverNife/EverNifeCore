@@ -38,6 +38,7 @@ import br.com.finalcraft.evernifecore.minecraft.protection.ProtectionAll;
 import br.com.finalcraft.evernifecore.minecraft.region.McRegionProtectionHandler;
 import br.com.finalcraft.evernifecore.minecraft.region.McWorldListener;
 import br.com.finalcraft.evernifecore.minecraft.region.listener.RegionListeners;
+import br.com.finalcraft.evernifecore.region.session.RegionTicker;
 import br.com.finalcraft.evernifecore.minecraft.scheduler.McFCScheduler;
 import br.com.finalcraft.evernifecore.minecraft.util.FCMinecraftAdventureUtil;
 import br.com.finalcraft.evernifecore.minecraft.util.FCTickUtil;
@@ -174,6 +175,7 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
 
         //each region listener sits on the server only while some region needs its kind of event
         regionListeners = RegionListeners.start(ecPluginData);
+        RegionTicker.start(ecPluginData);
 
         //last, so what a loadbefore plugin asked for runs after the first-tick work scheduled above
         McFCScheduler.INSTANCE.releaseTasksHeldUntilTheCoreEnables();

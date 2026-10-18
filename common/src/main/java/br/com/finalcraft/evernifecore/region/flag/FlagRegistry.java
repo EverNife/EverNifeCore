@@ -12,6 +12,7 @@ import br.com.finalcraft.evernifecore.region.RegionId;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
+import br.com.finalcraft.evernifecore.region.playerstate.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.time.FCTimeFrame;
 import jakarta.annotation.Nullable;
 
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -49,6 +51,7 @@ public final class FlagRegistry {
     private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
     private volatile Map<FlagKey, List<RegionFlag<?>>> childrenByParent = Collections.emptyMap();
     private volatile @Nullable Set<EventSource> servedSources; //null: the platform raises every core source
+    private volatile Set<IPlayerStateAccess.Capability> missingCapabilities = Collections.emptySet();
 
     private FlagRegistry() {
         ECEventBus.global().subscribe(ECPluginReloadEvent.Post.class, event -> reloadSettings(event.getECPlugin()));
@@ -170,6 +173,30 @@ public final class FlagRegistry {
         }
     }
 
+    /**
+     * Platform: the player-state capabilities this platform lacks ({@link IPlayerStateAccess#getUnsupported()}). From now on
+     * each flag that needs one of them has no effect here, and its owner's log says so, one line per flag. Empty takes
+     * it back.
+     */
+    public synchronized void setMissingCapabilities(Collection<IPlayerStateAccess.Capability> missing) {
+        missingCapabilities = missing.isEmpty() ? Collections.emptySet() : Collections.unmodifiableSet(EnumSet.copyOf(missing));
+        for (RegionFlag<?> flag : flags.values()) {
+            warnIfWithoutEffect(flag);
+        }
+    }
+
+    /** The capabilities {@code flag} needs that this platform lacks, in declaration order; empty when it has them all. */
+    public List<IPlayerStateAccess.Capability> getMissingCapabilities(RegionFlag<?> flag) {
+        Set<IPlayerStateAccess.Capability> missing = missingCapabilities;
+        List<IPlayerStateAccess.Capability> lacking = new ArrayList<>();
+        for (IPlayerStateAccess.Capability capability : IPlayerStateAccess.Capability.values()) {
+            if (missing.contains(capability) && flag.getNeededCapabilities().contains(capability)) {
+                lacking.add(capability);
+            }
+        }
+        return lacking;
+    }
+
     /** The core sources {@code flag} needs that the platform does not raise; empty when it raises them all. */
     public List<EventSource> getUnservedSources(RegionFlag<?> flag) {
         Set<EventSource> served = servedSources;
@@ -188,8 +215,13 @@ public final class FlagRegistry {
     /** The line a flag without effect on this platform logs; null for a flag that has its effect. */
     public @Nullable String describeWithoutEffect(RegionFlag<?> flag) {
         List<EventSource> unserved = getUnservedSources(flag);
-        return unserved.isEmpty() ? null : "Flag " + flag.getKey() + " has no effect on this platform: it needs " + unserved
-                + ", which this server never raises. A region may hold it; nothing will enforce it here.";
+        if (!unserved.isEmpty()) {
+            return "Flag " + flag.getKey() + " has no effect on this platform: it needs " + unserved
+                    + ", which this server never raises. A region may hold it; nothing will enforce it here.";
+        }
+        List<IPlayerStateAccess.Capability> lacking = getMissingCapabilities(flag);
+        return lacking.isEmpty() ? null : "Flag " + flag.getKey() + " has no effect on this platform: it changes " + lacking
+                + " on a player, which this server cannot. A region may hold it; nothing will apply it here.";
     }
 
     private void warnIfWithoutEffect(RegionFlag<?> flag) {

@@ -130,7 +130,7 @@ class HyPlayerStateAccessTest {
 
     private final RecordingOps ops = new RecordingOps();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-    private final HyPlayerStateAccess access = new HyPlayerStateAccess(ops, scheduler);
+    private final HyPlayerStateAccess access = new HyPlayerStateAccess(ops, () -> scheduler);
     private final FPlayer player = Senders.player("Kweebec");
 
     @Test

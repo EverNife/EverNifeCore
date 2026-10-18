@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.region.flag;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.context.SessionContext;
+import br.com.finalcraft.evernifecore.region.playerstate.IPlayerStateAccess;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -97,6 +98,14 @@ public abstract class RegionFlag<T> {
 
     public Set<EventSource> getNeeds() {
         return needs;
+    }
+
+    /**
+     * What the flag changes on a player, so a platform that cannot ({@link IPlayerStateAccess#supports}) reports it at
+     * boot as having no effect there; empty for a flag that changes nothing on a player.
+     */
+    public Set<IPlayerStateAccess.Capability> getNeededCapabilities() {
+        return Collections.emptySet();
     }
 
     /**
