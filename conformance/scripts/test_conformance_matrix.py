@@ -150,25 +150,14 @@ class ParallelTest(unittest.TestCase):
         self.assertEqual([cm.flavor_ok(r) for r in results], [True, False, True])
         self.assertIn("driver crashed: KeyError", results[1].problems[0])
 
-    def test_a_hytale_boot_that_missed_the_synthetic_join_is_booted_once_more(self):
-        boots = []
-
-        def once(flavor, a, mctf, out, fw, fresh_log=True):
-            boots.append(fresh_log)
-            missed = len(boots) == 1 or flavor == "hytale-never"
-            return cm.FlavorResult(flavor, booted=True, problems=["player_join: OP_FAILED: JOIN_FAILED - late"] if missed else [])
-
-        original = cm.run_hytale_once
-        cm.run_hytale_once = once
-        try:
-            r = cm.run_hytale_flavor("hytale-0.7.1", None, None, None, None)
-            self.assertEqual((boots, r.problems), ([True, False], []))
-            self.assertIn("booted again", r.notes[0])
-            boots.clear()
-            self.assertFalse(cm.flavor_ok(cm.run_hytale_flavor("hytale-never", None, None, None, None)))
-            self.assertEqual(len(boots), 2, "booted again only once")
-        finally:
-            cm.run_hytale_once = original
+    def test_a_server_whose_boot_failed_ends_the_join_with_the_boot_failure_and_no_second_client(self):
+        refused = {"ok": False, "error": {"code": "SERVER_NOT_RUNNING", "message": "settled stopped"}}
+        status = {"ok": True, "last_failure": {"code": "BOOT_FAILED", "message": "plugin crash", "log_file": "boot-failure.log"}}
+        mctf = ScriptedMctf([refused, status])
+        with self.assertRaises(cm.FlavorFailed) as caught:
+            cm.join_client(mctf, "paper-1.21.1", "s1", Path("fw"), cm.FlavorResult("paper-1.21.1"), "join")
+        self.assertEqual(mctf.calls, ["mc_hmc_start", "mc_status"])
+        self.assertIn("mc_start: BOOT_FAILED: plugin crash (log: boot-failure.log)", str(caught.exception))
 
     def test_a_client_that_dies_in_its_join_is_replaced_once(self):
         dead = {"ok": True, "client_id": "c1", "milestones": {"joined": None}}
@@ -208,6 +197,8 @@ class CliTest(unittest.TestCase):
         self.assertIn("PlaceholderAPI.jar", proc.stdout)
         start_line = next(l for l in proc.stdout.splitlines() if l.startswith("[dry-run] mctf mc_start "))
         self.assertNotIn('"to": "mods"', start_line)  # paper has no mod loader: no companion route
+        self.assertFalse(json.loads(start_line[start_line.index("{"):]).get("wait", True), "the client boots beside the server")
+        self.assertLess(tools.index("mc_hmc_start"), tools.index("mc_status"), "the boot is read once the bot is in")
 
     def test_crucible_dry_run_routes_worldedit_forge_into_mods_beside_the_plugin(self):
         proc = run_script("--dry-run", "--flavors", "crucible-1.7.10")
@@ -224,7 +215,7 @@ class CliTest(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         tools = re.findall(r"^\[dry-run\] mctf (\S+)", proc.stdout, re.M)
         self.assertNotIn("mc_hmc_start", tools)
-        self.assertIn('"op": "player_join"', proc.stdout)
+        self.assertEqual(proc.stdout.count('"op": "player_join"'), 1, "the bot joins first, no warm-up player before it")
         start_line = next(l for l in proc.stdout.splitlines() if l.startswith("[dry-run] mctf mc_start "))
         self.assertNotIn('"to": "plugins"', start_line)
 

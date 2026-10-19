@@ -61,8 +61,6 @@ EXPECTED_ENDS = {"run": 14, "write": 3, "read": 3}
 WAIT_SECONDS = {"run": 900, "write": 180, "read": 180}
 TEXT_LINES = ("iiiiiiiiii", "WWWWWWWWWW")
 BOT = "EccBot"
-WARM_UP_PLAYER = "EccWarmUp"
-WARM_UP_SETTLE = 5
 PLUGIN_ID = "ECoreConformance@3.0.1"
 # The daemon refuses a boot past its container or memory budget; with every flavor at once that is a wait, not a failure
 START_TOOLS = ("mc_start", "mc_hmc_start")
@@ -241,6 +239,8 @@ DRY_RESULT = {
     "shutdown_reason": "<dry-run>", "events": [], "has_more": False,
     "reply": {"ok": True, "x": 0.5, "y": 65.62, "z": 0.5, "hit": "block"},
 }
+# What a boot that has not settled yet carries: no address, no plugins - those are mc_status's to give
+DRY_STARTING_UNKNOWN = ("plugins", "linkage_errors", "mapped_game_port", "container_name", "game_port")
 
 
 class Mctf:
@@ -274,6 +274,8 @@ class Mctf:
     def call(self, tool: str, **args) -> dict:
         if self.dry_run:
             print("[dry-run] mctf %s %s" % (tool, json.dumps(args, sort_keys=True)), flush=True)
+            if tool == "mc_start" and args.get("wait") is False:
+                return {k: v for k, v in DRY_RESULT.items() if k not in DRY_STARTING_UNKNOWN}
             return dict(DRY_RESULT)
         cmd = [sys.executable, self.cli, tool] + ["%s:=%s" % (k, json.dumps(v)) for k, v in args.items()]
         env = dict(os.environ, PYTHONIOENCODING="utf-8")
@@ -382,10 +384,15 @@ def client_joined(client: dict) -> bool:
 
 
 def join_client(mctf: Mctf, flavor: str, server_id: str, fw: Path, r: FlavorResult, stage: str) -> str:
-    """A headless client in the world, the id to stop it by. A client can die in its own join (a NeoForge network
-    filter race, the 1.7.10 GuiConnecting NPE), more often beside five other servers, so a second one is tried."""
+    """A headless client in the world, the id to stop it by - started while the server may still be booting, it
+    connects once the server is healthy. A client can die in its own join (a NeoForge network filter race, the
+    1.7.10 GuiConnecting NPE), more often beside five other servers, so a second one is tried; a server whose boot
+    failed is not a client's fault and ends the flavor with the boot's own failure."""
     for attempt in (1, 2):
         client = start_client(mctf, flavor, server_id, fw)
+        if (client.get("error") or {}).get("code") == "SERVER_NOT_RUNNING":
+            failure = mctf("mc_status", server_id=server_id).get("last_failure") or {}
+            raise FlavorFailed("mc_start: %s: %s (log: %s)" % (failure.get("code"), failure.get("message"), failure.get("log_file")))
         if client_joined(client):
             if attempt > 1:
                 r.notes.append("%s: the first client never got in (%s), a second one did" % (stage, first))
@@ -431,14 +438,13 @@ def open_screen(mctf: Mctf, server_id: str, client_id: str):
 class FlavorLog:
     """<out>/<flavor>/driver.log: what the flavor's worker did and how long each stage took, echoed to stdout."""
 
-    def __init__(self, flavor: str, path: Optional[Path], fresh: bool = True):
+    def __init__(self, flavor: str, path: Optional[Path]):
         self.flavor = flavor
         self.path = path
         self.begun = self.lapped = time.monotonic()
         if path:
             path.parent.mkdir(parents=True, exist_ok=True)
-            with open(path, "w" if fresh else "a", encoding="utf-8") as f:
-                f.write("" if fresh else "-- booted again\n")
+            path.write_text("", encoding="utf-8")
 
     def say(self, message: str):
         line = "%s +%6.1fs %s" % (time.strftime("%H:%M:%S"), time.monotonic() - self.begun, message)
@@ -482,28 +488,29 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
             routes.append({"from": [str(fw / "final-artifacts/companion" / ("MCTFCompanion-%s-*.jar" % mc))], "to": "mods"})
         routes.append({"from": [str(fw / "final-artifacts/harness/ENCTestHarness-*.jar")], "to": "plugins"})
 
-        start = mctf("mc_start", flavor=flavor, routes=routes, project_root=str(REPO_ROOT), suite="conformance")
+        # the client's boot needs no server: it runs beside the server's and connects once that one is healthy
+        start = mctf("mc_start", flavor=flavor, routes=routes, project_root=str(REPO_ROOT), suite="conformance", wait=False)
         server_id = start.get("server_id")
         if not start.get("ok"):
             raise FlavorFailed("mc_start: " + _err(start))
         if start.get("overrides"):
             raise FlavorFailed("mc_start overrides (a route shadowed another): %s" % start["overrides"])
-        enabled = (start.get("plugins") or {}).get("enabled") or []
+        run_dir = start.get("run_dir")
+        client_id = join_client(mctf, flavor, server_id, fw, r, "join")
+
+        boot = mctf("mc_status", server_id=server_id)
+        enabled = (boot.get("plugins") or {}).get("enabled") or []
         if PLUGIN_ID not in enabled:
-            raise FlavorFailed("%s not enabled; plugins=%s" % (PLUGIN_ID, start.get("plugins")))
+            raise FlavorFailed("%s not enabled; plugins=%s" % (PLUGIN_ID, boot.get("plugins")))
         dead = routed_but_not_enabled(enabled, ["WorldEdit"] + (["PlaceholderAPI"] if flavor in a.papi_flavors else []))
         if dead:
-            r.problems.append("routed but not enabled: %s; not_enabled=%s" % (dead, (start.get("plugins") or {}).get("not_enabled")))
-        if start.get("linkage_errors"):
-            r.problems.append("linkage_errors=%s at boot" % start["linkage_errors"])
+            r.problems.append("routed but not enabled: %s; not_enabled=%s" % (dead, (boot.get("plugins") or {}).get("not_enabled")))
+        if boot.get("linkage_errors"):
+            r.problems.append("linkage_errors=%s at boot" % boot["linkage_errors"])
         r.booted = True
-        run_dir = start.get("run_dir")
-        log.lap("start")
-
-        client_id = join_client(mctf, flavor, server_id, fw, r, "join")
         console(mctf, server_id, "op " + BOT)
         console(mctf, server_id, "gamemode creative " + BOT)
-        log.lap("join")
+        log.lap("start+join")
 
         console(mctf, server_id, "ecc click " + BOT)
         click_a_block(mctf, client_id, r)
@@ -536,7 +543,7 @@ def run_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
         if not restart.get("ok"):
             raise FlavorFailed("mc_restart: " + _err(restart))
         # the bot sits on the run's own network: the container name and internal port survive the restart
-        reconnect = bot(mctf, client_id, "connect %s %s" % (start.get("container_name"), start.get("game_port")), timeout_seconds=120)
+        reconnect = bot(mctf, client_id, "connect %s %s" % (boot.get("container_name"), boot.get("game_port")), timeout_seconds=120)
         if not reconnect.get("ok") or not wait_online(mctf, server_id):
             # the 1.7.10 client can die on its own reconnect (an NPE ticking GuiConnecting); a fresh client joins instead
             r.notes.append("the bot did not come back after the restart (%s); a fresh client joined instead"
@@ -624,16 +631,8 @@ def particle_packets(snapshot: dict) -> int:
     return sum(int(p.get("count") or 0) for p in packets if p.get("type") == "SpawnParticleSystem")
 
 
-def join_synthetic(mctf: Mctf, server_id: str, r: FlavorResult):
-    """A throwaway player joins first: the harness gives a join a fixed 10 s, and on a fresh universe beside five other
-    servers generating the spawn area alone can take longer. Once he is in (or the world caught up after him), the
-    bot's own join finds those chunks ready."""
-    warm = mctf("mc_exec", server_id=server_id, ops=[{"op": "player_join", "name": WARM_UP_PLAYER}])
-    if warm.get("ok"):
-        mctf("mc_exec", server_id=server_id, ops=[{"op": "player_leave", "name": WARM_UP_PLAYER}])
-    else:
-        r.notes.append("warm-up join missed: %s" % _err(warm)[:200])
-        mctf.sleep(WARM_UP_SETTLE)
+def join_synthetic(mctf: Mctf, server_id: str):
+    """The harness's synthetic player joins; its harness_ready already waited for the spawn chunk."""
     joined = mctf("mc_exec", server_id=server_id, ops=[{"op": "player_join", "name": BOT}])
     if not joined.get("ok"):
         raise FlavorFailed("player_join: " + _err(joined))
@@ -657,22 +656,10 @@ def player_checks(before: dict, after: dict, r: FlavorResult):
 
 
 def run_hytale_flavor(flavor: str, a, mctf: Mctf, out: Path, fw: Path) -> FlavorResult:
-    """run_hytale_once, booted a second time when the synthetic join missed: the harness cuts that join at a fixed
-    10 s, which a world still generating beside five other servers can miss, and the late join then leaves a ghost
-    of the player that refuses every later join on the same server."""
-    r = run_hytale_once(flavor, a, mctf, out, fw)
-    missed = [p for p in r.problems if "JOIN_FAILED" in p]
-    if missed:
-        r = run_hytale_once(flavor, a, mctf, out, fw, fresh_log=False)
-        r.notes.append("the first boot missed the synthetic join and was booted again: %s" % missed[0][:300])
-    return r
-
-
-def run_hytale_once(flavor: str, a, mctf: Mctf, out: Path, fw: Path, fresh_log: bool = True) -> FlavorResult:
     """Boot with the core, ECoreConformance and the harness in mods/, join the synthetic player, run every suite."""
     r = FlavorResult(flavor)
     fdir = out / flavor
-    log = FlavorLog(flavor, None if mctf.dry_run else fdir / "driver.log", fresh_log)
+    log = FlavorLog(flavor, None if mctf.dry_run else fdir / "driver.log")
     server_id = None
     cid = "ecc%s-run" % time.strftime("%H%M%S")
     try:
@@ -689,7 +676,7 @@ def run_hytale_once(flavor: str, a, mctf: Mctf, out: Path, fw: Path, fresh_log: 
         run_dir = start.get("run_dir")
         log.lap("start")
 
-        join_synthetic(mctf, server_id, r)
+        join_synthetic(mctf, server_id)
         before = mctf("mc_player", server_id=server_id, player=BOT)
         log.lap("join")
         console(mctf, server_id, "ecc run all --player %s --cid %s" % (BOT, cid))
