@@ -16,8 +16,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ## [Unreleased]
 
+## [3.0.1-alpha.70] - 2026-10-19
+
 Regions decide by who acts - a player, a fake player, a mob, a block or the environment - and now cover explosions,
-fire, pistons and fluids; plugins can register event sources of their own. The Hytale port protects regions too.
+fire, pistons and fluids; plugins can register event sources of their own. Regions keep and restore their terrain,
+serve placeholders, and the core flag catalog grows to 50. The Hytale port protects regions too.
 
 ### Added
 
@@ -86,7 +89,7 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 - `RegionScheduler.set(Backend)` swaps where the region system schedules its work.
 - **Hytale regions**: protection through ECS systems (`HyRegionSystems`) registered once and gated by source usage,
   border tracking by a per-tick player system (`HyRegionMoveSystem`), the selection tool (`HySelectionItems`), outline
-  particles and spawn denial. Hytale has no explosion event, so `deny-explosion` has no effect there.
+  particles and spawn denial.
 - Hytale registers every `@FinalCMD` label after the first as a command alias.
 - Hytale no longer asks the permission node the server generates for a `@FinalCMD` command
   (`<group>.command.<label>`): a player needs only the command's own `@FinalCMD` permission.
@@ -186,8 +189,8 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 - **Hytale item protection**: `deny-item-drop` on `DropItemEvent.Drop` and `deny-item-pickup` on
   `InteractivelyPickupItemEvent` (the server raises nothing for an item picked up by walking over it).
   `HyRegionSystems.SERVED_SOURCES` declares what Hytale raises, and every flag needing anything else - `spawn-point`,
-  the vehicle flags, `deny-fire-spread`, `deny-fluid-flow`, `deny-explosion` - logs at boot, one line each, that it has
-  no effect there.
+  the vehicle flags, `deny-fire-spread`, `deny-fluid-flow`, `deny-explosion` (Hytale has no explosion event) - logs at
+  boot, one line each, that it has no effect there.
 
 ### Changed
 
@@ -196,8 +199,6 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
   `Resolution.Step.getFlag()` name the flag of the chain each value came from, and the `here` explanation shows it
   (`via deny-block-break`); the `flag_[...]` region placeholder reads the same effective value.
 - The warning of a failing overlap provider names regions: `Region overlaps: the <source> provider failed ...`.
-- **Bukkit**: `PAPIIntegration.isPresent()` asks for PlaceholderAPI ENABLED, not just its classes, and asks anew each
-  time: a PlaceholderAPI that failed to enable made `parse` die with a `NoClassDefFoundError`.
 - With the core's debug mode on, the Bukkit move listener logs every denied step: who, from, to and the point
   it was sent back to.
 - **Packages and names in the region API**: `region.flag.stock` -> `region.flag.core` (`StockFlags` -> `CoreFlags`,
@@ -222,27 +223,13 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 - **Hytale Server 0.7.2** (was 0.6.8; 0.7.2 needed no source change): reads go through `ChunkStore` and the entity components. A plugin is named by
   its manifest `Name`, not `Group:Name` - the `:` killed the core in setup. `HytaleFPlayer` teleports without blocking,
   as the server's own command does: two crossing teleports deadlocked both worlds.
-- Hytale's held-item argument refuses a player who already left, and items given to a departed player are skipped
-  with a warning in the log.
 - Bukkit `MinecraftFPlayer` teleports to a location given as coordinates alone, keeping the player's facing.
 - **ECNmsUtils 2.1.0**, **PlaceholderAPI-Hytale 1.0.8** and **VaultUnlocked 2.20.1**; both Hytale plugin APIs resolve
   non-transitively.
 - The `ECoreConformance` check-up gains a regions suite and a Hytale plugin with its matrix flavor.
-- The Hytale jar no longer embeds a relocated `org.bson` and links against the server's: item metadata
-  (`ItemDataPartMetadata`, `ComparableItemComplex`) works on a real server. The server has no bson record codec, so the
-  jar carries `bson-record-codec` alone, unrelocated, for the Mongo driver to find.
-- A player's command on Hytale reaches FinalCMD as that player: the server dispatches it with the `PlayerRef` as the
-  sender (chat and `sudo`), which the core used to take for the console, refusing every player-only verb.
-- `ComparableItemComplex.deserialize` keeps the metadata of the serialized line (`ItemStack` is immutable), and an
-  item without metadata serializes and compares as an empty document instead of throwing.
 - The release workflow skips the `[Unreleased]` entry: only the newest versioned entry is published.
-- **WorldGuard wrappers are safe without WorldGuard**: `WGPlatform.isPresent()` (like `WEPlatform`), the adapter
-  resolves on first use and `getInstance()` without WorldGuard throws naming `isPresent()`; `WGFlags` stays null
-  instead of crashing its class load; `FCRegionManager.getRegions()` reflects regions added or removed later.
 - **`FCBlockArrayClipboard.paste` applies its `Transform` and returns the `EditSession`** that undoes it, through
   WorldEdit's own copy on WorldEdit 6 and 7; the never-honoured `allowUndo` parameter is gone.
-- A stored region whose record does not decode is skipped and logged by name, and the owner's other regions load:
-  the load reads the collection by `scanAll` pages, where the backend reports a bad row instead of failing or hiding it.
 - **`deny-monster-spawn` / `deny-animal-spawn` -> `deny-spawn-monster` / `deny-spawn-animal`**
   (`CoreFlags.DENY_SPAWN_MONSTER` / `DENY_SPAWN_ANIMAL`, class `DenySpawnFlag`), now refinements of `deny-spawn`. No
   alias: a stored value under the old key stays raw until it is set again under the new one.
@@ -251,16 +238,35 @@ fire, pistons and fluids; plugins can register event sources of their own. The H
 - **Fire spreading on its own is `FIRE_SPREAD`, no longer `PLACE`**: `deny-block-place` stops denying it, and
   `deny-fire-spread` does. Fire lit by a player or by lava stays a `PLACE`; `deny-block-place-environment` decides the
   latter.
-- **A rejoin loads the `ONLINE` sections again**: a player who left, had his sections released by the idle grace and
-  came back in the same server run (or was looked up before joining) logged in without them, because a login found his
-  `PlayerData` already in memory and skipped the section load. Every login now loads them; a lookup
-  (`getPlayerData`, `getOrCreate`) no longer loads any section, also for a player not in memory.
 
 ### Removed
 
 - `deny-fake-player-break` (`DenyFakePlayerBreakFlag`): use `deny-block-break-fake-players`.
 - `WorldEditIntegration` and its `CustomMask` (`pasteSchematic` read WorldEdit 6 only): paste through
   `WEPlatform` / `FCBlockArrayClipboard.paste`.
+
+### Fixed
+
+- **Bukkit**: `PAPIIntegration.isPresent()` asks for PlaceholderAPI ENABLED, not just its classes, and asks anew each
+  time: a PlaceholderAPI that failed to enable made `parse` die with a `NoClassDefFoundError`.
+- Hytale's held-item argument refuses a player who already left, and items given to a departed player are skipped
+  with a warning in the log.
+- The Hytale jar no longer embeds a relocated `org.bson` and links against the server's: item metadata
+  (`ItemDataPartMetadata`, `ComparableItemComplex`) works on a real server. The server has no bson record codec, so the
+  jar carries `bson-record-codec` alone, unrelocated, for the Mongo driver to find.
+- A player's command on Hytale reaches FinalCMD as that player: the server dispatches it with the `PlayerRef` as the
+  sender (chat and `sudo`), which the core used to take for the console, refusing every player-only verb.
+- `ComparableItemComplex.deserialize` keeps the metadata of the serialized line (`ItemStack` is immutable), and an
+  item without metadata serializes and compares as an empty document instead of throwing.
+- **WorldGuard wrappers are safe without WorldGuard**: `WGPlatform.isPresent()` (like `WEPlatform`), the adapter
+  resolves on first use and `getInstance()` without WorldGuard throws naming `isPresent()`; `WGFlags` stays null
+  instead of crashing its class load; `FCRegionManager.getRegions()` reflects regions added or removed later.
+- A stored region whose record does not decode is skipped and logged by name, and the owner's other regions load:
+  the load reads the collection by `scanAll` pages, where the backend reports a bad row instead of failing or hiding it.
+- **A rejoin loads the `ONLINE` sections again**: a player who left, had their sections released by the idle grace and
+  came back in the same server run (or was looked up before joining) logged in without them, because a login found their
+  `PlayerData` already in memory and skipped the section load. Every login now loads them; a lookup
+  (`getPlayerData`, `getOrCreate`) no longer loads any section, also for a player not in memory.
 
 ## [3.0.1-alpha.69] - 2026-10-12
 
