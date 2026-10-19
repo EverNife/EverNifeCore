@@ -74,8 +74,9 @@ subprojects {
 
     repositories {
         mavenCentral()
-        // The sibling FinalCraft libraries resolve from mavenLocal until they are published to
-        // maven.petrus.dev. Filtered so this never shadows another group's resolution.
+        // The sibling FinalCraft libraries are published on maven.petrus.dev (declared below), where
+        // every other developer gets them. mavenLocal comes first so a local publish of one wins while
+        // iterating on it. Filtered so this never shadows another group's resolution.
         mavenLocal {
             content {
                 includeGroup "br.com.finalcraft.everydatabase"
