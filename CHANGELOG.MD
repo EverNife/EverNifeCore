@@ -16,6 +16,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 ## [Unreleased]
 
+### Added
+
+- **`FancyText.raw(String)`**: a piece that renders its text as written - no `&` colour translation, no `${key}`
+  resolution - for player-typed text inside a line with hover/click (`FancySegment.isRaw()`).
+
 ## [3.0.1-alpha.70] - 2026-10-19
 
 Regions decide by who acts - a player, a fake player, a mob, a block or the environment - and now cover explosions,

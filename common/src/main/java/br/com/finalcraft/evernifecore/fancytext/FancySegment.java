@@ -34,6 +34,7 @@ public class FancySegment implements FancyText {
     protected String clickActionText = null;
     protected ClickActionType clickActionType = ClickActionType.NONE;
     protected transient MessagePlaceholders placeholders = null;
+    protected boolean raw = false;
 
     public FancySegment() {
     }
@@ -59,6 +60,18 @@ public class FancySegment implements FancyText {
         this.hover = legacyHoverOf(hoverText);
         this.clickActionText = clickActionText;
         this.clickActionType = clickActionType;
+    }
+
+    /** See {@link FancyText#raw(String)}. */
+    public static FancySegment raw(String text) {
+        FancySegment segment = new FancySegment(text);
+        segment.raw = true;
+        return segment;
+    }
+
+    /** Whether this piece renders its text as written - see {@link FancyText#raw(String)}. */
+    public boolean isRaw() {
+        return raw;
     }
 
     /** The legacy string form: a plain tooltip, or a {@code "$show_item$"}-prefixed item id/SNBT string. */
@@ -244,7 +257,7 @@ public class FancySegment implements FancyText {
         // The resolved copy is what actually renders, so the colour it ends on is the one that
         // carries over - and it travels out as a value instead of being written back onto a field
         // that another thread's render is reading at the same time.
-        FancySegment rendered = needsResolving(context) ? resolvedCopy(context) : this;
+        FancySegment rendered = !raw && needsResolving(context) ? resolvedCopy(context) : this;
         return rendered.renderLiteral(startingColor);
     }
 
@@ -256,7 +269,11 @@ public class FancySegment implements FancyText {
                         : this.text
         );
 
-        Component textComponent = FCColorUtil.colorfyComponent(fixedText);
+        // The starting colour is already section-coded (it comes from getLastColors), so the raw form
+        // still inherits it while an '&' the text carries stays text.
+        Component textComponent = raw
+                ? FCColorUtil.sectionCodedComponent(fixedText)
+                : FCColorUtil.colorfyComponent(fixedText);
         ComponentBuilder<?, ?> builder = textComponent.toBuilder();
 
         if (this.hover != null) {
@@ -347,6 +364,7 @@ public class FancySegment implements FancyText {
         copy.hover = this.hover == null ? null : this.hover.copy();
         copy.clickActionText = this.clickActionText;
         copy.clickActionType = this.clickActionType;
+        copy.raw = this.raw;
         if (this.placeholders != null) {
             copy.placeholders = this.placeholders.copy();
         }
@@ -363,6 +381,7 @@ public class FancySegment implements FancyText {
         if (!Objects.equals(text, fancyText.text)) return false;
         if (!Objects.equals(hover, fancyText.hover)) return false;
         if (!Objects.equals(clickActionText, fancyText.clickActionText)) return false;
+        if (raw != fancyText.raw) return false;
 
         return clickActionType == fancyText.clickActionType;
     }

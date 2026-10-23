@@ -252,6 +252,16 @@ public interface FancyText {
         return new FancySegment(text, hoverText, clickActionText, clickActionType);
     }
 
+    /**
+     * A piece whose text renders exactly as written: no {@code &} colour translation and no
+     * {@code ${key}} resolution, for text a player typed (a chat line, a sign, a name) shown inside a
+     * decorated message. Its hover and click work as usual, the colour active where it starts still
+     * applies, and only section-sign codes ({@code §a}) are read.
+     */
+    static FancySegment raw(String text) {
+        return FancySegment.raw(text);
+    }
+
     /** A chain with one piece per line, so a multi-line block stops being one giant string. */
     static FancyText of(List<String> lines) {
         FancyFormatter formatter = new FancyFormatter();
