@@ -17,12 +17,6 @@ public class DynamicCommandManager {
 
     public static Map<UUID, DynamicCommand> DYNAMIC_COMMANDS = new SelfExpiringMap<>(LINK_TTL_MILLIS);
 
-    //TODO Register on EverNifeCore Miencraft Version
-//    static {
-//        //Only if this class is ever used whe may register a filter for it on the console
-//        ECBukkitConsoleFilter.applyFilter();
-//    }
-
     /**
      * Creates a Command String that will execute this runnable when the command
      * is executed by the player

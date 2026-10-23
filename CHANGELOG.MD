@@ -22,6 +22,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   resolution - for player-typed text inside a line with hover/click (`FancySegment.isRaw()`).
 - **`FCommandSender.canSee(FPlayer)`**: whether the platform hides that player from the sender (Bukkit `canSee`,
   Hytale `HiddenPlayersManager`; the console sees everyone). `TestFPlayerSender.hide(FPlayer)` in `common-tests`.
+- **The console filter is a provider**: `ECConsoleFilter.global()` asks one `IConsoleFilterProvider` for every
+  console line; the default `CORE_COMMANDS` hides the echo of `/ecdcmd` and `/ecpage`, and a plugin (FinalConsoleFilter)
+  replaces it with `setProvider`/`removeProvider`. On Bukkit the core installs `ECBukkitConsoleFilter` on the Log4j root
+  logger at enable and removes it at shutdown - the hook it never installed before. `ECBukkitConsoleFilter.applyFilter()`
+  is gone (`install()` is the core's).
 
 ### Fixed
 

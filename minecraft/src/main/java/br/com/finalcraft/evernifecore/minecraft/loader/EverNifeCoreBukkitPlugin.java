@@ -17,6 +17,7 @@ import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPlayerDamage
 import br.com.finalcraft.evernifecore.minecraft.api.events.damage.ECPlayerDamagedByPlayer;
 import br.com.finalcraft.evernifecore.minecraft.commands.McCommandRegisterer;
 import br.com.finalcraft.evernifecore.minecraft.config.McConfigManager;
+import br.com.finalcraft.evernifecore.minecraft.consolefilter.ECBukkitConsoleFilter;
 import br.com.finalcraft.evernifecore.minecraft.dependencies.ECoreDependencies;
 import br.com.finalcraft.evernifecore.minecraft.ecplugin.ECBukkitPlugin;
 import br.com.finalcraft.evernifecore.minecraft.eventbus.McBukkitAudience;
@@ -72,6 +73,7 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
     private final McPlatform platform = new McPlatform();
 
     private RegionListeners regionListeners;
+    private Runnable consoleFilterUninstaller;
     static {
         //First thing to do when this class is loaded is to add REQUIRED dependencies, because there ara plugins that depends
         //on EverNifeCore and are loaded before it, for example, FinalEconomy
@@ -128,6 +130,7 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         ECPluginData ecPluginData = getPluginData();
 
         MinecraftVersion.replaceLogger(this.getLogger());//Replace [NBT-API] logger
+        consoleFilterUninstaller = ECBukkitConsoleFilter.install();
         EverNifeCore.getLog().info("§aServer Minecraft Version " + MCVersion.getCurrent().name() + " !");
         String worldEditForgeWarning = WorldEditForge.bootWarning(MCVersion.isEqual(MCVersion.v1_7_10),
                 Bukkit.getPluginManager().getPlugin("WorldEdit") != null, WorldEditForge.isModPresent());
@@ -228,6 +231,10 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         //so nothing fires into the resources torn down here.
         EverNifeCore.instance.onUnload();
         FCMinecraftAdventureUtil.close();
+        if (consoleFilterUninstaller != null) {
+            consoleFilterUninstaller.run();
+            consoleFilterUninstaller = null;
+        }
     }
 
     @Override
