@@ -43,6 +43,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   longer leaves the old expansion answering. Best effort - a PlaceholderAPI build without unregister (1.7.10) keeps it
   until a restart, with a warning.
 
+### Changed
+
+- **EveryConfig 1.4.3**: `getOrMergeValue(path, bean)` keeps an unreadable value in the file (reported as a
+  `COERCION` `LoadIssue`) instead of writing the field default over it.
+
 ## [3.0.1-alpha.70] - 2026-10-19
 
 Regions decide by who acts - a player, a fake player, a mob, a block or the environment - and now cover explosions,
