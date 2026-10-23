@@ -17,6 +17,7 @@ import org.bukkit.plugin.Plugin;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,10 +36,10 @@ public class MohistForgeListener implements IForgeListener, ECListener {
     };
 
     private final Class<? extends Annotation> subscribeEvent;
-    private final MethodInvoker<Object> getEvent;
+    private MethodInvoker<Object> getEvent;
 
     public MohistForgeListener() {
-        this.subscribeEvent = resolveSubscribeEvent();
+        this(resolveSubscribeEvent());
         this.getEvent = ForgeReflection.method(BUKKIT_HOOK_FORGE_EVENT, GET_EVENT, 0);
 
         ECPluginData ecPluginData = EverNifeCore.getEcPluginData();
@@ -46,20 +47,45 @@ public class MohistForgeListener implements IForgeListener, ECListener {
         hookBukkitBridge(ecPluginData);
     }
 
+    /** The subscribing half alone, without the Bukkit mirror: what a test can build with no server behind it. */
+    MohistForgeListener(Class<? extends Annotation> subscribeEvent) {
+        this.subscribeEvent = subscribeEvent;
+    }
+
+    /**
+     * Subscribes on each bus handed in - a mod's own bus (Pixelmon's) included - or on Forge's main bus when
+     * none is. A modern bus (1.16.5) takes the handler itself; an older one (1.12.2) cannot be handed a
+     * consumer, so its events are heard through Mohist's mirror into Bukkit, once however many such buses
+     * were handed in.
+     */
     @Override
     public ForgeRegistration registerListener(Plugin plugin, ECListener listener, Object... eventBus) {
-        return registerListener(plugin, listener); // the buses handed in are not used on Mohist
+        if (eventBus.length == 0) {
+            return registerListener(plugin, listener);
+        }
+        return subscribe(plugin, listener, Arrays.asList(eventBus));
     }
 
     @Override
     public ForgeRegistration registerListener(Plugin plugin, ECListener listener) {
+        return subscribe(plugin, listener, Collections.singletonList(ForgeReflection.defaultEventBus()));
+    }
+
+    private ForgeRegistration subscribe(Plugin plugin, ECListener listener, List<Object> buses) {
         //Mohist's mirror is not relied on where the bus itself can take a handler: the 1.16.5 build
         //measured only mirrors events posted off the main thread, which leaves out nearly all of gameplay
-        Object forgeBus = ForgeReflection.defaultEventBus();
-        boolean straightToTheBus = ForgeReflection.isModernEventBus(forgeBus);
+        List<Object> modernBuses = new ArrayList<>();
+        boolean throughTheMirror = false;
+        for (Object bus : buses) {
+            if (ForgeReflection.isModernEventBus(bus)) {
+                modernBuses.add(bus);
+            } else {
+                throughTheMirror = true;
+            }
+        }
 
         Map<Class<?>, List<Consumer<?>>> added = new LinkedHashMap<>();
-        List<Object> onTheBus = new ArrayList<>();
+        Map<Object, List<Object>> onTheBus = new LinkedHashMap<>();
         for (Method declaredMethod : listener.getClass().getDeclaredMethods()) {
             declaredMethod.setAccessible(true);
 
@@ -74,10 +100,11 @@ public class MohistForgeListener implements IForgeListener, ECListener {
                             e.printStackTrace();
                         }
                     };
-                    if (straightToTheBus) {
-                        ForgeReflection.addModernListener(forgeBus, declaredMethod.getAnnotation(subscribeEvent), forgeEvent, handler);
-                        onTheBus.add(handler);
-                    } else {
+                    for (Object bus : modernBuses) {
+                        ForgeReflection.addModernListener(bus, declaredMethod.getAnnotation(subscribeEvent), forgeEvent, handler);
+                        onTheBus.computeIfAbsent(bus, k -> new ArrayList<>()).add(handler);
+                    }
+                    if (throughTheMirror) {
                         this.addEventHandler(forgeEvent, handler);
                         added.computeIfAbsent(forgeEvent, k -> new ArrayList<>()).add(handler);
                     }
@@ -89,9 +116,11 @@ public class MohistForgeListener implements IForgeListener, ECListener {
         }
         return ForgeRegistration.once(() -> {
             removeEventHandlers(added);
-            for (Object handler : onTheBus) {
-                ForgeReflection.unregisterFrom(Collections.singletonList(forgeBus), handler).unregister();
-            }
+            onTheBus.forEach((bus, handlers) -> {
+                for (Object handler : handlers) {
+                    ForgeReflection.unregisterFrom(Collections.singletonList(bus), handler).unregister();
+                }
+            });
         });
     }
 

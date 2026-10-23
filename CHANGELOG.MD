@@ -30,6 +30,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 - **`RegexReplacer` manipulators keep a deterministic order**: longer prefix first, then more `_`, then registration
   order. Two tied templates no longer swap priority with every later `addManipulator`, and both overloads sort by the
   same rule.
+- **Mohist subscribes on the buses a plugin hands in**: `ForgeListener.registerListener(plugin, listener, bus...)` on
+  Mohist 1.16.5 puts the handlers on each modern bus passed (Pixelmon's `EVENT_BUS` included) instead of Forge's main
+  bus, where a mod's own events never arrive; a 1.12.2 bus is heard through Mohist's Bukkit mirror, and no bus means
+  Forge's main one, as before.
 
 ## [3.0.1-alpha.70] - 2026-10-19
 

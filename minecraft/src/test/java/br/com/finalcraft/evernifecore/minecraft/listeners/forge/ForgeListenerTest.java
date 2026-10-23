@@ -67,8 +67,9 @@ class ForgeListenerTest {
         //nothing left to defer to a later call.
         IllegalStateException refusal = assertThrows(IllegalStateException.class, MohistForgeListener::new);
 
-        assertTrue(refusal.getMessage().contains("SubscribeEvent"),
-                "and it names the annotation it could not find: " + refusal.getMessage());
+        //the test classpath carries a stand-in SubscribeEvent, so what is missing here is Mohist's own wrapper
+        assertTrue(refusal.getMessage().contains("com.mohistmc.api.event.BukkitHookForgeEvent"),
+                "and it names the type it could not find: " + refusal.getMessage());
     }
 
     @Test
