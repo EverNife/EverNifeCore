@@ -34,6 +34,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   Mohist 1.16.5 puts the handlers on each modern bus passed (Pixelmon's `EVENT_BUS` included) instead of Forge's main
   bus, where a mod's own events never arrive; a 1.12.2 bus is heard through Mohist's Bukkit mirror, and no bus means
   Forge's main one, as before.
+- **A plugin's PlaceholderAPI expansion is unregistered on its disable** (Bukkit): a runtime disable/re-enable no
+  longer leaves the old expansion answering. Best effort - a PlaceholderAPI build without unregister (1.7.10) keeps it
+  until a restart, with a warning.
 
 ## [3.0.1-alpha.70] - 2026-10-19
 

@@ -19,9 +19,17 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 public class McPAPIIntegration {
 
     private static Boolean isApiOnClasspath = null;
+
+    // Plugin name -> how to take each of its expansions off PlaceholderAPI again.
+    private static final Map<String, List<Runnable>> UNREGISTER_ON_DISABLE = new ConcurrentHashMap<>();
 
     /**
      * Whether PlaceholderAPI is installed AND enabled. Its classes alone are not enough: a plugin that failed to enable
@@ -51,6 +59,30 @@ public class McPAPIIntegration {
         return papiRegexReplacer.getRegexReplacer();
     }
 
+    /**
+     * Takes every expansion {@link #createPlaceholderIntegration} registered for {@code pluginName} off
+     * PlaceholderAPI, so a plugin disabled and enabled again at runtime does not leave its old expansion
+     * answering. Called on that plugin's disable. Best effort: a PlaceholderAPI build that cannot unregister
+     * (the old ones a 1.7.10 server runs) leaves that expansion in place until a restart, with a warning.
+     */
+    public static void unregisterAll(@Nonnull String pluginName){
+        List<Runnable> undos = UNREGISTER_ON_DISABLE.remove(pluginName);
+        if (undos == null) return;
+        for (Runnable undo : undos) {
+            try {
+                undo.run();
+            } catch (Throwable unsupported) {
+                EverNifeCore.getLog().warning("Could not unregister a PlaceholderAPI expansion of {} on its disable ({})."
+                        + " Its placeholders keep answering from the disabled plugin until the server restarts.",
+                        pluginName, unsupported.toString());
+            }
+        }
+    }
+
+    static void unregisterOnDisable(String pluginName, Runnable undo){
+        UNREGISTER_ON_DISABLE.computeIfAbsent(pluginName, k -> new CopyOnWriteArrayList<>()).add(undo);
+    }
+
     public static String parse(@Nullable FPlayer fPlayer, @Nonnull String text){
 
         Player player = fPlayer == null
@@ -74,9 +106,10 @@ public class McPAPIIntegration {
                 // Legacy PAPI Support
                 EverNifeCore.getLog().info("Registering PAPI Hook for the plugin " + plugin.getMetaInfo().getName() + " with prefix '"  + pluginBaseID + "' using Legacy PAPI method.");
                 PlaceholderAPI.registerPlaceholderHook(pluginBaseID, mcSimplePAPIHook);
+                unregisterOnDisable(plugin.getMetaInfo().getName(), () -> PlaceholderAPI.unregisterPlaceholderHook(pluginBaseID));
             }else {
                 EverNifeCore.getLog().info("Registering PAPI Hook for the plugin " + plugin.getMetaInfo().getName() + " with prefix '"  + pluginBaseID + "' using Modern PAPI method.");
-                PlaceholderAPIPlugin.getInstance().getLocalExpansionManager().register(new PlaceholderExpansion() {
+                PlaceholderExpansion expansion = new PlaceholderExpansion() {
                     @Override
                     public @Nonnull String getName() {
                         return plugin.getMetaInfo().getName();
@@ -106,7 +139,9 @@ public class McPAPIIntegration {
                     public boolean persist() {
                         return true;
                     }
-                });
+                };
+                PlaceholderAPIPlugin.getInstance().getLocalExpansionManager().register(expansion);
+                unregisterOnDisable(plugin.getMetaInfo().getName(), expansion::unregister);
             }
         }
     }

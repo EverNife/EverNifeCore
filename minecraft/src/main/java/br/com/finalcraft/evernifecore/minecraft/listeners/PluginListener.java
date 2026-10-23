@@ -7,6 +7,7 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.ecplugin.annotations.ECPlugin;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.autoupdater.SpigotUpdateChecker;
+import br.com.finalcraft.evernifecore.minecraft.integration.placeholders.McPAPIIntegration;
 import br.com.finalcraft.evernifecore.minecraft.metrics.Metrics;
 import br.com.finalcraft.evernifecore.minecraft.protection.ProtectionAll;
 import br.com.finalcraft.evernifecore.minecraft.protection.integration.ProtectionHandler;
@@ -86,6 +87,9 @@ public class PluginListener implements ECListener {
             PlayerController.unregisterPDSections(ecPluginData);
             ProtectionAll.getInstance().unregisterAll(ecPluginData);
         }
+
+        //its expansion would keep answering from the disabled instance, and a re-enable registers a second one
+        McPAPIIntegration.unregisterAll(pluginName);
 
         ECPluginManager.removePluginData(pluginName);
     }
