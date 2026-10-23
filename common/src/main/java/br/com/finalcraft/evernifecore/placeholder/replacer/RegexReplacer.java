@@ -6,7 +6,6 @@ import br.com.finalcraft.evernifecore.placeholder.manipulation.ManipulationConte
 import br.com.finalcraft.evernifecore.placeholder.parser.ManipulatedParser;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -74,6 +73,13 @@ public class RegexReplacer<O> implements Replacer<O>, IProvider<O>  {
         return getProvider().describeAll();
     }
 
+    // The longer prefix answers first, then the template with more '_' (the more specific one). The sort is
+    // stable, so two templates that tie keep their registration order: the first registered answers first.
+    private static final Comparator<ManipulatedParser<?>> MANIPULATOR_ORDER = Comparator
+            .<ManipulatedParser<?>>comparingInt(parser -> parser.getManipulator().getPrefix().length())
+            .thenComparingLong(parser -> parser.getId().chars().filter(c -> c == '_').count())
+            .reversed();
+
     public RegexReplacer<O> addManipulator(String manipulableString, BiFunction<O, ManipulationContext.SimpleContext, Object> parser){
         this.manipulators.add(
                 new ManipulatedParser<>(
@@ -81,13 +87,7 @@ public class RegexReplacer<O> implements Replacer<O>, IProvider<O>  {
                         parser
                 )
         );
-        //Sort manipulators based on the prefix lengh, it might help performance, bigger prefixes first
-        Collections.sort(this.manipulators, Comparator.comparing(manipulatorParser -> {
-            int prefixSize = manipulatorParser.getManipulator().getPrefix().length();
-            long underlines = manipulatorParser.getId().chars().filter(c -> c == '_').count(); //More complex manipulators first
-            return  (prefixSize * 1000) + underlines;
-        }));
-        Collections.reverse(this.manipulators);
+        this.manipulators.sort(MANIPULATOR_ORDER);
         return this;
     }
 
@@ -99,9 +99,7 @@ public class RegexReplacer<O> implements Replacer<O>, IProvider<O>  {
                         parser
                 )
         );
-        //Sort manipulators based on the prefix lengh, it might help performance, bigger prefixes first
-        Collections.sort(this.manipulators, Comparator.comparing(manipulatorParser -> manipulatorParser.getManipulator().getPrefix().length()));
-        Collections.reverse(this.manipulators);
+        this.manipulators.sort(MANIPULATOR_ORDER);
         return this;
     }
 

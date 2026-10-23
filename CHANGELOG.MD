@@ -27,6 +27,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 - **Player tab-complete no longer reveals vanished players**: the `FPlayer` and Bukkit `Player` parsers, and the
   online form of the player-data and `UUID` parsers, list only the players the sender can see.
+- **`RegexReplacer` manipulators keep a deterministic order**: longer prefix first, then more `_`, then registration
+  order. Two tied templates no longer swap priority with every later `addManipulator`, and both overloads sort by the
+  same rule.
 
 ## [3.0.1-alpha.70] - 2026-10-19
 
