@@ -20,6 +20,13 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 - **`FancyText.raw(String)`**: a piece that renders its text as written - no `&` colour translation, no `${key}`
   resolution - for player-typed text inside a line with hover/click (`FancySegment.isRaw()`).
+- **`FCommandSender.canSee(FPlayer)`**: whether the platform hides that player from the sender (Bukkit `canSee`,
+  Hytale `HiddenPlayersManager`; the console sees everyone). `TestFPlayerSender.hide(FPlayer)` in `common-tests`.
+
+### Fixed
+
+- **Player tab-complete no longer reveals vanished players**: the `FPlayer` and Bukkit `Player` parsers, and the
+  online form of the player-data and `UUID` parsers, list only the players the sender can see.
 
 ## [3.0.1-alpha.70] - 2026-10-19
 

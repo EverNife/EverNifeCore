@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.api;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.BaseFPlayer;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.platoverride.player.FPlayerAdapter;
 import br.com.finalcraft.evernifecore.integration.LuckPermsIntegration;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
@@ -59,6 +60,13 @@ public abstract class MinecraftFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
             return LuckPermsIntegration.hasPermission(getUniqueId(), permission);
         }
         return false;
+    }
+
+    @Override
+    public boolean canSee(@Nonnull FPlayer player) {
+        Player viewer = getPlayer();
+        Player target = player instanceof MinecraftFPlayer ? ((MinecraftFPlayer<?>) player).getPlayer() : null;
+        return viewer == null || target == null || viewer.canSee(target);
     }
 
     @Override

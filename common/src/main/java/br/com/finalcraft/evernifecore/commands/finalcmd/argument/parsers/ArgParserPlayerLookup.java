@@ -95,6 +95,7 @@ public abstract class ArgParserPlayerLookup<T> extends ArgParser<T> {
 
         Collection<PlayerData> playerDataList = online
             ? EverNifeCore.getPlatform().getOnlinePlayers().stream()
+            .filter(player -> tabContext.getSender().canSee(player))
             .map(PlayerController::getLoaded)
             .collect(Collectors.toList())
             : PlayerController.getAllLoaded();

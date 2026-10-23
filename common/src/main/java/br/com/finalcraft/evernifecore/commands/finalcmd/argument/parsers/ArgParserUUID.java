@@ -53,6 +53,7 @@ public class ArgParserUUID extends ArgParser<UUID> {
     public @Nonnull List<String> tabComplete(TabContext tabContext) {
         Collection<PlayerData> playerDataList = online
                 ? EverNifeCore.getPlatform().getOnlinePlayers().stream()
+                .filter(player -> tabContext.getSender().canSee(player))
                 .map(PlayerController::getLoaded)
                 .collect(Collectors.toList())
                 : PlayerController.getAllLoaded();

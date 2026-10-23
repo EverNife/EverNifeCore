@@ -52,5 +52,14 @@ public interface FCommandSender extends IHasDelegate {
         sendMessage(FCColorUtil.sectionCodedComponent(message));
     }
 
+    /**
+     * Whether this sender can see {@code player} - {@code false} when the platform hides that player from
+     * this one (a vanish). Anything that lists players to a sender, such as a player argument's
+     * tab-complete, asks this first. A sender that is not a player (the console) sees everyone.
+     */
+    default boolean canSee(@Nonnull FPlayer player) {
+        return true;
+    }
+
 
 }

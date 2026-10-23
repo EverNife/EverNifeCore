@@ -24,6 +24,7 @@ public class TestFPlayerSender implements FPlayer {
     private final String name;
     private final UUID uniqueId;
     private final Set<String> permissions = new HashSet<>();
+    private final Set<UUID> hidden = new HashSet<>();
     private final CapturedMessages captured = new CapturedMessages();
     private boolean online = true;
     private boolean playedBefore = false;
@@ -53,6 +54,17 @@ public class TestFPlayerSender implements FPlayer {
     @Override
     public boolean isOnline() {
         return online;
+    }
+
+    /** Hides {@code player} from this one, as a vanish would: {@link #canSee(FPlayer)} answers false for them. */
+    public TestFPlayerSender hide(FPlayer player) {
+        hidden.add(player.getUniqueId());
+        return this;
+    }
+
+    @Override
+    public boolean canSee(@Nonnull FPlayer player) {
+        return !hidden.contains(player.getUniqueId());
     }
 
     /** Whether the platform would say it saw this player in an earlier session; false until set. */

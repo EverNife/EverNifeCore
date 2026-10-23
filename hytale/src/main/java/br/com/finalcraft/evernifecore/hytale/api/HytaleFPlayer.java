@@ -2,6 +2,7 @@ package br.com.finalcraft.evernifecore.hytale.api;
 
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.BaseFPlayer;
+import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.platoverride.player.FPlayerAdapter;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleAdventureUtil;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
@@ -72,6 +73,12 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
     @Override
     public boolean hasPermission(@Nonnull String permission) {
         return PermissionsModule.get().hasPermission(getPlayerRef().getUuid(), permission);
+    }
+
+    @Override
+    public boolean canSee(@Nonnull FPlayer player) {
+        PlayerRef viewer = getPlayerRef();
+        return viewer == null || !viewer.isValid() || !viewer.getHiddenPlayersManager().isPlayerHidden(player.getUniqueId());
     }
 
     @Override

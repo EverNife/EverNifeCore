@@ -58,6 +58,7 @@ public class ArgParserPlayer extends ArgParser<Player> {
     public @Nonnull List<String> tabComplete(TabContext tabContext) {
 
         return EverNifeCore.getPlatform().getOnlinePlayers().stream()
+                .filter(player -> tabContext.getSender().canSee(player))
                 .map(player -> player.getName())
                 .filter(s -> FCStringUtil.startsWithIgnoreCase(s, tabContext.getLastWord()))
                 .sorted(String.CASE_INSENSITIVE_ORDER)
