@@ -102,7 +102,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `SMELT`, `FISH`, `CONSUME`, `ENCHANT` (`ItemContext`), `XP_GAIN` (`XpContext`), `TAME`, `BREED`, `SHEAR`
   (`EntityContext`), `COMMAND` (`CommandContext`: the label typed and every name of the command, moved here from
   FinalProtection) and `EXPLORE` (`ExploreContext`: the chunk left and the chunk entered). `KILL`, `SMELT` and
-  `XP_GAIN` have no `.Pre` on Bukkit (none of those events can be cancelled).
+  `XP_GAIN` have no `.Pre` on Bukkit (none of those events can be cancelled). Bukkit raises all twelve through
+  `KillActionListener`, `CraftActionListener`, `SmeltActionListener`, `FishActionListener` (a catch only),
+  `ConsumeActionListener`, `XpGainActionListener` (a gain only), `EnchantActionListener`, `TameActionListener`,
+  `BreedActionListener` (from 1.12; before it `BREED` is declared not raised), `ShearActionListener`,
+  `CommandActionListener` (`PlayerCommandPreprocessEvent`, every plugin's commands) and `ExploreActionListener`.
 
 ### Fixed
 
@@ -171,9 +175,10 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   nor do their producers `PlayerCraftListener`, `PlayerMoveListener` and `PlayerDamageByEntityListener`. Use
   `DamageActionEvent` instead of the damage family, on Hytale as on Bukkit: `getActor()` is the attacker, its
   `getRootPlayer()` the pet's owner or the shooter, `getContext().getVictim()` the victim (a player hurt by a pet is a
-  `DamageActionEvent` whose actor is not a player and has a root player). The craft and chunk-change equivalents,
-  `CraftActionEvent.Post` (`getContext().getAmount()` for the old `getAmountProduced()`) and `ExploreActionEvent.Post`,
-  are not in this tree yet.
+  `DamageActionEvent` whose actor is not a player and has a root player). `ECPlayerCraftItemEvent` is
+  `CraftActionEvent` (`.Pre` to cancel the craft, `.Post` after it; `getContext().getAmount()` is the old
+  `getAmountProduced()`, a shift-click counted the same way); `ECPlayerChangeChunkEvent` is `ExploreActionEvent`
+  (`getContext().getFrom()`/`getTo()` are the chunks, `.Pre` cancels the step).
 - **`IPlatform.runOnMainThread` and `IPlatform.runOnMainThreadNextTick`** (the `Runnable` and `Supplier` forms): the
   main-thread hop belongs to `time.ECScheduler`, which each platform installs through `ECScheduler.setMainThread`.
   `getPlatform().runOnMainThread(task)` becomes `ECScheduler.onMainThread(task)` (in place when the caller already

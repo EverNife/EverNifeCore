@@ -5,6 +5,7 @@ import br.com.finalcraft.evernifecore.action.event.ActionEvents;
 import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.action.UsageWatch;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.minecraft.region.selection.McSelectionItems;
 import br.com.finalcraft.evernifecore.minecraft.region.selection.McSelectionListener;
@@ -29,12 +30,15 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class ActionListeners {
 
-    /** The core sources whose listener posts a cancellable {@code Pre}: all but the respawn, which Bukkit cannot cancel. */
+    /**
+     * The core sources whose listener posts a cancellable {@code Pre}: all but those whose Bukkit event is no
+     * {@code Cancellable} on any era - the respawn, the death, the furnace extraction and the experience change.
+     */
     public static final Set<EventSource> PRE_SOURCES;
 
     static {
         Set<EventSource> pre = new HashSet<>(ActionEvents.all());
-        pre.remove(EventSource.RESPAWN);
+        pre.removeAll(Arrays.asList(EventSource.RESPAWN, EventSource.KILL, EventSource.SMELT, EventSource.XP_GAIN));
         PRE_SOURCES = Collections.unmodifiableSet(pre);
     }
 
@@ -42,6 +46,23 @@ public final class ActionListeners {
     private final List<ECListener> listeners = new ArrayList<>();
 
     private ActionListeners() {
+    }
+
+    /**
+     * The core sources raised on this server, for {@code ActionSupport.declare}: null for every one, except before 1.12,
+     * where breeding has no event and {@link EventSource#BREED} is left out.
+     */
+    public static @Nullable Set<EventSource> servedSources() {
+        if (MCVersion.isHigherEquals(MCDetailedVersion.v1_12_R1)) {
+            return null;
+        }
+        Set<EventSource> served = new HashSet<>();
+        for (EventSource source : EventSource.all()) {
+            if (source.getOwner().equals(CoreFlags.OWNER) && !source.equals(EventSource.BREED)) {
+                served.add(source);
+            }
+        }
+        return served;
     }
 
     /** How a message names this server: {@code Paper 1.21.1}. */
@@ -79,6 +100,20 @@ public final class ActionListeners {
         bridge.watches.add(follow(owner, EventSource.VEHICLE, bridge.own(new VehicleActionListeners.BreakAndEnter()), null));
         bridge.watches.add(follow(owner, EventSource.VEHICLE, bridge.own(MCVersion.isHigherEquals(MCDetailedVersion.v1_13_R1)
                 ? new VehicleActionListeners.Place() : new VehicleActionListeners.LegacyPlace()), null));
+        bridge.watches.add(follow(owner, EventSource.KILL, bridge.own(new KillActionListener()), null));
+        bridge.watches.add(follow(owner, EventSource.CRAFT, bridge.own(new CraftActionListener()), null));
+        bridge.watches.add(follow(owner, EventSource.SMELT, bridge.own(new SmeltActionListener()), null));
+        bridge.watches.add(follow(owner, EventSource.FISH, bridge.own(new FishActionListener()), null));
+        bridge.watches.add(follow(owner, EventSource.CONSUME, bridge.own(new ConsumeActionListener()), null));
+        bridge.watches.add(follow(owner, EventSource.XP_GAIN, bridge.own(new XpGainActionListener()), null));
+        bridge.watches.add(follow(owner, EventSource.ENCHANT, bridge.own(new EnchantActionListener()), null));
+        bridge.watches.add(follow(owner, EventSource.TAME, bridge.own(new TameActionListener()), null));
+        if (MCVersion.isHigherEquals(MCDetailedVersion.v1_12_R1)) {   //EntityBreedEvent: breeding has no event before 1.12
+            bridge.watches.add(follow(owner, EventSource.BREED, bridge.own(new BreedActionListener()), null));
+        }
+        bridge.watches.add(follow(owner, EventSource.SHEAR, bridge.own(new ShearActionListener()), null));
+        bridge.watches.add(follow(owner, EventSource.COMMAND, bridge.own(new CommandActionListener()), null));
+        bridge.watches.add(follow(owner, EventSource.EXPLORE, bridge.own(new ExploreActionListener()), null));
         //ponytail: the journal hears every BREAK/PLACE/EXPLOSION while any region needs one, not only track-changes regions
         List<EventSource> terrainSources = Arrays.asList(EventSource.BREAK, EventSource.PLACE, EventSource.EXPLOSION);
         bridge.watches.addAll(follow(owner, terrainSources, bridge.own(new TerrainJournalListener()), null));

@@ -164,7 +164,7 @@ public class EverNifeCoreBukkitPlugin extends ECBukkitPlugin {
         FCTickUtil.getTickCount();//This will start tickCounting
 
         //each action listener sits on the server only while some region, or some listener of its action event, needs it
-        ActionSupport.declare(ActionListeners.platformName(), null, ActionListeners.PRE_SOURCES, true);
+        ActionSupport.declare(ActionListeners.platformName(), ActionListeners.servedSources(), ActionListeners.PRE_SOURCES, true);
         actionListeners = ActionListeners.start(ecPluginData);
         RegionTicker.start(ecPluginData);
 

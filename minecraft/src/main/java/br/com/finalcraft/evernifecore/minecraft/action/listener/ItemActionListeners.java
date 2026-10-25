@@ -14,6 +14,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
+import org.bukkit.inventory.ItemStack;
 
 /**
  * The item listeners, one class per event so that each registers alone: {@link EventSource#ITEM_DROP} is a player
@@ -27,8 +28,9 @@ public final class ItemActionListeners {
     }
 
     static ItemContext context(EventSource source, Item item, Actor actor, Cancellable event) {
-        return new ItemContext(source, McActionContexts.position(item.getLocation()), actor, event, McActionContexts.key(item.getItemStack()),
-                item.getItemStack().getAmount(), item.getUniqueId());
+        ItemStack stack = item.getItemStack();
+        return new ItemContext(source, McActionContexts.position(item.getLocation()), actor, event, McActionContexts.key(stack),
+                stack.getAmount(), item.getUniqueId());
     }
 
     static void pickup(Item item, Actor actor, Cancellable event) {
