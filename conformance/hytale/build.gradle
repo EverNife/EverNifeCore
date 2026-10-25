@@ -43,6 +43,8 @@ shadowJar {
     dependencies {
         include(project(':conformance:common'))
     }
+    // compiled against Jackson's own names; the deployed core carries them relocated
+    rootProject.jacksonRelocations.each { from, to -> relocate from, to }
 }
 
 tasks.named('build') {

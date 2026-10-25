@@ -6,6 +6,7 @@ import br.com.finalcraft.evernifecore.conformance.minecraft.suite.EventsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.GuiSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.HooksSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ItemsSuite;
+import br.com.finalcraft.evernifecore.conformance.minecraft.suite.LogicSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.NbtSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.NmsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.ParticlesSuite;
@@ -16,6 +17,7 @@ import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SchedulerSuite
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.SelectionClickSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.TextMetricsSuite;
 import br.com.finalcraft.evernifecore.conformance.minecraft.suite.VersionSuite;
+import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.RegionManager;
 
 import java.util.Arrays;
@@ -29,10 +31,11 @@ public final class Suites {
     }
 
     /**
+     * @param plugin  the plugin itself, the caller of the {@code logic} suite
      * @param regions the plugin's own region manager, for the {@code regions} suite
      * @param loaded  that manager's {@code load()}
      */
-    public static List<ConformanceSuite> all(RegionManager regions, CompletableFuture<Void> loaded) {
+    public static List<ConformanceSuite> all(ECPluginData plugin, RegionManager regions, CompletableFuture<Void> loaded) {
         return Arrays.asList(
                 new ItemsSuite(),
                 new NbtSuite(),
@@ -48,6 +51,7 @@ public final class Suites {
                 new TextMetricsSuite(),
                 new HooksSuite(regions, loaded),
                 new NmsSuite(),
-                new RegionsSuite(regions, loaded));
+                new RegionsSuite(regions, loaded),
+                new LogicSuite(plugin));
     }
 }

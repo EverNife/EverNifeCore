@@ -50,7 +50,7 @@ class ConformanceCommandTest {
 
     /** No case runs a region here, so the regions suite needs no manager. */
     private static List<ConformanceSuite> suites() {
-        return Suites.all(null, CompletableFuture.completedFuture(null));
+        return Suites.all(null, null, CompletableFuture.completedFuture(null));
     }
 
     private List<String> markers(String event) {
@@ -112,6 +112,6 @@ class ConformanceCommandTest {
         List<String> ids = suites().stream().map(ConformanceSuite::getId).collect(Collectors.toList());
 
         assertEquals(Arrays.asList("items", "nbt", "platform", "version", "commands", "gui", "scheduler", "playerdata",
-                "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions"), ids);
+                "events", "selection-click", "particles", "text-metrics", "hooks", "nms", "regions", "logic"), ids);
     }
 }

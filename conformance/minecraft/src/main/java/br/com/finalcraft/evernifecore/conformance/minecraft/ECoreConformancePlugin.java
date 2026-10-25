@@ -36,7 +36,7 @@ public final class ECoreConformancePlugin extends ECBukkitPlugin {
         PlayerController.registerPDSectionCfg(getPluginData(), PlayerDataSuite.Section.class, PlayerDataSuite.SECTION_ID);
         getServer().getPluginManager().registerEvents(new SelectionClickSuite.Recorder(), this);
         HooksSuite.registerPlaceholders(getPluginData());
-        FinalCMDManager.registerCommand(getPluginData(), new ConformanceCommand(Suites.all(regions, loaded), getDataFolder(),
+        FinalCMDManager.registerCommand(getPluginData(), new ConformanceCommand(Suites.all(getPluginData(), regions, loaded), getDataFolder(),
                 () -> MCDetailedVersion.getCurrent() + " " + Bukkit.getVersion(), getLogger()::info,
                 task -> Bukkit.getScheduler().runTask(this, task)));
     }
