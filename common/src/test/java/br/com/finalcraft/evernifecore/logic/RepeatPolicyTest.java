@@ -137,6 +137,21 @@ class RepeatPolicyTest {
     }
 
     @Test
+    void theRepeatCostReadFromADefinitionCountsTheUsesOfItsCounter() throws IOException {
+        Gate gate = Gate.parse(shop.getOwner(), new ObjectMapper().readTree(
+                "{\"cost\": {\"type\": \"repeat\", \"counter\": \"vip-door\", \"limit\": 2, \"window\": \"daily at 04:00\"}}"), ZoneOffset.UTC);
+        ExecutionContext alex = loggedIn("Alex");
+
+        assertTrue(gate.pay(alex).isPassed());
+        assertTrue(gate.pay(alex).isPassed());
+        GateResult third = gate.pay(alex);
+
+        assertFalse(third.isPassed());
+        assertTrue(third.explain().toPlainText().contains("2 of 2"), third.explain().toPlainText());
+        assertEquals(0, counter(alex, "vip-door", RepeatPolicy.limited(2).window(DAILY)).getUsesLeft());
+    }
+
+    @Test
     void aRegionOwnedCounterLivesInThePluginStorageAndRefusesPersistenceWithoutOne() {
         ExecutionContext arena = shop.context().owner(ProgressOwner.world("arena")).build();
 

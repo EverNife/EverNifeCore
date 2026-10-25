@@ -7,10 +7,14 @@ import br.com.finalcraft.evernifecore.fancytext.FancyText;
 import br.com.finalcraft.evernifecore.logic.Condition;
 import br.com.finalcraft.evernifecore.logic.ConditionResult;
 import br.com.finalcraft.evernifecore.logic.Conditions;
+import br.com.finalcraft.evernifecore.logic.Cost;
+import br.com.finalcraft.evernifecore.logic.Costs;
 import br.com.finalcraft.evernifecore.logic.ExecutionContext;
+import br.com.finalcraft.evernifecore.logic.RepeatPolicy;
 import br.com.finalcraft.evernifecore.logic.Variable;
 import br.com.finalcraft.evernifecore.logic.Variables;
 import br.com.finalcraft.evernifecore.types.ParamSpec;
+import br.com.finalcraft.evernifecore.types.ParsedParams;
 import br.com.finalcraft.evernifecore.types.TypeDescriptor;
 import br.com.finalcraft.evernifecore.types.TypeRegistryException;
 import jakarta.annotation.Nullable;
@@ -18,10 +22,11 @@ import jakarta.annotation.Nullable;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
-/** The stock conditions {@code compare} and {@code permission}, and how a written amount reads against a variable's type. */
+/** The stock conditions {@code compare} and {@code permission}, the stock cost {@code repeat}, and how a written amount reads against a variable's type. */
 final class StockConditions {
 
     private StockConditions() {
@@ -61,6 +66,41 @@ final class StockConditions {
                     };
                 })
                 .build());
+        Costs.register(core, TypeDescriptor.<Cost>of("evernifecore:repeat")
+                .describe("Takes one use of a counter of the context's owner - a limit, a gap between uses, a window that starts the"
+                        + " count over - and gives it back when a later cost does not come out.")
+                .param(ParamSpec.required("counter", ParamSpec.Kind.ID, "The counter's id within the plugin, e.g. vip-door."))
+                .param(ParamSpec.optional("limit", ParamSpec.Kind.NUMBER, null, "Uses allowed, per window when one is set; none is unlimited."))
+                .param(ParamSpec.optional("cooldown", ParamSpec.Kind.DURATION, null, "The least time between two uses, e.g. 10m."))
+                .param(ParamSpec.optional("window", ParamSpec.Kind.WINDOW, null, "When the count starts over, e.g. daily at 04:00."))
+                .param(ParamSpec.optional("reach", ParamSpec.Kind.STRING, "local", "Where a player's or the server's counter lives.")
+                        .oneOf("local", "network"))
+                .param(ParamSpec.optional("persistent", ParamSpec.Kind.BOOLEAN, null, "Whether it outlives a restart; by default only a limit does."))
+                .factory(params -> repeatPolicy(params).asCost(params.getString("counter")))
+                .build());
+    }
+
+    /** The {@link RepeatPolicy} a {@code repeat} cost writes with its own keys. */
+    private static RepeatPolicy repeatPolicy(ParsedParams params) {
+        BigDecimal limit = params.getNumber("limit");
+        RepeatPolicy policy;
+        try {
+            policy = limit == null ? RepeatPolicy.unlimited() : RepeatPolicy.limited(limit.intValueExact());
+        } catch (ArithmeticException | IllegalArgumentException invalid) {
+            throw new TypeRegistryException("The cost 'repeat' cannot read limit = " + limit + ": it expects a whole number of at least 1,"
+                    + " e.g. 3 - or no limit for an unlimited counter.");
+        }
+        if (params.getDuration("cooldown") != null) {
+            policy = policy.cooldown(params.getDuration("cooldown"));
+        }
+        if (params.getWindow("window") != null) {
+            policy = policy.window(params.getWindow("window"));
+        }
+        policy = policy.reach(RepeatPolicy.Reach.valueOf(params.getString("reach").toUpperCase(Locale.ROOT)));
+        if (params.getRaw().has("persistent")) {
+            policy = policy.persistent(params.getBoolean("persistent"));
+        }
+        return policy;
     }
 
     /** The variable {@code id} names for {@code caller}; the message says how to register it when nobody did. */

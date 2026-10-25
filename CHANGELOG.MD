@@ -52,8 +52,9 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   (`getLevel`/`setLevel`/`getExp`/`setExp`) and `STATISTICS` (`getStatistic`); Bukkit has both, Hytale neither yet.
 - **`RepeatPolicy` and plugin variables**: `RepeatPolicy` (`once`/`limited(n)`/`unlimited`, a minimum gap with
   `cooldown(Duration)`, a count that resets each `window(Window)`, `reach(LOCAL|NETWORK)`, `persistent`) reads
-  `{limit: 3, cooldown: 10m, window: "daily at 04:00", reach: network}` and becomes a gate cost with `asCost(id)` - the
-  use is given back when a later cost does not come out. `Cooldowns.resolve(caller, owner, id, policy)` routes the
+  `{limit: 3, cooldown: 10m, window: "daily at 04:00", reach: network}` and becomes a gate cost with `asCost(id)`, or
+  the stock cost `{type: repeat, counter: vip-door, limit: 3, window: "daily at 04:00"}` in a definition - the use is
+  given back when a later cost does not come out. `Cooldowns.resolve(caller, owner, id, policy)` routes the
   counter by owner: a player's row, the server's, or, for a region, a world or a group, the `ec_cooldowns` collection of
   the plugin's own storage (`Cooldowns.of(plugin, storage)`; without one only a non-persistent policy is accepted), pruned
   by retention once a minute. `Variables.custom(plugin, storage).define(name, type, initial)` gives a plugin its own
