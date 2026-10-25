@@ -1,11 +1,11 @@
 package br.com.finalcraft.evernifecore.minecraft.region.selection;
 
 import br.com.finalcraft.evernifecore.api.platoverride.item.NativeItem;
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.minecraft.loader.imp.McPlatform;
 import br.com.finalcraft.evernifecore.minecraft.region.visual.McParticleOutlineRenderer;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
-import br.com.finalcraft.evernifecore.region.selection.ItemSpec;
 import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.minecraft.Doubles;

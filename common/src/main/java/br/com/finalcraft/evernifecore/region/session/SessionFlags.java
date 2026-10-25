@@ -1,14 +1,13 @@
 package br.com.finalcraft.evernifecore.region.session;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.SessionContext;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.RegionScheduler;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.Resolution;
-import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagCategory;
 import br.com.finalcraft.evernifecore.region.flag.FlagHandler;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
@@ -17,7 +16,8 @@ import br.com.finalcraft.evernifecore.region.flag.FlagOutcomeContext;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Revalidation;
-import br.com.finalcraft.evernifecore.region.flag.context.SessionContext;
+import br.com.finalcraft.evernifecore.time.ECClock;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -60,7 +60,7 @@ final class SessionFlags {
     }
 
     void apply(FPlayer player, RegionPlayerSession session, Trigger trigger) {
-        Instant now = RegionClock.now();
+        Instant now = ECClock.now();
         boolean invalidated = session.takeRevalidateAll();
         boolean all = invalidated || trigger == Trigger.BOUNDARY;
         //a crossing applies what changed; a check that was asked for - by policy or by an invalidation - revalidates even an unchanged value
@@ -159,7 +159,7 @@ final class SessionFlags {
     void wake() {
         woken = true;
         if (ticking.compareAndSet(false, true)) {
-            RegionScheduler.scheduleAsync(this::tick, TICK_MILLIS);
+            ECScheduler.scheduleAsync(this::tick, TICK_MILLIS);
         }
     }
 
@@ -169,7 +169,7 @@ final class SessionFlags {
 
     void tick() {
         woken = false;
-        Instant now = RegionClock.now();
+        Instant now = ECClock.now();
         Map<String, List<RegionPlayerSession>> due = new HashMap<>();
         boolean pending = false;
         for (RegionPlayerSession session : lookup.getSessions()) {
@@ -206,12 +206,12 @@ final class SessionFlags {
             });
         });
         if (pending || !due.isEmpty()) {
-            RegionScheduler.scheduleAsync(this::tick, TICK_MILLIS);
+            ECScheduler.scheduleAsync(this::tick, TICK_MILLIS);
             return;
         }
         ticking.set(false);
         if (woken && ticking.compareAndSet(false, true)) {
-            RegionScheduler.scheduleAsync(this::tick, TICK_MILLIS);
+            ECScheduler.scheduleAsync(this::tick, TICK_MILLIS);
         }
     }
 }

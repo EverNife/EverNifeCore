@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.region.listener;
 
+import br.com.finalcraft.evernifecore.action.Actor;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
-import br.com.finalcraft.evernifecore.region.actor.Actor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockExplodeEvent;

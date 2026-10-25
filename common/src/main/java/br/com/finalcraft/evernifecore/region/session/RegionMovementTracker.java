@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.region.session;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.action.MoveContext;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.events.player.ECPlayerQuitEvent;
@@ -16,7 +17,6 @@ import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionGroupChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
 import br.com.finalcraft.evernifecore.region.flag.ProtectionFlagGate;
-import br.com.finalcraft.evernifecore.region.flag.context.MoveContext;
 import jakarta.annotation.Nullable;
 
 import java.util.ArrayList;

@@ -1,18 +1,18 @@
 package br.com.finalcraft.evernifecore.minecraft.autoupdater;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
-import br.com.finalcraft.everyconfig.config.Config;
+import br.com.finalcraft.evernifecore.api.events.player.ECPlayerFullyLoggedInEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
+import br.com.finalcraft.evernifecore.eventbus.ECEventHandler;
+import br.com.finalcraft.evernifecore.eventbus.ECEventPriority;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.api.events.player.ECPlayerFullyLoggedInEvent;
-import br.com.finalcraft.evernifecore.eventbus.ECEventHandler;
-import br.com.finalcraft.evernifecore.eventbus.ECEventPriority;
 import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
-import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
+import br.com.finalcraft.everyconfig.config.Config;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.bukkit.entity.Player;
@@ -53,7 +53,7 @@ public class SpigotUpdateChecker {
         }
 
         ECPluginData ecPluginData = ECPluginManager.getOrCreateECorePluginData(plugin);
-        FCScheduler.runAsync(() -> {
+        ECScheduler.runAsync(() -> {
             spigotUpdateChecker.execute(ecPluginData);
         });
     }

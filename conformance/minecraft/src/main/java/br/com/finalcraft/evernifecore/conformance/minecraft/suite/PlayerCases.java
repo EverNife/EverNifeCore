@@ -6,7 +6,7 @@ import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
-import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -61,7 +61,7 @@ final class PlayerCases {
 
     /** A task that never answers is the defect itself, so the case answers FAIL instead of waiting forever. */
     static CompletableFuture<Verdict> within(CompletableFuture<Verdict> answer, long timeoutMillis) {
-        FCScheduler.scheduleAsync(() -> answer.complete(Verdict.fail("no answer within " + timeoutMillis + "ms")), timeoutMillis);
+        ECScheduler.scheduleAsync(() -> answer.complete(Verdict.fail("no answer within " + timeoutMillis + "ms")), timeoutMillis);
         return answer;
     }
 

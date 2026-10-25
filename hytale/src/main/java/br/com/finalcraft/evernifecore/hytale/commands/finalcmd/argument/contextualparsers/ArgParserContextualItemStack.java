@@ -6,7 +6,7 @@ import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ContextualParse
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.ParseResult;
 import br.com.finalcraft.evernifecore.commands.finalcmd.argument.exception.ArgMountException;
 import br.com.finalcraft.evernifecore.hytale.api.HytaleFPlayer;
-import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.server.core.inventory.InventoryComponent;
@@ -71,14 +71,14 @@ public class ArgParserContextualItemStack extends ArgParserContextual<ItemStack>
         //An inventory is only readable from its own world's thread, so each branch pays for exactly one
         //hop and reads everything it needs while it is there
         if (slot == null){
-            ItemStack itemStack = FCScheduler.getHytaleScheduler().getSynchronizedAction().runAndGet(world, () -> itemInHand(player));
+            ItemStack itemStack = ECScheduler.getHytaleScheduler().getSynchronizedAction().runAndGet(world, () -> itemInHand(player));
 
             return itemStack != null
                     ? ParseResult.of(itemStack)
                     : denied(FCMessageUtil.NEEDS_TO_BE_HOLDING_ITEM);
         }
 
-        ItemStack equipped = FCScheduler.getHytaleScheduler().getSynchronizedAction().runAndGet(world, () -> {
+        ItemStack equipped = ECScheduler.getHytaleScheduler().getSynchronizedAction().runAndGet(world, () -> {
             if (!player.isOnline()){
                 return null;
             }

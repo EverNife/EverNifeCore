@@ -1,13 +1,13 @@
 package br.com.finalcraft.evernifecore.api.platoverride.entity;
 
+import br.com.finalcraft.evernifecore.action.Actor;
+import br.com.finalcraft.evernifecore.action.BlockContext;
+import br.com.finalcraft.evernifecore.action.ECEntityType;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.RegionDispatch;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.actor.Actor;
-import br.com.finalcraft.evernifecore.region.actor.ECEntityType;
-import br.com.finalcraft.evernifecore.region.actor.TypeKey;
-import br.com.finalcraft.evernifecore.region.flag.EventSource;
-import br.com.finalcraft.evernifecore.region.flag.context.BlockContext;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.junit.jupiter.api.Test;

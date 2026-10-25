@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.region.flag;
 
+import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.TestRegions;

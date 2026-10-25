@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
+import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagCategory;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagTypes;

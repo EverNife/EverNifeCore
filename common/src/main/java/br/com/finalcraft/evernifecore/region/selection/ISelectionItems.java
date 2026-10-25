@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.region.selection;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 
 /**
  * How a platform hands a player the selection tool. Recognising the tool when it is clicked is the platform's

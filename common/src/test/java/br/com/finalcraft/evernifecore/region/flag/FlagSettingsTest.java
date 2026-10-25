@@ -1,6 +1,8 @@
 package br.com.finalcraft.evernifecore.region.flag;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.TriggerThrottle;
 import br.com.finalcraft.evernifecore.api.events.reload.ECPluginReloadEvent;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
@@ -8,8 +10,8 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.region.TestRegions;
 import br.com.finalcraft.evernifecore.region.TestRegions.ManualClock;
-import br.com.finalcraft.evernifecore.region.flag.core.TypeFilterSettings;
 import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
+import br.com.finalcraft.evernifecore.region.flag.core.TypeFilterSettings;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;

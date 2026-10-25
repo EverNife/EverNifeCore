@@ -5,7 +5,7 @@ import br.com.finalcraft.evernifecore.conformance.ConformanceCase;
 import br.com.finalcraft.evernifecore.conformance.ConformanceContext;
 import br.com.finalcraft.evernifecore.conformance.ConformanceSuite;
 import br.com.finalcraft.evernifecore.conformance.Verdict;
-import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import org.bukkit.Bukkit;
 
 import java.util.Arrays;
@@ -32,7 +32,7 @@ public final class SchedulerSuite implements ConformanceSuite {
         return Arrays.asList(
                 ConformanceCase.later("main-thread-from-async", () -> {
                     CompletableFuture<Verdict> answer = new CompletableFuture<>();
-                    FCScheduler.runAsync(() -> {
+                    ECScheduler.runAsync(() -> {
                         boolean askedOffMain = !Bukkit.isPrimaryThread();
                         EverNifeCore.getPlatform().runOnMainThread(() -> {
                             boolean ranOnMain = Bukkit.isPrimaryThread();
@@ -57,7 +57,7 @@ public final class SchedulerSuite implements ConformanceSuite {
                 ConformanceCase.later("run-sync-never-inline", () -> {
                     AtomicBoolean ran = new AtomicBoolean();
                     CompletableFuture<Verdict> answer = new CompletableFuture<>();
-                    FCScheduler.getMinecraftScheduler().runSync(() -> {
+                    ECScheduler.getMinecraftScheduler().runSync(() -> {
                         ran.set(true);
                         answer.complete(Verdict.of(Bukkit.isPrimaryThread(), "ran later on main=" + Bukkit.isPrimaryThread()));
                     });

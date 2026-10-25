@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
+import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 
 import java.util.Arrays;
 import java.util.Collections;

@@ -2,8 +2,8 @@ package br.com.finalcraft.evernifecore.hytale.region;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
-import br.com.finalcraft.evernifecore.region.selection.ItemSpec;
 import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import jakarta.annotation.Nullable;

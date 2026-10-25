@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.hytale.util;
 
+import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.commandsender.FCommandSender;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
-import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
@@ -12,7 +12,7 @@ import br.com.finalcraft.evernifecore.locale.FCLocale;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import br.com.finalcraft.evernifecore.util.FCMessageUtil;
 import com.hypixel.hytale.component.AddReason;
 import com.hypixel.hytale.component.Component;
@@ -171,7 +171,7 @@ public class FCHytaleUtil {
             return;
         }
 
-        FCScheduler.getHytaleScheduler().getSynchronizedAction().run(world, () -> {
+        ECScheduler.getHytaleScheduler().getSynchronizedAction().run(world, () -> {
 
             //read through the PlayerRef: the entity may have left the world since the hop was scheduled
             Ref<EntityStore> playerEntity = hytaleFPlayer.getPlayerRef() == null ? null : hytaleFPlayer.getPlayerRef().getReference();

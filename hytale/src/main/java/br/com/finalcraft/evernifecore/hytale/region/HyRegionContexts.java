@@ -1,13 +1,13 @@
 package br.com.finalcraft.evernifecore.hytale.region;
 
+import br.com.finalcraft.evernifecore.action.Actor;
+import br.com.finalcraft.evernifecore.action.ECEntityType;
+import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.platoverride.entity.NativeEntity;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.region.actor.Actor;
-import br.com.finalcraft.evernifecore.region.actor.ECEntityType;
-import br.com.finalcraft.evernifecore.region.actor.TypeKey;
 import com.hypixel.hytale.component.ComponentAccessor;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.server.core.asset.type.attitude.Attitude;

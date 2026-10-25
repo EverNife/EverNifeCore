@@ -7,10 +7,10 @@ import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.region.RegionScheduler;
-import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.selection.SelectionSession;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
+import br.com.finalcraft.evernifecore.time.ECClock;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -52,8 +52,8 @@ public final class RegionVisualizer {
         if (!isEnabled()) {
             return;
         }
-        Instant until = RegionClock.now().plus(duration);
-        start(new View(player, world, style, () -> RegionClock.now().isBefore(until), () -> shape, null));
+        Instant until = ECClock.now().plus(duration);
+        start(new View(player, world, style, () -> ECClock.now().isBefore(until), () -> shape, null));
     }
 
     /** Draws the selection while it is open: its shape once it has one, its loose points before that. */
@@ -76,7 +76,7 @@ public final class RegionVisualizer {
 
     private void start(View view) {
         views.put(view.player.getUniqueId(), view);
-        RegionScheduler.scheduleAsync(() -> frame(view), 0);
+        ECScheduler.scheduleAsync(() -> frame(view), 0);
     }
 
     private void frame(View view) {
@@ -89,7 +89,7 @@ public final class RegionVisualizer {
         }
         IPlatform platform = EverNifeCore.getPlatform();
         platform.runOnWorldThread(view.world, () -> draw(platform, view));
-        RegionScheduler.scheduleAsync(() -> frame(view), FRAME_MILLIS);
+        ECScheduler.scheduleAsync(() -> frame(view), FRAME_MILLIS);
     }
 
     private static void draw(IPlatform platform, View view) {

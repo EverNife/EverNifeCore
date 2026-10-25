@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.region;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.api.common.providers.platform.IPlatform;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
@@ -28,10 +29,11 @@ import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.storage.RegionRecord;
 import br.com.finalcraft.evernifecore.region.storage.RegionStorage;
 import br.com.finalcraft.evernifecore.region.terrain.RegionTerrain;
-import br.com.finalcraft.everydatabase.query.ScanRow;
-import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
+import br.com.finalcraft.evernifecore.time.ECClock;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import br.com.finalcraft.evernifecore.util.retry.RetryPolicy;
+import br.com.finalcraft.everydatabase.query.ScanRow;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -226,7 +228,7 @@ public final class RegionManager {
     /** Holds the load lock; a newer schedule voids this one, so a world load and the timed retry never both read. */
     private void scheduleAttempt(LoadRun current, long delayMillis) {
         long ticket = ++current.ticket;
-        RegionScheduler.scheduleAsync(() -> attempt(current, ticket), delayMillis);
+        ECScheduler.scheduleAsync(() -> attempt(current, ticket), delayMillis);
     }
 
     private void attempt(LoadRun current, long ticket) {
@@ -282,7 +284,7 @@ public final class RegionManager {
             current.nextAttempt = new CompletableFuture<>();
             attempts = current.attempts;
             policy = current.policy;
-            elapsed = Duration.between(current.startedAt, RegionClock.now());
+            elapsed = Duration.between(current.startedAt, ECClock.now());
             //a re-read of an owner already loaded keeps what it has: nothing is missing to retry for
             retryIn = closed || loaded ? null : policy.delayBefore(attempts + 1, elapsed);
             if (retryIn != null) {
@@ -334,7 +336,7 @@ public final class RegionManager {
 
     /** One load, from its first try until it loads or its policy gives up. The mutable fields are guarded by the load lock. */
     private static final class LoadRun {
-        final Instant startedAt = RegionClock.now();
+        final Instant startedAt = ECClock.now();
         final CompletableFuture<Void> done = new CompletableFuture<>();
         RetryPolicy policy;
         CompletableFuture<Void> nextAttempt = new CompletableFuture<>();
@@ -654,7 +656,7 @@ public final class RegionManager {
     /** Writes every pending change and deletion; completes once the backend confirmed them all. Any thread. */
     public CompletableFuture<Void> flush() {
         CompletableFuture<Void> done = new CompletableFuture<>();
-        RegionScheduler.scheduleAsync(() -> {
+        ECScheduler.scheduleAsync(() -> {
             terrain.writeDirty();
             write().whenComplete((ignored, error) -> {
                 if (error == null) {
@@ -710,7 +712,7 @@ public final class RegionManager {
 
     private void scheduleFlush() {
         if (regionStorage != null && flushScheduled.compareAndSet(false, true)) {
-            RegionScheduler.scheduleAsync(this::write, flushDelayMillis);
+            ECScheduler.scheduleAsync(this::write, flushDelayMillis);
         }
     }
 

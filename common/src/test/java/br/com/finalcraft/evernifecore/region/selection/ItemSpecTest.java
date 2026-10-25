@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.region.selection;
 
 import br.com.finalcraft.evernifecore.api.platoverride.item.NativeItem;
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

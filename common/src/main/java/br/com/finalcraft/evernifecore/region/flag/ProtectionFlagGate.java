@@ -1,21 +1,23 @@
 package br.com.finalcraft.evernifecore.region.flag;
 
+import br.com.finalcraft.evernifecore.action.ActionContext;
+import br.com.finalcraft.evernifecore.action.DamageContext;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.MoveContext;
+import br.com.finalcraft.evernifecore.action.TriggerThrottle;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.Resolution;
-import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
-import br.com.finalcraft.evernifecore.region.flag.context.DamageContext;
-import br.com.finalcraft.evernifecore.region.flag.context.MoveContext;
 import br.com.finalcraft.evernifecore.region.flag.core.EntryDenySettings;
 import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
 import br.com.finalcraft.evernifecore.region.session.MoveVerdict;
 import br.com.finalcraft.evernifecore.region.session.RegionPlayerSession;
 import br.com.finalcraft.evernifecore.region.session.RevertStrategy;
 import br.com.finalcraft.evernifecore.spawn.SpawnPoints;
+import br.com.finalcraft.evernifecore.time.ECClock;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -117,7 +119,7 @@ public final class ProtectionFlagGate {
         Region source = resolution.getSource() != null ? resolution.getSource() : crossed;
         fireApplied(flag, context, value, source, settings);
         MoveDenySettings moveSettings = settings instanceof MoveDenySettings ? (MoveDenySettings) settings : null;
-        int denials = session.noteDenial(flag.getKey(), RegionClock.now(), moveSettings != null ? moveSettings.getStuckWindow() : DEFAULT_STUCK_WINDOW);
+        int denials = session.noteDenial(flag.getKey(), ECClock.now(), moveSettings != null ? moveSettings.getStuckWindow() : DEFAULT_STUCK_WINDOW);
 
         FlagHandler handler = source.getFlagHandler(flag);
         if (handler != null) {

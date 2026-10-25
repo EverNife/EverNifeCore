@@ -1,14 +1,14 @@
 package br.com.finalcraft.evernifecore.minecraft.region.listener;
 
+import br.com.finalcraft.evernifecore.action.Actor;
+import br.com.finalcraft.evernifecore.action.BlockContext;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.EventSourceUsage;
+import br.com.finalcraft.evernifecore.action.ExplosionContext;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import br.com.finalcraft.evernifecore.region.RegionDispatch;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.actor.Actor;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
-import br.com.finalcraft.evernifecore.region.flag.EventSource;
-import br.com.finalcraft.evernifecore.region.flag.context.BlockContext;
-import br.com.finalcraft.evernifecore.region.flag.context.ExplosionContext;
-import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;

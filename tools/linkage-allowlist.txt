@@ -130,4 +130,4 @@
 # checkEmbeddedLinkage: FinalCraft classes the shadow jar does not carry on purpose. <runtime> is
 # always "embedded" here - these are read by that check, not by checkLinkage.
 # ---------------------------------------------------------------------------------------------
-embedded class br/com/finalcraft/evernifecore/hytale/scheduler/HyFCScheduler br.com.finalcraft.evernifecore.scheduler.FCScheduler  # only getHytaleScheduler() names it, and only Hytale code calls that; the Hytale jar carries the real class
+embedded class br/com/finalcraft/evernifecore/hytale/scheduler/HyFCScheduler br.com.finalcraft.evernifecore.time.ECScheduler  # only getHytaleScheduler() names it, and only Hytale code calls that; the Hytale jar carries the real class

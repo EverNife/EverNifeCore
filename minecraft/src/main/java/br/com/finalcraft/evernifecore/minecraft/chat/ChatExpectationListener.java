@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.minecraft.chat;
 
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
-import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -74,7 +74,7 @@ public class ChatExpectationListener implements Listener {
 
         //a delay of zero fires on the same tick, ending the very wait it was meant to bound
         if (expiration > 0 && onExpireAction != null) {
-            ScheduledFuture<?> future = FCScheduler.getScheduler().schedule(() -> {
+            ScheduledFuture<?> future = ECScheduler.getScheduler().schedule(() -> {
                 if (expectedChat.wasConsumed() || expectedChat.wasCancelled()) {
                     return;
                 }

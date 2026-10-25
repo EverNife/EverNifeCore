@@ -1,9 +1,9 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.region.actor.ECEntityType;
-import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.action.ActionContext;
+import br.com.finalcraft.evernifecore.action.ECEntityType;
+import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
-import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
 
 /** TRUE: animals in the region cannot be hurt. */
 public final class DenyDamageAnimalsFlag extends DenyFlag {

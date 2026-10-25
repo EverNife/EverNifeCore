@@ -1,21 +1,21 @@
 package br.com.finalcraft.evernifecore.region;
 
+import br.com.finalcraft.evernifecore.action.Actor;
+import br.com.finalcraft.evernifecore.action.BlockContext;
+import br.com.finalcraft.evernifecore.action.ECEntityType;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.ExplosionContext;
+import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.region.actor.Actor;
-import br.com.finalcraft.evernifecore.region.actor.ECEntityType;
-import br.com.finalcraft.evernifecore.region.actor.TypeKey;
 import br.com.finalcraft.evernifecore.region.command.FlagValues;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
-import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagOutcome;
 import br.com.finalcraft.evernifecore.region.flag.FlagParseException;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.context.BlockContext;
-import br.com.finalcraft.evernifecore.region.flag.context.ExplosionContext;
 import br.com.finalcraft.evernifecore.region.flag.core.ActorDenyFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.DenySettings;

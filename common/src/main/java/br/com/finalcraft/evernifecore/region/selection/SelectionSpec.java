@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.region.selection;
 
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.region.shape.ShapeType;
 import jakarta.annotation.Nullable;
 

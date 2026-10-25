@@ -1,22 +1,21 @@
 package br.com.finalcraft.evernifecore.region.session;
 
+import br.com.finalcraft.evernifecore.action.ActionContext;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.MoveContext;
 import br.com.finalcraft.evernifecore.api.events.player.ECPlayerQuitEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.playerdata.PlayerData;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.TestRegions;
 import br.com.finalcraft.evernifecore.region.event.RegionBoundaryEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionEnterEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
-import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
-import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
-import br.com.finalcraft.evernifecore.region.flag.context.MoveContext;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyExitFlag;
@@ -26,6 +25,7 @@ import br.com.finalcraft.evernifecore.testing.ECoreTestWorld;
 import br.com.finalcraft.evernifecore.testing.Platforms;
 import br.com.finalcraft.evernifecore.testing.RecordingAudience;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
+import br.com.finalcraft.evernifecore.time.ECClock;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -49,7 +49,7 @@ class RegionMovementTrackerTest extends TrackerFixture {
         Region inner = region("inner", 6, 8);
         tracker.onJoin(player, at(20.5));
         clock.advance(Duration.ofSeconds(5));
-        Instant entered = RegionClock.now();
+        Instant entered = ECClock.now();
 
         tracker.onMove(player, at(20.5), at(5.5), MoveCause.MOVE, null);
         clock.advance(Duration.ofSeconds(7));

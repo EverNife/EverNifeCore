@@ -474,7 +474,7 @@ public final class StoredInventory implements ItemStore {
         if (server != null && !server.isPrimaryThread()) {
             throw new IllegalStateException("A stored inventory was asked to " + action + " from thread ["
                     + Thread.currentThread().getName() + "]. Items are moved on the server main thread and "
-                    + "nowhere else - hop with FCScheduler/McFCScheduler and change it there. Reading it from "
+                    + "nowhere else - hop with ECScheduler/McFCScheduler and change it there. Reading it from "
                     + "here is fine: getItem and getContents answer a snapshot from any thread.");
         }
     }

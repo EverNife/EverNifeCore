@@ -2,15 +2,15 @@ package br.com.finalcraft.evernifecore.region.selection;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.locale.FCLocale;
+import br.com.finalcraft.evernifecore.locale.ILocaleMessageBase;
 import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
-import br.com.finalcraft.evernifecore.locale.ILocaleMessageBase;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
-import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.region.shape.PolygonShape;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
 import br.com.finalcraft.evernifecore.region.shape.ShapeType;
+import br.com.finalcraft.evernifecore.time.ECClock;
 import jakarta.annotation.Nullable;
 
 import java.time.Instant;
@@ -59,7 +59,7 @@ public final class SelectionSession {
         this.spec = spec;
         this.world = world;
         this.onConfirm = onConfirm;
-        this.lastTouch = RegionClock.now();
+        this.lastTouch = ECClock.now();
     }
 
     public FPlayer getPlayer() {
@@ -176,6 +176,6 @@ public final class SelectionSession {
     }
 
     private void touch() {
-        lastTouch = RegionClock.now();
+        lastTouch = ECClock.now();
     }
 }

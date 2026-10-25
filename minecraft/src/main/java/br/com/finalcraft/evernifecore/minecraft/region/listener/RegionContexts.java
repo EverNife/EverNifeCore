@@ -1,15 +1,15 @@
 package br.com.finalcraft.evernifecore.minecraft.region.listener;
 
 import br.com.finalcraft.ecnmsutils.NMSUtils;
+import br.com.finalcraft.evernifecore.action.Actor;
+import br.com.finalcraft.evernifecore.action.ECEntityType;
+import br.com.finalcraft.evernifecore.action.TypeKey;
+import br.com.finalcraft.evernifecore.api.platoverride.entity.NativeEntity;
 import br.com.finalcraft.evernifecore.config.settings.ECSettings;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.api.platoverride.entity.NativeEntity;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
 import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
-import br.com.finalcraft.evernifecore.region.actor.Actor;
-import br.com.finalcraft.evernifecore.region.actor.ECEntityType;
-import br.com.finalcraft.evernifecore.region.actor.TypeKey;
 import jakarta.annotation.Nullable;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;

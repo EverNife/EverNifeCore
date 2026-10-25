@@ -6,7 +6,7 @@ import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec2i;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3d;
 import br.com.finalcraft.evernifecore.math.vector.base.IVec3i;
-import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Location;
@@ -119,7 +119,7 @@ public class GameVecPlatformAdapterConverter {
         /** The chunk if it is already in memory, else {@code null} - this never loads one. */
         public @Nullable WorldChunk getChunk(World world) {
             ChunkStore chunkStore = world.getChunkStore();
-            return FCScheduler.getHytaleScheduler().getSynchronizedAction().runAndGet(world, () -> {
+            return ECScheduler.getHytaleScheduler().getSynchronizedAction().runAndGet(world, () -> {
                 Ref<ChunkStore> ref = chunkStore.getChunkReference(getChunkIndex());
                 return ref == null ? null : chunkStore.getStore().getComponent(ref, WorldChunk.getComponentType());
             });

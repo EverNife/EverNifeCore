@@ -2,10 +2,10 @@ package br.com.finalcraft.evernifecore.testing;
 
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginManager;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.RegionScheduler;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
+import br.com.finalcraft.evernifecore.time.ECClock;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
@@ -42,16 +42,16 @@ class RegionWorldTest {
     @Test
     void theClockMovesOnlyWhenToldAndRunDueRunsWhatItReached() {
         try (RegionWorld prot = RegionWorld.open("RegionWorldClock", tempDir)) {
-            Instant start = RegionClock.now();
+            Instant start = ECClock.now();
             AtomicInteger ran = new AtomicInteger();
-            RegionScheduler.scheduleAsync(ran::incrementAndGet, 1000);
+            ECScheduler.scheduleAsync(ran::incrementAndGet, 1000);
 
-            assertEquals(start, RegionClock.now());
+            assertEquals(start, ECClock.now());
             prot.runDue();
             assertEquals(0, ran.get(), "not due yet");
 
             prot.advance(Duration.ofSeconds(1));
-            assertEquals(start.plusSeconds(1), RegionClock.now());
+            assertEquals(start.plusSeconds(1), ECClock.now());
             prot.runDue();
             assertEquals(1, ran.get());
         }

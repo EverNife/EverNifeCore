@@ -2,8 +2,9 @@ package br.com.finalcraft.evernifecore.region.flag;
 
 import java.util.Set;
 import java.util.EnumSet;
-import br.com.finalcraft.evernifecore.region.playerstate.IPlayerStateAccess;
+import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
+import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.TestRegions;
 import br.com.finalcraft.evernifecore.testing.Logs;

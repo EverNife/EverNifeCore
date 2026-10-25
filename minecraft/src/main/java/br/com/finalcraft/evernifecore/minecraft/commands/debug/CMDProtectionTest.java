@@ -17,13 +17,13 @@ import br.com.finalcraft.evernifecore.minecraft.McPermissionNodes;
 import br.com.finalcraft.evernifecore.minecraft.protection.ProtectionAll;
 import br.com.finalcraft.evernifecore.minecraft.protection.integration.ProtectionHandler;
 import br.com.finalcraft.evernifecore.minecraft.protection.integration.imp.WorldGuardHandler;
-import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
-import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
-import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.minecraft.protection.worldguard.FCWorldGuardRegion;
 import br.com.finalcraft.evernifecore.minecraft.protection.worldguard.WGPlatform;
 import br.com.finalcraft.evernifecore.minecraft.protection.worldguard.adapter.FCRegionResultSet;
-import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
+import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
+import br.com.finalcraft.evernifecore.minecraft.version.MCDetailedVersion;
+import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import com.sk89q.worldguard.protection.flags.Flag;
 import jakarta.annotation.Nonnull;
 import org.bukkit.Color;
@@ -221,7 +221,7 @@ public class CMDProtectionTest implements ICustomFinalCMD {
             //REDSTONE was renamed to DUST in 1.20.5. Naming either constant would bind this class to
             //one half of the supported range, so the spelling is chosen once and looked up by name.
             Particle dust = Particle.valueOf(MCVersion.isHigherEquals(MCDetailedVersion.v1_20_R4) ? "DUST" : "REDSTONE");
-            FCScheduler.runAsync(() -> {
+            ECScheduler.runAsync(() -> {
                 Particle.DustOptions GREEN_PARTICLE = new Particle.DustOptions(Color.fromRGB(0, 255, 0), 1.0F);
                 Particle.DustOptions RED_PARTICLE = new Particle.DustOptions(Color.fromRGB(255, 0, 0), 1.0F);
 
@@ -230,7 +230,7 @@ public class CMDProtectionTest implements ICustomFinalCMD {
                 List<BlockPos> selectionWalls = getSelectionWalls(cuboidSelection.getMinium(), cuboidSelection.getMaximum());
 
                 for (int i = 0; i < 4; i++) {
-                    FCScheduler.scheduleAsync(() -> {
+                    ECScheduler.scheduleAsync(() -> {
                         selectionWalls.forEach(pos -> {
                             player.spawnParticle(dust, pos.getAdapter().getLocation(player.getWorld()), 1, SELECTED_COLOR);
                         });

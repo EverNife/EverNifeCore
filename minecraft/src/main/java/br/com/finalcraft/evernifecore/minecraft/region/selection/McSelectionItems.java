@@ -1,12 +1,12 @@
 package br.com.finalcraft.evernifecore.minecraft.region.selection;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
+import br.com.finalcraft.evernifecore.item.ItemSpec;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.minecraft.api.MinecraftFPlayer;
 import br.com.finalcraft.evernifecore.minecraft.itemstack.engine.runtime.NbtDoor;
 import br.com.finalcraft.evernifecore.minecraft.util.FCMaterialUtil;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
-import br.com.finalcraft.evernifecore.region.selection.ItemSpec;
 import jakarta.annotation.Nullable;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;

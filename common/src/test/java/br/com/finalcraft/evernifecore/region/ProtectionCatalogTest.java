@@ -1,18 +1,18 @@
 package br.com.finalcraft.evernifecore.region;
 
+import br.com.finalcraft.evernifecore.action.Actor;
+import br.com.finalcraft.evernifecore.action.DamageContext;
+import br.com.finalcraft.evernifecore.action.ECEntityType;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.ItemContext;
+import br.com.finalcraft.evernifecore.action.SpawnContext;
+import br.com.finalcraft.evernifecore.action.TypeKey;
+import br.com.finalcraft.evernifecore.action.VehicleContext;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.region.actor.Actor;
-import br.com.finalcraft.evernifecore.region.actor.ECEntityType;
-import br.com.finalcraft.evernifecore.region.actor.TypeKey;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
-import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.context.DamageContext;
-import br.com.finalcraft.evernifecore.region.flag.context.ItemContext;
-import br.com.finalcraft.evernifecore.region.flag.context.SpawnContext;
-import br.com.finalcraft.evernifecore.region.flag.context.VehicleContext;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.TypeFilterSettings;
 import br.com.finalcraft.evernifecore.testing.Actors;

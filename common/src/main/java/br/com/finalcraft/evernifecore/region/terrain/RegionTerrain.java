@@ -8,13 +8,13 @@ import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionManager;
-import br.com.finalcraft.evernifecore.region.RegionScheduler;
 import br.com.finalcraft.evernifecore.region.event.RegionTerrainEvent;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.TrackChangesSettings;
 import br.com.finalcraft.evernifecore.region.shape.BoundingBox;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Nullable;
 
@@ -518,7 +518,7 @@ public final class RegionTerrain {
 
     private void scheduleDiskWrite() {
         if (writeScheduled.compareAndSet(false, true)) {
-            RegionScheduler.scheduleAsync(this::writeDirty, DISK_WRITE_DELAY_MILLIS);
+            ECScheduler.scheduleAsync(this::writeDirty, DISK_WRITE_DELAY_MILLIS);
         }
     }
 

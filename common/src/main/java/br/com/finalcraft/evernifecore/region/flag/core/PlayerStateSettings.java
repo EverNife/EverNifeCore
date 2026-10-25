@@ -1,7 +1,7 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
+import br.com.finalcraft.evernifecore.player.state.PlayerStateBackup;
 import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
-import br.com.finalcraft.evernifecore.region.playerstate.PlayerStateBackup;
 import br.com.finalcraft.everyconfig.annotation.Comment;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;

@@ -1,19 +1,20 @@
 package br.com.finalcraft.evernifecore.region;
 
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.EventSourceUsage;
+import br.com.finalcraft.evernifecore.action.UsageHold;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.ecplugin.IECPluginBootstrap;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECListenerWatch;
 import br.com.finalcraft.evernifecore.region.event.RegionRemovedEvent;
-import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.TristateFlag;
 import br.com.finalcraft.evernifecore.region.session.RegionMovementTracker;
-import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
-import br.com.finalcraft.evernifecore.region.usage.UsageHold;
 import br.com.finalcraft.evernifecore.testing.Plugins;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayDeque;
@@ -54,7 +55,7 @@ class RegionOwnerShutdownTest extends ManagedRegionFixture {
     void discardingAnOwnerWhoseStorageIsGoneWritesNothing() {
         RegionManager manager = manager();   //loaded before the writes are held
         Queue<Runnable> held = new ArrayDeque<>();
-        RegionScheduler.set((task, delayMillis) -> held.add(task));
+        ECScheduler.set((task, delayMillis) -> held.add(task));
         created(manager.create("a", WORLD, box(0, 0, 9, 9)));
         List<RegionRemovedEvent> removed = record(RegionRemovedEvent.class);
 

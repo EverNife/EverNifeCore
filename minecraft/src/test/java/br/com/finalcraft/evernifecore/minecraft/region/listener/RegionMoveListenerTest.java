@@ -1,5 +1,6 @@
 package br.com.finalcraft.evernifecore.minecraft.region.listener;
 
+import br.com.finalcraft.evernifecore.action.EventSourceUsage;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
@@ -12,7 +13,6 @@ import br.com.finalcraft.evernifecore.region.event.RegionLeaveEvent;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyTeleportInFlag;
 import br.com.finalcraft.evernifecore.region.session.MoveCause;
-import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
 import org.bukkit.Location;
 import org.bukkit.World;

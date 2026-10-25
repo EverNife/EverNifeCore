@@ -3,12 +3,12 @@ package br.com.finalcraft.evernifecore.region.group;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.flag.FlagChangeCause;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagStore;
 import br.com.finalcraft.evernifecore.region.flag.FlagValue;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
+import br.com.finalcraft.evernifecore.time.ECClock;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -124,7 +124,7 @@ public final class AccessGroup {
             throw new IllegalArgumentException("A membership of group " + name + " needs a positive duration, not " + ttl
                     + ": use addMember(uuid) for a permanent one.");
         }
-        Instant now = RegionClock.now();
+        Instant now = ECClock.now();
         Membership membership = new Membership(Objects.requireNonNull(uuid, "uuid"), now, ttl == null ? null : now.plus(ttl));
         members.put(uuid, membership);
         hook.onGroupChanged(this, GroupChange.MEMBER_ADDED, uuid);

@@ -170,7 +170,7 @@ public final class GuiBuffer {
         if (!FCBukkitUtil.isMainThread()) {
             throw new IllegalStateException("A gui commit was attempted on thread ["
                     + Thread.currentThread().getName() + "]. Every write to an inventory has to happen on "
-                    + "the server main thread - hop with FCScheduler/McFCScheduler before touching the gui.");
+                    + "the server main thread - hop with ECScheduler/McFCScheduler before touching the gui.");
         }
 
         int writes = 0;

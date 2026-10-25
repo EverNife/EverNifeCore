@@ -3,7 +3,7 @@ package br.com.finalcraft.evernifecore.actionbar;
 import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.fancytext.FancyText;
-import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 
 import java.util.Comparator;
 import java.util.PriorityQueue;
@@ -47,7 +47,7 @@ public class PlayerActionBarManager implements Runnable {
 
     private void start(){
         hasStarted = true;
-        this.scheduledFuture = FCScheduler.getScheduler()
+        this.scheduledFuture = ECScheduler.getScheduler()
                 .scheduleAtFixedRate(this, 0, 500, TimeUnit.MILLISECONDS);
     }
 

@@ -4,6 +4,8 @@ import br.com.finalcraft.evernifecore.EverNifeCore;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.region.event.RegionRemovedEvent;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
+import br.com.finalcraft.evernifecore.time.ECClock;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -39,7 +41,7 @@ public final class RegionSweeper {
     static void wake() {
         woken = true;
         if (RUNNING.compareAndSet(false, true)) {
-            RegionScheduler.scheduleAsync(RegionSweeper::tick, intervalMillis);
+            ECScheduler.scheduleAsync(RegionSweeper::tick, intervalMillis);
         }
     }
 
@@ -49,7 +51,7 @@ public final class RegionSweeper {
 
     static void tick() {
         woken = false;
-        Instant now = RegionClock.now();
+        Instant now = ECClock.now();
         Map<String, List<Region>> due = new HashMap<>();
         boolean pending = false;
         for (RegionManager manager : RegionManager.all()) {
@@ -87,12 +89,12 @@ public final class RegionSweeper {
         });
         //what expired may uncover a later deadline, and a world that refused keeps its own: one more look either way
         if (pending || !due.isEmpty()) {
-            RegionScheduler.scheduleAsync(RegionSweeper::tick, intervalMillis);
+            ECScheduler.scheduleAsync(RegionSweeper::tick, intervalMillis);
             return;
         }
         RUNNING.set(false);
         if (woken && RUNNING.compareAndSet(false, true)) {
-            RegionScheduler.scheduleAsync(RegionSweeper::tick, intervalMillis);
+            ECScheduler.scheduleAsync(RegionSweeper::tick, intervalMillis);
         }
     }
 

@@ -1,12 +1,12 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.region.actor.TypeKey;
-import br.com.finalcraft.evernifecore.region.flag.EventSource;
+import br.com.finalcraft.evernifecore.action.ActionContext;
+import br.com.finalcraft.evernifecore.action.BlockContext;
+import br.com.finalcraft.evernifecore.action.EntityContext;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
-import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
-import br.com.finalcraft.evernifecore.region.flag.context.BlockContext;
-import br.com.finalcraft.evernifecore.region.flag.context.EntityContext;
 import jakarta.annotation.Nullable;
 
 /** The shape of an interact deny flag: TRUE denies using a block or an entity, narrowed by {@link TypeFilterSettings}. */

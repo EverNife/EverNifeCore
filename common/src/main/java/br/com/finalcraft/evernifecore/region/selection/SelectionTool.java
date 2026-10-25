@@ -1,6 +1,9 @@
 package br.com.finalcraft.evernifecore.region.selection;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.EventSourceUsage;
+import br.com.finalcraft.evernifecore.action.UsageHold;
 import br.com.finalcraft.evernifecore.api.common.game.FLocation;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.api.events.player.ECPlayerQuitEvent;
@@ -11,13 +14,10 @@ import br.com.finalcraft.evernifecore.locale.LocaleMessage;
 import br.com.finalcraft.evernifecore.locale.LocaleType;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
-import br.com.finalcraft.evernifecore.region.RegionScheduler;
-import br.com.finalcraft.evernifecore.region.RegionClock;
-import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
-import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
-import br.com.finalcraft.evernifecore.region.usage.UsageHold;
 import br.com.finalcraft.evernifecore.region.visual.RegionVisualizer;
+import br.com.finalcraft.evernifecore.time.ECClock;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -169,15 +169,15 @@ public final class SelectionTool {
 
     private static void scheduleExpiry(SelectionSession session, Duration timeout) {
         Instant deadline = session.getLastTouch().plus(timeout);
-        long delayMillis = Math.max(0, Duration.between(RegionClock.now(), deadline).toMillis());
-        RegionScheduler.scheduleAsync(() -> checkExpiry(session, timeout), delayMillis);
+        long delayMillis = Math.max(0, Duration.between(ECClock.now(), deadline).toMillis());
+        ECScheduler.scheduleAsync(() -> checkExpiry(session, timeout), delayMillis);
     }
 
     private static void checkExpiry(SelectionSession session, Duration timeout) {
         if (!session.isActive()) {
             return;
         }
-        if (RegionClock.now().isBefore(session.getLastTouch().plus(timeout))) {
+        if (ECClock.now().isBefore(session.getLastTouch().plus(timeout))) {
             scheduleExpiry(session, timeout);   //touched since: wait out what is left of the new deadline
             return;
         }

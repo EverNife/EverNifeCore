@@ -1,10 +1,10 @@
 package br.com.finalcraft.evernifecore.hytale.region;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.region.flag.EffectLevel;
-import br.com.finalcraft.evernifecore.region.playerstate.ECGameMode;
-import br.com.finalcraft.evernifecore.region.playerstate.IPlayerStateAccess.Capability;
-import br.com.finalcraft.evernifecore.region.playerstate.PlayerTime;
+import br.com.finalcraft.evernifecore.player.state.ECGameMode;
+import br.com.finalcraft.evernifecore.player.state.EffectLevel;
+import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess.Capability;
+import br.com.finalcraft.evernifecore.player.state.PlayerTime;
 import br.com.finalcraft.evernifecore.testing.Senders;
 import com.hypixel.hytale.protocol.FlyMode;
 import com.hypixel.hytale.protocol.GameMode;

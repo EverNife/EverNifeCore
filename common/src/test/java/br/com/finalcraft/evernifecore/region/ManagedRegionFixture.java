@@ -1,12 +1,12 @@
 package br.com.finalcraft.evernifecore.region;
 
+import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.api.events.base.IECEvent;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.eventbus.ECEventBus;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscriber;
 import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
-import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
@@ -17,6 +17,7 @@ import br.com.finalcraft.evernifecore.storage.ECStorage;
 import br.com.finalcraft.evernifecore.testing.Plugins;
 import br.com.finalcraft.evernifecore.testing.ScriptedStorage;
 import br.com.finalcraft.evernifecore.testing.junit.ECoreTest;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import br.com.finalcraft.everydatabase.Storages;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,7 +70,7 @@ abstract class ManagedRegionFixture {
     @AfterEach
     void closeWorld() {
         subscriptions.forEach(ECEventSubscription::unsubscribe);
-        RegionScheduler.set(null);   //first: a held agenda would hold the closing writes for the whole 30 s timeout
+        ECScheduler.set(null);   //first: a held agenda would hold the closing writes for the whole 30 s timeout
         RegionManager.closeAll();
         RegionManager.setFlushDelayMillis(RegionManager.DEFAULT_FLUSH_DELAY_MILLIS);
         RegionManager.setRetryDelayMillis(RegionManager.DEFAULT_RETRY_DELAY_MILLIS);
@@ -104,7 +105,7 @@ abstract class ManagedRegionFixture {
             try {
                 manager.load().get(10, TimeUnit.SECONDS);
             } catch (TimeoutException held) {
-                throw new AssertionError("The load of " + manager + " never ran: a test that swaps RegionScheduler must call manager()"
+                throw new AssertionError("The load of " + manager + " never ran: a test that swaps ECScheduler must call manager()"
                         + " before it does.", held);
             } catch (InterruptedException | ExecutionException failed) {
                 throw new AssertionError("The load of " + manager + " failed", failed);

@@ -9,12 +9,12 @@ import br.com.finalcraft.evernifecore.eventbus.ECEventSubscription;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.region.CreationResult;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.RegionScheduler;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.RegionManager;
-import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.storage.ECStorage;
+import br.com.finalcraft.evernifecore.time.ECClock;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import br.com.finalcraft.everydatabase.Storages;
 
 import java.nio.file.Path;
@@ -129,7 +129,7 @@ public final class RegionWorld implements AutoCloseable {
         return result.getRegion();
     }
 
-    /** What {@link RegionClock#now()} answers - fixed until {@link #advance(Duration)}. */
+    /** What {@link ECClock#now()} answers - fixed until {@link #advance(Duration)}. */
     public Instant now() {
         return shared.clock.instant();
     }
@@ -214,8 +214,8 @@ public final class RegionWorld implements AutoCloseable {
         synchronized (SHARED_LOCK) {
             if (shared == null) {
                 shared = new Shared();
-                RegionClock.setClock(shared.clock);
-                RegionScheduler.set((task, delayMillis) -> {
+                ECClock.setClock(shared.clock);
+                ECScheduler.set((task, delayMillis) -> {
                     synchronized (shared.pending) {
                         shared.pending.add(new Scheduled(task, shared.clock.now.plusMillis(Math.max(0, delayMillis))));
                     }
@@ -230,8 +230,8 @@ public final class RegionWorld implements AutoCloseable {
             if (--shared.users == 0) {
                 //stopped while the scheduler is still this one: whatever they schedule on the way out never reaches a real thread
                 RegionManager.closeAll();
-                RegionScheduler.set(null);
-                RegionClock.setClock(null);
+                ECScheduler.set(null);
+                ECClock.setClock(null);
                 shared = null;
             }
         }

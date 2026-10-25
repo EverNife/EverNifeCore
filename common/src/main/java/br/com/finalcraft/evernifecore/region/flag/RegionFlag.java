@@ -1,9 +1,10 @@
 package br.com.finalcraft.evernifecore.region.flag;
 
+import br.com.finalcraft.evernifecore.action.ActionContext;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.SessionContext;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
-import br.com.finalcraft.evernifecore.region.flag.context.ActionContext;
-import br.com.finalcraft.evernifecore.region.flag.context.SessionContext;
-import br.com.finalcraft.evernifecore.region.playerstate.IPlayerStateAccess;
+import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;

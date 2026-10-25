@@ -1,7 +1,8 @@
 package br.com.finalcraft.evernifecore.region.session;
 
-import br.com.finalcraft.evernifecore.testing.Actors;
-import br.com.finalcraft.evernifecore.region.actor.TypeKey;
+import br.com.finalcraft.evernifecore.action.BlockContext;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
@@ -9,17 +10,16 @@ import br.com.finalcraft.evernifecore.region.RegionManager;
 import br.com.finalcraft.evernifecore.region.Resolution;
 import br.com.finalcraft.evernifecore.region.TestRegions;
 import br.com.finalcraft.evernifecore.region.flag.Decision;
-import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagOutcome;
 import br.com.finalcraft.evernifecore.region.flag.FlagOutcomeContext;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
-import br.com.finalcraft.evernifecore.region.flag.context.BlockContext;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyBlockBreakFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryMessage;
 import br.com.finalcraft.evernifecore.region.flag.core.DenyEntryWithMessageFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.EntryDenySettings;
 import br.com.finalcraft.evernifecore.region.flag.core.MoveDenySettings;
+import br.com.finalcraft.evernifecore.testing.Actors;
 import br.com.finalcraft.evernifecore.testing.TestFPlayerSender;
 import org.junit.jupiter.api.Test;
 

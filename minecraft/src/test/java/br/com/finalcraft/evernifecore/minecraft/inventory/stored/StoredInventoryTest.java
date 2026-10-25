@@ -303,7 +303,7 @@ class StoredInventoryTest {
 
         assertTrue(refusal instanceof IllegalStateException, String.valueOf(refusal));
         assertTrue(refusal.getMessage().contains("virtual-inventory-test"), refusal.getMessage());
-        assertTrue(refusal.getMessage().contains("FCScheduler"), "and it says where to go instead: "
+        assertTrue(refusal.getMessage().contains("ECScheduler"), "and it says where to go instead: "
                 + refusal.getMessage());
         assertNull(inventory.getItem(0), "nothing landed");
     }

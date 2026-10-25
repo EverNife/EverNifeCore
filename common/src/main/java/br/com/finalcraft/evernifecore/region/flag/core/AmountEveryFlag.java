@@ -1,18 +1,18 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.SessionContext;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.region.RegionClock;
+import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.region.flag.AmountEvery;
-import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagCategory;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.flag.FlagTypes;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.TickingFlag;
-import br.com.finalcraft.evernifecore.region.flag.context.SessionContext;
-import br.com.finalcraft.evernifecore.region.playerstate.IPlayerStateAccess;
+import br.com.finalcraft.evernifecore.time.ECClock;
 import jakarta.annotation.Nullable;
 
 import java.time.Instant;
@@ -87,7 +87,7 @@ public final class AmountEveryFlag extends RegionFlag<AmountEvery> implements Ti
 
     @Override
     public void onEnter(SessionContext context, AmountEvery value) {
-        nextAt.put(context.getPlayer().getUniqueId(), RegionClock.now().plus(value.getInterval()));
+        nextAt.put(context.getPlayer().getUniqueId(), ECClock.now().plus(value.getInterval()));
     }
 
     @Override
@@ -111,7 +111,7 @@ public final class AmountEveryFlag extends RegionFlag<AmountEvery> implements Ti
             return;
         }
         FPlayer player = context.getPlayer();
-        Instant now = RegionClock.now();
+        Instant now = ECClock.now();
         Instant due = nextAt.get(player.getUniqueId());
         if (due == null) {
             nextAt.put(player.getUniqueId(), now.plus(value.getInterval())); //ticked before the session entered it: start counting

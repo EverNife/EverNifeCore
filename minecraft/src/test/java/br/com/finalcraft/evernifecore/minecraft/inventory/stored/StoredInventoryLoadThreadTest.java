@@ -3,8 +3,8 @@ package br.com.finalcraft.evernifecore.minecraft.inventory.stored;
 import br.com.finalcraft.evernifecore.config.ConfigFactory;
 import br.com.finalcraft.evernifecore.config.factory.ConfigFactoryCodec;
 import br.com.finalcraft.evernifecore.minecraft.gui.testkit.GuiTestWorld;
-import br.com.finalcraft.everyconfig.config.Config;
 import br.com.finalcraft.evernifecore.testing.TempDirNobodyCleans;
+import br.com.finalcraft.everyconfig.config.Config;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
@@ -176,7 +176,7 @@ class StoredInventoryLoadThreadTest {
 
         assertTrue(refusal instanceof IllegalStateException, "reading it is done, so the next hand to touch "
                 + "it is one hand too many: " + refusal);
-        assertTrue(String.valueOf(refusal.getMessage()).contains("FCScheduler"), refusal.getMessage());
+        assertTrue(String.valueOf(refusal.getMessage()).contains("ECScheduler"), refusal.getMessage());
     }
 
     @Test

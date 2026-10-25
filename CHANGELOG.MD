@@ -47,6 +47,15 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
 
 - **EveryConfig 1.4.3**: `getOrMergeValue(path, bean)` keeps an unreadable value in the file (reported as a
   `COERCION` `LoadIssue`) instead of writing the field default over it.
+- **The region engine's shared pieces leave `region`**: the action contexts, `Actor`/`TypeKey`/`ECEntityType`,
+  `EventSource`, `EventSourceUsage`/`UsageHold`/`UsageWatch` and `TriggerThrottle` now live in
+  `br.com.finalcraft.evernifecore.action`; `IPlayerStateAccess`, `HeldPlayerState`, `PlayerStateBackup`, `ECGameMode`,
+  `PlayerTime`, `ActiveEffect` and `EffectLevel` in `player.state`; `ItemSpec` in `item`. Same classes, same
+  behaviour: a plugin updates its imports.
+- **One clock and one scheduler**: `time.ECClock` replaces `RegionClock`; `time.ECScheduler` replaces both
+  `scheduler.FCScheduler` and `RegionScheduler` with the same static methods (`runAsync`, `scheduleAsync`,
+  `runAsyncFuture`, `supplyAsyncFuture`, `getScheduler`, `getMinecraftScheduler`, `getHytaleScheduler`; the test
+  seam `RegionScheduler.set` is `ECScheduler.set`). No alias is kept; `McFCScheduler`/`HyFCScheduler` are unchanged.
 
 ## [3.0.1-alpha.70] - 2026-10-19
 

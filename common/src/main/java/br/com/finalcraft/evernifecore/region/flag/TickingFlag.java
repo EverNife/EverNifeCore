@@ -1,6 +1,7 @@
 package br.com.finalcraft.evernifecore.region.flag;
 
-import br.com.finalcraft.evernifecore.region.flag.context.SessionContext;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.SessionContext;
 
 /**
  * A flag that acts on the players inside its regions over time. It needs {@link EventSource#TICK}: the region tick

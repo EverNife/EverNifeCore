@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.hytale.scheduler;
 
-import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.util.thread.TickingThread;
@@ -55,7 +55,7 @@ public class HyFCScheduler {
     }
 
     public void scheduleSync(World world, Runnable runnable, long delayMillis){
-        FCScheduler.getScheduler().schedule(() -> {
+        ECScheduler.getScheduler().schedule(() -> {
             world.execute(runnable);
         }, delayMillis, TimeUnit.MILLISECONDS);
     }
@@ -63,7 +63,7 @@ public class HyFCScheduler {
     /** Runs {@code runnable} on {@code world}'s thread after {@code delayTicks} of that world's own ticks. */
     public void scheduleSyncInTicks(World world, Runnable runnable, long delayTicks){
         long delayMillis = ticksToMillis(delayTicks, tpsOf(world));
-        FCScheduler.runAsync(() -> {
+        ECScheduler.runAsync(() -> {
             try {
                 Thread.sleep(delayMillis);
             } catch (InterruptedException e) {
@@ -111,7 +111,7 @@ public class HyFCScheduler {
                 FutureTask<T> futureTask = new FutureTask(callable);
 
                 long delayMillis = ticksToMillis(delayTicks, tpsOf(world));
-                FCScheduler.runAsync(() -> {
+                ECScheduler.runAsync(() -> {
                     try {
                         Thread.sleep(delayMillis);
                     } catch (InterruptedException e) {

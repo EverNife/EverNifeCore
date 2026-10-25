@@ -2,7 +2,7 @@ package br.com.finalcraft.evernifecore.minecraft.scheduler;
 
 import br.com.finalcraft.evernifecore.minecraft.loader.EverNifeCoreBukkitPlugin;
 import br.com.finalcraft.evernifecore.minecraft.util.FCBukkitUtil;
-import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -82,7 +82,7 @@ public class McFCScheduler {
     }
 
     public void scheduleSync(Runnable runnable, long delayMillis){
-        FCScheduler.getScheduler().schedule(() -> {
+        ECScheduler.getScheduler().schedule(() -> {
             wrapRunnable(runnable).runTask(EverNifeCoreBukkitPlugin.instance);
         }, delayMillis, TimeUnit.MILLISECONDS);
     }

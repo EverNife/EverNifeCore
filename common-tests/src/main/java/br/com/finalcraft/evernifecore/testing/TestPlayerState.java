@@ -1,11 +1,11 @@
 package br.com.finalcraft.evernifecore.testing;
 
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
-import br.com.finalcraft.evernifecore.region.flag.EffectLevel;
-import br.com.finalcraft.evernifecore.region.playerstate.ActiveEffect;
-import br.com.finalcraft.evernifecore.region.playerstate.ECGameMode;
-import br.com.finalcraft.evernifecore.region.playerstate.IPlayerStateAccess;
-import br.com.finalcraft.evernifecore.region.playerstate.PlayerTime;
+import br.com.finalcraft.evernifecore.player.state.ActiveEffect;
+import br.com.finalcraft.evernifecore.player.state.ECGameMode;
+import br.com.finalcraft.evernifecore.player.state.EffectLevel;
+import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
+import br.com.finalcraft.evernifecore.player.state.PlayerTime;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;

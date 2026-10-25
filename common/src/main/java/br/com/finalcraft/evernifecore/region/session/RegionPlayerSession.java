@@ -1,15 +1,15 @@
 package br.com.finalcraft.evernifecore.region.session;
 
-import br.com.finalcraft.evernifecore.region.playerstate.HeldPlayerState;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.WorldBlockPos;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.player.state.HeldPlayerState;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.group.MembershipCheck;
+import br.com.finalcraft.evernifecore.time.ECClock;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -98,7 +98,7 @@ public final class RegionPlayerSession {
             return cached.value;
         }
         boolean value = compute.getAsBoolean();
-        memberships.put(group, new Cached(value, boundaryEpoch, RegionClock.now()));
+        memberships.put(group, new Cached(value, boundaryEpoch, ECClock.now()));
         return value;
     }
 
@@ -137,7 +137,7 @@ public final class RegionPlayerSession {
     }
 
     /**
-     * When the player entered {@code region}, by {@link RegionClock}; null when they are not in it. Kept while they stay,
+     * When the player entered {@code region}, by {@link ECClock}; null when they are not in it. Kept while they stay,
      * through moves inside it, and dropped once they leave.
      */
     public @Nullable Instant getEnteredAt(Region region) {
@@ -195,7 +195,7 @@ public final class RegionPlayerSession {
 
     private void trackEntries(List<Region> regions) {
         enteredAt.keySet().retainAll(regions);
-        Instant now = RegionClock.now();
+        Instant now = ECClock.now();
         for (Region region : regions) {
             enteredAt.putIfAbsent(region, now);
         }
@@ -363,6 +363,6 @@ public final class RegionPlayerSession {
             return false;
         }
         Duration interval = check.getInterval();
-        return interval == null || Duration.between(cached.at, RegionClock.now()).compareTo(interval) < 0;
+        return interval == null || Duration.between(cached.at, ECClock.now()).compareTo(interval) < 0;
     }
 }

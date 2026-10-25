@@ -1,22 +1,22 @@
 package br.com.finalcraft.evernifecore.region.session;
 
 import br.com.finalcraft.evernifecore.EverNifeCore;
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.EventSourceUsage;
+import br.com.finalcraft.evernifecore.action.SessionContext;
+import br.com.finalcraft.evernifecore.action.UsageWatch;
 import br.com.finalcraft.evernifecore.api.common.player.FPlayer;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
-import br.com.finalcraft.evernifecore.region.RegionScheduler;
 import br.com.finalcraft.evernifecore.region.Resolution;
-import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
 import br.com.finalcraft.evernifecore.region.flag.FlagRegistry;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.TickingFlag;
-import br.com.finalcraft.evernifecore.region.flag.context.SessionContext;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
-import br.com.finalcraft.evernifecore.region.usage.EventSourceUsage;
-import br.com.finalcraft.evernifecore.region.usage.UsageWatch;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -64,7 +64,7 @@ public final class RegionTicker {
     void begin() {
         long started = generation.incrementAndGet();
         running = true;
-        RegionScheduler.scheduleAsync(() -> tick(started), PERIOD_MILLIS);
+        ECScheduler.scheduleAsync(() -> tick(started), PERIOD_MILLIS);
     }
 
     void end() {
@@ -94,7 +94,7 @@ public final class RegionTicker {
                 ECDebugModule.REGIONS.debug("Region tick in world '{}' skipped: {}", world, refused.toString());
             }
         });
-        RegionScheduler.scheduleAsync(() -> tick(started), PERIOD_MILLIS);
+        ECScheduler.scheduleAsync(() -> tick(started), PERIOD_MILLIS);
     }
 
     private static boolean holdsTickingFlag(List<Region> regions) {

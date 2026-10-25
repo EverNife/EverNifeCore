@@ -8,7 +8,7 @@ import br.com.finalcraft.evernifecore.hytale.util.FCHytaleAdventureUtil;
 import br.com.finalcraft.evernifecore.hytale.util.FCHytaleUtil;
 import br.com.finalcraft.evernifecore.logger.ECDebugModule;
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
-import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import com.hypixel.hytale.builtin.teleport.components.TeleportHistory;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
@@ -140,7 +140,7 @@ public abstract class HytaleFPlayer<DELEGATE> extends BaseFPlayer<DELEGATE> {
 
         World world = store.getExternalData().getWorld();
 
-        return FCScheduler.getHytaleScheduler().getSynchronizedAction().runAndGet(world, () -> {
+        return ECScheduler.getHytaleScheduler().getSynchronizedAction().runAndGet(world, () -> {
             TransformComponent transformComponent = store.getComponent(ref, TransformComponent.getComponentType());
             if (transformComponent == null) {
                 return null;

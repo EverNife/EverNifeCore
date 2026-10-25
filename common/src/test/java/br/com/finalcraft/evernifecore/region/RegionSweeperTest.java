@@ -9,6 +9,7 @@ import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.group.GroupChange;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -35,7 +36,7 @@ class RegionSweeperTest extends ManagedRegionFixture {
     void holdTheAgenda() {
         manager();   //loaded before the agenda is held
         clock = TestRegions.manualClock();
-        RegionScheduler.set((task, delayMillis) -> agenda.add(task));
+        ECScheduler.set((task, delayMillis) -> agenda.add(task));
     }
 
     /** Runs what the agenda holds now - one sweep, plus whatever writes were queued with it. */

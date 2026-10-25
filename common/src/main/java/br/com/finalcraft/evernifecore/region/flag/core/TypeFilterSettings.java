@@ -1,6 +1,6 @@
 package br.com.finalcraft.evernifecore.region.flag.core;
 
-import br.com.finalcraft.evernifecore.region.actor.TypeKey;
+import br.com.finalcraft.evernifecore.action.TypeKey;
 import br.com.finalcraft.everyconfig.annotation.Comment;
 
 import java.util.ArrayList;

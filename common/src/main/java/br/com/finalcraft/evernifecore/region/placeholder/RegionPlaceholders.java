@@ -11,7 +11,6 @@ import br.com.finalcraft.evernifecore.placeholder.manipulation.PlaceholderArgs;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
 import br.com.finalcraft.evernifecore.region.Region;
-import br.com.finalcraft.evernifecore.region.RegionClock;
 import br.com.finalcraft.evernifecore.region.RegionLookup;
 import br.com.finalcraft.evernifecore.region.command.FlagValues;
 import br.com.finalcraft.evernifecore.region.event.RegionRemovedEvent;
@@ -23,6 +22,7 @@ import br.com.finalcraft.evernifecore.region.group.AccessGroup;
 import br.com.finalcraft.evernifecore.region.session.RegionPlayerSession;
 import br.com.finalcraft.evernifecore.region.shape.BoundingBox;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
+import br.com.finalcraft.evernifecore.time.ECClock;
 import jakarta.annotation.Nullable;
 
 import java.time.Duration;
@@ -181,7 +181,7 @@ public final class RegionPlaceholders {
         op("parent", (region, viewer, ctx, scope) -> region.getParent() == null ? "" : scope.idOf(region.getParent()));
         op("expires_in", (region, viewer, ctx, scope) -> {
             Instant expiresAt = region.getExpiresAt();
-            return expiresAt == null ? "" : Math.max(0, Duration.between(RegionClock.now(), expiresAt).getSeconds());
+            return expiresAt == null ? "" : Math.max(0, Duration.between(ECClock.now(), expiresAt).getSeconds());
         });
         bound("min_x", BoundingBox::getMinX);
         bound("min_y", BoundingBox::getMinY);
@@ -211,7 +211,7 @@ public final class RegionPlaceholders {
         op("players_list", (region, viewer, ctx, scope) -> playersInside(region).stream().map(FPlayer::getName).collect(Collectors.joining(", ")));
         op("time_inside", (region, viewer, ctx, scope) -> {
             Instant entered = viewer == null ? null : enteredAt(viewer, region);
-            return entered == null ? "" : Duration.between(entered, RegionClock.now()).getSeconds();
+            return entered == null ? "" : Duration.between(entered, ECClock.now()).getSeconds();
         });
         op("has_player_[player]", (region, viewer, ctx, scope) -> {
             String name = ctx.getArgs("[player]").getValue();

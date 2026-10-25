@@ -1,12 +1,12 @@
 package br.com.finalcraft.evernifecore.region.session;
 
+import br.com.finalcraft.evernifecore.player.state.HeldPlayerState;
+import br.com.finalcraft.evernifecore.player.state.PlayerStateBackup;
 import br.com.finalcraft.evernifecore.playerdata.PlayerController;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.flag.Tristate;
 import br.com.finalcraft.evernifecore.region.flag.core.CoreFlags;
 import br.com.finalcraft.evernifecore.region.flag.core.PlayerStateSettings;
-import br.com.finalcraft.evernifecore.region.playerstate.HeldPlayerState;
-import br.com.finalcraft.evernifecore.region.playerstate.PlayerStateBackup;
 import br.com.finalcraft.evernifecore.testing.PlayerDataWorld;
 import br.com.finalcraft.evernifecore.testing.Storages;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;

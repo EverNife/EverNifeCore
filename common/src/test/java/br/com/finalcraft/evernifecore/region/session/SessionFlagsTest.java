@@ -1,10 +1,11 @@
 package br.com.finalcraft.evernifecore.region.session;
 
+import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.SessionContext;
 import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.region.Region;
 import br.com.finalcraft.evernifecore.region.event.RegionChangedEvent;
 import br.com.finalcraft.evernifecore.region.event.RegionFlagChangedEvent;
-import br.com.finalcraft.evernifecore.region.flag.EventSource;
 import br.com.finalcraft.evernifecore.region.flag.FlagCategory;
 import br.com.finalcraft.evernifecore.region.flag.FlagChangeCause;
 import br.com.finalcraft.evernifecore.region.flag.FlagKey;
@@ -14,7 +15,6 @@ import br.com.finalcraft.evernifecore.region.flag.FlagSettings;
 import br.com.finalcraft.evernifecore.region.flag.FlagTypes;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.Revalidation;
-import br.com.finalcraft.evernifecore.region.flag.context.SessionContext;
 import br.com.finalcraft.evernifecore.region.flag.core.FarewellFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.GreetingFlag;
 import br.com.finalcraft.evernifecore.testing.TestPlatform;

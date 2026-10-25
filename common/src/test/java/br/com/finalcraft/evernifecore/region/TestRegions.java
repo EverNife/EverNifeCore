@@ -1,8 +1,8 @@
 package br.com.finalcraft.evernifecore.region;
 
 import br.com.finalcraft.evernifecore.math.game.vector.locpos.WorldLocPos;
+import br.com.finalcraft.evernifecore.player.state.EffectLevel;
 import br.com.finalcraft.evernifecore.region.flag.AmountEvery;
-import br.com.finalcraft.evernifecore.region.flag.EffectLevel;
 import br.com.finalcraft.evernifecore.region.flag.FlagTypes;
 import br.com.finalcraft.evernifecore.region.flag.RegionFlag;
 import br.com.finalcraft.evernifecore.region.flag.core.TimeLock;
@@ -14,14 +14,14 @@ import br.com.finalcraft.evernifecore.ecplugin.ECPluginData;
 import br.com.finalcraft.evernifecore.math.game.vector.blockpos.BlockPos;
 import br.com.finalcraft.evernifecore.region.shape.CuboidShape;
 import br.com.finalcraft.evernifecore.region.shape.Shape;
+import br.com.finalcraft.evernifecore.time.ECClock;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -120,14 +120,14 @@ public final class TestRegions {
         return create(owner, name, world, CuboidShape.of(BlockPos.of(x1, y1, z1), BlockPos.of(x2, y2, z2)));
     }
 
-    /** An agenda that runs nothing until told to; {@link #install()} it and {@code RegionScheduler.set(null)} afterwards. */
-    public static final class ManualAgenda implements RegionScheduler.Backend {
+    /** An agenda that runs nothing until told to; {@link #install()} it and {@code ECScheduler.set(null)} afterwards. */
+    public static final class ManualAgenda implements ECScheduler.Backend {
 
         private final Queue<Runnable> tasks = new ConcurrentLinkedQueue<>();
         private final List<Long> delays = new CopyOnWriteArrayList<>();
 
         public ManualAgenda install() {
-            RegionScheduler.set(this);
+            ECScheduler.set(this);
             return this;
         }
 
@@ -162,12 +162,12 @@ public final class TestRegions {
     /** Installs a clock that only moves when told to; {@link #restoreClock()} puts the system clock back. */
     public static ManualClock manualClock() {
         ManualClock clock = new ManualClock(Instant.parse("2026-10-06T12:00:00Z"));
-        RegionClock.setClock(clock);
+        ECClock.setClock(clock);
         return clock;
     }
 
     public static void restoreClock() {
-        RegionClock.setClock(null);
+        ECClock.setClock(null);
     }
 
     public static final class ManualClock extends Clock {

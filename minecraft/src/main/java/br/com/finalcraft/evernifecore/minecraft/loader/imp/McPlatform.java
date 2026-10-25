@@ -32,13 +32,13 @@ import br.com.finalcraft.evernifecore.minecraft.version.MCVersion;
 import br.com.finalcraft.evernifecore.minecraft.version.ServerSoftware;
 import br.com.finalcraft.evernifecore.minecraft.world.WorldHeights;
 import br.com.finalcraft.evernifecore.placeholder.replacer.RegexReplacer;
+import br.com.finalcraft.evernifecore.player.state.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.playerdata.IPlayerData;
-import br.com.finalcraft.evernifecore.region.playerstate.IPlayerStateAccess;
 import br.com.finalcraft.evernifecore.region.selection.ISelectionItems;
 import br.com.finalcraft.evernifecore.region.shape.WorldHeight;
 import br.com.finalcraft.evernifecore.region.terrain.ITerrainAccess;
 import br.com.finalcraft.evernifecore.region.visual.IOutlineRenderer;
-import br.com.finalcraft.evernifecore.scheduler.FCScheduler;
+import br.com.finalcraft.evernifecore.time.ECScheduler;
 import br.com.finalcraft.evernifecore.util.ExecuteOnce;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -400,7 +400,7 @@ public class McPlatform implements IPlatform {
     public CompletableFuture<Void> runOnWorldThreadNextTick(String worldName, Runnable task) {
         //one tick of delay, not runSync's zero: a zero-delay task scheduled from a running task may run in the same tick
         CompletableFuture<Void> future = new CompletableFuture<>();
-        FCScheduler.getMinecraftScheduler().scheduleSyncInTicks(() -> {
+        ECScheduler.getMinecraftScheduler().scheduleSyncInTicks(() -> {
             try {
                 task.run();
                 future.complete(null);
@@ -474,7 +474,7 @@ public class McPlatform implements IPlatform {
         //the tick until it finishes - the first-boot legacy import relies on that to freeze the
         //server while it migrates.
         CompletableFuture<T> future = new CompletableFuture<>();
-        FCScheduler.getMinecraftScheduler().runSync(() -> {
+        ECScheduler.getMinecraftScheduler().runSync(() -> {
             try {
                 future.complete(task.get());
             } catch (Throwable throwable) {
