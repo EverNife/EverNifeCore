@@ -47,7 +47,7 @@ public final class McRegionProtectionHandler implements ProtectionHandler {
         if (McActionContexts.isDisabled(victim.getWorld())) {
             return true;
         }
-        return allows(new DamageContext(McActionContexts.position(victim.getLocation()), McActionContexts.actor(player), null,
+        return allows(new DamageContext(EventSource.DAMAGE, McActionContexts.position(victim.getLocation()), McActionContexts.actor(player), null,
                 McActionContexts.actor(victim)));
     }
 

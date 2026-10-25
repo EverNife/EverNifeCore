@@ -177,16 +177,16 @@ class RegionLookupDecideTest {
         TestFPlayerSender victimA = new TestFPlayerSender("victimA");
         TestFPlayerSender victimB = new TestFPlayerSender("victimB");
 
-        lookup.decide(new DamageContext(at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.player(victimA)));
-        lookup.decide(new DamageContext(at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.player(victimA)));
+        lookup.decide(new DamageContext(EventSource.DAMAGE, at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.player(victimA)));
+        lookup.decide(new DamageContext(EventSource.DAMAGE, at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.player(victimA)));
         assertEquals(1, flag.applied.get(), "one victim, one pace");
 
-        lookup.decide(new DamageContext(at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.player(victimB)));
-        lookup.decide(new DamageContext(at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.player(victimB)));
+        lookup.decide(new DamageContext(EventSource.DAMAGE, at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.player(victimB)));
+        lookup.decide(new DamageContext(EventSource.DAMAGE, at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.player(victimB)));
         assertEquals(2, flag.applied.get(), "another victim has a pace of its own");
 
-        lookup.decide(new DamageContext(at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.entity("minecraft:cow", ECEntityType.ANIMAL)));
-        lookup.decide(new DamageContext(at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.entity("minecraft:cow", ECEntityType.ANIMAL)));
+        lookup.decide(new DamageContext(EventSource.DAMAGE, at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.entity("minecraft:cow", ECEntityType.ANIMAL)));
+        lookup.decide(new DamageContext(EventSource.DAMAGE, at, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.entity("minecraft:cow", ECEntityType.ANIMAL)));
         assertEquals(3, flag.applied.get(), "no player on either side shares one pace");
     }
 
@@ -208,11 +208,11 @@ class RegionLookupDecideTest {
         TestFPlayerSender attacker = new TestFPlayerSender("attacker");
         WorldLocPos victimAt = WorldLocPos.of(5, 5, 5, WORLD);
 
-        assertEquals(Decision.PASS, lookup.decide(new DamageContext(victimAt, Actors.player(attacker), null,
+        assertEquals(Decision.PASS, lookup.decide(new DamageContext(EventSource.DAMAGE, victimAt, Actors.player(attacker), null,
                 Actors.entity("minecraft:cow", ECEntityType.ANIMAL))));
-        assertEquals(Decision.DENY, lookup.decide(new DamageContext(victimAt, Actors.player(attacker), null,
+        assertEquals(Decision.DENY, lookup.decide(new DamageContext(EventSource.DAMAGE, victimAt, Actors.player(attacker), null,
                 Actors.player(new TestFPlayerSender("victim")))));
-        assertEquals(Decision.PASS, lookup.decide(new DamageContext(victimAt, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null,
+        assertEquals(Decision.PASS, lookup.decide(new DamageContext(EventSource.DAMAGE, victimAt, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null,
                 Actors.player(new TestFPlayerSender("victim")))), "a zombie hitting a player is no PvP");
     }
 
@@ -383,7 +383,7 @@ class RegionLookupDecideTest {
     }
 
     private static EntityContext useEntity(String typeId, TestFPlayerSender player) {
-        return new EntityContext(WorldLocPos.of(5, 5, 5, WORLD), Actors.player(player), null, Actors.entity(typeId, ECEntityType.OTHER));
+        return new EntityContext(EventSource.INTERACT, WorldLocPos.of(5, 5, 5, WORLD), Actors.player(player), null, Actors.entity(typeId, ECEntityType.OTHER));
     }
 
     @Test

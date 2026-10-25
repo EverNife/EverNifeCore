@@ -61,9 +61,9 @@ class ActorContextsTest {
         return Arrays.asList(
                 new BlockContext(EventSource.BREAK, AT, steve, null, TypeKey.parse("minecraft:stone"), null),
                 new BlockContext(EventSource.BREAK, AT, Actors.environment("fire"), null, TypeKey.parse("minecraft:planks"), null),
-                new DamageContext(AT, arrow, null, Actors.entity("minecraft:cow", ECEntityType.ANIMAL)),
-                new DamageContext(AT, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.player(STEVE)),
-                new EntityContext(AT, steve, null, Actors.entity("minecraft:villager", ECEntityType.NPC)),
+                new DamageContext(EventSource.DAMAGE, AT, arrow, null, Actors.entity("minecraft:cow", ECEntityType.ANIMAL)),
+                new DamageContext(EventSource.DAMAGE, AT, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null, Actors.player(STEVE)),
+                new EntityContext(EventSource.INTERACT, AT, steve, null, Actors.entity("minecraft:villager", ECEntityType.NPC)),
                 new SpawnContext(AT, Actors.environment("spawn"), null, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), "NATURAL"),
                 new ExplosionContext(AT, Actors.entity("minecraft:creeper", ECEntityType.MONSTER), null, 3f));
     }

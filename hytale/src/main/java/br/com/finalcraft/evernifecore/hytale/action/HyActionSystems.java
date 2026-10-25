@@ -208,7 +208,7 @@ public final class HyActionSystems {
         }
         String world = worldOf(store);
         return judge(source, world, event, () -> new ItemContext(source, HyActionContexts.position(world, at),
-                HyActionContexts.actor(actor, store), event, key));
+                HyActionContexts.actor(actor, store), event, key, item.getQuantity(), null));
     }
 
     /** What spawns a creature nobody spawned on purpose: the world itself. */
@@ -487,7 +487,7 @@ public final class HyActionSystems {
             return false;
         }
         String world = worldOf(store);
-        return judge(EventSource.INTERACT, world, event, () -> new EntityContext(HyActionContexts.position(world, at),
+        return judge(EventSource.INTERACT, world, event, () -> new EntityContext(EventSource.INTERACT, HyActionContexts.position(world, at),
                 HyActionContexts.actor(user, store), event, HyActionContexts.actor(target, store)));
     }
 
@@ -543,7 +543,7 @@ public final class HyActionSystems {
         }
     }
 
-    /** The pickup the player asks for; 0.7.1 raises no event for an item picked up by walking over it. */
+    /** The pickup the player asks for; 0.7.2 raises no event for an item picked up by walking over it (PlayerItemEntityPickupSystem). */
     private static final class ItemPickupSystem extends ByActor<InteractivelyPickupItemEvent> {
         ItemPickupSystem() {
             super(InteractivelyPickupItemEvent.class);
@@ -610,7 +610,7 @@ public final class HyActionSystems {
             Vector3d at = chunk.getComponent(index, TransformComponent.getComponentType()).getPosition();
             Ref<EntityStore> victim = chunk.getReferenceTo(index);
             String world = worldOf(store);
-            judge(EventSource.DAMAGE, world, damage, () -> new DamageContext(HyActionContexts.position(world, at),
+            judge(EventSource.DAMAGE, world, damage, () -> new DamageContext(EventSource.DAMAGE, HyActionContexts.position(world, at),
                     attacker(damage, store), damage, HyActionContexts.actor(victim, store)));
         }
 

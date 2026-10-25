@@ -3,6 +3,7 @@ package br.com.finalcraft.evernifecore.minecraft.action.listener;
 import br.com.finalcraft.evernifecore.action.Actions;
 import br.com.finalcraft.evernifecore.action.Actor;
 import br.com.finalcraft.evernifecore.action.DamageContext;
+import br.com.finalcraft.evernifecore.action.EventSource;
 import br.com.finalcraft.evernifecore.action.event.DamageActionEvent;
 import br.com.finalcraft.evernifecore.listeners.base.ECListener;
 import jakarta.annotation.Nullable;
@@ -59,7 +60,7 @@ public final class DamageActionListener implements ECListener {
     //the damager acts, with the player behind it as root - none for a monster: the flag decides what that means
     private static DamageContext context(EntityDamageByEntityEvent event) {
         Entity victim = event.getEntity();
-        return new DamageContext(McActionContexts.position(victim.getLocation()), McActionContexts.actor(event.getDamager()), event,
+        return new DamageContext(EventSource.DAMAGE, McActionContexts.position(victim.getLocation()), McActionContexts.actor(event.getDamager()), event,
                 McActionContexts.actor(victim));
     }
 
@@ -73,7 +74,7 @@ public final class DamageActionListener implements ECListener {
             return null;
         }
         Entity victim = event.getEntity();
-        return new DamageContext(McActionContexts.position(victim.getLocation()), Actor.environment(McActionContexts.EXPLOSION), event,
+        return new DamageContext(EventSource.DAMAGE, McActionContexts.position(victim.getLocation()), Actor.environment(McActionContexts.EXPLOSION), event,
                 McActionContexts.actor(victim));
     }
 }

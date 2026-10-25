@@ -27,7 +27,8 @@ public final class ItemActionListeners {
     }
 
     static ItemContext context(EventSource source, Item item, Actor actor, Cancellable event) {
-        return new ItemContext(source, McActionContexts.position(item.getLocation()), actor, event, McActionContexts.key(item.getItemStack()));
+        return new ItemContext(source, McActionContexts.position(item.getLocation()), actor, event, McActionContexts.key(item.getItemStack()),
+                item.getItemStack().getAmount(), item.getUniqueId());
     }
 
     static void pickup(Item item, Actor actor, Cancellable event) {

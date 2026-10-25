@@ -85,7 +85,7 @@ public final class InteractActionListener implements ECListener {
         if (McActionContexts.isDisabled(entity.getWorld())) {
             return null;
         }
-        return new EntityContext(McActionContexts.position(entity.getLocation()), McActionContexts.actor(event.getPlayer()), event,
+        return new EntityContext(EventSource.INTERACT, McActionContexts.position(entity.getLocation()), McActionContexts.actor(event.getPlayer()), event,
                 McActionContexts.actor(entity));
     }
 }

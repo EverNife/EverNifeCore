@@ -81,11 +81,11 @@ class ProtectionCatalogTest {
     }
 
     private Decision item(EventSource source, String key) {
-        return lookup.decide(new ItemContext(source, AT, Actors.player(player), null, TypeKey.parse(key)));
+        return lookup.decide(new ItemContext(source, AT, Actors.player(player), null, TypeKey.parse(key), 1, null));
     }
 
     private Decision hit(Actor attacker) {
-        return lookup.decide(new DamageContext(AT, attacker, null, Actors.player(new TestFPlayerSender("victim"))));
+        return lookup.decide(new DamageContext(EventSource.DAMAGE, AT, attacker, null, Actors.player(new TestFPlayerSender("victim"))));
     }
 
     @Test
@@ -172,7 +172,7 @@ class ProtectionCatalogTest {
         assertEquals(Decision.PASS, hit(Actors.environment("fall")), "a fall still hurts");
         assertEquals(Decision.PASS, hit(Actors.environment("lava")), "lava still hurts");
         assertEquals(Decision.PASS, hit(Actors.player(new TestFPlayerSender("attacker"))), "a player is no mob");
-        assertEquals(Decision.PASS, lookup.decide(new DamageContext(AT, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null,
+        assertEquals(Decision.PASS, lookup.decide(new DamageContext(EventSource.DAMAGE, AT, Actors.entity("minecraft:zombie", ECEntityType.MONSTER), null,
                 Actors.entity("minecraft:cow", ECEntityType.ANIMAL))), "only a player's damage is about this flag");
     }
 

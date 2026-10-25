@@ -98,6 +98,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `ActionSupport` says which sources a platform raises and where a `.Pre` exists (`declare`, `isServed`, `hasPre`,
   `isNativeCommandSource`); `ActionSupport.requireServed` is the loud failure (`UnsupportedSourceException`, naming the
   definition, the source and the server) a definition raises at load on a platform without the source.
+  Twelve new sources, each with its pair: `KILL` (`KillActionEvent`, a `DamageContext` whose victim died), `CRAFT`,
+  `SMELT`, `FISH`, `CONSUME`, `ENCHANT` (`ItemContext`), `XP_GAIN` (`XpContext`), `TAME`, `BREED`, `SHEAR`
+  (`EntityContext`), `COMMAND` (`CommandContext`: the label typed and every name of the command, moved here from
+  FinalProtection) and `EXPLORE` (`ExploreContext`: the chunk left and the chunk entered). `KILL`, `SMELT` and
+  `XP_GAIN` have no `.Pre` on Bukkit (none of those events can be cancelled).
 
 ### Fixed
 
@@ -153,6 +158,11 @@ Versions are published as `evernifecore-minecraft`, `evernifecore-hytale`, `ever
   `getHolders` answers by holder id. What is still held when the player quits is given back (`HeldPlayerState.forget`).
 - **The Bukkit region listeners live in `minecraft.action.listener`** (`RegionListeners`, `RegionContexts`, ...); on
   Hytale `HyRegionSystems` is `hytale.action.HyActionSystems`.
+- `ItemContext`, `EntityContext` and `DamageContext` take their source, and refuse one they do not serve:
+  `ItemContext(source, position, actor, nativeEvent, itemKey, amount, itemEntity)` serves the pickup, drop, craft, smelt,
+  fish, consume and enchant sources (`getAmount()`, `getItemEntityId()` - null for a craft or a meal);
+  `EntityContext(source, ...)` the interact, tame, breed and shear sources; `DamageContext(source, ...)` the damage and
+  kill sources.
 
 ### Removed
 

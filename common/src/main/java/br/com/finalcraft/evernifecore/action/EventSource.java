@@ -50,6 +50,42 @@ public final class EventSource {
      * merely allows or denies flight changes it on entering and never hears the toggle.
      */
     public static final EventSource FLIGHT_TOGGLE = core("flight-toggle");
+    /**
+     * A creature or a player killed, after the fact: a death cannot be cancelled, so this source has no {@code Pre}. Apart
+     * from {@link #DAMAGE}, which is every hit, so that counting kills never puts the hit listener on the server.
+     */
+    public static final EventSource KILL = core("kill");
+    /** An item crafted by a player; the context carries the whole amount produced, a shift-click included. */
+    public static final EventSource CRAFT = core("craft");
+    /** An item taken out of a furnace by a player, after the fact: the extraction cannot be cancelled. */
+    public static final EventSource SMELT = core("smelt");
+    /** A catch reeled in by a player's rod - only a catch, never a cast or a bite. */
+    public static final EventSource FISH = core("fish");
+    /** An item a player eats or drinks. */
+    public static final EventSource CONSUME = core("consume");
+    /**
+     * Experience a player picks up, after the fact: changing the amount is not cancelling it. Raised by every orb, so a
+     * source of its own.
+     */
+    public static final EventSource XP_GAIN = core("xp-gain");
+    /** An item enchanted by a player at a table. */
+    public static final EventSource ENCHANT = core("enchant");
+    /** An animal tamed by a player. */
+    public static final EventSource TAME = core("tame");
+    /** Two animals breeding: the context's entity is the newborn, the actor whoever fed them. */
+    public static final EventSource BREED = core("breed");
+    /** An animal sheared by a player. */
+    public static final EventSource SHEAR = core("shear");
+    /**
+     * A player about to run a command. Raised by the platform's own command event where it has one (Bukkit), else by the
+     * core's command framework for its own commands (Hytale) - never by both.
+     */
+    public static final EventSource COMMAND = core("command");
+    /**
+     * A player stepping into another chunk. Derived from movement, but a source of its own apart from {@link #MOVE}: a
+     * listener of chunk changes never makes the regions follow every step.
+     */
+    public static final EventSource EXPLORE = core("explore");
     public static final EventSource TICK = core("tick");
     public static final EventSource NONE = core("none");
 

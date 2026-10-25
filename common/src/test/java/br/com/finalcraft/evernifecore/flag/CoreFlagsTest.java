@@ -153,7 +153,7 @@ class CoreFlagsTest {
     void denyFlagsDenyOnTrueAndTheHybridOnDenied() {
         WorldLocPos at = WorldLocPos.of(5, 5, 5, "world");
         TestFPlayerSender player = new TestFPlayerSender("player");
-        DamageContext pvpHit = new DamageContext(at, Actors.player(player), null, Actors.player(new TestFPlayerSender("victim")));
+        DamageContext pvpHit = new DamageContext(EventSource.DAMAGE, at, Actors.player(player), null, Actors.player(new TestFPlayerSender("victim")));
         Flag<Tristate> pvp = (Flag<Tristate>) FlagRegistry.get().find("evernifecore:deny-pvp").get();
         assertEquals(Decision.DENY, pvp.decide(pvpHit, Tristate.TRUE));
         assertEquals(Decision.PASS, pvp.decide(pvpHit, Tristate.FALSE));

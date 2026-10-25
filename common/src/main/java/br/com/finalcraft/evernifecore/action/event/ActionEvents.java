@@ -2,14 +2,18 @@ package br.com.finalcraft.evernifecore.action.event;
 
 import br.com.finalcraft.evernifecore.action.ActionContext;
 import br.com.finalcraft.evernifecore.action.BlockContext;
+import br.com.finalcraft.evernifecore.action.CommandContext;
 import br.com.finalcraft.evernifecore.action.DamageContext;
+import br.com.finalcraft.evernifecore.action.EntityContext;
 import br.com.finalcraft.evernifecore.action.EventSource;
+import br.com.finalcraft.evernifecore.action.ExploreContext;
 import br.com.finalcraft.evernifecore.action.ExplosionContext;
 import br.com.finalcraft.evernifecore.action.FluidContext;
 import br.com.finalcraft.evernifecore.action.ItemContext;
 import br.com.finalcraft.evernifecore.action.SimpleContext;
 import br.com.finalcraft.evernifecore.action.SpawnContext;
 import br.com.finalcraft.evernifecore.action.VehicleContext;
+import br.com.finalcraft.evernifecore.action.XpContext;
 import jakarta.annotation.Nullable;
 
 import java.util.Collections;
@@ -53,6 +57,30 @@ public final class ActionEvents {
                 context -> new FireSpreadActionEvent.Pre(context.as(BlockContext.class)), context -> new FireSpreadActionEvent.Post(context.as(BlockContext.class)));
         add(EventSource.FLIGHT_TOGGLE, FlightToggleActionEvent.Pre.class, FlightToggleActionEvent.Post.class,
                 context -> new FlightToggleActionEvent.Pre(context.as(SimpleContext.class)), context -> new FlightToggleActionEvent.Post(context.as(SimpleContext.class)));
+        add(EventSource.KILL, KillActionEvent.Pre.class, KillActionEvent.Post.class,
+                context -> new KillActionEvent.Pre(context.as(DamageContext.class)), context -> new KillActionEvent.Post(context.as(DamageContext.class)));
+        add(EventSource.CRAFT, CraftActionEvent.Pre.class, CraftActionEvent.Post.class,
+                context -> new CraftActionEvent.Pre(context.as(ItemContext.class)), context -> new CraftActionEvent.Post(context.as(ItemContext.class)));
+        add(EventSource.SMELT, SmeltActionEvent.Pre.class, SmeltActionEvent.Post.class,
+                context -> new SmeltActionEvent.Pre(context.as(ItemContext.class)), context -> new SmeltActionEvent.Post(context.as(ItemContext.class)));
+        add(EventSource.FISH, FishActionEvent.Pre.class, FishActionEvent.Post.class,
+                context -> new FishActionEvent.Pre(context.as(ItemContext.class)), context -> new FishActionEvent.Post(context.as(ItemContext.class)));
+        add(EventSource.CONSUME, ConsumeActionEvent.Pre.class, ConsumeActionEvent.Post.class,
+                context -> new ConsumeActionEvent.Pre(context.as(ItemContext.class)), context -> new ConsumeActionEvent.Post(context.as(ItemContext.class)));
+        add(EventSource.XP_GAIN, XpGainActionEvent.Pre.class, XpGainActionEvent.Post.class,
+                context -> new XpGainActionEvent.Pre(context.as(XpContext.class)), context -> new XpGainActionEvent.Post(context.as(XpContext.class)));
+        add(EventSource.ENCHANT, EnchantActionEvent.Pre.class, EnchantActionEvent.Post.class,
+                context -> new EnchantActionEvent.Pre(context.as(ItemContext.class)), context -> new EnchantActionEvent.Post(context.as(ItemContext.class)));
+        add(EventSource.TAME, TameActionEvent.Pre.class, TameActionEvent.Post.class,
+                context -> new TameActionEvent.Pre(context.as(EntityContext.class)), context -> new TameActionEvent.Post(context.as(EntityContext.class)));
+        add(EventSource.BREED, BreedActionEvent.Pre.class, BreedActionEvent.Post.class,
+                context -> new BreedActionEvent.Pre(context.as(EntityContext.class)), context -> new BreedActionEvent.Post(context.as(EntityContext.class)));
+        add(EventSource.SHEAR, ShearActionEvent.Pre.class, ShearActionEvent.Post.class,
+                context -> new ShearActionEvent.Pre(context.as(EntityContext.class)), context -> new ShearActionEvent.Post(context.as(EntityContext.class)));
+        add(EventSource.COMMAND, CommandActionEvent.Pre.class, CommandActionEvent.Post.class,
+                context -> new CommandActionEvent.Pre(context.as(CommandContext.class)), context -> new CommandActionEvent.Post(context.as(CommandContext.class)));
+        add(EventSource.EXPLORE, ExploreActionEvent.Pre.class, ExploreActionEvent.Post.class,
+                context -> new ExploreActionEvent.Pre(context.as(ExploreContext.class)), context -> new ExploreActionEvent.Post(context.as(ExploreContext.class)));
     }
 
     private ActionEvents() {
